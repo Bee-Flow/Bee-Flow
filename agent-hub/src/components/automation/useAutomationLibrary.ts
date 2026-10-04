@@ -78,7 +78,6 @@ export interface UseAutomationLibraryOptions {
     setBuilderInitialTab: (tab: string | null) => void;
     setBuilderStepId: (id: string | null) => void;
     setOpeningBuilder: (opening: boolean) => void;
-    setSegment: (segment: string) => void;
 }
 
 /** What a failed request said, for a toast the user can act on. */
@@ -91,12 +90,12 @@ const failureText = (e: unknown) => (e instanceof Error ? e.message : String(e))
  * truth for the sidebar, Cmd/Ctrl+K and the open builder alike.
  *
  * The builder setters come in because a duplicate, an import and a delete all
- * move the user: a fresh copy opens, an imported routine opens, and deleting
+ * move the user: a fresh copy opens, an imported automation opens, and deleting
  * the open one closes it.
  */
 export default function useAutomationLibrary({
     confirm, builderAutomationId, openingBuilder, builderStepId,
-    setBuilderAutomationId, setBuilderInitialTab, setBuilderStepId, setOpeningBuilder, setSegment,
+    setBuilderAutomationId, setBuilderInitialTab, setBuilderStepId, setOpeningBuilder,
 }: UseAutomationLibraryOptions): AutomationLibrary {
     const automationApi = useAutomationApi();
     const [automations, setAutomations] = useState<AutomationListRow[]>([]);
@@ -273,7 +272,7 @@ export default function useAutomationLibrary({
     const confirmDeleteAutomation = useCallback(async () => {
         if (!pendingDeleteAutomation) return;
         try {
-            // A delete moves the routine to the trash (runs are kept); the
+            // A delete moves the automation to the trash (runs are kept); the
             // "Recently deleted" section reads it fresh.
             await automationApi.deleteAutomation(pendingDeleteAutomation.id);
             invalidateAutomationTrash();
@@ -298,20 +297,19 @@ export default function useAutomationLibrary({
             await fetchAutomations();
             if (newId) {
                 setBuilderInitialTab(null); // a fresh copy always opens on the Editor
-                setSegment('automation');
                 setBuilderAutomationId(newId);
             }
         } catch (err) {
             console.warn('[AITasksDesigner] duplicateAutomation failed:', failureText(err));
             toast.error(failureText(err) || 'Could not duplicate that automation.');
         }
-    }, [fetchAutomations, setBuilderAutomationId, setBuilderInitialTab, setSegment]);
+    }, [fetchAutomations, setBuilderAutomationId, setBuilderInitialTab]);
 
     /**
-     * Export a routine as a portable JSON envelope.
+     * Export an automation as a portable JSON envelope.
      *
      * Goes through `GET /:id/export`, NOT `GET /:id`. The raw row carries
-     * `builderSession` — the entire AI conversation that built the routine —
+     * `builderSession` — the entire AI conversation that built the automation —
      * plus userId, organizationId and createdFromChatId, and it keeps the
      * pinned step outputs (captured live data). The export route hands back an
      * allow-listed envelope with all of that stripped, and it is the only shape
@@ -340,9 +338,9 @@ export default function useAutomationLibrary({
     /**
      * Import one back. Always creates a NEW automation, never overwrites: the
      * file carries no identity that could safely address an existing row, and
-     * silently replacing a live routine is not something a file picker should
+     * silently replacing a live automation is not something a file picker should
      * be able to do. The server re-keys every step id, so an import of the
-     * routine you exported five minutes ago is a genuine copy rather than a
+     * automation you exported five minutes ago is a genuine copy rather than a
      * second document pointing at the first one's steps.
      */
     const importAutomationFile = useCallback(async (file: File | null) => {

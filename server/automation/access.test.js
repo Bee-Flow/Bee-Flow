@@ -8,8 +8,8 @@
  *   - a direct user share and a group share grant their role; the strongest
  *     of several wins;
  *   - an org admin with manage_automations gets owner-level access, but only
- *     in the routine's own organisation;
- *   - a share never crosses organisations; an org-less routine borrows its
+ *     in the automation's own organisation;
+ *   - a share never crosses organisations; an org-less automation borrows its
  *     owner's organisation;
  *   - every lookup failure is "no role" (fail closed);
  *   - roleSatisfies: run < view < edit < owner, for every pair;
@@ -91,7 +91,7 @@ test('a share never crosses organisations', async () => {
     assert.deepStrictEqual(await access.roleFor(A, 'outsider'), { role: null, via: null });
 });
 
-test("an org-less routine is judged in its owner's organisation", async () => {
+test("an org-less automation is judged in its owner's organisation", async () => {
     const { access } = build();
     const orgless = { ...A, organizationId: null };
     assert.strictEqual((await access.roleFor(orgless, 'ed')).role, 'edit');

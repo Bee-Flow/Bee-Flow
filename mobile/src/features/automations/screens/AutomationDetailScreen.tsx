@@ -49,7 +49,7 @@ export function AutomationDetailScreen({ id }: { id: string }) {
     const header = (loaded: Automation | undefined) =>
         loaded ? (
             <ScreenHeader
-                title={loaded.title || t('mobile.automations.untitled', 'Untitled routine')}
+                title={loaded.title || t('automations.library.untitled', 'Untitled automation')}
                 subtitle={describeTrigger(loaded.definition?.trigger ?? null)}
                 actions={
                     <>

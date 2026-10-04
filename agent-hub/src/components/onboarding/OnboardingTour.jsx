@@ -1,13 +1,14 @@
+import { X, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { markLessonComplete } from './learningProgress';
+import { resolveLessonSteps, DEFAULT_LESSON_ID, LESSON_COMPLETE_EVENT } from './lessons';
+import { revealForTarget } from './tourAnchors';
+import { resolveTourCompletionNavigation } from './tourCompletion';
+import { TOUR_SEEN_KEY, TOUR_START_EVENT, TOUR_ENSURE_SIDEBAR_EVENT, TOUR_OPEN_DESIGNER_SECTION } from './tourSteps';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import scopedStorage from '../../utils/scopedStorage';
-import { TOUR_SEEN_KEY, TOUR_START_EVENT, TOUR_ENSURE_SIDEBAR_EVENT, TOUR_OPEN_DESIGNER_SECTION } from './tourSteps';
-import { resolveLessonSteps, DEFAULT_LESSON_ID, LESSON_COMPLETE_EVENT } from './lessons';
-import { markLessonComplete } from './learningProgress';
-import { revealForTarget } from './tourAnchors';
 
 /**
  * OnboardingTour — a lightweight, dependency-free guided tour for new users.
@@ -68,14 +69,19 @@ export default function OnboardingTour({ user, onNavigate, currentPage }) {
     const navigatedRef = useRef(false);     // did we drive navigation this run?
     const agentCreatedRef = useRef(false);  // did the user actually create an agent?
     const activeLessonRef = useRef(DEFAULT_LESSON_ID); // which lesson is running
+    const returnToRef = useRef(null);       // where the starter wants the learner back (BFSF-472)
     const runningRef = useRef(false);       // re-entrancy guard (mirrors `active`)
     const cardRef = useRef(null);
 
     const step = steps[stepIndex] || null;
 
     // Run a lesson by id. No id → the getting-started lesson (the original intro
-    // tour), so existing detail-less callers behave exactly as before.
-    const startTour = useCallback((lessonId = DEFAULT_LESSON_ID) => {
+    // tour), so existing detail-less callers behave exactly as before. `context`
+    // carries the starter's return context: `{ returnTo }` names the page the
+    // learner goes back to on completion (the Learning Center passes
+    // 'settings/learning'); without it the intro tour keeps its first-time
+    // onboarding home-jump to Direct chat.
+    const startTour = useCallback((lessonId = DEFAULT_LESSON_ID, context = null) => {
         // Ignore a start while a lesson is already running (e.g. a double-click on
         // a Learning Center card) so step arrays can't stack.
         if (runningRef.current) return;
@@ -83,6 +89,7 @@ export default function OnboardingTour({ user, onNavigate, currentPage }) {
         const resolved = resolveLessonSteps(id, user);
         if (!resolved.length) return;
         activeLessonRef.current = id;
+        returnToRef.current = (context && typeof context.returnTo === 'string' && context.returnTo) || null;
         runningRef.current = true;
         navigatedRef.current = false;
         agentCreatedRef.current = false;
@@ -119,10 +126,15 @@ export default function OnboardingTour({ user, onNavigate, currentPage }) {
         // intro lesson so its card shows a checkmark).
         try { await markLessonComplete(user, lessonId); } catch (e) { /* best-effort */ }
 
-        // The home-jump is intro-tour behaviour only; other lessons leave the
-        // user wherever the lesson ended.
-        if (isIntro && navigatedRef.current && onNavigate) onNavigate('agents');
+        // The home-jump is intro-tour behaviour only, and only for first-time
+        // onboarding: a run started WITH a return context (e.g. the Learning
+        // Center replaying "Getting started") hands the learner back to its
+        // starter instead (BFSF-472). Other lessons leave the user wherever the
+        // lesson ended.
+        const target = resolveTourCompletionNavigation({ isIntro, navigated: navigatedRef.current, returnTo: returnToRef.current });
+        if (target && onNavigate) onNavigate(target);
         navigatedRef.current = false;
+        returnToRef.current = null;
 
         // Let an open Learning Center flip this lesson's card to "Replay".
         try { window.dispatchEvent(new CustomEvent(LESSON_COMPLETE_EVENT, { detail: { lessonId } })); } catch (e) { /* ignore */ }
@@ -165,7 +177,7 @@ export default function OnboardingTour({ user, onNavigate, currentPage }) {
 
     // ── Replay on demand (intro tour or a specific Learning Center lesson) ──
     useEffect(() => {
-        const onStart = (e) => startTour(e?.detail?.lessonId);
+        const onStart = (e) => startTour(e?.detail?.lessonId, e?.detail || null);
         window.addEventListener(TOUR_START_EVENT, onStart);
         return () => window.removeEventListener(TOUR_START_EVENT, onStart);
     }, [startTour]);

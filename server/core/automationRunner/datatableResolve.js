@@ -25,7 +25,7 @@
  *    `datatable_identity_unavailable` rather than `datatable_forbidden`: an
  *    unresolved orgRole degrades to "not an admin" and an unresolved group list
  *    to "in no group", so the honest-looking answer blames the author for a
- *    lookup failure on a routine that worked yesterday. A personal table is
+ *    lookup failure on an automation that worked yesterday. A personal table is
  *    unaffected — its rule is "you are the account", which needs neither.
  */
 
@@ -65,7 +65,7 @@ async function resolveDatatableForStep(datatableId, ctx, { needed = 'viewer', re
     if (ctx.userId) scopes.push(datatableStore.userScope(ctx.userId));
     if (!scopes.length) {
         throw fail(
-            'This routine has neither an organisation nor an account, so it cannot use a datatable.',
+            'This automation has neither an organisation nor an account, so it cannot use a datatable.',
             'datatable_no_org',
         );
     }
@@ -78,7 +78,7 @@ async function resolveDatatableForStep(datatableId, ctx, { needed = 'viewer', re
     }
     if (!table) {
         throw fail(
-            `That datatable is not available to this routine (${datatableId}).`,
+            `That datatable is not available to this automation (${datatableId}).`,
             'datatable_not_found',
         );
     }
@@ -86,7 +86,7 @@ async function resolveDatatableForStep(datatableId, ctx, { needed = 'viewer', re
     // ── the grade, resolved fresh every run ─────────────────────────
     if (scope.kind === 'org' && ctx.identityError) {
         throw fail(
-            `Could not read who this routine runs as, so access to "${table.name}" cannot be decided (${ctx.identityError}).`,
+            `Could not read who this automation runs as, so access to "${table.name}" cannot be decided (${ctx.identityError}).`,
             'datatable_identity_unavailable',
         );
     }
@@ -101,7 +101,7 @@ async function resolveDatatableForStep(datatableId, ctx, { needed = 'viewer', re
     const grade = gradeForPrincipal(table, grants, principal);
     if (!grade || !gradeAtLeast(grade, needed)) {
         throw fail(
-            `This routine may not ${needed === 'viewer' ? 'read' : 'write to'} the datatable "${table.name}".`,
+            `This automation may not ${needed === 'viewer' ? 'read' : 'write to'} the datatable "${table.name}".`,
             'datatable_forbidden',
         );
     }

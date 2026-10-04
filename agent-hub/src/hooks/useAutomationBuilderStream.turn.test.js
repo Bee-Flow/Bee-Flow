@@ -54,6 +54,25 @@ async function startTurn(sendArgs = { message: 'x', modelTier: 'fast' }, { setup
 }
 
 describe('useAutomationBuilderStream — state.turn', () => {
+    it('keeps review previews separate from the draft and clears them on reset', async () => {
+        const original = { trigger: { id: 't' }, steps: [{ id: 's', label: 'Original' }] };
+        const preview = { trigger: { id: 't' }, steps: [{ id: 's', label: 'Proposed' }] };
+        const { result, body, finish } = await startTurn({ message: 'Change it', workMode: 'approve' }, { setup: r => r.current.setDraft(original) });
+        await act(async () => {
+            body.push(sse('proposal_preview', { id: 'p', definition: preview, baseDefinition: original }));
+            body.push(sse('review_plan', { plan: { id: 'plan', status: 'review' } }));
+            body.push(sse('review_questions', { questions: [{ id: 'q', prompt: 'Which folder?', options: ['A', 'B'] }] }));
+            await flush();
+        });
+        expect(result.current.state.draft).toEqual(original);
+        expect(result.current.state.proposal.definition).toEqual(preview);
+        expect(result.current.state.reviewQuestions).toHaveLength(1);
+        await finish();
+        act(() => result.current.reset());
+        expect(result.current.state.proposal).toBeNull();
+        expect(result.current.state.reviewPlan).toBeNull();
+        expect(result.current.state.reviewQuestions).toBeNull();
+    });
     // Date.now advances 1 s per call so "set once" is provable: a second write
     // would land a different number.
     let clock;

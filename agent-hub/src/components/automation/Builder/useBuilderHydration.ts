@@ -40,7 +40,7 @@ export interface UseBuilderHydrationOptions {
 }
 
 /**
- * The server's own copy of this routine, and what it takes to come back to a
+ * The server's own copy of this automation, and what it takes to come back to a
  * builder that was left open: the row behind the header, the builder-session
  * snapshot that restores the chat and the draft, and the last run that gives
  * the edges their chips back.
@@ -57,7 +57,7 @@ export default function useBuilderHydration({
 
     // Refetched on every dry run and finalize — and on every `metadata`
     // event (state.metadataSeq): the header shows the server row's title, and
-    // until this a routine the model named mid-build, or the server named at
+    // until this an automation the model named mid-build, or the server named at
     // the end of a turn, read "Untitled automation" up top until a reload.
     useEffect(() => {
         const aid = state.automationId || automationId;

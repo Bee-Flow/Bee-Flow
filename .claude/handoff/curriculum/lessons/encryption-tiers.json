@@ -73,7 +73,7 @@
       "id": "managed",
       "icon": "🛡️",
       "title": "Managed keeps a spare wrapping",
-      "bodyMd": "The card reads: *\"Encrypted at rest. Your administrators can reset a password without the user losing their data.\"*\n\nOn **Managed**, every user's DEK gets a second wrapping under a per-organisation root key, which chains back to a master key held in the server's own environment — never in the database. A stolen database, backup or replica is unreadable without that chain.\n\nThat second wrapping is called **escrow**, and it buys two things: an admin can reset a forgotten password with no data loss, and a 3am routine can summarise a thread with nobody signed in.\n\nThe honest limit, stated in the code itself: Managed does **not** protect against the operator of the server, who holds the master key. It must never be described as zero-knowledge."
+      "bodyMd": "The card reads: *\"Encrypted at rest. Your administrators can reset a password without the user losing their data.\"*\n\nOn **Managed**, every user's DEK gets a second wrapping under a per-organisation root key, which chains back to a master key held in the server's own environment — never in the database. A stolen database, backup or replica is unreadable without that chain.\n\nThat second wrapping is called **escrow**, and it buys two things: an admin can reset a forgotten password with no data loss, and a 3am automation can summarise a thread with nobody signed in.\n\nThe honest limit, stated in the code itself: Managed does **not** protect against the operator of the server, who holds the master key. It must never be described as zero-knowledge."
     },
     {
       "type": "slide",
@@ -145,7 +145,7 @@
           "id": "d",
           "label": "Yes, but only while that user happens to be signed in.",
           "correct": false,
-          "feedback": "The escrowed wrapping does not depend on anyone's session. That is why a 3am routine can summarise a thread nobody is sitting in front of."
+          "feedback": "The escrowed wrapping does not depend on anyone's session. That is why a 3am automation can summarise a thread nobody is sitting in front of."
         }
       ],
       "explanation": "Managed protects against a stolen database, backup or replica — not against the operator. The code says so in as many words, and adds that this tier must never be described as zero-knowledge. Saying it plainly in a questionnaire is what keeps the answer defensible.",
@@ -232,7 +232,7 @@
         "Names the Managed tier and states that conversation content is stored as AES-256-GCM envelopes, so a stolen database, backup or replica is unreadable.",
         "States plainly that the key is escrowed and chains back to a master key held by the operator of the server, so the operator can technically reach the content.",
         "Avoids any claim of zero-knowledge, 'nobody can read it', or 'encrypted at rest, therefore inaccessible to the provider'.",
-        "Gives a reason for the choice rather than an apology: admin password reset without data loss, and background routines that read threads with no user session.",
+        "Gives a reason for the choice rather than an apology: admin password reset without data loss, and background automations that read threads with no user session.",
         "Bonus accuracy: notes that the switch protected new writes and history needed a backfill, or that transcripts and project-shared conversations are keyed to the organisation on every tier."
       ],
       "passScore": 70,

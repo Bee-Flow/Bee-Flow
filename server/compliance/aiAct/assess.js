@@ -11,7 +11,7 @@
  *   transparency    customer-facing or content-generating (Art. 50 duties)
  *   minimal         everything else
  *
- * The admin's Art. 50 answers can widen "transparency" (they know the routine
+ * The admin's Art. 50 answers can widen "transparency" (they know the automation
  * mails the document to a customer even when the graph does not show a form)
  * but never narrow it: what the platform detected stands.
  *

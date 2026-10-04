@@ -27,7 +27,7 @@
  *     fields of the row ("read each message search found, then fetch each
  *     attachment read found"). See the chain caps below: depth multiplies calls
  *     made with the OWNER's credentials, so the budget is enforced, not advised.
- *   • automation       — trigger one of the owner's routines
+ *   • automation       — trigger one of the owner's automations
  *     (automationRunner.executeAutomation) after an owner-ownership check.
  *   • rest             — server-side https-only GET of an owner-defined,
  *     allow-listed URL TEMPLATE. Viewer params only fill declared {placeholders}
@@ -196,7 +196,7 @@ function declaredParamKeys(connector) {
  * Undeclared keys are dropped silently — same contract as the REST placeholder
  * filter. Only integration_tool is narrowed here: REST bounds its own surface to
  * the template's {placeholders}, and an automation's params bag is read
- * explicitly by the owner's routine.
+ * explicitly by the owner's automation.
  */
 function filterDeclaredParams(connector, params) {
     if (!isPlainObject(params)) return {};
@@ -297,7 +297,7 @@ function integrationIdsFor(connector) {
 function providerFor(integrationId) {
     if (!integrationId) return null;
     try {
-        const { providersForIntegrations } = require('../auth/routineAuth');
+        const { providersForIntegrations } = require('../auth/automationAuth');
         return providersForIntegrations([integrationId])[0] || null;
     } catch { return null; }
 }
@@ -312,13 +312,13 @@ function providerFor(integrationId) {
 //
 // `include` carries the integrations this session is ABOUT TO DISPATCH, so the
 // provider list can never be empty for the one call that needs it. That is not
-// a convenience: an empty list makes routineAuth.buildUserAuth take its
+// a convenience: an empty list makes automationAuth.buildUserAuth take its
 // `required.length === 0` shortcut, which returns a TRUTHY object with a null
 // accessToken — and the Google client then reports a connected account as "not
 // connected". See core/enabledIntegrations.js for the full trap.
 async function defaultBuildUserSession(userId, fallbackOrgId = null, { include = [], providerHint = null } = {}) {
     const userStore = require('../stores/userStore');
-    const routineAuth = require('../auth/routineAuth');
+    const automationAuth = require('../auth/automationAuth');
     const { resolveEnabledIntegrations } = require('../core/integrations/enabledIntegrations');
     const user = await userStore.getUser(userId).catch(() => null);
     const orgId = user?.organizationId || fallbackOrgId || null;
@@ -338,7 +338,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
         groups: Array.isArray(user?.groups) ? user.groups : [],
     };
     try {
-        const built = await routineAuth.buildUserAuth(userId, { enabledIntegrations: enabled, providerHint });
+        const built = await automationAuth.buildUserAuth(userId, { enabledIntegrations: enabled, providerHint });
         // `built.accessToken` — NOT just `built`. buildUserAuth answers with a
         // token-less shim when it was asked for no OAuth providers, and adopting
         // that as a session is what turns a working connection into "not
@@ -351,7 +351,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
                 refreshToken: built.refreshToken,
                 expiresAt: built.expiresAt,
                 oauthProvider: built.oauthProvider,
-                routineProviders: built.routineProviders || {},
+                automationProviders: built.automationProviders || {},
             };
         }
     } catch (err) {
@@ -362,7 +362,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
     // (automationRunner/engine.js) and the webpage bridge both keep. A user who
     // signed in with Google this session has usable tokens on their session row
     // even when the vault has nothing.
-    if (process.env.ROUTINE_AUTH_LEGACY !== '0') {
+    if (require('../utils/automationAuthLegacy').automationAuthLegacy() !== '0') {
         try {
             const { pool } = require('../db');
             const { rows } = await pool.query(
@@ -385,7 +385,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
     return {
         user: shimUser,
         isAdmin: !!user?.isAdmin,
-        routineProviders: {},
+        automationProviders: {},
     };
 }
 
@@ -407,7 +407,7 @@ function defaultDeps() {
         // or needs re-auth. A raw getCredential handed back a stale access
         // token, so every REST connector on a short-lived provider (Withings
         // expires in 3 h) died silently once the first token aged out.
-        getProviderAuth: (...a) => require('../auth/routineAuth').getProviderAuth(...a),
+        getProviderAuth: (...a) => require('../auth/automationAuth').getProviderAuth(...a),
         safeFetch: (...a) => require('../utils/ssrfGuard').safeFetch(...a),
         isPrivateTarget: (...a) => require('../utils/isPrivateTarget').isPrivateTarget(...a),
         buildOwnerSession: defaultBuildOwnerSession,
@@ -448,7 +448,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
         // composer. Entitlement + credential gates stay authoritative (same
         // rule as mailboxIdentity.viewerHasIntegration).
         const resolved = await deps.getIntegrationTools({
-            userId: viewerId, session, isAdmin: !!session?.isAdmin, routineStep: true,
+            userId: viewerId, session, isAdmin: !!session?.isAdmin, automationStep: true,
             enabledAppsOverride: integrationIdsFor(connector),
         });
         const names = new Set((resolved?.tools || []).map((t) => t?.function?.name).filter(Boolean));
@@ -528,7 +528,7 @@ async function connectionError(connector, message, { userId, deps: _deps } = {})
         try {
             const oauthProvider = providerFor(provider);
             if (oauthProvider) {
-                const { getProviderAuth } = require('../auth/routineAuth');
+                const { getProviderAuth } = require('../auth/automationAuth');
                 hasCredential = !!(await getProviderAuth(userId, oauthProvider))?.accessToken;
             }
         } catch { /* fall back to the plain "connect it" message */ }
@@ -906,7 +906,7 @@ async function runAutomationConnector(connector, { app, viewerId, params, deps }
 
     const automation = await deps.getAutomation(automationId);
     if (!automation) throw connectorError(404, 'Automation not found', 'not_found');
-    // Owner-ownership check — a routine transferred away after wiring must not
+    // Owner-ownership check — an automation transferred away after wiring must not
     // run acts-as-owner as someone else's (mirrors studioAppsRun.js).
     if (automation.userId !== app.userId) {
         throw connectorError(403, 'Automation does not belong to the app owner', 'forbidden');
@@ -924,7 +924,7 @@ async function runAutomationConnector(connector, { app, viewerId, params, deps }
     if (run && run.status && run.status !== 'success') {
         return { rows: [] };
     }
-    // The persisted run row carries no `output` column, so read the routine's
+    // The persisted run row carries no `output` column, so read the automation's
     // final value through the SAME derivation the action bridge uses
     // (actionExecutor.deriveFinalOutput → last executed top-level step).
     return { rows: toRows(await deps.deriveFinalOutput(run)) };

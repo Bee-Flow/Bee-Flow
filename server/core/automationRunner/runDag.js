@@ -203,7 +203,7 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
     //   split ─then→ w  → b2
     // the FIFO order is split, a1, w, a2, b2, a3 — exactly one node of branch A
     // gets ahead of the sleep and the rest of the workflow waits it out, which
-    // is what users report as "one Wait pauses the whole routine".
+    // is what users report as "one Wait pauses the whole automation".
     //
     // So: take any other runnable node first, and take a wait only when it is
     // the only thing left. Independent branches then drain to completion and
@@ -341,7 +341,7 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
                 // A row for the step that is RUNNING, not only for the ones
                 // that finished. Until now a step in flight left no trace at
                 // all, so anything asking "where is this run right now" — a
-                // public form page sitting on a spinner while the routine
+                // public form page sitting on a spinner while the automation
                 // works — had nothing to answer with. Upserted on
                 // (run_id, step_id, attempts), so the real row replaces this
                 // one the moment the step lands; a retry's attempts=1 'error'
@@ -486,7 +486,7 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
                 // ONLY in builder-initiated runs (dry-run / ▶ Execute) — the
                 // owner's decision: production runs never pay for extra
                 // scanning. scanOutputForPiiSummary itself gates on the org
-                // shield ("Apply to routines") and PII detection being on.
+                // shield ("Apply to automations") and PII detection being on.
                 // Pure transformation steps are exempt (BFSF-359): their output
                 // is a SUBSET of upstream data that was already scanned when
                 // the step that produced it was recorded, so re-scanning buys

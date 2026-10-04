@@ -1,3 +1,5 @@
+import ProjectDiscovery from './ProjectDiscovery';
+import { registerNavigationGuard } from '../../../utils/unsavedNavigation';
 // The project workspace: one page per project, a rail of sections on the
 // left, the open section on the right. `projectId === ''` is the create form.
 //
@@ -8,7 +10,7 @@
 // sections are separate chunks, loaded when first opened.
 
 import { AlertTriangle, History, Package } from 'lucide-react';
-import React, { Suspense, useCallback, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../../api/client';
 import { useProjectVisitQuery, type ChangeItemType } from '../../../api/queries/projectChanges';
 import { useProjectChatsQuery } from '../../../api/queries/projectChats';
@@ -20,6 +22,7 @@ import {
 } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
 import { lazy as lazyWithReload } from '../../../utils/lazyWithReload';
+import useConfirm from '../../shared/useConfirm';
 import ActivityTab from './ActivityTab';
 import MembersTab from './MembersTab';
 import OverviewTab from './OverviewTab';
@@ -94,7 +97,7 @@ function useRailCounts(projectId: string): RailCounts {
         notebooks: lengthOf(resources.data?.notebooks),
         meetings: lengthOf(resources.data?.meetings),
         knowledge: files.data && kbs !== null ? files.data.files.length + kbs : null,
-        members: members.data ? members.data.members.length + 1 : null,
+        members: members.data ? new Set([members.data.ownerId, ...members.data.members.filter(m => m.sharedWithType === 'user').map(m => m.sharedWithId)]).size : null,
     };
 }
 
@@ -174,11 +177,12 @@ interface WorkspaceProps extends Omit<ProjectWorkspacePageProps, 'projectId' | '
     currentUser: WorkspaceUser | null;
 }
 
-function TabContent({ route, project, role, props }: {
+function TabContent({ route, project, role, props, onSettingsDirty }: {
     route: ReturnType<typeof useWorkspaceRoute>;
     project: Project;
     role: ProjectRole;
     props: WorkspaceProps;
+    onSettingsDirty: (dirty: boolean) => void;
 }) {
     const { projectId, currentUser, onNavigate, onOpenThread, onStartChat, onDeleted } = props;
     const common: WorkspaceTabProps = {
@@ -199,8 +203,8 @@ function TabContent({ route, project, role, props }: {
         case 'meetings': return <MeetingsTab {...content} />;
         case 'knowledge': return <KnowledgeTab {...content} />;
         case 'members': return <MembersTab {...common} onLeft={onLeft} />;
-        case 'activity': return <ActivityTab {...common} />;
-        case 'settings': return <SettingsTab {...common} onDeleted={onDeleted} onLeft={onLeft} />;
+        case 'activity': return <ActivityTab {...common} onOpenThread={onOpenThread} />;
+        case 'settings': return <SettingsTab {...common} onDeleted={onDeleted} onLeft={onLeft} onDirtyChange={onSettingsDirty} />;
         default: return <OverviewTab {...common} onOpenTab={route.go} onStartChat={onStartChat} onOpenThread={onOpenThread} />;
     }
 }
@@ -231,7 +235,54 @@ function Workspace(props: WorkspaceProps) {
     const { t } = useTranslation();
     const { projectId, initialTab, initialSub, onRouteChange, currentUser, onClose, onNavigate } = props;
     const projectQuery = useProjectQuery(projectId);
-    const route = useWorkspaceRoute(initialTab, initialSub, onRouteChange);
+    const { confirm, confirmDialog } = useConfirm();
+    const settingsDirty = useRef(false);
+    const onSettingsDirty = useCallback((dirty: boolean) => { settingsDirty.current = dirty; }, []);
+    const plainRoute = useWorkspaceRoute(initialTab, initialSub, onRouteChange);
+    const routeNow = useRef(plainRoute);
+    routeNow.current = plainRoute;
+    // Leaving Settings with unsaved edits asks first: the form lives in the tab and would be gone.
+    const go = useCallback((tab: WorkspaceTabId, sub: string | null = null, intent: WorkspaceIntent | null = null) => {
+        if (!settingsDirty.current || tab === routeNow.current.tab) { routeNow.current.go(tab, sub, intent); return; }
+        void confirm({
+            title: t('project_home.settings.leave_title', 'Leave without saving?'),
+            description: t('project_home.settings.leave_body', 'Your changes to the settings have not been saved and will be lost.'),
+            confirmLabel: t('project_home.settings.leave_confirm', 'Leave without saving'),
+            cancelLabel: t('project_home.settings.leave_stay', 'Keep editing'),
+            destructive: true,
+        }).then((ok: boolean) => {
+            if (!ok) return;
+            settingsDirty.current = false;
+            routeNow.current.go(tab, sub, intent);
+        });
+    }, [confirm, t]);
+    const leave = useCallback(() => {
+        if (!settingsDirty.current) return true;
+        const ok = window.confirm(t('project_home.settings.leave_body', 'Your changes to the settings have not been saved and will be lost.'));
+        if (ok) settingsDirty.current = false;
+        return ok;
+    }, [t]);
+    useEffect(() => registerNavigationGuard(leave), [leave]);
+    useEffect(() => {
+        // Keep the form mounted and restore its URL if a browser traversal is cancelled.
+        const location = window.location.href;
+        const state = window.history.state;
+        const beforeUnload = (event: BeforeUnloadEvent) => {
+            if (settingsDirty.current) { event.preventDefault(); event.returnValue = ''; }
+        };
+        const pop = (event: PopStateEvent) => {
+            if (!settingsDirty.current || leave()) return;
+            event.stopImmediatePropagation();
+            window.history.pushState(state, '', location);
+        };
+        window.addEventListener('beforeunload', beforeUnload);
+        window.addEventListener('popstate', pop, true);
+        return () => {
+            window.removeEventListener('beforeunload', beforeUnload);
+            window.removeEventListener('popstate', pop, true);
+        };
+    }, [plainRoute.tab, plainRoute.sub, leave]);
+    const route = { ...plainRoute, go };
     const counts = useRailCounts(projectId);
     const unread = useReadState(projectId, currentUser?.id, route.tab, route.sub);
 
@@ -249,22 +300,35 @@ function Workspace(props: WorkspaceProps) {
                 counts={counts}
                 unread={unread.tabs}
                 onSelect={(tab) => route.go(tab)}
-                onBack={onClose}
+                onBack={() => { if (leave()) onClose(); }}
                 currentUserId={currentUser?.id}
                 hidden={[...(props.notebooksEnabled === false ? NO_NOTEBOOKS : []), ...(project.kind === 'solution' ? NO_TASKS : [])]}
             />
             <main className="flex-1 min-w-0 flex flex-col min-h-0">
+                <div className="md:hidden flex items-center gap-2 p-2 border-b border-[var(--border-default)]">
+                    <SecondaryButton onClick={() => { if (leave()) onClose(); }}>{t('project_home.all_projects', 'All projects')}</SecondaryButton>
+                    <label className="flex-1 min-w-0 text-xs text-[var(--text-secondary)]">
+                        <span className="block truncate">{project.name}</span>
+                        <select aria-label={t('project_home.rail.label', 'Project sections')} value={route.tab} onChange={e => route.go(e.target.value as WorkspaceTabId)} className="w-full bg-[var(--bg-card)] text-[var(--text-primary)] rounded p-1">
+                            {(['overview', 'chats', 'tasks', 'meetings', 'documents', 'notebooks', 'knowledge', 'members', 'activity', 'settings'] as WorkspaceTabId[])
+                                .filter(tab => !(tab === 'notebooks' && props.notebooksEnabled === false) && !(tab === 'tasks' && project.kind === 'solution'))
+                                .map(tab => <option key={tab} value={tab}>{t(`project_home.tab.${tab}`, tab.charAt(0).toUpperCase() + tab.slice(1))}</option>)}
+                        </select>
+                    </label>
+                </div>
                 {(project.kind === null || project.kind === 'solution') && (
                     <div className="px-4 pt-3">
                         <KindNotice project={project} role={role} onNavigate={onNavigate} />
                     </div>
                 )}
+                <ProjectDiscovery onOpenThread={props.onOpenThread} projectId={projectId} project={project} role={role} onOpenTab={route.go} />
                 <div className="flex-1 min-h-0">
                     <Suspense fallback={<LoadingRow label={t('project_home.loading', 'Loading…')} />}>
-                        <TabContent key={route.tab} route={route} project={project} role={role} props={props} />
+                        <TabContent key={route.tab} route={route} project={project} role={role} props={props} onSettingsDirty={onSettingsDirty} />
                     </Suspense>
                 </div>
             </main>
+            {confirmDialog}
         </div>
     );
 }

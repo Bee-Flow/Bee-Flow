@@ -1,9 +1,9 @@
 /**
  * Which integrations a headless session should load PROVIDER TOKENS for.
  *
- * Every acts-as-someone-else path (a scheduled routine, the webpage bridge, an
+ * Every acts-as-someone-else path (a scheduled automation, the webpage bridge, an
  * App Studio connector) has to answer the same question before it can call
- * routineAuth.buildUserAuth: *which* integrations does this user have, so we
+ * automationAuth.buildUserAuth: *which* integrations does this user have, so we
  * know whether to fetch Google / Microsoft / Nextcloud credentials from the
  * vault? Three copies of that logic existed and they had drifted — which is how
  * a connector came to tell someone to connect Gmail while Gmail was connected.
@@ -18,7 +18,7 @@
  *   buildUserAuth(userId, { enabledIntegrations: [] })
  *     → providersForIntegrations([]) is []
  *     → the `required.length === 0` early return hands back a TRUTHY object
- *       whose accessToken is null (auth/routineAuth.js)
+ *       whose accessToken is null (auth/automationAuth.js)
  *     → a caller guarding with `if (built)` adopts a token-less session
  *     → the Google client throws "Not connected to Gmail" for a connected user.
  *

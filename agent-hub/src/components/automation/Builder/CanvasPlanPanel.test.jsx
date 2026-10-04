@@ -47,7 +47,7 @@ describe('CanvasPlanPanel — open while it builds, out of the way after', () =>
         // The pill follows it.
         rerender(<CanvasPlanPanel todos={TODOS} running={false} t={t} idPrefix="app" placement="bottom-left" />);
         expect(screen.getByTestId('app-plan-pill').className).toContain('bottom-3');
-        // The routine canvas keeps the top, under its step chips.
+        // The automation canvas keeps the top, under its step chips.
         cleanup();
         render(<CanvasPlanPanel todos={TODOS} running t={t} />);
         expect(screen.getByTestId('builder-plan-panel').className).toContain('top-3');

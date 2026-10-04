@@ -202,7 +202,7 @@ async function execSummarize(step, ctx, runState) {
     if (!arr) return skippedArrayRef(step, runState, { result: null, op: step.op, count: 0 });
     // A18: `Number(undefined)` is NaN, which the filter below drops — so a
     // mistyped or renamed field made `sum`/`avg` return 0 and the run record a
-    // green success. A routine that totals invoice amounts reported €0 and the
+    // green success. An automation that totals invoice amounts reported €0 and the
     // notification said so. `count` is exempt: it counts ITEMS and never reads
     // the field (A7).
     if (step.op !== 'count' && arr.length > 0 && !anyItemHasField(arr, step.field)) {

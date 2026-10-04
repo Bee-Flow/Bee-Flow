@@ -967,12 +967,17 @@ jobs:
   # MUST stay pinned to the server's Playwright version (chromium.connect() 428s
   # on a minor mismatch) — the image's base tag and server/package.json move
   # together.
+  #
+  # Also built whenever the server is: the self-host compose files pull
+  # pwt-runner:${TAG}, the same tag as the server, so every server tag
+  # (:dev, :latest, :sha-<sha>, :dev-sha-<sha>) needs a runner tag beside it.
+  # With no change under server/pwt-runner/** this is a cached rebuild.
   pwt-runner:
     needs: [changes, ci]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
-      && needs.changes.outputs.pwt-runner == 'true' }}
+      && (needs.changes.outputs.pwt-runner == 'true' || needs.changes.outputs.server == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

@@ -2,7 +2,7 @@
  * Every key the model BORROWS from the web exists in both English
  * dictionaries, and carries the English the model falls back to.
  *
- * The model builds most of its keys (`routines.node.<type>.<field>`), so the
+ * The model builds most of its keys (`automations.node.<type>.<field>`), so the
  * i18n guard's source scan cannot see them; this test asks every accessor for
  * the key it would use and checks it against the server catalogue (which the
  * phone reads) and the client one (which the browser reads). A `mobile.*`
@@ -39,12 +39,12 @@ const unescape = (v: string | undefined) => v?.replace(/\\(['"\\])/g, '$1');
  * does.
  */
 const KNOWN_WEB_GAPS = new Map<string, string>([
-    ['routines.node.data_extraction.help', 'not in the dictionaries yet'],
-    ['routines.node.http_request.help', 'the dictionaries hold the shorter, older sentence'],
-    ['routines.node.wait.help', 'the dictionaries hold the shorter, older sentence'],
-    ...['typeLabel', 'defaultLabel', 'label', 'desc', 'help'].map((f): [string, string] => [`routines.node.note.${f}`, 'the note (BFSF-411) was never added to the dictionaries']),
+    ['automations.node.data_extraction.help', 'not in the dictionaries yet'],
+    ['automations.node.http_request.help', 'the dictionaries hold the shorter, older sentence'],
+    ['automations.node.wait.help', 'the dictionaries hold the shorter, older sentence'],
+    ...['typeLabel', 'defaultLabel', 'label', 'desc', 'help'].map((f): [string, string] => [`automations.node.note.${f}`, 'the note (BFSF-411) was never added to the dictionaries']),
     ...['loop_item', 'ai_tool', 'row_label', 'ghost_step'].flatMap((type) =>
-        ['typeLabel', 'help'].map((f): [string, string] => [`routines.node.${type}.${f}`, 'a canvas-only node, never added to the dictionaries'])),
+        ['typeLabel', 'help'].map((f): [string, string] => [`automations.node.${type}.${f}`, 'a canvas-only node, never added to the dictionaries'])),
 ]);
 
 const answered = (key: string, english: string) => unescape(server.get(key)) === english && client.has(key);
@@ -56,7 +56,7 @@ describe('borrowed keys', () => {
     for (const type of NODE_TYPE_KEYS) {
         for (const field of FIELDS) {
             const english = NODE_DEFS[type]?.[field];
-            if (english) t(`routines.node.${type}.${field}`, english);
+            if (english) t(`automations.node.${type}.${field}`, english);
         }
     }
     // …and what the picker asks for in every scope.

@@ -5,7 +5,7 @@
  * ── DIT IS DE ANDERE HELFT VAN DE BRUG DAN AI/AUTOMATIONS ───────────
  *
  * Alle andere preview-bruggen draaien ACTS-AS-AUTHOR: de pagina roept de LLM
- * aan met het budget van de auteur, start diens routines, gebruikt diens
+ * aan met het budget van de auteur, start diens automatiseringen, gebruikt diens
  * integraties. Dat kan daar, omdat de auteur die rechten expliciet heeft
  * weggegeven aan zijn eigen pagina.
  *

@@ -147,7 +147,7 @@ test('every memory route rejects an unauthenticated caller', async () => {
 
 test('POST / rejects a type outside the vocabulary', async () => {
     resetFx();
-    for (const type of ['system', 'routine_coverage', 'admin', '']) {
+    for (const type of ['system', 'schedule_coverage', 'admin', '']) {
         const res = await dispatch({ method: 'POST', url: '/', body: { content: 'x', type }, session: BOB });
         assert.strictEqual(res.statusCode, 400, `type ${JSON.stringify(type)} must be rejected`);
     }

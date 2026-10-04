@@ -96,7 +96,7 @@ describe('ExecutionsTable — the Outcome column', () => {
     });
 
     it('says the status word in the "What happened" cell too, translated', () => {
-        // The cell used to read routines.runs.status_plain ("{status}") and
+        // The cell used to read automations.runs.status_plain ("{status}") and
         // interpolate the untranslated English word into it.
         renderTable([run({ status: 'handled_error' })]);
         expect(screen.getAllByText('Recovered').length).toBeGreaterThanOrEqual(2);
@@ -238,11 +238,11 @@ describe('ExecutionsTable — the organisation scope (Track H2)', () => {
 // ── The picker above the rows must be scoped like the rows ───────────
 
 describe('the automation picker follows the scope', () => {
-    it('forgets the organisation\'s routine names when you go back to your own runs', () => {
+    it('forgets the organisation\'s automation names when you go back to your own runs', () => {
         // THE LEAK. The picker's options are accumulated across loaded pages so
-        // that filtering by one routine does not drop the others. Nothing reset
+        // that filtering by one automation does not drop the others. Nothing reset
         // that store when the SCOPE changed, so a visit to the organisation
-        // scope filled it with colleagues' routine names — and they stayed
+        // scope filled it with colleagues' automation names — and they stayed
         // listed under "my runs". The rows were scoped correctly throughout;
         // the control above them was not, which is the kind of leak that never
         // shows up in a query test.

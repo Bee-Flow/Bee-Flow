@@ -14,8 +14,8 @@
  *
  * Phase KINDS are the vocabulary the run page can stage — nothing else:
  *   table    the server creates or verifies the table (at most one, first)
- *   routine  the routine builder gets `brief`
- *   fill     the server runs the nearest routine before it once
+ *   automation  the automation builder gets `brief`
+ *   fill     the server runs the nearest automation before it once
  *   design   the server asks the model, as a DESIGNER with no tools, for the
  *            app's screens and look (`goal` in plain words); the app brief
  *            then carries that design (at most one, right before the app)
@@ -90,8 +90,8 @@ function stripSystemColumns(fields) {
 const DOC_VERSION = 1;
 // `access` is the last phase of a playbook that built an app: who may open it
 // and with which role. No model touches it — the person fills it in.
-const KINDS = Object.freeze(['table', 'routine', 'fill', 'design', 'app', 'app_turn', 'access', 'compliance']);
-const BRIEF_KINDS = new Set(['routine', 'app', 'app_turn']);
+const KINDS = Object.freeze(['table', 'automation', 'fill', 'design', 'app', 'app_turn', 'access', 'compliance']);
+const BRIEF_KINDS = new Set(['automation', 'app', 'app_turn']);
 const INPUT_KINDS = new Set(['folder', 'text']);
 const MAX_PHASES = 8;
 const MAX_FIELDS = 30;
@@ -105,7 +105,7 @@ const MAX_LABEL = 60;
 const KEY_RE = /^[a-z][a-z0-9_]{0,39}$/;
 const INPUT_KEY_RE = /^[a-zA-Z][a-zA-Z0-9_]{0,39}$/;   // inputs keep camelCase (folderPath)
 // Only these roots are the recipe's own placeholders. A brief may also carry
-// the ROUTINE builder's bindings (`{{steps.x.output.rows.0.totaal}}`,
+// the AUTOMATION builder's bindings (`{{steps.x.output.rows.0.totaal}}`,
 // `{{trigger.output.recordId}}`) — those pass through verbatim.
 const RECIPE_ROOTS = new Set(['table', 'field', 'input', 'title', 'approver', 'owner']);
 const PLACEHOLDER_RE = /\{\{\s*((?:table|field|input|title|approver|owner)(?:\.[\w.]*)?)\s*\}\}/g;
@@ -204,12 +204,12 @@ function normaliseField(raw, i, used, copy) {
 function normalisePhase(raw, i, copy) {
     const p = raw && typeof raw === 'object' ? raw : {};
     let kind = String(p.kind || p.key || '').toLowerCase().replace(/-/g, '_');
-    // An approval flow is a ROUTINE on Studio → Approvals (the person decides
+    // An approval flow is a AUTOMATION on Studio → Approvals (the person decides
     // there), never a change to the app.
     let requires = p.requires === 'approvals' || p.requiresApprovals === true ? 'approvals' : null;
-    if (kind === 'approvals' || kind === 'approval' || kind === 'approval_flow') { kind = 'routine'; requires = 'approvals'; }
+    if (kind === 'approvals' || kind === 'approval' || kind === 'approval_flow') { kind = 'automation'; requires = 'approvals'; }
     if (kind === 'turn' || kind === 'app_extend') kind = 'app_turn';
-    if (kind === 'automation' || kind === 'flow') kind = 'routine';
+    if (kind === 'automation' || kind === 'flow') kind = 'automation';
     if (kind === 'datatable' || kind === 'data') kind = 'table';
     if (kind === 'run' || kind === 'rows' || kind === 'first_rows') kind = 'fill';
     if (kind === 'visual' || kind === 'ux' || kind === 'wireframe' || kind === 'visual_design') kind = 'design';
@@ -229,9 +229,9 @@ function normalisePhase(raw, i, copy) {
 /** The kind the words point at, or null when they point nowhere. */
 function inferKind(text) {
     const t = String(text || '').toLowerCase();
-    if (/\b(goedkeur|approv)/.test(t)) return 'routine';
+    if (/\b(goedkeur|approv)/.test(t)) return 'automation';
     if (/\b(dashboard|app|scherm|screen|bi\b|rapport|report|overzicht|weergave|view)/.test(t)) return 'app';
-    if (/\b(routine|automation|automatis|extract|lees|read|inlezen|verwerk|process|flow|import)/.test(t)) return 'routine';
+    if (/\b(automation|automation|automatis|extract|lees|read|inlezen|verwerk|process|flow|import)/.test(t)) return 'automation';
     if (/\b(tabel|table|kolom|column|datatable|opslaan|store)/.test(t)) return 'table';
     if (/\b(vul|fill|rijen|rows|run)/.test(t)) return 'fill';
     if (/\b(ontwerp|design|wireframe)/.test(t)) return 'design';
@@ -252,7 +252,7 @@ function assignPhaseKeys(phases) {
 /**
  * Bring a raw document (an AI's tool call, a person's JSON) to the canonical
  * shape without judging it: keys derived, kinds inferred, a fill after a
- * routine that lacks one, a table phase first when a table is declared.
+ * automation that lacks one, a table phase first when a table is declared.
  */
 function normaliseRecipeDoc(raw, { source = 'ai', locale = null } = {}) {
     // What the SERVER adds to the document (a fill phase, a design phase, a
@@ -313,15 +313,15 @@ function normaliseRecipeDoc(raw, { source = 'ai', locale = null } = {}) {
     // The table phase is always first.
     const ti = phases.findIndex((p) => p.kind === 'table');
     if (ti > 0) phases = [phases[ti], ...phases.filter((_, i) => i !== ti)];
-    // A routine that FEEDS the table (not the approval routine) gets its
+    // An automation that FEEDS the table (not the approval automation) gets its
     // fill phase when the document has none.
-    const ri = phases.findIndex((p) => p.kind === 'routine' && p.requires !== 'approvals');
+    const ri = phases.findIndex((p) => p.kind === 'automation' && p.requires !== 'approvals');
     if (table && ri >= 0 && !phases.some((p) => p.kind === 'fill')) {
         phases.splice(ri + 1, 0, { key: null, kind: 'fill', label: copy.fillPhaseLabel });
     }
-    // The approval routine writes a status: when the table has one, it needs it.
+    // The approval automation writes a status: when the table has one, it needs it.
     for (const p of phases) {
-        if (p.kind === 'routine' && p.requires === 'approvals' && !p.requiresRole && table && table.fields.some((f) => f.key === 'status')) p.requiresRole = 'status';
+        if (p.kind === 'automation' && p.requires === 'approvals' && !p.requiresRole && table && table.fields.some((f) => f.key === 'status')) p.requiresRole = 'status';
     }
     // Every app is designed first: a design phase right before the first
     // app phase when the document has none (its goal = the app's brief in
@@ -353,7 +353,7 @@ function normaliseRecipeDoc(raw, { source = 'ai', locale = null } = {}) {
 
 // The column type a key's words point at. A date when it says so, a number
 // for money and counts, text for everything else — `status` included: its
-// options are the approval routine's to write, and a select without options
+// options are the approval automation's to write, and a select without options
 // is refused by the validator. The money/count words are matched as WHOLE
 // key segments (`total_amount`, `amount_excl_vat`, `qty`), never as a
 // substring: `summary` contains `sum` and `country` contains `count`, and a
@@ -383,7 +383,7 @@ function fieldKeysReferenced(doc) {
  * when the model declared none — twice. Every referenced key becomes a column
  * with a type from its words, so the fill phase and the placeholders have
  * something to bind to. Returns the re-normalised document (the table phase
- * inserted first, the fill phase after the routine) with the warning
+ * inserted first, the fill phase after the automation) with the warning
  * `table_synthesized` in its `warnings`, or null when no brief references a
  * field. The caller decides WHEN: never on the first pass, only after the
  * repair round still failed for table reasons — a synthesized schema is a
@@ -415,7 +415,7 @@ function placeholdersOf(template) {
 
 function placeholderKnown(path, doc) {
     const [root, sub] = path.split('.');
-    if (!RECIPE_ROOTS.has(root)) return true; // a routine binding, passed through
+    if (!RECIPE_ROOTS.has(root)) return true; // an automation binding, passed through
     if (root === 'table') return !!doc.table && ['name', 'id', 'key', 'isMirror', 'hasStatus'].includes(sub);
     if (root === 'field') return !!doc.table && doc.table.fields.some((f) => (f.role || f.key) === sub);
     if (root === 'input') return doc.inputs.some((x) => x.key === sub);
@@ -458,7 +458,7 @@ function validateRecipeDoc(doc) {
     if (!Array.isArray(doc.phases) || !doc.phases.length) errors.push(err('phases_required', 'phases', 'At least one phase.'));
     if (Array.isArray(doc.phases) && doc.phases.length > MAX_PHASES) errors.push(err('too_many_phases', 'phases', `At most ${MAX_PHASES} phases.`));
     // A table alone builds nothing (measured: a vague description came back as one table phase).
-    if (Array.isArray(doc.phases) && doc.phases.length && !doc.phases.some((p) => p && (p.kind === 'routine' || p.kind === 'app'))) errors.push(err('no_builder_phase', 'phases', 'A playbook needs a routine or an app phase — a table alone builds nothing.'));
+    if (Array.isArray(doc.phases) && doc.phases.length && !doc.phases.some((p) => p && (p.kind === 'automation' || p.kind === 'app'))) errors.push(err('no_builder_phase', 'phases', 'A playbook needs an automation or an app phase — a table alone builds nothing.'));
     // The paths say `columns`, as the tool the model called does — a finding
     // at `table.fields[2]` sent a model adding a top-level `table` object
     // instead of fixing the entry it wrote. The index is the normalised
@@ -473,7 +473,7 @@ function validateRecipeDoc(doc) {
     // The keys the briefs bind to — named in the table finding, so the repair
     // round knows WHICH columns to declare rather than that some are missing.
     const refs = fieldKeysReferenced(doc);
-    let sawRoutine = false; let sawApp = false; let sawTable = false;
+    let sawAutomation = false; let sawApp = false; let sawTable = false;
     for (const [i, p] of phases.entries()) {
         const at = `phases[${i}]`;
         // Every finding on a phase names it: `phases[4]` is where the
@@ -481,14 +481,14 @@ function validateRecipeDoc(doc) {
         // inserted), not where the model wrote it — its own call has three
         // phases, and told about the fifth it adds one rather than fix one.
         const phaseErr = (code, sub, message) => err(code, sub ? `${at}.${sub}` : at, message, { phase: { key: p.key, label: p.label } });
-        if (!p.kind) { errors.push(phaseErr('kind_unknown', null, `Phase "${p.key}" has no known kind (table, routine, fill, app, app_turn).`)); continue; }
+        if (!p.kind) { errors.push(phaseErr('kind_unknown', null, `Phase "${p.key}" has no known kind (table, automation, fill, app, app_turn).`)); continue; }
         if (p.kind === 'table') {
             if (i !== 0) errors.push(phaseErr('table_not_first', null, 'The table phase must come first.'));
             if (sawTable) errors.push(phaseErr('table_twice', null, 'Only one table phase.'));
             if (!doc.table) errors.push(phaseErr('table_schema_missing', null, `Phase "${p.label}" is a table phase but the document has no columns. Add a top-level \`columns\` array with one entry {key, name, type} per column${refs.length ? ` — the briefs reference: ${refs.join(', ')}` : ''}.`));
             sawTable = true;
         }
-        if (p.kind === 'fill' && !sawRoutine) errors.push(phaseErr('fill_without_routine', null, 'A fill phase needs a routine phase before it.'));
+        if (p.kind === 'fill' && !sawAutomation) errors.push(phaseErr('fill_without_automation', null, 'A fill phase needs an automation phase before it.'));
         if (p.kind === 'fill' && !doc.table) errors.push(phaseErr('fill_without_table', null, 'A fill phase counts rows in the table — add `columns`, or remove the fill phase.'));
         if (p.kind === 'app_turn' && !sawApp) errors.push(phaseErr('turn_without_app', null, 'An app_turn needs an app phase before it.'));
         if (p.kind === 'app' && sawApp) errors.push(phaseErr('app_twice', null, 'Only one app phase; later work on it is an app_turn.'));
@@ -510,7 +510,7 @@ function validateRecipeDoc(doc) {
             }
         }
         if (p.requiresRole && !(doc.table && doc.table.fields.some((f) => (f.role || f.key) === p.requiresRole))) errors.push(phaseErr('requires_role_unknown', null, `requiresRole "${p.requiresRole}" is not a column of the table.`));
-        if (p.kind === 'routine') sawRoutine = true;
+        if (p.kind === 'automation') sawAutomation = true;
         if (p.kind === 'app') sawApp = true;
     }
     return { ok: errors.length === 0, errors, warnings };

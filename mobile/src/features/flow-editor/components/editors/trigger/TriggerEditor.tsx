@@ -1,6 +1,6 @@
 /**
  * The trigger's editor — the web's TriggerFields (triggerEditors.jsx): what
- * starts the routine, then that kind's own settings. A flowlet's trigger
+ * starts the automation, then that kind's own settings. A flowlet's trigger
  * (`layer_input`) declares its inputs instead and has no kind to switch; an
  * ADDITIONAL trigger may only be a webhook, an app event or a schedule.
  */

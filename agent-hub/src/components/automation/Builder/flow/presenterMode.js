@@ -2,7 +2,7 @@ import { DEFAULT_SHOTS, setActiveShots } from './buildChoreography';
 import { lodForZoom, PRESENTER_LOD_BREAKS } from './useZoomLod';
 
 /**
- * Presenter mode — the routines canvas on a projector.
+ * Presenter mode — the automations canvas on a projector.
  *
  * Nothing about the graph changes (no layout re-run, the cards stay 240×72);
  * what changes is how early text appears and how tight the build's camera

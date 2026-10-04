@@ -38,7 +38,7 @@ mock('../stores/userStore', { getUser: async () => null, getOrganization: async 
 mock('../db', { pool: { query: async () => ({ rows: [] }) } });
 mock('./aiAgent', { getProviderForModel: async () => null });
 mock('./providers', { getAdapter: () => ({}) });
-mock('../auth/routineAuth', { buildUserAuth: async () => null });
+mock('../auth/automationAuth', { buildUserAuth: async () => null });
 mock('../auth/audience', { resolveUserGroups: async () => [] });
 mock('../automation/codeSandbox', { run: async () => ({}) });
 
@@ -75,6 +75,90 @@ const readIdStep = (extra = {}) => ({
 // Stub leaf dispatcher: echoes the per-item loop context the runner set up.
 const echoLeaf = async (step, ctx, state) => ({
     output: { got: state.loop.result.id, idx: state.loop._index },
+});
+
+test('Gmail reads overlap with a five-item limit and preserve source order', async () => {
+    const step = readIdStep({ tool: 'gmail_read' });
+    const pending = new Map();
+    const started = [];
+    let active = 0;
+    let peak = 0;
+    const leaf = async (s, ctx, state) => {
+        const i = state.loop._index;
+        started.push(i);
+        peak = Math.max(peak, ++active);
+        await new Promise(resolve => pending.set(i, resolve));
+        active--;
+        return echoLeaf(s, ctx, state);
+    };
+    const run = execForEachStep(step, {}, stateWith(emails(12)), 'live', leaf);
+    assert.deepStrictEqual(started, [0, 1, 2, 3, 4]);
+    for (const expected of [5, 5, 2]) {
+        assert.strictEqual(pending.size, expected);
+        // Complete each batch backwards to exercise output ordering.
+        for (const resolve of [...pending.values()].reverse()) resolve();
+        pending.clear();
+        await new Promise(resolve => setImmediate(resolve));
+    }
+    const r = await run;
+    assert.strictEqual(peak, 5);
+    assert.strictEqual(active, 0);
+    assert.strictEqual(r.output.succeeded, 12);
+    assert.deepStrictEqual(r.output.results.map(x => x.output.got), emails(12).map(x => x.id));
+});
+
+test('parallel Gmail reads retry only failed items and retain partial failures', async () => {
+    const step = readIdStep({ tool: 'gmail_read', retry: { max: 1 } });
+    const attempts = [0, 0, 0];
+    const r = await execForEachStep(step, {}, stateWith(emails(3)), 'live', async (s, ctx, state) => {
+        const i = state.loop._index;
+        attempts[i]++;
+        if (i === 1 && attempts[i] === 1) throw new Error('temporary failure');
+        if (i === 2) throw new Error('missing email');
+        return echoLeaf(s, ctx, state);
+    });
+    assert.deepStrictEqual(attempts, [1, 2, 2]);
+    assert.strictEqual(r.output.succeeded, 2);
+    assert.strictEqual(r.output.failed, 1);
+    assert.strictEqual(r.output.results[2].attempts, 2);
+    assert.strictEqual(r.output.results[2].error, 'missing email');
+});
+
+test('parallel Gmail cancellation drains in-flight reads and starts no next batch', async () => {
+    const started = [];
+    let finish;
+    let settled = false;
+    const run = execForEachStep(readIdStep({ tool: 'gmail_read' }), {}, stateWith(emails(10)), 'live', async (s, ctx, state) => {
+        const i = state.loop._index;
+        started.push(i);
+        if (i === 0) throw new Error('Run cancelled');
+        if (i === 1) await new Promise(resolve => { finish = resolve; });
+        return echoLeaf(s, ctx, state);
+    });
+    const checked = assert.rejects(run, /Run cancelled/).then(() => { settled = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(settled, false, 'wait for the pending read before propagating cancellation');
+    finish();
+    await checked;
+    assert.deepStrictEqual(started, [0, 1, 2, 3, 4]);
+});
+
+test('other actions, dry runs and askOnce Gmail reads remain sequential', async () => {
+    for (const [tool, mode, askOnce] of [
+        ['gmail_read_attachment', 'live', false],
+        ['gmail_compose', 'live', false],
+        ['gmail_read', 'dry_run', false],
+        ['gmail_read', 'live', true],
+    ]) {
+        let active = 0;
+        const r = await execForEachStep(readIdStep({ tool, askOnce }), {}, stateWith(emails(3)), mode, async (s, ctx, state) => {
+            assert.strictEqual(++active, 1, `${tool}/${mode}/askOnce=${askOnce}`);
+            await new Promise(resolve => setImmediate(resolve));
+            active--;
+            return echoLeaf(s, ctx, state);
+        });
+        assert.strictEqual(r.output.succeeded, 3);
+    }
 });
 
 test('runs the leaf once per array element with loop.<itemVar> bound', async () => {
@@ -320,7 +404,7 @@ test('validate: non-object forEach is rejected', () => {
 // Integration tools report failure by RETURNING `{ error }` rather than
 // throwing. Inside a fan-out that used to count as success: a step whose
 // `path` input was missing reported "succeeded: 4, failed: 0" with
-// {error:"path is required"} tucked inside every item, and the routine builder
+// {error:"path is required"} tucked inside every item, and the automation builder
 // read the green count and built on top of it (2026-09-12).
 
 test('a leaf that RETURNS { error } counts as a failed iteration, not a success', async () => {

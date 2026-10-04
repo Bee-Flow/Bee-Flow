@@ -71,7 +71,7 @@
  * additionally emits a structured stderr line keyed by its taxonomy code.
  *
  * PROMPT-CACHE DISCIPLINE (mirrors automationBuilder.js): the system prompt
- * (instructions + catalog + owner's routines) is byte-stable across turns;
+ * (instructions + catalog + owner's automations) is byte-stable across turns;
  * few-shots ride every turn on the small profile; history is a head-anchored
  * window evicted in whole blocks; and the live draft state + every other
  * machine note travel INSIDE the single user message each turn (see

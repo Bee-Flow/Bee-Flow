@@ -12,12 +12,12 @@ function humanWait(seconds) {
 }
 
 /**
- * A further page of the routine's public form, shown on the SAME /f/<token>
+ * A further page of the automation's public form, shown on the SAME /f/<token>
  * URL the visitor is already on.
  *
  *   input  — the run PAUSES here until the visitor answers. Worth showing the
  *            wait window on the canvas: it is the only step whose duration is
- *            bounded by a person rather than by the routine.
+ *            bounded by a person rather than by the automation.
  *   ending — the closing page (typically a summary). It does not pause.
  */
 export default function FormPageNode({ id, data }) {
@@ -28,7 +28,7 @@ export default function FormPageNode({ id, data }) {
     const sub = isEnding ? title : `${title} · ${fields.length} question${fields.length === 1 ? '' : 's'}`;
 
     const badges = isEnding ? null : (
-        <NodeChip title={`The routine waits up to ${humanWait(step.waitSeconds)} for the visitor to answer.`}>
+        <NodeChip title={`The automation waits up to ${humanWait(step.waitSeconds)} for the visitor to answer.`}>
             <Clock size={10} />
         </NodeChip>
     );

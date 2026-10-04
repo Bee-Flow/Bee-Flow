@@ -64,7 +64,7 @@ function Effect({ row }: { row: RunRowModel }) {
                     size="sm"
                     variant="ghost"
                     iconName={open ? 'ChevronDown' : 'ChevronRight'}
-                    label={row.call ? t('mobile.flow.run.arguments', 'Arguments') : t('routines.ndv.output', 'Output')}
+                    label={row.call ? t('mobile.flow.run.arguments', 'Arguments') : t('automations.ndv.output', 'Output')}
                     onPress={() => setOpen((v) => !v)}
                 />
             ) : null}

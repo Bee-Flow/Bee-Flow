@@ -176,8 +176,8 @@ function WaitBar({ exp, progress, reducedMotion }) {
  * keep counting heartbeats.
  */
 function readingSubline(t, progress, pings) {
-    if (progress?.nearEnd) return t('routines.builder.wait.writing', 'Writing the first step…');
-    return pings > 0 ? t('routines.builder.wait.heartbeats', 'connection alive · {n} heartbeats', { n: pings }) : null;
+    if (progress?.nearEnd) return t('automations.builder.wait.writing', 'Writing the first step…');
+    return pings > 0 ? t('automations.builder.wait.heartbeats', 'connection alive · {n} heartbeats', { n: pings }) : null;
 }
 
 /**
@@ -192,27 +192,27 @@ function ProgressLine({ t, exp, progress, kTokens }) {
             {progress ? (
                 <span className="tabular-nums" data-testid="waiting-progress">
                     {' · '}
-                    {t('routines.builder.wait.progress', 'Reading {done} of {total} tokens', { done: formatK(progress.processed), total: formatK(progress.total) })}
+                    {t('automations.builder.wait.progress', 'Reading {done} of {total} tokens', { done: formatK(progress.processed), total: formatK(progress.total) })}
                     {progress.cache > 0 && (
                         <span data-testid="waiting-remembered">
                             {' · '}
-                            {t('routines.builder.wait.remembered', '{n} already remembered from last time', { n: formatK(progress.cache) })}
+                            {t('automations.builder.wait.remembered', '{n} already remembered from last time', { n: formatK(progress.cache) })}
                         </span>
                     )}
                 </span>
             ) : kTokens != null && (
-                <span data-testid="waiting-prompt-size"> · {t('routines.builder.wait.prompt_size', 'Reading about {k}k tokens', { k: kTokens })}</span>
+                <span data-testid="waiting-prompt-size"> · {t('automations.builder.wait.prompt_size', 'Reading about {k}k tokens', { k: kTokens })}</span>
             )}
         </div>
     );
 }
 
 function expectationCopy(t, exp) {
-    if (exp.mode === 'indeterminate') return t('routines.builder.wait.first_time', 'Local models take a few minutes to read the request the first time');
+    if (exp.mode === 'indeterminate') return t('automations.builder.wait.first_time', 'Local models take a few minutes to read the request the first time');
     const about = formatMs(exp.medianMs);
     return exp.over
-        ? t('routines.builder.wait.longer', 'Taking longer than usual ({t})', { t: about })
-        : t('routines.builder.wait.usually', 'Usually about {t}', { t: about });
+        ? t('automations.builder.wait.longer', 'Taking longer than usual ({t})', { t: about })
+        : t('automations.builder.wait.usually', 'Usually about {t}', { t: about });
 }
 
 export default function BuilderWaitingCard({ turn, startedAt = null, modelKey }) {
@@ -240,15 +240,15 @@ export default function BuilderWaitingCard({ turn, startedAt = null, modelKey })
     const pings = turn?.pings || 0;
     const kTokens = promptKTokens(turn?.promptChars);
     const rows = [
-        { id: 'sent', label: t('routines.builder.wait.sent', 'Request sent'), state: 'done' },
-        { id: 'session', label: t('routines.builder.wait.session', 'Session opened'), state: sessionOpen ? 'done' : 'live' },
+        { id: 'sent', label: t('automations.builder.wait.sent', 'Request sent'), state: 'done' },
+        { id: 'session', label: t('automations.builder.wait.session', 'Session opened'), state: sessionOpen ? 'done' : 'live' },
         {
             id: 'reading',
-            label: t('routines.builder.wait.reading', 'Model is reading your request'),
+            label: t('automations.builder.wait.reading', 'Model is reading your request'),
             state: sessionOpen ? 'live' : 'pending',
             sub: readingSubline(t, progress, pings),
         },
-        { id: 'first', label: t('routines.builder.wait.first', 'First response'), state: 'pending' },
+        { id: 'first', label: t('automations.builder.wait.first', 'First response'), state: 'pending' },
     ];
 
     return (
@@ -260,7 +260,7 @@ export default function BuilderWaitingCard({ turn, startedAt = null, modelKey })
         >
             <div className="flex items-center gap-2 text-[12px] text-[var(--text-secondary)]">
                 <Loader2 size={13} className="shrink-0 animate-spin motion-reduce:animate-none" style={{ color: 'var(--bf-accent, var(--accent))' }} aria-hidden="true" />
-                <b className="text-[var(--text-primary)]">{t('routines.builder.wait.title', 'Waiting for the model')}</b>
+                <b className="text-[var(--text-primary)]">{t('automations.builder.wait.title', 'Waiting for the model')}</b>
                 {sentAt && <span className="tabular-nums text-[var(--text-tertiary)]" data-testid="waiting-elapsed">· {formatMs(elapsedMs)}</span>}
             </div>
             <div className="relative flex flex-col gap-1.5">

@@ -22,7 +22,7 @@
  * hands back its last step's raw output. A custom node is picked from a
  * palette and bound to BY FIELD NAME: with nothing declared the binding
  * picker has no rows to show, every `steps.<id>.output.<field>` downstream
- * resolves to undefined, and the routine saves, runs green and writes
+ * resolves to undefined, and the automation saves, runs green and writes
  * nothing. That is the "looks like it saved, saved nothing" failure this
  * product has shipped three times, and a node is a contract with the graph
  * around it — so the contract is not optional.
@@ -246,7 +246,7 @@ function validateCustomNode(definition) {
     if (!out) {
         push('outputs_missing', 'steps', 'A custom node must declare its outputs: it has no layer_output step.', 'Add a layer_output step naming each field the node returns — downstream steps can only bind to fields it declares.');
     } else if (!isObject(out.fields) || Object.keys(out.fields).length === 0) {
-        push('outputs_empty', 'steps.layer_output.fields', 'A custom node must declare at least one output field.', 'Name each value the body returns, e.g. { result: { kind: "ref", path: "steps.body.output.result" } } — an empty contract binds to nothing and the routine runs green while writing nothing.');
+        push('outputs_empty', 'steps.layer_output.fields', 'A custom node must declare at least one output field.', 'Name each value the body returns, e.g. { result: { kind: "ref", path: "steps.body.output.result" } } — an empty contract binds to nothing and the automation runs green while writing nothing.');
     }
 
     // ── The manifest ────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ function validateCustomNode(definition) {
                 push('capability_refused', at, `This node declares the "secrets" capability, but ${SECRETS_NOT_CONFIGURED_MESSAGE}`, 'Drop it and pass the value in through the node inputs, or reach the service with a tool capability, which calls a connected app under its own credentials.');
                 return;
             }
-            push('capability_unavailable', at, `The "${cap.kind}" capability is not available to a custom node.`, 'ctx.db exists only for webpage handlers; a routine\'s code body gets no database bridge, so the call would fail halfway through a live run. Read and write through a datatable step instead.');
+            push('capability_unavailable', at, `The "${cap.kind}" capability is not available to a custom node.`, 'ctx.db exists only for webpage handlers; an automation\'s code body gets no database bridge, so the call would fail halfway through a live run. Read and write through a datatable step instead.');
         });
     }
 

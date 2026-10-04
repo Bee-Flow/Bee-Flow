@@ -285,7 +285,14 @@ test('stream: bracketed thinking with a partId, then text, then usage and stop r
     assert.deepStrictEqual(seen.map(e => e.type), ['thinking_start', 'thinking', 'thinking', 'thinking_stop', 'text', 'text', 'done']);
     assert.ok(seen.filter(e => e.type.startsWith('thinking')).every(e => e.partId === 'mistral-0'));
     assert.strictEqual(seen.filter(e => e.type === 'text').map(e => e.text).join(''), 'Hello world');
-    assert.deepStrictEqual(seen.at(-1), {
+    // The normalised usage (usageNormalizer.js) carries more than these counts.
+    const done = seen.at(-1);
+    assert.deepStrictEqual({
+        type: done.type,
+        prompt_tokens: done.prompt_tokens, completion_tokens: done.completion_tokens, total_tokens: done.total_tokens,
+        cached_tokens: done.cached_tokens, reasoning_tokens: done.reasoning_tokens,
+        stop_reason: done.stop_reason,
+    }, {
         type: 'done',
         prompt_tokens: 1200, completion_tokens: 40, total_tokens: 1240,
         cached_tokens: 1024, reasoning_tokens: 0,
@@ -439,7 +446,9 @@ test('chat: snake_case usage with cached tokens, thinking split off, stop reason
     const result = await provider.chat('k', null, REASONING_MODEL, [{ role: 'user', content: 'q' }], { reasoningEffort: 'high' });
     assert.strictEqual(result.content, 'Answer');
     assert.strictEqual(result.thinking, 'hmm');
-    assert.deepStrictEqual(result.usage, { prompt_tokens: 500, completion_tokens: 20, total_tokens: 520, cached_tokens: 448, reasoning_tokens: 0 });
+    assert.deepStrictEqual(
+        Object.fromEntries(['prompt_tokens', 'completion_tokens', 'total_tokens', 'cached_tokens', 'reasoning_tokens'].map((k) => [k, result.usage[k]])),
+        { prompt_tokens: 500, completion_tokens: 20, total_tokens: 520, cached_tokens: 448, reasoning_tokens: 0 });
     assert.strictEqual(result.stop_reason, 'stop');
 });
 

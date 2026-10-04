@@ -27,7 +27,7 @@ export function previewValue(value: unknown, maxChars = 1200): string | null {
  * What a step's output IS, so it can be drawn instead of dumped.
  *
  * `previewValue` above pretty-prints every non-string output as JSON. That is
- * honest and it is unreadable: the commonest thing a routine step produces is
+ * honest and it is unreadable: the commonest thing an automation step produces is
  * a LIST OF ROWS — the results of a search, the rows of a datatable, the files
  * in a folder — and a person reading a run on their phone gets two braces and
  * a wall of quoted keys where the web builder shows them a table. Web's

@@ -13,7 +13,7 @@
  * straight to the store, and the store is not where a wrong value shows:
  *
  *   - `repeatInterval: "biweekly"` (or "hourly", "weekdays", "yearly" — the
- *     routine intervals the app offers elsewhere) was stored as given. The
+ *     automation intervals the app offers elsewhere) was stored as given. The
  *     checker's advanceRemindAt knows daily, weekly and monthly only, so the
  *     reminder fired ONCE and was then marked completed: a repeating reminder
  *     silently turned into a one-off. The mobile sheet already refuses to

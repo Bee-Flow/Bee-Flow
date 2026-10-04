@@ -17,7 +17,7 @@ export function SaveBar({
     onDiscard,
 }: {
     dirty: boolean;
-    /** The AI builder holds the routine: nothing can be written until it finishes. */
+    /** The AI builder holds the automation: nothing can be written until it finishes. */
     locked?: boolean;
     saving: boolean;
     error: unknown;

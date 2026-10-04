@@ -34,7 +34,7 @@ const notebookConversationStore = require('../stores/notebookConversationStore')
 const storageStore = require('../stores/storageStore');
 const transcriptionStore = require('../stores/transcriptionStore');
 require('../stores/knowledgeBases');
-const { ingestFileSource, ingestUrlSource, ingestTextSource, ingestDriveSource, MAX_STORED_TEXT } = require('../agents/notebooks/sourceIngestion');
+const { ingestFileSource, ingestUrlSource, ingestTextSource, ingestDriveSource, MAX_STORED_TEXT, MAX_SOURCE_TEXT_CHARS, MAX_SOURCES_PER_NOTEBOOK } = require('../agents/notebooks/sourceIngestion');
 const { countWords } = require('../utils/text');
 const { keepUploadedSource } = require('../core/documents/uploadedSource');
 require('../core/documents/documentParser');
@@ -51,6 +51,8 @@ const { TIER_DEFAULTS } = require('../core/llm/modelResolver');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber } = require('../core/http/schemaParts');
 const { HttpError } = require('../core/http/errors');
+const { friendlyError } = require('../core/kb/friendlyError');
+const { mapWithConcurrency } = require('../core/concurrencyUtil');
 const { requireNotebookRole } = require('./notebooksAccess');
 const notebookCollab = require('../agents/notebooks/notebookCollab');
 const { makeNotebookFeed } = require('../agents/notebooks/notebookFeed');
@@ -111,6 +113,28 @@ const MAX_BULK_DELETE_IDS = 100;
 // ingestion job, so this is the only thing standing between one picker
 // selection and an unbounded fan-out.
 const MAX_DRIVE_FILES_PER_REQUEST = 25;
+
+// Source limits (MAX_SOURCE_TEXT_CHARS, MAX_SOURCES_PER_NOTEBOOK) come from
+// sourceIngestion.js; the checks below run before any row is inserted.
+// Bulk-delete cleanup (storage + chunk deletes) runs this many sources at a time.
+const SOURCE_CLEANUP_CONCURRENCY = 5;
+
+/** Refuses (413 `source_text_too_large`) a piece of pasted or imported text over the cap. */
+function assertTextFits(...texts) {
+    if (!texts.some((t) => typeof t === 'string' && t.length > MAX_SOURCE_TEXT_CHARS)) return;
+    throw new HttpError(413, 'source_text_too_large',
+        `This text is too long (over ${MAX_SOURCE_TEXT_CHARS.toLocaleString('en-US')} characters). Split it into smaller sources.`);
+}
+
+/** 409 when adding `adding` sources would push the notebook past its cap. */
+async function assertSourceRoom(notebookId, adding = 1) {
+    const have = await notebookStore.countSources(notebookId);
+    if (have + adding > MAX_SOURCES_PER_NOTEBOOK) {
+        throw new HttpError(409, 'notebook_source_limit',
+            `A notebook holds at most ${MAX_SOURCES_PER_NOTEBOOK} sources. Remove some before adding more.`,
+            { limit: MAX_SOURCES_PER_NOTEBOOK, current: have });
+    }
+}
 
 // ── What a caller may send ─────────────────────────────────────────
 // Every JSON body and query the routes below read is closed: a misspelled key
@@ -444,6 +468,7 @@ router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), a
 
         const nb = req.notebook;
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+        await assertSourceRoom(nb.id);
 
         // Source type from the extension, and a copy in RustFS when storage is on.
         const { fileName, mimeType, buffer, type, storageKey } = await keepUploadedSource(req.file, {
@@ -465,6 +490,7 @@ router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), a
         });
 
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Notebooks] File upload failed:', err);
         res.status(500).json({ error: 'Failed to upload file' });
     }
@@ -480,6 +506,7 @@ router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), asEdit
         if (!url) return res.status(400).json({ error: 'URL required' });
 
         const nb = req.notebook;
+        await assertSourceRoom(nb.id);
 
         // Derive name from URL
         let name;
@@ -500,6 +527,7 @@ router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), asEdit
         });
 
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Notebooks] URL source failed:', err);
         res.status(500).json({ error: 'Failed to add URL source' });
     }
@@ -515,6 +543,8 @@ router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asEd
         if (!text) return res.status(400).json({ error: 'Text content required' });
 
         const nb = req.notebook;
+        assertTextFits(text);
+        await assertSourceRoom(nb.id);
 
         const sourceName = name || 'Pasted text';
         const source = await notebookStore.addSource({
@@ -531,6 +561,7 @@ router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asEd
         });
 
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Notebooks] Text source failed:', err);
         res.status(500).json({ error: 'Failed to add text source' });
     }
@@ -547,6 +578,7 @@ router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody })
         const ingestMode = mode === 'summary' ? 'summary' : 'full';
 
         const nb = req.notebook;
+        await assertSourceRoom(nb.id);
 
         const meeting = await transcriptionStore.getTranscription(meetingId, userId);
         if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
@@ -567,7 +599,7 @@ router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody })
         // contentText up front so retry works even if ingestion dies before
         // its own content_text write.
         const source = await notebookStore.addSource({
-            notebookId, type: 'meeting', name: sourceName,
+            notebookId, type: 'meeting', name: sourceName, sourceRefId: meeting.id,
             wordCount: countWords(sourceText),
             contentText: sourceText.slice(0, MAX_STORED_TEXT)
         });
@@ -581,6 +613,7 @@ router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody })
         });
 
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Notebooks] Meeting source failed:', err);
         res.status(500).json({ error: 'Failed to add meeting source' });
     }
@@ -610,9 +643,17 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
 
         const nb = req.notebook;
 
+        // Everything that can refuse the request is checked before the first row
+        // is inserted, so a refused import leaves no half-added sources behind.
+        assertTextFits(...files.map((f) => f.content));
+        await assertSourceRoom(nb.id, files.length);
+
+        const type = provider === 'microsoft' ? 'onedrive' : 'gdrive';
         const sources = [];
+        const empty = [];
+        // Sequential on purpose: each insert takes the next sort_order, so the
+        // list keeps the order the picker sent. At most 25 cheap inserts.
         for (const file of files) {
-            const type = provider === 'microsoft' ? 'onedrive' : 'gdrive';
             const source = await notebookStore.addSource({
                 notebookId,
                 type,
@@ -632,14 +673,25 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
                     log.error(`[Notebooks] Drive ingestion failed for ${file.name}:`, err.message);
                 });
             } else {
-                notebookStore.updateSource(source.id, { status: 'error', error: 'No content received from Drive' });
+                empty.push(source);
             }
+        }
+        if (empty.length > 0) {
+            const emptyError = friendlyError('No content received from Drive');
+            await Promise.all(empty.map((source) => {
+                source.status = 'error';
+                source.stage = 'error';
+                source.error = emptyError;
+                return notebookStore.updateSource(source.id, { status: 'error', stage: 'error', error: emptyError })
+                    .catch(e => log.warn(`[Notebooks] could not mark empty Drive source ${source.id}:`, e.message));
+            }));
         }
 
         res.json({ success: true, sources });
         void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId, count: sources.length });
 
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Notebooks] Drive source failed:', err);
         res.status(500).json({ error: 'Failed to add Drive source' });
     }
@@ -676,8 +728,11 @@ router.post('/:id/sources/:sid/retry', requireAuth, asEditor, async (req, res) =
         const source = await notebookStore.getSource(req.params.sid);
         if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
 
-        // Reset state so the UI immediately shows the spinner.
-        await notebookStore.updateSource(source.id, { status: 'processing', stage: 'queued', error: null });
+        // Reset state so the UI immediately shows the spinner. A source that is
+        // still being read is not started a second time.
+        if (!await notebookStore.claimSourceForRetry(source.id)) {
+            throw new HttpError(409, 'source_busy', 'This source is still being read. Wait for it to finish, or cancel it first.');
+        }
         res.json({ success: true });
 
         // Dispatch retry in the background so the HTTP request doesn't stall.
@@ -708,10 +763,16 @@ router.post('/:id/sources/:sid/retry', requireAuth, asEditor, async (req, res) =
                 }
             } catch (e) {
                 log.error(`[Notebooks] Retry failed for source ${source.id}:`, e.message);
-                await notebookStore.updateSource(source.id, { status: 'error', error: e.message }).catch(() => {});
+                // Conditional: a cancel/delete during the retry wins.
+                await notebookStore.updateSource(
+                    source.id,
+                    { status: 'error', stage: 'error', error: friendlyError(e) },
+                    { onlyIfProcessing: true },
+                ).catch(() => {});
             }
         })();
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Notebooks] Retry source route failed:', err);
         res.status(500).json({ error: 'Failed to retry source' });
     }
@@ -729,11 +790,17 @@ router.post('/:id/sources/:sid/cancel', requireAuth, asEditor, async (req, res) 
         const source = await notebookStore.getSource(req.params.sid);
         if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
 
-        await notebookStore.updateSource(source.id, {
-            status: 'error',
-            stage: 'error',
-            error: 'Cancelled by user',
-        });
+        // Only a source that is still being worked on (or already failed) can be
+        // cancelled; a finished one must not be flipped to error. The running
+        // ingestion notices the change before it embeds / marks ready and
+        // discards what it wrote (agents/notebooks/sourceIngestion.js).
+        if (source.status === 'processing') {
+            await notebookStore.updateSource(source.id, {
+                status: 'error',
+                stage: 'error',
+                error: 'Cancelled by user',
+            }, { onlyIfProcessing: true });
+        }
         res.json({ success: true });
     } catch (err) {
         log.error('[Notebooks] Cancel source failed:', err);
@@ -800,14 +867,12 @@ router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDelete
         if (ids.length > MAX_BULK_DELETE_IDS) {
             return res.status(400).json({ error: `Too many sources — delete at most ${MAX_BULK_DELETE_IDS} at a time` });
         }
-        let deleted = 0;
-        for (const sid of ids) {
-            // Scoped to nb.id: a foreign sid resolves to null and is skipped, so a
-            // caller can't destroy another notebook's source by mixing ids in here.
-            const source = await notebookStore.deleteSource(sid, nb.id);
-            // Chunks live under the notebook owner's tenant (sourceIngestion.js).
-            if (source) { await cleanupSourceArtifacts(nb, source, nb.userId); deleted++; }
-        }
+        // One scoped DELETE ... WHERE id = ANY: a foreign sid simply doesn't match,
+        // so a caller can't destroy another notebook's source by mixing ids in.
+        const removed = await notebookStore.deleteSources(ids, nb.id);
+        // Chunks live under the notebook owner's tenant (sourceIngestion.js).
+        await mapWithConcurrency(removed, SOURCE_CLEANUP_CONCURRENCY, (source) => cleanupSourceArtifacts(nb, source, nb.userId));
+        const deleted = removed.length;
         res.json({ success: true, deleted });
     } catch (err) {
         log.error('[Notebooks] Bulk delete sources failed:', err);

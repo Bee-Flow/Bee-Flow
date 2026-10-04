@@ -588,13 +588,12 @@ async function finalizeDirectChatTurn(turn) {
 
                     // Resolve the provider exactly like the tier path; reuse the
                     // conversation's resolved provider when the model matches.
-                    let tAdapter = adapter, tApiKey = apiKey, tApiUrl = apiUrl, tApiVersion = config.apiVersion;
+                    let tAdapter = adapter, tApiKey = apiKey, tApiUrl = apiUrl;
                     if (titleModelId && titleModelId !== modelId) {
                         const tCfg = await getProviderForModel(titleModelId);
                         tApiUrl = (tCfg.url || '').replace(/\/+$/, '');
                         tAdapter = getAdapter(tCfg.providerType, tApiUrl);
                         tApiKey = tCfg.apiKey;
-                        tApiVersion = tCfg.apiVersion;
                         titleModelId = tCfg.model || titleModelId;
                     }
 
@@ -603,7 +602,7 @@ async function finalizeDirectChatTurn(turn) {
                     if (transcript && transcript.trim()) {
                         log.info(`[DirectChat] Title: generating with model=${titleModelId}`);
                         const title = await llmClient.generateTitleWithProvider(
-                            { adapter: tAdapter, apiKey: tApiKey, apiUrl: tApiUrl, modelId: titleModelId, apiVersion: tApiVersion },
+                            { adapter: tAdapter, apiKey: tApiKey, apiUrl: tApiUrl, modelId: titleModelId },
                             transcript,
                             titleAgent?.system_prompt,
                             { maxInputChars: 1600 },

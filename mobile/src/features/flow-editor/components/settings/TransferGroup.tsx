@@ -1,7 +1,7 @@
 /**
- * The routine as a file: Export shares it (pinned samples, environment
+ * The automation as a file: Export shares it (pinned samples, environment
  * references and app back-pointers are left out — the server names each in
- * a warning, shown here), Import makes a new draft routine from a file and
+ * a warning, shown here), Import makes a new draft automation from a file and
  * opens it; what it could not connect comes back as its warnings.
  */
 
@@ -46,7 +46,7 @@ export function TransferGroup({ flowKey, title, onImported }: { flowKey: string;
                 testID="settings-export"
             />
             <SettingRow
-                label={importer.busy ? t('mobile.flow.settings.importing', 'Importing…') : t('mobile.flow.settings.import', 'Import a routine')}
+                label={importer.busy ? t('mobile.flow.settings.importing', 'Importing…') : t('mobile.flow.settings.import', 'Import an automation')}
                 value={t('mobile.flow.settings.import_value', 'New draft')}
                 icon={<Icon name="Import" size={18} />}
                 onPress={importer.pick}

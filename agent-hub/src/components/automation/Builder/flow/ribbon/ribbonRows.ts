@@ -64,20 +64,20 @@ export const TAB_ROWS: Record<RowTab, Slot[][]> = {
         ['route', 'loop'],
         ['privacy_shield'],
         [
-            { menu: 'end', titleKey: 'routines.ribbon.group_end', fallback: 'End the run', Icon: Flag, ids: ['stop_error', 'return_to_app'] },
+            { menu: 'end', titleKey: 'automations.ribbon.group_end', fallback: 'End the run', Icon: Flag, ids: ['stop_error', 'return_to_app'] },
             'note',
         ],
     ],
     people: [
         ['approval', 'notification', 'wait'],
-        [{ menu: 'forms', titleKey: 'routines.ribbon.group_forms', fallback: 'Form pages', Icon: ClipboardList, ids: ['form_page', 'form_ending'] }],
+        [{ menu: 'forms', titleKey: 'automations.ribbon.group_forms', fallback: 'Form pages', Icon: ClipboardList, ids: ['form_page', 'form_ending'] }],
     ],
     data: [
         ['set', 'datetime'],
         [
-            { menu: 'tables', titleKey: 'routines.ribbon.data_tables', fallback: 'Tables', Icon: Table2, ids: ['datatable', 'knowledge_write'] },
-            { menu: 'documents', titleKey: 'routines.ribbon.data_documents', fallback: 'Documents', Icon: FileText, ids: ['generate_document', 'fill_document', 'slide', 'presentation'] },
-            { menu: 'lists', titleKey: 'routines.ribbon.data_lists', fallback: 'Lists', Icon: ListFilter, ids: ['limit', 'dedupe', 'aggregate', 'summarize'] },
+            { menu: 'tables', titleKey: 'automations.ribbon.data_tables', fallback: 'Tables', Icon: Table2, ids: ['datatable', 'knowledge_write'] },
+            { menu: 'documents', titleKey: 'automations.ribbon.data_documents', fallback: 'Documents', Icon: FileText, ids: ['generate_document', 'fill_document', 'slide', 'presentation'] },
+            { menu: 'lists', titleKey: 'automations.ribbon.data_lists', fallback: 'Lists', Icon: ListFilter, ids: ['limit', 'dedupe', 'aggregate', 'summarize'] },
         ],
     ],
 };
@@ -127,7 +127,7 @@ export function planRow(items: PaletteItem[], tab: RowTab, origin: string | null
 export function planBlocksRow(flowlets: PaletteItem[], blockSections: ItemSection[], t: Translate): SegmentPlan[] {
     const ownKinds = new Set(['create_layer', 'layer_output']);
     const own = flowlets.filter(it => ownKinds.has(it.payload.kind)).map(itemPill);
-    const saved = menuPill('flowlets', t('routines.canvas.flowlets', 'Flowlets'), Layers, flowlets.filter(it => !ownKinds.has(it.payload.kind)), null);
+    const saved = menuPill('flowlets', t('automations.canvas.flowlets', 'Flowlets'), Layers, flowlets.filter(it => !ownKinds.has(it.payload.kind)), null);
     const steps = blockSections
         .map(sec => menuPill(`blocks:${sec.key}`, sec.title, Package, sec.items, null))
         .filter((p): p is PillPlan => !!p);

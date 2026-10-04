@@ -33,6 +33,8 @@ export interface NotebookRecord {
     lastEditedAt?: string | null;
     createdAt?: string | null;
     updatedAt?: string | null;
+    /** The `managed` of the GET (managedPart.managedOf), when a Solution stage owns the notebook. */
+    managed?: unknown;
 }
 
 export interface NotebookProjectSummary {

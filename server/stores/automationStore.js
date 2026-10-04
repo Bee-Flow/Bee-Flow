@@ -30,7 +30,7 @@ module.exports = {
     ...require('./automationStore/subscriptions'),
     // Additional schedule triggers (automation_schedules, 2026-09).
     ...require('./automationStore/schedules'),
-    // Handoff 5: publish (working copy → live), the trash, per-routine run
+    // Handoff 5: publish (working copy → live), the trash, per-automation run
     // retention. Only the instance functions; the SQL constants stay module-level.
     publishWorkingCopy: require('./automationStore/lifecycle').publishWorkingCopy,
     countPendingChanges: require('./automationStore/lifecycle').countPendingChanges,

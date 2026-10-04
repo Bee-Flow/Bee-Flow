@@ -1,5 +1,5 @@
 /**
- * The routines list is re-read when a run ends, and only then: a start or a
+ * The automations list is re-read when a run ends, and only then: a start or a
  * step leaves it alone, and the list screen and the detail screen above it
  * hearing the same end cost one read, not two.
  */

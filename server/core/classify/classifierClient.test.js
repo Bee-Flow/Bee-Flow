@@ -149,7 +149,7 @@ test('probe answers from its cache until told to look again', async () => {
     assert.equal(n, 1);
 });
 
-test('topicClassifierFor: no probe for a routine without isAbout', async () => {
+test('topicClassifierFor: no probe for an automation without isAbout', async () => {
     const { topicClassifierFor } = require('./classifierClient');
     let probed = false;
     const probeFn = async () => { probed = true; return { available: true, reason: null }; };

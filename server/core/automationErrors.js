@@ -141,7 +141,7 @@ const REMEDIATION_BY_CODE = {
     TransientError: 'A temporary upstream issue — retry in a moment.',
     ValidationError: 'A required field is empty or malformed — open the step and fill the highlighted input.',
     IntegrationError: 'Check the target exists (room token / board id / file path) and that the app is enabled.',
-    ApprovalExpired: 'The approval window elapsed — re-run the routine to request approval again.',
+    ApprovalExpired: 'The approval window elapsed — re-run the automation to request approval again.',
     UserCanceledError: 'The run was canceled — start it again if that was unintended.',
 };
 

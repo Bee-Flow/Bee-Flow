@@ -364,13 +364,17 @@ async function executeCustomIntegrationTool(prefixedName, args, {
     let secretValues = [];
     const fail = (msg) => ({ error: scrubSecrets(String(msg), secretValues) });
     try {
-        // 0. Kill switch — the same dark-ship flag that gates injection and
-        //    the builder routes. Checked here too so a stale tool list (or any
-        //    future injection path) can never execute when the flag is off.
-        const { isCustomIntegrationsEnabled } = require('../core/customIntegrations/featureFlag');
-        if (!(await isCustomIntegrationsEnabled())) {
-            return fail('Custom integrations are disabled.');
-        }
+        // 0. Run gate — the same check that gates injection: the builder's
+        //    dark-ship flag for builder rows, the server-wide org MCP policy
+        //    for MCP-library rows (customIntegrations/mcpLibrary/gate.js).
+        //    Checked here too so a stale tool list (or any future injection
+        //    path) can never execute once it is switched off. Loaded before
+        //    the row so that, with everything off, nothing is even read.
+        const { loadRunGate } = require('../core/customIntegrations/mcpLibrary/gate');
+        const gate = await loadRunGate();
+        if (!gate.anyRunnable) return fail('Custom integrations are disabled.');
+        // The builder's test route runs drafts; that is a builder feature.
+        if (draftIntegration && !gate.builderEnabled) return fail('Custom integrations are disabled.');
 
         // 1. Parse + load + slug re-assert (a draftIntegration for another
         //    slug must not be reachable through this name).
@@ -382,6 +386,9 @@ async function executeCustomIntegrationTool(prefixedName, args, {
         if (!integration) return fail('This custom integration no longer exists.');
         if (typeof integration.slug !== 'string' || !prefixedName.startsWith(`cint_${integration.slug}_`)) {
             return fail('Unknown custom integration tool.');
+        }
+        if (!draftIntegration && !gate.isRunnable(integration)) {
+            return fail('This integration has been switched off by your server administrator.');
         }
 
         // 2. Org isolation: the runner only ever acts inside the calling
@@ -397,7 +404,7 @@ async function executeCustomIntegrationTool(prefixedName, args, {
             return fail('This custom integration is not active.');
         }
 
-        // 3. No unattended runs yet (routines/AI tasks need per-run consent design).
+        // 3. No unattended runs yet (automations/AI tasks need per-run consent design).
         if (unattended === true) return fail('Custom integrations are not available in automated runs yet.');
 
         // 5. Capability backstop (fail-closed; deliberately BEFORE the

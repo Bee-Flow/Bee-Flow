@@ -7,7 +7,7 @@ import { studioLockHint } from '../studioApps';
 /**
  * The five phases as a vertical rail: a 28 px circle per phase, 2 px
  * connectors, one 11 px fact line from the artifacts once a phase has landed
- * ("Facturen · 32 rijen", "Routine 'Facturen inlezen'"). The circle is the
+ * ("Facturen · 32 rijen", "Automation 'Facturen inlezen'"). The circle is the
  * status — pending hollow, ready hollow blue, running filled blue with the
  * breathing ring, awaiting a pause glyph, done emerald check, failed red X,
  * skipped struck through, locked a lock with the plan hint.

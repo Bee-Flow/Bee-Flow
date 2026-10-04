@@ -9,7 +9,7 @@ Everything below was read from the code on branch `claude/builder-redesign-fase-
 
 ## 1. What the feature is for
 
-Bee Flow agents, routines and Studio apps can call third-party tools (Gmail, Nextcloud Files,
+Bee Flow agents, automations and Studio apps can call third-party tools (Gmail, Nextcloud Files,
 YouTrack, AFAS, n8n, an MCP server…). Three separate decisions govern whether a given tool
 actually fires for a given person:
 
@@ -265,7 +265,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 - Connections API rate limits per user: **30 writes / 60 s**, **10 shares / 60 s**.
 - Lending expiry choices: none, **7**, **30**, **90** days.
 - Connection `kind` whitelist: `oauth, api_key, basic, mcp, bearer, oauth2_cc`.
-  Grant resource types: `agent, webpage, skill, routine, studio_app`.
+  Grant resource types: `agent, webpage, skill, automation, studio_app`.
 - MCP: per-user process pool with a **5-minute** idle timeout; live registry search cached
   **5 min**, max **200** entries, verified-only by default.
 - NC pairing code: **8 characters**, TTL **15 minutes**, one-shot.
@@ -345,10 +345,10 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 
 ## 8. How it connects to other features
 
-- **Agents / Skills / Studio apps / Routines** read the resolved integration set at tool-build time
+- **Agents / Skills / Studio apps / Automations** read the resolved integration set at tool-build time
   (`server/core/integrations/integrationTools.js`); per-agent `enabledIntegrations` and the per-user
   `enabled_apps` selection are a *further* narrowing applied after entitlements.
-- **Routines → `http_request` step** picks a named HTTP connection from Settings → Connections —
+- **Automations → `http_request` step** picks a named HTTP connection from Settings → Connections —
   that is why the "HTTP API (custom)" provider exists there.
 - **Usage & Monitoring → "Integration Activity Monitor"** (`usage.integ_*`,
   `/api/usage/integration-*`) reports tool calls, server endpoints, bytes and PII-in-transit.
@@ -388,7 +388,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
    (only Compliance is let through).
 10. **Believing stale comments.** `ncIntegrations.js` says "the 11 Nextcloud tools"; the catalogue
     has **14**. Count from `ncIntegrationCatalog.js`, not the prose.
-11. **Deleting a connection that a routine uses** — the confirm says it plainly:
+11. **Deleting a connection that an automation uses** — the confirm says it plainly:
     *"Any automation using it will stop working."*
 
 ---

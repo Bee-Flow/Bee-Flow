@@ -4,7 +4,7 @@
  * something, with what it calls under it; then what it depends on outside.
  *
  * Reassurance is gated on `complete === true` and nothing else. A graph drawn
- * from four of six kinds is true about those four, and the routine with the
+ * from four of six kinds is true about those four, and the automation with the
  * cross-owner edge may be sitting in the half that did not load.
  */
 

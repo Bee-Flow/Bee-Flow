@@ -14,8 +14,8 @@ import { PrimaryButton } from './workspaceUi';
 function RolesExplainer() {
     const { t } = useTranslation();
     const rows = [
-        { role: t('project_home.role.owner', 'Owner'), what: t('project_home.members.owner_can', 'Everything an editor can, plus settings, members and deleting the project.') },
-        { role: t('project_home.role.editor', 'Editor'), what: t('project_home.members.editor_can', 'Starts chats, posts, creates and edits documents, notebooks and knowledge.') },
+        { role: t('project_home.role.owner', 'Owner'), what: t('project_home.members.owner_can_v2', 'Everything an editor can, plus managing members and deleting the project.') },
+        { role: t('project_home.role.editor', 'Editor'), what: t('project_home.members.editor_can_v2', 'Starts chats, manages tasks and content, and changes project and AI settings.') },
         { role: t('project_home.role.viewer', 'Viewer'), what: t('project_home.members.viewer_can', 'Reads everything in the project, changes nothing.') },
     ];
     return (
@@ -39,7 +39,9 @@ export default function MembersTab({ projectId, role, currentUser, intent, onLef
     // A quick action ("Invite people") arrives as an intent: focus the form once.
     const [focusRequest, setFocusRequest] = useState(intent === 'invite' ? 1 : 0);
     const isOwner = role === 'owner';
-    const count = members.data ? members.data.members.length + 1 : null;
+    const peopleCount = members.data ? new Set([members.data.ownerId, ...members.data.members.filter(m => m.sharedWithType === 'user').map(m => m.sharedWithId)]).size : 0;
+    const groupsCount = members.data?.members.filter(m => m.sharedWithType === 'group').length || 0;
+    const count = members.data ? t('project_home.members.access_count', '{people} people · {groups} groups', { people: peopleCount, groups: groupsCount }) : null;
 
     return (
         <div className="h-full flex flex-col min-h-0" data-testid="project-members-tab">
@@ -68,6 +70,7 @@ export default function MembersTab({ projectId, role, currentUser, intent, onLef
                             {t('project_home.members.roles_title', 'What each role can do')}
                         </h2>
                         <RolesExplainer />
+                        <p className="text-xs text-[var(--text-secondary)]">{t('project_home.members.group_rights', 'Group membership also grants access. When several grants apply, the highest role applies; removing a direct grant does not remove group access.')}</p>
                     </section>
                 </div>
             </div>

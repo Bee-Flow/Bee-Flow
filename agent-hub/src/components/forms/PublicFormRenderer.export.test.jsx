@@ -1,7 +1,7 @@
 /**
  * The export bar on a closing page — BFSF-419, Track 1's generic fallback.
  *
- * Most routines never take a `generate_document` step: their whole "result"
+ * Most automations never take a `generate_document` step: their whole "result"
  * is markdown sitting in `form.description` (a blog post, a summary), with
  * no download/notebook field wired at all, because the author never added
  * one. Before this bar, closing the tab lost that text for good. It has to

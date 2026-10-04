@@ -335,7 +335,7 @@ function validateAppDefinition(def, opts = {}) {
     }
     const capErrorsBefore = errors.length;
     if (bytes > LIMITS.MAX_DEFINITION_BYTES) {
-        pushE({ code: 'shape.too_large', severity: 'error', path: '', message: `Definition is ${bytes} bytes — the maximum is ${LIMITS.MAX_DEFINITION_BYTES}.`, hint: 'Trim large static values; bind data from routines instead of inlining it.' });
+        pushE({ code: 'shape.too_large', severity: 'error', path: '', message: `Definition is ${bytes} bytes — the maximum is ${LIMITS.MAX_DEFINITION_BYTES}.`, hint: 'Trim large static values; bind data from automations instead of inlining it.' });
     }
     if (screens.length > LIMITS.MAX_SCREENS) {
         pushE({ code: 'shape.too_many_screens', severity: 'error', path: 'screens', message: `App has ${screens.length} screens — the maximum is ${LIMITS.MAX_SCREENS}.`, hint: 'Merge or remove screens.' });

@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * The documents and notebooks a chat message tags, as the assistant reads them:
+ * The project items a chat message tags, as the assistant reads them:
  * loaded as the asking member (so their access rules apply), cut to a size the
  * prompt can carry, and set ahead of the transcript so the Privacy Shield
  * scans them with it.
@@ -39,28 +39,38 @@ function meetingText(note) {
 }
 
 /**
- * What the asker may read of the documents, notebooks and meeting notes a message tags, as
+ * What the asker may read of the documents, notebooks, meeting notes and tasks a message tags, as
  * `{ kind, name, text }`. Reading goes through the same stores (and so the
  * same access rules) as opening the item; one the asker cannot read, or that
  * failed to load, is left out.
  */
-async function loadTaggedItems(refs, { userId }, deps = {}) {
+async function loadTaggedItems(refs, { userId, project }, deps = {}) {
     const documents = () => deps.documents || require('../stores/documentStore');
     const notebooks = () => deps.notebooks || require('../stores/notebookStore');
     const meetings = () => deps.meetings || require('../stores/transcriptionStore');
+    const tasks = () => deps.tasks || require('../stores/projectTaskStore');
+    const crypto = () => deps.chatCrypto || require('./chatCrypto');
     const items = [];
     for (const ref of refs || []) {
         try {
             if (ref.kind === 'document') {
                 const doc = await documents().getDocument(ref.id, { userId });
-                if (doc) items.push({ kind: 'document', name: doc.name, text: htmlToText(doc.bodyHtml) });
+                if (doc) items.push({ id: ref.id, kind: 'document', name: doc.name, text: htmlToText(doc.bodyHtml) });
             } else if (ref.kind === 'meeting') {
                 // Read as the asker; a note filed in the project is readable by every member (transcriptionStore's project fallback).
                 const note = await meetings().getTranscription(ref.id, userId, {});
-                if (note) items.push({ kind: 'meeting', name: note.title, text: meetingText(note) });
+                if (note) items.push({ id: ref.id, kind: 'meeting', name: note.title, text: meetingText(note) });
             } else if (ref.kind === 'notebook') {
                 const nb = await notebooks().getNotebook(ref.id, userId);
-                if (nb) items.push({ kind: 'notebook', name: nb.name, text: nb.documentMd || htmlToText(nb.documentContent) });
+                if (nb) items.push({ id: ref.id, kind: 'notebook', name: nb.name, text: nb.documentMd || htmlToText(nb.documentContent) });
+            } else if (ref.kind === 'task' && project?.id) {
+                const task = await tasks().getTask(project.id, ref.id);
+                if (task) {
+                    const box = await crypto().forProject(project);
+                    const name = box.openTitle(task.id, task.title);
+                    const description = box.openContent(task.id, task.id, task.description);
+                    items.push({ id: ref.id, kind: 'task', name, text: `Status: ${task.status}\nPriority: ${task.priority}\n${description}`.trim() });
+                }
             }
         } catch (err) {
             log.warn(`[ProjectChat] tagged ${ref && ref.kind} ${ref && ref.id} not loaded: ${err && err.message}`);

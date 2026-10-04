@@ -42,7 +42,7 @@ describe('de drie pillen', () => {
         expect(pills).toContain('2 knowledge bases');
         expect(pills).toContain('1 skill');
         // "at least": deze agent heeft geen `config.tools.automations`, dus de
-        // runtime legt er élke agent-callable routine van de vrager bovenop.
+        // runtime legt er élke agent-callable automatisering van de vrager bovenop.
         expect(pills).toContain('at least 2 tools');
         // De placeholder is INGEVULD — een pil die "{count} tools" zegt is
         // erger dan geen pil (zelfde reden als `tx` in VisibilityCapsule).

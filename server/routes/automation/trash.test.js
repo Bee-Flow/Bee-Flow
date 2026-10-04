@@ -75,7 +75,7 @@ function handlers(store) {
     return { ...h, woke };
 }
 
-test('DELETE moves the routine into the trash: switched off, subscriptions gone, purge date given', async () => {
+test('DELETE moves the automation into the trash: switched off, subscriptions gone, purge date given', async () => {
     const store = fakeStore([{ id: 'a1', userId: 'u1', isActive: true }]);
     const h = handlers(store);
     const r = await call(h.trash, { params: { id: 'a1' } });
@@ -98,7 +98,7 @@ test('DELETE: 404 unknown, 403 someone else\'s — nothing touched', async () =>
     assert.deepStrictEqual(store.calls.revoked, []);
 });
 
-test('GET /_trash lists only the caller\'s trashed routines', async () => {
+test('GET /_trash lists only the caller\'s trashed automations', async () => {
     const store = fakeStore([
         { id: 'a1', userId: 'u1', deletedAt: '2026-09-01T10:00:00.000Z' },
         { id: 'a2', userId: 'u1' },
@@ -109,7 +109,7 @@ test('GET /_trash lists only the caller\'s trashed routines', async () => {
     assert.strictEqual(r.body.retentionDays, 30);
 });
 
-test('restore brings a trashed routine back paused; 404 when it is not in the trash', async () => {
+test('restore brings a trashed automation back paused; 404 when it is not in the trash', async () => {
     const store = fakeStore([{ id: 'a1', userId: 'u1', isActive: false, deletedAt: '2026-09-01T10:00:00.000Z' }, { id: 'a2', userId: 'u1' }]);
     const h = handlers(store);
     assert.strictEqual((await call(h.restore, { params: { id: 'a1' }, user: 'u2' })).status, 403);
@@ -138,7 +138,7 @@ test('purge: releases answers tables, deletes, and cleans both usage indexes', a
     assert.deepStrictEqual(app, ['a1']);
 });
 
-test('purge: a routine whose answers tables cannot be released is kept for the next pass', async () => {
+test('purge: an automation whose answers tables cannot be released is kept for the next pass', async () => {
     const store = fakeStore([{ id: 'a1', userId: 'u1', deletedAt: '2026-08-01T00:00:00.000Z' }, { id: 'a2', userId: 'u1', deletedAt: '2026-08-01T00:00:00.000Z' }]);
     const out = await purgeTrashPass({
         store,

@@ -52,7 +52,7 @@ function ViaChips({ value, onChange, disabled }: FieldProps) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
-        <View style={styles.chips} accessibilityLabel={t('routines.notify.via', 'Via')}>
+        <View style={styles.chips} accessibilityLabel={t('automations.notify.via', 'Via')}>
             {CHANNELS.map((c) => (
                 <Chip key={c} label={channelLabel(c, t, true)} selected={value.enabled && value.channels.includes(c)} disabled={disabled} onPress={() => onChange(toggleChannel(value, c))} />
             ))}
@@ -69,7 +69,7 @@ function Recipients({ value, onChange, disabled, ownerName, names, directory }: 
     const options = directoryOptions(directory, t('mobile.flow.approval.groups', 'Groups')).filter((o) => !chosen.has(o.value));
     return (
         <View style={styles.section}>
-            <Text variant="label" tone="secondary">{t('routines.notify.to', 'To')}</Text>
+            <Text variant="label" tone="secondary">{t('automations.notify.to', 'To')}</Text>
             <View style={styles.chips}>
                 {value.recipients.map((r) => {
                     const label = recipientLabel(r, t, ownerName, names);
@@ -80,7 +80,7 @@ function Recipients({ value, onChange, disabled, ownerName, names, directory }: 
                             icon={<Icon name="X" size={12} color={styles.glyph.color} />}
                             onPress={() => onChange(removeRecipient(value, r))}
                             disabled={disabled}
-                            accessibilityHint={t('routines.notify.remove_recipient', 'Remove {name}', { name: label })}
+                            accessibilityHint={t('automations.notify.remove_recipient', 'Remove {name}', { name: label })}
                         />
                     );
                 })}
@@ -90,7 +90,7 @@ function Recipients({ value, onChange, disabled, ownerName, names, directory }: 
                     value=""
                     options={options}
                     onChange={(picked) => onChange(addRecipient(value, picked))}
-                    prompt={t('routines.notify.add_recipient', '+ add')}
+                    prompt={t('automations.notify.add_recipient', '+ add')}
                     disabled={disabled}
                 />
             ) : null}
@@ -106,7 +106,7 @@ function Example({ event, title }: { event: NotificationEvent; title: string }) 
         <View style={styles.example} testID="notify-example">
             <Icon name="Bell" size={14} color={styles.tones[event]} />
             <View style={styles.exampleWords}>
-                <Text variant="label" tone="tertiary">{t('routines.notify.example', 'Example')}</Text>
+                <Text variant="label" tone="tertiary">{t('automations.notify.example', 'Example')}</Text>
                 <Text variant="body">{words.heading}</Text>
                 <Text variant="caption" tone="secondary">{`${words.body} ${words.link}`}</Text>
             </View>
@@ -141,20 +141,20 @@ export function NotificationEventDetails({ event, value, onChange, disabled, ope
             {open ? (
                 <View style={styles.body}>
                     <View style={styles.section}>
-                        <Text variant="label" tone="secondary">{t('routines.notify.via', 'Via')}</Text>
+                        <Text variant="label" tone="secondary">{t('automations.notify.via', 'Via')}</Text>
                         <ViaChips value={value} onChange={onChange} disabled={disabled} />
                     </View>
                     <Recipients value={value} onChange={onChange} disabled={disabled} ownerName={ownerName} names={names} directory={directory} />
                     <SelectField
-                        label={t('routines.notify.urgency', 'How urgent')}
+                        label={t('automations.notify.urgency', 'How urgent')}
                         value={value.urgency}
                         options={URGENCIES.map((u) => ({ value: u, label: urgencyLabel(u, t) }))}
                         onChange={(urgency) => onChange({ ...value, urgency: urgency as Urgency })}
                         disabled={disabled}
                     />
                     <SelectField
-                        label={t('routines.notify.repeat', 'On repeat')}
-                        hint={throttle != null ? `${t('routines.notify.repeat_prefix', 'No more than')} ${throttleLabel(throttle, t)} ${t('routines.notify.repeat_suffix', 'then bundled')}` : null}
+                        label={t('automations.notify.repeat', 'On repeat')}
+                        hint={throttle != null ? `${t('automations.notify.repeat_prefix', 'No more than')} ${throttleLabel(throttle, t)} ${t('automations.notify.repeat_suffix', 'then bundled')}` : null}
                         value={throttle == null ? '' : String(throttle)}
                         options={THROTTLE_OPTIONS.map((n) => ({ value: n == null ? '' : String(n), label: throttleLabel(n, t) }))}
                         onChange={(next) => onChange({ ...value, throttle: { maxPerHour: next ? Number(next) : null } })}

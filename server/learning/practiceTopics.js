@@ -116,7 +116,7 @@ const LEGACY_PRACTICE_TOPICS = {
         ],
     },
     'automations': {
-        title: 'Automations & routines',
+        title: 'Automations & automations',
         summary: 'An automation is a trigger plus steps on a visual canvas that runs without you.',
         facts: [
             'An automation = ONE trigger + steps on a canvas, ending in a result. Statuses: DRAFT, LIVE, PAUSED.',
@@ -139,7 +139,7 @@ const LEGACY_PRACTICE_TOPICS = {
         title: 'The automations builder',
         summary: 'The Studio → Automations surface: start screen tabs, canvas, views, activation.',
         facts: [
-            'The start screen has four tabs: All automations, Find repeating work, Templates, and Runs. Building blocks (reusable Steps) sit in the automations list, and describing a routine in plain English happens in the assistant beside the builder\'s canvas.',
+            'The start screen has four tabs: All automations, Find repeating work, Templates, and Runs. Building blocks (reusable Steps) sit in the automations list, and describing an automation in plain English happens in the assistant beside the builder\'s canvas.',
             'The builder has four views: Editor (canvas), Settings, Runs, and Saved versions.',
             'Activate needs a trigger AND at least one step; the empty canvas says "Start with a trigger".',
             'The schedule picker offers Every N minutes / Hourly / Daily / Weekly / Monthly / Advanced with a timezone and a preview of the next 3 firing times.',

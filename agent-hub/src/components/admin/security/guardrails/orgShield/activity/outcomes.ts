@@ -19,7 +19,7 @@
  *
  * An action alone is not enough to decide. The same stored word means
  * different things under different violation types: 'scan_failed' is a
- * routine that refused to send content it could not check (type
+ * automation that refused to send content it could not check (type
  * 'scan_failed'), but a chat message that went out unchecked (type
  * 'dlp_decision'); 'stripped' is hidden Unicode characters removed from a
  * prompt, not personal data. So every row is read as (action, violation type).
@@ -86,7 +86,7 @@ export function outcomeOfAction(action: string | null | undefined, violationType
     const a = String(action || '');
     const type = String(violationType || '');
     if (NOTE_VIOLATION_TYPES.has(type)) return 'other';
-    // A routine told to fail closed writes 'scan_failed' under its own type
+    // An automation told to fail closed writes 'scan_failed' under its own type
     // and throws: the content never left.
     if (a === 'scan_failed' && type === 'scan_failed') return 'stopped';
     if (REPLACED_ACTIONS.has(a)) return 'replaced';

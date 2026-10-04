@@ -20,7 +20,7 @@
  * anybody else's. featureMap.js documents the pairing.
  *
  * OWNER, per route. Export reads EVERY member of the project, including apps
- * and routines belonging to other members. Editor is not enough for that: an
+ * and automations belonging to other members. Editor is not enough for that: an
  * editor can file their own work in and out, which is a different thing from
  * taking a copy of everyone's. The project's owner decides whether the Solution
  * leaves.
@@ -39,6 +39,8 @@ const { requireProjectRole } = require('../../auth/projectAccess');
 const { captureSolution } = require('../../projects/packaging/capture');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
+const publication = require('../../projects/packaging/publication');
 const S = require('./schemas');
 
 const router = express.Router({ mergeParams: true });
@@ -56,11 +58,28 @@ const blueprintPackaging = requireFeature('blueprint_packaging');
  * owner classifies it. Runs after the role gate and the body schema, so a
  * stranger still gets the gate's 404 and a refused body never reaches a
  * store.
+ *
+ * A Solution STAGE (UAT or Production, `project.stage` set) answers 404 too:
+ * it is a locked copy of a Dev Solution and changes only through a
+ * deployment, so it is never exported, upgraded or counted on its own.
  */
 async function requireSolutionProject(req, res, next) {
     const project = await require('../../stores/projectStore').getProject(req.params.id);
-    if (!project || project.kind === 'workspace') return res.status(404).json({ error: 'Not found' });
+    if (!project || project.kind === 'workspace' || project.stage) return res.status(404).json({ error: 'Not found' });
     next();
+}
+
+/**
+ * Errors with a 4xx status were raised on purpose and carry a message for the
+ * caller, and so does an HttpError of any status (a 503 `ref_ledger_unavailable`
+ * or `bindings_unavailable` is written for the caller too): they go to the
+ * terminal error handler as they are. Only the rest is logged and answered
+ * with a generic 500.
+ */
+function rethrowClientError(err) {
+    if (err instanceof HttpError) throw err;
+    const status = Number(err?.status);
+    if (Number.isInteger(status) && status >= 400 && status < 500) throw err;
 }
 
 /**
@@ -69,6 +88,13 @@ async function requireSolutionProject(req, res, next) {
  * Returns the manifest as JSON rather than a download: what the caller does
  * with it (save, install elsewhere, diff against a previous version) is not
  * this route's business, and a JSON body is the only shape all three want.
+ *
+ * THE PUBLISH GATE IS HERE, ON THE SERVER. With `save: true` the completeness
+ * aggregate runs first (projects/packaging/publication.js `releaseGate`), and
+ * a blocked verdict — including "could not check" — is a 409
+ * `release_blocked` carrying the findings: nothing is captured or published.
+ * A plain download is never refused by the gate; it carries the verdict in
+ * `_checks` so the caller can say what an installer would run into.
  */
 router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.ExportBody }), requireSolutionProject, require('../../compliance/dataPortability/stampExport')('solutions'), async (req, res) => {
     try {
@@ -76,12 +102,24 @@ router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner
         const project = await projectStore.getProject(req.params.id);
         if (!project) return res.status(404).json({ error: 'Not found' });
 
-        const result = await captureSolution({
-            project,
-            // Stamped by the caller so capture stays a pure function of the
-            // database's state and two runs can be compared.
-            exportedAt: new Date().toISOString(),
-        });
+        const save = req.body?.save === true;
+        const verdict = await publication.releaseGate(project);
+        if (save && verdict.blocked) {
+            throw new HttpError(409, 'release_blocked',
+                'This Solution has findings that block publishing. Resolve them, then publish again.',
+                { findings: verdict.findings, unavailable: verdict.unavailable });
+        }
+
+        // Stamped by the caller so capture stays a pure function of the
+        // database's state and two runs can be compared.
+        const exportedAt = new Date().toISOString();
+        // A publication names every part by its ledger ref (F1), so an
+        // installed copy's stamps match the right part on the next upgrade
+        // however the store orders the list. A download is not a publication
+        // and leaves the ledger alone.
+        const result = save
+            ? await captureWithLedger(project, exportedAt)
+            : await captureSolution({ project, exportedAt });
         if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
 
         // `save` keeps it on the instance so another team can install it
@@ -94,21 +132,14 @@ router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner
         // failed history row must take the gallery row down with it, rather
         // than leaving a version that nobody can find back.
         //
-        // DE NOTITIE KOMT VAN DE SERVER, NOOIT UIT DE REQUEST. Zij stond eerst
-        // als `req.body?.notes` in deze aanroep, en dat was twee dingen tegelijk
-        // fout. Ten eerste vulde niemand haar — de enige client stuurt `{save}`
-        // — dus elke release kreeg `{}` en de Versies-tab las ELKE versie als
-        // "niet vastgelegd". Ten tweede stond de schrijfkant open: de store
-        // toetst alleen "plat object ≤ 64 KB", dus een eigenaar kon zelf een
-        // `entities`-lijst posten en het scherm toonde die verzonnen lijst als
-        // DE vastgelegde diff — met een entiteit die in werkelijkheid veranderde
-        // netjes op 'unchanged'. De diff is een uitspraak van de server over
-        // twee manifesten; die hoort de server te doen.
+        // The note comes from the server, never from the request (see
+        // `releaseNotesFor`): a diff is the server's statement about two
+        // manifests, and the export schema refuses a `notes` key.
         let saved = null;
-        if (req.body?.save) {
+        if (save) {
             try {
                 const store = require('../../stores/blueprintStore');
-                const notes = await releaseNotesFor({
+                const notes = await publication.releaseNotesFor({
                     store, project, userId: req.session.user.id, manifest: result.manifest,
                 });
                 const published = await store.publishRelease({
@@ -119,7 +150,7 @@ router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner
                     notes,
                 });
                 saved = published.blueprint;
-                await announcePublication(project.id, req.session.user.id);
+                await publication.announcePublication(project.id, req.session.user.id);
             } catch (err) {
                 // The capture succeeded; only publishing it failed. Hand back
                 // the manifest anyway so the download still works, and say why.
@@ -127,21 +158,20 @@ router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner
             }
         }
 
-        // ── Het herkomstblok, gestempeld op wat de aanroeper meekrijgt ──────
+        // ── The provenance block, stamped on what the caller receives ──────
         //
-        // HIER en niet in `captureSolution`, om twee redenen die allebei over
-        // volgorde gaan: het Blueprint-id bestaat pas nadat de publicatie
-        // geslaagd is, en de naam van de organisatie is niets wat een capture
-        // hoort te lezen — die kent alleen het project.
+        // HERE and not in `captureSolution`, for two reasons that are both
+        // about order: the Blueprint id exists only once publishing succeeded,
+        // and the organisation's name is nothing a capture should read — it
+        // only knows the project.
         //
-        // Zonder publicatie blijft `blueprintId` null. Dat is de eerlijke
-        // waarde: een gedownload bestand dat nooit gepubliceerd is, hoort bij
-        // geen enkele galerijrij en mag daar dus ook niet naar wijzen.
+        // Without a publication `blueprintId` stays null. That is the honest
+        // value: a downloaded file that was never published belongs to no
+        // gallery row and must not point at one.
         //
-        // Wat er in dit blok terechtkomt is uitsluitend de eigen identiteit van
-        // de EXPORTERENDE organisatie — geen persoon, geen lezerslijst, geen
-        // gegevens uit een ander project. En wat de ontvanger ermee mag: niets
-        // dat op toegang lijkt. Zie de kop van `readSource` in packaging/manifest.js.
+        // What goes into this block is only the EXPORTING organisation's own
+        // identity — no person, no reader list, no data from another project.
+        // See the header of `readSource` in packaging/manifest.js.
         const source = {
             blueprintId: saved?.id || null,
             orgId: project.organizationId || null,
@@ -151,116 +181,62 @@ router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner
         const { withSource } = require('../../projects/packaging/manifest');
         res.json(saved
             ? { ...withSource(saved.manifest, source), _savedAs: saved.id, _version: saved.version }
-            : withSource(result.manifest, source));
+            : { ...withSource(result.manifest, source), _checks: publication.checksForDownload(verdict) });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[Projects] Blueprint export failed:', err.message);
         res.status(500).json({ error: 'Request failed' });
     }
 });
 
 /**
- * Hoe lang één zin mag duren, en hoe lang de hele tekstlaag.
+ * The ledger refs of a Solution's parts, for a gallery publication (F1).
  *
- * Publiceren mag NIET op een model wachten. `buildReleaseNotes` levert de
- * exacte boolean diff zonder één netwerkaanroep en verrijkt hem daarna met één
- * regel per gewijzigde entiteit; die verrijking is het enige dat tijd kost. Met
- * CONCURRENCY 3 in releaseNotes.js is de slechtste uitkomst hier ruwweg
- * NOTE_DEADLINE_MS plus één hangende aanroep van NOTE_CALL_TIMEOUT_MS — de
- * deadline wordt namelijk vóór elke await getoetst, niet tijdens. Vandaar
- * allebei fors onder de moduledefaults (15 s / 45 s): een publicatie die een
- * halve minuut stilstaat leest als kapot.
+ * Positional refs over store order moved every ref after a part that was
+ * added, removed or re-sorted, and an upgrade then REPLACED the wrong
+ * installed entity. The ledger (`blueprintStore.allocateRefs`) gives a part
+ * its ref once and never hands a retired one out again. The kind is the
+ * manifest section with its REF_PREFIX, so a first allocation numbers parts
+ * exactly as the old positional refs did. `kinds: ENTITY_KINDS`: a gallery
+ * publication retires only parts of the six sections it speaks for.
+ *
+ * NO FALLBACK: once a Solution has ledger rows, positional refs disagree with
+ * earlier releases and an upgrade writes one part over another. A ledger that
+ * cannot be written refuses the publication (503 `ref_ledger_unavailable`).
  */
-const NOTE_CALL_TIMEOUT_MS = 6_000;
-const NOTE_DEADLINE_MS = 12_000;
-
-/**
- * De notitie bij deze publicatie, of null.
- *
- * Twee lagen (zie projects/packaging/releaseNotes.js): de EXACTE diff per
- * entiteit, die geen netwerk raakt en niet kan omvallen, plus een zin per
- * gewijzigde entiteit als er een model voor is. Valt de tweede laag om, dan
- * blijft de eerste staan; valt alles om, dan is de notitie null en publiceert
- * de release zonder — NOOIT een geweigerde publicatie wegens een notitie.
- *
- * Dat laatste is ook de reden voor het slot onderaan: `publishRelease` GOOIT op
- * een notitie boven `MAX_NOTES_BYTES`. `releaseNotesPayload` krimpt tot hij
- * past, maar hij krimpt tot ZIJN eigen grens; zakt de grens van de store daar
- * ooit onder, dan zou een publicatie stuklopen op een bijzaak. Daarom wordt hij
- * hier tegen de echte constante van de store gelegd, en niet tegen een kopie.
- */
-async function releaseNotesFor({ store, project, userId, manifest }) {
+async function galleryRefsFor(project, ENTITY_KINDS, REF_PREFIX) {
+    const members = await require('../../projects/packaging/capture').loadMembers(project.id);
+    const list = ENTITY_KINDS.flatMap(kind => (Array.isArray(members?.[kind]) ? members[kind] : [])
+        .filter(e => e && typeof e.id === 'string' && e.id).map(e => ({ kind, entityId: e.id })));
     try {
-        const previousManifest = await previousPublishedManifest({ store, project, userId });
-        const { buildReleaseNotes, releaseNotesPayload } = require('../../projects/packaging/releaseNotes');
-        const notes = await buildReleaseNotes({
-            previousManifest,
-            manifest,
-            // Wiens model. Zonder gebruiker doet releaseNotes.js geen aanroep;
-            // hier is die er altijd, want de route staat achter een sessie.
-            userOrgId: project.organizationId || null,
-            userId,
-            timeoutMs: NOTE_CALL_TIMEOUT_MS,
-            deadlineMs: NOTE_DEADLINE_MS,
-        });
-        const payload = releaseNotesPayload(notes);
-        if (Buffer.byteLength(JSON.stringify(payload), 'utf8') > store.MAX_NOTES_BYTES) {
-            log.warn('[Projects] release notes did not fit; publishing without them');
-            return null;
-        }
-        return payload;
+        return await require('../../stores/blueprintStore').allocateRefs(project.id, list,
+            { prefixOf: (kind) => REF_PREFIX[kind], kinds: [...ENTITY_KINDS] });
     } catch (err) {
-        // Een notitie is een bijzaak. Publiceren is dat niet.
-        log.warn('[Projects] could not build release notes:', err.message);
-        return null;
+        log.error('[Projects] Blueprint ref ledger unavailable, publication refused:', err.message);
+        throw new HttpError(503, 'ref_ledger_unavailable',
+            'The part references of this Solution could not be recorded, so nothing was published. Try again later.');
     }
 }
 
 /**
- * Het manifest dat de galerij NU voor dit project serveert — de linkerkant van
- * de diff.
- *
- * Precies de rij die `publishRelease` zo meteen gaat bumpen: zelfde
- * `solution_key`, zelfde maker, zelfde organisatie. De versieserie loopt per
- * maker, dus de vorige versie van DEZE serie is de enige eerlijke vergelijking;
- * de laatste release-rij van het project kan van een collega zijn.
- *
- * Org-scoping komt uit `listBlueprintsFor` — de ene scoping-query van de store —
- * en daarbovenop moet de rij van de aanroeper zelf zijn. Is er niets, dan is dit
- * de eerste publicatie en is alles 'added'; dan vertrekt er ook geen enkele
- * modelaanroep, want er valt niets te vergelijken.
+ * Capture for a publication, every part named by a ledger ref. Capture reads
+ * the members again after the ledger did; a part added in between would get a
+ * ref past the ones handed over (possibly a RETIRED one, never recorded). So
+ * every captured ref must be an allocated one, else allocate and capture once
+ * more; still changing: 409 `solution_changed`, nothing published.
  */
-async function previousPublishedManifest({ store, project, userId }) {
-    const readable = await store.listBlueprintsFor({
-        userId, organizationId: project.organizationId || null,
-    });
-    const mine = (readable || []).find(b => b?.solutionKey === `sol_${project.id}` && b?.createdBy === userId);
-    if (!mine?.id) return null;
-    const full = await store.getBlueprintById(mine.id);
-    return full?.manifest || null;
-}
-
-/**
- * Zeg dat er gepubliceerd is. EEN POKE, GEEN ANTWOORD.
- *
- * De Studio-schermen (SolutionDetail.jsx) verversen op `blueprint.published`
- * hun galerijlijst en hun releasegeschiedenis — allebei ORG-GESCOOPTE lezen die
- * zelf beslissen wat de lezer mag zien. Daarom draagt dit event geen
- * Blueprint-id, geen versienummer en geen naam: een projectlid dat buiten de
- * organisatie van de Blueprint valt zou anders via de activiteitenstroom een
- * versienummer op zijn scherm krijgen dat de galerijlijst hem juist onthoudt.
- *
- * Beide helften: `logActivity` voor de pollende fallback (project_activity), en
- * `emitProjectEvent` voor de live stroom. Geen van beide mag een publicatie die
- * al gecommit is alsnog laten mislukken — vandaar de eigen try.
- */
-async function announcePublication(projectId, actorId) {
-    try {
-        await require('../../stores/projectStore').logActivity(projectId, actorId, 'blueprint.published', {});
-        await require('../../core/projectFeed').emitProjectEvent(projectId, {
-            kind: 'blueprint.published', actorId,
-        });
-    } catch (err) {
-        log.warn('[Projects] could not announce a publication:', err.message);
+async function captureWithLedger(project, exportedAt) {
+    const { ENTITY_KINDS, REF_PREFIX } = require('../../projects/packaging/manifest');
+    for (let attempt = 1; ; attempt++) {
+        const refs = await galleryRefsFor(project, ENTITY_KINDS, REF_PREFIX);
+        const result = await captureSolution({ project, exportedAt, refs });
+        const allocated = new Set(refs.values());
+        const entities = result.manifest?.solution?.entities || {};
+        const complete = ENTITY_KINDS.every(kind => (Array.isArray(entities[kind]) ? entities[kind] : [])
+            .every(e => allocated.has(e?.ref)));
+        if (!result.ok || complete) return result;
+        if (attempt >= 2) throw new HttpError(409, 'solution_changed', 'This Solution changed while it was being published. Publish again.');
+        log.warn(`[Projects] a part of ${project.id} arrived during publication; capturing again`);
     }
 }
 
@@ -289,8 +265,21 @@ async function organizationNameFor(organizationId) {
  * Either a file they uploaded, or one saved on this instance. Resolving a saved
  * id server-side rather than letting the client hand the manifest back means
  * the bytes that were stored are the bytes that get used.
+ *
+ * A pipeline release (Solution stages) is never a source: it does not leave
+ * the instance and reaches a stage only through a deployment, so a manifest
+ * that declares `channel: 'pipeline'` is refused with 400 `pipeline_release`.
  */
 async function resolveManifest(req) {
+    const resolved = await resolveManifestSource(req);
+    if (!resolved.error && publication.isPipelineManifest(resolved.manifest)) {
+        throw new HttpError(400, 'pipeline_release',
+            'A pipeline release cannot be installed or used to upgrade a Solution. Deploy it to a stage instead.');
+    }
+    return resolved;
+}
+
+async function resolveManifestSource(req) {
     const { manifest, blueprintId } = req.body || {};
     if (blueprintId) {
         const store = require('../../stores/blueprintStore');
@@ -349,6 +338,77 @@ async function capabilityPredicate(req) {
 }
 
 /**
+ * May this Blueprint upgrade this project at all?
+ *
+ * Two refusals, both decided against what the server itself recorded:
+ *
+ *   - 409 `different_solution`: the project was installed from a Blueprint
+ *     whose gallery row names another `solution_key` than this manifest. The
+ *     comparison uses the row `installed_from_blueprint_id` points to (that
+ *     column names a Blueprint, not a release). When that row is gone (a
+ *     deleted gallery entry, or a file install that claimed none) there is
+ *     nothing to compare with: the upgrade proceeds and its result carries the
+ *     warning `source_unverified`.
+ *   - 409 `not_newer`: the manifest's version is not above the installed one
+ *     (`isNewer`). Re-applying the same version is churn, and an older one is
+ *     a downgrade nobody asked for.
+ *
+ * Both compare against the CHECKED manifest (`checkedUpgradeManifest`), never
+ * the caller's raw body: a file without a `solution` or with a version that is
+ * no integer would otherwise be refused as `different_solution` or
+ * `not_newer`, which names the wrong problem.
+ *
+ * @returns {Promise<{warnings:string[]}>}
+ */
+async function checkUpgradeSource(projectId, manifest) {
+    const project = await require('../../stores/projectStore').getProject(projectId);
+    if (!project) throw new HttpError(404, 'not_found', 'Not found');
+
+    const warnings = [];
+    const sourceId = project.installedFromBlueprintId || null;
+    const source = sourceId
+        ? await require('../../stores/blueprintStore').getBlueprintById(sourceId, { includeManifest: false })
+        : null;
+    if (!source) {
+        warnings.push('source_unverified');
+    } else if (source.solutionKey !== manifest?.solution?.key) {
+        throw new HttpError(409, 'different_solution',
+            'This Blueprint is a different Solution from the one this project was installed from.');
+    }
+
+    const { isNewer } = require('../../projects/packaging/upgrade');
+    const blueprintVersion = Number(manifest?.solution?.version);
+    const installedVersion = Number.isInteger(project.installedVersion) ? project.installedVersion : null;
+    if (!isNewer({ installedVersion, blueprintVersion })) {
+        throw new HttpError(409, 'not_newer',
+            'This Blueprint is not newer than the version this Solution runs.',
+            { installedVersion, blueprintVersion: Number.isFinite(blueprintVersion) ? blueprintVersion : null });
+    }
+    return { warnings };
+}
+
+/**
+ * The manifest as the upgrade engine will read it, or a 400 that says what is
+ * wrong with the file.
+ *
+ * The same `sanitizeManifest` planUpgrade/applyUpgrade run, run FIRST so the
+ * source and version checks never reason about a file that is not a Blueprint.
+ * The engines sanitise again on their own input; that is idempotent.
+ */
+function checkedUpgradeManifest(manifest) {
+    const { sanitizeManifest } = require('../../projects/packaging/manifest');
+    const checked = sanitizeManifest(manifest);
+    if (!checked.ok) throw new HttpError(400, 'invalid_blueprint', checked.errors.join(' '));
+    return checked.manifest;
+}
+
+/** The result with the source check's warnings added, when there are any. */
+function withSourceWarnings(result, { warnings }) {
+    if (!warnings.length) return result;
+    return { ...result, warnings: [...(Array.isArray(result.warnings) ? result.warnings : []), ...warnings] };
+}
+
+/**
  * POST /:id/package/upgrade/plan — what a newer Blueprint would change here.
  *
  * Separate from applying, and deliberately: "3 will be updated, 1 you have
@@ -360,12 +420,14 @@ router.post('/:id/package/upgrade/plan', blueprintPackaging, requireProjectRole(
     try {
         const resolved = await resolveManifest(req);
         if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
+        const checked = await checkUpgradeSource(req.params.id, checkedUpgradeManifest(resolved.manifest));
 
         const { planUpgrade } = require('../../projects/packaging/upgrade');
         const result = await planUpgrade({ projectId: req.params.id, manifest: resolved.manifest });
         if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
-        res.json(result);
+        res.json(withSourceWarnings(result, checked));
     } catch (err) {
+        rethrowClientError(err);
         log.error('[Projects] Blueprint upgrade plan failed:', err.message);
         res.status(500).json({ error: 'Request failed' });
     }
@@ -376,6 +438,7 @@ router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owne
     try {
         const resolved = await resolveManifest(req);
         if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
+        const checked = await checkUpgradeSource(req.params.id, checkedUpgradeManifest(resolved.manifest));
 
         const { applyUpgrade } = require('../../projects/packaging/upgrade');
         const result = await applyUpgrade({
@@ -389,8 +452,9 @@ router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owne
             req,
         });
         if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
-        res.json(result);
+        res.json(withSourceWarnings(result, checked));
     } catch (err) {
+        rethrowClientError(err);
         log.error('[Projects] Blueprint upgrade failed:', err.message);
         res.status(500).json({ error: 'Request failed' });
     }
@@ -446,6 +510,57 @@ router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owne
         log.error('[Projects] Blueprint release history failed:', err.message);
         res.status(500).json({ error: 'Request failed' });
     }
+});
+
+/**
+ * GET /:id/package/releases/:releaseId — one published version, manifest and
+ * all; `?download=1` hands the manifest over as a Blueprint file.
+ *
+ * Owner, like the history it is one row of. Looked up on (project, release)
+ * through `getRelease`, never on the release id alone, so a guessed id from
+ * another project answers 404.
+ *
+ * A PIPELINE release (Solution stages) answers 404 as if it did not exist: it
+ * never leaves the instance (it reaches a stage only through a deployment).
+ *
+ * The answer is an allow-list, like the history listing: no `publishedBy`, no
+ * `blueprintId`, and nothing a future column would add on its own. The
+ * DOWNLOAD is a Blueprint file and carries the provenance block the export
+ * route stamps (Blueprint id, exporting organisation, version), so an install
+ * from it can be tied back to its gallery row.
+ */
+router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjectRole('owner'), validate({ query: S.ReleaseQuery }), requireSolutionProject, async (req, res) => {
+    const release = await require('../../stores/blueprintStore').getRelease(req.params.id, req.params.releaseId);
+    if (!release || release.channel === 'pipeline') throw new HttpError(404, 'not_found', 'Not found');
+
+    if (req.query.download === '1') {
+        const name = String(release.manifest?.solution?.name || 'solution')
+            .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'solution';
+        // The provenance block, stamped exactly as the export route stamps it:
+        // without `source.blueprintId` a file installed elsewhere records no
+        // `installed_from_blueprint_id`, and every later upgrade of it skips
+        // the different_solution check (source_unverified). The Blueprint id
+        // travels only in the FILE; the JSON answer below keeps it out.
+        const project = await require('../../stores/projectStore').getProject(req.params.id);
+        const { withSource } = require('../../projects/packaging/manifest');
+        const file = withSource(release.manifest ?? null, {
+            blueprintId: release.blueprintId || null,
+            orgId: project?.organizationId || null,
+            orgName: await organizationNameFor(project?.organizationId),
+            version: release.version,
+        });
+        res.attachment(`${name}-v${release.version}.blueprint.json`);
+        return res.send(JSON.stringify(file, null, 2));
+    }
+    res.json({
+        release: {
+            id: release.id,
+            version: release.version,
+            notes: release.notes,
+            publishedAt: release.publishedAt,
+            manifest: release.manifest ?? null,
+        },
+    });
 });
 
 /**
@@ -558,7 +673,7 @@ router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owne
  * `/api/projects` mount's own gate already decides.
  *
  * Capabilities are passed to the installer as a predicate rather than checked
- * up front, because a Blueprint carrying apps must still install its routines
+ * up front, because a Blueprint carrying apps must still install its automations
  * on a plan without App Studio. Refusing the whole thing would make a
  * partly-usable Solution unusable.
  */
@@ -589,6 +704,7 @@ router.post('/package/install', blueprintPackaging, validate({ body: S.InstallBo
 
         res.json({ projectId: result.projectId, report: result.report });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[Projects] Blueprint install failed:', err.message);
         res.status(500).json({ error: 'Request failed' });
     }

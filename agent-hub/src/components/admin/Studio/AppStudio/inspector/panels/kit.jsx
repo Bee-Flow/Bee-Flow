@@ -37,7 +37,7 @@ export function usePatch(node, definition, onCommit) {
  * and measures 2.43:1 on the light panel. So the resting edge was nearly
  * invisible and the focus indicator failed outright.
  *
- * Both are the routine builder's measured problems too, and it already solved
+ * Both are the automation builder's measured problems too, and it already solved
  * them — formStyles is deliberately React-free so this file can share it. The
  * name stays INPUT_CLS: a dozen call sites speak it.
  */

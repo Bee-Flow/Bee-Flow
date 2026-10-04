@@ -287,6 +287,7 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
                         }
 
                         const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = require('../../../core/documents/attachmentExtractor');
+                        const { nativePdfPart, isShieldActive } = require('../../../core/documents/nativePdf');
                         const result = await extractAttachment(att, { modelSupportsVision: adapter.supportsVision(modelId) });
                         log.info(`[DirectChat] PDF ${att.name} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
 
@@ -299,29 +300,26 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
                             const safeText = await _scanExtracted(result.text, result.pages, att.name);
                             const _wasTokenised = _attachmentScanSummaries.length > _scanResultsBefore;
                             const docText = `${formatTextHeader(att, result)}\n---\n${safeText}\n---`;
-                            const isClaude = (config.providerType || '').toLowerCase() === 'claude' || (config.providerType || '').toLowerCase() === 'anthropic';
                             // Always inline the extracted text. Some invoice PDFs
-                            // embed fonts with no usable ToUnicode CMap, and
-                            // Claude's native PDF parser hits the same dead end
-                            // pdfjs does — the model then reports back "I see
-                            // raw font tables, not text". Shipping the OCR'd /
+                            // embed fonts with no usable ToUnicode CMap, and a
+                            // native PDF parser hits the same dead end pdfjs
+                            // does — the model then reports back "I see raw
+                            // font tables, not text". Shipping the OCR'd /
                             // pdfjs text alongside the document block gives the
                             // model a guaranteed-readable channel.
                             contentParts.push({ type: 'text', text: docText });
-                            if (isClaude && !_wasTokenised) {
-                                // Also include the original PDF so Claude can
-                                // see visual elements (logos, signatures, layout)
-                                // that pure text extraction discards.
-                                // Skipped when Privacy Shield tokenised the
-                                // text — sending the raw PDF would bypass the
-                                // redaction (the model would still see the
-                                // unredacted source).
-                                const mediaType = att.type && att.type.includes('pdf') ? att.type : 'application/pdf';
-                                contentParts.push({
-                                    type: 'document',
-                                    source: { type: 'base64', media_type: mediaType, data: base64Data },
-                                });
-                            }
+                            // Also the original PDF (Claude, OpenAI, Azure) so the
+                            // model sees logos, signatures and layout. Never while
+                            // the Privacy Shield is active: the raw bytes carry
+                            // what the text scan never saw. Rule and size cap:
+                            // core/documents/nativePdf.js. Current turn only, the
+                            // persisted sidecar below holds the text + URL.
+                            const _pdfPart = nativePdfPart({
+                                adapter, modelId, providerType: config?.providerType,
+                                shieldActive: isShieldActive(_psShield), tokenised: _wasTokenised,
+                                base64Data, mediaType: att.type, filename: att.name, tag: 'DirectChat',
+                            });
+                            if (_pdfPart) contentParts.push(_pdfPart);
                             await pushAttachment({ name: att.name, type: att.type, url: pdfProxyUrl }, docText);
                         } else if (result.kind === 'images') {
                             // Vision fallback — inline a header note, then the page images.

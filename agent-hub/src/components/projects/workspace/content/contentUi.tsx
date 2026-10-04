@@ -1,3 +1,4 @@
+import { useViewport } from '../../../../hooks/useViewport';
 // Small building blocks the content tabs share, in the Studio look: the
 // toolbar above a list, the two button recipes, the "could not load" strip and
 // the loading fallback. Kept here so the four tabs cannot drift apart.
@@ -5,6 +6,7 @@
 import { AlertTriangle, Search, X } from 'lucide-react';
 import React from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
+import { StudioSectionHeader } from '../studioParts';
 
 interface ButtonProps {
     icon?: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' }>;
@@ -74,28 +76,20 @@ interface ToolbarProps {
 
 /** Title with its count, an optional search box, and the tab's actions. */
 export function ContentToolbar({ title, count = null, search, onSearch, searchLabel, actions }: ToolbarProps) {
+    const { isDesktop } = useViewport();
     return (
-        <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{title}</h2>
-            {count !== null && (
-                <span className="text-[12px] tabular-nums text-[var(--text-tertiary)]" data-testid="content-count">{count}</span>
-            )}
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-                {onSearch && (
-                    <label className="relative block w-[200px]">
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden="true" />
-                        <input
-                            type="search"
-                            value={search || ''}
-                            onChange={(e) => onSearch(e.target.value)}
-                            aria-label={searchLabel}
-                            placeholder={searchLabel}
-                            className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent-primary)]"
-                        />
-                    </label>
-                )}
-                {actions}
-            </div>
+        <div>
+            <StudioSectionHeader title={title}
+                statusChip={count === null ? undefined : <span data-testid="content-count">{count}</span>}
+                primary={isDesktop ? <div className="flex gap-2">{actions}</div> : undefined} />
+            {(onSearch || (!isDesktop && actions)) && <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)]">
+                {onSearch && <label className="relative block flex-1 min-w-40 max-w-sm">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden="true" />
+                    <input type="search" value={search || ''} onChange={e => onSearch(e.target.value)} aria-label={searchLabel} placeholder={searchLabel}
+                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)]" />
+                </label>}
+                {!isDesktop && <div className="flex flex-wrap gap-2">{actions}</div>}
+            </div>}
         </div>
     );
 }
@@ -150,9 +144,13 @@ export function SectionCard({ title, description, actions, children, testId }: {
 
 /** The scrolling column every list view sits in. */
 export function ContentColumn({ children, testId }: { children: React.ReactNode; testId?: string }) {
+    const [header, ...body] = React.Children.toArray(children);
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar" data-testid={testId}>
-            <div className="max-w-5xl mx-auto px-6 py-5 space-y-4">{children}</div>
+        <div className="h-full flex flex-col min-h-0" data-testid={testId}>
+            {header}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">{body}</div>
+            </div>
         </div>
     );
 }

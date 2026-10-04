@@ -95,7 +95,7 @@ function OutputBody({
     const canExpand = expandEnabled(allowExpand, map);
     const jsonMode = structured && mode === 'json';
     const smartMode = !!smartRows && !fieldsMode && !jsonMode;
-    const fieldsBtn = <ToggleBtn active={fieldsMode} onClick={() => setMode('fields')} Icon={List} label={t('routines.output.mode_fields', 'Fields')} />;
+    const fieldsBtn = <ToggleBtn active={fieldsMode} onClick={() => setMode('fields')} Icon={List} label={t('automations.output.mode_fields', 'Fields')} />;
 
     // `fill` grows the card to fill its parent (the Run tab) and scrolls
     // internally; the default sizing keeps it compact for the dry-run cards.
@@ -108,16 +108,16 @@ function OutputBody({
                             type="button"
                             onClick={() => setWide({ row: null })}
                             className="mr-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-                            title={t('routines.output.expand_title', 'Open the large view: search rows, choose columns, see a row in full')}
+                            title={t('automations.output.expand_title', 'Open the large view: search rows, choose columns, see a row in full')}
                         >
-                            <Maximize2 size={11} /> {t('routines.output.expand', 'Expand')}
+                            <Maximize2 size={11} /> {t('automations.output.expand', 'Expand')}
                         </button>
                     )}
                     {/* Table leads when the value really is one (artboard 4b). */}
                     {plainRecord && !smartRows && fieldsBtn}
-                    <ToggleBtn active={!fieldsMode && mode !== 'json'} onClick={() => setMode('table')} Icon={Table2} label={t('routines.output.mode_table', 'Table')} />
+                    <ToggleBtn active={!fieldsMode && mode !== 'json'} onClick={() => setMode('table')} Icon={Table2} label={t('automations.output.mode_table', 'Table')} />
                     {plainRecord && smartRows && fieldsBtn}
-                    <ToggleBtn active={mode === 'json'} onClick={() => setMode('json')} Icon={Braces} label={t('routines.output.mode_json', 'JSON')} />
+                    <ToggleBtn active={mode === 'json'} onClick={() => setMode('json')} Icon={Braces} label={t('automations.output.mode_json', 'JSON')} />
                 </div>
             )}
             {/* JSON mode drops the padding: JsonTree is a full-height box with

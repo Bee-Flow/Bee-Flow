@@ -12,7 +12,6 @@
  *   INIT_MS_TENANT_ID         — Microsoft SSO Tenant ID (default: 'common')
  *   INIT_AZURE_ENDPOINT       — Azure OpenAI endpoint URL
  *   INIT_AZURE_API_KEY        — Azure OpenAI API key
- *   INIT_AZURE_API_VERSION    — Azure OpenAI API version
  *   INIT_AZURE_MODELS         — Azure OpenAI deployment models (comma-separated)
  *   INIT_BING_SEARCH_KEY      — Bing Search API key
  *   INIT_BING_SEARCH_MARKET   — Bing Search market (e.g. en-US, nl-NL)
@@ -34,7 +33,6 @@ async function runBootInit() {
     const msTenantId = process.env.INIT_MS_TENANT_ID;
     const azureEndpoint = process.env.INIT_AZURE_ENDPOINT;
     const azureApiKey = process.env.INIT_AZURE_API_KEY;
-    const azureApiVersion = process.env.INIT_AZURE_API_VERSION;
     const azureModels = process.env.INIT_AZURE_MODELS;
     const bingSearchKey = process.env.INIT_BING_SEARCH_KEY;
     const bingSearchMarket = process.env.INIT_BING_SEARCH_MARKET;
@@ -129,7 +127,6 @@ async function runBootInit() {
                 await saveAIConfig({
                     azureEndpoint: azureEndpoint || undefined,
                     azureApiKey: azureApiKey || undefined,
-                    azureApiVersion: azureApiVersion || undefined,
                 });
                 if (azureModels) {
                     await configStore.setConfig('azure_models', azureModels);

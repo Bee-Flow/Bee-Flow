@@ -3,6 +3,8 @@ import { Sparkles, X, Users, Lock } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { SKILL_EMOJI_ICONS } from '../../constants/icons';
 import useTranslation from '../../hooks/useTranslation';
+import { managedOf, managedRefusalOf } from '../shared/managedPart';
+import ManagedPartBanner from '../shared/ManagedPartBanner';
 import Modal from '../shared/Modal';
 
 /**
@@ -36,6 +38,14 @@ import Modal from '../shared/Modal';
  * `payloadOf` below does. Renaming a skill from this modal used to
  * re-mint every step id and drop every reference pill of a skill somebody
  * had built in Studio, and nothing on screen said so.
+ *
+ * ── A SKILL A SOLUTION STAGE MANAGES IS READ-ONLY, EXCEPT WHO SEES IT ──
+ * `skill.managed` (the GET carries it) turns every text field, the icon and
+ * the name into plain reading, puts the banner under the header and sends
+ * the sharing fields ALONE: sharing is on the stage's allow-list, the text is
+ * only ever changed by a deploy. A save the stage refuses anyway (409
+ * managed_part, e.g. a tab opened before the stage took the skill over) turns
+ * the same switch on.
  *
  * Everything this modal does not send is left alone by the server
  * (`undefined` = "leave as-is"), so a skill's steps, output fields, grants
@@ -142,7 +152,9 @@ const STRUCTURED_TEXT_FIELDS = Object.freeze(['workflow', 'rules', 'examples']);
  * @param {object} form     the current field values
  * @param {object|null} initial  the values the modal opened with; null = create
  */
-function payloadOf(form, initial) {
+function payloadOf(form, initial, locked = false) {
+    // A managed skill: who sees it is the only thing that can change.
+    if (locked) return { isShared: form.isShared, sharedGroups: form.sharedGroups };
     const out = { ...form };
     if (!initial) return out;
     for (const field of STRUCTURED_TEXT_FIELDS) {
@@ -179,6 +191,30 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
         sharedGroups: Array.isArray(skill.sharedGroups) ? skill.sharedGroups : [],
     } : null));
     const [form, setForm] = useState(() => initial || emptyForm());
+    const [refusal, setRefusal] = useState(null);
+    // The list rows the callers hand in do not carry `managed` (only GET
+    // /api/skills/:id does), so an existing skill is asked once on open.
+    const [fetchedManaged, setFetchedManaged] = useState(null);
+    const skillId = skill?.id || null;
+    useEffect(() => {
+        if (!skillId || managedOf(skill)) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await authFetch(`${API_BASE}/skills/${encodeURIComponent(skillId)}`);
+                if (!cancelled && res.ok) setFetchedManaged(managedOf(await res.json()));
+            } catch { /* non-fatal: the 409 on save still turns the form read-only */ }
+        })();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once per skill id
+    }, [skillId]);
+    const managedPart = managedOf(skill) ?? fetchedManaged ?? refusal?.managed ?? null;
+    const locked = !!managedPart || refusal != null;
+    const save = () => Promise.resolve(onSave(payloadOf(form, initial, locked))).catch((err) => {
+        const info = managedRefusalOf(err);
+        if (!info) throw err;
+        setRefusal(info);
+    });
     // Auto-fetch groups if not supplied by parent
     const [fetchedGroups, setFetchedGroups] = useState(null);
     useEffect(() => {
@@ -246,6 +282,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                     <div className="relative flex-shrink-0">
                         <button
                             onClick={() => setShowIconPicker(v => !v)}
+                            disabled={locked}
                             title={t('skill_form.choose_icon', 'Choose icon')}
                             aria-label={t('skill_form.choose_icon', 'Choose icon')}
                             className="w-11 h-11 rounded-xl border-[1.5px] flex items-center justify-center text-[22px] transition-colors"
@@ -275,6 +312,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                         <input
                             value={form.name}
                             onChange={e => setField('name', e.target.value)}
+                            readOnly={locked}
                             placeholder={t('skill_form.name_placeholder', 'Skill name (e.g. meeting-summary)')}
                             aria-label={t('skill_form.name', 'Skill name')}
                             ref={nameRef}
@@ -284,6 +322,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                         <input
                             value={form.description}
                             onChange={e => setField('description', e.target.value)}
+                            readOnly={locked}
                             placeholder={t('skill_form.description_placeholder', 'Short description…')}
                             aria-label={t('skill_form.description', 'Description')}
                             className="w-full text-[13px] bg-transparent outline-none border-none mt-0.5"
@@ -301,6 +340,8 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                         <X size={16} />
                     </button>
                 </div>
+
+                {locked && <ManagedPartBanner managed={managedPart} notDeployed={refusal?.reason === 'not_deployed'} />}
 
                 {/* Tab bar */}
                 <div className="flex border-b px-6 flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -327,7 +368,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                         </span>
                         {activeTab === 'instructions' && <CharCount value={form.instructions} limit={INSTRUCTION_LIMIT} t={t} />}
                     </div>
-                    {warning && (
+                    {warning && !locked && (
                         <p
                             className="text-[11px] mb-1.5 m-0"
                             style={{ color: 'var(--warning-ink)' }}
@@ -338,6 +379,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                     )}
                     <textarea
                         value={form[activeTab]}
+                        readOnly={locked}
                         onChange={e => {
                             if (activeTab === 'instructions' && e.target.value.length > INSTRUCTION_LIMIT) return;
                             setField(activeTab, e.target.value);
@@ -404,7 +446,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                             {t('skill_form.cancel', 'Cancel')}
                         </button>
                         <button
-                            onClick={() => onSave(payloadOf(form, initial))}
+                            onClick={save}
                             disabled={!canSave}
                             className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-[13px] font-semibold transition-opacity ${canSave ? 'hover:opacity-90' : 'opacity-50 cursor-not-allowed'}`}
                             style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}

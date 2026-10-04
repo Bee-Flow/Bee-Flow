@@ -131,7 +131,7 @@ function normalizeResolutions(raw) {
     return out;
 }
 
-/** A step's address inside one bundled routine. `null` layer = the root graph. */
+/** A step's address inside one bundled automation. `null` layer = the root graph. */
 function addressOf(stepId, layerKey) {
     return `${layerKey || ''}\u0000${stepId}`;
 }
@@ -147,7 +147,7 @@ function indexByAddress(rows, ref) {
 }
 
 /**
- * Put the installer's connections and approvers into ONE bundled routine.
+ * Put the installer's connections and approvers into ONE bundled automation.
  *
  * Runs on the definition BEFORE `rekeyDefinition`, because the addresses in a
  * resolution are the step ids the wizard read off the manifest and rekeying
@@ -228,9 +228,120 @@ function applyStepResolutions(definition, ref, resolutions) {
     return { applied, ignored };
 }
 
+// ── Kept after the install: resolutions as `solution_bindings` rows ─────────
+//
+// An install's resolutions used to live for exactly one request. An upgrade
+// then ran with `wiring: null` and a pristine automation came back with its
+// credential and its approver emptied again, because the newer file has the
+// same holes the first one had (design 7, F3). The install therefore writes
+// what it APPLIED as binding rows on the installed project, and an upgrade
+// reads them back and fills the same holes the same way.
+//
+// The rows are built from the NORMALISED resolutions only, field by field, so
+// nothing a request body carried beyond the three known kinds reaches the
+// table, and reading them back goes through `normalizeResolutions` again: a
+// row edited or corrupted in the database is narrowed exactly like a body.
+//
+// Slot names for a gallery install (the stage grammar is design 4.1):
+//   table:<key>                                    → { datatableId }
+//   connection:<ref>:<layerKey>/<stepId>           → { ref, layerKey, stepId, connectionId }
+//   seats:<ref>:<layerKey>/<stepId>                → { ref, layerKey, stepId, assignee }
+// The address also travels in the value, so reading back never parses a slot.
+// A connection slot of a stage (`connection:cn_1`) can never collide with one
+// of these: it has no second colon.
+
+function stepSlot(prefix, row) {
+    return `${prefix}:${row.ref}:${row.layerKey || ''}/${row.stepId}`;
+}
+
+/** The identity of one applied connection/approver row (`applyStepResolutions` `applied`). */
+function appliedKey(kind, row) {
+    return `${kind}\u0000${row.ref}\u0000${addressOf(row.stepId, row.layerKey)}`;
+}
+
+/**
+ * Normalised resolutions → binding rows (`{ slot, kind, value }`).
+ *
+ * `createdForKey` (Map key → table id) turns an applied `create: true` into
+ * the table that install made, so an upgrade binds the same table rather than
+ * creating another one. A `create` whose table never arrived is not kept: there
+ * is nothing to bind it to.
+ *
+ * `applied` (the `applied` rows of `applyStepResolutions`, for the automations
+ * that installed) narrows the connections and approvers to the ones that
+ * actually landed on a step. A choice that missed (no such step, a step that
+ * was already wired) was said once at install; kept, every later update would
+ * re-apply it and repeat that it "was not used". `null` keeps them all.
+ *
+ * @param {{ tables?: any[], connections?: any[], approvers?: any[] }} resolutions  normalizeResolutions output
+ * @param {{ createdForKey?: Map<string, string>, applied?: Array<{ kind: string, ref: string, stepId: string, layerKey?: string|null }>|null }} [opts]
+ * @returns {Array<{ slot: string, kind: string, value: object }>}
+ */
+function resolutionsToBindings(resolutions, { createdForKey = new Map(), applied = null } = {}) {
+    const norm = normalizeResolutions(isObject(resolutions) ? resolutions : {});
+    if (Array.isArray(applied)) {
+        const landed = new Set(applied.filter(isObject).map(r => appliedKey(r.kind, r)));
+        norm.connections = norm.connections.filter(c => landed.has(appliedKey('connection', c)));
+        norm.approvers = norm.approvers.filter(a => landed.has(appliedKey('approver', a)));
+    }
+    const rows = [];
+    for (const t of norm.tables) {
+        const datatableId = t.create === true ? (createdForKey.get(t.key) || null) : t.datatableId;
+        if (!datatableId) continue;
+        rows.push({ slot: `table:${t.key}`, kind: 'table', value: { datatableId } });
+    }
+    for (const c of norm.connections) {
+        rows.push({
+            slot: stepSlot('connection', c), kind: 'connection',
+            value: { ref: c.ref, layerKey: c.layerKey, stepId: c.stepId, connectionId: c.connectionId },
+        });
+    }
+    for (const a of norm.approvers) {
+        rows.push({
+            slot: stepSlot('seats', a), kind: 'approver_seats',
+            value: { ref: a.ref, layerKey: a.layerKey, stepId: a.stepId, assignee: { ...a.seat } },
+        });
+    }
+    return rows;
+}
+
+/**
+ * Binding rows → normalised resolutions. The inverse of `resolutionsToBindings`
+ * for a gallery-installed project; rows of any other slot grammar (a stage's
+ * `connection:cn_1`, a `notify:` slot) are not resolutions and are ignored.
+ *
+ * @param {Array<{ slot?: string, kind?: string, value?: any }>} rows  solutionStageStore.listBindings output
+ */
+function bindingsToResolutions(rows) {
+    const raw = { tables: [], connections: [], approvers: [] };
+    for (const row of (Array.isArray(rows) ? rows : [])) {
+        if (!isObject(row) || typeof row.slot !== 'string' || !isObject(row.value)) continue;
+        const v = row.value;
+        if (row.kind === 'table' && row.slot.startsWith('table:')) {
+            raw.tables.push({ key: row.slot.slice('table:'.length), datatableId: v.datatableId });
+        } else if (row.kind === 'connection' && row.slot === stepSlot('connection', v)) {
+            raw.connections.push({ ref: v.ref, stepId: v.stepId, layerKey: v.layerKey, connectionId: v.connectionId });
+        } else if (row.kind === 'approver_seats' && row.slot === stepSlot('seats', v)) {
+            raw.approvers.push({ ref: v.ref, stepId: v.stepId, layerKey: v.layerKey, seat: v.assignee });
+        }
+    }
+    return normalizeResolutions(raw);
+}
+
+/** True when normalised resolutions carry nothing at all. */
+function isEmptyResolutions(resolutions) {
+    return !resolutions
+        || ((resolutions.tables || []).length === 0
+            && (resolutions.connections || []).length === 0
+            && (resolutions.approvers || []).length === 0);
+}
+
 module.exports = {
     SEAT_FIELDS,
     normalizeSeat,
     normalizeResolutions,
     applyStepResolutions,
+    resolutionsToBindings,
+    bindingsToResolutions,
+    isEmptyResolutions,
 };

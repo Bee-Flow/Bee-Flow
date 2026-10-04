@@ -1,5 +1,5 @@
 /**
- * Two read-outs about a routine the web builder shows beside its flow:
+ * Two read-outs about an automation the web builder shows beside its flow:
  *
  *   - POST /api/automation/:id/diagnose-trigger
  *     (routes/automation/diagnoseTrigger.js, mounted by runs.js; needs edit
@@ -8,7 +8,7 @@
  *     is `ok | warn | error | skipped`, with an optional `detail`;
  *   - GET /api/compliance/ai-act/assessments/automation/:id
  *     (routes/compliance/aiAct.js): the AI Act self-declaration saved for the
- *     routine, the answers it was made from, and the signals the checks see.
+ *     automation, the answers it was made from, and the signals the checks see.
  *     A 404 is "not deployed here / the compliance module is off" (the web's
  *     `absent`), not a failure.
  *
@@ -68,7 +68,7 @@ export interface AiActSignals {
     aiSteps: number | null;
     /** Their names, where they have one. */
     aiStepLabels: string[];
-    /** Annex III domains the routine's own wording mentions: an ordering hint, never an answer. */
+    /** Annex III domains the automation's own wording mentions: an ordering hint, never an answer. */
     annexHints: string[];
 }
 

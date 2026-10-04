@@ -1,3 +1,4 @@
+import { mayNavigate } from '../utils/unsavedNavigation';
 import { useCallback } from 'react';
 import {
     PAGE_ROUTES,
@@ -21,7 +22,6 @@ export function useNavigateToPage({
     setCurrentPage,
     setAdminPath,
     setOrgSettingsPath,
-    setInitialNotebookId,
     setInitialCoworkId,
     setShowProfileMenu,
     setShowAgentDesigner,
@@ -29,18 +29,16 @@ export function useNavigateToPage({
     setShowStudio,
     setStudioRoute,
     setInitialDesignerAgentId,
-    setShowAITasks,
-    setInitialAITaskId,
     setFormViewToken,
     setAppRunId,
     setShowSettings,
     setShowSkillsPanel,
-    setShowNotebooks,
     // Optional so a host without the projects pages can still use the hook.
     setShowProjects = () => {},
     setInitialProjectRoute = () => {},
 }) {
     const navigateToPage = useCallback((page, { replace = false } = {}) => {
+        if (!mayNavigate()) return;
         // Mobile access control: on phones, any destination that isn't chat or
         // user-settings bounces to the app home. Belt-and-suspenders with
         // MobileRouteGuard (which catches deep-links/refresh + resize). Close
@@ -50,9 +48,7 @@ export function useNavigateToPage({
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowAgentWizard(false);
-            setShowAITasks(false);
             setShowSkillsPanel(false);
-            setShowNotebooks(false);
             setShowProjects(false);
             setShowProfileMenu(false);
             setCurrentPage('agents');
@@ -72,9 +68,7 @@ export function useNavigateToPage({
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowAgentWizard(false);
-            setShowAITasks(false);
             setShowSkillsPanel(false);
-            setShowNotebooks(false);
             setShowProfileMenu(false);
             setCurrentPage('projects');
             const path = projectRoutePath(route.projectId, route.tab, route.sub);
@@ -107,8 +101,8 @@ export function useNavigateToPage({
             setCurrentPage('agentDesignerAdvanced');
             return;
         }
-        // Unified Studio — Agents / Skills / Routines / Knowledge Bases under one shell.
-        // Accepts: 'studio', 'studio/agents', 'studio/skills', 'studio/routines', 'studio/knowledge',
+        // Unified Studio — Agents / Skills / Automations / Knowledge Bases under one shell.
+        // Accepts: 'studio', 'studio/agents', 'studio/skills', 'studio/automations', 'studio/knowledge',
         // and 'studio/<section>/<id>' for deep links. 'studio/ai-tasks' kept as legacy alias.
         if (page === 'studio' || page.startsWith('studio/') || page.startsWith('studio:')) {
             // Split off the query FIRST — ?view/run/step is builder state and
@@ -121,34 +115,32 @@ export function useNavigateToPage({
             const parts = raw.split(/[/:]/).filter(Boolean);
             const sectionRaw = parts[0] || 'agents';
             let id = parts[1] || null;
-            // Third segment — currently only Routines uses it, to address a
-            // flowlet (layer) inside an automation: studio/routines/<id>/<flowlet>.
+            // Third segment — currently only Automations uses it, to address a
+            // flowlet (layer) inside an automation: studio/automations/<id>/<flowlet>.
             let sub = parts[2] || null;
-            // Reserved routines "steps" segment — same rule as parseStudioUrl.
+            // Reserved automations "steps" segment — same rule as parseStudioUrl.
             // In-app navigation used to drop it, so a Reusable-Step deep link
             // mis-resolved to an automation named "steps".
-            let routineKind = null;
+            let automationKind = null;
             if ((sectionRaw === 'automations' || sectionRaw === 'routines' || sectionRaw === 'ai-tasks') && id === 'steps') {
-                routineKind = 'step';
+                automationKind = 'step';
                 id = parts[2] || null;
                 sub = parts[3] || null;
             }
             const section = sectionFromRaw(sectionRaw);
             const pathSegment = segmentForSection(section);
-            const stepsSeg = routineKind === 'step' ? '/steps' : '';
+            const stepsSeg = automationKind === 'step' ? '/steps' : '';
             const basePath = id
                 ? (sub ? `/app/studio/${pathSegment}${stepsSeg}/${id}/${sub}` : `/app/studio/${pathSegment}${stepsSeg}/${id}`)
                 : `/app/studio/${pathSegment}`;
             const query = parseStudioQuery(search);
-            setStudioRoute({ section, id, sub, routineKind, ...query });
+            setStudioRoute({ section, id, sub, automationKind, ...query });
             setShowStudio(true);
             setShowAgentDesigner(false);
             setShowAgentWizard(false);
             setShowSettings(false);
             setShowSkillsPanel(false);
-            setShowAITasks(false);
-            setShowNotebooks(false);
-            // Compare pathname + search — Editor→Runs inside one routine
+            // Compare pathname + search — Editor→Runs inside one automation
             // changes only the query, and comparing the pathname alone meant
             // that transition never wrote the URL at all.
             if (window.location.pathname + window.location.search !== basePath + search) {
@@ -167,7 +159,6 @@ export function useNavigateToPage({
             setShowAgentDesigner(false);
             setShowSettings(false);
             setShowSkillsPanel(false);
-            setShowAITasks(false);
             setShowStudio(false);
             if (window.location.pathname !== '/app/agent-wizard') {
                 window.history.pushState({ page: 'agentWizard' }, '', '/app/agent-wizard');
@@ -182,7 +173,6 @@ export function useNavigateToPage({
             setShowAgentDesigner(true);
             setShowSettings(false);
             setShowSkillsPanel(false);
-            setShowAITasks(false);
             setShowStudio(false);
             // Push the URL so /app/agent-designer[/{id}] is bookmarkable.
             const path = agentId ? `/app/agent-designer/${agentId}` : '/app/agent-designer';
@@ -192,21 +182,10 @@ export function useNavigateToPage({
             setCurrentPage('agentDesigner');
             return;
         }
-        // AI Tasks renders inline in conversation area (same slot as Agent Designer)
+        // The old standalone automations page key: Automations live in Studio.
         if (page === 'aiTasks' || page.startsWith('aiTasks:')) {
-            const taskId = page.includes(':') ? page.split(':')[1] : null;
-            setInitialAITaskId(taskId);
-            setShowAITasks(true);
-            setShowSettings(false);
-            setShowAgentDesigner(false);
-            setShowSkillsPanel(false);
-            setShowNotebooks(false);
-            setShowStudio(false);
-            const path = taskId ? `/app/routines/${taskId}` : '/app/routines';
-            if (window.location.pathname !== path) {
-                window.history.pushState({ page: 'aiTasks' }, '', path);
-            }
-            setCurrentPage('aiTasks');
+            const id = page.includes(':') ? page.split(':')[1] : null;
+            navigateToPage(id ? `studio/automations/${id}` : 'studio/automations');
             return;
         }
         // /app/billing is a stable, account-type-agnostic entry point for the
@@ -226,7 +205,6 @@ export function useNavigateToPage({
             setShowSettings(true);
             setShowAgentDesigner(false);
             setShowSkillsPanel(false);
-            setShowAITasks(false);
             setShowStudio(false);
             // Push the URL so the settings panel is bookmarkable / back-button aware.
             // Sub-path (e.g. 'settings/memory') is preserved as `/app/settings/memory`.
@@ -243,7 +221,6 @@ export function useNavigateToPage({
             setShowSkillsPanel(true);
             setShowSettings(false);
             setShowAgentDesigner(false);
-            setShowAITasks(false);
             setShowStudio(false);
             return;
         }
@@ -269,24 +246,12 @@ export function useNavigateToPage({
             window.history.pushState({ page: 'orgSettings' }, '', path);
             return;
         }
-        // Notebooks — rendered inline inside AgentHub (same pattern as
-        // settings / agent designer). Bare 'notebooks' → list view; the
-        // 'notebooks/:id' form deep-links directly to a specific notebook.
+        // Notebooks — a notebook is a document type and lives in Studio →
+        // Documents. 'notebooks' opens the library there; 'notebooks/:id' opens
+        // that notebook (`studio/documents/notebook/<id>`).
         if (page === 'notebooks' || page.startsWith('notebooks/')) {
             const notebookId = page.startsWith('notebooks/') ? page.slice('notebooks/'.length) : null;
-            setInitialNotebookId(notebookId);
-            setShowNotebooks(true);
-            setShowSettings(false);
-            setShowAgentDesigner(false);
-            setShowSkillsPanel(false);
-            setShowAITasks(false);
-            setShowStudio(false);
-            setCurrentPage('notebooks');
-            setShowProfileMenu(false);
-            const path = notebookId ? `/app/notebooks/${notebookId}` : '/app/notebooks';
-            if (window.location.pathname !== path) {
-                window.history.pushState({ page: 'notebooks', notebookId }, '', path);
-            }
+            navigateToPage(notebookId ? `studio/documents/notebook/${notebookId}` : 'studio/documents', { replace });
             return;
         }
         // Cowork — a top-level page with a selectable detail pane. Bare
@@ -297,11 +262,9 @@ export function useNavigateToPage({
             const coworkId = page.startsWith('cowork/') ? page.slice('cowork/'.length) : null;
             setInitialCoworkId(coworkId);
             setShowStudio(false);
-            setShowNotebooks(false);
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowSkillsPanel(false);
-            setShowAITasks(false);
             setCurrentPage('cowork');
             setShowProfileMenu(false);
             const path = coworkId ? `/app/cowork/${coworkId}` : '/app/cowork';
@@ -323,11 +286,9 @@ export function useNavigateToPage({
             const token = page.slice('forms/'.length);
             setFormViewToken(token);
             setShowStudio(false);
-            setShowNotebooks(false);
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowAgentWizard(false);
-            setShowAITasks(false);
             setShowSkillsPanel(false);
             setShowProfileMenu(false);
             const path = `/app/forms/${token}`;
@@ -341,11 +302,9 @@ export function useNavigateToPage({
             const appId = page.slice('apps/'.length);
             setAppRunId(appId);
             setShowStudio(false);
-            setShowNotebooks(false);
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowAgentWizard(false);
-            setShowAITasks(false);
             setShowSkillsPanel(false);
             setShowProfileMenu(false);
             const path = `/app/apps/${appId}`;
@@ -362,11 +321,9 @@ export function useNavigateToPage({
             const webpageId = page.startsWith('webpages/') ? page.slice('webpages/'.length) : null;
             setStudioRoute({ section: 'webpages', id: webpageId });
             setShowStudio(true);
-            setShowNotebooks(false);
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowSkillsPanel(false);
-            setShowAITasks(false);
             const path = webpageId ? `/app/studio/webpages/${webpageId}` : '/app/studio/webpages';
             if (window.location.pathname !== path) {
                 window.history.pushState({ page: 'studio' }, '', path);
@@ -386,9 +343,7 @@ export function useNavigateToPage({
         setShowSettings(false);
         setShowAgentDesigner(false);
         setShowAgentWizard(false);
-        setShowAITasks(false);
         setShowSkillsPanel(false);
-        setShowNotebooks(false);
         const path = PAGE_ROUTES[page] || '/';
         window.history.pushState({ page }, '', path);
     }, []);

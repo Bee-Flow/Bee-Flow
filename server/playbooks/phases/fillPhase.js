@@ -1,5 +1,5 @@
 /**
- * Phase `fill` — run the routine once so the table has rows before the app
+ * Phase `fill` — run the automation once so the table has rows before the app
  * is built on it. Mirrors routes/automation/runs.js: `executeAutomation`
  * raced against a 60 s guard; the run id is captured through `onRunCreated`
  * the moment the run row exists, so a timed-out request still knows which run
@@ -33,9 +33,9 @@ async function currentRowCount(artifacts, deps) {
 async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCreated }, deps) {
     const { automationStore, runner } = deps;
     const timeoutMs = Number.isFinite(deps.timeoutMs) ? deps.timeoutMs : RESPONSE_TIMEOUT_MS;
-    if (!automationId) return { ok: false, code: 'routine_missing', error: 'The automation phase produced no automation to run.' };
+    if (!automationId) return { ok: false, code: 'automation_missing', error: 'The automation phase produced no automation to run.' };
     const a = await automationStore.getAutomation(automationId);
-    if (!a) return { ok: false, code: 'routine_missing', error: 'The automation no longer exists.' };
+    if (!a) return { ok: false, code: 'automation_missing', error: 'The automation no longer exists.' };
     if (a.userId !== playbook.userId) return { ok: false, code: 'not_owner', error: 'That automation is not yours.' };
     const kind = a.definition && a.definition.trigger && a.definition.trigger.kind;
     if (kind !== 'manual') {

@@ -1,5 +1,5 @@
 /**
- * slide + presentation — the routine pair.
+ * slide + presentation — the automation pair.
  *
  * What is pinned: the sole-token rule (a `{{path}}` bound into `slides`
  * keeps its real type, so a list of slide references is a list of slide
@@ -258,7 +258,7 @@ test('presentation: saveCopy keeps the deck in Studio → Documents as a present
     assert.strictEqual(doc.userId, 'user-1');
     assert.match(doc.bodyHtml, /^# Cijfers\n\n## A\n- a\n\n## B\n- b/);
     assert.deepStrictEqual(doc.settings.deck, { preset: 'bold' });
-    assert.strictEqual(doc.settings.generatedFrom.source, 'routine');
+    assert.strictEqual(doc.settings.generatedFrom.source, 'automation');
     // A dry run keeps nothing.
     await execPresentation({ id: 'deck', type: 'presentation', slides: '{{steps.write.output.text}}', saveCopy: true }, CTX, runState, 'dry_run');
     assert.strictEqual(library.created.length, 1);

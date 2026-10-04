@@ -145,7 +145,7 @@ const BY_CODE: Record<string, Sentence> = {
     waiting_form: (t) => t('runs.sentence.waiting_form', 'Waiting for the next form page to be filled in'),
     waiting_confirm: (t) => t('runs.sentence.waiting_confirm', 'Waiting for someone to confirm the first run'),
     cancelled: (t, run) => (param(run, 'reasonCode') === 'already_running'
-        ? t('runs.sentence.skipped_busy', 'Skipped because the routine was already running')
+        ? t('runs.sentence.skipped_busy', 'Skipped because the automation was already running')
         : t('runs.sentence.cancelled', 'Stopped before it finished')),
 };
 

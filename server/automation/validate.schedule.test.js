@@ -5,12 +5,12 @@
  *
  * There was NO schedule validation at all — `grep "'schedule'" validate.js`
  * came back empty — so a `{ kind: 'schedule' }` trigger with no cron passed
- * BOTH the draft and the strict pass. Activated, that routine lands in the
+ * BOTH the draft and the strict pass. Activated, that automation lands in the
  * automations table with trigger_type='schedule' and schedule_cron=NULL
  * (triggerColumns.js maps a missing trigger.schedule.cron to null).
  * claimDueAutomations selects on trigger_type + next_run_at only, and the
  * runner's post-run advance is gated on the cron the row does not have — so
- * next_run_at stays in the past and the routine re-fires, with live side
+ * next_run_at stays in the past and the automation re-fires, with live side
  * effects, on every 60-second scheduler tick, forever.
  *
  * These tests pin BOTH halves of the fix: activation is blocked, and a
@@ -41,7 +41,7 @@ test('a schedule trigger with NO cron cannot be activated — it would re-fire e
     assert.equal(rec.path, 'trigger.schedule.cron');
 });
 
-test('an EMPTY cron is the same can-never-fire routine as a missing one', () => {
+test('an EMPTY cron is the same can-never-fire automation as a missing one', () => {
     for (const schedule of [{}, { cron: '' }, { cron: '   ' }, { cron: null }, { cron: 42 }]) {
         const r = validateDefinition(defWithTrigger({ id: 'trg', kind: 'schedule', schedule }));
         assert.ok(r.errors.some(e => e.code === 'trigger.schedule_missing'),
@@ -87,7 +87,7 @@ test('nonsense in the cron field is rejected too, not just the wrong field count
 test('a cron that PARSES but can never come round is caught as well', () => {
     // parseCron drops out-of-range values rather than rejecting them ("99"
     // leaves an EMPTY minute set) and 31 February is legal syntax. Both parse
-    // clean and both give nextRunAt null — the routine would sit active with
+    // clean and both give nextRunAt null — the automation would sit active with
     // next_run_at NULL and never run once.
     for (const cron of ['99 * * * *', '0 0 31 2 *']) {
         const def = defWithTrigger({ id: 'trg', kind: 'schedule', schedule: { cron } });

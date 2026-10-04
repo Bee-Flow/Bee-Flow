@@ -246,7 +246,7 @@ test('a complete scan that found nothing is silent — no row, no gap', () => {
     assert.deepStrictEqual(gaps, []);
 });
 
-// ── 4. Failing routines ─────────────────────────────────────────────────────
+// ── 4. Failing automations ─────────────────────────────────────────────────────
 
 const runRow = (id, status, title = 'Invoice reminder') => ({ automationId: id, title, status });
 
@@ -275,14 +275,14 @@ test('the streak is LEADING — a success in between resets it', () => {
             runRow('a1', 'error'), runRow('a1', 'error'), runRow('a1', 'error'),
         ],
     });
-    assert.deepStrictEqual(findings, [], 'a routine that recovered is not failing');
+    assert.deepStrictEqual(findings, [], 'an automation that recovered is not failing');
 });
 
 test('an unfinished run is not a failure — it stops the streak instead of extending it', () => {
     const { findings } = evaluateAutomationFailing({
         runs: [runRow('a1', 'running'), runRow('a1', 'error'), runRow('a1', 'error'), runRow('a1', 'error')],
     });
-    assert.deepStrictEqual(findings, [], 'a routine that is running right now is not reported');
+    assert.deepStrictEqual(findings, [], 'an automation that is running right now is not reported');
 });
 
 test('no runs at all is checked-and-empty, not a gap', () => {

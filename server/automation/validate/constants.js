@@ -45,7 +45,7 @@ const VALID_STEP_TYPES = new Set([
     'call_block',
     // Outbound HTTP/webhook call.
     'http_request',
-    // A further page of the routine's public form, shown on the same /f/<token>
+    // A further page of the automation's public form, shown on the same /f/<token>
     // URL: mode 'input' pauses the run for the visitor's answers, mode 'ending'
     // shows the closing summary.
     'form_page',
@@ -66,7 +66,7 @@ const VALID_STEP_TYPES = new Set([
     'presentation',
     // Pull named, typed fields out of a piece of text (an invoice, an e-mail,
     // a PDF's text) with the ONE extraction model the admin configured —
-    // never the routine's chat tier. Its `fields` list IS its output shape.
+    // never the automation's chat tier. Its `fields` list IS its output shape.
     'data_extraction',
     // Read or write rows of an organisation-scoped datatable — the only step
     // whose effect outlives the run.
@@ -93,7 +93,7 @@ const VALID_STEP_TYPES = new Set([
  * What a `knowledge_write` step does when the text it is about to store is
  * NEARLY the same as something already in the knowledge base.
  *
- *   skip     leave the existing document alone (the default: a routine that
+ *   skip     leave the existing document alone (the default: an automation that
  *            re-runs should not quietly fork an article into two versions)
  *   merge    ask the model to fold the new text into the existing one
  *   replace  overwrite the existing document
@@ -101,7 +101,7 @@ const VALID_STEP_TYPES = new Set([
  *
  * An EXACT duplicate is handled before any of these by the content hash;
  * this is the fuzzy case (simhash), where the right answer genuinely depends
- * on what the routine is for.
+ * on what the automation is for.
  */
 const KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES = Object.freeze(['skip', 'merge', 'replace', 'add']);
 
@@ -128,7 +128,7 @@ const KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES = Object.freeze(['skip', 'merge', 're
  * builderTools/stepBuilders.js) in plaats van een patch erin te mengen.
  *
  * Waarom alle drie versmallen en niet één ervan verbreden: `startAutomations`
- * start neveneffecten in naam van de routine-eigenaar, `useTools` verstuurt,
+ * start neveneffecten in naam van de automation-eigenaar, `useTools` verstuurt,
  * `useKnowledge` leest documenten. Alle drie zijn vermogen-vragen waar een
  * verkeerde gok de eigenaar iets geeft wat hij nooit heeft aangevinkt.
  */
@@ -292,7 +292,7 @@ const ON_ERROR_SOURCE_TYPES = new Set([
     'presentation',
     // data_extraction fails on an empty source, a model reply that is not the
     // requested object, and a required field the text does not contain — a
-    // routine reading a folder of invoices wants the odd unreadable one routed
+    // automation reading a folder of invoices wants the odd unreadable one routed
     // aside, not the whole run lost.
     'data_extraction',
     // datatable fails on a missing table, a revoked grant, a quota, a unique
@@ -323,7 +323,7 @@ const ON_ERROR_FORBIDDEN_SOURCE_TYPES = new Set(['trigger', 'condition', 'switch
  * De reden dat dit één geëxporteerde set is en geen elf losse literals: een
  * terminale soort is pas terminaal als ÉLKE lezer dat weet. Kent de ene plek
  * hem wel en de andere niet, dan is dezelfde graaf op de ene plek geldig en op
- * de andere niet — en dat merkt iemand pas als een routine halverwege stopt of
+ * de andere niet — en dat merkt iemand pas als een automatisering halverwege stopt of
  * de editor een rand accepteert die de validator weigert.
  *
  * WIE LEEST DEZE LIJST (de canonieke inventaris; de drifttests bewaken hem —
@@ -370,7 +370,7 @@ const TERMINAL_STEP_TYPES = new Set(['stop_error', 'return_to_app']);
  * `return_to_app` — wat de app na de run doet.
  *
  * Drie gesloten vocabulaires. Ze reizen als DATA in `_appEffects` naar een
- * app-runtime die ouder kan zijn dan de routine, dus een waarde buiten deze
+ * app-runtime die ouder kan zijn dan de automatisering, dus een waarde buiten deze
  * sets is geen typefout maar een effect dat aan de andere kant stil zou
  * verdwijnen — daarom weigert de validator hem en logt de runner hem.
  */
@@ -407,7 +407,7 @@ const BRANCHER_TYPES = new Set(['condition', 'guard', 'switch']);
 // They are bound wherever the itemVar is, so they can never mismatch a
 // forEach — without this, `{{loop._index}}` in a fan-out was refused at add
 // time with the advice to rename itemVar to "_index" (which would unbind the
-// item), and flagged ref.loop_unbound on existing routines.
+// item), and flagged ref.loop_unbound on existing automations.
 const LOOP_RUNTIME_KEYS = new Set(['_index']);
 
 /**
@@ -468,7 +468,7 @@ const NESTED_FORBIDDEN_RULES = new Map([
     ['return_to_app', {
         code: 'return_to_app.nested_forbidden',
         message: (id) => `Step ${id}: "Back to the app" steps cannot run inside a loop or a parallel branch — they end the whole run, and a loop or a branch is not the end of it.`,
-        hint: 'Move the step to the main flow, after the loop or the parallel step: it is the last thing the routine does.',
+        hint: 'Move the step to the main flow, after the loop or the parallel step: it is the last thing the automation does.',
     }],
 ]);
 
@@ -482,7 +482,7 @@ const BINDABLE_SEGMENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 // Channels a NOTIFICATION STEP may deliver on, per engine.js's execNotification:
 // 'notification' (canonical) and 'inapp' (alias) ring the in-app bell, 'email'
 // sends through sendRunEmail. NOT the same vocabulary as
-// notificationDefaults.NOTIFICATION_CHANNELS (bell/email/talk), which governs the routine-level
+// notificationDefaults.NOTIFICATION_CHANNELS (bell/email/talk), which governs the automation-level
 // `notificationSettings` policy and has no 'notification' alias, so using it
 // here would reject every step the builder has ever written.
 const NOTIFICATION_STEP_CHANNELS = new Set(['notification', 'inapp', 'email']);
@@ -532,11 +532,11 @@ const MAX_EDGES = 2000;         // per graph
 const MAX_TOTAL_NODES = 3000;   // root + all layers combined
 
 /**
- * Trigger kinds a routine may declare as ADDITIONAL entry points
+ * Trigger kinds an automation may declare as ADDITIONAL entry points
  * (`definition.triggers[]`). webhook and app_event have carried their own
  * per-trigger storage rows since 2026-07; schedule joined in 2026-09 with the
  * `automation_schedules` table. manual / form / agent_call / app_trigger stay
- * primary-only: they are ways of firing the one entry point a routine exposes
+ * primary-only: they are ways of firing the one entry point an automation exposes
  * to a person, a visitor, an agent or a Studio app.
  */
 const SECONDARY_TRIGGER_KINDS = new Set(['webhook', 'app_event', 'schedule']);

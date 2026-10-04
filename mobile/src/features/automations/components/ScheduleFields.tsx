@@ -95,7 +95,7 @@ export function ScheduleFields({ schedule, update }: { schedule: SimpleSchedule;
                     value={String(schedule.day)}
                     onDecrement={() => update((s) => ({ ...s, day: s.day <= 1 ? 28 : s.day - 1 }))}
                     onIncrement={() => update((s) => ({ ...s, day: s.day >= 28 ? 1 : s.day + 1 }))}
-                    hint="Capped at 28 so the routine fires in February too."
+                    hint="Capped at 28 so the automation fires in February too."
                 />
             ) : null}
 

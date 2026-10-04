@@ -57,6 +57,7 @@ test('the session is checked before the query', async () => {
 test('a valid list reaches the store and answers as before', async () => {
     const res = await api.call('GET', '/api/studio-documents?kind=template&folderId=&sort=name&limit=30&offset=0');
     assert.strictEqual(res.status, 200, res.text);
-    assert.deepStrictEqual(res.body, { documents: [], total: 0, people: {} });
+    // `notebooks` / `spreadsheets`: whether this reader may have them (no session gates pass here).
+    assert.deepStrictEqual(res.body, { documents: [], total: 0, people: {}, notebooks: false, spreadsheets: false });
     assert.ok(db.queries.some((q) => /FROM studio_documents/.test(q)));
 });

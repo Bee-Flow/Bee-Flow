@@ -18,6 +18,8 @@ import AnchoredMenu from '../../../shared/AnchoredMenu';
 import DangerZone from '../../../shared/DangerZone';
 import Modal from '../../../shared/Modal';
 import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import ManagedPartBanner from '../../../shared/ManagedPartBanner';
+import { managedOf } from '../../../shared/managedPart';
 import UsedByTab from '../../../shared/UsedByTab';
 import AnswersDashboard from '../Forms/answers/AnswersDashboard';
 
@@ -82,7 +84,18 @@ export default function DatatableDetail({
     // in config/orgRoles.json) and the server asks for it only on an
     // organisation table. Requiring it here too would leave the owner of a
     // personal table able to create one and then unable to add a column to it.
-    const canEdit = isOwner && (canManage || table.scopeKind === 'user');
+    // A table a Solution stage manages is read-only for everyone (the stage's
+    // deploy writes its columns). `managed` is on the table's own GET, not on the
+    // list row the studio hands down, so it is fetched once per table.
+    const [managed, setManaged] = useState(() => managedOf(table));
+    useEffect(() => {
+        let off = false;
+        Promise.resolve().then(() => datatablesApi.get(table.id))
+            .then((res) => { if (!off) setManaged(managedOf(res) || managedOf(table)); })
+            .catch(() => { /* the banner is a refinement; the server still refuses the write */ });
+        return () => { off = true; };
+    }, [table]);
+    const canEdit = isOwner && (canManage || table.scopeKind === 'user') && !managed;
     // The retention tab's column picker, its "counted from" label, and the
     // "{n} columns · {m} rows" line above the content.
     const columns = useColumns(table.id, true);
@@ -207,6 +220,7 @@ export default function DatatableDetail({
             ) : (
                 <div className="flex-1 overflow-y-auto">
                     <div className="mx-auto flex flex-col gap-3.5" style={{ maxWidth: 960, padding: '32px 24px' }}>
+                        {managed && <ManagedPartBanner managed={managed} onNavigate={onNavigate} />}
                         <div className="flex items-baseline gap-3" data-testid="table-lede">
                             <p className="flex-1 min-w-0 text-sm m-0" style={{ color: 'var(--text-secondary)', lineHeight: '19px' }}>
                                 {table.description || ''}
@@ -450,7 +464,7 @@ function TableMenu({ t, table, canEdit, mirror = null, isMirror = false, onRenam
             // A Blob and a revoked object URL, NEVER an <a href download>
             // pointing at the API: that link carries no auth header, and on
             // this stack a same-origin download navigates the SPA away from
-            // itself (the routines library learned it the hard way).
+            // itself (the automations library learned it the hard way).
             const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
             const a = document.createElement('a');
             a.href = url;

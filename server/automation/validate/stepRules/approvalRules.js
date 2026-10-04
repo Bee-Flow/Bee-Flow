@@ -27,14 +27,14 @@ function checkApproval(ctx, step, at) {
     // An approval is the one step whose entire payload is a sentence a
     // human reads before deciding. Until now the validator read NO field
     // off it, so an approval could go live asking nothing at all — the
-    // approver saw "Approval requested" and had to open the routine to
+    // approver saw "Approval requested" and had to open the automation to
     // find out what they were agreeing to.
     if (step.type === 'approval') {
         // Mirrors the engine's own fallback (renderApprovalPrompt): the
         // builder writes `prompt`, but `title` is the legacy field that
         // imported and pre-editor definitions carry — and an approval with
         // a title DOES reach its approver with a question, so flagging it
-        // would report working routines as broken.
+        // would report working automations as broken.
         const hasQuestion = ['prompt', 'title'].some(
             f => typeof step[f] === 'string' && step[f].trim(),
         );
@@ -61,7 +61,7 @@ function checkApproval(ctx, step, at) {
             const hasUser = typeof a?.userId === 'string' && a.userId.trim();
             const hasGroup = typeof a?.groupId === 'string' && a.groupId.trim();
             if (!a || typeof a !== 'object' || (!hasUser && !hasGroup) || (hasUser && hasGroup)) {
-                pushE({ code: 'approval.assignee_invalid', severity: 'error', path: at + '.approval.assignee', message: `Step ${step.id}: the approver must be either one person ({ userId }) or one group ({ groupId }).`, hint: 'Pick a person or a group in the step\'s Approver section, or leave it empty so the routine\'s owner decides.' });
+                pushE({ code: 'approval.assignee_invalid', severity: 'error', path: at + '.approval.assignee', message: `Step ${step.id}: the approver must be either one person ({ userId }) or one group ({ groupId }).`, hint: 'Pick a person or a group in the step\'s Approver section, or leave it empty so the automation\'s owner decides.' });
             }
         }
         if (cfg.details !== undefined && cfg.details !== null && typeof cfg.details !== 'string') {

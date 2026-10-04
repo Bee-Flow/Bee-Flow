@@ -6,7 +6,7 @@
  * save path that skips it does not merely fail to add rows: it leaves the
  * PREVIOUS definition's rows standing, and three surfaces read that index
  * (the used-by panel, the "also used by N others" hint, and the guard that
- * refuses a column drop). For routines that lesson was learned the hard way —
+ * refuses a column drop). For automations that lesson was learned the hard way —
  * see the datatableUsageSync.js header. For apps and webpages it is written
  * down here BEFORE their reconcilers land, so the tracks that add them
  * (App Studio: the `app` kind; Webpages: the `webpage` kind) extend this list
@@ -76,11 +76,12 @@ const SAVE_PATHS = {
                 'routes/automation/actions.js',           // duplicate (handoff 5)
                 'routes/step.js',                         // reusable Steps
                 'automation/builderTools/persistence.js', // the MCP builder
+                'automation/goLive.js',                   // a deploy's converge (convergeAfterPublish)
             ],
         },
         purge: {
             call: /purgeDatatableUsage\(/,
-            // Handoff 5: a routine is purged from the trash, not by DELETE.
+            // Handoff 5: an automation is purged from the trash, not by DELETE.
             files: ['jobs/automationTrashPurge.js', 'routes/step.js'],
         },
     },
@@ -163,7 +164,7 @@ test('every listed file really makes the call', () => {
     }
     // create AND import AND update, in the one file that owns all three.
     assert.ok((read('routes/automation/crud.js').match(/syncDatatableUsage\(/g) || []).length >= 3,
-        'create, import and update each persist a routine definition');
+        'create, import and update each persist an automation definition');
     // EIGHT webpage save paths live in ONE module (routes/webpages/, gesplitst
     // per bronnengroep): create, update, put an extra file, delete one, move
     // one, clone, restore a version, publish. Listing the module once would let
@@ -178,7 +179,7 @@ test('every listed file really makes the call', () => {
  * The guard above only bites one way: it asks whether a file that ALREADY
  * reconciles is listed. A save path that never calls the reconciler at all is
  * invisible to it — which is exactly how the Solution UPGRADE path, the
- * ordinary assistant chat, the tool dispatcher and the routine-builder chat
+ * ordinary assistant chat, the tool dispatcher and the automation-builder chat
  * each rewrote a page's html/js slot with nothing keeping the index in step.
  *
  * So this is the other direction, for webpages: the store's four code-changing
@@ -230,7 +231,7 @@ test('a kind that is wired anywhere lists that file — no half-covered consumer
         const rel = path.relative(SERVER, file).split(path.sep).join('/');
         // The modules that DEFINE an entry point are not callers of it.
         // `core/kb/sources/datatable.js` is the knowledge-base reconciler
-        // itself, the same category as datatableUsageSync for routines.
+        // itself, the same category as datatableUsageSync for automations.
         if (rel === 'automation/datatableUsageSync.js'
             // De store is een facade met zijn onderdelen in
             // stores/datatableStore/ — dezelfde module, dezelfde vrijstelling.
@@ -261,7 +262,7 @@ test('a kind that is wired anywhere lists that file — no half-covered consumer
 // definition in, the `automation` sources of the bases it writes to brought in
 // step. So it has the same failure mode, and it is sharper here — a stale
 // source does not just fail to appear in a list, it CLAIMS a knowledge base is
-// being fed by a routine that stopped writing to it. Somebody reads that list
+// being fed by an automation that stopped writing to it. Somebody reads that list
 // to decide whether the base is current.
 //
 // Deliberately the SAME file list as the datatable sync: both reconcile from a
@@ -272,18 +273,19 @@ const KB_SOURCE_SAVE_PATHS = [
     'routes/automation/actions.js',           // duplicate (handoff 5)
     'routes/step.js',                         // reusable Steps
     'automation/builderTools/persistence.js', // the MCP builder
-    // Provisions the resolved-tickets→KB routine from the Support settings
-    // panel, straight through the store — and it is the one routine whose
+    'automation/goLive.js',                   // a deploy's converge (convergeAfterPublish)
+    // Provisions the resolved-tickets→KB automation from the Support settings
+    // panel, straight through the store — and it is the one automation whose
     // whole purpose is to write to a knowledge base.
     'routes/supportInbox.js',
 ];
 
-test('every routine save path also reconciles its knowledge-base sources', () => {
+test('every automation save path also reconciles its knowledge-base sources', () => {
     for (const f of KB_SOURCE_SAVE_PATHS) {
-        assert.match(read(f), /syncKbSources\(/, `${f} must reconcile the routine's knowledge-base sources`);
+        assert.match(read(f), /syncKbSources\(/, `${f} must reconcile the automation's knowledge-base sources`);
     }
     assert.ok((read('routes/automation/crud.js').match(/syncKbSources\(/g) || []).length >= 3,
-        'create, import and update each persist a routine definition');
+        'create, import and update each persist an automation definition');
 });
 
 test('nothing else calls syncKbSources without being listed', () => {

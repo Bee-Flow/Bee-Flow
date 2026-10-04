@@ -37,7 +37,7 @@ test('the column list is read the way the model writes it: keys derived from nam
     assert.ok(notes.some((n) => /key "Bad Key" read as "bad_key"/.test(n)));
 });
 
-test('creates the table for the routine owner, refreshes the draft catalog in place and points at builder_add_datatable', async () => {
+test('creates the table for the automation owner, refreshes the draft catalog in place and points at builder_add_datatable', async () => {
     const d = deps();
     const wrap = { userId: 'u1', _datatables: [] };
     const r = await applyCreateDatatable(wrap, { name: 'invoice', fields: [{ name: 'Supplier', type: 'text' }, { name: 'Total', type: 'number' }] }, d);

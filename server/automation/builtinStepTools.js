@@ -14,7 +14,7 @@
  * TOOL_REGISTRY?", and it is wrong: a user's real tool set is assembled per
  * request in core/integrations/integrationTools.js and includes four classes
  * that no static list can know — MCP server tools, org custom integrations,
- * agent-callable routines and Step tools, plus the inline-registered
+ * agent-callable automations and Step tools, plus the inline-registered
  * `browse_web` and workspace tools. Testing registry absence would reject those
  * legitimate tools. This map instead recognises only names we KNOW are step
  * types, so callers can fail closed on a certain mistake and stay open on

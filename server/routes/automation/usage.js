@@ -6,7 +6,7 @@
  *                                             that setting of that action
  *
  * Both read the saved definitions of the caller's organisation (or, on a
- * personal install, the caller's own routines) through
+ * personal install, the caller's own automations) through
  * automation/orgStepUsage.js, which caches per organisation for a few minutes
  * and never returns a value that looks like personal data or a credential.
  *

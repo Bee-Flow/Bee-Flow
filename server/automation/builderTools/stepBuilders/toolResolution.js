@@ -10,7 +10,7 @@
  * catalog tool belongs.
  *
  * `_availableToolNames` is the per-request resolved set (org ∩ group ∩ toggle ∩
- * entitlement ∩ credentials, plus MCP / custom / routine / Step tools) — the
+ * entitlement ∩ credentials, plus MCP / custom / automation / Step tools) — the
  * same answer the RUNNER checks against. Before it existed, this function's
  * first test was "does the catalog know this tool's schema", which is a
  * question about the product, not about the user: it returned true for

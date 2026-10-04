@@ -1,5 +1,5 @@
 // The request plumbing the automation query modules share: one error class
-// that carries the server's machine code, and the GET / PUT of one routine's
+// that carries the server's machine code, and the GET / PUT of one automation's
 // JSON that throws it.
 //
 // `authFetch` rather than `apiClient`, like the other automation reads: the
@@ -35,18 +35,18 @@ async function failure(res: Response, fallback: string): Promise<AutomationReque
     return new AutomationRequestError(message, res.status, code);
 }
 
-const routineUrl = (id: string, tail: string) => `${API_BASE}/api/automation/${encodeURIComponent(id)}${tail}`;
+const automationUrl = (id: string, tail: string) => `${API_BASE}/api/automation/${encodeURIComponent(id)}${tail}`;
 
 /** GET /api/automation/:id<tail>; a refusal throws, with `what` naming the call when the server says nothing. */
-export async function getRoutineJson(id: string, tail: string, what: string, signal?: AbortSignal): Promise<unknown> {
-    const res = await authFetch(routineUrl(id, tail), { signal });
+export async function getAutomationJson(id: string, tail: string, what: string, signal?: AbortSignal): Promise<unknown> {
+    const res = await authFetch(automationUrl(id, tail), { signal });
     if (!res.ok) throw await failure(res, `${what} ${res.status}`);
     return res.json();
 }
 
 /** PUT a JSON body to /api/automation/:id<tail>, the same way. */
-export async function putRoutineJson(id: string, tail: string, body: unknown, what: string): Promise<unknown> {
-    const res = await authFetch(routineUrl(id, tail), {
+export async function putAutomationJson(id: string, tail: string, body: unknown, what: string): Promise<unknown> {
+    const res = await authFetch(automationUrl(id, tail), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

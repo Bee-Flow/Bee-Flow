@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * lifecycle.js — the live/working split, the trash and per-routine run
+ * lifecycle.js — the live/working split, the trash and per-automation run
  * retention (Studio → Automations handoff 5, automation-handoff5-2026-09).
  *
  * ── The live split ───────────────────────────────────────────────────────
@@ -8,23 +8,23 @@
  * there and bumps the version. `live_definition_json` / `live_version` is
  * what scheduled, event, webhook, form, app and agent runs execute, and it
  * only moves when the owner publishes (POST /:id/publish), or on first
- * activation of a routine that was never live. Test runs execute the working
+ * activation of an automation that was never live. Test runs execute the working
  * copy (core/automationRunner/definitionForRun.js).
  *
  * Two invariants keep the pair honest whichever path writes the row, and both
  * live in LIVE_INVARIANT_SQL so automations.updateAutomation and this module
  * share one statement:
- *   1. an ACTIVE routine always has a live version — a path that switches a
- *      never-live routine on (provisioning, an installer, the support inbox)
+ *   1. an ACTIVE automation always has a live version — a path that switches a
+ *      never-live automation on (provisioning, an installer, the support inbox)
  *      publishes its working copy in the same transaction;
  *   2. a write flagged `goLive` (an approved evolution, a package upgrade)
- *      moves the live copy with it, on a routine that is or has been live.
+ *      moves the live copy with it, on an automation that is or has been live.
  *
  * ── The trash ────────────────────────────────────────────────────────────
  * DELETE is a soft delete: `deleted_at` / `deleted_by`, switched off, runs
  * kept. Every read of the automations table excludes trashed rows unless it
  * asks for them. jobs/automationTrashPurge.js hard-deletes after
- * TRASH_RETENTION_DAYS; the FKs cascade, so runs go with the routine then.
+ * TRASH_RETENTION_DAYS; the FKs cascade, so runs go with the automation then.
  *
  * Factory over a `{ query(sql, params) }` handle so the SQL is tested against
  * a real Postgres (lifecycle.pg.test.js) without reaching into the module
@@ -58,7 +58,7 @@ const LIVE_INVARIANT_SQL = `UPDATE automations
                  OR ($2::boolean AND (live_version IS NOT NULL OR is_draft = FALSE)))`;
 
 /**
- * The trigger-derived columns follow the LIVE definition. On a routine that has
+ * The trigger-derived columns follow the LIVE definition. On an automation that has
  * one, a plain working-copy write may not move them — only a publish (or a
  * `goLive` write) may. next_run_at is not on the list: the runner advances it
  * after every scheduled run, which is a live fact.
@@ -67,7 +67,7 @@ const LIVE_FOLLOWING_FIELDS = Object.freeze(['triggerType', 'scheduleCron', 'sch
 
 /**
  * `updates` minus the fields a working-copy write may not move on a live
- * routine. Pure; returns a new object.
+ * automation. Pure; returns a new object.
  *
  * @param {Record<string, any>} updates
  * @param {{ hasLive: boolean, goLive?: boolean }} opts
@@ -79,11 +79,52 @@ function stripLiveFollowingFields(updates, { hasLive, goLive = false }) {
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} db
- * @param {{ ready?: () => Promise<void> }} [opts]
+ * The stage lookup of the managed-write guard: an automation's project_id and
+ * live_version and nothing else (the row's working copy, live copy and builder
+ * session can run to megabytes). project_id is selected directly, never
+ * probed: a schema without it fails loudly instead of switching the lock off.
+ *
+ * @returns {(q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }, id: string,
+ *            opts?: { forUpdate?: boolean }) => Promise<{ project_id: string|null, live_version: number|null }|null>}
  */
-function makeLifecycleStore(db, { ready = async () => {} } = {}) {
+function makeStageLookup() {
+    return async function stageOf(q, id, { forUpdate = false } = {}) {
+        const r = await q.query(
+            `SELECT project_id, live_version FROM automations WHERE id = $1${forUpdate ? ' FOR UPDATE' : ''}`,
+            [id],
+        );
+        return r.rows[0] || null;
+    };
+}
+
+/**
+ * Built over the pool for the app, and over one transaction's client for a
+ * deploy's commit (`makeLifecycleStore(client)`): every statement, the
+ * managed-write guard's capability check included, then runs on that client.
+ *
+ * `managedParts` is the guard (stores/lib/managedParts.js); a test passes its
+ * own instance, the app the module's default.
+ *
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} db
+ * @param {{ ready?: () => Promise<void>, managedParts?: { assertManagedWrite: Function }|null }} [opts]
+ */
+function makeLifecycleStore(db, { ready = async () => {}, managedParts = null } = {}) {
     const { rowToAutomation } = require('./rowMappers');
+    const guard = () => managedParts || require('../lib/managedParts');
+    const stageOf = makeStageLookup();
+
+    /**
+     * Refuse a write to an automation of a Solution stage unless the keys are
+     * allow-listed or `managedWrite` names an active deployment of that stage.
+     */
+    async function assertManaged(id, changedKeys, managedWrite) {
+        const row = await stageOf(db, id);
+        if (!row) return;
+        await guard().assertManagedWrite({
+            kind: 'automation', projectId: row.project_id ?? null, changedKeys, managedWrite,
+            client: db, liveVersion: row.live_version ?? null,
+        });
+    }
 
     async function selectOne(id, { includeDeleted = false } = {}) {
         const r = await db.query(
@@ -102,14 +143,19 @@ function makeLifecycleStore(db, { ready = async () => {} } = {}) {
      * `columns` are the trigger-derived columns of that definition, written in
      * the same statement so the scheduler and the live copy never disagree.
      *
+     * On an automation of a Solution stage only a deploy publishes: it passes
+     * `managedWrite` (its capability), on the commit transaction's client.
+     *
      * @param {string} id
      * @param {{ expectedVersion?: number, columns?: {
      *   triggerType?: string, scheduleCron?: string|null, scheduleTz?: string, nextRunAt?: string|null,
      *   runTimeoutMs?: number|null, isActive?: boolean, isDraft?: boolean, needsFirstRunConfirm?: boolean,
-     * } }} [opts]
+     * }, managedWrite?: { deploymentId?: string }|null }} [opts]
      */
-    async function publishWorkingCopy(id, { expectedVersion, columns = {} } = {}) {
+    async function publishWorkingCopy(id, { expectedVersion, columns = {}, managedWrite = null } = {}) {
         await ready();
+        const moved = Object.keys(columns).filter((k) => columns[k] !== undefined);
+        await assertManaged(id, ['liveDefinition', ...moved], managedWrite);
         const set = [
             'live_definition_json = definition_json',
             'live_version = version',
@@ -143,9 +189,14 @@ function makeLifecycleStore(db, { ready = async () => {} } = {}) {
         return Number(r.rows[0]?.n) || 0;
     }
 
-    /** Soft delete: into the trash, switched off, runs kept. Null when absent or already trashed. */
-    async function trashAutomation(id, deletedBy) {
+    /**
+     * Soft delete: into the trash, switched off, runs kept. Null when absent
+     * or already trashed. An automation of a Solution stage is retired by a
+     * deploy, never trashed by hand (409 managed_part without `managedWrite`).
+     */
+    async function trashAutomation(id, deletedBy, { managedWrite = null } = {}) {
         await ready();
+        await assertManaged(id, ['deletedAt'], managedWrite);
         const r = await db.query(
             `UPDATE automations
                 SET deleted_at = NOW(), deleted_by = $2, is_active = FALSE, next_run_at = NULL, updated_at = NOW()
@@ -158,8 +209,9 @@ function makeLifecycleStore(db, { ready = async () => {} } = {}) {
     }
 
     /** Out of the trash — always PAUSED, whatever it was before. Null when not in the trash. */
-    async function restoreAutomation(id) {
+    async function restoreAutomation(id, { managedWrite = null } = {}) {
         await ready();
+        await assertManaged(id, ['deletedAt'], managedWrite);
         const r = await db.query(
             `UPDATE automations
                 SET deleted_at = NULL, deleted_by = NULL, is_active = FALSE, next_run_at = NULL, updated_at = NOW()
@@ -213,13 +265,13 @@ function makeLifecycleStore(db, { ready = async () => {} } = {}) {
     }
 
     /**
-     * Per-routine run retention: `definition.runPolicy.retentionDays` (7..365)
-     * shortens the platform window for that routine's runs. runPolicy is a
+     * Per-automation run retention: `definition.runPolicy.retentionDays` (7..365)
+     * shortens the platform window for that automation's runs. runPolicy is a
      * SETTING (core/automationRunner/definitionForRun.js SETTINGS_KEYS): it
-     * applies without a publish, so this reads the WORKING copy. A routine with no
+     * applies without a publish, so this reads the WORKING copy. An automation with no
      * valid value, or one at or above the platform window, is the platform
      * pass's business. `platformDays <= 0` (platform retention off) still
-     * honours the routine's own window.
+     * honours the automation's own window.
      *
      * Terminal runs only; bounded, oldest first, like deleteRunsOlderThan.
      */
@@ -271,6 +323,7 @@ module.exports = {
     LIVE_INVARIANT_SQL,
     LIVE_FOLLOWING_FIELDS,
     stripLiveFollowingFields,
+    makeStageLookup,
     makeLifecycleStore,
     publishWorkingCopy: defaultStore.publishWorkingCopy,
     countPendingChanges: defaultStore.countPendingChanges,

@@ -54,7 +54,7 @@ describe('coworkStatus', () => {
     });
 
     it('does not call a schedule that needs signing in again "paused"', () => {
-        // routineAuth switches a schedule off with last_status 'needs_reauth'.
+        // automationAuth switches a schedule off with last_status 'needs_reauth'.
         // Read as "paused" it is indistinguishable from "I switched that off
         // myself", so the one row that should say the unattended work has
         // stopped says nothing at all. The server counts these runs as

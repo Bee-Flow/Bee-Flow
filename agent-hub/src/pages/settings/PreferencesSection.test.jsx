@@ -45,6 +45,7 @@ vi.mock('./AvatarPicker', () => ({
 }));
 vi.mock('./MeetingNotesSection', () => ({ default: () => <div data-testid="meeting-notes" /> }));
 vi.mock('./GoogleMeetNotesSection', () => ({ default: () => <div data-testid="google-meet-notes" /> }));
+vi.mock('./TeamsMeetingNotesSection', () => ({ default: () => <div data-testid="teams-meeting-notes" /> }));
 vi.mock('./SummaryTemplatesSection', () => ({ default: () => <div data-testid="summary-templates" /> }));
 vi.mock('./VoiceprintSection', () => ({ default: () => <div data-testid="voiceprint" /> }));
 vi.mock('./AiParticipationSection', () => ({ default: ({ enabled }) => <div data-testid="ai-participation" data-enabled={String(enabled)} /> }));

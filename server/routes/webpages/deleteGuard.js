@@ -13,7 +13,7 @@ const log = require('../../telemetry/log');
  * ── WAT ER STUKGAAT, VOORDAT HET STUKGAAT (W5 deel C) ───────────────
  *
  * Een webpagina is geen los ding. Ze ligt in een Oplossing die haar in een
- * scherm heeft opgenomen, een ROUTINE noemt haar bij naam in een
+ * scherm heeft opgenomen, een AUTOMATISERING noemt haar bij naam in een
  * `webpage_db_exec`-stap, een gewone chat kan haar in het zijpaneel hebben, en
  * een agent kan haar als tool openen. Geen van die storingen NOEMT deze pagina
  * op het moment dat ze optreedt, en geen ervan is terug te draaien — dus

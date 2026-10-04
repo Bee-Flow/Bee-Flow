@@ -134,7 +134,7 @@ describe('DestinationPicker — the menu', () => {
 });
 
 describe('DestinationPicker — start an automation', () => {
-    it('offers only routines that can be started by hand', async () => {
+    it('offers only automations that can be started by hand', async () => {
         open();
         fireEvent.click(screen.getByText('Start an automation'));
         expect(await screen.findByText('Testlink versturen')).toBeTruthy();

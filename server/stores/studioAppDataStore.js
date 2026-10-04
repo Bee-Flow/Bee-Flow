@@ -41,6 +41,7 @@ const { isPg } = require('../utils/engineFlag');
 const log = require('../telemetry/log');
 const { parseJSON } = require('./lib/json');
 const { buildUpdate } = require('./lib/sqlBuilder');
+const { storeError } = require('./lib/managedParts');
 
 const initDB = makeStoreInit('StudioAppDataStore', _initDB);
 
@@ -363,18 +364,25 @@ async function reconcileDataModel(appId, ownerId) {
  *     skips exact already-applied signatures) and re-stamps user_version,
  *     which clears the drift.
  *
+ * On an app of a Solution stage (stores/lib/managedParts.js) the model is
+ * changed by a deploy only: without `opts.managedWrite` (an active
+ * deployment of that stage) the save throws 409 managed_part. A stage's model
+ * is ADDITIVE ONLY, whether or not the caller asks for it (`additiveOnly`,
+ * see additiveModel below): the deploy applies it in its prepare phase,
+ * outside the atomic commit, so the older release must keep working on it.
+ *
  * Returns:
  *   { ok:true, version }                                   on success
  *   { ok:false, invalid:true, errors }                     model failed validation
  *   { ok:false, conflict:true, currentVersion, model }     expectedVersion mismatch
  *   { ok:false, notFound:true }                            app not owned / missing
  */
-async function saveDataModel(appId, ownerId, model, { expectedVersion = null } = {}) {
-    await initDB();
+async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = null, managedWrite = null, additiveOnly = false } = {}) {
+    await io.ready();
     const { errors } = validateDataModel(model);
     if (errors.length) return { ok: false, invalid: true, errors };
 
-    const client = await getClient();
+    const client = await io.getClient();
     try {
         await client.query('BEGIN');
         const cur = await client.query(
@@ -407,9 +415,31 @@ async function saveDataModel(appId, ownerId, model, { expectedVersion = null } =
             metaExists = false;
         }
 
+        // The app's stage, if any: only a deploy changes a stage's model.
+        const app = await client.query(`SELECT project_id FROM studio_apps WHERE id = $1`, [appId]);
+        const lock = await (io.managedParts || require('./lib/managedParts')).assertManagedWrite({
+            kind: 'app', projectId: app.rows[0] ? app.rows[0].project_id ?? null : null,
+            changedKeys: ['dataModel'], managedWrite, client,
+        });
+
         if (expectedVersion != null && currentVersion !== expectedVersion) {
             await client.query('ROLLBACK');
             return { ok: false, conflict: true, currentVersion, model: currentModel };
+        }
+
+        // A stage's model never loses a table or a column, whoever asks.
+        if (additiveOnly || (lock.managed && lock.via === 'capability')) {
+            const additive = additiveModel(currentModel, model);
+            if (additive.invalid) {
+                await client.query('ROLLBACK');
+                return { ok: false, invalid: true, errors: additive.invalid };
+            }
+            if (additive.refused.length) {
+                throw storeError(409, 'app.data_model_not_additive',
+                    'This data model change is not additive: a stage only takes new tables, new optional columns and new indexes.',
+                    { statements: additive.refused.slice(0, 20) });
+            }
+            model = additive.model;
         }
 
         // Apply the physical schema diff BEFORE persisting the new model.
@@ -426,9 +456,9 @@ async function saveDataModel(appId, ownerId, model, { expectedVersion = null } =
         // and repair it — simply does not exist.
         const nextVersion = currentVersion + 1;
         const plan = migrationPlan(currentModel, model);
-        await studioAppDbStore.applyMigration(ownerId, appId, plan, {
+        await io.applyMigration(ownerId, appId, plan, {
             targetVersion: nextVersion,
-            ...(isPg() ? { client } : {}),
+            ...(io.isPg() ? { client } : {}),
         });
         const payload = JSON.stringify(model ?? {});
         if (metaExists) {
@@ -453,7 +483,7 @@ async function saveDataModel(appId, ownerId, model, { expectedVersion = null } =
         await client.query('COMMIT');
         // Row counts can drift across a migration (table drops/recreates) —
         // take an authoritative recount, best-effort (the save is committed).
-        try { await recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (_) { /* advisory */ }
+        try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (_) { /* advisory */ }
         return { ok: true, version: nextVersion };
     } catch (e) {
         await client.query('ROLLBACK').catch(() => {});
@@ -462,6 +492,78 @@ async function saveDataModel(appId, ownerId, model, { expectedVersion = null } =
         client.release();
     }
 }
+
+/**
+ * The additive form of `model` against `current` (design 2, App row): every
+ * table and field of `current` that `model` leaves out is RETAINED, so no
+ * DROP is planned, and the plan from `current` to that model may hold only
+ * new tables (CREATE TABLE with its own indexes), nullable ADD COLUMNs and
+ * non-unique indexes. Anything else (a rename, a DROP, a unique index on an
+ * existing table, a NOT NULL column) is listed in `refused`.
+ *
+ * Pure. `invalid` is the validator's errors when the merged model is not a
+ * valid model (a new field reusing a retained field's key).
+ *
+ * @returns {{ model: object, plan: string[], refused: string[], invalid: object[]|null }}
+ */
+function additiveModel(current, model) {
+    const merged = retainRemoved(current, model);
+    const { errors } = validateDataModel(merged);
+    if (errors.length) return { model: merged, plan: [], refused: [], invalid: errors };
+    const plan = migrationPlan(current, merged);
+    return { model: merged, plan, refused: plan.filter((stmt) => !isAdditiveStatement(stmt)), invalid: null };
+}
+
+/** `model` plus every table and field of `current` it leaves out (matched by stable id). */
+function retainRemoved(current, model) {
+    const cur = Array.isArray(current && current.tables) ? current.tables : [];
+    const next = Array.isArray(model && model.tables) ? model.tables : [];
+    const nextById = new Map(next.filter((t) => t && t.id).map((t) => [t.id, t]));
+    const tables = next.map((t) => {
+        const old = cur.find((o) => o && o.id === t.id);
+        if (!old || !Array.isArray(old.fields)) return t;
+        const fields = Array.isArray(t.fields) ? t.fields : [];
+        const ids = new Set(fields.map((f) => f && f.id));
+        const kept = old.fields.filter((f) => f && f.id && !ids.has(f.id));
+        return kept.length ? { ...t, fields: [...fields, ...kept] } : t;
+    });
+    for (const old of cur) if (old && old.id && !nextById.has(old.id)) tables.push(old);
+    return { ...(model || {}), tables };
+}
+
+/** One plan entry an older release keeps working on: a new table, a nullable column, a plain index. */
+function isAdditiveStatement(stmt) {
+    const s = String(stmt).trim();
+    if (/^CREATE TABLE IF NOT EXISTS\s/i.test(s)) return true;
+    if (/^CREATE INDEX IF NOT EXISTS\s/i.test(s)) return true;
+    if (/^ALTER TABLE\s+"(?:[^"]|"")*"\s+ADD COLUMN\s/i.test(s)) return !/\bNOT NULL\b/i.test(s);
+    return false;
+}
+
+/**
+ * saveDataModel over its collaborators: the store's own (db.js, the per-app
+ * engine) for the app, a test's own for a pglite test of the lock.
+ *
+ * @param {{ getClient: () => Promise<any>, ready?: () => Promise<unknown>,
+ *           applyMigration: Function, isPg: () => boolean, recountRows: Function,
+ *           managedParts?: { assertManagedWrite: Function }|null }} io
+ */
+function makeDataModelSaver(io) {
+    const ctx = { ready: async () => {}, managedParts: null, ...io };
+    return {
+        saveDataModel: (appId, ownerId, model, opts) => saveDataModelIn(ctx, appId, ownerId, model, opts),
+    };
+}
+
+// The app's: wrapped rather than bound, so a test that replaces '../db' or
+// './studioAppDbStore' before requiring this store is still honoured.
+const { saveDataModel } = makeDataModelSaver({
+    getClient: () => getClient(),
+    ready: () => initDB(),
+    applyMigration: (...a) => studioAppDbStore.applyMigration(...a),
+    isPg: () => isPg(),
+    recountRows: (...a) => recountRows(...a),
+});
 
 /**
  * Bump a table's data version (a monotonically-increasing cache-invalidation
@@ -1112,6 +1214,8 @@ module.exports = {
     // Data model
     getDataModel,
     saveDataModel,
+    makeDataModelSaver,
+    additiveModel,
     reconcileDataModel,
     bumpDataVersion,
     getRowCounts,

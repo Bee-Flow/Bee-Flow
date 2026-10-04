@@ -20,9 +20,9 @@ import { Text, useToast } from '@/shared/ui';
 import { pickerRows, toggleExpanded, useVariablePicker, VariableList } from '../variables';
 
 function heading(t: ReturnType<typeof useTranslation>, groups: readonly VariableGroup[]): string {
-    const base = t('routines.ndv.incoming', 'Incoming');
-    if (groups.length === 1) return `${base} · ${t('routines.ndv.from_step', 'from {step}', { step: groups[0]?.label ?? '' })}`;
-    if (groups.length > 1) return `${base} · ${t('routines.ndv.from_steps', 'from {n} earlier steps', { n: groups.length })}`;
+    const base = t('automations.ndv.incoming', 'Incoming');
+    if (groups.length === 1) return `${base} · ${t('automations.ndv.from_step', 'from {step}', { step: groups[0]?.label ?? '' })}`;
+    if (groups.length > 1) return `${base} · ${t('automations.ndv.from_steps', 'from {n} earlier steps', { n: groups.length })}`;
     return base;
 }
 
@@ -58,7 +58,7 @@ export function InputPane({ onInserted }: { onInserted: () => void }) {
                     rows={pickerRows(picker.groups, { expanded, sampleRoot: picker.sampleRoot })}
                     onPick={pick}
                     onToggle={(path) => setExpanded((prev) => toggleExpanded(prev, path))}
-                    emptyText={t('routines.mapping.no_upstream', 'No upstream data yet. Connect this step to a previous one to see its output here.')}
+                    emptyText={t('automations.mapping.no_upstream', 'No upstream data yet. Connect this step to a previous one to see its output here.')}
                 />
             </View>
         </View>

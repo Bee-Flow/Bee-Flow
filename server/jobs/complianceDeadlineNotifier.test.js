@@ -218,7 +218,7 @@ test('the calendar comes from compliance/calendar.list(orgId, { all: true }) —
     assert.ok(!JSON.stringify(sent).includes('should_not_be_used'), 'frameworks.MILESTONES must not be consulted when the calendar answers');
 
     const cra = cal.find(n => /^CRA/.test(n.title));
-    assert.ok(cra.message.includes('Affects you: 3 routines · 1 agent.'), cra.message);
+    assert.ok(cra.message.includes('Affects you: 3 automations · 1 agent.'), cra.message);
     assert.ok(!/webpage|public form/.test(cra.message), 'an unknown (null) or zero count stays out');
     for (const n of cal) assert.strictEqual(n.link, '/app/admin/compliance/frameworks?tab=calendar');
 
@@ -271,7 +271,7 @@ test('AI Act attestation expiries within 30 days fire once; expired ones daily',
     await run(deps);
     const att = sent.filter(n => /AI Act self-assessment/.test(n.title));
     assert.strictEqual(att.length, 2);
-    assert.ok(att.some(n => n.title === 'AI Act self-assessment expires within 30 days' && n.message.includes('routine auto_1')));
+    assert.ok(att.some(n => n.title === 'AI Act self-assessment expires within 30 days' && n.message.includes('automation auto_1')));
     assert.ok(att.some(n => n.title === 'AI Act self-assessment expired' && n.message.includes('agent agent_9')));
     for (const n of att) assert.strictEqual(n.link, '/app/admin/compliance/frameworks?tab=per_automation');
     await run(deps);

@@ -17,6 +17,7 @@ export interface TeamChatLastMessage {
 }
 
 export interface TeamChat {
+    aiState?: { status: 'idle' | 'running'; threadId: string | null; startedAt?: string };
     id: string;
     title: string;
     aiMode: TeamChatAiMode;
@@ -47,6 +48,7 @@ export interface TeamChatAiPolicy { autoAllowed: boolean; alwaysAllowed: boolean
 
 /** How an AI answer was made: the depth it ran on, and what the Privacy Shield replaced (a count and kinds, never values). */
 export interface TeamChatAiMeta {
+    usedSources?: TeamChatRef[];
     tier: string | null; requestedTier: string | null; redacted: number; categories: string[];
     /** The Privacy Shield replaced values, so there is a trace to open. */
     trace?: boolean;
@@ -58,8 +60,8 @@ export interface TeamChatTrace {
     original: string; sent: string; tokenMap: Record<string, string>; returned: string;
 }
 
-/** A document, notebook or meeting note of the project that a message tags. */
-export interface TeamChatRef { kind: 'document' | 'notebook' | 'meeting'; id: string }
+/** A project item that a message tags. */
+export interface TeamChatRef { kind: 'document' | 'notebook' | 'meeting' | 'task'; id: string }
 
 export interface TeamChatMessage {
     id: string;
@@ -124,7 +126,7 @@ export interface TeamChatMessages {
 export type TeamChatAiStatus = 'queued' | 'skipped' | 'busy';
 export interface TeamChatAiResult { status: TeamChatAiStatus; reason?: string }
 
-export interface CreateTeamChat { title?: string; aiMode: TeamChatAiMode; agentId?: string | null; message?: string }
+export interface CreateTeamChat { title?: string; aiMode: TeamChatAiMode; agentId?: string | null; message?: string; refs?: TeamChatRef[] }
 
 /** An AI answer the AI gave on its own, rather than one somebody asked for. */
 export function isAutomaticAnswer(m: Pick<TeamChatMessage, 'authorKind' | 'aiTrigger'>): boolean {

@@ -135,6 +135,17 @@ test('loadContext: opened messages, no notices or deleted ones, mention flags, r
     assert.ok(hello);
 });
 
+test('loadContext is the main conversation: thread replies are not turns in it', async () => {
+    await newChat('c-thread');
+    const root = await post('c-thread', 'ann', 'Older message with a thread');
+    const question = await post('c-thread', 'bob', 'Does anyone know the refund policy?');
+    await post('c-thread', 'carol', 'Reply in the old thread', { threadId: root.id });
+    await post('c-thread', 'dave', 'Another reply in the old thread', { threadId: root.id });
+    const ctx = await surface.loadContext('c-thread');
+    assert.deepStrictEqual(ctx.messages.map((m) => m.id), [root.id, question.id]);
+    assert.strictEqual(ctx.messages.at(-1).id, question.id, 'the open question is still the last turn');
+});
+
 test('a due watch that passes the gate is answered as auto_quiet, with its reason, silently', async () => {
     await newChat('c-auto');
     const q = await post('c-auto', 'ann', 'Does anyone know the refund policy for annual plans?');

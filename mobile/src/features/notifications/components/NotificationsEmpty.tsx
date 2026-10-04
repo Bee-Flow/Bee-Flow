@@ -44,7 +44,7 @@ export function NotificationsEmpty({ unreadOnly, onShowAll }: { unreadOnly: bool
     const needsPermission = !alerts.permission.unknown && !alerts.permission.granted;
     const about = t(
         'mobile.notifications.empty_body',
-        'Bee Flow tells you here when a routine finishes, an approval is waiting, or a connector needs reconnecting.',
+        'Bee Flow tells you here when an automation finishes, an approval is waiting, or a connector needs reconnecting.',
     );
 
     return (

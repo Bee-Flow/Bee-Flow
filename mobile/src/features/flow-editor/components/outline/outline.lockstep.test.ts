@@ -123,6 +123,6 @@ describe('the lane words', () => {
         expect(read('nodes/ConditionNode.jsx')).toMatch(/\{ id: 'then', label: 'match'[^}]*\},\s*\{ id: 'else', label: 'otherwise'/);
         expect(read('nodes/GuardNode.jsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
         expect(read('nodes/SwitchNode.jsx')).toMatch(/\{ id: 'case:default', label: 'otherwise'/);
-        expect(read('nodes/LoopNode.jsx')).toMatch(/t\('routines\.canvas\.loop_port_on_error', 'On error'\)/);
+        expect(read('nodes/LoopNode.jsx')).toMatch(/t\('automations\.canvas\.loop_port_on_error', 'On error'\)/);
     });
 });

@@ -50,7 +50,7 @@
  * ── PRIVACY: wat er WEL naar het model gaat ───────────────────────────────
  *
  * De JSON-diff van een entiteit kan klantgegevens bevatten — een voorbeeld in
- * een prompt, een e-mailadres in een routinestap, een tabelrij die als
+ * een prompt, een e-mailadres in een automatiseringsstap, een tabelrij die als
  * standaardwaarde is blijven staan. De hele diff opsturen is dus geen optie.
  *
  * Wat vertrekt is de VORM van de wijziging, nooit de INHOUD:
@@ -80,7 +80,7 @@
  *   • ELKE bladwaarde buiten VALUE_PATHS. Daar zit de klanttekst: promptvoorbeelden,
  *     e-mailteksten, kolomnamen, HTML van een pagina, standaardwaarden.
  *   • De NAAM van de entiteit. Die staat al in de note-rij en wordt door het
- *     scherm zelf getoond, dus het model heeft hem niet nodig — en een routine
+ *     scherm zelf getoond, dus het model heeft hem niet nodig — en een automatisering
  *     kan naar een klant genoemd zijn ("Herinnering Van Dijk BV").
  *   • `ref` en elk ander intern handvat: nutteloos voor een zin.
  *   • `scheduleCron` als WAARDE. Een cron is geen persoonsgegeven, maar om hem

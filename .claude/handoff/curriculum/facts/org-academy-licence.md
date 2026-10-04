@@ -484,7 +484,7 @@ Licence-tier placement that matters here
 ## 10. Three scenarios for "Van Dijk Groep" (Dutch SME)
 
 **A. Procurement — "Inkoopbeleid in Bee Flow" (custom course).**
-Inkoopmanager Sanne asks admin Erik for a course teaching buyers how to run the PO-intake routine.
+Inkoopmanager Sanne asks admin Erik for a course teaching buyers how to run the PO-intake automation.
 Erik opens **Organisation → Academy → Content → + New course**, titles it *Inkoop: van offerte tot
 PO*, level **Beginner**, badge **Inkoop-expert** 🏅. Lesson 1 is three **Slide** steps (policy: three
 quotes above € 5 000) and one **Quiz** — *"Vanaf welk bedrag zijn drie offertes verplicht?"* with

@@ -44,7 +44,7 @@ function checkReservedFieldNames(step, type, at, pushE, pushW) {
  *
  * WARNING, never an error: the validator sees one definition at a time with no
  * "before" to diff against, so it cannot tell a NEW bad id from one a stored
- * routine has carried for months — and an error would make those unsaveable.
+ * automation has carried for months — and an error would make those unsaveable.
  */
 function checkBindableStepId(step, at, pushW) {
     if (typeof step.id !== 'string' || BINDABLE_SEGMENT_RE.test(step.id)) return;

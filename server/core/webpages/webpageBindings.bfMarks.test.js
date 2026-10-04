@@ -42,7 +42,7 @@ const AUTOMATION = bf.BF_ELEMENTS.find(e => e.binding && e.binding.kind === 'aut
 const AGENT = bf.BF_ELEMENTS.find(e => e.binding && e.binding.kind === 'agent');
 
 assert.ok(TABLE && AUTOMATION && AGENT,
-    'sanity: het vocabulaire kent een tabel-, een routine- en een agent-element');
+    'sanity: het vocabulaire kent een tabel-, een automation- en een agent-element');
 
 /** `<bf-x a="1" b="2">` uit een definitie, zodat er geen tagnaam in deze test staat. */
 function open(def, attrs = {}) {

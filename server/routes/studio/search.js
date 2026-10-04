@@ -181,7 +181,7 @@ const KINDS = [
         // routes/automation/crud.js GET / → automationStore.getAutomationsForUser
         // (`WHERE user_id = $1 AND kind = 'automation'`). Same predicate, plus
         // the title filter, and only the two columns a hit needs — the list
-        // selects every routine's definition JSON, which a name search never
+        // selects every automation's definition JSON, which a name search never
         // reads.
         key: 'automations',
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),

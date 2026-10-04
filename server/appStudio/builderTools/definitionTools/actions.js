@@ -75,7 +75,7 @@ function applySetAction(draftWrap, args) {
     const { def: next, actionId } = ops.setAction(draftWrap.def, existing ? requestedId : null, action);
     // Refuse at TOOL time what finalize would refuse one round later: a
     // navigate without an existing screen, a record step on a table or field
-    // the app does not have, a routine the owner does not own, an unknown
+    // the app does not have, an automation the owner does not own, an unknown
     // field for the kind. The validator's own rules, filtered to this action —
     // one implementation, no second rulebook.
     {

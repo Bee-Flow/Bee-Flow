@@ -9,7 +9,7 @@ import AutomationTile, { automationHref, stepCountOf } from './AutomationTile';
 import { authFetch } from '../../../../../utils/helpers';
 
 /**
- * The routine tile is a claim-making surface: it says how big a routine is, how
+ * The automation tile is a claim-making surface: it says how big an automation is, how
  * often it ran, and where it lives. Every one of those can be unavailable, and
  * an unavailable fact must render as NOTHING — never as a zero, a dash, or an
  * id standing in for a name.
@@ -55,24 +55,24 @@ describe('stepCountOf — null and zero are different answers', () => {
     });
 
     it('returns null — not 0 — when the definition never arrived', () => {
-        // "0 steps" for a routine whose definition was not loaded is a claim
-        // the tile cannot back up, and it reads as a broken routine.
+        // "0 steps" for an automation whose definition was not loaded is a claim
+        // the tile cannot back up, and it reads as a broken automation.
         expect(stepCountOf({ title: 'x' })).toBeNull();
         expect(stepCountOf(null)).toBeNull();
         expect(stepCountOf({ definition: { steps: 'nope' } })).toBeNull();
     });
 
-    it('reports a genuinely empty routine as 0', () => {
+    it('reports a genuinely empty automation as 0', () => {
         expect(stepCountOf({ definition: { steps: [] } })).toBe(0);
     });
 });
 
 describe('automationHref', () => {
-    it('points at the routine inside the Automations builder', () => {
+    it('points at the automation inside the Automations builder', () => {
         expect(automationHref('aut_1')).toBe('/app/studio/automations/aut_1');
     });
 
-    it('is null with no routine — a link to nowhere is worse than no link', () => {
+    it('is null with no automation — a link to nowhere is worse than no link', () => {
         expect(automationHref(null)).toBeNull();
     });
 
@@ -114,12 +114,12 @@ describe('AutomationTile — every fact degrades on its own', () => {
         expect(screen.queryByText(/0 runs/)).toBeNull();
     });
 
-    it('shows no run count when the facets came back without this routine in them', async () => {
+    it('shows no run count when the facets came back without this automation in them', async () => {
         // The other half of the runs degradation, and the half a failed fetch
         // does NOT exercise: the request succeeded, but the payload carries no
-        // number for this routine (a partial facet map, a value that is not a
+        // number for this automation (a partial facet map, a value that is not a
         // number). Absent is not zero. Rendering "0 runs in the last 24 hours"
-        // there is a claim about a routine's traffic that the response never
+        // there is a claim about an automation's traffic that the response never
         // made — and it reads as "nobody uses this", which is a reason people
         // delete things.
         authFetch.mockImplementation(async (url) => (String(url).includes('/facets')
@@ -151,22 +151,22 @@ describe('AutomationTile — every fact degrades on its own', () => {
         expect(screen.queryByText(/^in /)).toBeNull();
     });
 
-    it('renders no facts line at all when it knows nothing about the routine', async () => {
+    it('renders no facts line at all when it knows nothing about the automation', async () => {
         authFetch.mockResolvedValue(fail());
         const { client } = renderTile({ row: null });
-        await waitFor(() => expect(screen.getByText('This routine')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText('This automation')).toBeInTheDocument());
         await runsSettled(client);
         expect(screen.queryByText(/steps/)).toBeNull();
         expect(screen.queryByText(/runs/)).toBeNull();
     });
 
-    it('with no routine chosen, offers the picker and fetches nothing', async () => {
+    it('with no automation chosen, offers the picker and fetches nothing', async () => {
         renderTile({ automationId: null, row: null });
-        expect(screen.getByText(/choose a routine/i)).toBeInTheDocument();
+        expect(screen.getByText(/choose an automation/i)).toBeInTheDocument();
         expect(authFetch).not.toHaveBeenCalled();
     });
 
-    it('does not ask for projects when the routine is in none', async () => {
+    it('does not ask for projects when the automation is in none', async () => {
         authFetch.mockResolvedValue(ok({ facets: {} }));
         renderTile({ row: { id: 'aut_1', title: 'Quote', definition: { steps: [] } } });
         await waitFor(() => expect(authFetch).toHaveBeenCalled());

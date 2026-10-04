@@ -19,8 +19,8 @@
  *
  * Dus: de map mag NOOIT gebouwd worden uit alleen de aangevinkte apps. Wie
  * `Object.fromEntries(selected.map(...))` schrijft, geeft elke uitgevinkte app
- * in stilte alles terug. Dezelfde val sloeg al toe op de routines-sectie: "alle
- * routines uitvinken" leverde ÁLLE routines op, omdat de lege sectie werd
+ * in stilte alles terug. Dezelfde val sloeg al toe op de automations-sectie: "alle
+ * automations uitvinken" leverde ÁLLE automatiseringen op, omdat de lege sectie werd
  * weggegooid en daarna las als "nooit gekozen". Zie
  * `.claude/handoff/A1B-RECHTENLAAG-REVIEW.md`, bevinding 1.
  *
@@ -726,7 +726,7 @@ export function toolRows({
 
 // ── Automations als tool ────────────────────────────────────────────
 
-/** De gegunde routines uit `config.tools.automations`, in configvolgorde. */
+/** De gegunde automatiseringen uit `config.tools.automations`, in configvolgorde. */
 export function automationGrantsOf(toolsConfig) {
     if (!isPlainObject(toolsConfig) || !isPlainObject(toolsConfig.automations)) return [];
     return Object.keys(toolsConfig.automations)
@@ -743,7 +743,7 @@ export function automationGrantsOf(toolsConfig) {
 }
 
 /**
- * De parameterpillen van een routine: de velden die de agent moet meegeven.
+ * De parameterpillen van een automatisering: de velden die de agent moet meegeven.
  *
  * Uit `trigger.parametersSchema` — hetzelfde schema waaruit
  * `automationToTool` de tool-signatuur rendert, dus wat hier op het scherm
@@ -766,10 +766,10 @@ export function paramPillsOf(automation) {
  *
  * De GRANT komt uit de config (altijd leesbaar), de rest uit de
  * routinelijst — die achter de automations-module hangt en dus vaak ontbreekt.
- * Een grant zonder routine blijft staan met `readable: false`: hij doet iets,
+ * Een grant zonder automatisering blijft staan met `readable: false`: hij doet iets,
  * ook als we niet kunnen zeggen wát.
  *
- * Een routine die GEEN `agent_call`-trigger (meer) heeft wordt niet stil
+ * Een automatisering die GEEN `agent_call`-trigger (meer) heeft wordt niet stil
  * verzwegen maar gemarkeerd (`callable: false`): de runtime biedt hem niet
  * aan, en dat is nieuws voor wie hem gekozen heeft.
  */

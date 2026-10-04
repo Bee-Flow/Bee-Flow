@@ -23,9 +23,9 @@ export function EventIcon({ event }: { event: NotificationEvent }) {
 }
 
 export function eventTitle(event: NotificationEvent, t: T): string {
-    if (event === 'onError') return t('routines.notify.event_error', 'Something goes wrong');
-    if (event === 'onApproval') return t('routines.notify.event_approval', 'Someone must approve');
-    return t('routines.notify.event_success', 'It worked');
+    if (event === 'onError') return t('automations.notify.event_error', 'Something goes wrong');
+    if (event === 'onApproval') return t('automations.notify.event_approval', 'Someone must approve');
+    return t('automations.notify.event_success', 'It worked');
 }
 
 /**
@@ -34,30 +34,30 @@ export function eventTitle(event: NotificationEvent, t: T): string {
  * errors otherwise.
  */
 export function eventQualifier(event: NotificationEvent, t: T, value?: EventSettings, digestOn = false): string {
-    if (value?.delivery === 'digest' && digestOn) return t('routines.notify.event_success_when', 'summary');
-    if (event === 'onError') return t('routines.notify.event_error_when', 'right away');
+    if (value?.delivery === 'digest' && digestOn) return t('automations.notify.event_success_when', 'summary');
+    if (event === 'onError') return t('automations.notify.event_error_when', 'right away');
     return '';
 }
 
 export function channelLabel(c: Channel, t: T, short = false): string {
-    if (c === 'bell') return short ? t('routines.notify.channel_bell_short', 'Bell') : t('routines.notify.channel_bell', 'Bell in Nextcloud');
-    if (c === 'email') return t('routines.notify.channel_email', 'Email');
-    return t('routines.notify.channel_talk', 'Talk');
+    if (c === 'bell') return short ? t('automations.notify.channel_bell_short', 'Bell') : t('automations.notify.channel_bell', 'Bell in Nextcloud');
+    if (c === 'email') return t('automations.notify.channel_email', 'Email');
+    return t('automations.notify.channel_talk', 'Talk');
 }
 
 function urgencyLabel(u: Urgency, t: T): string {
-    if (u === 'silent') return t('routines.notify.urgency_silent', 'Silent');
-    if (u === 'urgent') return t('routines.notify.urgency_urgent', 'Urgent');
-    return t('routines.notify.urgency_normal', 'Normal');
+    if (u === 'silent') return t('automations.notify.urgency_silent', 'Silent');
+    if (u === 'urgent') return t('automations.notify.urgency_urgent', 'Urgent');
+    return t('automations.notify.urgency_normal', 'Normal');
 }
 
 /** A recipient in words. `names` resolves people and groups picked by id. */
 export function recipientLabel(r: Recipient, t: T, ownerName: string, names: Map<string, string>): string {
-    if (r.type === 'owner') return t('routines.notify.to_owner', '{name} (owner)', { name: ownerName });
-    if (r.type === 'approver') return t('routines.notify.to_approver', 'The approver');
+    if (r.type === 'owner') return t('automations.notify.to_owner', '{name} (owner)', { name: ownerName });
+    if (r.type === 'approver') return t('automations.notify.to_approver', 'The approver');
     const name = names.get(recipientKey(r));
-    if (r.type === 'group') return name ? t('routines.notify.to_group', 'Group {name}', { name }) : t('routines.notify.to_group_unknown', 'A group');
-    return name || t('routines.notify.to_person_unknown', 'A person');
+    if (r.type === 'group') return name ? t('automations.notify.to_group', 'Group {name}', { name }) : t('automations.notify.to_group_unknown', 'A group');
+    return name || t('automations.notify.to_person_unknown', 'A person');
 }
 
 /** Resolve people and groups picked by id to names (only fetches when needed). */
@@ -68,10 +68,10 @@ export function useRecipientNames(recipients: Recipient[], automationId: string 
 }
 
 function summary(value: EventSettings, t: T, ownerName: string, names: Map<string, string>): string {
-    if (!value.enabled || !value.channels.length) return t('routines.notify.off', 'off');
+    if (!value.enabled || !value.channels.length) return t('automations.notify.off', 'off');
     const via = value.channels.map(c => channelLabel(c, t, true)).join(' + ');
     const to = value.recipients.map(r => recipientLabel(r, t, ownerName, names)).join(', ');
-    return [via, to && t('routines.notify.summary_to', 'to {who}', { who: to }), urgencyLabel(value.urgency, t).toLowerCase()]
+    return [via, to && t('automations.notify.summary_to', 'to {who}', { who: to }), urgencyLabel(value.urgency, t).toLowerCase()]
         .filter(Boolean).join(' · ');
 }
 
@@ -110,20 +110,20 @@ export default function NotificationEventEditor({ event, value, onChange, open, 
             {open && (
                 <>
                     <div className="px-3.5 py-3 grid grid-cols-[120px_minmax(0,1fr)] gap-x-3.5 gap-y-2.5 items-center text-xs">
-                        <span className="font-medium">{t('routines.notify.via', 'Via')}</span>
+                        <span className="font-medium">{t('automations.notify.via', 'Via')}</span>
                         <ViaPills value={value} onChange={onChange} />
-                        <span className="font-medium">{t('routines.notify.to', 'To')}</span>
+                        <span className="font-medium">{t('automations.notify.to', 'To')}</span>
                         <RecipientPills value={value} onChange={onChange} ownerName={ownerName} names={names} automationId={automationId} />
-                        <span className="font-medium">{t('routines.notify.urgency', 'How urgent')}</span>
+                        <span className="font-medium">{t('automations.notify.urgency', 'How urgent')}</span>
                         <div className="justify-self-start">
                             <Choice
-                                label={t('routines.notify.urgency', 'How urgent')}
+                                label={t('automations.notify.urgency', 'How urgent')}
                                 value={value.urgency}
                                 options={URGENCIES.map(u => ({ value: u, label: urgencyLabel(u, t) }))}
                                 onChange={(urgency) => onChange({ ...value, urgency })}
                             />
                         </div>
-                        <span className="font-medium">{t('routines.notify.repeat', 'On repeat')}</span>
+                        <span className="font-medium">{t('automations.notify.repeat', 'On repeat')}</span>
                         <RepeatSelect value={value} onChange={onChange} />
                     </div>
                     <ExampleMessage event={event} title={automationTitle} />
@@ -139,7 +139,7 @@ const PILL = 'px-2.5 py-1 rounded-full text-xs';
 function ViaPills({ value, onChange }: FieldProps) {
     const { t } = useTranslation();
     return (
-        <div className="flex gap-1.5 flex-wrap" role="group" aria-label={t('routines.notify.via', 'Via')}>
+        <div className="flex gap-1.5 flex-wrap" role="group" aria-label={t('automations.notify.via', 'Via')}>
             {CHANNELS.map(c => {
                 const on = value.enabled && value.channels.includes(c);
                 return (
@@ -181,7 +181,7 @@ function RecipientPills({ value, onChange, ownerName, names, automationId }: Fie
                         <button
                             type="button"
                             onClick={() => remove(r)}
-                            aria-label={t('routines.notify.remove_recipient', 'Remove {name}', { name: label })}
+                            aria-label={t('automations.notify.remove_recipient', 'Remove {name}', { name: label })}
                             className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                         >
                             <X className="w-3 h-3" aria-hidden />
@@ -198,7 +198,7 @@ function RecipientPills({ value, onChange, ownerName, names, automationId }: Fie
                     onClick={() => setAdding(true)}
                     className={`${PILL} border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]`}
                 >
-                    {t('routines.notify.add_recipient', '+ add')}
+                    {t('automations.notify.add_recipient', '+ add')}
                 </button>
             )}
         </div>
@@ -206,9 +206,9 @@ function RecipientPills({ value, onChange, ownerName, names, automationId }: Fie
 }
 
 function throttleLabel(n: number | null, t: T): string {
-    if (n == null) return t('routines.notify.repeat_every', 'Every time');
-    if (n === 1) return t('routines.notify.repeat_once_hour', 'once per hour');
-    return t('routines.notify.repeat_n_hour', '{n} times per hour', { n });
+    if (n == null) return t('automations.notify.repeat_every', 'Every time');
+    if (n === 1) return t('automations.notify.repeat_once_hour', 'once per hour');
+    return t('automations.notify.repeat_n_hour', '{n} times per hour', { n });
 }
 
 function RepeatSelect({ value, onChange }: FieldProps) {
@@ -216,9 +216,9 @@ function RepeatSelect({ value, onChange }: FieldProps) {
     const limited = value.throttle.maxPerHour != null;
     return (
         <div className="flex items-center gap-1.5 flex-wrap">
-            {limited && <span>{t('routines.notify.repeat_prefix', 'No more than')}</span>}
+            {limited && <span>{t('automations.notify.repeat_prefix', 'No more than')}</span>}
             <select
-                aria-label={t('routines.notify.repeat', 'On repeat')}
+                aria-label={t('automations.notify.repeat', 'On repeat')}
                 value={limited ? String(value.throttle.maxPerHour) : ''}
                 onChange={(e) => onChange({ ...value, throttle: { maxPerHour: e.target.value ? Number(e.target.value) : null } })}
                 className={`${SELECT} px-2.5`}
@@ -227,7 +227,7 @@ function RepeatSelect({ value, onChange }: FieldProps) {
                     <option key={String(n)} value={n == null ? '' : String(n)}>{throttleLabel(n, t)}</option>
                 ))}
             </select>
-            {limited && <span className="text-[var(--text-tertiary)]">{t('routines.notify.repeat_suffix', 'then bundled')}</span>}
+            {limited && <span className="text-[var(--text-tertiary)]">{t('automations.notify.repeat_suffix', 'then bundled')}</span>}
         </div>
     );
 }
@@ -235,22 +235,22 @@ function RepeatSelect({ value, onChange }: FieldProps) {
 function ExampleMessage({ event, title }: { event: NotificationEvent; title: string }) {
     const { t } = useTranslation();
     const { tone } = EVENT_ICON[event];
-    const heading = event === 'onError' ? t('routines.notify.example_error_title', '{title} has stopped', { title })
-        : event === 'onApproval' ? t('routines.notify.example_approval_title', '{title} needs your approval', { title })
-            : t('routines.notify.example_success_title', '{title} is done', { title });
-    const body = event === 'onError' ? t('routines.notify.example_error_body', 'A step could not finish.')
-        : event === 'onApproval' ? t('routines.notify.example_approval_body', 'A step is waiting for your decision.')
-            : t('routines.notify.example_success_body', 'All steps went well.');
-    const link = event === 'onError' ? t('routines.notify.example_error_link', 'View and fix')
-        : event === 'onApproval' ? t('routines.notify.example_approval_link', 'Open and decide')
-            : t('routines.notify.example_success_link', 'View the run');
+    const heading = event === 'onError' ? t('automations.notify.example_error_title', '{title} has stopped', { title })
+        : event === 'onApproval' ? t('automations.notify.example_approval_title', '{title} needs your approval', { title })
+            : t('automations.notify.example_success_title', '{title} is done', { title });
+    const body = event === 'onError' ? t('automations.notify.example_error_body', 'A step could not finish.')
+        : event === 'onApproval' ? t('automations.notify.example_approval_body', 'A step is waiting for your decision.')
+            : t('automations.notify.example_success_body', 'All steps went well.');
+    const link = event === 'onError' ? t('automations.notify.example_error_link', 'View and fix')
+        : event === 'onApproval' ? t('automations.notify.example_approval_link', 'Open and decide')
+            : t('automations.notify.example_success_link', 'View the run');
     return (
         <div className="mx-3.5 mb-3.5 px-3 py-2.5 rounded-[10px] bg-[var(--bg-secondary)] flex gap-2.5 text-xs" data-testid="notify-example">
             <div className={`w-[30px] h-[30px] rounded-lg bg-[var(--bg-card)] grid place-items-center shrink-0 ${tone}`}>
                 <Bell className="w-3.5 h-3.5" aria-hidden />
             </div>
             <div className="min-w-0">
-                <div className="text-[10px] tracking-[.06em] uppercase font-semibold text-[var(--text-tertiary)]">{t('routines.notify.example', 'Example')}</div>
+                <div className="text-[10px] tracking-[.06em] uppercase font-semibold text-[var(--text-tertiary)]">{t('automations.notify.example', 'Example')}</div>
                 <div className="font-semibold text-[var(--text-primary)]">{heading}</div>
                 <div className="text-[var(--text-secondary)]">{body} <span className="underline">{link}</span></div>
             </div>

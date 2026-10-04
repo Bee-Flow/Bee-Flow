@@ -23,6 +23,8 @@ export interface DataTableProps<T> {
     columns: TableColumn[];
     rows: T[];
     renderRow: (row: T) => React.ReactNode;
+    renderCard?: (row: T) => React.ReactNode;
+    isMobile?: boolean;
     rowKey?: (row: T, index: number) => string | number;
     loading?: boolean;
     skeletonRows?: number;
@@ -57,5 +59,7 @@ export const TableCell = TableCellJs as unknown as React.ComponentType<TableCell
 export const MemoryPanel = MemoryPanelJs as unknown as React.ComponentType<{
     projectId: string;
     canEdit: boolean;
+    embedded?: boolean;
+    extractMemories?: boolean;
     onClose?: () => void;
 }>;

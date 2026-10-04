@@ -6,11 +6,11 @@
  * activate route read the denormalised trigger columns, never the JSON, so a
  * restored version with a different trigger kept firing on the schedule of the
  * version it replaced — or never fired on the one it now showed — and an
- * active routine's subscription kept listening for the old event. What this
+ * active automation's subscription kept listening for the old event. What this
  * file pins:
  *
  *   - the trigger columns and next_run_at follow the restored definition;
- *   - an active routine's app-event subscription and extra schedules are
+ *   - an active automation's app-event subscription and extra schedules are
  *     re-synced when the restored trigger differs;
  *   - a stored cron that no longer parses refuses the restore, and nothing is written;
  *   - so does an approver who is no longer in the owner's organisation, as on
@@ -179,7 +179,7 @@ test('a restore takes no options: a body key is refused, and nothing is written'
 
 // ═══ A restore is a save: the trigger follows ═══════════════════════
 
-test('restoring a weekly version onto a manual routine arms the weekly schedule', async () => {
+test('restoring a weekly version onto a manual automation arms the weekly schedule', async () => {
     const res = await dispatch({ method: 'POST', url: '/a1/versions/vWeekly/restore', body: undefined });
     assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
     const w = written();
@@ -190,7 +190,7 @@ test('restoring a weekly version onto a manual routine arms the weekly schedule'
     assert.strictEqual(res.body.restoredFromVersion, 2);
 });
 
-test('restoring a manual version onto a scheduled routine stops the schedule', async () => {
+test('restoring a manual version onto a scheduled automation stops the schedule', async () => {
     AUTOMATION = { ...AUTOMATION, definition: WEEKLY, triggerType: 'schedule', scheduleCron: '0 9 * * 1', nextRunAt: '2026-09-28T07:00:00.000Z' };
     const res = await dispatch({ method: 'POST', url: '/a1/versions/vManual/restore', body: {} });
     assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
@@ -218,14 +218,14 @@ test('an approver who is no longer in the owner\'s organisation refuses the rest
     assert.strictEqual(written(), undefined, 'nothing is written');
 });
 
-test('an ACTIVE routine restored to a different app event re-subscribes', async () => {
+test('an ACTIVE automation restored to a different app event re-subscribes', async () => {
     AUTOMATION = { ...AUTOMATION, isActive: true };
     const res = await dispatch({ method: 'POST', url: '/a1/versions/vGmail/restore', body: {} });
     assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
     assert.deepStrictEqual(called('syncAppEventSubscription').map((c) => c.args.slice(0, 2)), [['a1', 'u1']]);
 });
 
-test('an ACTIVE routine restored to the same trigger keeps its subscription and slots', async () => {
+test('an ACTIVE automation restored to the same trigger keeps its subscription and slots', async () => {
     AUTOMATION = { ...AUTOMATION, isActive: true, definition: GMAIL };
     const res = await dispatch({ method: 'POST', url: '/a1/versions/vGmail/restore', body: {} });
     assert.strictEqual(res.statusCode, 200);
@@ -233,7 +233,7 @@ test('an ACTIVE routine restored to the same trigger keeps its subscription and 
     assert.deepStrictEqual(called('syncSchedules'), []);
 });
 
-test('an ACTIVE routine restored to a version with extra schedules re-syncs them', async () => {
+test('an ACTIVE automation restored to a version with extra schedules re-syncs them', async () => {
     AUTOMATION = { ...AUTOMATION, isActive: true };
     VERSIONS.vMulti = {
         id: 'vMulti', automationId: 'a1', version: 5,
@@ -244,7 +244,7 @@ test('an ACTIVE routine restored to a version with extra schedules re-syncs them
     assert.strictEqual(called('syncSchedules').length, 1);
 });
 
-test('an INACTIVE routine is left for activation to arm', async () => {
+test('an INACTIVE automation is left for activation to arm', async () => {
     const res = await dispatch({ method: 'POST', url: '/a1/versions/vGmail/restore', body: {} });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(called('syncAppEventSubscription'), []);

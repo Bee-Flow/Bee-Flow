@@ -142,7 +142,7 @@ describe('RunsStudio — wiring to the rest of the shell', () => {
         expect(p.initialStepId).toBe('s3');
     });
 
-    it('opens a routine in the builder, never a run id', async () => {
+    it('opens an automation in the builder, never a run id', async () => {
         const onNavigate = vi.fn();
         render(<RunsStudio onNavigate={onNavigate} />);
         await waitFor(() => expect(screen.getByTestId('now-running-open')).toBeTruthy());
@@ -160,8 +160,8 @@ describe('RunsStudio — wiring to the rest of the shell', () => {
     });
 
     it('…and stops offering it in the ORGANISATION scope, where the server refuses', async () => {
-        // The strip made every routine name a button. In the org scope those are
-        // colleagues' routines and GET /api/automation/:id answers 403, so the
+        // The strip made every automation name a button. In the org scope those are
+        // colleagues' automations and GET /api/automation/:id answers 403, so the
         // button led to a refusal — a control that looks available and is not.
         // The facets carry no ownership, so per row is not decidable here; the
         // scope is the only honest line this screen has, and it is the same one

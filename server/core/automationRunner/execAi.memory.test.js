@@ -2,7 +2,7 @@
  * execAiStep's personal-memory grounding (`step.useMemory`, 2026-09-04).
  *
  * Same harness as execAi.kb.test.js. The properties: the block is keyed off
- * ctx.userId (the routine OWNER — an automation has no app-level owner), it
+ * ctx.userId (the automation OWNER — an automation has no app-level owner), it
  * rides in the system prompt before the safety tail, it is scrubbed by the
  * read-time PII guard, and a step without the flag never touches the store.
  *
@@ -84,7 +84,7 @@ test('useMemory grounds the system prompt with the owner\'s memories, scrubbed, 
     await execAiStep(step({ useMemory: true, systemPrompt: 'You write in Dutch.' }), CTX, {}, 'live');
 
     assert.strictEqual(memoryCalls.length, 1);
-    assert.strictEqual(memoryCalls[0].userId, 'u1', 'keyed off ctx.userId, the routine owner');
+    assert.strictEqual(memoryCalls[0].userId, 'u1', 'keyed off ctx.userId, the automation owner');
     assert.strictEqual(memoryCalls[0].agentId, null);
     assert.match(memoryCalls[0].query, /Draft a reply/);
     assert.strictEqual(scrubCalls.length, 1);

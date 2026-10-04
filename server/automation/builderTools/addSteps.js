@@ -163,7 +163,7 @@ function turnState(draftWrap) {
 // with the anchor stripped, a second wait{seconds:30} after a later poll,
 // and a second 'Done' notification on the other branch tail, matched the
 // first copy's fingerprint inside ONE call and came back `reused:true` —
-// the routine ran its polls back to back while the result listed both
+// the automation ran its polls back to back while the result listed both
 // entries as added. A byte-identical resend of a built prefix still
 // matches entry for entry, because reuse() below walks the same anchor
 // chain the first build did.

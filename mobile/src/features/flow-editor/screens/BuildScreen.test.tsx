@@ -1,5 +1,5 @@
 /**
- * The build screen over a mocked HTTP client: the routine loads into the
+ * The build screen over a mocked HTTP client: the automation loads into the
  * outline, a "+" opens the picker and the pick lands on the edge it was
  * tapped on (and opens the new step), Undo takes it back, and a card's menu
  * edits the graph.
@@ -11,7 +11,7 @@ import { api } from '@/core/api/client';
 
 import type { FlowDefinition } from '../model';
 import { peekDraftStore } from '../state';
-import { MAIL_SORTER as DEF, MAIL_SORTER_ROW as row, releaseDrafts, renderBuild as mount, serveRoutine } from './testing';
+import { MAIL_SORTER as DEF, MAIL_SORTER_ROW as row, releaseDrafts, renderBuild as mount, serveAutomation } from './testing';
 
 jest.setTimeout(30_000);
 
@@ -21,11 +21,11 @@ jest.mock('@/core/auth/AuthProvider', () => ({ useAuth: jest.fn() }));
 jest.mock('@/core/access/api', () => jest.requireActual('@/shared/testing/screenMocks').noAccess());
 jest.mock('@/core/api/client', () => jest.requireActual('@/shared/testing/screenMocks').apiClient());
 
-beforeEach(() => serveRoutine(row));
+beforeEach(() => serveAutomation(row));
 afterEach(releaseDrafts);
 
 describe('BuildScreen', () => {
-    it('shows the routine as an outline of cards', async () => {
+    it('shows the automation as an outline of cards', async () => {
         await mount();
         expect(await screen.findByText('Mail sorter')).toBeTruthy();
         expect(screen.getByText('Sort the mail')).toBeTruthy();

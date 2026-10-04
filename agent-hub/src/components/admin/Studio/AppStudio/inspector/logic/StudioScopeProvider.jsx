@@ -6,7 +6,7 @@ import APP_COMPONENT_TYPES from '../../runtime/componentRegistry';
 /**
  * App Studio inspector — the variable source for every formula/condition field.
  *
- * Mirrors the routines StepInspector's VariablePickerProvider: it computes the
+ * Mirrors the automations StepInspector's VariablePickerProvider: it computes the
  * variable GROUPS (currentUser · repeat item · enclosing form fields · screen
  * params · actions · datasets) and a `previewSample` root — a buildScope-shaped
  * object with sample values — then provides them through the shared
@@ -115,7 +115,7 @@ function referencedSources(definition) {
 
 /** What the picker should call an action, so the list is not a wall of ids. */
 const ACTION_KIND_LABELS = {
-    run_automation: 'routine',
+    run_automation: 'automation',
     ai_extract: 'AI · extract',
     ai_generate: 'AI · generate',
     kb_query: 'AI · knowledge base',

@@ -50,3 +50,53 @@ describe('useAutomationApi — validator details on a rejected save', () => {
         expect(err.details).toBeUndefined();
     });
 });
+
+describe('useAutomationApi: the stage that manages an automation refused the write', () => {
+    beforeEach(() => { mockedFetch.mockReset(); });
+
+    const refusal = {
+        error: 'This part is managed by a Solution stage. Change it in Dev and deploy.',
+        code: 'managed_part',
+        correlationId: 'c1',
+        details: { solutionId: 's1', stage: 'prd' },
+    };
+
+    it('a 409 managed_part on save becomes banner state, not a conflict', async () => {
+        mockedFetch.mockResolvedValue(rejection(refusal, 409));
+        const { result } = renderHook(() => useAutomationApi());
+        const err = await failure(result.current.updateAutomation('a1', { definition: {} }));
+        expect(err.status).toBe(409);
+        expect(err.code).toBe('managed_part');
+        expect(err.message).toBe('This part is managed by a Solution stage. Change it in Dev and deploy.');
+        expect(err.managed).toEqual({
+            reason: 'managed',
+            code: 'managed_part',
+            message: refusal.error,
+            managed: { solutionId: 's1', solutionName: null, stage: 'prd', releaseSeq: null, devRef: null },
+        });
+        // The object details are not validator records.
+        expect(err.details).toBeUndefined();
+    });
+
+    it('a 409 managed_part_not_deployed on a run maps to the not-deployed banner', async () => {
+        mockedFetch.mockResolvedValue(rejection({
+            error: 'This automation is managed by a Solution stage and has not been deployed yet. Deploy it before running it.',
+            code: 'managed_part_not_deployed',
+            details: { automationId: 'a1' },
+        }, 409));
+        const { result } = renderHook(() => useAutomationApi());
+        const err = await failure(result.current.run('a1', {}));
+        expect(err.managed).toMatchObject({ reason: 'not_deployed', managed: null });
+    });
+
+    it('a Step save carries it too, and any other 409 carries none', async () => {
+        mockedFetch.mockResolvedValue(rejection(refusal, 409));
+        const { result } = renderHook(() => useAutomationApi());
+        expect((await failure(result.current.updateStep('b1', { definition: {} }))).managed?.reason).toBe('managed');
+
+        mockedFetch.mockResolvedValue(rejection({ error: 'Version changed', code: 'version_changed' }, 409));
+        const other = await failure(result.current.updateAutomation('a1', { title: 'x' }));
+        expect(other.code).toBe('version_changed');
+        expect(other.managed).toBeUndefined();
+    });
+});

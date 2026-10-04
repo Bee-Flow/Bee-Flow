@@ -22,9 +22,9 @@ export default function ArrangeMenu({ onArrange }) {
     }, [open]);
     const pick = (mode) => { setOpen(false); onArrange?.(mode); };
     const items = [
-        { mode: 'serpentine', Icon: Rows3, label: t('routines.canvas.arrange_rows', 'Rows that fit the screen') },
-        { mode: 'compact', Icon: Shrink, label: t('routines.canvas.arrange_compact', 'One tight line') },
-        { mode: 'roomy', Icon: Expand, label: t('routines.canvas.arrange_roomy', 'Roomy, with flowlets open') },
+        { mode: 'serpentine', Icon: Rows3, label: t('automations.canvas.arrange_rows', 'Rows that fit the screen') },
+        { mode: 'compact', Icon: Shrink, label: t('automations.canvas.arrange_compact', 'One tight line') },
+        { mode: 'roomy', Icon: Expand, label: t('automations.canvas.arrange_roomy', 'Roomy, with flowlets open') },
     ];
     return (
         <div ref={ref} className="relative">
@@ -35,7 +35,7 @@ export default function ArrangeMenu({ onArrange }) {
                 aria-expanded={open}
                 className="inline-flex items-center gap-1.5 px-2.5 py-[6px] rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm text-[12px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
             >
-                <LayoutGrid size={14} /> {t('routines.canvas.arrange', 'Arrange')} <ChevronDown size={12} className="text-[var(--text-tertiary)]" />
+                <LayoutGrid size={14} /> {t('automations.canvas.arrange', 'Arrange')} <ChevronDown size={12} className="text-[var(--text-tertiary)]" />
             </button>
             {open && (
                 <div role="menu" className="absolute left-0 bottom-full mb-1 z-40 w-56 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] py-1" style={{ boxShadow: 'var(--shadow-popover)' }}>

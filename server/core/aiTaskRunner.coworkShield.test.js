@@ -2,7 +2,7 @@
  * CW-10 — het privacyschild op het NIET-agent-pad van executeTask.
  *
  * De agent-runtime scant elke beurt op PII vóór er iets naar een model gaat;
- * het gewone cowork/routine-pad stuurde task.prompt rechtstreeks de adapter
+ * het gewone cowork/automation-pad stuurde task.prompt rechtstreeks de adapter
  * in, terwijl de UI daar een "Privacyschild aan"-pil naast zet. Achter de
  * per-org opt-in-vlag (org_cowork_shield_<orgId>, default UIT — zie
  * core/entitlements/coworkShieldFlag.js) loopt de invoer nu door DEZELFDE
@@ -64,7 +64,7 @@ const configStub = {
 
 const restore = installResolveStub({
     // — de runner zelf —
-    '../stores/aiTaskStore': {
+    '../stores/coworkStore': {
         markRunning: async () => {}, markCompleted: async () => {},
         markError: async () => {}, getDueTasks: async () => [],
         updateTask: async () => {}, advanceSchedule: async () => {},
@@ -159,7 +159,7 @@ function resetScenario({ orgId, flag, shield, guard }) {
     piiDetection._resetGuardCircuit();
 }
 
-const run = (task) => executeTask(task, { store: fakeStore, surface: 'cowork' });
+const run = (task) => executeTask(task, { store: fakeStore });
 
 test('vlag uit → de guard wordt niet aangeroepen en de run is identiek', async () => {
     // Schild volledig geconfigureerd én guard geïnstalleerd — alleen de vlag

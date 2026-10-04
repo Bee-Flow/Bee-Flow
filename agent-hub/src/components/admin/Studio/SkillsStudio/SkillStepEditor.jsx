@@ -42,7 +42,7 @@ import { readListStatus } from './useSkillPickerData';
  * it. Before the first answer the menu says it is still asking; after a failed
  * read it names the lists it could not read and offers Retry; a PARTIAL
  * failure keeps the groups that did arrive and says so, instead of quietly
- * dropping Routines and leaving Tables looking complete.
+ * dropping Automations and leaving Tables looking complete.
  *
  * ── DRAG, AND ALSO NOT DRAG ─────────────────────────────────────────
  * `@dnd-kit/sortable`, the AppStudio canvas's own recipe
@@ -317,7 +317,7 @@ function RefPills({ refs, readOnly, refOptions, listStatus, onOpenRef, onRefs, t
 }
 
 const REF_GROUPS = [
-    { kind: 'automation', key: 'skills_studio.ref.automations', en: 'Routines' },
+    { kind: 'automation', key: 'skills_studio.ref.automations', en: 'Automations' },
     { kind: 'kb', key: 'skills_studio.ref.kbs', en: 'Knowledge bases' },
     { kind: 'table', key: 'skills_studio.ref.tables', en: 'Tables' },
 ];
@@ -337,9 +337,9 @@ function RefMenu({ open, onClose, anchorRef, refOptions, listStatus, taken, onPi
     }));
     const groups = all.filter(g => g.items.length > 0);
     // The lists this menu draws on that did NOT arrive, by their own group
-    // name. Without this a partial failure was invisible: the Routines heading
+    // name. Without this a partial failure was invisible: the Automations heading
     // simply disappeared (an empty group is filtered out above) while Tables
-    // stayed, which reads as "this org has no routines".
+    // stayed, which reads as "this org has no automations".
     const missing = all.filter(g => unread.includes(REF_LIST_ID[g.kind])).map(g => t(g.key, g.en));
     return (
         <AnchoredMenu

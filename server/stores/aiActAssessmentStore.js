@@ -38,7 +38,7 @@ async function _initDB() {
     `);
     await exec(`CREATE INDEX IF NOT EXISTS idx_ai_act_assess_target ON compliance_ai_act_assessments(organization_id, target_kind, target_id, created_at DESC)`);
     // Who answered and what Bee found (automation/aiActAuto.js): source is
-    // 'auto', 'mixed' or 'manual' from the routine's own page, NULL from the
+    // 'auto', 'mixed' or 'manual' from the automation's own page, NULL from the
     // hub and on rows from before; evidence holds the per-question findings.
     await exec(`ALTER TABLE compliance_ai_act_assessments ADD COLUMN IF NOT EXISTS source TEXT`);
     await exec(`ALTER TABLE compliance_ai_act_assessments ADD COLUMN IF NOT EXISTS evidence JSONB`);
@@ -79,7 +79,7 @@ function _defaultExpiry(from) {
  * @param {'automation'|'agent'} kind
  * @param {string} targetId
  * `source` ('auto' | 'mixed' | 'manual') and `evidence` (what Bee found)
- * come from the routine's own check; the hub passes neither.
+ * come from the automation's own check; the hub passes neither.
  *
  * @param {{signals?:object, answers?:object, outcome?:string, attestedBy?:string|null, expiresAt?:Date|string|null, source?:string|null, evidence?:object|null}} [input]
  */

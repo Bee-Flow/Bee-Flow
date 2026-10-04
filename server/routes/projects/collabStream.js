@@ -24,7 +24,9 @@
  * routed by the document hub to the streams that joined that document, never
  * to every viewer of the project. A notebook is joined only by somebody the
  * notebooks gates let through (routes/projects/notebookGate.js), as on the
- * co-editing routes: its frames carry the notebook's body.
+ * co-editing routes: its frames carry the notebook's body. The gates are asked
+ * again every minute while it is joined; a refusal ends the document
+ * (`doc.closed`), not the project feed.
  */
 
 'use strict';
@@ -33,6 +35,8 @@ const { closedPayload } = require('../../core/collab/docHub');
 
 const STREAM_POLL_MS = 1500;
 const STREAM_POLL_DISTRIBUTED_MS = 15_000;
+/** How often a joined notebook's gates are asked again (the same beat as the access re-check, core/http/cursorStream). */
+const DEFAULT_RECHECK_MS = 60_000;
 
 /**
  * @param {{
@@ -70,6 +74,27 @@ function makeProjectStreamHandler(deps = {}) {
         }
     }
 
+    /**
+     * The notebooks gates are asked again while a notebook is joined, as the role is: one that
+     * now refuses ends the document (the project feed goes on). A check that cannot be answered
+     * keeps the stream; the next tick asks again.
+     * @param {any} req @param {any} stream @param {{ leave: () => void }} joined @param {string} docId
+     */
+    function watchNotebookAccess(req, stream, joined, docId) {
+        const timer = setInterval(async () => {
+            try {
+                await notebookGate.passNotebookGate(requireNotebooks, req);
+            } catch (err) {
+                if (!err || /** @type {any} */ (err).status !== 403) return;
+                clearInterval(timer);
+                joined.leave();
+                stream.send('doc.closed', closedPayload(docId, 'not_found'));
+            }
+        }, deps.streamOptions?.recheckMs || DEFAULT_RECHECK_MS);
+        if (timer.unref) timer.unref();
+        stream.onClose(() => clearInterval(timer));
+    }
+
     /** @param {any} req @param {any} res */
     return async function projectStream(req, res) {
         const { openCursorStream } = require('../../core/http/cursorStream');
@@ -102,10 +127,16 @@ function makeProjectStreamHandler(deps = {}) {
 
         if (docId && !stream.closed) {
             try {
-                await collab().attachStream({
+                let joinedKind = '';
+                const joined = await collab().attachStream({
                     stream, projectId, userId, docId, docSince: req.query.docSince ?? null,
-                    mayJoin: (/** @type {string} */ kind) => mayJoin(req, kind),
+                    mayJoin: async (/** @type {string} */ kind) => {
+                        const ok = await mayJoin(req, kind);
+                        if (ok) joinedKind = kind;
+                        return ok;
+                    },
                 });
+                if (joined && joinedKind === 'notebook') watchNotebookAccess(req, stream, joined, docId);
             } catch (err) {
                 // The project feed keeps working; the editor falls back to its
                 // own sync when it sees the document closed.

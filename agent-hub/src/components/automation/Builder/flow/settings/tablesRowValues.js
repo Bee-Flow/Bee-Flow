@@ -39,7 +39,7 @@ export function withoutValuesInput(inputSchema) {
  * The table as a literal — its id as a number, or its TITLE as a trimmed
  * string (the tool resolves a title itself, and so does the columns route).
  * Null when it is bound from a step (a ref/template/expr): then the table is
- * only known while the routine runs, and its columns cannot be listed at
+ * only known while the automation runs, and its columns cannot be listed at
  * design time.
  */
 export function literalTableId(binding) {
@@ -112,13 +112,13 @@ export function columnKind(col) {
 
 /** i18n key + English word for the type badge, per Nextcloud column type. */
 export const TYPE_LABEL = Object.freeze({
-    text: ['routines.ndv.tables_row.type_text', 'text'],
-    number: ['routines.ndv.tables_row.type_number', 'number'],
-    datetime: ['routines.ndv.tables_row.type_datetime', 'date & time'],
-    selection: ['routines.ndv.tables_row.type_selection', 'selection'],
-    usergroup: ['routines.ndv.tables_row.type_usergroup', 'user / group'],
+    text: ['automations.ndv.tables_row.type_text', 'text'],
+    number: ['automations.ndv.tables_row.type_number', 'number'],
+    datetime: ['automations.ndv.tables_row.type_datetime', 'date & time'],
+    selection: ['automations.ndv.tables_row.type_selection', 'selection'],
+    usergroup: ['automations.ndv.tables_row.type_usergroup', 'user / group'],
 });
-export const TYPE_LABEL_UNKNOWN = Object.freeze(['routines.ndv.tables_row.type_unknown', 'type unknown']);
+export const TYPE_LABEL_UNKNOWN = Object.freeze(['automations.ndv.tables_row.type_unknown', 'type unknown']);
 
 const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 

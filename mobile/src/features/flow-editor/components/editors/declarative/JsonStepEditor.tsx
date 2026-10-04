@@ -22,7 +22,7 @@ import type { StepEditorProps } from '../types';
 import { configText, parseConfig, type ConfigParse } from './jsonConfig';
 
 function reasonText(t: ReturnType<typeof useTranslation>, result: Extract<ConfigParse, { ok: false }>): string {
-    if (result.reason === 'invalid') return t('routines.ndv.err_invalid_json', 'Invalid JSON: {message}', { message: result.message ?? '' });
+    if (result.reason === 'invalid') return t('automations.ndv.err_invalid_json', 'Invalid JSON: {message}', { message: result.message ?? '' });
     if (result.reason === 'reserved') return t('mobile.flow.json.reserved', '“{key}” is not a setting — it is edited elsewhere.', { key: result.key ?? '' });
     return t('mobile.flow.json.not_object', 'The settings must be one JSON object: { … }.');
 }
@@ -93,7 +93,7 @@ export function JsonStepEditor({ step, patchStep, ctx }: StepEditorProps) {
                 <Button
                     size="sm"
                     variant="secondary"
-                    label={t('routines.builder.undo_changes', 'Undo changes')}
+                    label={t('automations.builder.undo_changes', 'Undo changes')}
                     disabled={text === stored}
                     onPress={() => {
                         setText(stored);

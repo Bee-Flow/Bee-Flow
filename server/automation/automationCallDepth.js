@@ -1,17 +1,17 @@
 /**
  * How deep automations are starting each other right now (handoff 5, round 3).
  *
- * An agent can start a routine as a tool (`agent_call` routines, reusable
- * Steps, a skill linked to a routine). That routine can have an AI step whose
- * agent starts another one, and so on: without a limit, two routines that call
+ * An agent can start an automation as a tool (`agent_call` automations, reusable
+ * Steps, a skill linked to an automation). That automation can have an AI step whose
+ * agent starts another one, and so on: without a limit, two automations that call
  * each other run until something falls over, each level paying for a model
  * call. This module keeps the chain in an AsyncLocalStorage frame. Every agent
- * start of a routine runs INSIDE the start that called it (the runner awaits
+ * start of an automation runs INSIDE the start that called it (the runner awaits
  * the nested run in-process), so the frame follows the chain without anything
  * being threaded through the runner.
  *
- * The limit is on NESTED calls: a chat agent or a scheduled routine starting a
- * routine is depth 1, that routine's agent starting another is depth 2, and
+ * The limit is on NESTED calls: a chat agent or a scheduled automation starting a
+ * automation is depth 1, that automation's agent starting another is depth 2, and
  * the fourth level is refused with `automation_call_depth_exceeded`. A run that
  * resumes later (after an approval or a form) starts a fresh chain; it is no
  * longer inside the call that started it.
@@ -58,11 +58,11 @@ function currentCallDepth() {
  * Run `fn` as one more nested automation call, or refuse before it starts.
  *
  * @param {object}   call
- * @param {string}   call.automationId     the routine being started
+ * @param {string}   call.automationId     the automation being started
  * @param {string}   [call.callerAgentId]  the agent that asked for it
  * @param {string}   [call.callerConversationId]
  * @param {string}   [call.callerRunId]    the run the calling agent step is in
- * @param {Function} fn                    starts the routine; receives the frame
+ * @param {Function} fn                    starts the automation; receives the frame
  * @param {{ max?: number }} [opts]
  * @throws {AutomationCallDepthError} when the chain is already at the limit
  */
@@ -83,7 +83,7 @@ async function runNestedAutomationCall(call, fn, { max = MAX_AUTOMATION_CALL_DEP
 }
 
 /**
- * The tool-result shape for a refused or failed agent start of a routine: an
+ * The tool-result shape for a refused or failed agent start of an automation: an
  * `{ error, code }` object the model can read, instead of an exception that a
  * chat turn or an AI step would have to unwind.
  */

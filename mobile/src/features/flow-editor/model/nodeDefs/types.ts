@@ -41,6 +41,6 @@ export interface NodeDef {
 /**
  * A record as the family files write it: the palette wording is
  * `labelFallback`, the house name for the English under a key (here
- * `routines.node.<type>.label`), and ./index.ts serves it as `label`.
+ * `automations.node.<type>.label`), and ./index.ts serves it as `label`.
  */
 export type NodeDefSource = Omit<NodeDef, 'label'> & { labelFallback?: string };

@@ -81,7 +81,7 @@ function MatchSim({ step, sim, t, onState }) {
             next.add(rightId);
             setMatched(next);
             const pair = pairs.find((p) => p.id === rightId);
-            setLastNote(pair?.noteFallback || null);
+            setLastNote(pair ? t(pair.noteKey, pair.noteFallback) : null);
             setPickedLeft(null);
             if (next.size === pairs.length) {
                 onState?.({ status: 'passed', attempts: mistakes + 1 });
@@ -111,7 +111,7 @@ function MatchSim({ step, sim, t, onState }) {
                             className="text-left px-3 py-2.5 rounded-lg border text-[12.5px] leading-snug transition-colors disabled:opacity-60"
                             style={tile(pickedLeft === p.id, matched.has(p.id), false)}>
                             {matched.has(p.id) && <Check className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" style={{ color: '#15803d' }} />}
-                            {p.left}
+                            {t(p.leftKey, p.left)}
                         </button>
                     ))}
                 </div>
@@ -122,7 +122,7 @@ function MatchSim({ step, sim, t, onState }) {
                             className="text-left px-3 py-2.5 rounded-lg border text-[12.5px] leading-snug transition-colors disabled:opacity-60"
                             style={tile(false, matched.has(p.id), wrongFlash === p.id)}>
                             {matched.has(p.id) && <Check className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" style={{ color: '#15803d' }} />}
-                            {p.right}
+                            {t(p.rightKey, p.right)}
                         </button>
                     ))}
                 </div>
@@ -204,7 +204,7 @@ function OrderSim({ step, sim, t, onState }) {
                                 style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)', color: 'var(--accent-primary)' }}>
                                 {i + 1}
                             </span>
-                            {byId.get(id)?.label || id}
+                            {(() => { const it = byId.get(id); return it ? t(it.labelKey, it.label) : id; })()}
                             {wrongHere && <X className="w-3.5 h-3.5 ml-auto" style={{ color: '#b91c1c' }} />}
                         </button>
                     );
@@ -217,7 +217,7 @@ function OrderSim({ step, sim, t, onState }) {
                     <button key={i.id} type="button" onClick={() => place(i.id)}
                         className="px-3 py-2 rounded-lg border text-[12.5px] transition-colors hover:bg-[var(--bg-tertiary)]"
                         style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
-                        {i.label}
+                        {t(i.labelKey, i.label)}
                     </button>
                 ))}
             </div>
@@ -225,7 +225,7 @@ function OrderSim({ step, sim, t, onState }) {
             {verdict && !verdict.correct && (
                 <p className="mt-2.5 px-3 py-2 rounded-lg text-[12.5px]"
                     style={{ background: 'color-mix(in srgb, var(--accent-primary) 8%, transparent)', color: 'var(--text-secondary)' }}>
-                    {sim.feedbackFallback || t('learn.sim.order_wrong', 'Not quite — the highlighted piece is the first one out of place. Tap pieces to take them back.')}
+                    {sim.feedbackFallback ? t(sim.feedbackKey, sim.feedbackFallback) : t('learn.sim.order_wrong', 'Not quite — the highlighted piece is the first one out of place. Tap pieces to take them back.')}
                 </p>
             )}
             {passed && (
@@ -342,7 +342,7 @@ function FlowBuildSim({ sim, t, onState }) {
                     {t('learn.sim.flow_task', 'Build it: task {n} of {total}')
                         .replace('{n}', String(scenarioIdx + 1)).replace('{total}', String(scenarios.length))}
                 </div>
-                <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>{scenario.briefFallback}</p>
+                <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>{t(scenario.briefKey, scenario.briefFallback)}</p>
             </div>
 
             {/* The rail: trigger → steps → result */}

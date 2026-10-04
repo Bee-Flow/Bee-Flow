@@ -1,5 +1,5 @@
 /**
- * The step editor screen, pushed over the build screen: the routine's draft
+ * The step editor screen, pushed over the build screen: the automation's draft
  * (the same store the build screen edits, so both show the same thing and one
  * undo history covers both), then one step in the node editor. Paging to
  * another step swaps the route's `stepId` in place rather than stacking a
@@ -10,7 +10,7 @@
  * section a finding sent the author to; it applies to the step it came with,
  * not to the steps paged to after it. `flowlet` names the flowlet the step
  * lives in: the editor then works on that flowlet's graph (useFlowletDraft),
- * and its edits land in the whole routine.
+ * and its edits land in the whole automation.
  */
 
 import { useRouter } from 'expo-router';
@@ -26,19 +26,19 @@ import { findNode } from '../model/outline';
 export { stepEditorHref } from '../components/outline/stepRoute';
 
 export interface NodeEditorScreenProps {
-    /** The routine id, or a new routine's draft key. */
+    /** The automation id, or a new automation's draft key. */
     automationId: string;
     stepId: string;
     section?: string | null;
-    /** The flowlet the step lives in (definition.layers[flowlet]); null in the routine itself. */
+    /** The flowlet the step lives in (definition.layers[flowlet]); null in the automation itself. */
     flowlet?: string | null;
 }
 
 export function NodeEditorScreen({ automationId, stepId, section = null, flowlet = null }: NodeEditorScreenProps) {
     const t = useTranslation();
     const router = useRouter();
-    const routine = useFlowDraft(automationId);
-    const flow = useFlowletDraft(routine, flowlet);
+    const automation = useFlowDraft(automationId);
+    const flow = useFlowletDraft(automation, flowlet);
     useUnsavedLeave(flow.key, flow.store);
     useCatalogOnReturn();
     const ready = useDraftState(flow.store, (s) => s.ready);
@@ -53,7 +53,7 @@ export function NodeEditorScreen({ automationId, stepId, section = null, flowlet
             <Screen>
                 <EmptyState
                     icon="CircleQuestionMark"
-                    title={t('mobile.flow.ndv.missing', 'This step is not in the routine any more')}
+                    title={t('mobile.flow.ndv.missing', 'This step is not in the automation any more')}
                     message={t('mobile.flow.ndv.missing_hint', 'It was removed — by an undo, the AI builder, or on another device.')}
                     actionLabel={t('common.back', 'Back')}
                     onAction={() => router.back()}

@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * App Studio runtime — `_appEffects`: wat een routine de app OPDRAAGT als hij
+ * App Studio runtime — `_appEffects`: wat een automatisering de app OPDRAAGT als hij
  * klaar is (P4, deel B).
  *
  * ── GEEN NIEUW KANAAL ───────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * ── WAT HIER WORDT BEWEZEN ──────────────────────────────────────────────────
  *   1. de drie effecten worden echt toegepast: melding, scherm (mét record) en
  *      verversen;
- *   2. de routine wint PER SLEUTEL van wat de app-auteur op de actie schreef —
+ *   2. de automatisering wint PER SLEUTEL van wat de app-auteur op de actie schreef —
  *      hij weet wat er werkelijk gebeurd is;
  *   3. een effect dat deze app niet KENT wordt overgeslagen zonder de effecten
  *      die hij wél kent mee te nemen, en nooit stil;
@@ -40,7 +40,7 @@ import { resetAppForm } from './formContext';
 
 const resp = (status, body, ok = status >= 200 && status < 300) => ({ ok, status, json: async () => body });
 
-/** An app with two screens, one action that runs a routine. */
+/** An app with two screens, one action that runs an automation. */
 function def(action = { kind: 'run_automation', automationId: 'aut_1' }) {
     return {
         schemaVersion: 2,
@@ -60,7 +60,7 @@ beforeEach(() => {
 });
 afterEach(() => { warn.mockRestore(); });
 
-describe('_appEffects — the routine answers the app', () => {
+describe('_appEffects — the automation answers the app', () => {
     it('applies the toast, the screen (with its record) and the refresh', async () => {
         authFetch.mockResolvedValue(resp(200, {
             runId: 'run_1',
@@ -84,7 +84,7 @@ describe('_appEffects — the routine answers the app', () => {
         expect(onRefresh).toHaveBeenCalled();
     });
 
-    it('leaves `output` alone — actionResult still reads the routine’s data', async () => {
+    it('leaves `output` alone — actionResult still reads the automation’s data', async () => {
         authFetch.mockResolvedValue(resp(200, {
             runId: 'run_1', status: 'success', output: { rows: [{ id: 'ord_7' }] },
             _appEffects: { toast: { message: 'Saved' } },
@@ -110,10 +110,10 @@ describe('_appEffects — the routine answers the app', () => {
         expect(toast.success).not.toHaveBeenCalled();
     });
 
-    it('the routine wins PER KEY over what the app author wrote on the action', async () => {
+    it('the automation wins PER KEY over what the app author wrote on the action', async () => {
         authFetch.mockResolvedValue(resp(200, {
             runId: 'run_1', status: 'success', output: null,
-            // The routine only asks for a navigation; the author's toast stands.
+            // The automation only asks for a navigation; the author's toast stands.
             _appEffects: { navigateTo: { screenId: 'scr_orders' } },
         }));
         const onNavigate = vi.fn();
@@ -276,7 +276,7 @@ describe('_appEffects — the 202 + poll path and the sequence path carry it too
     });
 
     it('a run_automation STEP inside a sequence applies its effects once, at the end', async () => {
-        // Twee stappen: eerst de routine (die terugkeert naar scr_orders), dan
+        // Twee stappen: eerst de automatisering (die terugkeert naar scr_orders), dan
         // nog een schrijfstap. Zou het effect meteen worden toegepast, dan
         // navigeerde de app weg vóór die tweede stap.
         authFetch
@@ -314,7 +314,7 @@ describe('_appEffects — the 202 + poll path and the sequence path carry it too
  *
  * `refresh` is een gesloten set aan de serverkant
  * (validate/constants.js RETURN_TO_APP_REFRESH_MODES), maar hij reist als DATA
- * naar een app-bundel die OUDER kan zijn dan de routine. `KNOWN_EFFECT_KEYS`
+ * naar een app-bundel die OUDER kan zijn dan de automation. `KNOWN_EFFECT_KEYS`
  * vangt een onbekende SLEUTEL; een onbekende WAARDE van een bekende sleutel
  * werd nergens gevangen en verdween stil — precies het effect dat de docblock
  * van deze functie belooft nooit te laten verdwijnen.
@@ -368,7 +368,7 @@ describe('_appEffects — een waarde buiten het vocabulaire verdwijnt niet stil'
  *
  * `_appEffectsUnknown` betekent dat de run slaagde maar de stappenlees omviel
  * (server/appStudio/actionExecutor/automationBridge.js). Zonder een eigen tak
- * is dat antwoord niet te onderscheiden van "deze routine had geen
+ * is dat antwoord niet te onderscheiden van "deze automatisering had geen
  * terugkeerstap": geen melding, geen navigatie, geen spoor.
  */
 describe('_appEffectsUnknown — onleesbaar is niet hetzelfde als leeg', () => {

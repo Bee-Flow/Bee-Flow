@@ -1,5 +1,5 @@
 /**
- * routes/automation/aiAct: the routine's own AI Act check and its readiness
+ * routes/automation/aiAct: the automation's own AI Act check and its readiness
  * checklist. The router is built with injected stores, licence, signals and
  * fast-model verdict (makeAiActRouter); no module mocking.
  *
@@ -196,7 +196,7 @@ test('PUT: a viewer may not; a bad body is a 400 with a code', async () => {
     assert.strictEqual(state.attests.length, 0);
 });
 
-test('PUT on a routine without AI records "not applicable", also valid for 12 months', async () => {
+test('PUT on an automation without AI records "not applicable", also valid for 12 months', async () => {
     reset();
     const r = await call('PUT', '/a2/ai-act', { usesAi: 'no', externalOutput: 'no', sensitiveUse: 'unknown' });
     assert.strictEqual(r.status, 200);
@@ -205,7 +205,7 @@ test('PUT on a routine without AI records "not applicable", also valid for 12 mo
     assert.strictEqual(r.json.expiresAt, '2027-09-28T10:00:00.000Z');
 });
 
-test('PUT: "uses AI: yes" on a routine where Bee saw none widens the signals', async () => {
+test('PUT: "uses AI: yes" on an automation where Bee saw none widens the signals', async () => {
     reset();
     const r = await call('PUT', '/a2/ai-act', { usesAi: 'yes', externalOutput: 'no', sensitiveUse: 'no' });
     assert.strictEqual(r.json.outcome, 'minimal');
@@ -234,7 +234,7 @@ test('GET /:id/readiness: the checklist, before and after the check', async () =
 
 // ── The automatic check ─────────────────────────────────────────────────────
 
-test('GET /:id/ai-act/check: a routine without AI is checked and recorded by Bee alone, without asking the model', async () => {
+test('GET /:id/ai-act/check: an automation without AI is checked and recorded by Bee alone, without asking the model', async () => {
     reset();
     const r = await call('GET', '/a2/ai-act/check');
     assert.strictEqual(r.status, 200);

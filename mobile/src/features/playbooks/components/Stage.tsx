@@ -25,7 +25,7 @@ export function Stage({ playbook, phase, dispatch }: StageProps) {
         case 'table': return <TableStage playbook={playbook} phase={phase} />;
         case 'fill': return <FillStage playbook={playbook} phase={phase} />;
         case 'design': return <DesignStage phase={phase} dispatch={dispatch} />;
-        case 'routine':
+        case 'automation':
         case 'app':
         case 'app_turn': return <BuilderStage phase={phase} dispatch={dispatch} />;
         case 'access': return <AccessStage playbook={playbook} phase={phase} dispatch={dispatch} />;

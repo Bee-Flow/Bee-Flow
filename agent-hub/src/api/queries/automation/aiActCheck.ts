@@ -8,7 +8,7 @@
 // live, which is why the dialog there reads this hook too.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type AutomationRequestError, getRoutineJson, putRoutineJson } from './http';
+import { type AutomationRequestError, getAutomationJson, putAutomationJson } from './http';
 import {
     ANNEX_III_DOMAINS, automationReadinessKeys,
     type AiActDomain, type AiActStatus, type AnnexDomainId, type Tri,
@@ -132,15 +132,15 @@ export function parseAiActCheck(body: unknown): AiActCheckResult {
 }
 
 export async function fetchAiActCheck(id: string, signal?: AbortSignal): Promise<AiActCheckResult> {
-    return parseAiActCheck(await getRoutineJson(id, '/ai-act/check', 'ai act check', signal));
+    return parseAiActCheck(await getAutomationJson(id, '/ai-act/check', 'ai act check', signal));
 }
 
 export async function answerAiAct(id: string, answers: AiActAnswerBody): Promise<AiActCheckResult> {
-    return parseAiActCheck(await putRoutineJson(id, '/ai-act/answers', answers, 'ai act answers'));
+    return parseAiActCheck(await putAutomationJson(id, '/ai-act/answers', answers, 'ai act answers'));
 }
 
 /**
- * Bee checks the routine. `stamp` is readinessStamp(automation): a save asks
+ * Bee checks the automation. `stamp` is readinessStamp(automation): a save asks
  * again. When the check recorded something, the checklist is refetched.
  * `fresh` asks again on every mount (the Activate dialog).
  */

@@ -5,11 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TriggerProviderPicker from './Builder/flow/TriggerProviderPicker';
 
 /**
- * The routine builder's overlays, now that they are dialogs. (The version
+ * The automation builder's overlays, now that they are dialogs. (The version
  * diff dialog that lived here was replaced by the Versions tab, which asks
  * its restore question without a dialog underneath.)
  */
-describe('routine builder overlays, once they are dialogs', () => {
+describe('automation builder overlays, once they are dialogs', () => {
     beforeEach(() => {
         cleanup();
     });

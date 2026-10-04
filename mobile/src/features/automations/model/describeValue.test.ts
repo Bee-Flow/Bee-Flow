@@ -3,7 +3,7 @@
  * is conservative on purpose.
  *
  * `previewValue` pretty-prints every non-string output as JSON. That is honest
- * and unreadable: the commonest thing a routine step produces is a LIST OF
+ * and unreadable: the commonest thing an automation step produces is a LIST OF
  * ROWS — search results, datatable rows, the files in a folder — and someone
  * reading a run on their phone got two braces and a wall of quoted keys where
  * the web builder shows a table. Web's OutputView has offered Fields / Table /
@@ -66,7 +66,7 @@ describe('describeValue — a list of rows is a table', () => {
         const shape = describeValue(many) as Extract<ValueShape, { kind: 'rows' }>;
         expect(shape.rows).toHaveLength(MAX_PREVIEW_ROWS);
         // The count is the honest part: a clipped table that claims to be the
-        // whole answer is how someone concludes a routine dropped their rows.
+        // whole answer is how someone concludes an automation dropped their rows.
         expect(shape.total).toBe(MAX_PREVIEW_ROWS + 15);
     });
 

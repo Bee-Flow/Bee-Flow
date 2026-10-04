@@ -161,10 +161,10 @@ describe('de meetkunde', () => {
         expect(d.endsWith(`${end.x} ${end.y}`)).toBe(true);
     });
 
-    it('stuurt de app→tabel-rand om de routine heen, langs de opgegeven knikken', () => {
+    it('stuurt de app→tabel-rand om de automatisering heen, langs de opgegeven knikken', () => {
         // De enige rand met een handgelegde omweg: onderlangs, dan door de
         // gang tussen kolom b en c omhoog. Als een van die knikken wegvalt
-        // loopt de lijn dwars door de routine-tegel.
+        // loopt de lijn dwars door de automation-tegel.
         const d = edgeGeometry(MAP_EDGES.find((e) => e.id === 'app-uses-datatable')).d;
         expect(d).toContain('224');
         expect(d).toContain('459');

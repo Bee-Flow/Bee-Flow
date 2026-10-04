@@ -365,7 +365,7 @@ function _coverageSummary(results) {
  * A list is complete only when BOTH of these hold:
  *   - the check opted in with `retiresVanished: true`. Most checks list a
  *     capped window (the 200 most recently updated pages, the 500 newest
- *     routines) or swallow a failed read into `[]`; for them a subject that is
+ *     automations) or swallow a failed read into `[]`; for them a subject that is
  *     missing from this run's list says nothing about whether it still exists,
  *     so their slots keep their last verdict, as they always did;
  *   - this particular run did not say otherwise: listSubjects may return
@@ -594,10 +594,10 @@ async function runFramework(orgId, frameworkId, opts = {}) {
  * Re-judge ONE subject across every check that actually holds it — the sweep
  * a thing deserves the moment it changes, rather than at the next 6-hourly
  * one. compliance/subjectReview.js is what calls this, off the request path,
- * when a routine is switched on or off.
+ * when an automation is switched on or off.
  *
  * `subjectIds` is one id or several SPELLINGS OF THE SAME THING, because the
- * tree has more than one: `AIA-Art50-content-marking` holds a routine under
+ * tree has more than one: `AIA-Art50-content-marking` holds an automation under
  * its bare id while `MACHINERY-Art18-safety-component-assessment` holds it as
  * `automation:<id>`. A caller passes every spelling and gets the union.
  *
@@ -605,25 +605,25 @@ async function runFramework(orgId, frameworkId, opts = {}) {
  * does not have, filters its subject list down to nothing and then persists a
  * `not_applicable` row with NO subject — which lands in that check's GLOBAL
  * slot (scope_type 'global', scope_id NULL), and getLatestPerCheck takes the
- * newest row per slot. Asking six checks about one routine would therefore
+ * newest row per slot. Asking six checks about one automation would therefore
  * blank the real verdict of the five that never heard of it and replace each
- * with "Subject not found.". A routine going live would have turned five
+ * with "Subject not found.". An automation going live would have turned five
  * honest findings into five shrugs.
  *
  * So the subject is DISCOVERED instead of assumed: each per-source check of an
  * active framework is asked for its own subjects, and only the checks whose
  * list contains this one are run. That also means no check has to register
  * anywhere or declare what kind of thing it judges — a check added next year
- * that lists routines is picked up by this the day it lands.
+ * that lists automations is picked up by this the day it lands.
  *
  * Global checks are deliberately skipped. Their verdict is about the
- * workspace, not about this routine; re-deriving one from a single toggle
+ * workspace, not about this automation; re-deriving one from a single toggle
  * would rewrite a workspace-wide answer from a single click's worth of
  * evidence. That is what runAll is for.
  *
  * No score snapshot is written, for the reason runAll gives about restricted
  * sweeps: the trend line is a full-sweep series, and a point computed from one
- * routine would record every framework it did not look at as NULL.
+ * automation would record every framework it did not look at as NULL.
  *
  * Never throws for an absent subject or a switched-off framework — both are
  * ordinary, and an empty array is the honest answer.
@@ -650,7 +650,7 @@ async function runForSubject(orgId, subjectIds, { runType = 'event' } = {}) {
             )).subjects;
         } catch (e) {
             // One check that cannot enumerate its population must not stop the
-            // others from judging this routine. Nothing is persisted for it —
+            // others from judging this automation. Nothing is persisted for it —
             // its previous row stands, and the scheduled sweep will try again.
             log.warn(`[ComplianceRunner] ${check.id} listSubjects failed during subject review:`, e.message);
             continue;

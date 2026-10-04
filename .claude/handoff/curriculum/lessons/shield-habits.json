@@ -66,7 +66,7 @@
       "id": "memory",
       "icon": "🧠",
       "title": "Store the rule, never the person",
-      "bodyMd": "While you chat, Bee Flow quietly notes durable facts about your work and keeps them under Settings → Memory. Those notes are stored with their real values; personal data in them is only swapped for labels such as `[IBAN]` on the way to a model.\n\nSo a customer's bank number, BSN or home address does not belong in a memory — not typed in by hand, and not left in a chat where it can be picked up.\n\nWhat does belong there is the rule behind the case. In **Manage memories → Add Memory** Bas at Van Dijk Groep saves an **Instruction**: \"Purchase orders above €5,000 need Karin's approval.\" That works for every supplier, forever, and names nobody's private details."
+      "bodyMd": "While you chat, Bee Flow quietly notes durable facts about your work and keeps them under Settings → Memory. Those notes are stored with their real values; personal data in them is only swapped for labels such as `[IBAN]` on the way to a model.\n\nSo a customer's bank number, BSN or home address does not belong in a memory — not typed in by hand, and not left in a chat where it can be picked up.\n\nWhat does belong there is the rule behind the case. In **Manage memories → Add memory** Bas at Van Dijk Groep saves an **Instruction**: \"Purchase orders above €5,000 need Karin's approval.\" That works for every supplier, forever, and names nobody's private details."
     },
     {
       "type": "sim",
@@ -154,7 +154,7 @@
       "icon": "🏗️",
       "checkId": "shield-clean",
       "title": "Send it for real — we will check",
-      "instruction": "Open a new chat and send the rewritten prompt from the previous step. You are looking for a quiet send: no review dialog, and no \"items redacted\" line under your message. If anything shows there, it reads \"Scanned for personal data — nothing found.\" — that is the shield finding nothing, because you gave it nothing to find.\n\nThat quiet send is the whole habit: describe the case, keep the identity out, and the dialog never has a reason to appear.",
+      "instruction": "Open a new chat and send the rewritten prompt from the previous step. You are looking for a quiet send: no review dialog, and no lock line under your message saying values were replaced.\n\nThat quiet send is the whole habit: describe the case, keep the identity out, and the dialog never has a reason to appear.",
       "launch": {
         "navigateTo": "agents",
         "label": "Open a chat"
@@ -183,8 +183,8 @@
       "When the check cannot run, the default is to refuse the whole message, not only messages holding personal data: \"Privacy protection is temporarily unavailable, so your message was not sent. Please try again in a moment.\"",
       "A message too big to check is refused with \"This message is too large to scan for personal data, so it was not sent. Please split it into smaller parts.\"; an amber \"Scan incomplete\" badge instead means uploaded content went to the AI unredacted (\"Scanned 50 of 180 pages\").",
       "The review dialog \"Check this before it goes to the AI\" offers three buttons: Block, Send anyway, and Redact and send.",
-      "Memories are stored with their real values and are only scrubbed to labels such as [IBAN] on the way to a model, so a customer's bank number or address should never be saved under Settings → Memory → Manage memories → Add Memory.",
-      "The Token mapping section appears in the Privacy protection panel under a message only when the organisation switched on \"Let people see what was sent to the AI\"; it sits behind \"Click to reveal\" and anyone who can open the conversation can reveal the real values."
+      "Memories are stored with their real values and are only scrubbed to labels such as [IBAN] on the way to a model, so a customer's bank number or address should never be saved under Settings → Memory → Manage memories → Add memory.",
+      "The Token mapping section appears in the Privacy protection panel under How I got this answer only when the organisation switched on \"Let people see what was sent to the AI\"; it sits behind \"Click to reveal\" and anyone who can open the conversation can reveal the real values."
     ]
   },
   "actionChecks": [
@@ -192,7 +192,7 @@
       "checkId": "shield-clean",
       "existing": false,
       "label": "Send a prompt that needs no personal data",
-      "hint": "Open a chat, send your rewritten prompt, and wait for the answer. No review dialog and no \"values were replaced\" line means the scan found nothing.",
+      "hint": "Open a chat, send your rewritten prompt, and wait for the answer. No review dialog and no lock line about replaced values under your message means the scan found nothing.",
       "endpoints": [
         {
           "method": "GET",

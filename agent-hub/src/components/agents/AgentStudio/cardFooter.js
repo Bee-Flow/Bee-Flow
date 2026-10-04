@@ -5,7 +5,7 @@
  * Drie vormen, en de keuze ertussen is de hele functie:
  *
  *   ⚠ Antwoordt uit het hoofd — koppel een kennisbank
- *   312 gesprekken · ook in 2 routines, 1 app
+ *   312 gesprekken · ook in 2 automations, 1 app
  *   Alleen jij · 4 testgesprekken
  *
  * ── DE WAARSCHUWING IS NIET VAN DIT BESTAND ────────────────────────────────

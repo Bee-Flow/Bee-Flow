@@ -41,8 +41,8 @@ function identityError(status, message, code) {
 
 function defaultDeps() {
     return {
-        getProviderAuth: (...a) => require('../auth/routineAuth').getProviderAuth(...a),
-        upsertCredential: (...a) => require('../stores/routineCredentialStore').upsertCredential(...a),
+        getProviderAuth: (...a) => require('../auth/automationAuth').getProviderAuth(...a),
+        upsertCredential: (...a) => require('../stores/automationCredentialStore').upsertCredential(...a),
         getIntegrationTools: (...a) => require('../core/integrations/integrationTools').getIntegrationTools(...a),
         resolveConnectionForRun: (...a) => require('../stores/integrationConnectionStore').resolveConnectionForRun(...a),
         resolveIntegration: (...a) => require('../core/integrations/integrationToolMap').resolveIntegration(...a),
@@ -88,7 +88,7 @@ async function viewerHasIntegration(integrationId, { userId, orgId, deps: inject
         // credential gates in getIntegrationTools stay authoritative — the
         // same rule skill-scoped extraEnabledApps follows.
         const resolved = await deps.getIntegrationTools({
-            userId, session, isAdmin: !!session?.isAdmin, routineStep: true,
+            userId, session, isAdmin: !!session?.isAdmin, automationStep: true,
             enabledAppsOverride: [integrationId],
         });
         for (const t of resolved?.tools || []) {
@@ -115,7 +115,7 @@ async function hasAnyCredential(userId, oauthProvider, { integrationId, orgId, d
             include: [integrationId], providerHint: oauthProvider,
         }).catch(() => null);
         return !!(session?.oauthProvider === oauthProvider && session?.accessToken)
-            || !!session?.routineProviders?.[oauthProvider]?.accessToken;
+            || !!session?.automationProviders?.[oauthProvider]?.accessToken;
     } catch {
         return false;
     }
@@ -125,7 +125,7 @@ async function hasAnyCredential(userId, oauthProvider, { integrationId, orgId, d
  * Find a usable credential for this user, in the order the rest of the platform
  * already uses.
  *
- *   1. The encrypted vault (routine_credentials) — refreshes and persists, and
+ *   1. The encrypted vault (automation_credentials) — refreshes and persists, and
  *      is the ONLY source a background sync can use, since it has no session.
  *   2. The user's live Bee Flow session.
  *
@@ -153,7 +153,7 @@ async function resolveCredential(userId, { oauthProvider, integrationId, orgId, 
     // Gmail client just because it happened to be there.
     const fromSession = session?.oauthProvider === oauthProvider && session?.accessToken
         ? { accessToken: session.accessToken, refreshToken: session.refreshToken || null, expiresAt: session.expiresAt || null, scope: session.scope || null }
-        : (session?.routineProviders?.[oauthProvider] || null);
+        : (session?.automationProviders?.[oauthProvider] || null);
 
     if (!fromSession?.accessToken) return null;
 

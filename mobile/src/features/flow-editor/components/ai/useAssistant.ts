@@ -1,5 +1,5 @@
 /**
- * "Ask AI" on the build screen: the builder stream over the routine's draft
+ * "Ask AI" on the build screen: the builder stream over the automation's draft
  * (hooks/useBuilderStream — the draft is saved first, locked while a turn
  * streams, and the turn's drafts replace it as one undo step), plus what the
  * sheet around it keeps: whether it is open, what is typed, the model tier.
@@ -10,7 +10,7 @@
  *
  * The persisted session is the conversation's memory: its transcript
  * (useBuilderStream), and its last findings, which become the store's
- * builder findings when the routine has none yet — the web builder seeds
+ * builder findings when the automation has none yet — the web builder seeds
  * its validation from the same snapshot.
  */
 

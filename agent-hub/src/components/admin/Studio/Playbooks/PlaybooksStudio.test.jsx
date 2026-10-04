@@ -17,7 +17,7 @@ vi.mock('./NewPlaybookDialog', () => ({ default: ({ onCreated, onClose }) => (
 ) }));
 
 const ROWS = [
-    { id: 'pb_1', title: 'Facturen bijhouden', recipeId: 'invoice_tracker', recipeLabel: 'Invoice tracker', status: 'active', currentPhase: 'routine', progress: { done: 1, total: 5 }, phases: [{ key: 'table', status: 'done' }, { key: 'routine', status: 'awaiting' }], updatedAt: new Date().toISOString() },
+    { id: 'pb_1', title: 'Facturen bijhouden', recipeId: 'invoice_tracker', recipeLabel: 'Invoice tracker', status: 'active', currentPhase: 'automation', progress: { done: 1, total: 5 }, phases: [{ key: 'table', status: 'done' }, { key: 'automation', status: 'awaiting' }], updatedAt: new Date().toISOString() },
     { id: 'pb_2', title: 'Oude', recipeId: 'invoice_tracker', recipeLabel: 'Invoice tracker', status: 'stopped', progress: { done: 3, total: 5 }, phases: [] },
 ];
 

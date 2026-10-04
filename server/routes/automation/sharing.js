@@ -1,9 +1,9 @@
 /**
- * Who may do what with one routine (Studio → Automations handoff 5).
+ * Who may do what with one automation (Studio → Automations handoff 5).
  *
  *   GET  /:id/shares          the owner, the shares, who steps run as
  *   PUT  /:id/shares          replace the share list (owner or org admin)
- *   POST /:id/transfer-owner  hand the routine to someone who may edit it
+ *   POST /:id/transfer-owner  hand the automation to someone who may edit it
  *
  * What each role allows is automation/access.js. This file only reads and
  * writes the list, and it follows the datatable sharing rules
@@ -17,7 +17,7 @@
  *
  * Steps keep running as the OWNER (owner decision 4, no service account), so
  * `runsAs` is always the owner. "Change" in the UI is the transfer below, and
- * the new owner has to be someone who may already edit the routine (an `edit`
+ * the new owner has to be someone who may already edit the automation (an `edit`
  * share, directly or through a group) or an org admin with manage_automations.
  * The previous owner keeps `edit` (stores/automationStore/shares.js).
  *
@@ -50,7 +50,7 @@ const SharesBody = z.object({
     shares: z.array(ShareEntry, {
         required_error: 'shares is the full list of people and groups, [] for none.',
         invalid_type_error: 'shares is the full list of people and groups, [] for none.',
-    }).max(200, 'At most 200 people and groups on one routine.'),
+    }).max(200, 'At most 200 people and groups on one automation.'),
 }).strict();
 
 const TRANSFER_TEXT = 'userId is the id of the person who becomes the owner.';
@@ -180,7 +180,7 @@ function makeSharingRouter(overrides = {}) {
 
             const orgId = await access.organisationOf(a);
             if (wanted.length && !orgId) {
-                throw new HttpError(400, 'no_organisation', 'This routine has no organisation, so it cannot be shared.');
+                throw new HttpError(400, 'no_organisation', 'This automation has no organisation, so it cannot be shared.');
             }
             for (const s of wanted.filter(x => x.principalType === 'user')) {
                 const u = await getUser(s.principalId).catch(() => null);
@@ -224,7 +224,7 @@ function makeSharingRouter(overrides = {}) {
         const { a } = loaded;
         const me = req.session.user.id;
         const targetId = req.body.userId;
-        if (targetId === a.userId) throw new HttpError(400, 'already_owner', 'That person already owns this routine.');
+        if (targetId === a.userId) throw new HttpError(400, 'already_owner', 'That person already owns this automation.');
 
         const orgId = await access.organisationOf(a);
         const target = await getUser(targetId).catch(() => null);
@@ -234,17 +234,17 @@ function makeSharingRouter(overrides = {}) {
         const targetAccess = await access.roleFor(a, targetId);
         const mayOwn = targetAccess.via === 'admin' || (targetAccess.via === 'share' && targetAccess.role === 'edit');
         if (!mayOwn) {
-            throw new HttpError(400, 'transfer_target_not_editor', 'Only someone who may edit this routine can become its owner. Give them "Can edit" first.');
+            throw new HttpError(400, 'transfer_target_not_editor', 'Only someone who may edit this automation can become its owner. Give them "Can edit" first.');
         }
 
         const fromUserId = a.userId;
         const moved = await store().transferAutomationOwner(a.id, { fromUserId, toUserId: targetId, byUserId: me });
-        if (!moved) throw new HttpError(409, 'owner_changed', 'The owner of this routine changed in the meantime. Reload and try again.');
+        if (!moved) throw new HttpError(409, 'owner_changed', 'The owner of this automation changed in the meantime. Reload and try again.');
 
         const warnings = [];
         // App-event subscriptions carry the OWNER's id and use their connected
         // account; dispatch skips a subscription that belongs to anyone else.
-        // An active routine is re-registered under the new owner from the copy
+        // An active automation is re-registered under the new owner from the copy
         // that runs.
         if (moved.isActive) {
             try {
@@ -260,7 +260,7 @@ function makeSharingRouter(overrides = {}) {
                 log.warn(`[automation sharing] subscription re-sync after transfer failed for ${a.id}: ${e.message}`);
                 warnings.push({
                     code: 'transfer.subscription_resync_failed', params: {},
-                    message: 'The routine could not re-connect its event trigger for the new owner. Pause it and switch it on again.',
+                    message: 'The automation could not re-connect its event trigger for the new owner. Pause it and switch it on again.',
                 });
             }
         }
@@ -277,8 +277,8 @@ function makeSharingRouter(overrides = {}) {
     });
 
     // ── GET /:id/principals ─────────────────────────────────────────────
-    // The people and groups of the routine's organisation, for the sharing
-    // dialog and the notification recipients. Scoped to the ROUTINE (not the
+    // The people and groups of the automation's organisation, for the sharing
+    // dialog and the notification recipients. Scoped to the AUTOMATION (not the
     // caller's session org) and readable by anyone who may see it: the admin
     // lists (/auth/users, /auth/groups) are admin-only, and the approvals
     // directory sits behind the approvals licence. Minimal fields only, the

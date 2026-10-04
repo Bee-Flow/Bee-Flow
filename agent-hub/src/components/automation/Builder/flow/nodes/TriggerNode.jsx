@@ -62,7 +62,7 @@ export default function TriggerNode({ id, data }) {
     const { t } = useTranslation();
     const kind = step.kind || 'manual';
 
-    // The button this routine was made from, if it says so. Resolved through
+    // The button this automation was made from, if it says so. Resolved through
     // the shared loader (flow/appRefLabel.js) rather than threaded down
     // through the layout: an app_trigger is primary-only, so there is at most
     // ONE such card per canvas, and it asks for the same reference the
@@ -107,7 +107,7 @@ export default function TriggerNode({ id, data }) {
                     opening with a dotted id in monospace — which reads as
                     configuration the author is supposed to already understand,
                     on the one card that should be telling them in plain words
-                    what starts this routine. Same move the schedule branch
+                    what starts this automation. Same move the schedule branch
                     above makes with its cron pattern.
                     The id is demoted, never deleted: it stays on the tooltip,
                     because it is the string you need when a subscription
@@ -154,9 +154,9 @@ export default function TriggerNode({ id, data }) {
             const viewerChip = (
                 <NodeChip
                     key="__viewer"
-                    title={t('routines.trigger.viewer_chip_title', 'Their ID only — no name or e-mail address')}
+                    title={t('automations.trigger.viewer_chip_title', 'Their ID only — no name or e-mail address')}
                 >
-                    {t('routines.trigger.viewer_chip', 'Signed-in user')}
+                    {t('automations.trigger.viewer_chip', 'Signed-in user')}
                 </NodeChip>
             );
             sub = (
@@ -204,8 +204,8 @@ export default function TriggerNode({ id, data }) {
             // The kicker reads "BUTTON IN AN APP · 1" for an app trigger. The
             // generic "TRIGGER" is true of every one of the eight kinds and so
             // tells the reader nothing; this card is the one place where what
-            // starts the routine is a thing in another product surface.
-            typeLabel={kind === 'app_trigger' ? t('routines.trigger.app_button', 'Button in an app') : nodeTypeLabel('trigger')}
+            // starts the automation is a thing in another product surface.
+            typeLabel={kind === 'app_trigger' ? t('automations.trigger.app_button', 'Button in an app') : nodeTypeLabel('trigger')}
             help={kindLabel}
             // An unnamed trigger is called by its kind: triggerTypeLabel already
             // reads "Manual trigger", so appending the word gave "Manual trigger
@@ -231,7 +231,7 @@ export default function TriggerNode({ id, data }) {
  * viewer was told one, the raw id otherwise, and the word "gone" only when the
  * server said which level is gone.
  *
- * A pointer that resolves to nothing is NOT "no trigger" — the routine still
+ * A pointer that resolves to nothing is NOT "no trigger" — the automation still
  * fires from an app action — so this says so on the card instead of falling
  * silently back to a nameless trigger.
  */
@@ -240,10 +240,10 @@ function AppRefPlace({ record, appRef, t }) {
     const d = appRefDisplay(record, appRef);
 
     if (d.gone === 'app') {
-        return <span className="italic text-[var(--text-tertiary)]" title={d.appId || undefined}>{t('routines.trigger.app_gone', 'App is gone')} · </span>;
+        return <span className="italic text-[var(--text-tertiary)]" title={d.appId || undefined}>{t('automations.trigger.app_gone', 'App is gone')} · </span>;
     }
     if (d.restricted) {
-        return <span className="italic text-[var(--text-tertiary)]" title={d.appId || undefined}>{t('routines.trigger.app_hidden', 'An app you cannot open')} · </span>;
+        return <span className="italic text-[var(--text-tertiary)]" title={d.appId || undefined}>{t('automations.trigger.app_hidden', 'An app you cannot open')} · </span>;
     }
     if (d.unknown) {
         // The lookup failed. The ids are still true, so show them and claim
@@ -251,7 +251,7 @@ function AppRefPlace({ record, appRef, t }) {
         return <span className="text-[var(--text-tertiary)]" title={`${d.appId || ''} · ${d.screenId || ''}`}>{d.appText} · </span>;
     }
     const screen = d.gone === 'screen'
-        ? <span className="italic text-[var(--text-tertiary)]">{t('routines.trigger.screen_gone', 'screen is gone')}</span>
+        ? <span className="italic text-[var(--text-tertiary)]">{t('automations.trigger.screen_gone', 'screen is gone')}</span>
         : d.screenText;
     return (
         <span title={`${d.appId || ''} · ${d.screenId || ''}`}>

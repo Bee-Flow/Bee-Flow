@@ -106,7 +106,7 @@ describe('de legenda', () => {
         expect(screen.getByText(/Data table · 1/)).toBeInTheDocument();
         // Een familie die niet voorkomt, staat er ook niet — de legenda is een
         // uitleg van wat er staat, geen woordenlijst.
-        expect(screen.queryByText(/Routine ·/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Automation ·/)).not.toBeInTheDocument();
     });
 
     it('zolang de lezing loopt, staat er "aan het uitzoeken"', () => {

@@ -106,7 +106,7 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                         ? DETECTED_SOURCE_HINT
                         : 'This step has no list to work through yet — pick the step whose results it should edit.'}
                     warning={unresolved
-                        ? t('routines.ndv.set_source_unresolved', 'This list was not found in the latest data, so this step had nothing to work through. Pick the list again, or re-run the step that produces it.')
+                        ? t('automations.ndv.set_source_unresolved', 'This list was not found in the latest data, so this step had nothing to work through. Pick the list again, or re-run the step that produces it.')
                         : null}
                     source={draft.arrayRef}
                     maxItems={draft.maxItems}

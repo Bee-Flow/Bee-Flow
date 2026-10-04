@@ -3,6 +3,7 @@
 const { getContract, normalizeContract, prepareDocument } = require('./documentContract');
 const { guidance, deckGuidance } = require('./documentStarters');
 const log = require('../../telemetry/log');
+const { usageLogFields } = require('../providers/usageNormalizer');
 const isDeck = (doc) => doc && doc.docType === 'presentation';
 const PROPOSAL_TOOL = { type:'function',function:{name:'propose_document_change',description:'Propose a reviewable change; this never saves the document.',parameters:{type:'object',properties:{
     explanation:{type:'string'},bodyHtml:{type:'string'},css:{type:'string'},contract:{type:'object'},design:{type:'object'},
@@ -14,7 +15,7 @@ function parseProposal(doc, raw, mode) {
     if (mode !== 'applicability') {
         if (mode !== 'design' && typeof raw.bodyHtml === 'string') patch.bodyHtml = raw.bodyHtml;
         // A presentation has no stylesheet; its look is the deck overrides
-        // (validated like a routine's), layered on the house style.
+        // (validated like an automation's), layered on the house style.
         if (typeof raw.css === 'string' && !isDeck(doc)) patch.css = raw.css;
         patch.settings = { ...doc.settings };
         if (raw.design && typeof raw.design === 'object') {
@@ -50,7 +51,7 @@ async function propose(doc, { message, mode, userId, orgId, values, history = []
     if (scan.redactedText) messages[1].content = scan.redactedText;
     const start = Date.now();
     const result = await require('../llm/llmClient').chatForcedTool(modelId,messages,PROPOSAL_TOOL,{maxTokens:16000,temperature:0.2});
-    try { await require('../../stores/usageStore').logUsage({user_id:userId,organization_id:orgId,agent_name:'document-ai',agent_type:'system',model:modelId,source:'document_ai',duration_ms:Date.now()-start,...result.usage}); } catch (e) { log.warn('[Documents] Usage logging failed:',e.message); }
+    try { await require('../../stores/usageStore').logUsage({user_id:userId,organization_id:orgId,agent_name:'document-ai',agent_type:'system',model:modelId,source:'document_ai',duration_ms:Date.now()-start,...usageLogFields(result.usage)}); } catch (e) { log.warn('[Documents] Usage logging failed:',e.message); }
     let raw = result.structured;
     if (scan.tokenMap && raw) {
         // Restore strings individually so quotes in customer data cannot break JSON.

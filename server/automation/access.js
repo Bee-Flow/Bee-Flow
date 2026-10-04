@@ -1,32 +1,32 @@
 /**
- * Who may do what with one routine (Studio → Automations handoff 5, sharing
+ * Who may do what with one automation (Studio → Automations handoff 5, sharing
  * and roles).
  *
  * Until now every automation route asked one question, `a.userId === me`, and
- * answered 403 to everybody else. A routine can now be shared with a person or
+ * answered 403 to everybody else. An automation can now be shared with a person or
  * an organisation group in one of three roles, and this module is the ONE place
- * that turns "this caller, this routine" into a role:
+ * that turns "this caller, this automation" into a role:
  *
- *   owner  the person the routine belongs to. Steps run as them.
+ *   owner  the person the automation belongs to. Steps run as them.
  *   edit   change steps and settings, activate, publish, pause. Not delete,
  *          not change who it is shared with, not hand it to someone else.
  *   view   read the steps and every run, read-only.
  *   run    start it (manual run, Test, an app button later) and see ONLY the
  *          runs they started themselves.
  *
- * Org admins holding `manage_automations` in the routine's organisation keep
+ * Org admins holding `manage_automations` in the automation's organisation keep
  * full (owner-level) access; the answer says so (`via: 'admin'`).
  *
  * THREE RULES, each one a mistake that is easy to make:
  *
  *  1. THE OWNER PATH COSTS NOTHING. `a.userId === me` answers before any
- *     lookup, so the common case (your own routine) is exactly as cheap as the
+ *     lookup, so the common case (your own automation) is exactly as cheap as the
  *     check it replaces, and a route test that never shares anything never
  *     reaches a store.
  *
  *  2. A SHARE NEVER CROSSES AN ORGANISATION. The caller's organisation is read
  *     fresh from `users` (never the session, which a moved user still carries)
- *     and must be the routine's (its stored organisation, else its owner's). A
+ *     and must be the automation's (its stored organisation, else its owner's). A
  *     share row that names a person who has since left grants them nothing.
  *
  *  3. FAIL CLOSED. A lookup that throws is "no role", logged, never a guess.
@@ -34,7 +34,7 @@
  * A lapsed `automation_sharing` licence does NOT revoke existing shares: the
  * licence gates making or widening a share (routes/automation/sharing.js),
  * the same drain exemption datatables use, so a licence lapse never locks a
- * colleague out of a routine they run every morning.
+ * colleague out of an automation they run every morning.
  *
  * Dependencies are injected (makeAutomationAccess) so tests hand in their own
  * store and user lookups; the module requires nothing at load time.
@@ -94,7 +94,7 @@ function makeAutomationAccess(overrides = {}) {
     const hasPermission = overrides.hasPermission
         || ((id, perm, session) => require('../auth/permissions').hasPermission(id, perm, session));
 
-    /** The organisation a routine belongs to: its own, else its owner's. */
+    /** The organisation an automation belongs to: its own, else its owner's. */
     async function organisationOf(automation, ownerRow = undefined) {
         if (automation?.organizationId) return automation.organizationId;
         if (!automation?.userId) return null;
@@ -103,7 +103,7 @@ function makeAutomationAccess(overrides = {}) {
     }
 
     /**
-     * The caller's role on a routine.
+     * The caller's role on an automation.
      *
      * @param {object|null} automation  a store row (rowToAutomation shape)
      * @param {string|null} userId
@@ -160,7 +160,7 @@ function makeAutomationAccess(overrides = {}) {
     }
 
     /**
-     * Route helper for a RUN: the caller's access to the routine behind it, or
+     * Route helper for a RUN: the caller's access to the automation behind it, or
      * `null` after answering 403.
      *
      *   'read'  view and up read every run; run-only reads the runs they started
@@ -223,7 +223,7 @@ function isOwnRun(run, userId) {
 }
 
 /**
- * May this caller read this run? `view` and up read every run of the routine;
+ * May this caller read this run? `view` and up read every run of the automation;
  * `run` reads only their own runs (isOwnRun).
  */
 function mayReadRun(run, access, userId) {

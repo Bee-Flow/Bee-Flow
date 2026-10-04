@@ -1,7 +1,7 @@
 // The Documents screens' reads, through React Query: a document with the
 // names of its people, the library pages, folders, starters, the composed
 // preview the canvas shows, and who is signed in. The network calls stay in
-// documentsApi.js (shared with the routine and app builders); this module is
+// documentsApi.js (shared with the automation and app builders); this module is
 // the caching and the types.
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -38,6 +38,8 @@ export interface StudioDocument {
     archived?: boolean;
     editable?: boolean;
     deletable?: boolean;
+    /** The `managed` of the GET (managedPart.managedOf): a Solution stage owns this document. */
+    managed?: unknown;
     contract?: { sections?: ContractSection[] };
     merge?: { merged: boolean; fromOthers: string[]; othersOutsideSections: boolean };
 }
@@ -55,6 +57,8 @@ export interface LibraryRow {
     updatedBy?: string | null;
     updatedAt?: string;
     archived?: boolean;
+    /** Notebook rows only: how many sources it reads. */
+    sourceCount?: number;
 }
 
 export interface LibraryFilters {
@@ -115,7 +119,7 @@ export function useLibrary(filters: LibraryFilters) {
                 ...rest,
                 ...(archived ? { archived: '1' } : {}),
                 folderId: rest.folderId,
-            }) as Promise<{ documents: LibraryRow[]; total: number; people: People }>;
+            }) as Promise<{ documents: LibraryRow[]; total: number; people: People; notebooks?: boolean; spreadsheets?: boolean }>;
         },
         placeholderData: keepPreviousData,
     });

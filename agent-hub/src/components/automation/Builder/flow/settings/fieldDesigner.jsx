@@ -22,7 +22,7 @@
 //   2. IT MUST NOT COLLIDE WITH A SIBLING. normalizeFields keeps the FIRST of
 //      a duplicate pair and drops the rest — silently — so a collision has to
 //      be refused before the edit, not discovered after it.
-//   3. WHERE THE HOST CAN REWRITE THE ROUTINE (`onRenameField`) the rename
+//   3. WHERE THE HOST CAN REWRITE THE AUTOMATION (`onRenameField`) the rename
 //      carries every ref with it in the same edit, and the author is told how
 //      many moved: "12 bindings were repointed" and "nothing pointed here yet"
 //      must not look the same.
@@ -56,7 +56,7 @@ export const PLACEHOLDER_NAME_RE = /^(?:input|arg)\d+$/;
 /**
  * What is wrong with a name that is ALREADY STORED, or null.
  *
- * Shown standing, not on commit: an imported routine, an AI-authored
+ * Shown standing, not on commit: an imported automation, an AI-authored
  * declaration or a row from before this box existed can hold a name the server
  * will refuse, and the author has to be able to see that without touching it
  * first. Two sentences, because "must start with a letter" is a lie about
@@ -81,7 +81,7 @@ export function nameProblem(name) {
  * @param {string}   o.to            what the author typed
  * @param {Array}    o.siblings      the other declared fields, for the collision check
  * @param {Function} o.onRenameField (from, to) => number|undefined — the host's
- *   rewrite of the whole routine. Absent wherever the editor can see the
+ *   rewrite of the whole automation. Absent wherever the editor can see the
  *   declaration but not the steps that bind it.
  * @param {string}   o.takenError    the collision sentence, in the caller's vocabulary
  * @param {boolean}  o.orphanNote    say out loud that nothing was repointed when
@@ -104,7 +104,7 @@ export function applyBindingRename({
     if (fieldNameTaken(siblings, next, from)) {
         return { ok: false, unchanged: false, name: from, error: takenError, note: '' };
     }
-    // The host rewrites the whole routine from ITS copy of the definition,
+    // The host rewrites the whole automation from ITS copy of the definition,
     // which still holds the old name — so that call goes FIRST. The caller
     // then renames its own declaration, because the panel's draft is what the
     // node's autosave writes back; without it the save would put the old name
@@ -121,7 +121,7 @@ function renameNote(moved, from, orphanNote) {
         // … now point at it" read as a typo in the one case an author is most
         // likely to hit.
         return moved > 0
-            ? `Renamed — ${moved} ${moved === 1 ? 'binding' : 'bindings'} in this routine now ${moved === 1 ? 'points' : 'point'} at it.`
+            ? `Renamed — ${moved} ${moved === 1 ? 'binding' : 'bindings'} in this automation now ${moved === 1 ? 'points' : 'point'} at it.`
             : 'Renamed. Nothing was pointing at it yet.';
     }
     // No rewrite behind the box. Said out loud rather than left to be found at
@@ -136,10 +136,10 @@ function renameNote(moved, from, orphanNote) {
  * It used to be frozen, and the panel said so: re-deriving it from the label
  * would have broken every downstream step silently. Frozen was the safe answer
  * rather than a good one, though — an author who renamed "Jouw naam" to
- * "Contactpersoon" was stuck binding `jouw_naam` for the life of the routine.
+ * "Contactpersoon" was stuck binding `jouw_naam` for the life of the automation.
  *
  * Without `onRenameField` there is no definition to rewrite — the standalone
- * Forms editor in Studio edits a form, not a routine — so the name stays
+ * Forms editor in Studio edits a form, not an automation — so the name stays
  * read-only there and says why, rather than offering an edit that would break
  * bindings it cannot see.
  */
@@ -169,7 +169,7 @@ export function BindingNameField({ field, siblings, bindingBase, onRenameField, 
                 <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Binding name</div>
                 <code className="block min-w-0 truncate text-[11px] text-[var(--text-secondary)]">{bindingBase}.{field.name}</code>
                 <p className="text-[10px] text-[var(--text-tertiary)]">
-                    Fixed here. Rename it from the routine that uses this form — there the rename can carry
+                    Fixed here. Rename it from the automation that uses this form — there the rename can carry
                     every step that binds it along with it.
                 </p>
             </div>
@@ -217,7 +217,7 @@ export function BindingNameField({ field, siblings, bindingBase, onRenameField, 
  *
  * Same commit discipline as the block above. The box holds its own draft while
  * the author types and writes on Enter or blur, so `email` on the way to
- * `email_address` is never stored, never saved, and never rewrites a routine
+ * `email_address` is never stored, never saved, and never rewrites an automation
  * eight times.
  */
 function useRowNameBox({ name, siblings, onRenameField, onCommit, sanitize, takenError, ariaLabel }) {

@@ -1,4 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({
@@ -37,7 +38,7 @@ function summaryRow(over = {}) {
         installedFromBlueprintId: null,
         counts: {
             automations: 3, apps: 1, webpages: 0, datatables: 2, agents: 0,
-            knowledgeBases: 1, notebooks: 0,
+            knowledgeBases: 1, notebooks: 0, skills: 0, documentTemplates: 0,
         },
         runs: { today: 12, failed: 0 },
         completeness: { blocked: false, complete: true, findings: 0, errors: 0, warnings: 0, unavailable: [] },
@@ -172,10 +173,10 @@ describe('one card', () => {
 
     it('A COUNT THAT COULD NOT BE READ IS NAMED, NOT LEFT OFF', () => {
         const { getByTestId, container } = cardFor({
-            counts: { automations: null, apps: 1, webpages: 0, datatables: 0, agents: 0, knowledgeBases: 0, notebooks: 0 },
+            counts: { automations: null, apps: 1, webpages: 0, datatables: 0, agents: 0, knowledgeBases: 0, notebooks: 0, skills: 0, documentTemplates: 0 },
         });
         expect(container.querySelectorAll('[data-testid="solution-card-chip"]')).toHaveLength(1);
-        expect(getByTestId('solution-card-counts-partial').textContent).toContain('routines');
+        expect(getByTestId('solution-card-counts-partial').textContent).toContain('automations');
     });
 
     it('is Complete only when the checks ran and found nothing', () => {
@@ -319,5 +320,66 @@ describe('the Catalogue tab', () => {
         const { getByTestId, queryByText } = render(<SolutionsOverview summary={OK([])} />);
         expect(getByTestId('projects-page-install-blueprint')).toBeTruthy();
         expect(queryByText('Kept on this instance:')).toBeNull();
+    });
+});
+
+describe('the redesigned toolbar and states', () => {
+    it('shows skeleton cards, marked busy, while the overview loads', () => {
+        const { getByTestId, container } = render(
+            <SolutionsOverview summary={{ status: 'loading', rows: [], unavailable: [], hasMore: false }} />,
+        );
+        expect(getByTestId('solutions-loading').getAttribute('aria-busy')).toBe('true');
+        expect(container.querySelectorAll('[data-testid="solution-card-skeleton"]')).toHaveLength(6);
+    });
+
+    it('offers Retry on a failed overview', async () => {
+        const onRetry = vi.fn();
+        const { getByTestId } = render(
+            <SolutionsOverview summary={{ status: 'error', rows: [], unavailable: ['all'], hasMore: false }} onRetry={onRetry} />,
+        );
+        await userEvent.click(getByTestId('solutions-overview-retry'));
+        expect(onRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('searches by name and says so when nothing matches', async () => {
+        const { getByTestId, queryAllByTestId } = render(
+            <SolutionsOverview summary={OK([summaryRow({ id: 'a', name: 'Quotes' }), summaryRow({ id: 'b', name: 'Invoices' })])} />,
+        );
+        await userEvent.type(getByTestId('solutions-search'), 'invo');
+        expect(queryAllByTestId('solutions-card')).toHaveLength(1);
+        await userEvent.type(getByTestId('solutions-search'), 'zzz');
+        expect(getByTestId('solutions-empty').textContent).toContain('No Solution matches');
+    });
+
+    it('puts a Solution with failed runs first and filters on Needs attention', async () => {
+        const { getAllByTestId, getByRole } = render(
+            <SolutionsOverview summary={OK([
+                summaryRow({ id: 'a', name: 'Calm' }),
+                summaryRow({ id: 'b', name: 'Failing', runs: { today: 3, failed: 2 } }),
+            ])} />,
+        );
+        expect(getAllByTestId('solutions-card')[0].getAttribute('data-project')).toBe('b');
+        await userEvent.click(getByRole('button', { name: /Needs attention/ }));
+        expect(getAllByTestId('solutions-card')).toHaveLength(1);
+    });
+
+    it('draws the Dev, UAT and PRD track on a card with stages', () => {
+        const { getByTestId } = render(
+            <SolutionsOverview summary={OK([summaryRow({ stages: [
+                { stage: 'uat', projectId: 'u', currentReleaseSeq: 2, lastDeploymentStatus: 'succeeded' },
+                { stage: 'prd', projectId: 'p', currentReleaseSeq: 1, lastDeploymentStatus: 'failed' },
+            ] })])} />,
+        );
+        const track = getByTestId('solution-card-stages');
+        expect(track.textContent).toContain('Dev');
+        expect(track.textContent).toContain('UAT R2');
+        expect(track.textContent).toContain('last deployment failed');
+    });
+
+    it('first-run empty state offers to create or to install', async () => {
+        const { getByText, getByTestId } = render(<SolutionsOverview summary={OK([])} />);
+        expect(getByText('Create first Solution')).toBeTruthy();
+        await userEvent.click(getByTestId('solutions-empty-install'));
+        await waitFor(() => expect(getByText(/No Blueprints are kept|Blueprint v/)).toBeTruthy());
     });
 });

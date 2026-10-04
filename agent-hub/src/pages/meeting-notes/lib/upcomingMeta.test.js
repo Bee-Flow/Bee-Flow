@@ -15,6 +15,8 @@ import {
     NOTICE_TALK_POST,
     NOTICE_TALK_QUIET,
     NOTICE_MEET_SHARE,
+    NOTICE_TEAMS_SHARE,
+    NOTICE_TEAMS_AUTORECORD,
     NOTICE_MEET_AUTORECORD,
 } from './upcomingMeta';
 
@@ -160,6 +162,16 @@ describe('upcomingMeta — de voetregel belooft alleen wat de bot echt doet', ()
     it('belooft ook mét write-back geen MELDING — het bericht is silent', () => {
         expect(NOTICE_TALK_POST.en).toContain('nobody gets a notification');
         expect(NOTICE_TALK_POST.en).not.toMatch(/participants (get|are) notified/i);
+    });
+
+    it('Teams: the sharing line for any note-producing row, the auto-record line only when armed', () => {
+        const rows = [{ provider: 'teams', status: 'will_record', m: { organizerSelf: true } }];
+        expect(attendeeNotices({ rows })).toEqual([NOTICE_TEAMS_SHARE]);
+        expect(attendeeNotices({ rows, teamsAutoRecordArmed: true })).toEqual([NOTICE_TEAMS_SHARE, NOTICE_TEAMS_AUTORECORD]);
+        // "Record in Teams" still produces a note, an "Organizer only" row does not.
+        expect(attendeeNotices({ rows: [{ provider: 'teams', status: 'manual_record_teams', m: {} }] })).toEqual([NOTICE_TEAMS_SHARE]);
+        expect(attendeeNotices({ rows: [{ provider: 'teams', status: 'not_organizer', m: {} }], teamsAutoRecordArmed: true })).toEqual([]);
+        expect(NOTICE_TEAMS_SHARE.en).toContain('does not notify them');
     });
 
     it('de Meet-zin gaat over leesrecht, nooit over een melding van ONS', () => {

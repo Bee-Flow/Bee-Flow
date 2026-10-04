@@ -6,7 +6,7 @@ import Modal from '../../../shared/Modal';
 /**
  * App picker for the "App event" trigger — the same overlay + search list +
  * detail pane the agent editor uses (AgentWizard/pickers/AppsPicker), so
- * choosing what starts a routine looks like choosing what an agent may use.
+ * choosing what starts an automation looks like choosing what an agent may use.
  *
  * A plain <select> of provider ids gave no logos, no search and no way to see
  * what an app can actually trigger on before picking it. The detail pane lists
@@ -119,8 +119,8 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
                                 <h3 className="text-2xl font-semibold text-[var(--text-primary)] mb-3">{focused.label}</h3>
                                 <p className="text-sm text-[var(--text-secondary)] leading-6 mb-5">
                                     {focusedEvents.length === 1
-                                        ? 'Starts this routine when the event below happens.'
-                                        : `Starts this routine when one of these ${focusedEvents.length} events happens.`}
+                                        ? 'Starts this automation when the event below happens.'
+                                        : `Starts this automation when one of these ${focusedEvents.length} events happens.`}
                                 </p>
                                 <ul className="space-y-1.5">
                                     {focusedEvents.map(ev => (

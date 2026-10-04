@@ -3,7 +3,7 @@ import { buildValue, describeDataPath, isDataPath, parseValue } from './valuePar
 
 /**
  * The visual value model is only trustworthy if it round-trips: whatever a
- * saved routine holds must come back out of the editor unchanged unless the
+ * saved automation holds must come back out of the editor unchanged unless the
  * user actually changed it. Everything this module reports as `supported` is
  * therefore checked binding -> parts -> binding here.
  */

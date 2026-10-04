@@ -4,6 +4,11 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { makeTaskAssistant, cleanSuggestion, contextAround, meetingPrompt } = require('./taskAssistant');
 const { PrivacyBlocked } = require('./chatShield');
+const { realClaudeAdapter, realGeminiAdapter, assertClaudeEntry, assertGeminiEntry } = require('../core/providers/usageHarness');
+
+/** The usage an adapter really hands back (non-streaming), for the cache tests. */
+const claudeUsage = async () => (await realClaudeAdapter().chat('k', null, 'claude-sonnet-4-6', [{ role: 'user', content: 'x' }])).usage;
+const geminiUsage = async () => (await realGeminiAdapter().chat('k', null, 'gemini-3-flash-preview', [{ role: 'user', content: 'x' }])).usage;
 
 const PROJECT = { id: 'p1', name: 'Launch' };
 const PEOPLE = [{ id: 'u-ben', name: 'Ben Tester' }, { id: 'u-eva', name: 'Eva Stone' }];
@@ -34,7 +39,7 @@ function world(over = {}) {
         llmChat: async (modelId, messages, options) => {
             seen.messages.push({ modelId, messages, options });
             if (over.throws) throw over.throws;
-            return { content: over.content ?? JSON.stringify({ items: [] }), usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 } };
+            return { content: over.content ?? JSON.stringify({ items: [] }), usage: over.usage ?? { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 } };
         },
         checkLimits: over.checkLimits || (async () => null),
         logUsage: async (e) => { seen.usage.push(e); },
@@ -117,4 +122,14 @@ test('one task is improved, keeping its title when the model gives none, and nev
     const out = await assistant.forTask({ ...base, task: { title: 'Fix the thing', description: 'old', priority: 'normal', labels: [], checklist: [] }, people: PEOPLE });
     assert.deepStrictEqual([out.title, out.description, out.priority, out.labels, out.assigneeId], ['Fix the thing', 'Clearer.', 'low', ['ops'], 'u-eva']);
     assert.strictEqual(cleanSuggestion({ assigneeId: 'x' }, new Set(['u-eva'])).assigneeId, null);
+});
+
+test('the usage row carries the cache read/write of a Claude or Gemini call, not zeros', async () => {
+    const content = JSON.stringify({ items: [{ itemId: 'ai-1', title: 'Send the Acme offer' }] });
+    for (const [usage, assertEntry] of [[await claudeUsage(), assertClaudeEntry], [await geminiUsage(), assertGeminiEntry]]) {
+        const { assistant, base, seen } = world({ content, usage });
+        await assistant.forMeeting({ ...base, note: NOTE, items: ITEMS, people: PEOPLE });
+        assert.strictEqual(seen.usage.length, 1);
+        assertEntry(seen.usage[0]);
+    }
 });

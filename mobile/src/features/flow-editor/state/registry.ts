@@ -1,15 +1,15 @@
 /**
- * One draft store per open routine, handed out by key.
+ * One draft store per open automation, handed out by key.
  *
  * The build screen, the step editor pushed over it and the settings screen
  * all ask for the same key and get the same store. Each screen RETAINS it
  * while mounted; when the last one lets go, the store is flushed and kept for
- * a grace period — long enough for a `router.replace` (the new-routine screen
+ * a grace period — long enough for a `router.replace` (the new-automation screen
  * handing over to the build screen) to pick it up again, history and all —
  * and then flushed once more and disposed, unless it is still unsaved: then
  * it stays, so nothing typed is thrown away while the app is open.
  *
- * A new routine has no id yet: its screen takes a one-off key, and when the
+ * A new automation has no id yet: its screen takes a one-off key, and when the
  * row is created the store is ALSO registered under the new id (`alias`), so
  * a screen opened for that id finds the store that created it.
  */
@@ -17,7 +17,7 @@
 import type { DraftStore } from './types';
 
 export const RELEASE_GRACE_MS = 10_000;
-/** The longest wait between two more attempts to save a closed routine's unsaved edits. */
+/** The longest wait between two more attempts to save a closed automation's unsaved edits. */
 export const KEEP_TRYING_MAX_MS = 5 * 60_000;
 
 interface Entry {
@@ -30,7 +30,7 @@ interface Entry {
 const entries = new Map<string, Entry>();
 let newKeys = 0;
 
-/** A key for a routine that does not exist yet; unique per screen. */
+/** A key for an automation that does not exist yet; unique per screen. */
 export function newDraftKey(): string {
     newKeys += 1;
     return `new:${newKeys}`;
@@ -54,7 +54,7 @@ export function draftStoreFor(key: string, create: () => DraftStore): DraftStore
     return entry.store;
 }
 
-/** Also find the store under `key` under `alias` (a new routine's id, once it has one). */
+/** Also find the store under `key` under `alias` (a new automation's id, once it has one). */
 export function aliasDraftStore(key: string, alias: string): void {
     const entry = entries.get(key);
     if (!entry || entries.get(alias) === entry) return;
@@ -78,7 +78,7 @@ function dispose(entry: Entry): void {
 /**
  * After the grace period: flush once more, and dispose only a store the server
  * holds. One still unsaved (offline, a server that fails) is KEPT, found again
- * by the next screen that opens the routine, and flushed again later, backing
+ * by the next screen that opens the automation, and flushed again later, backing
  * off up to KEEP_TRYING_MAX_MS; one the server refused waits for that screen.
  */
 function settleLater(entry: Entry, delayMs: number): void {
@@ -108,7 +108,7 @@ export function releaseDraftStore(key: string, graceMs = RELEASE_GRACE_MS): void
 }
 
 /**
- * Make sure the server holds what is on screen for this routine, before
+ * Make sure the server holds what is on screen for this automation, before
  * something reads the STORED definition (a test run, activation, a restore,
  * an AI turn). True when there is nothing unsaved — including when no editor
  * is open for it at all.

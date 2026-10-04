@@ -194,7 +194,7 @@ describe('approval stages — the persisted shape', () => {
         expect(buildPatch(step, draft).approval).toBeUndefined();   // nothing changed
     });
 
-    it('drops a stage nobody sits in rather than 400 the whole routine', () => {
+    it('drops a stage nobody sits in rather than 400 the whole automation', () => {
         expect(sanitizeApprovalStages([
             { key: 's1', name: 'Team lead', approvers: [{ userId: 'u1' }], rule: 'all' },
             { key: 's2', name: 'Nobody', approvers: [null, {}], rule: 'all' },

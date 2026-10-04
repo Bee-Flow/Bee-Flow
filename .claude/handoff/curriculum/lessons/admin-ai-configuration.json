@@ -167,7 +167,7 @@
   {
    "type": "quiz",
    "id": "q-search",
-   "question": "A routine at Van Dijk that used to cite web pages now cites none. The Web search toggle is on, the agent allows external tools, and the routine is unchanged. What do you have someone check first?",
+   "question": "An automation at Van Dijk that used to cite web pages now cites none. The Web search toggle is on, the agent allows external tools, and the automation is unchanged. What do you have someone check first?",
    "multi": false,
    "choices": [
     {
@@ -177,7 +177,7 @@
     },
     {
      "id": "b",
-     "label": "The tier on the routine's AI step — Fast cannot use tools.",
+     "label": "The tier on the automation's AI step — Fast cannot use tools.",
      "correct": false,
      "feedback": "Depth tiers set how hard the model thinks and how much it may write, not which tools exist. A tool that is missing is missing on every tier."
     },

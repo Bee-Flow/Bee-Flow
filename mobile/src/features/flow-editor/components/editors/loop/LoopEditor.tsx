@@ -115,7 +115,7 @@ export function LoopEditor(editor: StepEditorProps) {
                     disabled={editor.ctx.disabled}
                 />
                 <NumberField
-                    label={t('routines.canvas.loop_max_title', 'Max iterations')}
+                    label={t('automations.canvas.loop_max_title', 'Max iterations')}
                     hint={t('mobile.flow.loop.max_iterations_hint', 'Safety cap. 1–1000.')}
                     value={draft.maxIterations ?? 100}
                     min={1}

@@ -17,7 +17,7 @@
  *     would widen the audience while the person thought they narrowed it.
  *
  * Notes:
- *   - Routines (automations) are intentionally user-private and do not have
+ *   - Automations (automations) are intentionally user-private and do not have
  *     `is_published` / `shared_groups` columns.
  *   - The legacy `knowledge_metadata` table (per-agent) is NOT the studio KB
  *     path. Studio KBs live in `knowledge_bases` and use the same
@@ -91,8 +91,8 @@ const Permissions = Object.freeze({
     MANAGE_KNOWLEDGE: 'manage_knowledge',
     MANAGE_APPS: 'manage_apps',
     // Org-level: read the WHOLE organisation's automation runs (Studio →
-    // Runs & log, scope=org). Routines themselves stay user-private —
-    // this grants a read of the run LOG, not access to anyone's routine.
+    // Runs & log, scope=org). Automations themselves stay user-private —
+    // this grants a read of the run LOG, not access to anyone's automation.
     MANAGE_AUTOMATIONS: 'manage_automations',
     // Org-level: tenant customer-support inbox (Studio → Support). Distinct
     // from the super-admin ADMIN_SUPPORT (Bee Flow's own company inbox).
@@ -140,10 +140,10 @@ const SYSTEM_PERMISSIONS = [
     { id: 'manage_components', name: 'Manage Components', description: 'Create and edit workflow components', group: 'actions' },
     { id: 'manage_knowledge', name: 'Manage Knowledge', description: 'Create, edit, delete, and ingest knowledge bases', group: 'actions' },
     { id: 'manage_apps', name: 'Manage Apps', description: 'Create and publish apps', group: 'actions' },
-    { id: 'manage_automations', name: 'Manage Automations', description: "Org: see every routine's runs in the organisation's run log (Studio → Runs & log). Does not grant access to the routines themselves — those stay private to their owner.", group: 'actions' },
+    { id: 'manage_automations', name: 'Manage Automations', description: "Org: see every automation's runs in the organisation's run log (Studio → Runs & log). Does not grant access to the automations themselves — those stay private to their owner.", group: 'actions' },
     { id: 'support_inbox', name: 'Support Inbox', description: 'Org: connect a support mailbox and triage, reply to, and resolve customer tickets in the Studio Support tab', group: 'actions' },
     { id: 'use_notebooks', name: 'Use Notebooks', description: 'Create, edit, and delete personal notebooks', group: 'actions' },
-    { id: 'use_datatables', name: 'Use Datatables', description: 'Read and write rows in datatables shared with you, and run routine steps that use them', group: 'actions' },
+    { id: 'use_datatables', name: 'Use Datatables', description: 'Read and write rows in datatables shared with you, and run automation steps that use them', group: 'actions' },
     { id: 'manage_datatables', name: 'Manage Datatables', description: 'Create, change, share and delete datatables', group: 'actions' },
 
     // ── Studio ──
@@ -162,17 +162,33 @@ const SYSTEM_PERMISSIONS = [
     // "which of its people may publish a public page" — and the id has been in
     // the registry (and in existing role configs) the whole time.
     { id: 'use_webpages', name: 'Use Webpages', description: 'Design and publish public webpages in Studio', group: 'studio' },
-    { id: 'use_automations', name: 'Use Automations', description: 'Build and run multi-step routines in the Automations builder', group: 'studio' },
+    { id: 'use_automations', name: 'Use Automations', description: 'Build and run multi-step automations in the Automations builder', group: 'studio' },
     { id: 'use_approvals', name: 'Use Approvals', description: 'See the approvals waiting on you and the decisions you were part of', group: 'studio' },
     { id: 'use_apps', name: 'Use Apps', description: 'Open the internal apps published to you', group: 'studio' },
     { id: 'use_forms', name: 'Use Forms', description: 'See the forms published in the organisation and their public links', group: 'studio' },
-    { id: 'use_solutions', name: 'Use Solutions', description: 'Bundle routines, apps and webpages into installable Solutions', group: 'studio' },
+    { id: 'use_solutions', name: 'Use Solutions', description: 'Bundle automations, apps and webpages into installable Solutions', group: 'studio' },
     { id: 'use_meeting_notes', name: 'Use Meeting Notes', description: 'Record and read meeting transcripts, speakers and actions', group: 'studio' },
 
     // ── n8n Integration ──
     { id: 'use_n8n_tools', name: 'Use n8n Tools', description: 'Run n8n webhook workflows and inspect workflow definitions via AI', group: 'actions' },
     { id: 'modify_n8n_workflows', name: 'Modify n8n Workflows', description: 'Allow AI to create, edit, delete, activate, and execute n8n workflows on behalf of the user', group: 'actions' },
 ];
+
+/**
+ * Capability grants that carry a UI permission with them.
+ *
+ * A group-scoped beta (betaFeatures.js `groupScoped`) is meant to be rolled
+ * out per group from the Access matrix. Its Studio section is ALSO gated on a
+ * role permission (studioApps.jsx, mobile studio registry), and the default
+ * `member` role does not carry that permission — so a group grant alone left
+ * the members it was meant for staring at a hidden section. Granting the
+ * capability to a group therefore grants the matching permission to that
+ * group's members. Everyone else keeps resolving it from their role exactly as
+ * before, so the org's Roles screen still decides for org-wide access.
+ */
+const GROUP_GRANT_IMPLIED_PERMISSIONS = Object.freeze({
+    meeting_notes: Object.freeze(['use_meeting_notes']),
+});
 
 // ── Load org role → permissions mapping from config file ──
 let _orgRolePermissions = null;
@@ -198,7 +214,7 @@ function getOrgRolePermissions() {
  * The Microsoft scope set, in ONE place.
  *
  * It used to be a string literal copied into three files (this one, the vault
- * refresh in auth/routineAuth.js and the session refresh in
+ * refresh in auth/automationAuth.js and the session refresh in
  * integrations/msGraphClient.js). A refresh that re-requests fewer scopes than
  * were granted silently downgrades the token, so every copy that fell out of
  * date was a grant quietly losing capabilities on its next refresh.
@@ -207,7 +223,10 @@ const MICROSOFT_SCOPES = Object.freeze([
     'openid', 'email', 'profile', 'User.Read',
     'Mail.Read', 'Mail.Send',
     'Calendars.ReadWrite', 'Files.ReadWrite', 'Contacts.ReadWrite',
-    'OnlineMeetings.Read', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetingArtifact.Read.All',
+    // Teams meeting notes: ReadWrite to switch on recordAutomatically for a
+    // meeting the user organizes, Recording to download the MP4 we transcribe.
+    'OnlineMeetings.ReadWrite', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetingArtifact.Read.All',
+    'OnlineMeetingRecording.Read.All',
     'offline_access',
 ]);
 
@@ -249,7 +268,7 @@ const OAUTH_PROVIDERS = {
     // is no /auth/login/withings branch and no user is ever created from it.
     // The entry lives here so the connector route
     // (routes/integrations/withings.js) and the vault refresher
-    // (auth/routineAuth.js refreshWithings) read one set of endpoints. The
+    // (auth/automationAuth.js refreshWithings) read one set of endpoints. The
     // client id/secret are admin-global secrets in configStore
     // (`withings_client_id` / `withings_client_secret`, the LinkedIn pattern),
     // NOT config.providers — that object drives the SSO login screen.
@@ -619,6 +638,12 @@ async function getUserPermissions(userId, session = null) {
 
             // Add group-level permissions
             for (const p of (group.permissions || [])) permSet.add(p);
+
+            // …and the permissions a capability grant to this group implies.
+            const granted = Array.isArray(group.granted_capabilities) ? group.granted_capabilities : [];
+            for (const capId of granted) {
+                for (const p of (GROUP_GRANT_IMPLIED_PERMISSIONS[capId] || [])) permSet.add(p);
+            }
 
             // Resolve roles attached to the group
             for (const rid of (group.roles || [])) {
@@ -1305,6 +1330,7 @@ module.exports = {
     invalidatePermissionCache,
     invalidateAllPermissionCaches,
     invalidateUserExistenceCache,
+    GROUP_GRANT_IMPLIED_PERMISSIONS,
     OrgRoles,
     SystemRoles,
     Permissions,

@@ -31,12 +31,12 @@ function Panel({ draft, setMany, directory, disabled }: RoundProps) {
     const t = useTranslation();
     const seats = (Array.isArray(draft.approvers) ? draft.approvers : []) as Seat[];
     const real = seats.filter((s) => s && (s.userId || s.groupId)).length;
-    const options = [{ value: '', label: t('routines.builder.approval_pick_seat', '— pick a person or group —') }, ...directoryOptions(directory, t('mobile.flow.approval.groups', 'Groups'))];
+    const options = [{ value: '', label: t('automations.builder.approval_pick_seat', '— pick a person or group —') }, ...directoryOptions(directory, t('mobile.flow.approval.groups', 'Groups'))];
     const rule = typeof draft.rule === 'string' && draft.rule ? draft.rule : 'all';
     return (
         <>
             <FieldRow
-                label={t('routines.versions.setting.approvers', 'Approvers')}
+                label={t('automations.versions.setting.approvers', 'Approvers')}
                 hint={t('mobile.flow.approval.approvers_hint', 'Up to 10 seats — a person, or a group whose first voting member fills the seat. How the votes resolve is set below. Remove every seat to go back to a single approver.')}
             >
                 {seats.map((seat, i) => (
@@ -61,7 +61,7 @@ function Panel({ draft, setMany, directory, disabled }: RoundProps) {
                         />
                     </FieldRow>
                 ))}
-                {seats.length < MAX_PANEL_SEATS ? <AddButton label={t('routines.builder.approval_stage_seat_add', 'Add approver')} onPress={() => setMany({ approvers: [...seats, null] })} disabled={disabled} /> : null}
+                {seats.length < MAX_PANEL_SEATS ? <AddButton label={t('automations.builder.approval_stage_seat_add', 'Add approver')} onPress={() => setMany({ approvers: [...seats, null] })} disabled={disabled} /> : null}
             </FieldRow>
             {real >= 2 ? (
                 <FieldRow
@@ -101,15 +101,15 @@ export function ApprovalRound(props: RoundProps & { onUseStages: () => void }) {
                 </>
             )}
             <SelectField
-                label={t('routines.builder.approval_final_stage_name', 'Final sign-off')}
+                label={t('automations.builder.approval_final_stage_name', 'Final sign-off')}
                 hint={t('mobile.flow.approval.final_signoff_hint', 'Optional second stage: once the approver(s) say yes, this person or group has the last word — only then does the run continue.')}
                 value={seatValue(draft.finalApprover)}
                 options={[{ value: '', label: t('mobile.flow.approval.no_final', 'No final sign-off') }, ...people]}
                 onChange={(v) => setMany({ finalApprover: decodeSeat(v) })}
                 disabled={disabled}
             />
-            <Note>{t('routines.builder.approval_stages_intro', 'Need more than two rounds? Ask several groups in turn — each stage has its own approvers, its own rule and its own name.')}</Note>
-            <Button size="sm" variant="secondary" iconName="Workflow" label={t('routines.builder.approval_use_stages', 'Use approval stages')} onPress={props.onUseStages} disabled={disabled} testID="approval-use-stages" />
+            <Note>{t('automations.builder.approval_stages_intro', 'Need more than two rounds? Ask several groups in turn — each stage has its own approvers, its own rule and its own name.')}</Note>
+            <Button size="sm" variant="secondary" iconName="Workflow" label={t('automations.builder.approval_use_stages', 'Use approval stages')} onPress={props.onUseStages} disabled={disabled} testID="approval-use-stages" />
         </>
     );
 }

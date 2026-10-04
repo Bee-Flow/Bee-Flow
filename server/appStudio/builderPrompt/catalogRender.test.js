@@ -488,7 +488,8 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-09-17, 50_760 chars). A deliberate catalog change updates it here:
 // 2026-09-18, the generate_presentation step kind joined STEP_SPECS, with
 // its look fields (preset/accent/font/coverStyle/tableStyle) — 51_434 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'e9c087f302cc658fb1fa778dffcc0cd72f98d846549b581431fd268ec595d07b';
+// 2026-10-04, "routine" became "automation" throughout the catalog — 51_818 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'e8af3d2e133fed8119c30b4e639094cd1dd4c9d2b7d8c9e86bc71fc98f5808e9';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

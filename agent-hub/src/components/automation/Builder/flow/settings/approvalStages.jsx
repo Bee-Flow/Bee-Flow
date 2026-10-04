@@ -66,8 +66,8 @@ function ApprovalStagesEditor({ stages, set, directory, onFocusField, previewSam
 
     return (
         <FormRow
-            label={t('routines.builder.approval_stages_label', 'Approval stages')}
-            hint={t('routines.builder.approval_stages_hint', 'Up to 5 named steps, asked one after another. Only the current stage\'s people are asked, and only when their turn arrives — nobody further down the chain sees the request until it reaches them.')}
+            label={t('automations.builder.approval_stages_label', 'Approval stages')}
+            hint={t('automations.builder.approval_stages_hint', 'Up to 5 named steps, asked one after another. Only the current stage\'s people are asked, and only when their turn arrives — nobody further down the chain sees the request until it reaches them.')}
         >
             <div className="space-y-2">
                 {stages.map((stage, i) => (
@@ -94,7 +94,7 @@ function ApprovalStagesEditor({ stages, set, directory, onFocusField, previewSam
                                 onClick={addStage}
                                 className={actionButtonClass()}
                             >
-                                <Plus size={12} /> {t('routines.builder.approval_stage_add', 'Add stage')}
+                                <Plus size={12} /> {t('automations.builder.approval_stage_add', 'Add stage')}
                             </button>
                         )}
                         <button
@@ -102,7 +102,7 @@ function ApprovalStagesEditor({ stages, set, directory, onFocusField, previewSam
                             onClick={onDropStages}
                             className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline underline-offset-2 transition"
                         >
-                            {t('routines.builder.approval_use_simple', 'Back to one round of approval')}
+                            {t('automations.builder.approval_use_simple', 'Back to one round of approval')}
                         </button>
                     </div>
                     {/* The whole-chain budget, in the open: hitting it as a
@@ -110,8 +110,8 @@ function ApprovalStagesEditor({ stages, set, directory, onFocusField, previewSam
                         this line exists to prevent. */}
                     <span className={budgetLeft <= 0 ? 'text-[11px] text-[var(--error)]' : subLabelClass()}>
                         {budgetLeft <= 0
-                            ? t('routines.builder.approval_stage_budget_full', 'The chain is full at {max} approvers — remove one before adding another.', { max: String(MAX_TOTAL_STAGE_SEATS) })
-                            : t('routines.builder.approval_stage_budget', '{used} of {max} approvers used across the chain', { used: String(used), max: String(MAX_TOTAL_STAGE_SEATS) })}
+                            ? t('automations.builder.approval_stage_budget_full', 'The chain is full at {max} approvers — remove one before adding another.', { max: String(MAX_TOTAL_STAGE_SEATS) })
+                            : t('automations.builder.approval_stage_budget', '{used} of {max} approvers used across the chain', { used: String(used), max: String(MAX_TOTAL_STAGE_SEATS) })}
                     </span>
                 </div>
             </div>
@@ -130,7 +130,7 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
     const hasWhen = typeof stage.when === 'string' && stage.when.length > 0;
     const [showWhen, setShowWhen] = useState(false);
     const whenOpen = showWhen || hasWhen;
-    const position = t('routines.builder.approval_stage_position', 'Stage {n} of {m}', {
+    const position = t('automations.builder.approval_stage_position', 'Stage {n} of {m}', {
         n: String(index + 1), m: String(total),
     });
 
@@ -147,15 +147,15 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                     value={stage.name || ''}
                     maxLength={MAX_STAGE_NAME_LEN}
                     onChange={(e) => onPatch({ name: e.target.value })}
-                    placeholder={t('routines.builder.approval_stage_name_ph', 'Name this stage — Team lead, Finance…')}
-                    aria-label={t('routines.builder.approval_stage_name_aria', 'Name of stage {n}', { n: String(index + 1) })}
+                    placeholder={t('automations.builder.approval_stage_name_ph', 'Name this stage — Team lead, Finance…')}
+                    aria-label={t('automations.builder.approval_stage_name_aria', 'Name of stage {n}', { n: String(index + 1) })}
                     className={controlSurfaceClass('flex-1 min-w-0 px-2 py-1 text-sm')}
                 />
                 <button
                     type="button"
                     onClick={() => onMove(-1)}
                     disabled={index === 0}
-                    aria-label={t('routines.builder.approval_stage_up', 'Move stage {n} earlier', { n: String(index + 1) })}
+                    aria-label={t('automations.builder.approval_stage_up', 'Move stage {n} earlier', { n: String(index + 1) })}
                     className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-30 transition"
                 >
                     <ChevronUp size={13} />
@@ -164,7 +164,7 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                     type="button"
                     onClick={() => onMove(1)}
                     disabled={index === total - 1}
-                    aria-label={t('routines.builder.approval_stage_down', 'Move stage {n} later', { n: String(index + 1) })}
+                    aria-label={t('automations.builder.approval_stage_down', 'Move stage {n} later', { n: String(index + 1) })}
                     className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-30 transition"
                 >
                     <ChevronDown size={13} />
@@ -172,7 +172,7 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                 <button
                     type="button"
                     onClick={onRemove}
-                    aria-label={t('routines.builder.approval_stage_remove', 'Remove stage {n}', { n: String(index + 1) })}
+                    aria-label={t('automations.builder.approval_stage_remove', 'Remove stage {n}', { n: String(index + 1) })}
                     className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--error)] transition"
                 >
                     <Trash2 size={13} />
@@ -184,8 +184,8 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                 value={stage.description || ''}
                 maxLength={MAX_STAGE_DESCRIPTION_LEN}
                 onChange={(e) => onPatch({ description: e.target.value })}
-                placeholder={t('routines.builder.approval_stage_desc_ph', 'What are these approvers checking? (optional)')}
-                aria-label={t('routines.builder.approval_stage_desc_aria', 'Description of stage {n}', { n: String(index + 1) })}
+                placeholder={t('automations.builder.approval_stage_desc_ph', 'What are these approvers checking? (optional)')}
+                aria-label={t('automations.builder.approval_stage_desc_aria', 'Description of stage {n}', { n: String(index + 1) })}
                 className={controlSurfaceClass('w-full px-2 py-1 text-sm')}
             />
 
@@ -195,17 +195,17 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                         <select
                             value={seatSelectValue(seat)}
                             onChange={(e) => setSeat(si, e.target.value)}
-                            aria-label={t('routines.builder.approval_stage_seat_aria', 'Stage {n}, approver {s}', { n: String(index + 1), s: String(si + 1) })}
+                            aria-label={t('automations.builder.approval_stage_seat_aria', 'Stage {n}, approver {s}', { n: String(index + 1), s: String(si + 1) })}
                             className={controlSurfaceClass('flex-1 min-w-0 px-2 py-1 text-sm')}
                         >
-                            <option value="">{t('routines.builder.approval_pick_seat', '— pick a person or group —')}</option>
+                            <option value="">{t('automations.builder.approval_pick_seat', '— pick a person or group —')}</option>
                             <DirectoryOptions directory={directory} />
                         </select>
                         {seats.length > 1 && (
                             <button
                                 type="button"
                                 onClick={() => onPatch({ approvers: seats.filter((_, idx) => idx !== si) })}
-                                aria-label={t('routines.builder.approval_stage_seat_remove', 'Remove approver {s} from stage {n}', { n: String(index + 1), s: String(si + 1) })}
+                                aria-label={t('automations.builder.approval_stage_seat_remove', 'Remove approver {s} from stage {n}', { n: String(index + 1), s: String(si + 1) })}
                                 className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--error)] transition"
                             >
                                 <X size={12} />
@@ -219,15 +219,15 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                         onClick={() => onPatch({ approvers: [...seats, null] })}
                         className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline underline-offset-2 transition"
                     >
-                        + {t('routines.builder.approval_stage_seat_add', 'Add approver')}
+                        + {t('automations.builder.approval_stage_seat_add', 'Add approver')}
                     </button>
                 )}
                 {/* A stage nobody sits in cannot be saved (the server treats it
                     as broken shape, not as a half-finished draft), so say so
-                    here rather than let the routine's save fail. */}
+                    here rather than let the automation's save fail. */}
                 {picked.length === 0 && (
                     <p className="text-[11px] text-[var(--error)]">
-                        {t('routines.builder.approval_stage_empty', 'Pick at least one approver — a stage with nobody in it is not saved.')}
+                        {t('automations.builder.approval_stage_empty', 'Pick at least one approver — a stage with nobody in it is not saved.')}
                     </p>
                 )}
             </div>
@@ -237,23 +237,23 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                     <select
                         value={rule}
                         onChange={(e) => onPatch({ rule: e.target.value })}
-                        aria-label={t('routines.builder.approval_stage_rule_aria', 'Decision rule for stage {n}', { n: String(index + 1) })}
+                        aria-label={t('automations.builder.approval_stage_rule_aria', 'Decision rule for stage {n}', { n: String(index + 1) })}
                         className={controlSurfaceClass('flex-1 min-w-0 px-2 py-1 text-sm')}
                     >
-                        <option value="all">{t('routines.builder.approval_rule_all', 'Everyone must approve')}</option>
-                        <option value="first">{t('routines.builder.approval_rule_first', 'First to respond decides')}</option>
-                        <option value="quorum">{t('routines.builder.approval_rule_quorum', 'At least N approvals')}</option>
+                        <option value="all">{t('automations.builder.approval_rule_all', 'Everyone must approve')}</option>
+                        <option value="first">{t('automations.builder.approval_rule_first', 'First to respond decides')}</option>
+                        <option value="quorum">{t('automations.builder.approval_rule_quorum', 'At least N approvals')}</option>
                     </select>
                     {rule === 'quorum' && (
                         <select
                             value={String(Math.min(Math.max(Number(stage.quorum) || 2, 1), picked.length))}
                             onChange={(e) => onPatch({ quorum: Number(e.target.value) })}
-                            aria-label={t('routines.builder.approval_stage_quorum_aria', 'Approvals needed in stage {n}', { n: String(index + 1) })}
+                            aria-label={t('automations.builder.approval_stage_quorum_aria', 'Approvals needed in stage {n}', { n: String(index + 1) })}
                             className={controlSurfaceClass('shrink-0 px-2 py-1 text-sm')}
                         >
                             {Array.from({ length: picked.length }, (_, n) => n + 1).map(n => (
                                 <option key={n} value={String(n)}>
-                                    {t('routines.builder.approval_quorum_option', '{n} of {m}', { n: String(n), m: String(picked.length) })}
+                                    {t('automations.builder.approval_quorum_option', '{n} of {m}', { n: String(n), m: String(picked.length) })}
                                 </option>
                             ))}
                         </select>
@@ -270,18 +270,18 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                     onClick={() => setShowWhen(true)}
                     className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline underline-offset-2 transition"
                 >
-                    + {t('routines.builder.approval_stage_when_add', 'Only ask this stage when…')}
+                    + {t('automations.builder.approval_stage_when_add', 'Only ask this stage when…')}
                 </button>
             ) : (
                 <div className="space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                        <span className={subLabelClass()}>{t('routines.builder.approval_stage_when_label', 'Only ask this stage when')}</span>
+                        <span className={subLabelClass()}>{t('automations.builder.approval_stage_when_label', 'Only ask this stage when')}</span>
                         <button
                             type="button"
                             onClick={() => { setShowWhen(false); onPatch({ when: '' }); }}
                             className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline underline-offset-2 transition"
                         >
-                            {t('routines.builder.approval_stage_when_clear', 'Always ask it')}
+                            {t('automations.builder.approval_stage_when_clear', 'Always ask it')}
                         </button>
                     </div>
                     <ConditionBuilder
@@ -293,7 +293,7 @@ function StageRow({ stage, index, total, budgetLeft, directory, onPatch, onMove,
                         showSerialized={false}
                     />
                     <p className={hintTextClass()}>
-                        {t('routines.builder.approval_stage_when_hint', 'Checked once, the moment the approval is created. A stage whose condition is not met is skipped — the chain moves straight on, and the skip stays visible in the approval\'s history.')}
+                        {t('automations.builder.approval_stage_when_hint', 'Checked once, the moment the approval is created. A stage whose condition is not met is skipped — the chain moves straight on, and the skip stays visible in the approval\'s history.')}
                     </p>
                 </div>
             )}

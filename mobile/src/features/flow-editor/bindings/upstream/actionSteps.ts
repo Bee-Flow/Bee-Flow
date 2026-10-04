@@ -28,8 +28,11 @@ export function describeHttpRequest(node: FlowNode): VariableGroup {
 
 export function describeCode(node: FlowNode): VariableGroup {
     const base = `steps.${node.id}.output`;
-    return stepGroup(node, { label: node.label || nodeDefaultLabel('code', t), kind: 'code' }, { result: '<code result>' }, [
-        { key: 'result', path: `${base}.result`, sample: '<code result>' },
+    // The code can return anything, so the shape is unknown before a run:
+    // `null` is "not seen yet" (the web's describeCode). `logs` and
+    // `httpCalls` are diagnostics, never offered as fields.
+    return stepGroup(node, { label: node.label || nodeDefaultLabel('code', t), kind: 'code' }, { result: null }, [
+        { key: 'result', path: `${base}.result`, sample: null },
     ]);
 }
 

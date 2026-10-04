@@ -7,13 +7,13 @@ import { blockHasFindings } from './deleteBlock';
  * actually found, and what it could not check.
  *
  * Its own component because the two halves of that sentence must not blur into
- * one another anywhere — "three routines use this" and "I could not check the
- * routines" arrive in the same response and lead to the same button, but they
+ * one another anywhere — "three automations use this" and "I could not check the
+ * automations" arrive in the same response and lead to the same button, but they
  * are not the same fact, and only one of them is a list. `summariseDeleteBlock`
  * keeps them apart; this renders them apart.
  *
  * Deliberately says out loud that deleting does NOT stop these things. An
- * agent routine whose agent is gone falls back to a plain prompt loop, so it
+ * agent schedule whose agent is gone falls back to a plain prompt loop, so it
  * keeps running — without the knowledge, the tools and the guardrails that
  * made its answers safe. Somebody about to press a red button is owed that.
  */
@@ -34,7 +34,7 @@ export default function DeleteBlockedNotice({ summary }) {
             case 'task': return t('agent_usage.kind_task', 'Scheduled tasks');
             case 'cowork': return t('agent_usage.kind_cowork', 'Cowork schedules');
             case 'support': return t('agent_usage.kind_support', 'Support inboxes');
-            case 'automation': return t('agent_usage.kind_automation', 'Routines');
+            case 'automation': return t('agent_usage.kind_automation', 'Automations');
             case 'app': return t('agent_usage.kind_app', 'Apps');
             case 'webpage': return t('agent_usage.kind_webpage', 'Webpages');
             default: return kind;

@@ -238,6 +238,9 @@ export default function WebpageIDE({
     // so asking twice for the SAME file still re-focuses it — a plain string
     // would be equal to itself and the second request would do nothing.
     focusFile,
+    // A page a Solution stage manages: read-only whoever opens it, and no AI
+    // builder (a deploy owns what it holds). The page GET's `managed`.
+    managed = null,
 }) {
     // Night mode removed — the webpages IDE is light-only (blends with the host
     // app's light theme; Monaco uses 'vs').
@@ -266,7 +269,7 @@ export default function WebpageIDE({
 
     // Owner gate — only the page owner can mutate files / upload assets. Viewers
     // (org-shared pages) get a read-only explorer and no upload affordances.
-    const isOwner = !!(selected && user && selected.userId === user.id);
+    const isOwner = !!(selected && user && selected.userId === user.id) && !managed;
 
     // Top-bar "Add image" upload (reachable in the simplified surface where the
     // file explorer is hidden).
@@ -347,7 +350,8 @@ export default function WebpageIDE({
     // auto-collapse/expand on crossing the breakpoint so a manual choice sticks
     // until the next crossing.
     const rootRef = useRef(null);
-    const [chatOpen, setChatOpen] = useState(true);
+    const [chatOpenState, setChatOpen] = useState(true);
+    const chatOpen = chatOpenState && !managed;
     const wasNarrowRef = useRef(false);
     useEffect(() => {
         const el = rootRef.current;
@@ -476,7 +480,7 @@ export default function WebpageIDE({
                             <IdeBarButton Icon={History} label={t('webpages.tab.history', 'History')} onClick={onVersionsClick} />
                         </>
                     )}
-                    {!chatOpen && (
+                    {!chatOpen && !managed && (
                         <IdeBarButton
                             Icon={MessageSquare}
                             label={t('webpages.ide.chat', 'Chat')}

@@ -22,7 +22,7 @@ describe('usedBy words', () => {
     it('names a row, says what it does and where it opens', () => {
         const row = { kind: 'automation', id: 'a 1', title: 'Nightly', role: 'ai_step', siteLabel: 'step 3' };
         expect(usageTitle(t, row)).toBe('Nightly');
-        expect(usageSubtitle(t, row)).toBe('routine · AI step · step 3');
+        expect(usageSubtitle(t, row)).toBe('automation · AI step · step 3');
         expect(usageHref(row)).toBe('/automations/a%201');
     });
 
@@ -54,7 +54,7 @@ describe('UsedByList', () => {
 
     it('names the kinds nobody could check instead of claiming nothing', async () => {
         await renderWithProviders(<UsedByList answer={{ usage: [], unchecked: ['automation'] }} isLoading={false} error={null} onRetry={jest.fn()} emptyText="Nothing uses it" />);
-        expect(screen.getByText('Could not be checked: routines. This list is incomplete.')).toBeTruthy();
+        expect(screen.getByText('Could not be checked: automations. This list is incomplete.')).toBeTruthy();
         expect(screen.queryByText('Nothing uses it')).toBeNull();
     });
 

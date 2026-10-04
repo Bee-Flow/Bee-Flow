@@ -3,7 +3,7 @@
   "icon": "🧱",
   "estMinutes": 11,
   "title": "Build one on the practice canvas",
-  "desc": "Assemble a real routine end to end in a simulation where nothing can break.",
+  "desc": "Assemble a real automation end to end in a simulation where nothing can break.",
   "gate": {
     "feature": "automations"
   },
@@ -20,8 +20,8 @@
       "type": "slide",
       "id": "three-qs",
       "icon": "🧭",
-      "title": "Every routine answers three questions",
-      "bodyMd": "The real canvas opens by asking one of them out loud: **\"What does this routine start with?\"** — and underneath, *\"Every routine has exactly one trigger.\"*\n\n1. **What starts it?** Exactly one trigger, where the flow begins. A clock, a form, an event in a connected app, an incoming call.\n2. **What happens, in order?** Steps chained after the trigger, each able to read what the steps before it produced. That chain, drawn on the canvas, is what we keep calling the *graph*.\n3. **Where does the result go?** A notification, a table row, a document, a knowledge base — an ending you can point at.\n\nA graph that cannot answer all three is not finished, however pretty it looks."
+      "title": "Every automation answers three questions",
+      "bodyMd": "The real canvas opens by asking one of them out loud: **\"What does this automation start with?\"** — and underneath, *\"Every automation has exactly one trigger.\"*\n\n1. **What starts it?** Exactly one trigger, where the flow begins. A clock, a form, an event in a connected app, an incoming call.\n2. **What happens, in order?** Steps chained after the trigger, each able to read what the steps before it produced. That chain, drawn on the canvas, is what we keep calling the *graph*.\n3. **Where does the result go?** A notification, a table row, a document, a knowledge base — an ending you can point at.\n\nA graph that cannot answer all three is not finished, however pretty it looks."
     },
     {
       "type": "sim",
@@ -100,7 +100,7 @@
               ],
               "feedback": {
                 "wait": "There is nothing to wait for — the schedule already decided the moment this run happens.",
-                "formpage": "Form pages run on a routine's own form link, so the canvas only offers them on a routine with the Form trigger. On this one the item is shown but disabled, with that reason attached.",
+                "formpage": "Form pages run on an automation's own form link, so the canvas only offers them on an automation with the Form trigger. On this one the item is shown but disabled, with that reason attached.",
                 "code": "Nothing here needs hand-written code. A Code step would work, but a ready-made step is easier for the next person to read, so reach for one first."
               }
             }
@@ -163,7 +163,7 @@
           },
           {
             "id": "subject",
-            "left": "The subject line of the e-mail that started a mail-triggered routine",
+            "left": "The subject line of the e-mail that started a mail-triggered automation",
             "right": "{{trigger.output.subject}}",
             "note": "What the trigger delivered lives under trigger.output."
           },
@@ -176,14 +176,14 @@
           {
             "id": "formula",
             "left": "\"Is this deal worth more than 100?\" — a value that has to be worked out",
-            "right": "Formula mode: steps.s1.output.total > 100",
-            "note": "Formula mode evaluates an expression; Text mode would just print the sentence."
+            "right": "A formula: steps.s1.output.total > 100",
+            "note": "A formula evaluates an expression; typed into a text field, the sentence would just be printed."
           },
           {
             "id": "sentence",
             "left": "A fixed sentence with one number dropped into it",
-            "right": "Text mode: \"Open quotes: {{steps.s1.output.count}}\"",
-            "note": "Text mode interpolates: everything outside the braces stays literal."
+            "right": "A text field: \"Open quotes: {{steps.s1.output.count}}\"",
+            "note": "A text field interpolates: everything outside the braces stays literal."
           }
         ]
       }
@@ -404,7 +404,7 @@
       "id": "validation",
       "icon": "🛂",
       "title": "What the canvas checks, and what Activate checks",
-      "bodyMd": "Two different gates, and the difference matters.\n\n**While you build**, the node panel keeps a live list under **\"Fix this before the routine can run:\"** (hard problems) and **\"Worth checking:\"** (warnings). Saving only guards integrity, so a half-finished draft is allowed to exist.\n\n**Activate** is the strict pass, and it refuses outright on: a step calling a tool that does not exist or that you may not use, a required input left empty, a knowledge base you are not authorised for, a schedule it cannot read (*\"Cannot activate — invalid schedule …\"*) or one with no upcoming run at all. A step left **pinned** to a saved sample is the one thing that does *not* block: activation only warns that live runs will serve that saved sample instead of fresh data — which is exactly the warning people wave through."
+      "bodyMd": "Two different gates, and the difference matters.\n\n**While you build**, the node panel keeps a live list under **\"Fix this before the automation can run:\"** (hard problems) and **\"Worth checking:\"** (warnings). Saving only guards integrity, so a half-finished draft is allowed to exist.\n\n**Activate** is the strict pass, and it refuses outright on: a step calling a tool that does not exist or that you may not use, a required input left empty, a knowledge base you are not authorised for, a schedule it cannot read (*\"Cannot activate — invalid schedule …\"*) or one with no upcoming run at all. A step left **pinned** to a saved sample is the one thing that does *not* block: activation only warns that live runs will serve that saved sample instead of fresh data — which is exactly the warning people wave through."
     },
     {
       "type": "quiz",
@@ -430,9 +430,9 @@
         },
         {
           "id": "d",
-          "label": "The routine has never been dry-run, and Activate demands a green preview first.",
+          "label": "The automation has never been dry-run, and Activate demands a green preview first.",
           "correct": false,
-          "feedback": "Dry-run is a habit, not a gate: you can activate a routine you never previewed. Which is precisely why the habit matters."
+          "feedback": "Dry-run is a habit, not a gate: you can activate an automation you never previewed. Which is precisely why the habit matters."
         }
       ],
       "explanation": "Saving only guards integrity, so a broken draft survives all week. Activate is the strict pass and refuses on things it can decide for itself: an unknown or unpermitted tool, an empty required input, a knowledge base you are not authorised for, and a schedule it cannot read or that has no next run. Anything about judgement — pinned samples, weak wording — is left to you, as a warning or as nothing at all."
@@ -443,7 +443,7 @@
       "icon": "🎯",
       "exerciseId": "ex-automation-build-sim-dryrun",
       "title": "Your turn: read the green tick honestly",
-      "instruction": "Van Dijk's briefing has just dry-run green. In three to five sentences, write (1) two specific things that green result has NOT proved about this routine, and (2) the first two things you would go and look at after the first real Monday run. Be concrete about this graph — the table read, the AI step, the notification — not about automation in general.",
+      "instruction": "Van Dijk's briefing has just dry-run green. In three to five sentences, write (1) two specific things that green result has NOT proved about this automation, and (2) the first two things you would go and look at after the first real Monday run. Be concrete about this graph — the table read, the AI step, the notification — not about automation in general.",
       "placeholder": "e.g. \"Green only means the graph holds together. It does not prove the notification actually reached the sales lead, because…\"",
       "passScore": 70,
       "maxAttempts": 4
@@ -451,14 +451,14 @@
     {
       "type": "tour",
       "id": "where-real",
-      "target": "[data-tour=\"routine-create\"]",
-      "navigateTo": "studio/routines",
+      "target": "[data-tour=\"automation-create\"]",
+      "navigateTo": "studio/automations",
       "placement": "bottom",
       "optional": true,
       "timeoutMs": 7000,
       "icon": "📍",
       "title": "The real canvas starts here",
-      "body": "Same three questions, same ribbon, same trigger cards — except this one saves. In the next chapter you build a routine of your own here, and we verify it."
+      "body": "Same three questions, same ribbon, same trigger cards — except this one saves. In the next chapter you build an automation of your own here, and we verify it."
     },
     {
       "type": "slide",
@@ -474,21 +474,21 @@
       "task": "Name two things a green dry-run of the Van Dijk briefing has not proved, and the first two things to check after the first live run.",
       "criteria": [
         "Names at least two concrete limits of a dry-run for THIS graph — e.g. the notification was synthesised so nobody actually received it, or the data was a stand-in so the real table's shape is untested.",
-        "Distinguishes the graph being correct (wiring, bindings, branches) from the routine working end to end in the real world.",
+        "Distinguishes the graph being correct (wiring, bindings, branches) from the automation working end to end in the real world.",
         "Gives at least two specific things to inspect after the live run — the run's step timeline and which step errored, whether the sales lead really got the message, whether the empty-week branch behaved.",
-        "Stays with the actual routine (offertes table, AI step, notification) instead of generic advice about testing."
+        "Stays with the actual automation (offertes table, AI step, notification) instead of generic advice about testing."
       ],
       "passScore": 70,
-      "guidance": "Pass a learner who separates 'the graph is sound' from 'the work really happened' and points at something checkable. Do not pass an answer that only repeats 'a dry-run is safe' or 'always test first', one that claims the dry-run proved delivery, or one that is entirely generic with no reference to this routine's steps. Sloppy grammar is fine; vagueness is not."
+      "guidance": "Pass a learner who separates 'the graph is sound' from 'the work really happened' and points at something checkable. Do not pass an answer that only repeats 'a dry-run is safe' or 'always test first', one that claims the dry-run proved delivery, or one that is entirely generic with no reference to this automation's steps. Sloppy grammar is fine; vagueness is not."
     }
   },
   "practiceTopic": {
-    "title": "Assembling a routine on the canvas",
+    "title": "Assembling an automation on the canvas",
     "summary": "Choosing a trigger from a brief, ordering steps, binding one step's output into the next, and knowing the limits of a dry-run.",
     "facts": [
-      "The canvas empty state asks \"What does this routine start with?\" and states that every routine has exactly one trigger; the trigger cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
+      "The canvas empty state asks \"What does this automation start with?\" and states that every automation has exactly one trigger; the trigger cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
       "Bindings are written as {{steps.<id>.output.<field>}} for a step's result and {{trigger.output.<field>}} for what started the run; incoming webhook headers land under trigger.headers, never inside trigger.output.",
-      "Every value field has a Text mode ({{ }} interpolates) and a Formula mode (steps.s1.output.total > 100); the field helpers are \"Insert data from a previous step\", \"Fields of {step}\" and \"Syntax help\", and the step list offers only steps above the current one.",
+      "Text fields interpolate {{ }}; a Formula (steps.s1.output.total > 100) computes the value, its switch showing only with All options on. Helpers: \"Insert data from a previous step\", \"Fields of {step}\" and \"Syntax help\"; the step list offers only steps above this one.",
       "The AI step is described as \"Reason and call tools with AI\" and its model tier sits under Advanced, defaulting to auto; Extract data has no model picker and its field names are its output shape.",
       "The Condition step is one node described as \"Keep, split or branch — one rule or many\", and belongs immediately after the step whose output it judges; Shorten list keeps only the first — or last — few items and does no sorting, so the sort order and row limit are set on the Datatable read.",
       "In a dry-run, side-effecting actions are synthesised instead of executed — a Notification step returns what it would have sent rather than sending it, and a Privacy Shield block becomes a \"would block\" annotation instead of failing the run — so green never proves a message was delivered.",

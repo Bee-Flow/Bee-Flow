@@ -6,7 +6,7 @@ import { TRIGGERS } from './stepPalette';
 import useTranslation from '../../../../hooks/useTranslation';
 
 /**
- * The first screen of a new routine (design 1e): "What does this routine start
+ * The first screen of a new automation (design 1e): "What does this automation start
  * with?", every trigger as a card, and a way to hand the whole thing to the
  * assistant instead.
  *
@@ -64,10 +64,10 @@ function BuildingLine({ caption, startedAt }) {
                 <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: 'var(--accent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent)' }} />
             </span>
             <span className="min-w-0 truncate">
-                <b className="text-[var(--text-primary)]">{t('routines.canvas.build_live', 'Building')}</b>
+                <b className="text-[var(--text-primary)]">{t('automations.canvas.build_live', 'Building')}</b>
                 {elapsed && <span className="text-[var(--text-tertiary)] tabular-nums" data-testid="empty-building-elapsed"> · {elapsed}</span>}
                 <span> · </span>
-                <span data-testid="empty-building-caption">{caption || t('routines.canvas.build_trigger_next', 'Choosing a trigger…')}</span>
+                <span data-testid="empty-building-caption">{caption || t('automations.canvas.build_trigger_next', 'Choosing a trigger…')}</span>
             </span>
         </div>
     );
@@ -91,9 +91,9 @@ export default function DiagramEmptyState({
                         <Zap size={22} />
                     </div>
                     <div className="min-w-0">
-                        <div className="text-[18px] font-semibold leading-6">{t('routines.canvas.empty_title', 'What does this routine start with?')}</div>
+                        <div className="text-[18px] font-semibold leading-6">{t('automations.canvas.empty_title', 'What does this automation start with?')}</div>
                         <div className="text-[13px] text-[var(--text-secondary)]">
-                            {t('routines.canvas.empty_sub', 'Every routine has exactly one trigger. Pick one, or let the assistant write the routine.')}
+                            {t('automations.canvas.empty_sub', 'Every automation has exactly one trigger. Pick one, or let the assistant write the automation.')}
                         </div>
                     </div>
                 </div>
@@ -128,14 +128,14 @@ export default function DiagramEmptyState({
                         })}
                     </div>
                 ) : (
-                    <div className="text-[13px] text-[var(--text-tertiary)]">{t('routines.canvas.empty_static', 'Start with a trigger.')}</div>
+                    <div className="text-[13px] text-[var(--text-tertiary)]">{t('automations.canvas.empty_static', 'Start with a trigger.')}</div>
                 )}
                 {onOpenAssistant && (
                     <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl border border-dashed border-[var(--border-default)] text-[13px] text-[var(--text-secondary)]">
                         <Sparkles size={14} style={{ color: typeColorVar('ai') }} className="shrink-0" />
                         <span className="min-w-0 truncate">
-                            {t('routines.canvas.empty_describe', 'Or describe the routine:')}{' '}
-                            <i>{t('routines.canvas.empty_example', '“annual report via a form → analysis per bank → memorandum”')}</i>
+                            {t('automations.canvas.empty_describe', 'Or describe the automation:')}{' '}
+                            <i>{t('automations.canvas.empty_example', '“annual report via a form → analysis per bank → memorandum”')}</i>
                         </span>
                         <button
                             type="button"
@@ -143,13 +143,13 @@ export default function DiagramEmptyState({
                             className="ml-auto shrink-0 px-2.5 py-[5px] rounded-lg text-[12px] font-semibold"
                             style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
                         >
-                            {t('routines.canvas.empty_assistant', 'Assistant')}
+                            {t('automations.canvas.empty_assistant', 'Assistant')}
                         </button>
                     </div>
                 )}
                 {pick && (
                     <div className="text-xs text-[var(--text-tertiary)]">
-                        {t('routines.canvas.empty_hint', '…or pick one from the bar above, or drag it onto the canvas.')}
+                        {t('automations.canvas.empty_hint', '…or pick one from the bar above, or drag it onto the canvas.')}
                     </div>
                 )}
             </div>

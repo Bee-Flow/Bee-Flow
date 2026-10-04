@@ -7,7 +7,7 @@ module.exports = {
     "approvals.scope_mine": "My approvals",
     "approvals.scope_org": "Organisation",
     "approvals.refresh": "Refresh",
-    "approvals.search": "Search by question or routine…",
+    "approvals.search": "Search by question or automation…",
     "approvals.empty_waiting": "Nothing is waiting for a decision.",
     "approvals.empty": "Nothing here yet.",
     "approvals.loading": "Loading…",
@@ -93,4 +93,6 @@ module.exports = {
     "approvals.waiting_chain": "Waiting for an earlier stage of this approval.",
     "approvals.toast_stage_passed": "This stage is done — it has moved on to {name} (stage {n} of {m}).",
     "approvals.audit_stage_passed": "Stage passed",
+    // A request to deploy a Solution release to Production (Solution stages).
+    "approvals.source_deployment": "Deployment",
 };

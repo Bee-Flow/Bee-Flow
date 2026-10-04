@@ -20,7 +20,9 @@
  */
 
 const BaseProvider = require('./base');
-const { stripInternalFields } = require("../../utils/messageUtils");
+const { stripInternalFields, coerceWireContent } = require("../../utils/messageUtils");
+const { inlineInternalImages } = require('../documents/imageInline');
+const { toResponsesPart, toCompletionsContent } = require('./openaiContent');
 const { describeOpenAIModel, OPENAI_BASE_URL, OPENAI_EU_BASE_URL, isEuResidencyUrl } = require('./openaiModels');
 const {
     clampEffort,
@@ -35,6 +37,7 @@ const {
     qualifiesForStrict,
 } = require('./openaiModelCaps');
 const log = require('../../telemetry/log');
+const { normalizeUsage } = require('./usageNormalizer');
 
 class OpenAIProvider extends BaseProvider {
     constructor() {
@@ -81,6 +84,18 @@ class OpenAIProvider extends BaseProvider {
 
     supportsVision(modelId) {
         return describeOpenAIModel(modelId).vision;
+    }
+
+    /**
+     * Native PDF input: a `document` part goes out as a Responses `input_file`
+     * (openaiContent.js), and the model gets the extracted text plus an image
+     * of every page, so it needs vision. Only on the Responses API: an Azure
+     * deployment that fell back to Chat Completions (`_completionsOnly`) is
+     * answered no, because Azure documents PDF input for Responses only.
+     * `this.` calls, so Azure's deployment → model mapping applies.
+     */
+    supportsDocuments(modelId) {
+        return !!this.supportsVision(modelId) && !!this.shouldUseResponsesApi(modelId);
     }
 
     supportsStructuredOutput(modelId, schema) {
@@ -220,26 +235,11 @@ class OpenAIProvider extends BaseProvider {
      * several call sites read `usage.prompt_tokens_details?.cached_tokens ||
      * usage.cached_tokens` defensively.
      */
-    _normalizeUsage(usage) {
-        if (!usage) return null;
-
-        // Responses uses input/output_tokens; Chat Completions prompt/completion.
-        const prompt = usage.input_tokens ?? usage.prompt_tokens ?? 0;
-        const completion = usage.output_tokens ?? usage.completion_tokens ?? 0;
-        const cached = usage.input_tokens_details?.cached_tokens
-            ?? usage.prompt_tokens_details?.cached_tokens
-            ?? 0;
-        const reasoning = usage.output_tokens_details?.reasoning_tokens
-            ?? usage.completion_tokens_details?.reasoning_tokens
-            ?? 0;
-
-        return {
-            prompt_tokens: prompt,
-            completion_tokens: completion,
-            total_tokens: usage.total_tokens ?? (prompt + completion),
-            cached_tokens: cached,
-            reasoning_tokens: reasoning,
-        };
+    _normalizeUsage(usage, meta) {
+        // `meta.service_tier` is the response's own `service_tier` (the tier
+        // OpenAI actually billed: default/flex/priority/...); it lives on the
+        // response, not in the usage block.
+        return normalizeUsage('openai', usage, meta);
     }
 
     _logUsage(usage, label) {
@@ -303,8 +303,11 @@ class OpenAIProvider extends BaseProvider {
             // Responses API uses 'developer' role instead of 'system'
             const role = m.role === 'system' ? 'developer' : m.role;
 
-            // Convert content to Responses API format
-            let content = m.content;
+            // Convert content to Responses API format. A plain object here (an
+            // old history row revived by JSON.parse) would otherwise reach the
+            // wire as-is and 400 every later turn; direct chat never runs
+            // sanitizeMessages, so this is its only guard.
+            let content = coerceWireContent(m.content, m.role);
 
             // Handle null/undefined content (e.g. assistant messages with only tool calls)
             if (content === null || content === undefined) {
@@ -312,22 +315,10 @@ class OpenAIProvider extends BaseProvider {
             }
 
             if (Array.isArray(content)) {
-                content = content.map(part => {
-                    if (part.type === 'text') {
-                        return { type: 'input_text', text: part.text };
-                    }
-                    if (part.type === 'image_url') {
-                        const imgObj = part.image_url;
-                        const url = typeof imgObj === 'string' ? imgObj : (imgObj?.url || '');
-                        const detail = typeof imgObj === 'object' ? imgObj?.detail : undefined;
-                        // `detail` is REQUIRED on a Responses input_image, unlike
-                        // the Chat Completions image_url block where it is
-                        // optional. Most callers set 'auto' anyway, but the ones
-                        // that don't would otherwise 400 the whole request.
-                        return { type: 'input_image', image_url: url, detail: detail || 'auto' };
-                    }
-                    return part;
-                });
+                // Every part is rebuilt for the Responses API (see openaiContent.js):
+                // a part forwarded as-is 400s the whole turn.
+                content = content.map(part => toResponsesPart(part, role)).filter(Boolean);
+                if (content.length === 0) content = '';
             } else if (typeof content === 'string' && (role === 'user' || (role === 'developer' && breakpointPending))) {
                 content = [{ type: 'input_text', text: content }];
             }
@@ -423,7 +414,13 @@ class OpenAIProvider extends BaseProvider {
         // messages go to the SDK verbatim, so the internal companion fields the
         // chat runtimes carry (thinking parts, attachment sidecars, …) have to
         // come off here — OpenAI rejects unknown message properties.
-        const params = { model, messages: stripInternalFields(messages) };
+        const params = {
+            model,
+            messages: stripInternalFields(messages).map(m => {
+                const content = toCompletionsContent(m.content, m.role);
+                return content === m.content ? m : { ...m, content };
+            }),
+        };
 
         if (options.maxTokens !== undefined) params.max_completion_tokens = options.maxTokens;
         if (options.temperature !== undefined && !this.isRestrictedModel(model)) {
@@ -456,11 +453,23 @@ class OpenAIProvider extends BaseProvider {
     // ─── High-Level API (all SDK) ────────────────────────────────
 
     /**
+     * Images we host ourselves are referenced by a short-lived signed URL on our
+     * own origin. OpenAI and Azure cannot fetch that (self-hosted installs are
+     * not reachable, and a fresh signature every turn busts the prompt cache),
+     * so the bytes go inline — the same step the Claude, Gemini and Mistral
+     * adapters take. External URLs a user pasted are left for the provider.
+     */
+    async _prepareMessages(messages) {
+        return inlineInternalImages(messages);
+    }
+
+    /**
      * Non-streaming chat via SDK.
      * Responses API by default; Chat Completions on explicit opt-out.
      */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         const client = this.createClient(apiKey, { ...options, baseUrl });
+        messages = await this._prepareMessages(messages);
 
         if (this.shouldUseResponsesApi(model, options)) {
             return this._chatResponses(client, model, messages, options);
@@ -475,7 +484,7 @@ class OpenAIProvider extends BaseProvider {
         const response = await client.chat.completions.create(params);
 
         const message = response.choices?.[0]?.message;
-        const usage = this._normalizeUsage(response.usage);
+        const usage = this._normalizeUsage(response.usage, { service_tier: response.service_tier });
         this._logUsage(usage, 'Completions');
         // A refusal carries no content, so returning null reads downstream as
         // "the model had nothing to say" rather than "the model declined" —
@@ -533,7 +542,7 @@ class OpenAIProvider extends BaseProvider {
         // Encrypted reasoning blocks, for stateless replay on the next round.
         const reasoningItems = output.filter(item => item?.type === 'reasoning' && item.encrypted_content);
 
-        const usage = this._normalizeUsage(response.usage);
+        const usage = this._normalizeUsage(response.usage, { service_tier: response.service_tier });
         this._logUsage(usage, 'Responses');
         return {
             content: response.output_text || null,
@@ -552,6 +561,7 @@ class OpenAIProvider extends BaseProvider {
      */
     async stream(apiKey, baseUrl, model, messages, options = {}, onEvent) {
         const client = this.createClient(apiKey, { ...options, baseUrl });
+        messages = await this._prepareMessages(messages);
 
         if (this.shouldUseResponsesApi(model, options)) {
             return this._streamResponses(client, model, messages, options, onEvent);
@@ -576,7 +586,7 @@ class OpenAIProvider extends BaseProvider {
         for await (const chunk of stream) {
             // Capture usage from final chunk
             if (chunk.usage) {
-                streamUsage = this._normalizeUsage(chunk.usage);
+                streamUsage = this._normalizeUsage(chunk.usage, { service_tier: chunk.service_tier });
                 this._logUsage(streamUsage, 'Completions');
             }
             const delta = chunk.choices?.[0]?.delta;
@@ -699,7 +709,7 @@ class OpenAIProvider extends BaseProvider {
             openThinkingParts.clear();
         };
         const captureResponse = (response) => {
-            streamUsage = this._normalizeUsage(response?.usage) || streamUsage || {};
+            streamUsage = this._normalizeUsage(response?.usage, { service_tier: response?.service_tier }) || streamUsage || {};
             this._logUsage(streamUsage, 'Responses');
             if (response?.id) streamUsage.responseId = response.id;
             if (response?.status) streamUsage.stop_reason = response.status;

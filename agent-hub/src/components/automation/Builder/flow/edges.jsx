@@ -132,8 +132,8 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
     const wrapStep = wrap ? stepNumberById?.get?.(target) : null;
     const wrapText = wrap
         ? (wrapStep != null
-            ? t('routines.canvas.wrap_chip', '→ row {row} · step {step}', { row: wrap.toRow, step: wrapStep })
-            : t('routines.canvas.wrap_chip_row', '→ row {row}', { row: wrap.toRow }))
+            ? t('automations.canvas.wrap_chip', '→ row {row} · step {step}', { row: wrap.toRow, step: wrapStep })
+            : t('automations.canvas.wrap_chip_row', '→ row {row}', { row: wrap.toRow }))
         : null;
     // The line's identity colour (manual or mode-derived) — stamped by
     // DiagramPane's identity pass. Case-name chips tint to match; the

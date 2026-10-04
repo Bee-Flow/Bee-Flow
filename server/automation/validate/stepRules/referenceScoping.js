@@ -233,7 +233,7 @@ function checkReferences(ctx, step, at) {
             // whose body holds it — nowhere else. A step that reads
             // loop.e without iterating gets undefined for every field at
             // run time; measured 2026-09-12 as a create_row whose every
-            // column was empty, on a routine that had validated clean.
+            // column was empty, on an automation that had validated clean.
             const v = secondSegment(path);
             const own = isObject(step.forEach) && typeof step.forEach.itemVar === 'string' ? step.forEach.itemVar : null;
             const above = loopVarsAbove.get(step) || [];

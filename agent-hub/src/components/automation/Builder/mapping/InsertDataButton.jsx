@@ -27,7 +27,7 @@ export default function InsertDataButton({ onClick, title = null, open = false, 
         <button
             type="button"
             onClick={onClick}
-            title={title || t('routines.builder.insert_from_step', 'Insert data from a previous step')}
+            title={title || t('automations.builder.insert_from_step', 'Insert data from a previous step')}
             aria-label="Insert variable"
             aria-haspopup="dialog"
             aria-expanded={open}
@@ -38,7 +38,7 @@ export default function InsertDataButton({ onClick, title = null, open = false, 
             } ${FOCUS_RING} ${className}`}
         >
             <Braces size={12} />
-            {simple && <span className="whitespace-nowrap">{t('routines.builder.insert_data_word', 'Insert data')}</span>}
+            {simple && <span className="whitespace-nowrap">{t('automations.builder.insert_data_word', 'Insert data')}</span>}
         </button>
     );
 }

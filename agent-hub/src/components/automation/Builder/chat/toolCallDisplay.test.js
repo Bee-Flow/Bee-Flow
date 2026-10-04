@@ -31,11 +31,11 @@ describe('describeToolCall', () => {
     it('gives a past-tense verb to tools that create no step', () => {
         expect(describeToolCall(call('builder_finalize', {}, { ok: true })).title).toBe('Finished and saved');
         expect(describeToolCall(call('builder_propose_trigger', {}, { ok: true })).title).toBe('Set the trigger');
-        expect(describeToolCall(call('builder_request_dry_run', {}, { run: {} })).title).toBe('Tested the routine');
+        expect(describeToolCall(call('builder_request_dry_run', {}, { run: {} })).title).toBe('Tested the automation');
     });
 
     it('uses the translator when one is supplied, and its key', () => {
-        const t = (key, en) => (key === 'routines.builder.act.finalize' ? 'Afgerond en opgeslagen' : en);
+        const t = (key, en) => (key === 'automations.builder.act.finalize' ? 'Afgerond en opgeslagen' : en);
         expect(describeToolCall(call('builder_finalize', {}, {}), t).title).toBe('Afgerond en opgeslagen');
     });
 
@@ -136,8 +136,8 @@ describe('describeToolCall — a builder_add_steps batch', () => {
 
     it('uses the translator\'s keys, with the count interpolated', () => {
         const t = (key, en, params) => {
-            if (key === 'routines.builder.act.add_steps') return `${params.n} stappen toegevoegd`;
-            if (key === 'routines.builder.act.add_step_one') return '1 stap toegevoegd';
+            if (key === 'automations.builder.act.add_steps') return `${params.n} stappen toegevoegd`;
+            if (key === 'automations.builder.act.add_step_one') return '1 stap toegevoegd';
             return en;
         };
         expect(describeToolCall(batch(six), t).title).toBe('6 stappen toegevoegd');
@@ -187,7 +187,7 @@ describe('detailPayload', () => {
 describe('describeLiveRun', () => {
     it('names the step the run is on and how far it is', () => {
         const d = describeLiveRun({ label: 'Read file content', done: 1, total: 4 });
-        expect(d.title).toBe('Testing the routine…');
+        expect(d.title).toBe('Testing the automation…');
         expect(d.detail).toBe('Read file content · 1/4');
         expect(d.status).toBe('running');
         expect(d.error).toBeNull();
@@ -205,7 +205,7 @@ describe('describeLiveRun', () => {
     });
 
     it('translates through t', () => {
-        const t = (k, d) => (k === 'routines.builder.act.dry_run_live' ? 'Routine wordt getest…' : d);
-        expect(describeLiveRun({ label: 'x', done: 0, total: 1 }, t).title).toBe('Routine wordt getest…');
+        const t = (k, d) => (k === 'automations.builder.act.dry_run_live' ? 'Automation wordt getest…' : d);
+        expect(describeLiveRun({ label: 'x', done: 0, total: 1 }, t).title).toBe('Automation wordt getest…');
     });
 });

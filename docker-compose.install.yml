@@ -167,9 +167,12 @@ services:
       - INIT_MS_TENANT_ID=${INIT_MS_TENANT_ID:-}
       - INIT_AZURE_ENDPOINT=${INIT_AZURE_ENDPOINT:-}
       - INIT_AZURE_API_KEY=${INIT_AZURE_API_KEY:-}
-      - INIT_AZURE_API_VERSION=${INIT_AZURE_API_VERSION:-}
       - INIT_AZURE_MODELS=${INIT_AZURE_MODELS:-}
       - INIT_BING_SEARCH_KEY=${INIT_BING_SEARCH_KEY:-}
+      # Shared headless browser: the `browser` sidecar below (PDF export,
+      # thumbnails, SPA ingestion, browse_web). Point it elsewhere to use an
+      # external Playwright server.
+      - BROWSER_WS_ENDPOINT=${BROWSER_WS_ENDPOINT:-ws://browser:9222/${BROWSER_WS_PATH:-beeflow-browser}}
     volumes:
       - beeflow-data:/app/data
       - ${HOST_PROJECT_DIR:-.}/components:/components
@@ -179,6 +182,7 @@ services:
     networks:
       - beeflow-network
       - search-network
+      - beeflow-browser-network
     restart: unless-stopped
     depends_on:
       postgres:
@@ -189,6 +193,38 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  # ── Shared headless browser (PDF export, thumbnails, SPA ingestion, browse_web)
+  # The server image carries no Chromium. This sidecar is the Playwright server
+  # it drives over BROWSER_WS_ENDPOINT, so none of that needs the Docker socket.
+  # Playwright's launchServer has no authentication, so the sidecar sits on its
+  # OWN network shared only with the server (never beeflow-network, where the
+  # database, object storage and the guard live), publishes no port, and serves
+  # at the path in BROWSER_WS_PATH (selfhost.sh generates a random one; set your
+  # own when you deploy this file by hand). The network is not `internal`:
+  # browse_web and SPA ingestion load public pages. The runner's Playwright must
+  # match the server's (scripts/check-playwright-lockstep.mjs).
+  browser:
+    # Built from this checkout, like the server above, so the two Playwright
+    # versions cannot drift apart.
+    build:
+      context: ./server/pwt-runner
+    image: beeflow-pwt-runner:local
+    container_name: beeflow-browser
+    profiles: [ "core" ]
+    command: serve
+    environment:
+      - PWT_SERVE_HOST=0.0.0.0
+      - PWT_SERVE_PORT=9222
+      - PWT_SERVE_WS_PATH=${BROWSER_WS_PATH:-beeflow-browser}
+    shm_size: 256m
+    mem_limit: ${BROWSER_MEMORY_LIMIT:-1g}
+    pids_limit: 512
+    init: true
+    security_opt: [ "no-new-privileges:true" ]
+    networks:
+      - beeflow-browser-network
+    restart: unless-stopped
 
   # ── Agent Hub Frontend ─────────────────────────────────────────
   agent-hub:
@@ -584,5 +620,8 @@ volumes:
 networks:
   beeflow-network:
     name: beeflow-network
+  # Only the server and the browser sidecar. See the `browser` service.
+  beeflow-browser-network:
+    name: beeflow-browser-network
   search-network:
     name: search-network

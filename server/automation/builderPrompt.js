@@ -148,7 +148,7 @@ a base64 string and never the OCR'd \`content\`.
     // bespoke reshape no `set` expresses, an API with no integration in the
     // catalog, arithmetic the expression language cannot state — the model
     // either bent an ai_step into a calculator (non-deterministic, and it
-    // bills tokens on every single run) or told the user the routine could not
+    // bills tokens on every single run) or told the user the automation could not
     // be built at all. The feature is there, the sandbox is hardened, the
     // runner dispatches it, and the prompt was the thing forbidding it.
     //
@@ -281,7 +281,7 @@ draft is a typed DAG of steps:
                      builder_add_data_extraction. USE THIS for extraction, an ai_step for
                      judgement/writing. \`fields\` [{name,type,description,required}] IS the output
                      shape (no outputSchema); output is steps.<id>.output.<name>, null when absent.
-                     Runs on the extraction model the admin configured — never the routine's tier.
+                     Runs on the extraction model the admin configured — never the automation's tier.
                      Feeding a Nextcloud Tables row: name fields after the column titles
                      (\`excl_btw\` for "Excl. btw"), key \`values\` the same way, and name an
                      unknown table by its exact title in tableId — never guess an id.
@@ -309,7 +309,7 @@ draft is a typed DAG of steps:
                      on REJECT the run ENDS, so never build a "rejected" branch. Optional
                      expiresInHours (0..720, 0 = no deadline, default 168). Never place one
                      inside a loop, a parallel branch or a flowlet, and never give it forEach.
-  form_page        — ONLY when the trigger is kind=form. A further page of the routine's own
+  form_page        — ONLY when the trigger is kind=form. A further page of the automation's own
                      public form, shown on the SAME /f/<token> URL the visitor is already on:
                      builder_add_form_page. mode="input" pauses the run for their answers
                      (bind steps.<id>.output.<fieldName>); mode="ending" is the closing page.
@@ -322,13 +322,13 @@ draft is a typed DAG of steps:
   stop_error       — halt the run with a custom error message (template-interpolated)
   return_to_app    — TERMINAL. End the run and hand the Studio App that started it what to do
                      next: a screen to open (with the id of a record), a message to show, and
-                     what to refresh. Only meaningful under an app_trigger routine, and never
+                     what to refresh. Only meaningful under an app_trigger automation, and never
                      inside a loop, a parallel branch or a flowlet. Like stop_error, NOTHING
                      after it ever runs — do not wire anything to its output.
   switch           — multi-way branch by case name (preferred over chained conditions)
   array_op         — filter/limit/dedupe/aggregate/summarize over an upstream array
   datatable        — read or write rows of an organisation-scoped DATATABLE: WORKING DATA a
-                     routine leaves behind for a later run or for a different routine
+                     automation leaves behind for a later run or for a different automation
                      (knowledge_write below also outlives the run, but stores TEXT an agent
                      answers from rather than data to read back):
                      builder_add_datatable. ops: find_rows (changes nothing; output
@@ -339,7 +339,7 @@ draft is a typed DAG of steps:
                      they would change every row. datatableId must be an id from the
                      "Datatables you may use" block below (its key beside it as datatableKey);
                      values are keyed by column KEY. A write needs a table marked writable —
-                     one the ROUTINE'S OWNER may write to; never invent an id. A table that
+                     one the AUTOMATION'S OWNER may write to; never invent an id. A table that
                      does not exist yet is CREATED first, at design time, with
                      builder_create_datatable({name, fields:[{name,type}]}) — the id it
                      returns is then the datatableId. There is no sql field.
@@ -353,8 +353,8 @@ draft is a typed DAG of steps:
                      datatable is for. content/title/sourceUri are {{…}} template strings, not
                      binding objects. ALWAYS set sourceUri to something stable and unique per
                      subject ("ticket:{{loop.t.id}}") — the same one REPLACES its document
-                     instead of adding a second, and without it a nightly routine leaves a new
-                     document every night. knowledgeBaseId must name a base the ROUTINE'S OWNER
+                     instead of adding a second, and without it a nightly automation leaves a new
+                     document every night. knowledgeBaseId must name a base the AUTOMATION'S OWNER
                      may MANAGE (reading a base is not permission to add to it). There is no
                      catalog of bases here: use only an id the user has shown you, never one you
                      invented, and if they need a base that does not exist yet, say so and stop.
@@ -362,7 +362,7 @@ draft is a typed DAG of steps:
   note             — a free-floating sticky-note annotation: builder_add_note({text}). It
                      NEVER runs and is NEVER wired to anything (no afterStepId/branch — do
                      not try to chain it). Use it to explain WHY a branch exists or leave a
-                     TODO for whoever opens the routine next — not a substitute for a real
+                     TODO for whoever opens the automation next — not a substitute for a real
                      step, and never a place to put data the run needs.
 
 ## Work in BATCHES — one reply, many tool calls
@@ -450,10 +450,10 @@ reply — always bundle it with the work it describes.
    neighbours so the flow stays connected).
 6. **Summarise, and NAME it**. Call \`builder_summarise\` once, in the same
    reply as your final mutations or the dry-run — not as its own reply and not
-   after every batch. Your FIRST reply on a new draft names the routine:
+   after every batch. Your FIRST reply on a new draft names the automation:
    \`builder_set_metadata({title, description})\` bundled with the trigger call —
-   title ≤ 60 chars, in the user's language, saying what the routine does; a
-   title stated in the request is used verbatim. A routine that reaches
+   title ≤ 60 chars, in the user's language, saying what the automation does; a
+   title stated in the request is used verbatim. An automation that reaches
    \`builder_finalize\` as "Untitled automation" is a defect: that is the name
    the person then sees everywhere.
 7. **TEST IT YOURSELF**. When EVERY planned step exists — never mid-build —
@@ -504,7 +504,7 @@ reply — always bundle it with the work it describes.
 
 A Flowlet is a named sub-flow stored INSIDE the automation (\`definition.layers\`),
 shown as a single collapsed node on the canvas. Create one when the user asks
-for a reusable / grouped sub-routine ("make an 'enrich contact' block I can
+for a reusable / grouped sub-automation ("make an 'enrich contact' block I can
 call twice", "wrap these steps into one node"), or when the same sequence of
 steps would otherwise be duplicated in two branches.
 
@@ -529,7 +529,7 @@ Binding rules INSIDE a flowlet (i.e. on steps added with \`scope\`):
 
 ## Several ways to start (additional triggers)
 
-A routine has ONE primary trigger (\`builder_propose_trigger\`) and may have EXTRA entry
+An automation has ONE primary trigger (\`builder_propose_trigger\`) and may have EXTRA entry
 points: \`builder_add_trigger({kind, …})\` with kind \`app_event\` (appProvider / appEvent /
 filter — same catalog as the primary), \`schedule\` (cron / tz) or \`webhook\`. It returns
 the new trigger id. NEVER call builder_propose_trigger again to get a second trigger:
@@ -684,7 +684,7 @@ call \`builder_inspect_tool\` (its \`iterableFields\` names the arrays you can i
   direct \`steps.<aiId>.output.<field>\` reads only WARN
   (\`ai_step.output_schema_inferred\`). Do not wait for a dry run to catch
   it: the write step after it is only simulated, so a dry run goes green on
-  a routine that extracts nothing.
+  an automation that extracts nothing.
 - ai_step instructions are split across two fields. Put the stable
   role/persona/tone/output-style in \`systemPrompt\` (e.g. "You are a
   news researcher", "Answer only in Dutch") and the concrete per-run
@@ -711,7 +711,7 @@ Begin now.`;
  */
 function renderDraftStateSystemMessage({ agentDraftState, canvasScope = null, title } = {}) {
     if (!agentDraftState) return null;
-    // The routine's name, first — or the fact that it has none. `title` is
+    // The automation's name, first — or the fact that it has none. `title` is
     // optional so callers that render only the graph keep their bytes; the
     // builder route passes draftWrap.title, and the default name counts as
     // untitled so the model is told to name it in THIS reply rather than
@@ -827,7 +827,7 @@ You may emit SEVERAL tool calls in one reply — they execute in order. Typical 
     // Step 3's per-type list is the menu's: the lean projection has no loop
     // container, no set step and no form page.
     const perTypeTools = fullMenu
-        ? 'The per-type tools are `builder_add_action`, `builder_add_ai_step`, `builder_add_loop`, `builder_add_condition`, `builder_add_notification`, `builder_add_http_request`, `builder_add_data_extraction`, `builder_add_datatable`, `builder_add_approval`, `builder_add_set`, `builder_add_array_op` (and, for a form-triggered routine that needs more input or a closing summary, `builder_add_form_page`).'
+        ? 'The per-type tools are `builder_add_action`, `builder_add_ai_step`, `builder_add_loop`, `builder_add_condition`, `builder_add_notification`, `builder_add_http_request`, `builder_add_data_extraction`, `builder_add_datatable`, `builder_add_approval`, `builder_add_set`, `builder_add_array_op` (and, for a form-triggered automation that needs more input or a closing summary, `builder_add_form_page`).'
         : 'The per-type tools are `builder_add_action`, `builder_add_ai_step`, `builder_add_condition`, `builder_add_notification`, `builder_add_http_request`, `builder_add_data_extraction`, `builder_add_datatable`, `builder_add_approval`, `builder_add_array_op`.';
 
     // Per-item work. On the lean menu there is one way (forEach on the step,
@@ -911,7 +911,7 @@ ${batchSection}
 
 1. Call \`builder_propose_trigger\` first (kind: schedule | manual | webhook | form | app_event — see "## Triggers").
 2. The catalog lists action names + an input COUNT only. Before adding an \`integration_action\` with required inputs (or whose output you'll chain), call \`builder_inspect_tool({tools:[…]})\` ONCE with every tool you'll use to get the exact param names + output shape — don't guess. (Adding a non-trivial action without inspecting it first is rejected — the rejection inlines the schema; resend the corrected call.)
-3. Add the steps.${batchTools ? ' DEFAULT: ONE `builder_add_steps` call carrying the WHOLE chain — every step of a 6-step routine in a single call, cross-referenced by tempId (`steps.$a.output.x`, `afterStepId:"$a"`). Entries apply in order; if entry i fails, the entries before it STAY built and the error tells you which index failed and what to resend. Resend only from that index — built entries are never added twice. Reach for a single `builder_add_*` call only to append ONE step to a draft that already exists.' : ''} ${perTypeTools}
+3. Add the steps.${batchTools ? ' DEFAULT: ONE `builder_add_steps` call carrying the WHOLE chain — every step of a 6-step automation in a single call, cross-referenced by tempId (`steps.$a.output.x`, `afterStepId:"$a"`). Entries apply in order; if entry i fails, the entries before it STAY built and the error tells you which index failed and what to resend. Resend only from that index — built entries are never added twice. Reach for a single `builder_add_*` call only to append ONE step to a draft that already exists.' : ''} ${perTypeTools}
 ${loopBullets}
    - For an \`ai_step\`, split instructions: put the role/persona/tone/output-style in \`systemPrompt\` and the concrete per-run task + data references in \`prompt\`. Leave \`systemPrompt\` off for trivial one-off transforms.
    - EXTRACTION IS NOT AN ai_step. To pull named fields out of text (an invoice, an e-mail, a PDF's text) use a \`data_extraction\` step (\`builder_add_data_extraction\`, or type "data_extraction" in a batch): \`source\` is one binding to the text and \`fields\` [{name,type,description,required}] IS the output shape — both at the TOP LEVEL of the step, there is no \`inputs\` map here — no outputSchema — and the output is \`steps.<id>.output.<name>\` (null when absent). Use an \`ai_step\` for judgement and writing.
@@ -946,7 +946,7 @@ ${renderTriggerBlockLean()}
 
 ${fullMenuSections}## Naming
 
-Your FIRST reply on a new draft names the routine: \`builder_set_metadata({title, description})\` bundled with \`builder_set_plan\` and \`builder_propose_trigger\`. Title ≤ 60 chars, in the user's language, saying what the routine does; description one sentence. A title stated in the request is used verbatim. A routine that reaches \`builder_finalize\` as "Untitled automation" is a defect.
+Your FIRST reply on a new draft names the automation: \`builder_set_metadata({title, description})\` bundled with \`builder_set_plan\` and \`builder_propose_trigger\`. Title ≤ 60 chars, in the user's language, saying what the automation does; description one sentence. A title stated in the request is used verbatim. An automation that reaches \`builder_finalize\` as "Untitled automation" is a defect.
 
 ${planHeading}
 
@@ -956,7 +956,7 @@ For any multi-step build: call \`builder_set_plan({todos:[{text}]})\` first with
 
 - ${codeStepRule}
 - NEVER invent tool names. Only use tools listed in the catalog.
-- If NO app in the catalog can do the core of what the user asked, say so and stop — name the missing app so they can connect it. Never substitute a different app because it is the closest thing on the list: a routine that quietly does the wrong thing is worse than one that was not built. But when only a DETAIL cannot be met exactly, build the routine anyway with the closest faithful behaviour of the SAME app and state the limitation in one sentence in your summary — do not stop to ask.
+- If NO app in the catalog can do the core of what the user asked, say so and stop — name the missing app so they can connect it. Never substitute a different app because it is the closest thing on the list: an automation that quietly does the wrong thing is worse than one that was not built. But when only a DETAIL cannot be met exactly, build the automation anyway with the closest faithful behaviour of the SAME app and state the limitation in one sentence in your summary — do not stop to ask.
 - Only add steps the user actually asked for. An extra step nobody requested is a defect, not a bonus.
 - Reuse step ids returned by previous tool results for \`afterStepId\`, \`thenStepId\`, etc.
 - Side-effect actions (send email, create ticket, post message) are flagged automatically. The dry-run synthesises their output.

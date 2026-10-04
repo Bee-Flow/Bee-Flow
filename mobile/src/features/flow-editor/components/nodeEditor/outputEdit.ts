@@ -2,13 +2,13 @@
  * A step's output in the node editor: what a test run produced, what is
  * pinned, and the hand-written output — the pure half of the web's
  * NodeDetailView pin / "Edit output" logic (agent-hub `Builder/
- * NodeDetailView.jsx`, BFSF-408), in its own words (`routines.ndv.*`).
+ * NodeDetailView.jsx`, BFSF-408), in its own words (`automations.ndv.*`).
  *
  * A pinned output is replayed instead of running the step, so it is checked
  * before it is saved: it must be JSON, not null (that is Remove), not the
  * server's "output too large" placeholder (that is not data), and small
  * enough — the whole definition is saved on every edit, so one oversized pin
- * would make every later edit to the routine fail.
+ * would make every later edit to the automation fail.
  */
 
 import { translate as t } from '@/core/i18n';
@@ -24,30 +24,30 @@ export function checkOutputText(text: string): OutputCheck {
     try {
         parsed = JSON.parse(text);
     } catch (e) {
-        return { ok: false, error: t('routines.ndv.err_invalid_json', 'Invalid JSON: {message}', { message: e instanceof Error ? e.message : String(e) }) };
+        return { ok: false, error: t('automations.ndv.err_invalid_json', 'Invalid JSON: {message}', { message: e instanceof Error ? e.message : String(e) }) };
     }
     if (parsed === null) {
         return {
             ok: false,
-            error: t('routines.ndv.err_nothing_to_save', 'Nothing to save — use {remove} to clear the saved output.', { remove: t('common.remove', 'Remove') }),
+            error: t('automations.ndv.err_nothing_to_save', 'Nothing to save — use {remove} to clear the saved output.', { remove: t('common.remove', 'Remove') }),
         };
     }
     if (isTruncatedOutput(parsed)) {
         return {
             ok: false,
             error: t(
-                'routines.ndv.err_truncated_placeholder',
+                'automations.ndv.err_truncated_placeholder',
                 'That is the server\'s "output too large" placeholder, not data. Replace it with the shape the next steps should see.',
             ),
         };
     }
     const bytes = jsonByteLength(parsed);
-    if (bytes == null) return { ok: false, error: t('routines.ndv.err_not_json', 'That value cannot be stored as JSON.') };
+    if (bytes == null) return { ok: false, error: t('automations.ndv.err_not_json', 'That value cannot be stored as JSON.') };
     if (bytes > MAX_PINNED_BYTES) {
         return {
             ok: false,
             error: t(
-                'routines.ndv.err_too_big',
+                'automations.ndv.err_too_big',
                 'Too big to save: {size} KB, and the limit is {limit} KB. Keep a representative record or two — what the steps downstream map against is the shape, not the volume.',
                 { size: Math.ceil(bytes / 1024), limit: MAX_PINNED_BYTES / 1024 },
             ),

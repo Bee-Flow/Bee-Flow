@@ -9,7 +9,7 @@
  * values" as though it had worked.
  *
  * That is unfixable from the model's side, and it looped twice on one build.
- * Measured 2026-09-16 on a live "Facturen goedkeuren" routine: three identical
+ * Measured 2026-09-16 on a live "Facturen goedkeuren" automation: three identical
  * builder_replace_step calls, each answered `replaced` with `where: []`, and
  * four identical builder_update_steps answered "Nothing changed". The model was
  * reading the draft, seeing the filter it had just sent was missing, and

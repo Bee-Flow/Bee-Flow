@@ -1,7 +1,7 @@
 /**
  * A question's binding name — `<base>.<name>`, what later steps read — in its
  * Advanced fold, the web's BindingNameField (fieldDesigner.jsx). Where the
- * editor can rewrite the routine (`rename`), the name is editable and the
+ * editor can rewrite the automation (`rename`), the name is editable and the
  * rename carries every step that binds it, in the same edit, saying how many
  * moved; where it cannot, the name is shown and said to be fixed here.
  */
@@ -51,7 +51,7 @@ export function BindingName({ field, siblings, bindingBase, rename, onChange, di
                 <Text variant="caption" tone="tertiary">
                     {t(
                         'mobile.flow.form.binding_fixed',
-                        'Fixed here. Rename it from the routine that uses this form — there the rename can carry every step that binds it along with it.',
+                        'Fixed here. Rename it from the automation that uses this form — there the rename can carry every step that binds it along with it.',
                     )}
                 </Text>
             </View>

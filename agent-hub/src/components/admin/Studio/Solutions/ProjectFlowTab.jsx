@@ -1,7 +1,9 @@
-import { AlertTriangle, AppWindow, ArrowRight, Globe, Info, Loader2, ShieldCheck, Workflow } from 'lucide-react';
+import { AlertTriangle, AppWindow, ArrowRight, Globe, HeartPulse, Info, Network, ShieldCheck, Workflow, Link2 } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { kindInkClass } from './kindBar';
 import { Strip, sectionNames } from './solutionNotices';
+import { ROW, TabCard, TabNote, TabSpinner } from './TabParts';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * How the pieces of this Solution are wired to each other.
@@ -24,7 +26,7 @@ import { Strip, sectionNames } from './solutionNotices';
  * empty problems list has TWO causes and only one of them is good news:
  *
  *   complete: true    nothing is wrong — the one state that may be said aloud
- *   complete: false   part of the Solution never loaded; the routine with the
+ *   complete: false   part of the Solution never loaded; the automation with the
  *                     cross-owner edge may be sitting in the half that failed
  *   neither           an answer from a server that predates the field, or one
  *                     off a cache — unknown, and unknown narrows
@@ -43,19 +45,9 @@ function NodeChip({ node }) {
     const Icon = TYPE_ICON[node?.type] || Workflow;
     return (
         <span className="inline-flex items-center gap-1.5 min-w-0">
-            <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+            <Icon className={`w-4 h-4 flex-shrink-0 ${kindInkClass(node?.type)}`} aria-hidden="true" />
             <span className="truncate">{node?.name || 'Unknown'}</span>
         </span>
-    );
-}
-
-/** A quiet line under a heading, for a section that has nothing to list. */
-function Note({ children }) {
-    return (
-        <p className="px-3 py-2.5 rounded-lg text-xs"
-           style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
-            {children}
-        </p>
     );
 }
 
@@ -66,21 +58,20 @@ function Problems({ problems, whole }) {
         // first is a verdict about the Solution; the second is a verdict about
         // the part of it that could be read, and says so.
         return (
-            <Note>
+            <TabNote>
                 {whole
                     ? t('projects.flow_all_connected', 'Everything in this project is connected and owned consistently.')
                     : t('projects.flow_no_problems_partial', 'Nothing was wrong in the parts that could be read.')}
-            </Note>
+            </TabNote>
         );
     }
     return (
         <ul className="space-y-1.5">
             {problems.map((p, i) => (
                 <li key={`${p.code}-${p.from}-${p.targetId || i}`}
-                    className="flex items-start gap-2.5 px-3 py-2 rounded-lg"
-                    style={{ background: 'var(--bg-secondary)' }}>
-                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
-                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{p.message}</span>
+                    className={`flex items-start gap-2.5 px-3 py-2.5 ${ROW} border-l-[3px] border-l-[var(--warning)]`}>
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--warning)]" aria-hidden="true" />
+                    <span className="text-sm text-[var(--text-primary)]">{p.message}</span>
                 </li>
             ))}
         </ul>
@@ -93,45 +84,43 @@ function Wiring({ edges, byId, whole }) {
         // Same split as Problems: "nothing calls anything" is a claim about the
         // whole project, and it is not one a half-read graph can make.
         return (
-            <Note>
+            <TabNote>
                 {whole
                     ? t('projects.flow_nothing_wired', 'Nothing in this project calls anything else yet.')
                     : t('projects.flow_nothing_wired_partial', 'Nothing that could be read calls anything else.')}
-            </Note>
+            </TabNote>
         );
     }
     // Grouped by what does the calling, because that is how someone looks for
-    // it: "what does this app touch?", not "who touches this routine?".
+    // it: "what does this app touch?", not "who touches this automation?".
     const groups = new Map();
     for (const e of edges) {
         if (!groups.has(e.from)) groups.set(e.from, []);
         groups.get(e.from).push(e);
     }
     return (
-        <div className="space-y-3">
+        <div className="space-y-4">
             {[...groups.entries()].map(([from, outgoing]) => (
                 <div key={from}>
-                    <div className="text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-sm font-medium mb-1.5 text-[var(--text-primary)]">
                         <NodeChip node={byId.get(from)} />
                     </div>
                     <ul className="space-y-1">
                         {outgoing.map((e, i) => (
                             <li key={`${e.to || 'none'}-${i}`}
-                                className="flex items-center gap-2 px-3 py-1.5 ml-5 rounded-lg text-sm"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                                <span className="text-[11px] uppercase tracking-wide flex-shrink-0"
-                                      style={{ color: 'var(--text-tertiary)' }}>
+                                className={`flex items-center gap-2 px-3 py-2 min-h-[40px] ml-4 sm:ml-5 ${ROW} text-sm text-[var(--text-secondary)]`}>
+                                <span className="text-[11px] uppercase tracking-wide flex-shrink-0 text-[var(--text-tertiary)]">
                                     {EDGE_VERB[e.kind] || e.kind}
                                 </span>
-                                <ArrowRight className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                                <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                                 {e.to && byId.has(e.to)
                                     ? <NodeChip node={byId.get(e.to)} />
-                                    : <span className="truncate" style={{ color: 'var(--text-tertiary)' }}>
+                                    : <span className="truncate text-[var(--text-tertiary)]">
                                         {e.targetId || t('projects.flow_nothing_picked', 'nothing picked yet')}
                                       </span>}
                                 {e.problem && (
-                                    <AlertTriangle className="w-3.5 h-3.5 ml-auto flex-shrink-0"
-                                                   style={{ color: 'var(--warning)' }} />
+                                    <AlertTriangle className="w-4 h-4 ml-auto flex-shrink-0 text-[var(--warning)]"
+                                                   aria-label={t('projects.flow_edge_problem', 'Problem with this link')} />
                                 )}
                             </li>
                         ))}
@@ -146,18 +135,13 @@ export default function ProjectFlowTab({ graph, loading }) {
     const { t } = useTranslation();
 
     if (loading && !graph) {
-        return (
-            <div className="flex items-center justify-center py-16" style={{ color: 'var(--text-tertiary)' }}>
-                <Loader2 className="w-5 h-5 animate-spin" />
-            </div>
-        );
+        return <TabSpinner />;
     }
     if (!graph) {
         return (
-            <p className="px-3 py-2.5 rounded-lg text-xs"
-               style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
+            <TabNote>
                 {t('projects.section_unavailable', 'Could not load this section. Your items are safe — try again shortly.')}
-            </p>
+            </TabNote>
         );
     }
 
@@ -176,7 +160,7 @@ export default function ProjectFlowTab({ graph, loading }) {
                     {t('projects.flow_incomplete',
                         'Part of this project could not be read, so what is drawn here is not the whole picture.')}
                     {gaps.length > 0 && (
-                        <span className="block text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="block text-xs mt-1 text-[var(--text-tertiary)]">
                             {gaps.join(', ')}
                         </span>
                     )}
@@ -191,37 +175,27 @@ export default function ProjectFlowTab({ graph, loading }) {
                 </Strip>
             )}
 
-            <div>
-                <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                    {t('projects.flow_health', 'Health')}
-                </h3>
+            <TabCard title={t('projects.flow_health', 'Health')} icon={HeartPulse}>
                 <Problems problems={problems} whole={whole} />
-            </div>
+            </TabCard>
 
-            <div>
-                <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                    {t('projects.flow_wiring', 'How it fits together')}
-                </h3>
+            <TabCard title={t('projects.flow_wiring', 'How it fits together')} icon={Network}>
                 <Wiring edges={graph.edges || []} byId={byId} whole={whole} />
-            </div>
+            </TabCard>
 
             {externals.length > 0 && (
-                <div>
-                    <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                        {t('projects.flow_externals', 'Depends on things outside this project')}
-                    </h3>
+                <TabCard title={t('projects.flow_externals', 'Depends on things outside this project')} icon={Link2}>
                     <ul className="space-y-1">
                         {externals.map(ext => (
-                            <li key={ext.id} className="px-3 py-2 rounded-lg text-sm"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                            <li key={ext.id} className={`px-3 py-2 ${ROW} text-sm text-[var(--text-secondary)] break-all`}>
                                 <span className="font-mono text-xs">{ext.id}</span>
-                                <span className="ml-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                <span className="ml-2 text-xs text-[var(--text-tertiary)] tabular-nums">
                                     {t('projects.flow_used_by', 'used by')} {ext.referencedBy.length}
                                 </span>
                             </li>
                         ))}
                     </ul>
-                </div>
+                </TabCard>
             )}
         </div>
     );

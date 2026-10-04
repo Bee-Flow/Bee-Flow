@@ -11,7 +11,7 @@ import { ACTION_FIELD_IDS, defaultRowMapping, writableColumns } from '../lib/act
  * THE MENU MACHINERY BEHIND "WHERE DOES THIS GO?" — shared by the destination
  * pill on an action card (M3) and the per-line popover in the transcript (M4).
  *
- * Both menus ask the same three questions ("which routine", "which table, and
+ * Both menus ask the same three questions ("which automation", "which table, and
  * which column", "which knowledge base"), narrow the offer the same way, and
  * have the same one rule underneath: THE WRITE HAPPENS FIRST, the record
  * second. This module exists so that rule, and the narrowing it rests on, has
@@ -116,7 +116,7 @@ export function useDestinationBranches({ t }) {
      *
      * Per branch rather than all three up front: this menu is drawn for every
      * action card and every transcript line, so an unopened menu must cost
-     * nothing — and picking "Row in a table" must not pay for the routines.
+     * nothing — and picking "Row in a table" must not pay for the automations.
      */
     const openBranch = useCallback(async (branch) => {
         setView(branch); setError('');
@@ -170,7 +170,7 @@ export function useDestinationBranches({ t }) {
 export function BranchList({ t, view, lists, loading, onBack, onPick }) {
     const rows = lists[view];
     const empty = {
-        [VIEW.AUTOMATION]: t('meetings.dest_no_automations', 'No routine here can be started by hand.'),
+        [VIEW.AUTOMATION]: t('meetings.dest_no_automations', 'No automation here can be started by hand.'),
         [VIEW.TABLE]: t('meetings.dest_no_tables', 'No table you can add rows to.'),
         [VIEW.KB]: t('meetings.dest_no_kbs', 'No knowledge base yet.'),
     }[view];

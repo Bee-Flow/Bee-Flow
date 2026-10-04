@@ -1,4 +1,5 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
+import { templateText, isScalarList } from '@shared/expr/templateText.mjs';
 import { walkPath, previewValue } from '../../../../utils/bindingHelpers';
 
 /**
@@ -40,6 +41,9 @@ export default function previewBinding(binding, sampleRoot, { raw = true } = {})
             const v = walkPath(expr.trim(), sampleRoot);
             if (v === undefined) return raw ? full : '…';
             resolvedAny = true;
+            // A list of plain values is written "red, green, blue" in the
+            // text, as the runtime does (templateText) — not "[3 items]".
+            if (isScalarList(v) && v.length) return previewValue(templateText(v), 24);
             return previewValue(v, 24);
         });
         if (!raw && !resolvedAny) return null;

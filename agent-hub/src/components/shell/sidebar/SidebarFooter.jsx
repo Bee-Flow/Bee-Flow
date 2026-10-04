@@ -101,7 +101,7 @@ const SidebarFooter = ({
                         </div>
 
                         {/* Danger section — visually distinct so Sign Out is never
-                            mistaken for a routine navigation action. */}
+                            mistaken for an automation navigation action. */}
                         <div className="border-t p-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
                             <button
                                 onClick={onLogout}

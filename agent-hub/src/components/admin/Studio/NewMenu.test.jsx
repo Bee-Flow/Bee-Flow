@@ -56,7 +56,7 @@ describe('buildNewMenuModel — derived from the registry', () => {
         // Every nav section that you can MAKE something in is an item — the
         // rail and the menu are the same list minus the sections that have
         // nothing to create. Runs is the one such section in the rail (you
-        // cannot make a run; you make a routine and it runs), so its absence
+        // cannot make a run; you make an automation and it runs), so its absence
         // here is asserted rather than merely tolerated.
         for (const app of STUDIO_APPS.filter((a) => !a.hiddenFromNav)) {
             expect(
@@ -109,17 +109,17 @@ describe('buildNewMenuModel — derived from the registry', () => {
 });
 
 describe('buildNewMenuModel — the AI row goes where a person may go', () => {
-    // The row's destination until Track H4 is the Routines builder's assistant.
+    // The row's destination until Track H4 is the Automations builder's assistant.
     // An enabled item that navigates into a section the server 403s is a
     // button that leads to a refusal, and Studio/index.jsx renders a section
     // even when its gate says no.
-    const withoutRoutines = () => allOpen().filter((a) => a.id !== 'aiTasks');
+    const withoutAutomations = () => allOpen().filter((a) => a.id !== 'aiTasks');
 
-    it('is open when Routines are open', () => {
+    it('is open when Automations are open', () => {
         expect(buildNewMenuModel(allOpen(), t)[0].locked).toBeFalsy();
     });
 
-    it('is LOCKED when the Routines section is locked, with the same hint the rail shows', () => {
+    it('is LOCKED when the Automations section is locked, with the same hint the rail shows', () => {
         const sections = allOpen().map((a) => (a.id === 'aiTasks' ? { ...a, locked: 'ceiling' } : a));
         const ai = buildNewMenuModel(sections, t)[0];
         expect(ai.locked).toBe('ceiling');
@@ -127,16 +127,16 @@ describe('buildNewMenuModel — the AI row goes where a person may go', () => {
         expect(ai.lockHint.length).toBeGreaterThan(0);
     });
 
-    it('is LOCKED when the Routines section is not there at all', () => {
-        expect(buildNewMenuModel(withoutRoutines(), t)[0].locked).toBeTruthy();
+    it('is LOCKED when the Automations section is not there at all', () => {
+        expect(buildNewMenuModel(withoutAutomations(), t)[0].locked).toBeTruthy();
         expect(buildNewMenuModel([], t)[0].locked).toBeTruthy();
         expect(buildNewMenuModel(null, t)[0].locked).toBeTruthy();
     });
 
     it('follows a caller that owns the destination, and judges nothing', () => {
-        // With its own onAi the row no longer goes to Routines, so a locked
-        // Routines section says nothing about it.
-        expect(buildNewMenuModel(withoutRoutines(), t, { hasAiHandler: true })[0].locked).toBeFalsy();
+        // With its own onAi the row no longer goes to Automations, so a locked
+        // Automations section says nothing about it.
+        expect(buildNewMenuModel(withoutAutomations(), t, { hasAiHandler: true })[0].locked).toBeFalsy();
     });
 });
 
@@ -235,7 +235,7 @@ describe('<NewMenu> — items', () => {
     it('with an onAi the row hands over to the caller and navigates nowhere', () => {
         // Track H4's building-block picker lives with the caller that mounts
         // it (StudioHomeHeader.jsx). Once it does, this menu must not ALSO
-        // send the reader to the Routines assistant — one click, one screen.
+        // send the reader to the Automations assistant — one click, one screen.
         const onAi = vi.fn();
         const onNavigate = vi.fn();
         const onClose = vi.fn();
@@ -248,8 +248,8 @@ describe('<NewMenu> — items', () => {
 
     it('without one it still falls back to the automation builder assistant — and locks with it', () => {
         // The fallback is unchanged on purpose: a caller that does not own a
-        // destination still ends up in Routines, so the row must be locked
-        // exactly when Routines are. Both halves are asserted here, because
+        // destination still ends up in Automations, so the row must be locked
+        // exactly when Automations are. Both halves are asserted here, because
         // dropping the fallback would make the lock a rule about nothing.
         const onNavigate = vi.fn();
         const onClose = vi.fn();
@@ -260,8 +260,8 @@ describe('<NewMenu> — items', () => {
 
         cleanup();
         const nav2 = vi.fn();
-        const noRoutines = allOpen().map((a) => (a.id === 'aiTasks' ? { ...a, locked: 'ceiling' } : a));
-        renderOpen({ onNavigate: nav2, sections: noRoutines });
+        const noAutomations = allOpen().map((a) => (a.id === 'aiTasks' ? { ...a, locked: 'ceiling' } : a));
+        renderOpen({ onNavigate: nav2, sections: noAutomations });
         const ai = screen.getByTestId('new-menu-ai');
         expect(ai.hasAttribute('disabled')).toBe(true);
         fireEvent.click(ai);
@@ -269,8 +269,8 @@ describe('<NewMenu> — items', () => {
     });
 
     it('Form opens the Forms section\'s own "New form" dialog — nothing is posted from the menu', async () => {
-        // The choice "collect the answers in a table or start a routine" is
-        // made before the routine exists, on the dialog; the menu only goes there.
+        // The choice "collect the answers in a table or start an automation" is
+        // made before the automation exists, on the dialog; the menu only goes there.
         const onNavigate = vi.fn();
         renderOpen({ onNavigate });
         fireEvent.click(screen.getByTestId('new-menu-forms'));

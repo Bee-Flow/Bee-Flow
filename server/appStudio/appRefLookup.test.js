@@ -70,7 +70,7 @@ describe('the pointer no longer points anywhere', () => {
         assert.equal(got.appName, null);
         assert.equal(got.canOpen, false);
         // The ids still come back: the card shows them, which is the only
-        // honest thing left to say about a routine that still fires.
+        // honest thing left to say about an automation that still fires.
         assert.equal(got.appId, 'app-1');
         assert.equal(got.screenId, 'scr_dash01');
     });

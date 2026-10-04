@@ -52,6 +52,7 @@
 
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { findPassage } = require('./passage');
 
 const CONTEXT_COMMENTS = 50;
@@ -164,12 +165,6 @@ async function answerWithin(call, ms) {
     } finally {
         clearTimeout(timer);
     }
-}
-
-/** A usage count under whichever of its spellings the adapter used. */
-function usageCount(usage, ...keys) {
-    const hit = keys.find((k) => Number.isFinite(usage?.[k]));
-    return hit ? usage[hit] : 0;
 }
 
 // ── The assistant ─────────────────────────────────────────────────────────
@@ -349,11 +344,7 @@ function makeCommentAssistant(deps = {}) {
                     agent_name: 'project-comment',
                     agent_type: 'chat',
                     model: model.modelId,
-                    prompt_tokens: usageCount(usage, 'prompt_tokens', 'promptTokens'),
-                    completion_tokens: usageCount(usage, 'completion_tokens', 'completionTokens'),
-                    total_tokens: usageCount(usage, 'total_tokens', 'totalTokens'),
-                    cached_tokens: usageCount(usage, 'cached_tokens', 'cachedTokens'),
-                    reasoning_tokens: usageCount(usage, 'reasoning_tokens', 'reasoningTokens'),
+                    ...usageLogFields(usage),
                     stop_reason: result?.stop_reason || null,
                     source: 'project_comment',
                     duration_ms: Date.now() - started,

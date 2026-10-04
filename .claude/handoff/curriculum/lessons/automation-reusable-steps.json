@@ -1,0 +1,287 @@
+{
+  "id": "automation-reusable-steps",
+  "icon": "♻️",
+  "estMinutes": 9,
+  "title": "Stop copying the same five nodes",
+  "desc": "Flowlets, building blocks and calling one from chat — where shared logic should live.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson you can choose between a flowlet and a published building block for a piece of repeated logic, and expose it where it belongs.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "pasted",
+      "icon": "📋",
+      "title": "Five nodes, pasted three times",
+      "bodyMd": "Van Dijk Groep has three automations that all begin the same way: take a customer number, look the customer up in the datatable, check the VAT number, stop if it is missing, hand back a clean record.\n\nFive nodes, built once and copied twice. It worked — until the VAT check changed. Now the same fix has to be made in three canvases, and the third one gets forgotten.\n\nThe product gives you two ways out of this, and they are not interchangeable. Picking the wrong one costs you a rebuild."
+    },
+    {
+      "type": "slide",
+      "id": "two-tools",
+      "icon": "🧱",
+      "title": "One groups, the other is shared",
+      "bodyMd": "**A flowlet** is a sub-flow inside one automation. In the add-step menu it is **Create flowlet** — \"Group steps into a reusable sub-flow\". You call it with a **Flowlet** node and it ends with a **Flowlet output** step. It is a tidying tool: it belongs to that automation and travels with it. Copy the automation and you copy the flowlet.\n\n**A building block** is its own object in its own library: the **Building blocks** group in the Automations list. It is built in the same canvas, then — once published — dropped into *any* automation from the ribbon's **My building blocks** tab, where it lands as a **Step** node. One definition, many callers.\n\nThat difference matters for more than tidiness. A *automation* has no audience control at all: it belongs to you and nobody else can open, edit or run it. A *building block* is a different object, and it does carry an audience. Sharing one hands colleagues the block — never a look inside your automations.\n\nVan Dijk's VAT check spans three automations, so it wants to be a building block."
+    },
+    {
+      "type": "quiz",
+      "id": "q-pause",
+      "icon": "⏸️",
+      "question": "Inside a flowlet, the palette no longer offers Approval or Form page. Why are they missing?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A step that pauses the run has to resume at an address in the main flow, and a sub-flow has no address of its own.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "They are premium steps and a flowlet only gets the free ones.",
+          "correct": false,
+          "feedback": "None of the three is a paid extra, and a flowlet does not get a cut-down palette. Approval, Form page and \"Back to the app\" are removed for one shared reason: they hand control to somewhere outside the sub-flow."
+        },
+        {
+          "id": "c",
+          "label": "They are there, just further down the menu under Flow control.",
+          "correct": false,
+          "feedback": "They really are removed. Put one inside a building block anyway and saving it is rejected with \"approval steps are not supported inside a Step\", and the hint tells you to move it to the parent flow."
+        },
+        {
+          "id": "d",
+          "label": "A flowlet may only contain data steps — no people, no integrations.",
+          "correct": false,
+          "feedback": "Too broad. A flowlet happily contains AI steps, datatable writes, notifications and calls to a web service. Only the three that pause or end the whole run are blocked."
+        }
+      ],
+      "explanation": "An approval or a form page suspends the run and resumes days later by pointing at a step in the automation's own graph. A flowlet — and a building block — returns to whatever called it, so there is nothing for the resume to point at. The same rule blocks \"Back to the app\". Put the pause in the main flow, before or after the call."
+    },
+    {
+      "type": "slide",
+      "id": "contract",
+      "icon": "🔌",
+      "title": "A building block has inputs, not a trigger",
+      "bodyMd": "Open a new building block and there is no trigger to choose. The entry node is the input contract instead: its settings read **Flowlet inputs**, and **Add input** gives you a row with a name, a type (string, number, boolean, object or array) and a **required** tick.\n\nThat is the contract. Inside the building block you read a value as `trigger.output.customerNumber`. At the other end a **Flowlet output** step names the fields you hand back, and the calling automation reads them like any other step's result — it *binds* its own fields to yours.\n\nLeave the output step out and callers get the last step's raw output — the builder warns you — a contract nobody declared is one nobody can rely on."
+    },
+    {
+      "type": "slide",
+      "id": "publish",
+      "icon": "📤",
+      "title": "Publish, then decide who calls it",
+      "bodyMd": "A building block's header has no Test button — no Dry-run, no Run live. Its action bar carries three controls instead:\n\n- **Publish** — \"automations and chats using this Step pick up the change\" (the header's tooltips still call a building block a Step). Automations always run the *published* version, never your open draft. Call an unpublished building block and the run fails with \"has not been published yet\".\n- The audience menu — **Personal**, **Entire organisation**, or specific groups, the same menu agents and knowledge bases use. Each building block in the list then says **Personal**, **Organisation** or **Groups**.\n- **In chat** — \"Make this Step callable as a tool in direct and agent chat\". For now that tool goes to the building block's owner only; the audience menu is what decides who may call it from an automation.\n\nSharing stops at the building block. A colleague who picks up your shared block gets an input contract and an output — your automations, their canvases and their runs stay yours. And the block runs under the identity of whoever calls it, with *their* connections. It never borrows yours."
+    },
+    {
+      "type": "quiz",
+      "id": "q-audience",
+      "icon": "🔓",
+      "question": "Sanne sets her VAT-check building block to Entire organisation. Her automations are owner-private, as every automation is. What does that sharing actually give her colleague Joost?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "He can drop that building block into automations he builds himself — and nothing more; her own automations stay closed to him.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "He can open the three automations that call the building block, because sharing a block shares its callers too.",
+          "correct": false,
+          "feedback": "No — and this is the boundary worth remembering. A building block is its own object with its own audience; an automation has no audience control at all. Ownership still answers 403 for anybody else on every per-automation route, so Joost cannot open, edit or run Sanne's automations."
+        },
+        {
+          "id": "c",
+          "label": "When his automation calls the building block, it runs with Sanne's connections, because she is the author.",
+          "correct": false,
+          "feedback": "The opposite. A shared building block runs under the identity of whoever calls it, with their own connected accounts. If Joost has never connected the service the block uses, his run fails — it does not quietly borrow Sanne's access."
+        },
+        {
+          "id": "d",
+          "label": "Nothing at all until she also switches on In chat, which is what publishing to colleagues means.",
+          "correct": false,
+          "feedback": "Two separate switches. The audience menu decides who may call the building block from an automation; In chat exposes it as a chat tool and, for now, only to its owner. Sharing works without it."
+        }
+      ],
+      "explanation": "Keep the two objects apart. Automations are owner-private on every licence tier — there is no share switch on an automation. A building block is a separate, shareable object: Personal, Entire organisation, or chosen groups. Sharing publishes a callable block with a declared contract, not access to the canvases that call it, and the caller's own identity and connections do the work."
+    },
+    {
+      "type": "sim",
+      "id": "sim-where",
+      "icon": "🧩",
+      "title": "Where does each duplication belong?",
+      "instruction": "Four things Van Dijk Groep keeps rebuilding. Match each one to the place it should live.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Inside the invoice automation, the same three tidy-up nodes run once for new customers and once for existing ones.",
+            "right": "A flowlet",
+            "note": "It repeats inside one automation and nothing else needs it. Group it, call it twice, keep the canvas readable."
+          },
+          {
+            "id": "p2",
+            "left": "Three separate automations each rebuild the same customer lookup and VAT check.",
+            "right": "A published building block",
+            "note": "Shared logic across automations is exactly what a building block is for: one definition in the library, and a Step node in each of the three automations pointing at it."
+          },
+          {
+            "id": "p3",
+            "left": "Four AI steps in different automations all repeat the same house rules for writing a quote.",
+            "right": "A skill",
+            "note": "That is a written method, not a wiring problem. Author it once as a skill and pick it in the AI step's \"Who does the thinking\" section."
+          },
+          {
+            "id": "p4",
+            "left": "You want to run the VAT check yourself, ad hoc in a chat, without opening an automation at all.",
+            "right": "A building block with In chat switched on",
+            "note": "Publish it and switch on In chat and the assistant can call it in your own conversations. Chat exposure is owner-only for now, so it serves the author rather than everyone the block is shared with."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-dryrun",
+      "icon": "🧪",
+      "question": "You dry-run the automation that calls your VAT-check building block — a preview that walks every step but fakes the real actions — and everything is green. What have you actually proved?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "That the wiring and the bindings hold — but not that the VAT service was really contacted.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "That the building block works end to end, including the call to the VAT service.",
+          "correct": false,
+          "feedback": "A dry run synthesises side-effecting work rather than performing it, and a request that carries a saved credential is synthesised too — precisely so a preview never decrypts your credentials. The green tick is about shape, not about the outside world."
+        },
+        {
+          "id": "c",
+          "label": "Nothing — a dry run skips anything inside a building block or a flowlet.",
+          "correct": false,
+          "feedback": "Too pessimistic. The mode carries into the building block, so its nodes are walked, its inputs are bound and its output fields come back. You see the whole path; only the real side effects are stand-ins."
+        },
+        {
+          "id": "d",
+          "label": "That the published version is correct, because a dry run always uses the published definition.",
+          "correct": false,
+          "feedback": "The version question is separate from the dry-run question. A call does resolve the published version, so if you edited the building block and did not press Publish, the preview ran your old logic — green or not."
+        }
+      ],
+      "explanation": "A building block has no run controls of its own; it gets exercised by the automation that calls it, and a dry run of that automation dry-runs the block's insides as well. So prove the wiring with a dry run, then prove the outside world with one careful live run on safe data."
+    },
+    {
+      "type": "slide",
+      "id": "traps",
+      "icon": "⚠️",
+      "title": "Three things that bite",
+      "bodyMd": "**Editing is not shipping.** Callers keep running the published snapshot until you press **Publish**. A building block you \"fixed\" this morning is still broken everywhere if you closed the tab.\n\n**Pinned data blocks publishing.** If any node inside serves a saved sample instead of running, publishing is refused: unpin it first, or every caller gets your sample instead of a real run.\n\n**A building block cannot call another one.** Save one that does and the builder refuses it — \"a Step cannot contain another Step\". Compose them side by side in an automation instead. Flowlets and building blocks together may nest at most eight levels deep, and the runner stops a call chain that loops back on itself."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-inventory",
+      "icon": "🎯",
+      "exerciseId": "ex-automation-reusable-steps-inventory",
+      "title": "Your turn: name three candidates",
+      "instruction": "Look at the automations you have built. Name three pieces of logic that already exist more than once, and for each one say (a) what it takes in, (b) what it hands back, and (c) whether it should be a flowlet, a published building block, or a skill — and why. Be concrete: \"customer number in, {name, vatNumber, isValid} out, a building block because the quote automation and the invoice automation both need it\" beats \"the lookup bit\".",
+      "placeholder": "e.g. 1) Customer lookup + VAT check. In: customerNumber (string, required). Out: name, vatNumber, isValid. A published building block — three automations call it and I want one place to fix the VAT rule. 2) …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "tour",
+      "id": "tab-steps",
+      "target": "[data-tour=\"automation-building-blocks\"]",
+      "navigateTo": "studio/automations",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "👀",
+      "title": "Your building blocks live here",
+      "body": "Building blocks sit in the Automations list itself, in their own group below your automations and folders. The arrow next to + makes a new one."
+    },
+    {
+      "type": "action",
+      "id": "do-publish",
+      "icon": "🏗️",
+      "checkId": "step-published",
+      "title": "Build and publish one building block",
+      "instruction": "Press the arrow next to + and choose New building block. Declare one input, add the two or three nodes that do the work, name the fields on the Flowlet output step already waiting at the end, then press Publish. Take the smallest candidate from your list — a lookup, not a whole process.",
+      "launch": {
+        "navigateTo": "studio/automations",
+        "label": "Open Automations"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Choose the right container.** Repeats inside one automation: a flowlet. Repeats across automations: a published building block. Repeats inside AI instructions: a skill.\n- **Write the contract first.** Named, typed inputs at the top, a Flowlet output step naming the fields at the bottom — then the callers have something stable to bind to.\n- **Know what sharing shares.** Automations stay owner-private; only a building block has an audience, and it hands over a callable block, run under the caller's own identity.\n- **Ship deliberately.** Publish after every change, keep pinned samples out, and remember that a dry run proves the wiring while only a live run proves the world.\n\nVan Dijk Groep now fixes the VAT rule in one place, and all three automations pick it up the moment it is published."
+    }
+  ],
+  "rubrics": {
+    "ex-automation-reusable-steps-inventory": {
+      "title": "Three candidates for reuse",
+      "task": "The learner named three pieces of repeated logic from their own automations, and for each gave its inputs, its outputs, and whether it belongs in a flowlet, a published building block or a skill — with a reason.",
+      "criteria": [
+        "Three distinct pieces of logic, each recognisably a concrete job (a lookup, a validation, a formatting pass) rather than a vague area like 'the email part'.",
+        "Each candidate names what goes in and what comes back, ideally as named fields — this is the input contract and the output the caller binds to.",
+        "Each candidate is placed in a flowlet, a published building block or a skill, and the reason matches the rule: inside one automation, across automations, or inside AI instructions.",
+        "At least one choice is justified by reuse across more than one automation, or explicitly defended as flowlet-only because nothing else needs it."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a list of three topics with no inputs or outputs, or three answers that all say 'building block' with no reasoning. Do not pass an answer that puts an approval or a form page inside the building block or flowlet — that is blocked by the product and should be flagged in feedback. A learner who has built only one automation may reasonably describe intended future reuse; accept that if the contracts are concrete. Naming a skill for something that is wiring (an API call, a datatable write) is a miss, not a pass."
+    }
+  },
+  "practiceTopic": {
+    "title": "Flowlets, building blocks and where shared logic lives",
+    "summary": "How an automation's repeated logic is factored out: a flowlet inside one automation, a published building block across many, and a skill for repeated AI instructions.",
+    "facts": [
+      "A flowlet is created from the add-step menu entry \"Create flowlet\" — \"Group steps into a reusable sub-flow\" — and ends with a \"Flowlet output\" step that returns data to its caller.",
+      "Building blocks sit in the \"Building blocks\" group of the Automations list and are made with the arrow next to + → \"New building block\"; a published one is added to an automation from the ribbon's \"My building blocks\" tab and shows on the canvas as a Step node.",
+      "Approval steps, form pages and \"Back to the app\" are removed from the palette inside a flowlet or a building block, because a pause has to resume at an address in the parent flow.",
+      "A building block's trigger is an input contract: named inputs with a type of string, number, boolean, object or array and an optional required tick, read inside as trigger.output.<name>.",
+      "A building block's Publish button says \"automations and chats using this Step pick up the change\"; beside it an audience menu offers Personal, Entire organisation or specific groups, and each building block in the list says Personal, Organisation or Groups.",
+      "The \"In chat\" toggle makes a published building block callable as a tool in direct or agent chat for its owner (chat exposure is owner-only for now); its description is what the assistant reads to decide when to call it.",
+      "Publishing is refused for a building block that serves pinned data, and a building block may not contain another one (\"a Step cannot contain another Step\") — compose them at the automation level instead.",
+      "Automations have no sharing control — they are owner-private on every licence tier and every per-automation route answers 403 to anyone else; a building block is the shareable object, runs under its caller's identity, and flowlets and blocks nest up to eight levels deep."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "step-published",
+      "existing": false,
+      "label": "Publish a building block",
+      "hint": "In Studio → Automations, press the arrow next to + and choose New building block, build it, then press Publish in the header.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/step",
+          "returns": "{ steps: [...] } — Steps (kind='block') the caller can see: own rows plus ones shared into their organisation. Each row carries id, userId, title, description, isPublished, sharedGroups, publishedVersion, exposeAsTool, definition, updatedAt."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "owned",
+          "label": "You own at least one building block",
+          "hint": "The arrow next to + → New building block. Shared building blocks from colleagues do not count.",
+          "rule": "steps.some(s => s.userId === currentUserId)",
+          "endpoint": "/api/step",
+          "expect": {
+            "kind": "rows",
+            "field": "steps"
+          }
+        },
+        {
+          "id": "published",
+          "label": "One of your building blocks has been published",
+          "hint": "Open the building block and press Publish in the header — that is what automations and chats actually run.",
+          "rule": "steps.some(s => s.userId === currentUserId && s.publishedVersion != null)"
+        }
+      ]
+    }
+  ]
+}

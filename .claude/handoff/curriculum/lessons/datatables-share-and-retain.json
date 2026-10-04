@@ -15,21 +15,21 @@
       "id": "scene",
       "icon": "🧭",
       "title": "Two questions, one table",
-      "bodyMd": "Van Dijk Groep, an installation firm of sixty people near Zwolle, has a table called **leveranciersfacturen**. A routine reads the invoice mailbox every morning and writes one row per invoice the firm receives from its merchants and subcontractors: supplier, invoice number, date, amount, status.\n\nTwo questions follow the moment the first rows land, and each is answered on its own tab:\n\n- **Who may read these rows, and who may change them?** — the **Sharing** tab.\n- **How long do the rows stay?** — the **Retention** tab.\n\nNeither answers itself. Leave the first alone and nobody but you can see the invoices. Leave the second alone and the state line says it plainly: *Rows stay until something deletes them — an automation step, or you.*"
+      "bodyMd": "Van Dijk Groep, an installation firm of sixty people near Zwolle, has a table called **leveranciersfacturen**. An automation reads the invoice mailbox every morning and writes one row per invoice the firm receives from its merchants and subcontractors: supplier, invoice number, date, amount, status.\n\nTwo questions follow the moment the first rows land, and each is answered on its own tab:\n\n- **Who may read these rows, and who may change them?** — the **Sharing** tab.\n- **How long do the rows stay?** — the **Retention** tab.\n\nNeither answers itself. Leave the first alone and nobody but you can see the invoices. Leave the second alone and the state line says it plainly: *Rows stay until something deletes them — an automation step, or you.*"
     },
     {
       "type": "slide",
       "id": "ladder",
       "icon": "🪜",
       "title": "Viewer, editor, owner",
-      "bodyMd": "Access to a datatable is one of three grades.\n\n- **Viewer** — read the rows; a routine may look them up.\n- **Editor** — everything a viewer may do, plus adding, changing and deleting rows.\n- **Owner** — everything an editor may do, plus the columns, the Sharing tab, the Retention tab and deleting the table.\n\n**Owner is never handed out.** Whoever created the table is the owner, and so is an administrator of that same organisation. An invitation can only ever carry viewer or editor.\n\nSo Sanne, who built the invoice table, cannot be shared out of it — and Marieke, the administrator, already holds it without anyone sharing anything with her. Your card states your grade: **You own this table**, **You can read and change rows**, or **You can read rows**."
+      "bodyMd": "Access to a datatable is one of three grades.\n\n- **Viewer** — read the rows; an automation may look them up.\n- **Editor** — everything a viewer may do, plus adding, changing and deleting rows.\n- **Owner** — everything an editor may do, plus the columns, the Sharing tab, the Retention tab and deleting the table.\n\n**Owner is never handed out.** Whoever created the table is the owner, and so is an administrator of that same organisation. An invitation can only ever carry viewer or editor.\n\nSo Sanne, who built the invoice table, cannot be shared out of it — and Marieke, the administrator, already holds it without anyone sharing anything with her. Your card states your grade: **You own this table**, **You can read and change rows**, or **You can read rows**."
     },
     {
       "type": "slide",
       "id": "audience",
       "icon": "👓",
       "title": "Reading is an audience, writing is a grant",
-      "bodyMd": "On the **Sharing** tab, **Who can read the rows** offers three settings:\n\n- **Private** — *Only you and the people you invite.*\n- **Entire organisation** — *Everyone can read; only invited people can edit.*\n- **Specific groups** — *Only members of the groups you pick.*\n\nThat setting decides reading, and nothing else. Writing is a separate decision: invite a person or a group under **People and teams** with the grade **can change rows**, or switch on **Let everyone who can read it change it too**, which is off by default.\n\nReading Van Dijk's invoices suits the whole Inkoop group. Deleting one does not. That is why they are two switches — and why the widest combination warns you that anyone in your organisation can delete every row, and any routine they run can too."
+      "bodyMd": "On the **Sharing** tab, **Who can read the rows** offers three settings:\n\n- **Private** — *Only you and the people you invite.*\n- **Entire organisation** — *Everyone can read; only invited people can edit.*\n- **Specific groups** — *Only members of the groups you pick.*\n\nThat setting decides reading, and nothing else. Writing is a separate decision: invite a person or a group under **People and teams** with the grade **can change rows**, or switch on **Let everyone who can read it change it too**, which is off by default.\n\nReading Van Dijk's invoices suits the whole Inkoop group. Deleting one does not. That is why they are two switches — and why the widest combination warns you that anyone in your organisation can delete every row, and any automation they run can too."
     },
     {
       "type": "sim",
@@ -83,7 +83,7 @@
     {
       "type": "quiz",
       "id": "q-perm",
-      "question": "Bilal is a member at Van Dijk Groep. He built a personal table to track his own site visits, and now wants a shared table for Inkoop that a routine will write to. What can he do himself?",
+      "question": "Bilal is a member at Van Dijk Groep. He built a personal table to track his own site visits, and now wants a shared table for Inkoop that an automation will write to. What can he do himself?",
       "multi": false,
       "choices": [
         {
@@ -117,7 +117,7 @@
       "id": "paid",
       "icon": "🔐",
       "title": "Sharing is the paid boundary, losing it is not",
-      "bodyMd": "Handing a table to colleagues is an Enterprise feature. Exactly two things check for it: changing the sharing settings, and inviting a person or a group. Without it you get one line: *Sharing a datatable with colleagues is part of a paid plan. Your own tables, and every table already shared with you, keep working exactly as they do now.*\n\nEverything else is deliberately not gated:\n\n- reading rows, and every row a routine writes, on a table you already hold a grade on;\n- **removing** a grant — taking access away must always be possible;\n- the retention sweep, on its own hourly tick with no module gate: a promise to delete must not stop when a licence does.\n\nA lapse narrows what you can newly share. It never opens, or freezes, what is already there."
+      "bodyMd": "Handing a table to colleagues is an Enterprise feature. Exactly two things check for it: changing the sharing settings, and inviting a person or a group. Without it you get one line: *Sharing a datatable with colleagues is part of a paid plan. Your own tables, and every table already shared with you, keep working exactly as they do now.*\n\nEverything else is deliberately not gated:\n\n- reading rows, and every row an automation writes, on a table you already hold a grade on;\n- **removing** a grant — taking access away must always be possible;\n- the retention sweep, on its own hourly tick with no module gate: a promise to delete must not stop when a licence does.\n\nA lapse narrows what you can newly share. It never opens, or freezes, what is already there."
     },
     {
       "type": "quiz",
@@ -166,20 +166,20 @@
       "choices": [
         {
           "id": "a",
-          "label": "In the run history of a routine that read them, which ages out on the run-history window instead",
+          "label": "In the run history of an automation that read them, which ages out on the run-history window instead",
           "correct": true
         },
         {
           "id": "b",
           "label": "Nowhere — once the sweep has run, every copy inside Bee Flow is gone",
           "correct": false,
-          "feedback": "A routine step that reads rows keeps what it read in its own run record. The Retention tab says so in a standing line in the About to expire card, because people are surprised by it."
+          "feedback": "An automation step that reads rows keeps what it read in its own run record. The Retention tab says so in a standing line in the About to expire card, because people are surprised by it."
         },
         {
           "id": "c",
-          "label": "In the Used by tab, which keeps the rows each routine has read",
+          "label": "In the Used by tab, which keeps the rows each automation has read",
           "correct": false,
-          "feedback": "Used by records which routines, apps, web pages and knowledge bases depend on the table — names and step positions, never row content."
+          "feedback": "Used by records which automations, apps, web pages and knowledge bases depend on the table — names and step positions, never row content."
         },
         {
           "id": "d",
@@ -203,7 +203,7 @@
             "id": "invoices",
             "left": "leveranciersfacturen — supplier invoices the bookkeeping has to keep for seven years",
             "right": "2555 days, counted from factuurdatum",
-            "note": "The window is set by the obligation, and the age is counted from the invoice date rather than the day the routine happened to import it."
+            "note": "The window is set by the obligation, and the age is counted from the invoice date rather than the day the automation happened to import it."
           },
           {
             "id": "sick",
@@ -213,7 +213,7 @@
           },
           {
             "id": "seen",
-            "left": "A table an hourly routine uses to remember which e-mails it has already answered",
+            "left": "A table an hourly automation uses to remember which e-mails it has already answered",
             "right": "30 days, counted from its own 'answered on' date column",
             "note": "A memo to itself needs no history. Even here the window needs one of the table's OWN date columns: the Counted from picker lists those, not the hidden created_at the grid shows as Added."
           },
@@ -272,7 +272,7 @@
         "Picks an audience narrower than Entire organisation — Private, or Specific groups with the HR group named — and gives a reason tied to how sensitive sick-leave answers are.",
         "Keeps reading and writing separate: the coordinators write because they are invited with the read-and-write grade (or because the write switch was deliberately turned on), not because they can read.",
         "States a concrete number of days within 1 to 3650 and names the date column the age is counted from — on a form-answers table that column is fixed by the platform (the date the answer arrived), which is a correct answer too.",
-        "Names a copy the sweep does not reach — the rows a routine kept in its run history, which ages out on the run-history window instead."
+        "Names a copy the sweep does not reach — the rows an automation kept in its run history, which ages out on the run-history window instead."
       ],
       "passScore": 70,
       "guidance": "Do not pass an answer that treats sharing as granting write access, that gives a number of days without naming a date column, or that claims retention removes every copy in the workspace. A confident summary of the Sharing tab with no retention decision in it fails. Wording may be informal; the four decisions must each be identifiable."
@@ -288,7 +288,7 @@
       "Choosing Specific groups sends nothing until the first group is ticked, and the panel says: Nothing has changed yet — picking a group is what shares the table.",
       "Rows are deleted after offers Never, 7, 30, 90 days and Other… (1 to 3650); Counted from is mandatory and lists the table's own date columns, greyed out on a platform-filled table. A row with an empty date column is never swept.",
       "Changing the sharing settings (the audience or the write switch) or inviting someone needs the Enterprise sharing feature, while removing a grant, reading rows and the hourly retention sweep are never gated.",
-      "A routine's copy of the rows in its run history is not removed by the retention sweep; it ages out on the run-history window instead; the About to expire card shows how many rows go in the next seven days and says so in a standing line.",
+      "An automation's copy of the rows in its run history is not removed by the retention sweep; it ages out on the run-history window instead; the About to expire card shows how many rows go in the next seven days and says so in a standing line.",
       "A table mirrored from Nextcloud Tables or from a spreadsheet file has no Retention tab: its rows stay as long as they are in the source."
     ]
   },

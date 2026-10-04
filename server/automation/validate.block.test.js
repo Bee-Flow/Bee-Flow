@@ -125,7 +125,7 @@ test('a Step with a code body must declare its outputs — a layer still only ge
 
     // Custom node: an ERROR, because it is bound to by field name. Nothing
     // declared means the picker has no rows, every downstream
-    // `steps.<id>.output.<field>` is undefined, and the routine saves, runs
+    // `steps.<id>.output.<field>` is undefined, and the automation saves, runs
     // green and writes nothing.
     const node = validateDefinition(noOut, { scope: 'block' });
     assert.strictEqual(node.ok, false, JSON.stringify(node.errors));
@@ -154,7 +154,7 @@ test('a Step with a code body must declare its outputs — a layer still only ge
 
 test('the custom-node contract is a BLOCK-scope rule, never the root or a layer', () => {
     // At the root a code step is just a code step. Applying a Step's contract
-    // to an ordinary automation would make every routine with a code step in
+    // to an ordinary automation would make every automation with a code step in
     // it unsaveable.
     const root = validateDefinition({
         trigger: { id: 'trg', type: 'trigger', kind: 'manual' },

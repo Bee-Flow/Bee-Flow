@@ -192,7 +192,7 @@ test('askOnce on a WRITE METHOD is a WARNING — the definition stays valid', ()
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
         const { errors, warnings } = codesOf(def({ ...HTTP, method, body: '{}', askOnce: true }));
         assert.deepStrictEqual(errors.filter(c => c === 'http_request.ask_once_on_write'), [],
-            `${method}: a caution must not make the routine unsaveable`);
+            `${method}: a caution must not make the automation unsaveable`);
         assert.ok(warnings.includes('http_request.ask_once_on_write'),
             `${method}: the cost of a hit must still be stated somewhere`);
     }

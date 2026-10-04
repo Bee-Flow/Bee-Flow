@@ -178,7 +178,7 @@ async function resolveOrgShield(orgId) {
         webSearchGuardEnabled: !!shield.webSearchGuardEnabled,
         disableSearchOnUpload: !!shield.disableSearchOnUpload,
         monitorIntegrations: !!shield.monitorIntegrations,
-        // Whether the shield also guards automation/routine runs. Default true
+        // Whether the shield also guards automation runs. Default true
         // (older saves have no field) — an org must explicitly opt out.
         applyToAutomations: shield.applyToAutomations !== false,
         // Transparency: when true, the chat stream emits the tokenised outbound
@@ -335,9 +335,14 @@ function synthesizeToolPiiPolicy(shield) {
  * Web-search tools are forced 'external' explicitly so the absorbed Web Search
  * Guard always fires; keep this regex in sync with the chatStream tool loop.
  *
+ * `toolArgs` matters for tools whose destination depends on the call: a
+ * create_word_document / create_presentation with `nextcloudPath` writes into
+ * Nextcloud and is external; without it the file stays on-box.
+ *
  * Pure + side-effect-free (lazy-requires the map to avoid a circular import).
  */
-function classifyToolClass(toolName) {
+function classifyToolClass(toolName, toolArgs = {}) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored alternation of literals, no repeat: linear
     if (/^(agent_search|web_search|search|brave_search|browse_web)$/i.test(toolName || '')) return 'external';
     // Custom integrations (cint_<slug>_<tool>, the AI Integration Builder) can
     // only reach a public HTTPS host: the runner and the custom MCP client both
@@ -345,9 +350,10 @@ function classifyToolClass(toolName) {
     // So they always leave the org. resolveIntegration answers null for them
     // without the stored definition, which used to make every custom
     // integration 'internal': the org's "Outside tools" rules never applied.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored literal prefix: constant time
     if (/^cint_/.test(toolName || '')) return 'external';
     let meta = null;
-    try { meta = require('../integrations/integrationToolMap').resolveIntegration(toolName, {}); } catch (_) { /* treat as internal */ }
+    try { meta = require('../integrations/integrationToolMap').resolveIntegration(toolName, toolArgs || {}); } catch (_) { /* treat as internal */ }
     if (!meta) return 'internal';            // internal/unknown tools (notebook_*, workspace_*, set_*, regex_*)
     if (meta.isLocal === true) return 'internal'; // local integrations (Nextcloud family, on-box whisper, …)
     return 'external';                       // any resolved integration leaving the box
@@ -360,10 +366,11 @@ function classifyToolClass(toolName) {
  * @param {string} toolName
  * @param {string[]} detectedCategories  canonical PII category ids (entity.category)
  * @param {object} policy                resolved toolPiiPolicy from resolveOrgShield
+ * @param {object} [toolArgs]            the call's arguments (see classifyToolClass)
  * @returns {{ blocked: boolean, blockedCategories: string[], toolClass: string }}
  */
-function isBlockedForTool(toolName, detectedCategories, policy) {
-    const toolClass = classifyToolClass(toolName);
+function isBlockedForTool(toolName, detectedCategories, policy, toolArgs = {}) {
+    const toolClass = classifyToolClass(toolName, toolArgs);
     if (!policy || !Array.isArray(detectedCategories) || detectedCategories.length === 0) {
         return { blocked: false, blockedCategories: [], toolClass };
     }

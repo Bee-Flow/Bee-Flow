@@ -32,15 +32,15 @@ export default function NotificationsSection({ automation, onSave }: { automatio
     const [error, setError] = useState<string | null>(null);
     const shares = useAutomationShares(automation?.id);
 
-    // A different routine, or a change from elsewhere (the AI builder), resets
+    // A different automation, or a change from elsewhere (the AI builder), resets
     // the page to what is stored.
     const stored = automation?.definition?.notificationSettings;
     useEffect(() => {
         setSettings(normalizeNotificationSettings(stored));
     }, [automation?.id, stored]);
 
-    const ownerName = shares.data?.owner?.name || t('routines.notify.owner_fallback', 'Owner');
-    const title = automation?.title?.trim() || t('routines.notify.this_routine', 'This automation');
+    const ownerName = shares.data?.owner?.name || t('automations.notify.owner_fallback', 'Owner');
+    const title = automation?.title?.trim() || t('automations.notify.this_automation', 'This automation');
 
     const commit = async (next: NotificationSettings) => {
         setSettings(next);
@@ -48,15 +48,15 @@ export default function NotificationsSection({ automation, onSave }: { automatio
         try {
             await onSave(withDefinition(automation, 'notificationSettings', next));
         } catch (e) {
-            setError((e as Error)?.message || t('routines.settings.save_failed', 'Could not save this change.'));
+            setError((e as Error)?.message || t('automations.settings.save_failed', 'Could not save this change.'));
         }
     };
     const setEvent = (event: NotificationEvent, value: EventSettings) => commit({ ...settings, [event]: value });
 
     return (
         <div className="flex flex-col gap-3 text-xs" data-testid="notifications-section">
-            <SectionHeading aside={t('routines.notify.default_note', 'default: only on errors and approvals, so your bell stays quiet')}>
-                {t('routines.notify.title', 'Notifications')}
+            <SectionHeading aside={t('automations.notify.default_note', 'default: only on errors and approvals, so your bell stays quiet')}>
+                {t('automations.notify.title', 'Notifications')}
             </SectionHeading>
 
             <OverviewTable settings={settings} ownerName={ownerName} automationId={automation?.id} onEvent={setEvent} />
@@ -68,7 +68,7 @@ export default function NotificationsSection({ automation, onSave }: { automatio
                 className="self-start flex items-center gap-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
             >
                 {details ? <ChevronDown className="w-3 h-3" aria-hidden /> : <ChevronRight className="w-3 h-3" aria-hidden />}
-                {t('routines.notify.details_toggle', 'How urgent (silent · normal · urgent) and a daily summary instead of separate notifications')}
+                {t('automations.notify.details_toggle', 'How urgent (silent · normal · urgent) and a daily summary instead of separate notifications')}
             </button>
 
             {details && (
@@ -108,11 +108,11 @@ function OverviewTable({ settings, ownerName, automationId, onEvent }: {
     const { t } = useTranslation();
     return (
         <div className="@container/notify rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden">
-            <div role="table" aria-label={t('routines.notify.title', 'Notifications')}>
+            <div role="table" aria-label={t('automations.notify.title', 'Notifications')}>
                 <div role="row" className={`hidden @[680px]/notify:grid ${TRACKS} py-2 bg-[var(--bg-secondary)] font-semibold text-[var(--text-secondary)]`}>
-                    <span role="columnheader">{t('routines.notify.when', 'When')}</span>
+                    <span role="columnheader">{t('automations.notify.when', 'When')}</span>
                     {CHANNELS.map(c => <span key={c} role="columnheader" className="text-center">{channelLabel(c, t)}</span>)}
-                    <span role="columnheader">{t('routines.notify.who', 'Who')}</span>
+                    <span role="columnheader">{t('automations.notify.who', 'Who')}</span>
                 </div>
                 {EVENTS.map((event, i) => (
                     <OverviewRow
@@ -167,7 +167,7 @@ function OverviewRow({ first, event, value, ownerName, automationId, digestOn, o
                                 type="checkbox"
                                 checked={value.enabled && value.channels.includes(c)}
                                 onChange={() => onChange(toggleChannel(value, c))}
-                                aria-label={t('routines.notify.cell_label', '{event} via {channel}', { event: title, channel: channelLabel(c, t) })}
+                                aria-label={t('automations.notify.cell_label', '{event} via {channel}', { event: title, channel: channelLabel(c, t) })}
                                 className="w-4 h-4 accent-[var(--accent-primary)] cursor-pointer"
                             />
                             <span aria-hidden className="text-[var(--text-secondary)] @[680px]/notify:hidden">{channelLabel(c, t, true)}</span>
@@ -188,16 +188,16 @@ function DigestCard({ enabled, time, onToggle }: { enabled: boolean; time: strin
         <div className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-3.5 py-3 flex items-center gap-2.5">
             <Newspaper className="w-3.5 h-3.5 shrink-0 text-[var(--text-secondary)]" aria-hidden />
             <div className="min-w-0">
-                <div className="font-semibold text-[var(--text-primary)]">{t('routines.notify.digest', 'Daily summary')}</div>
+                <div className="font-semibold text-[var(--text-primary)]">{t('automations.notify.digest', 'Daily summary')}</div>
                 <div className="text-[var(--text-tertiary)]">
-                    {t('routines.notify.digest_hint', 'At {time} one message: how many runs, what failed, what is still waiting', { time })}
+                    {t('automations.notify.digest_hint', 'At {time} one message: how many runs, what failed, what is still waiting', { time })}
                 </div>
             </div>
             <button
                 type="button"
                 role="switch"
                 aria-checked={enabled}
-                aria-label={t('routines.notify.digest', 'Daily summary')}
+                aria-label={t('automations.notify.digest', 'Daily summary')}
                 onClick={onToggle}
                 className={`ml-auto relative w-[30px] h-[18px] rounded-full shrink-0 transition-colors ${enabled ? 'bg-[var(--accent-primary)]' : 'bg-[var(--bg-tertiary)]'}`}
             >

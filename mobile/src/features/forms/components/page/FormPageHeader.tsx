@@ -2,7 +2,7 @@
  * The Form page's header — the web's FormPage header on the Studio object
  * header: the form's tile and name (the owner taps it to rename), Live or Not
  * live, the one primary action — fill it in, here — and a ⋯ with the rest:
- * share the link, open it in the browser, open the routine behind it.
+ * share the link, open it in the browser, open the automation behind it.
  */
 
 import { useRouter } from 'expo-router';
@@ -41,7 +41,7 @@ export function FormPageHeader({ form, tabs, tab, onTab, onRename, onShare }: Fo
     const items: ActionMenuItem[] = [
         { id: 'share', label: t('forms.share.link_title', 'Link to the form'), icon: 'Share2', onPress: onShare },
         ...(form.mine
-            ? [{ id: 'routine', label: t('forms.studio.open_routine', 'Open the routine'), icon: 'Workflow' as const, onPress: () => router.push(`/automations/${form.automationId}/build`) }]
+            ? [{ id: 'automation', label: t('forms.studio.open_automation', 'Open the automation'), icon: 'Workflow' as const, onPress: () => router.push(`/automations/${form.automationId}/build`) }]
             : []),
     ];
     return (

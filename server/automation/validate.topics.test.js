@@ -3,7 +3,7 @@
  *
  * isAbout parses in a condition, a filter and a switch CASE, and nowhere
  * else. Using it where no topic classifier is configured is a completeness
- * problem: a warning while the routine is a draft, blocking at activation.
+ * problem: a warning while the automation is a draft, blocking at activation.
  * An unknown classifier state (null) is never a finding.
  *
  * Run: node --test automation/validate.topics.test.js
@@ -56,7 +56,7 @@ test('no classifier: blocks activation, a warning in a draft', () => {
     assert.ok(COMPLETENESS_CODES.has('route.topic_classifier_missing'));
 });
 
-test('a routine without isAbout never gets the classifier finding', () => {
+test('an automation without isAbout never gets the classifier finding', () => {
     const r = validateDefinition(routerDef([{ name: 'x', expr: 'trigger.output.n > 1' }]), { topicClassifier: false });
     assert.equal(r.ok, true, JSON.stringify(codesOf(r)));
 });

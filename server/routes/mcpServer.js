@@ -4,7 +4,7 @@
  * Until now `core/mcpManager.js` was consume-only: Bee Flow could call other
  * people's MCP servers, but nothing could call Bee Flow. That makes us an app.
  * Serving MCP makes us a platform — and specifically it makes every Bee Flow
- * integration tool and every agent-callable routine available inside
+ * integration tool and every agent-callable automation available inside
  * Nextcloud's own Assistant, because Context Agent takes remote MCP servers
  * straight from its admin settings:
  *
@@ -54,8 +54,8 @@ const router = express.Router();
 
 /**
  * Build the caller's tool list. `loadSession` is the same offline-session
- * builder unattended routines use, so a connector-bound user reaches Nextcloud
- * through the ExApp proxy exactly as they would in a scheduled routine.
+ * builder unattended automations use, so a connector-bound user reaches Nextcloud
+ * through the ExApp proxy exactly as they would in a scheduled automation.
  */
 async function toolsForUser(userId) {
     const { loadSession } = require('../automation/triggerBus');
@@ -248,7 +248,7 @@ async function handleRpc(message, userId, deps = {}) {
                 });
                 const text = typeof result === 'string' ? result : JSON.stringify(result ?? null);
                 // A tool that returns {error} is a failure the model must see as
-                // one — the same soft-error trap that made routines report
+                // one — the same soft-error trap that made automations report
                 // success while doing nothing.
                 const isError = !!(result && typeof result === 'object' && result.error);
                 return rpcResult(id, { content: [{ type: 'text', text }], isError });

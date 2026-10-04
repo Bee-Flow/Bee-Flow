@@ -11,7 +11,7 @@
  * The automations row stays the ONE concurrency lock: a due schedule row is
  * claimed by flipping its automation to `last_status='running'` under the same
  * FOR UPDATE SKIP LOCKED discipline as claimDueAutomations, so a secondary
- * schedule can never start a routine that is already running — it simply waits
+ * schedule can never start an automation that is already running — it simply waits
  * for the next tick, like a primary schedule does today. The columns
  * `running_instance_id` / `claimed_at` on the schedule row are observability,
  * not the lock.
@@ -44,7 +44,7 @@ function rowToSchedule(r) {
  * change the cron/tz must NOT move the next slot (nudging a node on the canvas
  * used to re-anchor pollers; the same mistake here would re-anchor a schedule
  * to "now + one period" on every save). Pass `rearm: true` — activation does —
- * to recompute it unconditionally, so a routine re-activated after a month
+ * to recompute it unconditionally, so an automation re-activated after a month
  * does not fire a month's worth of catch-up on the first tick.
  */
 async function upsertSchedule({ automationId, triggerStepId, cron, tz, nextRunAt = null, rearm = false }) {
@@ -98,9 +98,9 @@ async function listSchedulesForAutomation(automationId) {
  *
  * Mirrors claimDueAutomations: FOR UPDATE SKIP LOCKED on the schedule rows,
  * then the automation row is flipped to running — and that flip is what
- * decides whether a row is really claimed. Two due schedules of one routine in
+ * decides whether a row is really claimed. Two due schedules of one automation in
  * the same batch yield ONE run (the earliest); the other stays due and fires
- * on a later tick, exactly like a primary schedule waits for a busy routine.
+ * on a later tick, exactly like a primary schedule waits for a busy automation.
  *
  * @returns {Promise<Array<{ automation: object, schedule: object }>>}
  */

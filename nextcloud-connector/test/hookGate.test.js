@@ -5,7 +5,7 @@
 // blocked()-before-verify order a flood of forged hook secrets spent the shared
 // budget and then 429'd Nextcloud's real deliveries. The genuine request never
 // reached succeed(), so the block stood for the whole window: Nextcloud → Bee
-// Flow event delivery — every Deck/Files/Calendar routine trigger on the
+// Flow event delivery — every Deck/Files/Calendar automation trigger on the
 // instance — stopped, renewably, for as long as the attacker kept sending.
 //
 // The sibling case for /nc/* is test/ncProxyGate.test.js. This is the third

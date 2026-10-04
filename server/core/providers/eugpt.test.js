@@ -208,7 +208,10 @@ test('no usage is reported rather than an invented count', () => {
 
 test('usage is read when EU GPT sends it', () => {
     const res = eugpt._parseNonStreamingResponse({ status: 'completed', output_text: 'x', usage: { input_tokens: 10, output_tokens: 3 } });
-    assert.deepStrictEqual(res.usage, { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13, cached_tokens: 0, reasoning_tokens: 0 });
+    const USAGE_COUNTS = ['prompt_tokens', 'completion_tokens', 'total_tokens', 'cached_tokens', 'reasoning_tokens'];
+    // The normalised shape (usageNormalizer.js) carries more than the five counts.
+    assert.deepStrictEqual(Object.fromEntries(USAGE_COUNTS.map((k) => [k, res.usage[k]])),
+        { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13, cached_tokens: 0, reasoning_tokens: 0 });
 });
 
 test('in-band <think> text is split off the answer', () => {

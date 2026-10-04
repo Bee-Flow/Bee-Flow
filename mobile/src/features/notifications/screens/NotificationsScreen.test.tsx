@@ -113,15 +113,15 @@ describe('NotificationsScreen', () => {
         expect(mockPush).toHaveBeenCalledWith('/org/members?status=pending');
     });
 
-    it('opens a result in place and marks it read; its own button goes to the routine', async () => {
+    it('opens a result in place and marks it read; its own button goes to the automation', async () => {
         await renderInbox();
-        expect(screen.queryByText('Open routine')).toBeNull();
+        expect(screen.queryByText('Open automation')).toBeNull();
         await fireEvent.press(await screen.findByText('Invoice chaser finished'));
         // "Tap to read the full result" means that: the row opens, the app stays here.
         expect(mockPush).not.toHaveBeenCalled();
         await waitFor(() => expect(api.post).toHaveBeenCalledWith('/api/notifications/n1/read'));
         expect(await screen.findByText('All caught up')).toBeTruthy();
-        await fireEvent.press(await screen.findByText('Open routine'));
+        await fireEvent.press(await screen.findByText('Open automation'));
         expect(mockPush).toHaveBeenCalledWith('/automations/a1/runs');
     });
 

@@ -62,7 +62,7 @@ it('asks the three steps one at a time, shows the outcome, and records it', asyn
     expect(screen.getByText('Annex III — high-risk?')).toBeTruthy();
     const rows = screen.getAllByTestId(/^ladder-annex-[a-z_]+$/).map((r) => r.props.testID);
     expect(rows[0]).toBe('ladder-annex-employment');
-    expect(screen.getByText(/this routine’s wording mentions it/)).toBeTruthy();
+    expect(screen.getByText(/this automation’s wording mentions it/)).toBeTruthy();
     expect(screen.getByTestId('ladder-step-3-verdict')).toHaveTextContent('0 of 10 answered');
     for (const id of ANNEX_III_CATEGORIES) await fireEvent.press(screen.getByTestId(`ladder-annex-${id}-no`));
     expect(screen.getByTestId('ladder-step-3-verdict')).toHaveTextContent('No');

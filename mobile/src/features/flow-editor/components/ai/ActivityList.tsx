@@ -92,7 +92,7 @@ export function ActivityList({ rows, running }: { rows: readonly ActivityRow[]; 
             <View style={styles.head}>
                 <Icon name={running ? 'LoaderCircle' : 'Wrench'} size={13} color={styles.glyph.color} />
                 <Text variant="caption" weight="medium" tone="secondary">
-                    {running ? t('routines.builder.act.building', 'Building') : t('routines.builder.act.built', 'Built')}
+                    {running ? t('automations.builder.act.building', 'Building') : t('automations.builder.act.built', 'Built')}
                 </Text>
                 <Text variant="caption" tone="tertiary">{String(rows.length)}</Text>
                 {failed ? <Text variant="caption" tone="warning">{`⚠ ${failed}`}</Text> : null}

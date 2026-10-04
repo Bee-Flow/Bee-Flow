@@ -3,7 +3,7 @@
 
 import React, { useCallback, useState } from 'react';
 import {
-    useCreateTask, useDeleteTask, useUpdateTask, type ProjectTask, type TaskInput, type TaskLink,
+    useCreateTask, useDeleteTask, useUpdateTask, type ProjectTask, type TaskInput, type TaskLink, type TaskPatch,
 } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import useConfirm from '../../../shared/useConfirm';
@@ -12,11 +12,15 @@ import { canEditProject, type WorkspaceTabId, type WorkspaceTabProps } from '../
 import { mayDeleteTask } from './DeleteTaskButton';
 import TaskDialog from './TaskDialog';
 import { routeOfLink } from './taskLinks';
+import type { WorkItemType } from './taskPlanning';
 
-type Open = { task: ProjectTask | null; links?: TaskLink[]; title?: string; description?: string } | null;
+/** What a new work item starts as (the quick-create menu, "Add child" in the hierarchy). */
+export interface NewTaskPreset { itemType?: WorkItemType; parentTaskId?: string | null }
+
+type Open = { task: ProjectTask | null; links?: TaskLink[]; title?: string; description?: string; preset?: NewTaskPreset } | null;
 
 /** How a link opens: inside the project, in the tab of its kind. */
-export function useOpenTaskLink(props: Pick<WorkspaceTabProps, 'onOpenTab'>) {
+function useOpenTaskLink(props: Pick<WorkspaceTabProps, 'onOpenTab'>) {
     const { onOpenTab } = props;
     return useCallback((link: TaskLink) => {
         const route = routeOfLink(link);
@@ -36,11 +40,13 @@ export function useTaskDialog(props: Pick<WorkspaceTabProps, 'projectId' | 'role
     const openLink = useOpenTaskLink(props);
     const close = useCallback(() => { setOpen(null); setError(null); }, []);
 
-    const submit = (input: TaskInput) => {
+    const submit = (input: TaskInput, changes: TaskPatch) => {
         setError(null);
         const done = { onSuccess: close, onError: (e: Error) => setError(projectErrorText(t, e)) };
-        if (open?.task) update.mutate({ id: open.task.id, patch: input }, done);
-        else create.mutate(input, done);
+        // An edit sends only what the person changed, so a colleague's change to another field is not undone.
+        if (!open?.task) create.mutate(input, done);
+        else if (!Object.keys(changes).length) close();
+        else update.mutate({ id: open.task.id, patch: changes }, done);
     };
     const onDelete = async () => {
         const task = open?.task;
@@ -57,15 +63,17 @@ export function useTaskDialog(props: Pick<WorkspaceTabProps, 'projectId' | 'role
 
     const dialog = open ? (
         <>
-            <TaskDialog key={open.task?.id || 'new'} projectId={projectId} currentUser={currentUser} task={open.task}
-                initialLinks={open.links} initialTitle={open.title} initialDescription={open.description} labelSuggestions={labelSuggestions} role={role} canEdit={canEditProject(role)}
+            <TaskDialog key={open.task?.id || `new:${open.preset?.itemType || 'task'}:${open.preset?.parentTaskId || ''}`} projectId={projectId} currentUser={currentUser} task={open.task}
+                initialLinks={open.links} initialTitle={open.title} initialDescription={open.description}
+                initialItemType={open.preset?.itemType} initialParentTaskId={open.preset?.parentTaskId}
+                labelSuggestions={labelSuggestions} role={role} canEdit={canEditProject(role)}
                 busy={create.isPending || update.isPending || remove.isPending} error={error}
                 onClose={close} onSubmit={submit}
                 onDelete={open.task && mayDeleteTask(open.task, currentUser?.id || null, role === 'owner', canEditProject(role)) ? onDelete : undefined} onOpenLink={(l) => { close(); openLink(l); }} />
         </>
     ) : null;
     return {
-        openNew: (links?: TaskLink[], title?: string, description?: string) => setOpen({ task: null, links, title, description }),
+        openNew: (links?: TaskLink[], title?: string, description?: string, preset?: NewTaskPreset) => setOpen({ task: null, links, title, description, preset }),
         openTask: (task: ProjectTask) => setOpen({ task }),
         close,
         isOpenOn: (id: string) => open?.task?.id === id,

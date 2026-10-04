@@ -229,7 +229,7 @@ describe('FrameworksPage — other tabs', () => {
         const buttons = screen.getAllByTestId('fw-per-automation-open');
         expect(buttons[1].textContent).toBe('Reassess');
         fireEvent.click(buttons[0]);
-        expect(onOpenLadder).toHaveBeenCalledWith('automation', 'a1');
+        expect(onOpenLadder).toHaveBeenCalledWith('automation', 'a1', 'Intake bot');
     });
 
     it('per_automation on a phone: the card list, same outcome pill and ladder action', async () => {
@@ -247,7 +247,7 @@ describe('FrameworksPage — other tabs', () => {
         const open = screen.getByTestId('fw-per-automation-open');
         expect(open.className).toMatch(/min-h-\[44px\]/);
         fireEvent.click(open);
-        expect(onOpenLadder).toHaveBeenCalledWith('automation', 'a1');
+        expect(onOpenLadder).toHaveBeenCalledWith('automation', 'a1', 'Intake bot');
     });
 
     it('per_automation: a 404 (endpoint not shipped) is a failed state, not an empty table', async () => {

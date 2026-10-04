@@ -5,10 +5,10 @@ import { segmentForSection } from '../../../components/admin/Studio/studioRoutes
  * (M5, deel D). De prose staat in RulesPanel.jsx; hier staat alleen wat waar
  * is, zodat de kaart geen enkele bewering hoeft te verzinnen.
  *
- * Een regel is een routine met een `app_event`-trigger op provider
+ * Een regel is een automation met een `app_event`-trigger op provider
  * `meeting-notes` — de declaratie in server/automation/triggerSources/declared/
  * meeting-notes.js. De lijst komt van `GET /api/automation?triggerProvider=…`
- * en bevat per contract alleen de eigen routines van de lezer
+ * en bevat per contract alleen de eigen automatiseringen van de lezer
  * (`getAutomationsForUser` is `WHERE user_id = $1`).
  *
  * ── HET ONBEKENDE VALT NIET WEG ──────────────────────────────────────
@@ -244,7 +244,7 @@ export function ruleHref(automationId) {
 }
 
 /**
- * De telling voor één routine, of NULL als die er niet is.
+ * De telling voor één automatisering, of NULL als die er niet is.
  *
  * `/_runs/facets` telt `r.user_id = <ik>` (stores/automationStore/runs.js
  * buildRunFilterWhere) — MIJN runs, niet die van de organisatie; de org-variant

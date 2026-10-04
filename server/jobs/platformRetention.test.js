@@ -17,8 +17,8 @@ const assert = require('node:assert');
 
 const job = require('./platformRetention');
 
-function harness({ locked = true, monitoringThrows = false } = {}) {
-    const calls = { monitoring: 0, prune: [], queries: [], released: 0 };
+function harness({ locked = true, monitoringThrows = false, scanPruneThrows = false } = {}) {
+    const calls = { monitoring: 0, prune: [], queries: [], released: 0, suggestionScans: 0, suggestionFeedback: 0 };
     const logs = [];
     const record = (level) => (...args) => { logs.push({ level, msg: args.join(' ') }); };
     job._setDeps({
@@ -38,6 +38,12 @@ function harness({ locked = true, monitoringThrows = false } = {}) {
         },
         pruneScanLedger: async (opts) => { calls.prune.push(opts); return { deleted: 3 }; },
         ledgerKeyVersion: 7,
+        pruneSuggestionScans: async () => {
+            calls.suggestionScans += 1;
+            if (scanPruneThrows) throw new Error('scan cache unreachable');
+            return 2;
+        },
+        pruneSuggestionFeedback: async () => { calls.suggestionFeedback += 1; return 0; },
         log: { debug: record('debug'), info: record('info'), warn: record('warn'), error: record('error') },
     });
     return { calls, logs };
@@ -78,6 +84,28 @@ test('the ledger prune takes its own advisory lock and releases it', async () =>
     assert.deepStrictEqual(lock.params, [job.LEDGER_PRUNE_LOCK_KEY]);
     assert.deepStrictEqual(unlock.params, [job.LEDGER_PRUNE_LOCK_KEY]);
     assert.strictEqual(calls.released, 1);
+});
+
+test('one pass also prunes the suggestion scan cache and feedback', async () => {
+    const { calls, logs } = harness();
+    await job.runOnce();
+    assert.strictEqual(calls.suggestionScans, 1, 'the suggestion scan cache was not pruned');
+    assert.strictEqual(calls.suggestionFeedback, 1, 'the suggestion feedback was not pruned');
+    assert.ok(logs.some(l => l.level === 'info' && /pruned 2 suggestion scan row/.test(l.msg)));
+});
+
+test('a failing scan-cache prune does not skip the feedback prune', async () => {
+    const { calls, logs } = harness({ scanPruneThrows: true });
+    await job.runOnce();
+    assert.strictEqual(calls.suggestionFeedback, 1);
+    assert.ok(logs.some(l => l.level === 'warn' && /suggestion scan prune failed/.test(l.msg)));
+});
+
+test('the suggestion prunes run even when another pod holds the ledger lock', async () => {
+    const { calls } = harness({ locked: false });
+    await job.runOnce();
+    assert.strictEqual(calls.suggestionScans, 1);
+    assert.strictEqual(calls.suggestionFeedback, 1);
 });
 
 test('start() mounts one boot pass and one hourly interval, and stop() clears both', () => {

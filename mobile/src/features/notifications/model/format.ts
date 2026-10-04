@@ -51,8 +51,8 @@ export function previewOf(message: string | null | undefined, max = 140): string
 }
 
 /**
- * Routine credential failures put a deep-link token at the head of the body:
- * `routine_reauth:<provider>\n\n<the real message>`. The token is machinery,
+ * Automation credential failures put a deep-link token at the head of the body:
+ * `automation_reauth:<provider>\n\n<the real message>`. The token is machinery,
  * not prose, so it is split off before anything is rendered.
  */
 export function parseReauthToken(message: string | null | undefined): {
@@ -60,7 +60,7 @@ export function parseReauthToken(message: string | null | undefined): {
     body: string;
 } {
     if (!message) return { provider: null, body: '' };
-    const match = /^routine_reauth:([a-z0-9_-]+)\n\n?([\s\S]*)$/i.exec(message);
+    const match = /^automation_reauth:([a-z0-9_-]+)\n\n?([\s\S]*)$/i.exec(message);
     if (!match) return { provider: null, body: message };
     return { provider: (match[1] ?? '').toLowerCase(), body: match[2] ?? '' };
 }

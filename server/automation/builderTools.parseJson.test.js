@@ -3,7 +3,7 @@
  *
  * The step's ability moved into the set ("Edit data") step — the parseJson()
  * expression + list mode — so NO tool can create a parse_json step anymore.
- * But saved routines still carry them, so the runtime, validator, and the
+ * But saved automations still carry them, so the runtime, validator, and the
  * builder_update_step patch path must keep working on legacy steps.
  *
  * Run: node --test automation/builderTools.parseJson.test.js
@@ -18,7 +18,7 @@ function freshWrap() {
     return { userId: 'u_test', def: emptyDefinition() };
 }
 
-/** A definition already carrying a parse_json step, as saved routines do. */
+/** A definition already carrying a parse_json step, as saved automations do. */
 function legacyWrap() {
     const dw = freshWrap();
     dw.def.trigger = { id: 'trg', kind: 'manual' };

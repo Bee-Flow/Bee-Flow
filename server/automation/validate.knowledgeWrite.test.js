@@ -5,7 +5,7 @@
  *   - a base and some text are BOTH required, but only at activation. A blank
  *     node is the normal state of a draft (the builder PUTs the whole
  *     definition on every edit), so blocking the save is how an afternoon's
- *     work gets lost — and a live routine that stores nothing every night is
+ *     work gets lost — and a live automation that stores nothing every night is
  *     the failure nobody notices until an agent cannot answer.
  *   - `nearDuplicateStrategy` is closed. An unrecognised value is NOT a
  *     half-typed field, so it blocks at draft stage too: at run time it would

@@ -9,9 +9,9 @@
  *   - publish is exact: a stale `version` (409) or a save that lands during the
  *     checks (store answers null → 409) publishes nothing;
  *   - publish moves the trigger columns with the live copy, arms the schedule
- *     only on an active routine, and re-registers triggers only when their
+ *     only on an active automation, and re-registers triggers only when their
  *     configuration changed;
- *   - activate on a routine that HAS a live version only switches it on: it
+ *   - activate on an automation that HAS a live version only switches it on: it
  *     checks and registers the LIVE copy and never publishes pending changes.
  *
  * Run: cd server && node --test routes/automation/activate.publish.test.js
@@ -26,7 +26,7 @@ const { publishAutomation, activateAutomation } = require('./activate');
 const MANUAL = { trigger: { id: 't1', kind: 'manual' }, steps: [{ id: 's1', type: 'wait', seconds: 1 }], edges: [{ from: 't1', to: 's1' }] };
 const SCHEDULED = { ...MANUAL, trigger: { id: 't1', kind: 'schedule', schedule: { cron: '0 7 * * 1-5', tz: 'Europe/Amsterdam' } } };
 
-function routine(overrides = {}) {
+function automation(overrides = {}) {
     const a = {
         id: 'a1', userId: 'u1', title: 'R', kind: 'automation', version: 4, isActive: true, isDraft: false,
         definition: MANUAL, liveVersion: 2, triggerType: 'manual', scheduleCron: null, scheduleTz: 'Europe/Amsterdam',
@@ -73,14 +73,14 @@ function call(handler, deps, { params = { id: 'a1' }, body = {}, user = 'u1' } =
     });
 }
 
-test('publish: 404 for an unknown routine, 403 for someone else\'s', async () => {
-    const { deps } = harness(routine());
+test('publish: 404 for an unknown automation, 403 for someone else\'s', async () => {
+    const { deps } = harness(automation());
     assert.strictEqual((await call(publishAutomation, deps, { params: { id: 'nope' } })).status, 404);
     assert.strictEqual((await call(publishAutomation, deps, { user: 'u2' })).status, 403);
 });
 
 test('publish: a stale version is refused before anything is checked or written', async () => {
-    const { deps, calls } = harness(routine());
+    const { deps, calls } = harness(automation());
     const r = await call(publishAutomation, deps, { body: { version: 3 } });
     assert.strictEqual(r.status, 409);
     assert.strictEqual(r.body.code, 'version_changed');
@@ -89,7 +89,7 @@ test('publish: a stale version is refused before anything is checked or written'
 });
 
 test('publish: a broken working copy is refused like an activation', async () => {
-    const { deps, calls } = harness(routine({ definition: {} }));
+    const { deps, calls } = harness(automation({ definition: {} }));
     const r = await call(publishAutomation, deps);
     assert.strictEqual(r.status, 400);
     assert.strictEqual(r.body.error, 'Invalid definition');
@@ -97,7 +97,7 @@ test('publish: a broken working copy is refused like an activation', async () =>
 });
 
 test('publish: exact version, trigger columns and schedule move with the live copy', async () => {
-    const { deps, calls } = harness(routine({ definition: SCHEDULED }));
+    const { deps, calls } = harness(automation({ definition: SCHEDULED }));
     const r = await call(publishAutomation, deps, { body: { version: 4 } });
     assert.strictEqual(r.status, 200);
     assert.strictEqual(r.body.automation.liveVersion, 4);
@@ -105,7 +105,7 @@ test('publish: exact version, trigger columns and schedule move with the live co
     assert.strictEqual(opts.expectedVersion, 4);
     assert.strictEqual(opts.columns.triggerType, 'schedule');
     assert.strictEqual(opts.columns.scheduleCron, '0 7 * * 1-5');
-    assert.ok(opts.columns.nextRunAt, 'an active routine is armed');
+    assert.ok(opts.columns.nextRunAt, 'an active automation is armed');
     assert.strictEqual(opts.columns.isDraft, false);
     // A PRIMARY schedule lives on the row's columns (moved above), so the
     // extra-schedule rows have nothing to re-register.
@@ -114,19 +114,19 @@ test('publish: exact version, trigger columns and schedule move with the live co
     assert.deepStrictEqual(calls.forms, ['a1']);
 });
 
-test('publish: a paused routine is published but not armed', async () => {
-    const a = routine({ definition: SCHEDULED, isActive: false });
+test('publish: a paused automation is published but not armed', async () => {
+    const a = automation({ definition: SCHEDULED, isActive: false });
     const { deps, calls } = harness(a, { publishResult: { ...a, liveVersion: 4, isActive: false } });
     const r = await call(publishAutomation, deps);
     assert.strictEqual(r.status, 200);
     assert.strictEqual(calls.publish[0].opts.columns.nextRunAt, null);
-    assert.strictEqual(calls.schedules.length, 0, 'nothing is registered for a routine that is off');
+    assert.strictEqual(calls.schedules.length, 0, 'nothing is registered for an automation that is off');
     assert.strictEqual(calls.subs.length, 0);
 });
 
 test('publish: an extra schedule trigger that changed is re-registered from the live copy', async () => {
     const withExtra = { ...MANUAL, triggers: [{ id: 't2', kind: 'schedule', schedule: { cron: '0 9 * * *', tz: 'Europe/Amsterdam' } }] };
-    const { deps, calls } = harness(routine({ definition: withExtra }));
+    const { deps, calls } = harness(automation({ definition: withExtra }));
     const r = await call(publishAutomation, deps);
     assert.strictEqual(r.status, 200, JSON.stringify(r.body));
     assert.strictEqual(calls.schedules.length, 1);
@@ -134,7 +134,7 @@ test('publish: an extra schedule trigger that changed is re-registered from the 
 });
 
 test('publish: triggers are left alone when their configuration did not change', async () => {
-    const { deps, calls } = harness(routine({ definition: { ...MANUAL, steps: [{ id: 's1', type: 'wait', seconds: 5 }] } }));
+    const { deps, calls } = harness(automation({ definition: { ...MANUAL, steps: [{ id: 's1', type: 'wait', seconds: 5 }] } }));
     const r = await call(publishAutomation, deps);
     assert.strictEqual(r.status, 200);
     assert.strictEqual(calls.schedules.length, 0);
@@ -142,17 +142,17 @@ test('publish: triggers are left alone when their configuration did not change',
 });
 
 test('publish: a save that lands during the checks publishes nothing (409)', async () => {
-    const { deps, calls } = harness(routine(), { publishResult: null });
+    const { deps, calls } = harness(automation(), { publishResult: null });
     const r = await call(publishAutomation, deps);
     assert.strictEqual(r.status, 409);
     assert.strictEqual(r.body.code, 'version_changed');
     assert.strictEqual(calls.woke.length, 0);
 });
 
-test('activate on a routine with a live version only switches it on', async () => {
+test('activate on an automation with a live version only switches it on', async () => {
     // Working copy is broken; the LIVE copy is fine. Activation checks what
     // will run — the live copy — and does not publish the working copy.
-    const a = routine({ definition: {}, isActive: false, liveDefinition: SCHEDULED, triggerType: 'schedule', scheduleCron: '0 7 * * 1-5' });
+    const a = automation({ definition: {}, isActive: false, liveDefinition: SCHEDULED, triggerType: 'schedule', scheduleCron: '0 7 * * 1-5' });
     const { deps, calls } = harness(a);
     const r = await call(activateAutomation, deps);
     assert.strictEqual(r.status, 200, JSON.stringify(r.body));
@@ -166,8 +166,8 @@ test('activate on a routine with a live version only switches it on', async () =
     assert.deepStrictEqual(calls.schedules[0], SCHEDULED);
 });
 
-test('activate on a never-live routine publishes exactly the version it checked', async () => {
-    const a = routine({ definition: MANUAL, liveVersion: null, isActive: false, isDraft: true, version: 3 });
+test('activate on a never-live automation publishes exactly the version it checked', async () => {
+    const a = automation({ definition: MANUAL, liveVersion: null, isActive: false, isDraft: true, version: 3 });
     const { deps, calls } = harness(a);
     const r = await call(activateAutomation, deps);
     assert.strictEqual(r.status, 200, JSON.stringify(r.body));
@@ -184,8 +184,8 @@ test('activate on a never-live routine publishes exactly the version it checked'
     assert.strictEqual(raced.calls.subs.length, 0);
 });
 
-test('activate on a never-live routine checks the working copy', async () => {
-    const a = routine({ definition: {}, liveVersion: null, isActive: false, isDraft: true });
+test('activate on a never-live automation checks the working copy', async () => {
+    const a = automation({ definition: {}, liveVersion: null, isActive: false, isDraft: true });
     const { deps, calls } = harness(a);
     const r = await call(activateAutomation, deps);
     assert.strictEqual(r.status, 400);

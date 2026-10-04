@@ -51,7 +51,7 @@ export const SOURCE_LABELS: Readonly<Record<string, readonly [key: string, fallb
     appValidation: ['studio.attention.src_app_validation', 'App has validation problems'],
     agentNoKb: ['studio.attention.src_agent_no_kb', 'Agent has no knowledge base'],
     kbEmptyInUse: ['studio.attention.src_kb_empty_in_use', 'Knowledge base is used but holds no documents'],
-    automationFailing: ['studio.attention.src_automation_failing', 'Routine failed several times in a row'],
+    automationFailing: ['studio.attention.src_automation_failing', 'Automation failed several times in a row'],
     solutionBlocked: ['studio.attention.src_solution_blocked', 'Solution has blocking findings'],
     kbSourceError: ['studio.attention.src_kb_source_error', 'Knowledge source could not refresh'],
 };

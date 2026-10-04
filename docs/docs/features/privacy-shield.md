@@ -159,7 +159,7 @@ A type has the same three switches as the built-in kinds:
   default.
 
 Your own types work everywhere the shield works: chats, attachments, the
-knowledge base, memory, tool results and routines.
+knowledge base, memory, tool results and automations.
 
 ### Testing and tuning
 
@@ -196,7 +196,7 @@ type needs Enterprise.
 ## Where your data went: how the location is determined
 
 *Enterprise.* The **What happened** tab (Settings → Organisation → Privacy)
-has a world map of every outgoing call that tools and routines made in the
+has a world map of every outgoing call that tools and automations made in the
 period: connected apps, MCP servers, HTTP steps, web pages and so on. Calls to
 AI models are not on it. Each destination is a pin, with a line from your own
 server to it.

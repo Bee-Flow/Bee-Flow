@@ -7,12 +7,12 @@
  *      so everything is created first and the references are patched after. If
  *      this regressed, every install would produce entities that do not know
  *      about each other — which is precisely what a Blueprint exists to avoid.
- *   2. NOTHING ARRIVES LIVE. An installed routine must not start firing
+ *   2. NOTHING ARRIVES LIVE. An installed automation must not start firing
  *      schedules and webhooks; an installed page must not be published.
  *   3. ONE OWNER. A cross-owner edge refuses at the moment someone presses the
  *      button, so an install that spread ownership would be born broken.
  *   4. A MISSING CAPABILITY SKIPS, IT DOES NOT FAIL. A Blueprint with apps
- *      landing without App Studio still installs its routines, and says what it
+ *      landing without App Studio still installs its automations, and says what it
  *      could not install.
  *
  * Run: cd server && node --test projects/packaging/install.test.js
@@ -32,6 +32,16 @@ const record = (name, args) => calls.push({ name, args });
 let seq = 0;
 const nextId = (p) => `${p}_${++seq}`;
 const live = new Map();      // id -> the stored automation, for the patch pass
+const liveApps = new Map();  // id -> the stored app definition, for the stamp pass
+const liveSlots = new Map(); // webpage id -> its three files, for the stamp pass
+// Projects that are a Solution STAGE: the store guards refuse to file a part
+// into one without a deployment's capability (stores/lib/managedParts.js).
+const stageProjects = new Set();
+const guardStage = (projectId, opts) => {
+    if (projectId && stageProjects.has(projectId) && !opts?.managedWrite) {
+        throw Object.assign(new Error('This part is managed by a deployment.'), { status: 409, code: 'managed_part' });
+    }
+};
 
 require.cache[projectStorePath] = {
     id: projectStorePath, filename: projectStorePath, loaded: true,
@@ -48,9 +58,16 @@ require.cache[automationStorePath] = {
             live.set(id, { id, definition: args.definition });
             return { id };
         },
+        createStep: async (args) => {
+            record('createStep', args);
+            const id = nextId('aut');
+            live.set(id, { id, kind: 'block', definition: args.definition });
+            return { id };
+        },
         getAutomation: async (id) => live.get(id) || null,
-        updateAutomation: async (id, updates, userId) => {
-            record('updateAutomation', { id, updates, userId });
+        updateAutomation: async (id, updates, userId, opts) => {
+            record('updateAutomation', { id, updates, userId, opts });
+            guardStage(updates.projectId, opts);
             if (updates.definition) live.get(id).definition = updates.definition;
         },
     },
@@ -58,18 +75,39 @@ require.cache[automationStorePath] = {
 require.cache[studioAppStorePath] = {
     id: studioAppStorePath, filename: studioAppStorePath, loaded: true,
     exports: {
-        createStudioApp: async (args) => { record('createStudioApp', args); return { id: nextId('app') }; },
+        createStudioApp: async (args) => {
+            record('createStudioApp', args);
+            const id = nextId('app');
+            liveApps.set(id, args.definition);
+            return { id };
+        },
         setAppProject: async (...a) => record('setAppProject', a),
-        saveDefinition: async (id, ownerId, definition) => record('saveDefinition', { id, ownerId, definition }),
+        saveDefinition: async (id, ownerId, definition, opts) => {
+            record('saveDefinition', { id, ownerId, definition, opts });
+            liveApps.set(id, definition);
+        },
+        getStudioApp: async (id) => (liveApps.has(id) ? { id, definition: liveApps.get(id) } : null),
     },
 };
 require.cache[webpageStorePath] = {
     id: webpageStorePath, filename: webpageStorePath, loaded: true,
     exports: {
-        createWebpage: async (args) => { record('createWebpage', args); return { id: nextId('web') }; },
-        writeSlot: async (...a) => record('writeSlot', a),
+        createWebpage: async (args) => {
+            record('createWebpage', args);
+            const id = nextId('web');
+            liveSlots.set(id, { html: '', css: '', js: '' });
+            return { id };
+        },
+        writeSlot: async (...a) => {
+            record('writeSlot', a);
+            const [, id, slot, content] = a;
+            const key = { 'index.html': 'html', 'style.css': 'css', 'script.js': 'js' }[slot];
+            if (liveSlots.has(id) && key) liveSlots.get(id)[key] = content;
+        },
         setWebpageProject: async (...a) => record('setWebpageProject', a),
-        updateBridgeGrants: async (id, userId, patch) => record('updateBridgeGrants', { id, userId, patch }),
+        updateBridgeGrants: async (id, userId, patch, opts) => record('updateBridgeGrants', { id, userId, patch, opts }),
+        getWebpageRaw: async (id) => (liveSlots.has(id) ? { id, userId: 'installer' } : null),
+        readAllSlots: async (userId, id) => ({ ...liveSlots.get(id) }),
     },
 };
 
@@ -79,7 +117,11 @@ const gallery = new Map();
 require.cache[blueprintStorePath] = {
     id: blueprintStorePath, filename: blueprintStorePath, loaded: true,
     exports: {
-        stampEntity: async (args) => record('stampEntity', args),
+        upsertStamp: async (client, args) => record('upsertStamp', args),
+        // What planUpgrade reads back: the stamps this install wrote.
+        listStamps: async (projectId) => new Map(calls
+            .filter(c => c.name === 'upsertStamp' && c.args.projectId === projectId)
+            .map(c => [c.args.ref, { ...c.args }])),
         getBlueprintById: async (id, opts) => {
             record('getBlueprintById', { id, opts });
             return gallery.get(id) || null;
@@ -102,8 +144,18 @@ const dbPath = require.resolve('../../db');
 const agentStorePath = require.resolve('../../stores/agentStore');
 const knowledgeBasesPath = require.resolve('../../stores/knowledgeBases');
 const kbMembershipPath = require.resolve('../knowledgeBaseMembership');
+const skillStorePath = require.resolve('../../stores/skillStore');
+const documentStorePath = require.resolve('../../stores/documentStore');
+const solutionTemplatesPath = require.resolve('../../stores/document/solutionTemplates');
+const membershipPath = require.resolve('../membership');
 
-const fx = { createDatatableThrows: false, kbFiled: true };
+const fx = {
+    createDatatableThrows: false, kbFiled: true, filed: true,
+    // Keys the (scope, key) unique index already holds, for the F7 clash.
+    takenKeys: new Set(),
+    bindingsThrow: false,
+    dataModelResult: { ok: true, version: 1 },
+};
 
 require.cache[dbPath] = {
     id: dbPath, filename: dbPath, loaded: true,
@@ -130,7 +182,12 @@ require.cache[datatableStorePath] = {
         userScope: (id) => ({ kind: 'user', id }),
         createDatatable: async (args, opts) => {
             record('createDatatable', args);
+            record('createDatatableOpts', { managedWrite: opts?.managedWrite });
             if (fx.createDatatableThrows) throw new Error('quota reached');
+            guardStage(args.projectId, opts);
+            if (fx.takenKeys.has(args.key)) {
+                throw new Error('duplicate key value violates unique constraint "uq_datatables_scope_key"');
+            }
             if (opts?.assertQuota) await opts.assertQuota({ tables: 1, rows: 0, bytes: 0 });
             if (opts?.applyPhysical) {
                 await opts.applyPhysical(opts.client, {
@@ -183,8 +240,59 @@ require.cache[kbMembershipPath] = {
     id: kbMembershipPath, filename: kbMembershipPath, loaded: true,
     exports: {
         setKnowledgeBaseProject: async (kbId, userId, projectId, ctx) => {
-            record('setKnowledgeBaseProject', { kbId, userId, projectId, hasReq: !!ctx?.req, ctxProjectId: ctx?.projectId });
+            record('setKnowledgeBaseProject', { kbId, userId, projectId, hasReq: !!ctx?.req, ctxProjectId: ctx?.projectId, managedWrite: ctx?.managedWrite });
             return fx.kbFiled;
+        },
+    },
+};
+
+// Skills and document templates. The registry's setProject is the way in: it
+// is swapped here for a recorder (the real one reads the database for the stage
+// gate; membership.test.js covers it against pglite).
+require.cache[skillStorePath] = {
+    id: skillStorePath, filename: skillStorePath, loaded: true,
+    exports: { createSkill: async (args) => { record('createSkill', args); return { id: nextId('skl') }; } },
+};
+require.cache[documentStorePath] = {
+    id: documentStorePath, filename: documentStorePath, loaded: true,
+    exports: {
+        createDocument: async (args) => {
+            record('createDocument', args);
+            const id = nextId('doc');
+            return { id, versionId: `ver_of_${id}` };
+        },
+    },
+};
+require.cache[solutionTemplatesPath] = {
+    id: solutionTemplatesPath, filename: solutionTemplatesPath, loaded: true,
+    exports: {
+        writeManagedTemplate: async (client, input, opts) => {
+            record('writeManagedTemplate', { client, input, opts });
+            const id = nextId('doc');
+            return { id, versionId: `ver_of_${id}`, created: true };
+        },
+    },
+};
+require.cache[membershipPath] = {
+    id: membershipPath, filename: membershipPath, loaded: true,
+    exports: {
+        getKind: (kind) => ({
+            setProject: async (id, userId, projectId, ctx) => {
+                record('membership.setProject', { kind, id, userId, projectId, ctx });
+                return fx.filed;
+            },
+        }),
+    },
+};
+
+// An app's own data model (F13) goes through the store's save path.
+const studioAppDataStorePath = require.resolve('../../stores/studioAppDataStore');
+require.cache[studioAppDataStorePath] = {
+    id: studioAppDataStorePath, filename: studioAppDataStorePath, loaded: true,
+    exports: {
+        saveDataModel: async (appId, ownerId, model, opts) => {
+            record('saveDataModel', { appId, ownerId, model, opts });
+            return fx.dataModelResult;
         },
     },
 };
@@ -197,23 +305,40 @@ const { buildManifest } = require('./manifest');
 const { normalizeBridgeGrants, DEFAULT_BRIDGE_GRANTS } = require('../../stores/webpage/bridgeGrants');
 
 const AUTOMATION = (ref, kind = 'automation', over = {}) => ({
-    ref, kind, title: `Routine ${ref}`, description: '',
+    ref, kind, title: `Automation ${ref}`, description: '',
     triggerType: 'manual',
     definition: { schemaVersion: 2, trigger: { id: 't', type: 'trigger', kind: 'manual' }, steps: [] },
     ...over,
 });
 
-function reset() { calls.length = 0; seq = 0; live.clear(); gallery.clear(); fx.createDatatableThrows = false; fx.kbFiled = true; }
+function reset() {
+    calls.length = 0; seq = 0; live.clear(); liveApps.clear(); liveSlots.clear(); gallery.clear(); stageProjects.clear();
+    fx.createDatatableThrows = false; fx.kbFiled = true; fx.filed = true; fx.takenKeys = new Set(); fx.bindingsThrow = false;
+    fx.dataModelResult = { ok: true, version: 1 };
+}
+
+/**
+ * Where the installer's choices are kept (solution_bindings), handed in rather
+ * than reached for: installBlueprint takes `deps.bindings`.
+ */
+const bindingsFake = {
+    upsertBindings: async (projectId, rows, actorId) => {
+        record('upsertBindings', { projectId, rows, actorId });
+        if (fx.bindingsThrow) throw new Error('bindings table missing');
+        return rows;
+    },
+};
+const DEPS = { bindings: bindingsFake };
 const called = (name) => calls.filter(c => c.name === name);
 
 const install = (entities, opts = {}) => installBlueprint({
     manifest: buildManifest({ project: { id: 'p1', name: 'Onboarding' }, entities }),
-    ownerId: 'installer', organizationId: 'org1', ...opts,
+    ownerId: 'installer', organizationId: 'org1', deps: DEPS, ...opts,
 });
 
 // ═══ Two passes ══════════════════════════════════════════════════════
 
-test('an app arrives knowing which routine it runs', async () => {
+test('an app arrives knowing which automation it runs', async () => {
     reset();
     const result = await install({
         automations: [AUTOMATION('aut_1')],
@@ -223,13 +348,13 @@ test('an app arrives knowing which routine it runs', async () => {
     assert.strictEqual(result.ok, true);
     const patch = called('saveDefinition')[0];
     const realId = called('createAutomation').length ? 'aut_1' : null;
-    assert.ok(realId, 'the routine was created');
+    assert.ok(realId, 'the automation was created');
     // The $ref is gone and a real id is in its place.
     assert.strictEqual(patch.args.definition.actions.go.automationId, 'aut_1');
 });
 
 test('a webpage grant is reconnected too — when it points INSIDE the bundle', async () => {
-    // The one grant an install can vouch for: the routine it names is a routine
+    // The one grant an install can vouch for: the automation it names is an automation
     // this same install just created, under this same installer.
     reset();
     await install({
@@ -241,7 +366,7 @@ test('a webpage grant is reconnected too — when it points INSIDE the bundle', 
     assert.strictEqual(patch.args.patch.automations[0].label, 'Run');
 });
 
-test('a call_block is reconnected inside the routine that calls it', async () => {
+test('a call_block is reconnected inside the automation that calls it', async () => {
     reset();
     await install({
         automations: [
@@ -252,15 +377,26 @@ test('a call_block is reconnected inside the routine that calls it', async () =>
         ],
     });
     const patched = called('updateAutomation').filter(c => c.args.updates.definition);
-    assert.strictEqual(patched.length, 1, 'only the routine that had a $ref is re-saved');
+    assert.strictEqual(patched.length, 1, 'only the automation that had a $ref is re-saved');
     assert.strictEqual(patched[0].args.updates.definition.steps[0].blockId, 'aut_1');
 });
 
-test('blocks are created before the routines that call them', async () => {
+test('blocks are created before the automations that call them', async () => {
     reset();
     await install({ automations: [AUTOMATION('aut_2', 'automation'), AUTOMATION('aut_1', 'block')] });
-    const titles = called('createAutomation').map(c => c.args.title);
-    assert.deepStrictEqual(titles, ['Routine aut_1', 'Routine aut_2'], 'the block first, whatever order the file listed');
+    const order = calls.filter(c => c.name === 'createStep' || c.name === 'createAutomation').map(c => c.args.title);
+    assert.deepStrictEqual(order, ['Automation aut_1', 'Automation aut_2'], 'the block first, whatever order the file listed');
+});
+
+test('a block is created as a block (createStep), an automation as an automation', async () => {
+    reset();
+    const result = await install({ automations: [AUTOMATION('aut_1', 'block'), AUTOMATION('aut_2', 'automation')] });
+    assert.strictEqual(called('createStep').length, 1);
+    assert.strictEqual(called('createStep')[0].args.userId, 'installer');
+    assert.strictEqual(called('createStep')[0].args.title, 'Automation aut_1');
+    assert.strictEqual(called('createAutomation').length, 1);
+    assert.strictEqual(called('createAutomation')[0].args.title, 'Automation aut_2');
+    assert.ok(result.report.installed.automations.some(a => a.ref === 'aut_1'));
 });
 
 test('a reference to something that was not installed is DROPPED and named', async () => {
@@ -282,7 +418,7 @@ test('a reference to something that was not installed is DROPPED and named', asy
 
 // ═══ Nothing arrives live, and it all belongs to one person ══════════
 
-test('routines are created through the path that makes them inactive', async () => {
+test('automations are created through the path that makes them inactive', async () => {
     reset();
     await install({ automations: [AUTOMATION('aut_1')] });
     const args = called('createAutomation')[0].args;
@@ -299,7 +435,13 @@ test('a webpage is never published on arrival', async () => {
     const args = called('createWebpage')[0].args;
     assert.strictEqual(args.isPublished, undefined);
     assert.strictEqual(args.sharedGroups, undefined);
-    assert.strictEqual(called('writeSlot')[0].args[2], 'index.html');
+    assert.strictEqual(called('writeSlot')[0].args[2], 'html');
+});
+
+test('a webpage writes its files into the store slot names html / css / js', async () => {
+    reset();
+    await install({ webpages: [{ ref: 'web_1', name: 'Status', files: { html: '<h1>Hi</h1>', css: 'h1{}', js: 'x()' } }] });
+    assert.deepStrictEqual(called('writeSlot').map(c => c.args[2]), ['html', 'css', 'js']);
 });
 
 test('an installed Blueprint is a Studio Solution, never a collaborative project', async () => {
@@ -345,7 +487,7 @@ test('a locked capability skips its kind and installs the rest', async () => {
     assert.strictEqual(result.ok, true, 'a partly-usable Solution beats an unusable one');
     assert.strictEqual(result.report.installed.automations.length, 1);
     assert.strictEqual(result.report.installed.apps.length, 0);
-    assert.deepStrictEqual(result.report.skipped, [{ ref: 'app_1', kind: 'app', why: 'App Studio is not part of this plan.' }]);
+    assert.deepStrictEqual(result.report.skipped, [{ ref: 'app_1', kind: 'app', why: 'App Studio is not part of this plan.', permanent: true }]);
 });
 
 test('one entity failing does not take the install down, and is named', async () => {
@@ -405,7 +547,7 @@ test('every installed entity records what it looked like on arrival', async () =
         webpages: [{ ref: 'web_1', name: 'Status', files: { html: '<h1>Hi</h1>' } }],
     });
 
-    const stamps = called('stampEntity').map(c => c.args);
+    const stamps = called('upsertStamp').map(c => c.args);
     assert.deepStrictEqual(stamps.map(s => s.ref).sort(), ['app_1', 'aut_1', 'web_1']);
     for (const stamp of stamps) {
         assert.strictEqual(stamp.projectId, 'proj_new');
@@ -417,8 +559,8 @@ test('every installed entity records what it looked like on arrival', async () =
 test('a stamp that cannot be written does not fail the install', async () => {
     reset();
     const store = require.cache[blueprintStorePath].exports;
-    const original = store.stampEntity;
-    store.stampEntity = async () => { throw new Error('table missing'); };
+    const original = store.upsertStamp;
+    store.upsertStamp = async () => { throw new Error('table missing'); };
     try {
         const result = await install({ automations: [AUTOMATION('aut_1')] });
         // A Solution that installed but cannot be auto-upgraded later is a
@@ -426,13 +568,13 @@ test('a stamp that cannot be written does not fail the install', async () => {
         assert.strictEqual(result.ok, true);
         assert.strictEqual(result.report.installed.automations.length, 1);
         assert.ok(result.report.warnings.some(w => /will not be offered future updates/.test(w)));
-    } finally { store.stampEntity = original; }
+    } finally { store.upsertStamp = original; }
 });
 
 test('two entities never share a stamp slot', async () => {
     reset();
     await install({ automations: [AUTOMATION('aut_1'), AUTOMATION('aut_2')] });
-    const refs = called('stampEntity').map(c => c.args.ref);
+    const refs = called('upsertStamp').map(c => c.args.ref);
     assert.strictEqual(new Set(refs).size, refs.length);
 });
 
@@ -667,7 +809,7 @@ test('what it refused to grant is REPORTED, not swallowed', async () => {
     });
 
     const rows = result.report.grantRequires;
-    assert.strictEqual(rows.length, 3, 'a tool, an out-of-bundle routine and the public-AI request');
+    assert.strictEqual(rows.length, 3, 'a tool, an out-of-bundle automation and the public-AI request');
 
     const tool = rows.find(r => r.kind === 'integration');
     assert.strictEqual(tool.tool, 'gmail_send');
@@ -826,11 +968,11 @@ test('safeInstallGrants keeps an in-bundle ref and drops everything else', () =>
     assert.deepStrictEqual(unresolved, ['aut_gone'], 'a grant that could not be connected is named, not silently gone');
 });
 
-test('safeInstallGrants writes the three keys and only the three keys', () => {
+test('safeInstallGrants writes its five keys and only those', () => {
     // updateBridgeGrants replaces the WHOLE column, so a grant kind install does
     // not vouch for starts EMPTY on an installed page rather than arriving from
-    // a file — whether the normalizer already knows that kind (tables, agent) or
-    // not (somethingNew).
+    // a file. A table or agent named by a bare id (another installation's row)
+    // is such a grant; a kind the normalizer does not know (somethingNew) too.
     const patch = safeInstallGrants(
         { bridgeGrants: {
             tables: [{ datatableId: 't', mode: 'readwrite' }],
@@ -839,20 +981,43 @@ test('safeInstallGrants writes the three keys and only the three keys', () => {
         } },
         new Map(),
     );
-    assert.deepStrictEqual(Object.keys(patch).sort(), ['ai', 'automations', 'integrations']);
+    assert.deepStrictEqual(Object.keys(patch).sort(), ['agent', 'ai', 'automations', 'integrations', 'tables']);
 
     const column = normalizeBridgeGrants(patch);
     assert.deepStrictEqual(Object.keys(column).sort(), ['agent', 'ai', 'automations', 'integrations', 'tables']);
-    assert.deepStrictEqual(column.tables, [], 'the file asked for a table binding; the column has none');
+    assert.deepStrictEqual(column.tables, [], 'a bare table id names nothing in this bundle');
     assert.strictEqual(column.agent, null);
     assert.strictEqual(column.somethingNew, undefined);
 });
 
+test('safeInstallGrants carries an in-bundle table and agent, never public columns (F14)', () => {
+    const unresolved = [];
+    const patch = safeInstallGrants(
+        { bridgeGrants: {
+            tables: [
+                { datatableId: { $ref: 'dt_1' }, mode: 'readwrite', columns: ['name', 7], publicColumns: ['name'] },
+                { datatableId: { $ref: 'dt_gone' }, mode: 'read' },
+                { datatableId: null, mode: 'read' },
+            ],
+            agent: { agentId: { $ref: 'agt_1' } },
+        } },
+        new Map([['dt_1', 'tbl_real'], ['agt_1', 'agt_real']]),
+        unresolved,
+    );
+    assert.deepStrictEqual(patch.tables, [{ datatableId: 'tbl_real', mode: 'readwrite', columns: ['name'], publicColumns: [] }]);
+    assert.deepStrictEqual(patch.agent, { agentId: 'agt_real' });
+    assert.deepStrictEqual(unresolved, ['dt_gone']);
+    // And it survives the store's normaliser as written.
+    assert.deepStrictEqual(normalizeBridgeGrants(patch).tables, patch.tables);
+});
+
 test('safeInstallGrants treats a page with no grants and a page with junk grants alike', () => {
     const empty = safeInstallGrants({}, new Map());
-    assert.deepStrictEqual(empty, { ai: { ...DEFAULT_BRIDGE_GRANTS.ai }, automations: [], integrations: [] });
+    assert.deepStrictEqual(empty, {
+        ai: { ...DEFAULT_BRIDGE_GRANTS.ai }, automations: [], integrations: [], tables: [], agent: null,
+    });
     assert.deepStrictEqual(safeInstallGrants({ bridgeGrants: 'nope' }, new Map()), empty);
-    assert.deepStrictEqual(safeInstallGrants({ bridgeGrants: { automations: 'nope', integrations: 'nope' } }, new Map()), empty);
+    assert.deepStrictEqual(safeInstallGrants({ bridgeGrants: { automations: 'nope', integrations: 'nope', tables: 'nope', agent: 'nope' } }, new Map()), empty);
 });
 
 // ═══ Where a Solution came from ══════════════════════════════════════
@@ -979,7 +1144,7 @@ test('een vijandig manifest kan zijn eigen versienummer niet opblazen', async ()
         ownerId: 'installer', organizationId: 'org_receiver',
     });
     assert.strictEqual(called('createProject')[0].args.installedVersion, 2);
-    const stamps = called('stampEntity').map(c => c.args.installedVersion);
+    const stamps = called('upsertStamp').map(c => c.args.installedVersion);
     assert.deepStrictEqual(stamps, [2], 'project en stempels dragen hetzelfde nummer');
 });
 
@@ -1060,8 +1225,8 @@ function storedStep(type) {
     return null;
 }
 
-test('a routine that ships with its own table arrives WIRED to it', async () => {
-    // Live before this: install created the table AND the routine, and left the
+test('an automation that ships with its own table arrives WIRED to it', async () => {
+    // Live before this: install created the table AND the automation, and left the
     // step pointing at nothing — a Solution that could not run out of the box
     // and said nothing about why.
     reset();
@@ -1138,7 +1303,7 @@ test('an empty table the installer asked for is created, and is NOT stamped as p
 
     // A stamp would offer this table updates from a file that never mentions
     // it, so there is none — and no synthetic ref reached the stamp table.
-    assert.ok(!called('stampEntity').some(c => /contacts|requested:/.test(String(c.args.ref))));
+    assert.ok(!called('upsertStamp').some(c => /contacts|requested:/.test(String(c.args.ref))));
 });
 
 test('a table the installer asked for that could not be created is reported, and the rest installs', async () => {
@@ -1164,7 +1329,7 @@ test('a connection the installer picked lands on the step it was meant for', asy
         [{ kind: 'connection', ref: 'aut_1', stepId: 's1', layerKey: null }]);
 });
 
-test('an approver seat the installer filled is on the stored routine', async () => {
+test('an approver seat the installer filled is on the stored automation', async () => {
     reset();
     await install(
         { automations: [withSteps('aut_1', [APPROVAL_STEP('s1')])] },
@@ -1218,7 +1383,7 @@ test('A RESOLUTIONS BODY CANNOT GRANT WHAT THE FILE ASKED FOR', async () => {
                 }],
             },
         }),
-        ownerId: 'installer', organizationId: 'org1',
+        ownerId: 'installer', organizationId: 'org1', deps: DEPS,
         resolutions: {
             // Every shape a caller might hope reaches the grants column.
             grants: [{ ref: 'web_1', integrations: [{ tool: 'gmail_send' }], ai: { publicEnabled: true } }],
@@ -1244,24 +1409,6 @@ test('A RESOLUTIONS BODY CANNOT GRANT WHAT THE FILE ASKED FOR', async () => {
 
     // And the refused grants are still shown to whoever installs.
     assert.strictEqual(result.report.grantRequires.length, 3);
-});
-
-test('an UPGRADE fills nothing in, and that is written down rather than inferred', () => {
-    // upgrade.js passes `wiring: null` on purpose: there is no wizard in front
-    // of an upgrade, so nobody was asked which table or which credential. If
-    // that ever becomes an absent field instead of an explicit null, this
-    // catches it — the difference between "decided" and "forgotten".
-    //
-    // Genuinely textual: the property is that the KEY is present with value
-    // null rather than omitted, and `ctx.wiring` reads as the same falsy
-    // nothing either way once it reaches the resolvers below — only a
-    // `'wiring' in ctx` check downstream would tell the two apart
-    // behaviourally, and applyUpgrade() has no such observable seam without
-    // standing up the rest of its collaborators (listStamps, hashDefinition,
-    // the four entity stores) for a fact this line states directly.
-    const upgradeSrc = require('fs').readFileSync(require.resolve('./upgrade'), 'utf8');
-    assert.match(upgradeSrc, /wiring:\s*null/,
-        'upgrade must say out loud that it applies no resolutions');
 });
 
 test('provenanceOf leest een RUW herkomstblok, niet alleen een genormaliseerd', async () => {
@@ -1302,4 +1449,496 @@ test('verifyClaimedBlueprint geeft een boolean, en niets uit de galerijrij', asy
     assert.strictEqual(await verifyClaimedBlueprint({ claimedId: 'bp_weg', solutionKey: 'sol_p1' }), false);
     assert.strictEqual(await verifyClaimedBlueprint({ claimedId: null, solutionKey: 'sol_p1' }), false);
     assert.strictEqual(await verifyClaimedBlueprint({ claimedId: 'bp_a', solutionKey: null }), false);
+});
+
+// ═══ Stage-ready install engine (design 7: F2, F3, F7, F10, F13, F14) ═══
+
+const { hashDefinition } = require('../../appStudio/templateUpgrade');
+const { installOne, makeInstallCtx, stampAll } = require('./install');
+
+test('a cross-referencing app and automation pair is PRISTINE right after install (F2)', async () => {
+    // The stamps used to be written before the references were patched in, so
+    // the hash was of a payload with `$ref`s in it, and the very first upgrade
+    // called an untouched app "edited" and left it alone.
+    reset();
+    const manifest = buildManifest({
+        project: { id: 'p1', name: 'Onboarding' },
+        entities: {
+            automations: [
+                AUTOMATION('aut_1', 'block'),
+                AUTOMATION('aut_2', 'automation', {
+                    definition: { schemaVersion: 2, trigger: { id: 't', type: 'trigger', kind: 'manual' }, steps: [{ id: 's1', type: 'call_block', blockId: { $ref: 'aut_1' } }] },
+                }),
+            ],
+            apps: [{ ref: 'app_1', name: 'Desk', definition: { actions: { go: { kind: 'run_automation', automationId: { $ref: 'aut_2' } } } } }],
+        },
+    });
+    const result = await installBlueprint({ manifest, ownerId: 'installer', organizationId: 'org1', deps: DEPS });
+    assert.strictEqual(result.ok, true);
+
+    const stamps = called('upsertStamp').map(c => c.args);
+    assert.deepStrictEqual(stamps.map(s => s.ref).sort(), ['app_1', 'aut_1', 'aut_2']);
+    const appId = result.report.installed.apps[0].id;
+    const app = stamps.find(s => s.ref === 'app_1');
+    assert.strictEqual(app.installHash, hashDefinition(liveApps.get(appId)), 'the app is stamped as it is stored, refs resolved');
+    const caller = stamps.find(s => s.ref === 'aut_2');
+    assert.strictEqual(caller.installHash, hashDefinition(live.get(caller.entityId).definition));
+
+    // And the upgrade planner agrees: nothing reads as edited.
+    const { planUpgrade } = require('./upgrade');
+    const planned = await planUpgrade({ projectId: 'proj_new', manifest });
+    assert.deepStrictEqual(planned.plan.skip, [], JSON.stringify(planned.plan.skip));
+    assert.deepStrictEqual(planned.plan.replace.map(r => r.ref).sort(), ['app_1', 'aut_1', 'aut_2']);
+});
+
+test('the rename map install chose is kept on the stamp (F10)', async () => {
+    reset();
+    await install({ automations: [withSteps('aut_1', [HTTP_STEP('s1')])] });
+    const stamp = called('upsertStamp')[0].args;
+    const stored = [...live.values()][0].definition;
+    assert.ok(stamp.stepIdMap && stamp.stepIdMap.root, 'a map, not identity');
+    assert.notStrictEqual(stamp.stepIdMap.root.s1, 's1', 'install gave the step a fresh id');
+    assert.strictEqual(stored.steps[0].id, stamp.stepIdMap.root.s1, 'and the map names the id that was stored');
+    assert.strictEqual(stored.trigger.id, stamp.stepIdMap.root.t);
+});
+
+test('rekey:false keeps every step id, and the stamp says identity', async () => {
+    // A stage copy keeps Dev's step ids (design D3); the stage engine installs
+    // a missing part through installOne with a ctx that says so.
+    reset();
+    const ctx = makeInstallCtx({ ownerId: 'runas', organizationId: 'org1', projectId: 'stage_uat', rekey: false, deps: DEPS });
+    const report = {};
+    const id = await installOne('automation', withSteps('aut_1', [HTTP_STEP('s1'), APPROVAL_STEP('s2')]), ctx, report);
+    assert.ok(id);
+    const created = called('createAutomation')[0].args;
+    assert.strictEqual(created.userId, 'runas');
+    assert.deepStrictEqual(created.definition.steps.map(s => s.id), ['s1', 's2']);
+    assert.strictEqual(created.definition.trigger.id, 't');
+    assert.deepStrictEqual(called('updateAutomation')[0].args.updates, { projectId: 'stage_uat' });
+
+    assert.strictEqual(called('upsertStamp').length, 0, 'stamps wait for stampAll');
+    await stampAll(ctx, report);
+    const stamp = called('upsertStamp')[0].args;
+    assert.strictEqual(stamp.projectId, 'stage_uat');
+    assert.strictEqual(stamp.stepIdMap, null);
+    assert.strictEqual(stamp.installHash, hashDefinition(live.get(id).definition));
+});
+
+test('installOne takes the stage\'s key rule and scope for a table, and records the logical key', async () => {
+    reset();
+    const ctx = makeInstallCtx({
+        ownerId: 'runas', organizationId: 'org1', projectId: 'stage_prd', rekey: false,
+        scope: { kind: 'org', id: 'org1' },
+        datatableKeyFor: (entity) => `${entity.key}__prd`,
+    });
+    const report = {};
+    const id = await installOne('datatable', TABLE('dt_1', 'invoices'), ctx, report);
+    assert.ok(id);
+    const args = called('createDatatable')[0].args;
+    assert.strictEqual(args.key, 'invoices__prd');
+    assert.strictEqual(args.logicalKey, 'invoices');
+    assert.deepStrictEqual(args.scope, { kind: 'org', id: 'org1' });
+    assert.strictEqual(args.projectId, 'stage_prd');
+    assert.strictEqual(report.installed.datatables[0].id, id);
+    await assert.rejects(installOne('notebook', {}, ctx, report), /no installer/);
+});
+
+test('installOne files an automation and a table INTO a stage with the deployment\'s capability', async () => {
+    // The stage engine's prepare creates a missing part filed into the stage
+    // project; the store guards refuse that write without `managedWrite`.
+    reset();
+    stageProjects.add('stage_uat');
+    const managedWrite = { deploymentId: 'dep_1' };
+    const ctx = makeInstallCtx({ ownerId: 'runas', organizationId: 'org1', projectId: 'stage_uat', rekey: false, managedWrite, deps: DEPS });
+    const report = {};
+    const automation = await installOne('automation', AUTOMATION('aut_1'), ctx, report);
+    const table = await installOne('datatable', TABLE('dt_1', 'invoices'), ctx, report);
+    const base = await installOne('knowledge_base', { ref: 'kb_1', name: 'Handbook', description: '' }, ctx, report);
+    assert.ok(automation && table && base, JSON.stringify(report.skipped));
+    assert.deepStrictEqual(report.skipped, []);
+    assert.deepStrictEqual(called('updateAutomation')[0].args.opts, { managedWrite });
+    assert.deepStrictEqual(called('createDatatableOpts')[0].args.managedWrite, managedWrite);
+    assert.deepStrictEqual(called('setKnowledgeBaseProject')[0].args.managedWrite, managedWrite);
+});
+
+test('installOne without the capability is refused by the stage guard, and says so', async () => {
+    reset();
+    stageProjects.add('stage_uat');
+    const ctx = makeInstallCtx({ ownerId: 'runas', organizationId: 'org1', projectId: 'stage_uat', rekey: false, deps: DEPS });
+    const report = {};
+    assert.strictEqual(await installOne('automation', AUTOMATION('aut_1'), ctx, report), null);
+    assert.strictEqual(await installOne('datatable', TABLE('dt_1', 'invoices'), ctx, report), null);
+    assert.deepStrictEqual(report.skipped.map(s => [s.ref, /managed by a deployment/.test(s.why)]), [['aut_1', true], ['dt_1', true]]);
+});
+
+test('the reference pass carries the capability to every guarded write', async () => {
+    reset();
+    const { patchReferences } = require('./install');
+    const managedWrite = { deploymentId: 'dep_1' };
+    const manifest = buildManifest({
+        project: { id: 'p1', name: 'Onboarding' },
+        entities: {
+            automations: [AUTOMATION('aut_1', 'automation', {
+                definition: { schemaVersion: 2, trigger: { id: 't', type: 'trigger', kind: 'manual' }, steps: [{ id: 's1', type: 'call_block', blockId: { $ref: 'aut_1' } }] },
+            })],
+            apps: [{ ref: 'app_1', name: 'Desk', definition: { actions: {} } }],
+            webpages: [{ ref: 'web_1', name: 'Status', files: {} }],
+        },
+    });
+    live.set('a_live', { id: 'a_live', definition: manifest.solution.entities.automations[0].definition });
+    const ctx = makeInstallCtx({
+        ownerId: 'runas', projectId: 'stage_uat', managedWrite,
+        refMap: new Map([['aut_1', 'a_live'], ['app_1', 'app_live'], ['web_1', 'web_live']]),
+    });
+    await patchReferences(manifest, ctx, { warnings: [] });
+    assert.deepStrictEqual(called('saveDefinition')[0].args.opts, { managedWrite });
+    assert.deepStrictEqual(called('updateAutomation')[0].args.opts, { goLive: true, managedWrite });
+    assert.deepStrictEqual(called('updateBridgeGrants')[0].args.opts, { managedWrite });
+});
+
+test('a gallery install passes no capability anywhere', async () => {
+    reset();
+    await install({ automations: [AUTOMATION('aut_1')], datatables: [TABLE('dt_1', 'invoices')] });
+    assert.deepStrictEqual(called('updateAutomation')[0].args.opts, {});
+    assert.strictEqual(called('createDatatableOpts')[0].args.managedWrite, undefined);
+});
+
+test('a second install in one organisation gets "<key>_2", keeps the logical key, and is still wired (F7)', async () => {
+    reset();
+    fx.takenKeys = new Set(['invoices']);
+    const result = await install({
+        datatables: [TABLE('dt_1', 'invoices')],
+        automations: [withSteps('aut_1', [DT_STEP('s1', 'invoices')])],
+    });
+    const tries = called('createDatatable').map(c => [c.args.key, c.args.logicalKey]);
+    assert.deepStrictEqual(tries, [['invoices', null], ['invoices_2', 'invoices']]);
+    const table = result.report.installed.datatables[0];
+    assert.strictEqual(table.key, 'invoices_2');
+    assert.strictEqual(storedStep('datatable').datatableId, table.id, 'the automation reaches its own copy, whatever its key');
+    assert.ok(result.report.warnings.some(w => /created as "invoices_2"/.test(w)));
+});
+
+test('a clash on every suffix is reported, and nothing else is', async () => {
+    reset();
+    fx.takenKeys = new Set(['invoices', ...[2, 3, 4, 5, 6, 7, 8, 9].map(n => `invoices_${n}`)]);
+    const result = await install({ datatables: [TABLE('dt_1', 'invoices')] });
+    assert.strictEqual(called('createDatatable').length, 9);
+    assert.strictEqual(result.report.installed.datatables.length, 0);
+    assert.ok(result.report.skipped.some(s => s.ref === 'dt_1' && /uq_datatables_scope_key/.test(s.why)));
+});
+
+test('a datatable $ref in an automation lands on the bundled table, without a rebind warning', async () => {
+    reset();
+    const result = await install({
+        datatables: [TABLE('dt_1', 'invoices')],
+        automations: [withSteps('aut_1', [{ id: 's1', type: 'datatable', op: 'find_rows', datatableId: { $ref: 'dt_1' }, datatableKey: 'invoices' }])],
+    });
+    assert.strictEqual(storedStep('datatable').datatableId, result.report.installed.datatables[0].id);
+    assert.ok(!result.report.warnings.some(w => /invoices/.test(w)), result.report.warnings.join(' | '));
+});
+
+test('the installer\'s choices are kept as bindings for later updates (F3)', async () => {
+    reset();
+    const result = await install(
+        { automations: [withSteps('aut_1', [HTTP_STEP('s1'), APPROVAL_STEP('s2'), DT_STEP('s3', 'contacts')])] },
+        { resolutions: {
+            connections: [{ ref: 'aut_1', stepId: 's1', connectionId: 'conn_mine' }],
+            approvers: [{ ref: 'aut_1', stepId: 's2', seat: { userId: 'u_boss' } }],
+            tables: [{ key: 'contacts', create: true }],
+        } },
+    );
+    const saved = called('upsertBindings');
+    assert.strictEqual(saved.length, 1);
+    assert.strictEqual(saved[0].args.projectId, 'proj_new');
+    assert.strictEqual(saved[0].args.actorId, 'installer');
+    const createdTable = result.report.installed.datatables.find(t => t.forKey === 'contacts').id;
+    assert.deepStrictEqual(saved[0].args.rows, [
+        { slot: 'table:contacts', kind: 'table', value: { datatableId: createdTable } },
+        { slot: 'connection:aut_1:/s1', kind: 'connection', value: { ref: 'aut_1', layerKey: null, stepId: 's1', connectionId: 'conn_mine' } },
+        { slot: 'seats:aut_1:/s2', kind: 'approver_seats', value: { ref: 'aut_1', layerKey: null, stepId: 's2', assignee: { userId: 'u_boss' } } },
+    ]);
+});
+
+test('only the choices that LANDED are kept, so an update never repeats "was not used" (F3)', async () => {
+    reset();
+    await install(
+        { automations: [withSteps('aut_1', [HTTP_STEP('s1'), { ...HTTP_STEP('s2'), auth: { connectionId: 'conn_file' } }])] },
+        { resolutions: { connections: [
+            { ref: 'aut_1', stepId: 's1', connectionId: 'conn_mine' },        // applied
+            { ref: 'aut_1', stepId: 's2', connectionId: 'conn_other' },       // step already wired
+            { ref: 'aut_1', stepId: 's_gone', connectionId: 'conn_mine' },    // no such step
+            { ref: 'aut_9', stepId: 's1', connectionId: 'conn_mine' },        // no such automation
+        ] } },
+    );
+    const rows = called('upsertBindings')[0].args.rows;
+    assert.deepStrictEqual(rows.map(r => r.slot), ['connection:aut_1:/s1']);
+});
+
+test('a choice for an automation that failed to install is not kept', async () => {
+    reset();
+    const { installAutomations, makeInstallCtx: mk } = require('./install');
+    const { normalizeResolutions } = require('./resolutions');
+    const ctx = mk({ ownerId: 'u', projectId: 'p', wiring: {
+        resolutions: normalizeResolutions({ connections: [{ ref: 'aut_1', stepId: 's1', connectionId: 'conn_mine' }] }),
+        tables: [], freshTableIds: new Set(), createdForKey: new Map(), applied: [],
+    } });
+    stageProjects.add('p');                                  // the filing write is refused
+    const report = { installed: { automations: [] }, skipped: [], warnings: [], resolved: [] };
+    await installAutomations([withSteps('aut_1', [HTTP_STEP('s1')])], ctx, report);
+    assert.strictEqual(report.skipped.length, 1);
+    assert.deepStrictEqual(ctx.wiring.applied, []);
+});
+
+test('an install with no choices keeps no bindings, and a failed save is said, not fatal', async () => {
+    reset();
+    await install({ automations: [AUTOMATION('aut_1')] });
+    assert.strictEqual(called('upsertBindings').length, 0);
+
+    reset();
+    fx.bindingsThrow = true;
+    const result = await install(
+        { automations: [withSteps('aut_1', [HTTP_STEP('s1')])] },
+        { resolutions: { connections: [{ ref: 'aut_1', stepId: 's1', connectionId: 'conn_mine' }] } },
+    );
+    assert.strictEqual(result.ok, true);
+    assert.deepStrictEqual(storedStep('http_request').auth, { connectionId: 'conn_mine' });
+    assert.ok(result.report.warnings.some(w => /could not be saved for later updates/.test(w)));
+});
+
+test('an app arrives with its own data model, linked to the bundle\'s table (F13)', async () => {
+    reset();
+    const result = await install({
+        datatables: [TABLE('dt_1', 'invoices')],
+        apps: [{
+            ref: 'app_1', name: 'Desk', definition: {},
+            dataModel: {
+                tables: [
+                    { id: 'tbl_aaaa1111', key: 'own', fields: [] },
+                    { id: 'tbl_bbbb2222', key: 'linked', fields: [], source: { kind: 'datatable', datatableId: { $ref: 'dt_1' }, mode: 'read' } },
+                    { id: 'tbl_cccc3333', key: 'outside', fields: [], source: { kind: 'datatable', datatableId: null, mode: 'read' } },
+                ],
+            },
+        }],
+    });
+    const saved = called('saveDataModel');
+    assert.strictEqual(saved.length, 1);
+    assert.strictEqual(saved[0].args.appId, result.report.installed.apps[0].id);
+    assert.strictEqual(saved[0].args.ownerId, 'installer');
+    const keys = saved[0].args.model.tables.map(t => t.key);
+    assert.deepStrictEqual(keys, ['own', 'linked'], 'a table linked outside the bundle is left out');
+    assert.strictEqual(saved[0].args.model.tables[1].source.datatableId, result.report.installed.datatables[0].id);
+    assert.ok(result.report.warnings.some(w => /"outside"/.test(w) && /data settings/.test(w)));
+});
+
+test('a data model the store refuses is reported, and the app still installs', async () => {
+    reset();
+    fx.dataModelResult = { ok: false, invalid: true, errors: ['tables[0].key is not valid'] };
+    const result = await install({ apps: [{ ref: 'app_1', name: 'Desk', definition: {}, dataModel: { tables: [{ id: 'x', key: '!', fields: [] }] } }] });
+    assert.strictEqual(result.report.installed.apps.length, 1);
+    assert.ok(result.report.warnings.some(w => /data model of "Desk" could not be set up \(tables\[0\]\.key is not valid\)/.test(w)));
+});
+
+test('a page gets its in-bundle knowledge bases, and never a bare id', async () => {
+    reset();
+    const result = await install({
+        knowledgeBases: [{ ref: 'kb_1', name: 'Handbook', description: '' }],
+        webpages: [{ ref: 'web_1', name: 'Status', files: { html: '<h1>Hi</h1>' }, knowledgeBaseIds: [{ $ref: 'kb_1' }, 'kb_from_their_instance'] }],
+    });
+    const kbId = result.report.installed.knowledgeBases[0].id;
+    assert.deepStrictEqual(called('createWebpage')[0].args.knowledgeBaseIds, [kbId]);
+});
+
+test('a page\'s table grant arrives on the bundled table, its public columns do not (F14)', async () => {
+    reset();
+    const result = await install({
+        datatables: [TABLE('dt_1', 'invoices')],
+        webpages: [{
+            ref: 'web_1', name: 'Status', files: {},
+            bridgeGrants: { tables: [{ datatableId: { $ref: 'dt_1' }, mode: 'read', columns: ['amount'], publicColumns: ['amount'] }] },
+        }],
+    });
+    const row = stored(called('updateBridgeGrants')[0].args.patch);
+    assert.deepStrictEqual(row.tables, [{ datatableId: result.report.installed.datatables[0].id, mode: 'read', columns: ['amount'], publicColumns: [] }]);
+    assert.ok(result.report.warnings.some(w => /anonymous visitors/.test(w)));
+});
+
+// ═══ Skills and document templates ═══════════════════════════════════
+
+const SKILL = (ref, over = {}) => ({
+    ref, name: `Skill ${ref}`, description: 'd', instructions: 'Be brief.', workflow: '', rules: '', examples: '',
+    steps: [], rules_v2: [], examples_v2: [], output_schema: null, icon: '📝', dynamic_activation: true,
+    knowledge_base_ids: [], allowed_automation_ids: [], automation_id: null, ...over,
+});
+const TEMPLATE = (ref, over = {}) => ({
+    ref, name: `Template ${ref}`, doc_type: 'document', kind: 'template', description: 'An offer', body_html: '<p>x</p>', css: '.a{}',
+    settings: { margin: 12 }, ...over,
+});
+const fillAutomation = (ref, steps) => AUTOMATION(ref, 'automation', {
+    definition: { schemaVersion: 2, trigger: { id: 't', type: 'trigger', kind: 'manual' }, steps },
+});
+
+test('a skill and a template are installed under the installer, filed through the registry, and linked', async () => {
+    reset();
+    const result = await install({
+        knowledgeBases: [{ ref: 'kb_1', name: 'Handbook' }],
+        automations: [
+            AUTOMATION('aut_1'),
+            fillAutomation('aut_2', [
+                { id: 'f1', type: 'fill_document', documentId: { $ref: 'doc_1' }, documentVersionId: 'a-stale-dev-id', values: {} },
+                { id: 'ai', type: 'ai_step', prompt: 'x', skillIds: [{ $ref: 'skl_1' }] },
+            ]),
+        ],
+        skills: [SKILL('skl_1', {
+            knowledge_base_ids: [{ $ref: 'kb_1' }], allowed_automation_ids: [{ $ref: 'aut_1' }], automation_id: { $ref: 'aut_1' },
+            steps: [{ id: 's1', text: 'Read', refs: [{ kind: 'kb', id: { $ref: 'kb_1' } }, { kind: 'kb', id: 'bare-id' }] }],
+        })],
+        documents: [TEMPLATE('doc_1')],
+        agents: [{ ref: 'agt_1', name: 'Helper', config: { attachedSkillIds: [{ $ref: 'skl_1' }] } }],
+    });
+    assert.strictEqual(result.ok, true);
+
+    const id = (list, ref) => result.report.installed[list].find(x => x.ref === ref).id;
+    const [kbId, autId, docId, sklId] = [id('knowledgeBases', 'kb_1'), id('automations', 'aut_1'), id('documents', 'doc_1'), id('skills', 'skl_1')];
+    const skill = called('createSkill')[0].args;
+    assert.strictEqual(skill.userId, 'installer');
+    assert.strictEqual(skill.orgId, 'org1');
+    assert.strictEqual(skill.isShared, false);
+    assert.deepStrictEqual(skill.sharedGroups, []);
+    assert.deepStrictEqual(skill.enabledIntegrations, [], 'a connected app is a requirement, never a switch');
+    assert.deepStrictEqual(skill.knowledgeBaseIds, [kbId]);
+    assert.deepStrictEqual(skill.allowedAutomationIds, [autId]);
+    assert.strictEqual(skill.automationId, autId);
+    assert.deepStrictEqual(skill.steps[0].refs, [{ kind: 'kb', id: kbId }],
+        'a bare id in a step reference does not survive');
+    assert.ok(!('workflow' in skill), 'the structured form is sent once, the store regenerates the text');
+    assert.strictEqual(skill.dynamicActivation, true);
+
+    const doc = called('createDocument')[0].args;
+    assert.strictEqual(doc.userId, 'installer');
+    assert.strictEqual(doc.visibility, 'private');
+    assert.deepStrictEqual(
+        { name: doc.name, docType: doc.docType, kind: doc.kind, bodyHtml: doc.bodyHtml, css: doc.css, settings: doc.settings },
+        { name: 'Template doc_1', docType: 'document', kind: 'template', bodyHtml: '<p>x</p>', css: '.a{}', settings: { margin: 12 } },
+    );
+    assert.ok(!('projectId' in doc), 'a template is never filed as project content');
+
+    const filed = called('membership.setProject').map(c => [c.args.kind, c.args.id, c.args.userId, c.args.projectId]);
+    assert.deepStrictEqual(filed, [['document_template', docId, 'installer', 'proj_new'], ['skill', sklId, 'installer', 'proj_new']]);
+
+    const automation = called('updateAutomation').filter(c => c.args.updates.definition).pop().args.updates.definition;
+    assert.strictEqual(automation.steps[0].documentId, docId);
+    assert.strictEqual(automation.steps[0].documentVersionId, `ver_of_${docId}`, 'pinned to the installed revision, not to Dev\'s');
+    assert.deepStrictEqual(automation.steps[1].skillIds, [sklId]);
+
+    const agentConfig = called('createAgent')[0].args[9];
+    assert.deepStrictEqual(agentConfig.attachedSkillIds, [sklId]);
+
+    assert.deepStrictEqual(result.report.installed.skills, [{ ref: 'skl_1', id: sklId, name: 'Skill skl_1' }]);
+    assert.deepStrictEqual(result.report.installed.documents, [{ ref: 'doc_1', id: docId, name: 'Template doc_1', versionId: `ver_of_${docId}` }]);
+    const stamps = called('upsertStamp').map(c => [c.args.ref, c.args.kind, c.args.entityId]);
+    assert.ok(stamps.some(x => x.join() === `skl_1,skill,${sklId}`));
+    assert.ok(stamps.some(x => x.join() === `doc_1,document,${docId}`));
+});
+
+test('bare ids in a hand-edited skill are dropped, and a ref with nothing behind it is named', async () => {
+    reset();
+    const { skillFieldsOf, installSkills } = require('./install');
+    const entity = SKILL('skl_1', {
+        knowledge_base_ids: ['kb_of_somebody_else', { $ref: 'kb_9' }], automation_id: 'aut_of_somebody_else',
+        steps: [{ id: 's', text: 'x', refs: [{ kind: 'table', id: { $ref: 'dt_9' } }, { kind: 'kb', id: 'bare' }] }],
+    });
+    const unresolved = [];
+    const fields = skillFieldsOf(entity, new Map(), unresolved);
+    assert.deepStrictEqual(fields.knowledgeBaseIds, []);
+    assert.strictEqual(fields.automationId, null);
+    assert.deepStrictEqual(fields.steps[0].refs, []);
+    assert.deepStrictEqual(unresolved.sort(), ['dt_9', 'kb_9']);
+
+    // The install says so in the report.
+    const ctx = require('./install').makeInstallCtx({ ownerId: 'installer', organizationId: 'org1', projectId: 'p' });
+    const report = { installed: {}, skipped: [], warnings: [] };
+    await installSkills([entity], ctx, report);
+    assert.ok(report.warnings.some(w => /"kb_9" in the skill "Skill skl_1"/.test(w)));
+    assert.ok(report.warnings.some(w => /"dt_9" in the skill "Skill skl_1"/.test(w)));
+});
+
+test('a skill or template the registry will not file is said out loud, not lost', async () => {
+    reset();
+    fx.filed = false;
+    const result = await install({ skills: [SKILL('skl_1')], documents: [TEMPLATE('doc_1')] });
+    assert.strictEqual(result.ok, true);
+    assert.ok(result.report.warnings.some(w => /"Skill skl_1" was created but could not be filed/.test(w)));
+    assert.ok(result.report.warnings.some(w => /"Template doc_1" was created but could not be filed/.test(w)));
+});
+
+test('a page is never installed as a template, and one bad part does not stop the others', async () => {
+    reset();
+    const result = await install({ documents: [TEMPLATE('doc_1', { doc_type: 'page' }), TEMPLATE('doc_2')] });
+    assert.deepStrictEqual(result.report.skipped.map(x => [x.ref, x.kind, x.permanent]), [['doc_1', 'document', true]]);
+    assert.deepStrictEqual(result.report.installed.documents.map(d => d.ref), ['doc_2']);
+});
+
+test('each body facet is sent once: structure when there is some, the written-out text otherwise', () => {
+    const { skillFieldsOf } = require('./install');
+    const fields = skillFieldsOf(SKILL('skl_1', {
+        steps: [], workflow: '1. Read the file', rules_v2: [{ id: 'r', polarity: 'must', text: 'cite' }], rules: 'must cite', examples_v2: [], examples: '',
+        output_schema: { type: 'object' },
+    }), new Map());
+    assert.strictEqual(fields.workflow, '1. Read the file');
+    assert.ok(!('steps' in fields));
+    assert.deepStrictEqual(fields.rulesV2, [{ id: 'r', polarity: 'must', text: 'cite' }]);
+    assert.ok(!('rules' in fields));
+    assert.ok(!('examples' in fields) && !('examplesV2' in fields), 'nothing to say, nothing sent');
+    assert.deepStrictEqual(fields.outputSchema, { type: 'object' });
+    assert.ok(!('enabledIntegrations' in fields) && !('isShared' in fields));
+});
+
+test('stage path: a skill is only computed, a template is written with the deploy\'s capability and pinned', async () => {
+    reset();
+    const { makeInstallCtx, installOne, resolveRefs } = require('./install');
+    const managedWrite = { deploymentId: 'dep_1' };
+    const ctx = makeInstallCtx({ ownerId: 'run-as', organizationId: 'org1', projectId: 'p-uat', rekey: false, managedWrite });
+    const report = {};
+    ctx.refMap.set('kb_1', 'kb-uat');
+    ctx.refMap.set('aut_1', 'aut-uat');
+
+    const skillId = await installOne('skill', SKILL('skl_1', { knowledge_base_ids: [{ $ref: 'kb_1' }], automation_id: { $ref: 'aut_1' } }), ctx, report);
+    assert.ok(skillId, 'an id is allocated so automations and agents can point at it');
+    assert.strictEqual(ctx.refMap.get('skl_1'), skillId);
+    assert.deepStrictEqual(called('createSkill'), [], 'no row is written before the commit');
+    assert.deepStrictEqual(called('membership.setProject'), []);
+    assert.strictEqual(report.computed.skills.length, 1);
+    assert.strictEqual(report.computed.skills[0].id, skillId);
+    assert.deepStrictEqual(report.computed.skills[0].fields.knowledgeBaseIds, ['kb-uat']);
+    assert.strictEqual(report.computed.skills[0].fields.automationId, 'aut-uat');
+    assert.deepStrictEqual(report.installed.skills.map(x => x.ref), ['skl_1']);
+
+    const docId = await installOne('document', TEMPLATE('doc_1'), ctx, report);
+    const write = called('writeManagedTemplate')[0].args;
+    assert.deepStrictEqual(write.opts, { managedWrite });
+    assert.deepStrictEqual(
+        { ownerId: write.input.ownerId, orgId: write.input.orgId, projectId: write.input.projectId, name: write.input.fields.name, docType: write.input.fields.docType },
+        { ownerId: 'run-as', orgId: 'org1', projectId: 'p-uat', name: 'Template doc_1', docType: 'document' },
+    );
+    assert.strictEqual(ctx.templateVersions.get(docId), `ver_of_${docId}`);
+    assert.deepStrictEqual(called('createDocument'), [], 'the stage never goes through the owner\'s createDocument');
+
+    // The stage engine resolves an automation with the same pin.
+    const payload = { definition: { steps: [{ id: 'f1', type: 'fill_document', documentId: { $ref: 'doc_1' }, documentVersionId: 'dev-version' }] } };
+    resolveRefs('automation', payload, ctx.refMap, [], ctx.templateVersions);
+    assert.strictEqual(payload.definition.steps[0].documentId, docId);
+    assert.strictEqual(payload.definition.steps[0].documentVersionId, `ver_of_${docId}`);
+});
+
+test('pinTemplateVersions leaves a fill_document step that names another document alone', () => {
+    const { pinTemplateVersions } = require('./install');
+    const definition = { steps: [
+        { id: 'a', type: 'fill_document', documentId: 'mine', documentVersionId: 'old' },
+        { id: 'b', type: 'fill_document', documentId: 'theirs', documentVersionId: 'keep' },
+        { id: 'c', type: 'generate_document', documentId: 'mine' },
+    ] };
+    pinTemplateVersions(definition, new Map([['mine', 'v9']]));
+    assert.deepStrictEqual(definition.steps.map(x => x.documentVersionId), ['v9', 'keep', undefined]);
+    pinTemplateVersions(definition, null);
+    pinTemplateVersions(null, new Map([['mine', 'v9']]));
 });

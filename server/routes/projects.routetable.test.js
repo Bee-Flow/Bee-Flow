@@ -125,14 +125,15 @@ const EXPECTED = [
     // Typing is transient, but every open stream of the project receives it:
     // a per-member limiter keeps a loop from flooding them.
     'POST /:id/typing [requireProjectRoleMw,rateLimiter,validateRequest]',
-    // Notebooks / apps / routines / webpages filed into the project, and the
+    // Notebooks / apps / automations / webpages filed into the project, and the
     // approvals raised inside it. Listing is viewer+; moving one in or out is
     // editor+ AND owner-of-the-resource (the stores match on user_id, so a
     // member cannot move a colleague's work). Approvals are not movable at all.
     'GET /:id/resources [requireProjectRoleMw]',
     'PUT /:id/resources [requireProjectRoleMw,validateRequest]',
-    // How the Solution is wired to itself — which app runs which routine, which
-    // routine asks whom to approve. Viewer+, because it draws lines between
+    'POST /:id/resources/related [requireProjectRoleMw,validateRequest]',
+    // How the Solution is wired to itself — which app runs which automation, which
+    // automation asks whom to approve. Viewer+, because it draws lines between
     // entries the Content listing already shows and adds nothing to them.
     'GET /:id/graph [requireProjectRoleMw]',
     // "Te controleren": the aggregated findings and the one verdict the publish
@@ -172,6 +173,7 @@ const EXPECTED = [
     // de inhoudsopgave van élke versie die er ooit is geweest, ook van
     // entiteiten die er nu niet meer in zitten. Dezelfde rol als exporteren.
     'GET /:id/package/releases [featureGate,requireProjectRoleMw,requireSolutionProject]',
+    'GET /:id/package/releases/:releaseId [featureGate,requireProjectRoleMw,validateRequest,requireSolutionProject]',
     // Hoe vaak deze Oplossing is geïnstalleerd: twee getallen, in de eigen
     // organisatie en elders op deze instantie. De ENIGE plek waar een
     // Blueprint-antwoord over de org-grens heen kijkt, en daarom op de
@@ -217,6 +219,16 @@ const EXPECTED = [
     // Tasks (routes/projects/tasks.js): reading is viewer+, writing editor+;
     // who may delete one (its author, the project owner) is decided in the handler.
     'GET /:id/tasks [requireProjectRoleMw]',
+    // Planning poker (the same router): one session per project. Voting is
+    // viewer+ (every member estimates); starting, steering and closing the
+    // session is editor+.
+    'GET /:id/tasks/poker/session [requireProjectRoleMw]',
+    'POST /:id/tasks/poker/session/start [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/vote [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/reveal [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/finish [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/cancel [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/next [requireProjectRoleMw,validateRequest]',
     'POST /:id/tasks [requireProjectRoleMw,validateRequest]',
     'POST /:id/tasks/batch [requireProjectRoleMw,validateRequest]',
     'GET /:id/meetings/:meetingId/task-suggestions [requireProjectRoleMw]',
@@ -224,18 +236,42 @@ const EXPECTED = [
     'POST /:id/tasks/:taskId/improve [requireProjectRoleMw,rateLimitMiddleware]',
     'PATCH /:id/tasks/:taskId [requireProjectRoleMw,validateRequest]',
     'DELETE /:id/tasks/:taskId [requireProjectRoleMw]',
+    // The task router's error mapper (a 4-argument handler, so it flattens to
+    // USE:anonymous): the date-range and poker-queue constraints become 400/409.
+    'USE:anonymous',
+    // Sprints (routes/projects/sprints.js): listing is viewer+, every change is
+    // editor+; only one sprint is active at a time (the store demotes the rest).
+    'GET /:id/sprints [requireProjectRoleMw]',
+    'POST /:id/sprints [requireProjectRoleMw,validateRequest]',
+    'PATCH /:id/sprints/:sprintId [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/sprints/:sprintId [requireProjectRoleMw]',
+    'POST /:id/sprints/:sprintId/items [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/sprints/:sprintId/items/:taskId [requireProjectRoleMw]',
+    'POST /:id/sprints/:sprintId/start [requireProjectRoleMw]',
+    'POST /:id/sprints/:sprintId/complete [requireProjectRoleMw]',
+    // The sprint router's error mapper: the date-range constraint becomes a 400.
+    'USE:anonymous',
     // A person's colour in the project: the owner for anyone, everybody else for themselves (decided in the handler).
     'PUT /:id/members/:userId/color [requireProjectRoleMw,validateRequest]',
     // Project files, "my chats" and presence (routes/projects/workspace.js).
     // The upload is editor+ and rate limited BEFORE multer reads the body;
     // `acceptProjectFile` is multer, one field, one file.
     'GET /:id/files [requireProjectRoleMw,validateRequest]',
+    'GET /:id/files/:fileId/content [requireProjectRoleMw,validateRequest]',
     'POST /:id/files [requireProjectRoleMw,rateLimiter,acceptProjectFile]',
     'DELETE /:id/files/:fileId [requireProjectRoleMw,validateRequest]',
     'GET /:id/my-chats [requireProjectRoleMw,validateRequest]',
     'POST /:id/presence [requireProjectRoleMw,rateLimiter,validateRequest]',
     // A new document or notebook made inside the project, owned by the caller
     // (routes/projects/content.js). Editor+, rate limited.
+    'GET /:id/search [requireProjectRoleMw,validateRequest]',
+    'GET /:id/pins [requireProjectRoleMw]',
+    'PUT /:id/pins [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/pins/:type/:itemId [requireProjectRoleMw,validateRequest]',
+    'GET /:id/board [requireProjectRoleMw]',
+    'PUT /:id/board [requireProjectRoleMw,validateRequest]',
+    'POST /:id/board/tasks [requireProjectRoleMw,validateRequest]',
+    'PATCH /:id/board/tasks/:taskId [requireProjectRoleMw,validateRequest]',
     'POST /:id/documents [requireProjectRoleMw,rateLimiter,validateRequest]',
     'POST /:id/notebooks [requireProjectRoleMw,requireNotebooksMw,rateLimiter,validateRequest]',
     // Real-time co-editing (routes/projects/collab.js). Opening, syncing and
@@ -277,6 +313,33 @@ const EXPECTED = [
     'GET /:id/compliance-hints [requireProjectRoleMw]',
     'POST /:id/compliance-hints/:key/dismiss [requireProjectRoleMw,validateRequest]',
     'POST /:id/compliance-hints/:key/snooze [requireProjectRoleMw,validateRequest]',
+    // Solution stages, releases and deployments (routes/projects/stages): gated
+    // by the stage feature flag and stageAuthMw instead of the shared role gate.
+    'GET /:id/pipeline [stageFeatureGate,stageAuthMw]',
+    'POST /:id/stages [stageFeatureGate,stageAuthMw,validateRequest]',
+    'DELETE /:id/stages/:stage [stageAuthMw,validateRequest,stageFeatureGate]',
+    'GET /:id/stages/:stage [stageFeatureGate,stageAuthMw]',
+    'PATCH /:id/stages/:stage [stageAuthMw,validateRequest,stageFeatureGate,stageFeatureGate]',
+    'GET /:id/stages/:stage/requirements [stageFeatureGate,stageAuthMw,validateRequest]',
+    'PUT /:id/stages/:stage/bindings [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/variables [stageFeatureGate,stageAuthMw]',
+    'PUT /:id/variables [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/stages/:stage/variables [stageFeatureGate,stageAuthMw]',
+    'PUT /:id/stages/:stage/variables [stageFeatureGate,stageAuthMw,validateRequest]',
+    'PATCH /:id/stages/:stage/parts/:ref [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/stages/:stage/pause [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/stages/:stage/resume [stageFeatureGate,stageAuthMw,validateRequest]',
+    'PATCH /:id/parts/:ref/options [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/releases [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/releases [stageFeatureGate,stageAuthMw]',
+    'GET /:id/releases/:releaseId [stageFeatureGate,stageAuthMw]',
+    'POST /:id/stages/:stage/plan [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/release-and-deploy [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/stages/:stage/deployments [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/deployments [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/deployments/:depId [stageFeatureGate,stageAuthMw]',
+    'POST /:id/deployments/:depId/cancel [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/deployments/:depId/retry [stageFeatureGate,stageAuthMw,validateRequest]',
 ];
 
 test('projects route table and per-route role gates match the frozen baseline', () => {
@@ -295,7 +358,7 @@ test('the self-detach route is ordered ABOVE the /:id family', () => {
 
 test('every /:id route carries the shared role gate', () => {
     const ungated = flatten(router.stack).filter(r =>
-        / \/:id/.test(r) && !r.includes('requireProjectRoleMw')
+        / \/:id/.test(r) && !r.includes('requireProjectRoleMw') && !r.includes('stageAuthMw')
     );
     // The two deliberate exceptions, each authorized by who the caller is
     // rather than by their project role:

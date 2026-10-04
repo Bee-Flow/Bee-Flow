@@ -38,7 +38,7 @@ describe('a dry run', () => {
         s = applyRunEvent(s, { type: 'step.finished', runId: 'r1', stepId: 'a', status: 'success', at: '2026-09-01T10:00:02Z' });
         expect(s.rows).toMatchObject([{ stepId: 'a', status: 'success', startedAt: '2026-09-01T10:00:01Z', finishedAt: '2026-09-01T10:00:02Z' }]);
 
-        // Another run of the same routine (a schedule firing) is not this test.
+        // Another run of the same automation (a schedule firing) is not this test.
         const other = applyRunEvent(s, { type: 'step.started', runId: 'r2', stepId: 'b' });
         expect(other).toBe(s);
 

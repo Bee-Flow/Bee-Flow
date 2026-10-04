@@ -5,7 +5,7 @@
  * builder's parameterless tools, and the model-facing JSON truncation.
  *
  * The truncation / provider-error / usage arithmetic is core/llm/toolLoop.js,
- * shared with the routine builder; this module only binds the app builder's
+ * shared with the automation builder; this module only binds the app builder's
  * prefix and tool set onto it.
  */
 
@@ -13,7 +13,7 @@
 
 const toolLoop = require('../../../core/llm/toolLoop');
 const leakedToolCalls = require('../../../core/llm/leakedToolCalls');
-// The owner's routines + documents note (rendered by builderPrompt, which
+// The owner's automations + documents note (rendered by builderPrompt, which
 // owns the prefix so the renderer and the stripper cannot disagree).
 const { OWNER_CONTEXT_PREFIX } = require('../../../appStudio/builderPrompt');
 
@@ -32,7 +32,7 @@ const IMAGE_NOTE_PREFIX = '[IMAGE NOTE — machine-generated]';
 const MACHINE_PREFIXES = [
     VALIDATION_NOTE_PREFIX, DRAFT_STATE_PREFIX, EDITOR_CONTEXT_PREFIX,
     APPROVED_PLAN_PREFIX, PLAN_POLICY_PREFIX, IMAGE_NOTE_PREFIX,
-    // 2026-09-17: the owner's routines/documents moved out of the system
+    // 2026-09-17: the owner's automations/documents moved out of the system
     // prompt into a per-turn note (prefix-cache discipline: the system
     // prompt is now identical across users). Re-rendered every turn, so it
     // is stripped from history like the draft state.

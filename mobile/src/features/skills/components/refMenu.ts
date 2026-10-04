@@ -16,13 +16,13 @@ import type { RefKind, StepRef } from '../model/types';
 export const REF_ICON: Readonly<Record<RefKind, IconName>> = { automation: 'Workflow', kb: 'BookOpen', table: 'Table' };
 
 const GROUPS: readonly { kind: RefKind; list: PickerList }[] = [
-    { kind: 'automation', list: 'routines' },
+    { kind: 'automation', list: 'automations' },
     { kind: 'kb', list: 'kbs' },
     { kind: 'table', list: 'tables' },
 ];
 
 export function refGroupName(t: TranslateFn, kind: RefKind): string {
-    if (kind === 'automation') return t('skills_studio.ref.automations', 'Routines');
+    if (kind === 'automation') return t('skills_studio.ref.automations', 'Automations');
     if (kind === 'kb') return t('skills_studio.ref.kbs', 'Knowledge bases');
     return t('skills_studio.ref.tables', 'Tables');
 }

@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { ORG_SECTIONS } from '@/features/org';
+import { WEB_ONLY_ORG_SECTIONS } from '@/features/org/model/sections';
 
 import { translateWebLink } from './route';
 import { ORG_SETTINGS_SEGMENTS, adminTarget, legacyOrgSettingsTarget } from './routeOrg';
@@ -22,7 +23,11 @@ function webOrgSegments(): [string, string][] {
 }
 
 describe('the organisation settings segments', () => {
-    const web = webOrgSegments();
+    const all = webOrgSegments();
+    // A section the phone leaves to the web (sections.ts WEB_ONLY_ORG_SECTIONS)
+    // has no screen here: its link opens the org index, tested below.
+    const webOnly = all.filter(([id]) => WEB_ONLY_ORG_SECTIONS.includes(id));
+    const web = all.filter(([id]) => !WEB_ONLY_ORG_SECTIONS.includes(id));
 
     it('reads the web table', () => {
         expect(web.length).toBeGreaterThan(10);
@@ -37,6 +42,13 @@ describe('the organisation settings segments', () => {
 
     it('lists no segment the web does not have', () => {
         expect(Object.keys(ORG_SETTINGS_SEGMENTS).sort()).toEqual(web.map(([, s]) => s).sort());
+    });
+
+    it('opens the index for a section the phone leaves to the web', () => {
+        expect(webOnly.length).toBe(WEB_ONLY_ORG_SECTIONS.length);
+        for (const [, segment] of webOnly) {
+            expect(translateWebLink(`/app/settings/organisation/${segment}`)?.href).toBe('/org');
+        }
     });
 
     it('opens the index for a segment it does not know', () => {

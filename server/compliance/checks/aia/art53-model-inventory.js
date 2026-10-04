@@ -32,7 +32,7 @@ async function _aiActAssessments(orgId, agents) {
         out.expired = Number.isFinite(Number(stats?.expired)) ? Number(stats.expired) : 0;
         const latest = await store.listForOrg(orgId);
         const covered = new Set((latest || []).map(r => `${r.target_kind}:${r.target_id}`));
-        // Published agents are the targets this check knows about; the routine
+        // Published agents are the targets this check knows about; the automation
         // side is the marking check's business. Ids only — no names.
         out.missing_targets = agents
             .filter(a => !covered.has(`agent:${a.id}`))

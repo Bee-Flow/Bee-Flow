@@ -354,7 +354,7 @@ describe('findings from several sources', () => {
     });
 });
 
-describe('a new routine', () => {
+describe('a new automation', () => {
     const seed: FlowDefinition = { trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, steps: [], edges: [] };
 
     it('starts from its seed, sends nothing until the first edit, then creates the row once', async () => {

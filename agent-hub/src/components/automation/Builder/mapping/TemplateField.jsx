@@ -1,13 +1,17 @@
-import InsertDataButton from './InsertDataButton';
-import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
+import { templateText } from '@shared/expr/templateText.mjs';
 import React, { useEffect, useRef, useState } from 'react';
+import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
+import { useFormRowLabel } from './FormRowLabelContext';
+import InsertDataButton from './InsertDataButton';
 import RefTokenInput from './RefTokenInput';
+import TemplateFitMore from './TemplateFitMore';
+import { hasToken, replaceLastToken, templateShapeAt } from './templateRemedies';
 import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
-import { walkPath, previewValue, getAutocompleteTokenFromPrefix } from '../../../../utils/bindingHelpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { denseInputClass, AMBER_NOTE } from '../flow/settings/formStyles';
+import { walkPath, previewValue, getAutocompleteTokenFromPrefix } from '../../../../utils/bindingHelpers';
+import { denseInputClass } from '../flow/settings/formStyles';
 
 /**
  * Multi-line string field with `{{path}}` interpolation. Unlike
@@ -39,8 +43,9 @@ import { denseInputClass, AMBER_NOTE } from '../flow/settings/formStyles';
  *                     whose visible label lives outside this component
  *   listAs          — how the RUNTIME renders a `{{path}}` that is a list,
  *                     so the example and the note under it tell the truth:
- *                     'text' (default) — JSON text, with a note on how to
- *                     get plain text instead; 'json' — JSON, which is what
+ *                     'text' (default) — a list of plain values as
+ *                     "red, green, blue", a list of records as JSON text
+ *                     with a note on how to get plain text instead; 'json' — JSON, which is what
  *                     the slot wants (an http_request body), so a neutral
  *                     line; 'markdown' — a bullet list for a list of plain
  *                     values (interpolateTemplate's listAsMarkdown: form
@@ -59,7 +64,12 @@ export default function TemplateField({
     inline = false,
     ariaLabel = null,
     listAs = 'text',
+    // "A separate run for each item" under More: the step's forEach setter
+    // (useForEachRequest). Absent: that choice is simply not offered.
+    onRequestForEach = null,
+    canForEach = null,
 }) {
+    const rowLabel = useFormRowLabel();
     const [text, setText] = useState(value || '');
     const inputRef = useRef(null);
     const picker = useVariablePicker();
@@ -79,6 +89,22 @@ export default function TemplateField({
         onChange?.(next);
     };
 
+    // The list, table or group just put in, for "More" (TemplateFitMore). A
+    // data slot never gets it: there the value goes in as JSON on purpose.
+    const [fitPath, setFitPath] = useState(null);
+    const noteFit = (path) => {
+        if (listAs === 'json') return;
+        setFitPath(templateShapeAt(path, effectivePreviewSample) ? path : null);
+    };
+    const chooseFit = (r) => {
+        const path = fitPath;
+        setFitPath(null);
+        if (!path) return;
+        if (r.forEach) onRequestForEach?.(r.forEach);
+        emit(replaceLastToken(text, path, r.token));
+    };
+    const fitVisible = !!fitPath && hasToken(text, fitPath);
+
     // Inline autocomplete: typing an unclosed `{{partial` opens the picker
     // pre-filtered to the partial; picking swallows those characters and drops a
     // pill in their place. The LENGTH is recorded here rather than a range —
@@ -93,7 +119,7 @@ export default function TemplateField({
         }
     };
 
-    const insertPath = (path) => inputRef.current?.insertSnippet(`{{${path}}}`);
+    const insertPath = (path) => { inputRef.current?.insertSnippet(`{{${path}}}`); noteFit(path); };
     // A clicked pill: the picker opens on that pill's STEP and the answer
     // replaces the pill (user request 2026-09-03).
     const pillTarget = useRef(null);
@@ -108,7 +134,7 @@ export default function TemplateField({
         if (!onFocusField) return;
         onFocusField({
             id: label || placeholder || 'template',
-            label: label || placeholder || 'template',
+            label: label || rowLabel || '',
             insert: insertPath,
         });
     };
@@ -117,7 +143,7 @@ export default function TemplateField({
     const onDrop = (e) => {
         const path = getBindingDropPath(e);
         // Land where the author DROPPED, not where the caret last was.
-        if (path) inputRef.current?.insertSnippetAt(`{{${path}}}`, { x: e.clientX, y: e.clientY });
+        if (path) { inputRef.current?.insertSnippetAt(`{{${path}}}`, { x: e.clientX, y: e.clientY }); noteFit(path); }
     };
 
     const { t } = useTranslation();
@@ -131,6 +157,7 @@ export default function TemplateField({
         if (pill) inputRef.current?.replacePill(pill, `{{${path}}}`);
         else if (swallow) inputRef.current?.replacePartial(swallow, `{{${path}}}`);
         else insertPath(path);
+        if (pill || swallow) noteFit(path);
         picker.closePicker();
     };
 
@@ -152,6 +179,7 @@ export default function TemplateField({
                 stepLabelById={stepLabelById}
                 stepTypeById={stepTypeById}
                 onPillClick={onPillClick}
+                spaced={listAs !== 'json'}
                 className={denseInputClass('w-full')}
             />
         </div>
@@ -193,24 +221,26 @@ export default function TemplateField({
                 title={label ? `Insert into ${label}` : 'Insert variable'}
             />
 
+            {fitVisible && (
+                <TemplateFitMore
+                    path={fitPath}
+                    sampleRoot={effectivePreviewSample}
+                    allowForEach={(canForEach ?? !!onRequestForEach) && !!onRequestForEach}
+                    onChoose={chooseFit}
+                />
+            )}
+
             {preview != null && (
                 <div className="text-[10px] text-[var(--text-tertiary)] space-y-0.5">
                     <div className="uppercase tracking-wide">example</div>
                     <div className="font-mono text-[var(--text-secondary)] whitespace-pre-wrap break-words bg-[var(--bg-secondary)] rounded px-2 py-1">
                         {preview.text}
                     </div>
-                    {preview.list && (listAs === 'json' ? (
+                    {preview.list && (
                         <div>
-                            {t('routines.builder.template_array_json', 'The list goes in as JSON: {preview}', { preview: preview.list.preview })}
+                            {t('automations.builder.template_array_json', 'The list goes in as JSON: {preview}', { preview: preview.list.preview })}
                         </div>
-                    ) : (
-                        <div className={AMBER_NOTE}>
-                            {t('routines.builder.template_array_text', 'This list goes in as JSON text: {preview}. For plain text, join it first: add an Edit data step with a Formula field set to {expr}.', {
-                                preview: preview.list.preview,
-                                expr: preview.list.joinExpr,
-                            })}
-                        </div>
-                    ))}
+                    )}
                 </div>
             )}
         </div>
@@ -220,8 +250,9 @@ export default function TemplateField({
 /**
  * Preview-only honesty: a `{{path}}` that resolves to an ARRAY used to
  * preview as "[2 items]", while the runtime (server/automation/bind.js
- * interpolateTemplate) JSON.stringifies the array into the surrounding text —
- * or, with `listAsMarkdown`, turns a list of plain values into bullets. The
+ * interpolateTemplate) writes the array into the surrounding text (a list of plain values as
+ * "red, green, blue", a list of records as JSON) — or, with `listAsMarkdown`,
+ * turns a list of plain values into bullets. The
  * example shows exactly what the run produces, and `list` carries the first
  * list that went in as JSON (its clipped text and the Formula that joins it)
  * for the note.
@@ -238,45 +269,41 @@ function renderPreview(text, sampleRoot, listAs = 'text') {
         if (Array.isArray(v)) {
             const bullets = listAs === 'markdown' ? markdownList(v) : null;
             if (bullets !== null) return bullets;
-            let asText;
-            try { asText = JSON.stringify(v); } catch { asText = String(v); }
-            const clipped = asText.length > 60 ? `${asText.slice(0, 59)}…` : asText;
-            if (!list) list = { preview: clipped, joinExpr: joinFormula(path, v) };
+            // Exactly what the runtime writes (shared templateText): in a text
+            // slot a list reads "red, green, blue" and a table one row per
+            // line, so there is nothing to warn about; a data slot ('json')
+            // keeps JSON, and says so in a neutral line.
+            const clipped = clip(templateText(v, { lists: listAs === 'json' ? 'json' : 'join' }));
+            if (listAs === 'json' && !list) list = { preview: clipped };
             return clipped;
         }
+        // A record reads "key: value" in text and JSON in a data slot, in the
+        // author's key order; everything else is what previewValue showed.
+        if (v === null) return ''; // the run writes nothing for nothing
+        if (typeof v === 'object') return clip(templateText(v, { lists: listAs === 'json' ? 'json' : 'join' }));
         return previewValue(v, 30);
     });
     return { text: filled, list };
 }
 
-const PLAIN_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
-/**
- * The Edit data Formula that turns this list into plain text. `join` writes
- * every element with String(), so a list of records would come out as
- * "[object Object], …": for records it joins one column instead, the first
- * one the example row has that a formula can name.
- */
-function joinFormula(path, v) {
-    const first = v.find(x => x != null);
-    if (first !== null && typeof first === 'object' && !Array.isArray(first)) {
-        const column = Object.keys(first).find(k => PLAIN_KEY.test(k)) || '<column>';
-        return `join(${path}[*].${column}, ", ")`;
-    }
-    return `join(${path}, ", ")`;
-}
+const clip = (s) => (s.length > 60 ? `${s.slice(0, 59)}…` : s);
 
 const MARKDOWN_PREVIEW_ITEMS = 5;
 
 /**
  * The bullet list interpolateTemplate's `listAsMarkdown` makes of a list of
- * plain values (same shape: a blank line first, one `- ` per value), clipped
- * for the example. Null for a list of records, which keeps its JSON there too.
+ * plain values or a table (same shape: a blank line first, one `- ` per value
+ * or row), clipped for the example. Null for a mixed list.
  */
 function markdownList(v) {
     if (!v.length) return '';
-    if (!v.every(x => x == null || ['string', 'number', 'boolean'].includes(typeof x))) return null;
-    const shown = v.slice(0, MARKDOWN_PREVIEW_ITEMS).map(x => `- ${x == null ? '' : previewValue(String(x).trim(), 30)}`);
+    const scalar = (x) => x == null || ['string', 'number', 'boolean'].includes(typeof x);
+    const isRec = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+    // A list of plain values, or a table (one bullet per row) — as the runtime.
+    if (!v.every(scalar) && !v.every(x => x == null || isRec(x))) return null;
+    const rows = v.every(scalar) ? v : v.filter(x => x != null);
+    const shown = rows.slice(0, MARKDOWN_PREVIEW_ITEMS)
+        .map(x => `- ${x == null ? '' : previewValue(isRec(x) ? templateText(x) : String(x).trim(), isRec(x) ? 60 : 30)}`);
     if (v.length > MARKDOWN_PREVIEW_ITEMS) shown.push('- …');
     return `\n\n${shown.join('\n')}\n`;
 }

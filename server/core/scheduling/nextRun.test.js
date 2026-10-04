@@ -31,7 +31,7 @@ test('the floor beats a schedule that asks to poll faster than allowed', () => {
     );
 });
 
-test('a cron schedule is resolved with the routine scheduler’s own parser', () => {
+test('a cron schedule is resolved with the automation scheduler’s own parser', () => {
     const iso = nextRunFor({ cron: '0 6 * * *', tz: 'Europe/Amsterdam' }, FROM);
     assert.ok(iso, 'a valid cron must resolve');
     assert.ok(Date.parse(iso) > FROM, 'and must be in the future');

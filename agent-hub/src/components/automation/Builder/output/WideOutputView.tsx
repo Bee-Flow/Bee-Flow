@@ -84,7 +84,7 @@ export default function WideOutputView({ rows, cols, stepLabel = null, initialRo
                 tabIndex={-1}
                 role="dialog"
                 aria-modal="true"
-                aria-label={t('routines.output.wide_title', 'Continues on · {step}', { step: stepLabel || '' })}
+                aria-label={t('automations.output.wide_title', 'Continues on · {step}', { step: stepLabel || '' })}
                 onKeyDown={onKeyDown}
                 className="@container/wideout w-full max-w-[2000px] h-[calc(100vh-64px)] max-h-[1100px] rounded-xl overflow-hidden shadow-2xl bg-[var(--bg-card)] text-[var(--text-primary)] flex flex-col text-xs outline-none"
                 data-testid="output-wide-view"
@@ -112,14 +112,14 @@ export default function WideOutputView({ rows, cols, stepLabel = null, initialRo
                             <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
                                 {pageRows.length
                                     ? <WideGrid rows={pageRows} columns={shown} compact={compact} selected={selected} onSelect={setSelected} />
-                                    : <div className="p-6 text-[var(--text-tertiary)] italic">{t('routines.output.no_rows_match', 'No row matches "{q}".', { q: query })}</div>}
+                                    : <div className="p-6 text-[var(--text-tertiary)] italic">{t('automations.output.no_rows_match', 'No row matches "{q}".', { q: query })}</div>}
                             </div>
                             <div className="h-[38px] shrink-0 flex items-center gap-3 px-3.5 border-t border-[var(--border-default)] text-[var(--text-secondary)]">
-                                <span>{t('routines.output.rows_range', 'Rows {from} to {to} of {total}', { from, to, total: filtered.length })}</span>
-                                <span className="text-[var(--text-tertiary)] truncate @max-[700px]/wideout:hidden">{t('routines.output.row_hint', 'Click a row for all its details')}</span>
+                                <span>{t('automations.output.rows_range', 'Rows {from} to {to} of {total}', { from, to, total: filtered.length })}</span>
+                                <span className="text-[var(--text-tertiary)] truncate @max-[700px]/wideout:hidden">{t('automations.output.row_hint', 'Click a row for all its details')}</span>
                                 <span className="ml-auto flex gap-1">
-                                    <button type="button" disabled={safePage <= 0} onClick={() => setPage(safePage - 1)} aria-label={t('routines.output.prev_page', 'Previous page')} className="w-6 h-6 rounded-md border border-[var(--border-default)] grid place-items-center disabled:opacity-40"><ChevronLeft size={13} /></button>
-                                    <button type="button" disabled={safePage >= pages - 1} onClick={() => setPage(safePage + 1)} aria-label={t('routines.output.next_page', 'Next page')} className="w-6 h-6 rounded-md border border-[var(--border-default)] grid place-items-center disabled:opacity-40"><ChevronRight size={13} /></button>
+                                    <button type="button" disabled={safePage <= 0} onClick={() => setPage(safePage - 1)} aria-label={t('automations.output.prev_page', 'Previous page')} className="w-6 h-6 rounded-md border border-[var(--border-default)] grid place-items-center disabled:opacity-40"><ChevronLeft size={13} /></button>
+                                    <button type="button" disabled={safePage >= pages - 1} onClick={() => setPage(safePage + 1)} aria-label={t('automations.output.next_page', 'Next page')} className="w-6 h-6 rounded-md border border-[var(--border-default)] grid place-items-center disabled:opacity-40"><ChevronRight size={13} /></button>
                                 </span>
                             </div>
                         </div>

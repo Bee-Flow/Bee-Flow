@@ -11,6 +11,7 @@ import {
     markLessonComplete, markLessonMastered, saveStepState, readStepState,
     readLearningProgress, recordReviewOutcome,
 } from '../learningProgress';
+import { filterAvailableSteps, hasVideoSteps, useLearnManifest } from '../learnMedia';
 import {
     getLesson,
     resolveLessonPlayerSteps,
@@ -33,6 +34,7 @@ import QuizStep from './QuizStep';
 import SimStep from './SimStep';
 import SlideStep from './SlideStep';
 import TutorPanel from './TutorPanel';
+import VideoStep from './VideoStep';
 
 /**
  * LessonPlayer — the focused surface for a rich lesson (slides / quizzes /
@@ -64,11 +66,41 @@ import TutorPanel from './TutorPanel';
  *   onClose()          — dismiss the player (progress already saved per step)
  *   onComplete(id) -> Promise<{ newBadges, courseComplete, courseTitle }|void>
  */
-export default function LessonPlayer({ lessonId, courseId = null, initialLayout = null, user, modelTier = 'fast', onNavigate, onClose, onComplete }) {
+export default function LessonPlayer(props) {
+    const { lessonId, user } = props;
+    const resolved = useMemo(() => resolveLessonPlayerSteps(lessonId, user), [lessonId, user]);
+    // Video steps are optional and their media lives outside the image
+    // (learnMedia.ts). The step list is settled BEFORE the player mounts —
+    // resume, progress segments and the step counter are all computed from it
+    // — so a lesson with a video waits (briefly, MANIFEST_TIMEOUT_MS at most)
+    // for the manifest, and every clip the pack lacks is dropped. A lesson
+    // without video steps never fetches anything.
+    const wantsMedia = useMemo(() => hasVideoSteps(resolved), [resolved]);
+    const media = useLearnManifest(wantsMedia);
+    // A clip that is listed but will not play (404, codec) is dropped at
+    // runtime; the step after it slides into its place, i.e. the player
+    // advances by itself. Keyed by lesson so a stale entry never leaks across.
+    const [broken, setBroken] = useState(() => ({ lessonId, ids: new Set() }));
+    const brokenIds = broken.lessonId === lessonId ? broken.ids : null;
+    const markVideoUnavailable = useCallback((stepId) => {
+        setBroken((prev) => {
+            const ids = new Set(prev.lessonId === lessonId ? prev.ids : []);
+            if (ids.has(stepId)) return prev;
+            ids.add(stepId);
+            return { lessonId, ids };
+        });
+    }, [lessonId]);
+    const steps = useMemo(() => (wantsMedia
+        ? filterAvailableSteps(resolved, media.status === 'ready' ? media.manifest : null, brokenIds || undefined)
+        : resolved), [wantsMedia, resolved, media, brokenIds]);
+    if (wantsMedia && media.status === 'loading') return null;
+    return <LessonPlayerView {...props} steps={steps} onVideoUnavailable={markVideoUnavailable} />;
+}
+
+function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, user, modelTier = 'fast', onNavigate, onClose, onComplete, steps, onVideoUnavailable }) {
     const { t } = useTranslation();
     const { hasFeature } = useLicenseContext();
     const lesson = useMemo(() => getLesson(lessonId), [lessonId]);
-    const steps = useMemo(() => resolveLessonPlayerSteps(lessonId, user), [lessonId, user]);
     const isReview = lesson?.kind === 'review';
 
     const [statusMap, setStatusMap] = useState(() => readStepState(user, lessonId));
@@ -125,8 +157,12 @@ export default function LessonPlayer({ lessonId, courseId = null, initialLayout 
     // player unmounts so the map stays bounded.
     useEffect(() => () => { if (isEphemeralLessonId(lessonId)) clearEphemeralLesson(lessonId); }, [lessonId]);
 
-    const step = steps[stepIndex] || null;
     const total = steps.length;
+    // A video that turned out unplayable is removed from `steps` while the
+    // learner is on it; when it was the last step, step back onto the real one
+    // (adjusted during render, so no empty frame is ever committed).
+    if (total > 0 && stepIndex >= total) setStepIndex(total - 1);
+    const step = steps[stepIndex] || null;
 
     const recordStatus = useCallback((stepId, state) => {
         setStatusMap((prev) => ({ ...prev, [stepId]: state }));
@@ -411,6 +447,7 @@ export default function LessonPlayer({ lessonId, courseId = null, initialLayout 
                         modelTier={modelTier}
                         recordStatus={recordStatus}
                         onLaunch={launchAction}
+                        onVideoUnavailable={onVideoUnavailable}
                     />
                 )}
                 {/* Ask-AI tutor — available on every step */}
@@ -482,7 +519,7 @@ export default function LessonPlayer({ lessonId, courseId = null, initialLayout 
     );
 }
 
-function StepBody({ step, lessonId, user, statusMap, modelTier, recordStatus, onLaunch }) {
+function StepBody({ step, lessonId, user, statusMap, modelTier, recordStatus, onLaunch, onVideoUnavailable }) {
     if (!step) return null;
     switch (stepType(step)) {
         case STEP_TYPES.QUIZ:
@@ -493,6 +530,8 @@ function StepBody({ step, lessonId, user, statusMap, modelTier, recordStatus, on
             return <SimStep step={step} saved={statusMap[step.id]} onState={(s) => recordStatus(step.id, s)} />;
         case STEP_TYPES.ACTION:
             return <ActionStep step={step} user={user} saved={statusMap[step.id]} onState={(s) => recordStatus(step.id, s)} onLaunch={onLaunch} />;
+        case STEP_TYPES.VIDEO:
+            return <VideoStep key={step.id} step={step} saved={statusMap[step.id]} onState={(s) => recordStatus(step.id, s)} onUnavailable={() => onVideoUnavailable?.(step.id)} />;
         case STEP_TYPES.SLIDE:
         default:
             return <SlideStep step={step} />;

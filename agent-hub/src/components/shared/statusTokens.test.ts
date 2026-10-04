@@ -22,7 +22,7 @@ import {
  *    "working right now" and "deliberately switched off" were one colour, and
  *    the warning colour was spent on the commonest state in the product.
  * 2. every skip was one grey word, so a step that ran and found nothing to do
- *    looked exactly like a step somebody had switched off — and a routine
+ *    looked exactly like a step somebody had switched off — and an automation
  *    that quietly wrote nothing for a month reported "Finished".
  *
  * Both are colour/word decisions with no runtime behaviour, which is why they
@@ -302,7 +302,7 @@ describe('the skip matrix', () => {
 
     it('keeps a switched-off step out of the warning colour', () => {
         // The whole argument for the split: amber on `disabled` puts every
-        // routine that has one node switched off permanently on amber, and a
+        // automation that has one node switched off permanently on amber, and a
         // warning that is always on is not a warning.
         expect(STATUS_TOKENS.skipped.solid).not.toContain('--warning');
         expect(STATUS_TOKENS.skipped.badge).not.toContain('--warning');

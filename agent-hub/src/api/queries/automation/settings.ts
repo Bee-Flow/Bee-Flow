@@ -1,6 +1,6 @@
-// Routine Settings page (Studio → Automations, handoff 5): the ONLY place that
+// Automation Settings page (Studio → Automations, handoff 5): the ONLY place that
 // knows the wire contracts the Settings sections call directly. Saves of the
-// routine row itself (title, description, icon, folder, definition) go through
+// automation row itself (title, description, icon, folder, definition) go through
 // the builder's `onSave`, never through here, so the shell keeps one saving
 // state machine.
 //
@@ -57,12 +57,12 @@ const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object'
 
 // ── Folders ────────────────────────────────────────────────────────────────
 
-export interface RoutineFolder { id: string; name: string }
+export interface AutomationFolder { id: string; name: string }
 
-export function parseFolders(body: unknown): RoutineFolder[] {
+export function parseFolders(body: unknown): AutomationFolder[] {
     const raw = obj(body);
     const rows = Array.isArray(raw.folders) ? raw.folders : Array.isArray(body) ? body as unknown[] : [];
-    const out: RoutineFolder[] = [];
+    const out: AutomationFolder[] = [];
     for (const r of rows) {
         const row = obj(r);
         const id = text(row.id);
@@ -71,8 +71,8 @@ export function parseFolders(body: unknown): RoutineFolder[] {
     return out;
 }
 
-export function useRoutineFoldersQuery({ enabled = true }: { enabled?: boolean } = {}) {
-    return useQuery<RoutineFolder[], Error>({
+export function useAutomationFoldersQuery({ enabled = true }: { enabled?: boolean } = {}) {
+    return useQuery<AutomationFolder[], Error>({
         queryKey: automationSettingsKeys.folders,
         queryFn: async ({ signal }) => {
             const res = await authFetch(`${BASE}/folders`, { signal });
@@ -98,11 +98,11 @@ export function useSuggestDescriptionMutation(language?: string | null) {
     return useMutation<string, Error, string>({ mutationFn: (id) => suggestDescription(id, language) });
 }
 
-// ── Whole-routine actions ──────────────────────────────────────────────────
+// ── Whole-automation actions ──────────────────────────────────────────────────
 
 export async function saveAsTemplate(id: string, input: { title?: string; description?: string } = {}): Promise<void> {
     // The template body is strict: a title of 1..120 and a description of at
-    // most 500 characters. A routine may hold more, so trim to fit.
+    // most 500 characters. An automation may hold more, so trim to fit.
     const title = (input.title || '').trim().slice(0, 120);
     const description = (input.description || '').trim().slice(0, 500);
     const body = { ...(title ? { title } : {}), ...(description ? { description } : {}) };
@@ -110,12 +110,12 @@ export async function saveAsTemplate(id: string, input: { title?: string; descri
 }
 
 /**
- * DELETE /:id moves the routine into the trash (30 days; runs stay). The
+ * DELETE /:id moves the automation into the trash (30 days; runs stay). The
  * answer carries the row as it now is (deletedAt set, isActive false).
  */
 export async function trashAutomation(id: string): Promise<{ purgeAt: string | null; automation: Record<string, unknown> | null }> {
     const res = await authFetch(`${BASE}/${enc(id)}`, { method: 'DELETE' });
-    if (!res.ok) throw await failure(res, 'Could not move this routine to the trash.');
+    if (!res.ok) throw await failure(res, 'Could not move this automation to the trash.');
     const body = obj(await res.json().catch(() => null));
     const row = obj(body.automation);
     return { purgeAt: text(body.purgeAt), automation: text(row.id) ? row : null };
@@ -124,7 +124,7 @@ export async function trashAutomation(id: string): Promise<{ purgeAt: string | n
 /** The portable export envelope (GET /:id/export), downloaded as a file. */
 export async function downloadAutomationExport(id: string, title: string): Promise<string[]> {
     const res = await authFetch(`${BASE}/${enc(id)}/export`);
-    if (!res.ok) throw await failure(res, 'Could not export this routine.');
+    if (!res.ok) throw await failure(res, 'Could not export this automation.');
     const body = obj(await res.json());
     const blob = new Blob([JSON.stringify(body.envelope ?? null, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -164,7 +164,7 @@ export function useSchedulePreviewQuery(cron: string, tz: string, skipHolidays: 
     });
 }
 
-// ── App-event catalog (which e-mail app can start a routine) ──────────────
+// ── App-event catalog (which e-mail app can start an automation) ──────────────
 
 export interface TriggerProvider { id: string; label: string; events: string[] }
 

@@ -11,7 +11,7 @@ import { VariablePickerProvider } from '../../../../../automation/Builder/mappin
  * silence. Completing while typing is the only affordance that reaches it.
  *
  * It is also the reason getAutocompleteTokenFromPrefix takes a `roots`
- * argument: the routine builder's roots (steps/trigger/loop) share nothing with
+ * argument: the automation builder's roots (steps/trigger/loop) share nothing with
  * App Studio's but item and vars, so with the default list the picker never
  * opened on `currentUser.` or `form.` — the two an app author reaches for first.
  */
@@ -105,7 +105,7 @@ describe('ExpressionInput — inline autocomplete', () => {
     });
 
     // The bug this whole parameter exists for.
-    it('completes a root the routine builder does not have', () => {
+    it('completes a root the automation builder does not have', () => {
         const onChange = vi.fn();
         renderInput({ value: '', onChange });
         type('currentUser.');

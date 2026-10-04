@@ -16,7 +16,7 @@
  *   (`secrets` is excluded from `template` bindings — see resolveValue.)
  */
 
-const { evaluate } = require('./expr');
+const { evaluate, templateText } = require('./expr');
 const log = require('../telemetry/log');
 
 const REF_RE = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[(?:[0-9]+|\*|"[^"]*"|'[^']*')\])*$/;
@@ -135,6 +135,8 @@ function walkRelativePath(path, value) {
  * @param {*} binding — { kind, ... } or a raw literal
  * @param {object} runState — { trigger, steps, loop, vars, secrets }
  * @param {object} opts
+ * @param {'text'|'json'|'markdown'} opts.listAs — how a `template` binding writes a list
+ *                  of plain values (see interpolateTemplate; default 'text')
  * @param {boolean} opts.allowSecrets — when false, secrets root is replaced
  *                  with an empty object so user-visible templates can't
  *                  echo secrets back to the chat or notification body.
@@ -156,7 +158,7 @@ function resolveValue(binding, runState, opts = {}) {
         case 'ref':
             return walkPath(binding.path, safeState);
         case 'template':
-            return interpolateTemplate(binding.value || '', safeState);
+            return interpolateTemplate(binding.value || '', safeState, { listAs: opts.listAs });
         case 'expr':
             try { return evaluate(binding.value, safeState); }
             catch (e) { return undefined; }
@@ -202,7 +204,18 @@ function resolveInputs(inputs, runState, opts = {}) {
  * can surface a per-run warning summary; `AUTOMATION_DEBUG_BINDINGS=1`
  * additionally logs to the server console.
  *
+ * What a value looks like in the text is `templateText` (shared/expr): a list
+ * of plain values reads "red, green, blue", a record or a list of records
+ * stays compact JSON with its keys in the order the step returned them, null
+ * is empty. That is the default because most slots are prose (notification,
+ * e-mail and chat bodies, documents). A slot that carries DATA says so with
+ * `listAs: 'json'` (http_request url/headers/body, a prompt, a code step's
+ * inputs) and keeps every list as JSON.
+ *
  * @param {object} [opts]
+ * @param {'text'|'json'|'markdown'} [opts.listAs] — how a list of plain values
+ *   is written: 'text' (default) comma-separated, 'json' as JSON, 'markdown' as
+ *   bullets (same as `listAsMarkdown: true`).
  * @param {boolean} [opts.leaveUnresolved] — when true, a `{{token}}` whose
  *   path resolves to `undefined` is returned VERBATIM (braces and all)
  *   rather than blanked. Used for AI-step prompts so a literal `{{...}}`
@@ -211,25 +224,29 @@ function resolveInputs(inputs, runState, opts = {}) {
  *   blank-on-miss behaviour for notification/stop_error callers.
  * @param {boolean} [opts.listAsMarkdown] — when true, a path that resolves to
  *   an array of plain values renders as a markdown bullet list instead of as
- *   JSON. Used ONLY for the human-readable text of a form page, which IS
- *   rendered as markdown: a step that produced a list of findings put
- *   `["Productaanbod van RVS platen…","Algemene bedrijfspresentatie…"]`,
- *   brackets and quotes and all, on a page a customer reads. Everywhere else —
- *   prompts, URLs, headers, notification bodies — JSON stays correct, so this
- *   is opt-in rather than a change to the default.
+ *   a comma-separated line. Used ONLY for the human-readable text of a form
+ *   page, which IS rendered as markdown: a step that produced a list of
+ *   findings put `["Productaanbod van RVS platen…","Algemene bedrijfspresentatie…"]`,
+ *   brackets and quotes and all, on a page a customer reads. Opt-in: every
+ *   other slot reads the list on one line.
  */
 function interpolateTemplate(template, runState, opts = {}) {
     const { leaveUnresolved = false, listAsMarkdown = false } = opts;
-    // A list of plain values is the only shape worth reformatting: an array of
-    // objects has no sensible one-line form, so it keeps its JSON.
+    const listAs = listAsMarkdown ? 'markdown' : (opts.listAs || 'text');
+    // In a markdown slot a list of plain values, or a table, becomes bullets.
     const asMarkdownList = (v) => {
-        if (!listAsMarkdown || !Array.isArray(v)) return null;
+        if (listAs !== 'markdown' || !Array.isArray(v)) return null;
         if (!v.length) return '';
-        if (!v.every(x => x == null || ['string', 'number', 'boolean'].includes(typeof x))) return null;
+        const scalar = (x) => x == null || ['string', 'number', 'boolean'].includes(typeof x);
+        const isRec = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+        // A list of plain values, or a table (one bullet per row, read as
+        // "key: value"). Anything mixed keeps the prose rendering.
+        if (!v.every(scalar) && !v.every(x => x == null || isRec(x))) return null;
         // Blank line first: a bullet list has to start its own block, or it
         // glues itself onto the label that introduces it.
         const NL = String.fromCharCode(10);
-        return NL + NL + v.map(x => '- ' + (x == null ? '' : String(x).trim())).join(NL) + NL;
+        return NL + NL + v.filter(x => x != null || v.every(scalar))
+            .map(x => '- ' + (x == null ? '' : (isRec(x) ? templateText(x) : String(x).trim()))).join(NL) + NL;
     };
     return String(template).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (whole, path) => {
         const trimmed = path.trim();
@@ -243,10 +260,12 @@ function interpolateTemplate(template, runState, opts = {}) {
             }
             return leaveUnresolved ? whole : '';
         }
-        if (v === null) return '';
         const list = asMarkdownList(v);
         if (list !== null) return list;
-        return typeof v === 'object' ? JSON.stringify(v) : String(v);
+        // null -> '', a list of plain values -> "red, green, blue", a record
+        // (or a list of records) -> compact JSON in the author's key order.
+        // The editor's preview calls the same function (shared/expr/templateText).
+        return templateText(v, { lists: listAs === 'json' ? 'json' : 'join' });
     });
 }
 

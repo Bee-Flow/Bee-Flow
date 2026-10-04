@@ -8,11 +8,16 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import { ApiError } from '@/core/api/client';
+import { postDlpDecisionTouch } from '@/features/chat/api/endpoints';
 import { DlpQuestionExpired } from '@/features/chat/hooks/dlpResolver';
 import type { DlpDecision } from '@/features/chat/model/types';
 import { renderScreen } from '@/shared/testing/renderWithProviders';
 
 import { DlpReviewSheet } from './DlpReviewSheet';
+
+jest.mock('@/features/chat/api/endpoints', () => ({
+    postDlpDecisionTouch: jest.fn().mockResolvedValue(undefined),
+}));
 
 const DECISION: DlpDecision = {
     decisionId: 'd1',
@@ -61,6 +66,11 @@ it('says an expired question expired, in a toast that outlives the review', asyn
     await renderScreen(<DlpReviewSheet decision={DECISION} onChoose={onChoose} />);
     await fireEvent.press(screen.getByText('Block'));
     expect(await screen.findByText(/This privacy check had already expired, so nothing was sent\./)).toBeTruthy();
+});
+
+it('heartbeats the question while the review is open, so it cannot expire mid-edit', async () => {
+    await renderScreen(<DlpReviewSheet decision={DECISION} onChoose={jest.fn()} />);
+    expect(postDlpDecisionTouch).toHaveBeenCalledWith('d1');
 });
 
 it("answers Android's Back with Block, as the web's cancel does", async () => {

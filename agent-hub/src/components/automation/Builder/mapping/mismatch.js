@@ -80,17 +80,17 @@ export function remediesFor(path, sampleRoot, { allowForEach = false, itemVar = 
     const primary = [
         {
             id: 'join', binding: b.join,
-            labelKey: 'routines.mismatch.choice_lines', labelEn: 'All of them, one per line',
+            labelKey: 'automations.mismatch.choice_lines', labelEn: 'All of them, one per line',
             preview: list.length ? show(list.slice(0, 3).map(v => (typeof v === 'object' ? '…' : String(v))).join(' / ')) + (list.length > 3 ? '…' : '') : null,
         },
         {
             id: 'first', binding: b.first,
-            labelKey: 'routines.mismatch.choice_first', labelEn: 'Only the first',
+            labelKey: 'automations.mismatch.choice_first', labelEn: 'Only the first',
             preview: list.length ? show(list[0]) : null,
         },
         {
             id: 'count', binding: b.count,
-            labelKey: 'routines.mismatch.choice_count', labelEn: 'Only the count ({n})', labelParams: { n },
+            labelKey: 'automations.mismatch.choice_count', labelEn: 'Only the count ({n})', labelParams: { n },
             preview: String(n),
         },
     ];
@@ -99,19 +99,19 @@ export function remediesFor(path, sampleRoot, { allowForEach = false, itemVar = 
         primary.push({
             id: 'foreach', binding: pick.binding, forEach: pick.forEach, itemVar: pick.itemVar,
             disabled: !!shape?.rowScopedListTail,
-            labelKey: 'routines.mismatch.choice_foreach', labelEn: 'A separate run for each item',
+            labelKey: 'automations.mismatch.choice_foreach', labelEn: 'A separate run for each item',
             preview: shape?.rowScopedListTail ? null : show(previewForEachPick(p, sampleRoot)),
         });
     }
     const more = [
         {
             id: 'join_comma', binding: joined.join,
-            labelKey: 'routines.mismatch.choice_comma', labelEn: 'All of them, comma separated',
+            labelKey: 'automations.mismatch.choice_comma', labelEn: 'All of them, comma separated',
             preview: list.length ? show(list.slice(0, 3).map(v => (typeof v === 'object' ? '…' : String(v))).join(', ')) : null,
         },
         {
             id: 'last', binding: b.last,
-            labelKey: 'routines.mismatch.choice_last', labelEn: 'Only the last',
+            labelKey: 'automations.mismatch.choice_last', labelEn: 'Only the last',
             preview: list.length ? show(list[list.length - 1]) : null,
         },
         {
@@ -119,7 +119,7 @@ export function remediesFor(path, sampleRoot, { allowForEach = false, itemVar = 
             // Kept, quietly: dropping it would leave that author with no
             // right choice at all.
             id: 'each', binding: b.each,
-            labelKey: 'routines.mismatch.choice_each', labelEn: 'Keep the whole list',
+            labelKey: 'automations.mismatch.choice_each', labelEn: 'Keep the whole list',
             preview: null,
         },
     ];
@@ -163,19 +163,19 @@ function groupRemedies(p, sampleRoot) {
     const fieldRemedy = (key) => ({
         id: `field:${key}`,
         binding: { kind: 'ref', path: joinKeyPath(p, key) },
-        labelKey: 'routines.mismatch.choice_field', labelEn: '{field}', labelParams: { field: humanizeFieldTail(key) },
+        labelKey: 'automations.mismatch.choice_field', labelEn: '{field}', labelParams: { field: humanizeFieldTail(key) },
         preview: show(obj[key]),
     });
     const summary = {
         id: 'summary',
         binding: { kind: 'expr', value: `groupSummary(${p})` },
-        labelKey: 'routines.mismatch.choice_summary', labelEn: 'The whole group, as a readable summary',
+        labelKey: 'automations.mismatch.choice_summary', labelEn: 'The whole group, as a readable summary',
         preview: keys.length ? `${humanizeFieldTail(keys[0])}: ${show(obj[keys[0]])}…` : null,
     };
     const whole = {
         id: 'each',
         binding: { kind: 'ref', path: p },
-        labelKey: 'routines.mismatch.choice_whole_group', labelEn: 'Use the whole group as it is',
+        labelKey: 'automations.mismatch.choice_whole_group', labelEn: 'Use the whole group as it is',
         preview: null,
     };
     return {
@@ -204,12 +204,12 @@ function tableRemedies(p, sampleRoot, { allowForEach, itemVar }) {
     const primary = [
         {
             id: 'table', binding: { kind: 'expr', value: `asTable(${p})` },
-            labelKey: 'routines.mismatch.choice_as_table', labelEn: 'As a table',
+            labelKey: 'automations.mismatch.choice_as_table', labelEn: 'As a table',
             preview: cols.length ? cols.slice(0, 4).map(humanizeFieldTail).join(' | ') : null,
         },
         {
             id: 'count', binding: bindingsForList(p).count,
-            labelKey: 'routines.mismatch.choice_rows', labelEn: 'Only how many rows ({n})', labelParams: { n },
+            labelKey: 'automations.mismatch.choice_rows', labelEn: 'Only how many rows ({n})', labelParams: { n },
             preview: String(n),
         },
     ];
@@ -218,24 +218,24 @@ function tableRemedies(p, sampleRoot, { allowForEach, itemVar }) {
         primary.push({
             id: 'foreach', binding: pick.binding, forEach: pick.forEach, itemVar: pick.itemVar,
             disabled: !!shape?.rowScopedListTail,
-            labelKey: 'routines.mismatch.choice_foreach_row', labelEn: 'A separate run for each row',
+            labelKey: 'automations.mismatch.choice_foreach_row', labelEn: 'A separate run for each row',
             preview: shape?.rowScopedListTail ? null : previewValue(previewForEachPick(p, sampleRoot), 40),
         });
     }
     const more = [
         {
             id: 'first', binding: bindingsForList(p).first,
-            labelKey: 'routines.mismatch.choice_first_row', labelEn: 'Only the first row',
+            labelKey: 'automations.mismatch.choice_first_row', labelEn: 'Only the first row',
             preview: rows.length ? previewValue(rows[0], 40) : null,
         },
         {
             id: 'summary', binding: { kind: 'expr', value: `groupSummary(${p})` },
-            labelKey: 'routines.mismatch.choice_summary_rows', labelEn: 'One readable block per row',
+            labelKey: 'automations.mismatch.choice_summary_rows', labelEn: 'One readable block per row',
             preview: null,
         },
         {
             id: 'each', binding: bindingsForList(p).each,
-            labelKey: 'routines.mismatch.choice_keep_table', labelEn: 'Keep the whole table',
+            labelKey: 'automations.mismatch.choice_keep_table', labelEn: 'Keep the whole table',
             preview: null,
         },
     ];
@@ -251,20 +251,55 @@ export function mismatchSentence({ actualKind, expectedKind, count }, t = null) 
     const actualWord = tr(KIND_WORD[actualKind]?.key || KIND_WORD.unknown.key, KIND_WORD[actualKind]?.en || KIND_WORD.unknown.en);
     const expectedWord = tr(KIND_WORD[expectedKind]?.key || KIND_WORD.text.key, KIND_WORD[expectedKind]?.en || 'text');
     if (actualKind === 'group') {
-        return tr('routines.mismatch.group_into_one', 'is a {actual}, this needs one {expected}. Pick a field inside it.', { actual: actualWord, expected: expectedWord });
+        return tr('automations.mismatch.group_into_one', 'is a {actual}, this needs one {expected}. Pick a field inside it.', { actual: actualWord, expected: expectedWord });
     }
     if (actualKind === 'table') {
         return count != null
-            ? tr('routines.mismatch.table_into_one_n', 'is a {actual} of {n} rows, this needs one {expected}. It can go in as a table.', { actual: actualWord, n: count, expected: expectedWord })
-            : tr('routines.mismatch.table_into_one', 'is a {actual}, this needs one {expected}. It can go in as a table.', { actual: actualWord, expected: expectedWord });
+            ? tr('automations.mismatch.table_into_one_n', 'is a {actual} of {n} rows, this needs one {expected}. It can go in as a table.', { actual: actualWord, n: count, expected: expectedWord })
+            : tr('automations.mismatch.table_into_one', 'is a {actual}, this needs one {expected}. It can go in as a table.', { actual: actualWord, expected: expectedWord });
     }
     return count != null
-        ? tr('routines.mismatch.list_into_one_n', 'is a {actual} of {n}, this needs one {expected}. What do you want?', { actual: actualWord, n: count, expected: expectedWord })
-        : tr('routines.mismatch.list_into_one', 'is a {actual}, this needs one {expected}. What do you want?', { actual: actualWord, expected: expectedWord });
+        ? tr('automations.mismatch.list_into_one_n', 'is a {actual} of {n}, this needs one {expected}. What do you want?', { actual: actualWord, n: count, expected: expectedWord })
+        : tr('automations.mismatch.list_into_one', 'is a {actual}, this needs one {expected}. What do you want?', { actual: actualWord, expected: expectedWord });
 }
 
 /** The kind a picked path resolves to right now (for the gate). */
 export function kindAtPath(path, sampleRoot) {
     if (!path || !sampleRoot) return 'unknown';
     return kindOfValue(walkPath(String(path), sampleRoot));
+}
+
+/**
+ * Which remedy to apply WITHOUT asking: the author drags, the builder picks
+ * what they almost always meant, and the other answers wait under "More".
+ *
+ *   a value from INSIDE each row (`rows[*].field`) into a step that can run
+ *     per item  → one run per row: dragging "Lines ▸ Sku" into "Add a row"
+ *     means a row per line. The field shows a note with Undo, because it
+ *     changes how often the step runs.
+ *   a list into a text or e-mail slot → all of them, comma separated (one
+ *     line, so it is also right in a subject or a recipient field)
+ *   a list into a number, date, yes/no or choice slot → the first one (a
+ *     joined string is never a number)
+ *   a table → as a table; a group → its readable summary (the remedies' own
+ *     defaults)
+ *
+ * Always one of `remedies`' own ids, so nothing here can write a binding the
+ * runtime lacks. Pure.
+ *
+ * @param {{ primary: Array<{id:string, disabled?:boolean}>, more: Array<{id:string}>, defaultId: string }} remedies
+ * @param {{ path: string, actualKind: string, expectedKind: string }} ctx
+ * @returns {string}
+ */
+export function quietDefaultId(remedies, { path, actualKind, expectedKind }) {
+    const has = (id) => [...(remedies?.primary || []), ...(remedies?.more || [])].some(r => r.id === id && !r.disabled);
+    const isColumn = String(path || '').includes('[*]');
+    if (actualKind === 'list' || actualKind === 'table') {
+        if (isColumn && has('foreach')) return 'foreach';
+    }
+    if (actualKind === 'list') {
+        if ((expectedKind === 'text' || expectedKind === 'email') && has('join_comma')) return 'join_comma';
+        if (has('first')) return 'first';
+    }
+    return remedies?.defaultId;
 }

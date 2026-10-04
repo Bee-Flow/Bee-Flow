@@ -40,7 +40,7 @@ describe('BindingField — nothing chosen yet', () => {
         expect(getByText('No data yet — choose where this comes from.')).toBeTruthy();
         expect(getByText('A table in this app')).toBeTruthy();
         expect(getByText('A saved view')).toBeTruthy();
-        expect(getByText('The result of a routine')).toBeTruthy();
+        expect(getByText('The result of an automation')).toBeTruthy();
         expect(getByText('Type the values myself')).toBeTruthy();
         expect(queryByRole('textbox')).toBeNull();
     });

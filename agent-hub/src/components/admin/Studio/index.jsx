@@ -67,7 +67,7 @@ export default function Studio({
     // remote module declaring id 'start' cannot shadow Studio's front door —
     // the same rule studioRoutes.js applies to the built-in segments.
     const allApps = useMemo(() => [STUDIO_START, ...STUDIO_APPS, ...runtimeApps], [runtimeApps]);
-    // Per-app fullscreen-editing flags (Agents + Routines report these).
+    // Per-app fullscreen-editing flags (Agents + Automations report these).
     // onEditingChange fires with the aggregate (AgentHub uses it to drop its
     // own chrome), computed against the render-scope map — same semantics as
     // the old per-app handlers (only the mounted app ever reports in a tick).
@@ -79,7 +79,7 @@ export default function Studio({
     // no-op guard here, that re-fire calls reportEditing → setEditingById with
     // a new object → Studio re-renders → new setEditing → the child's effect
     // deps change again → infinite render loop (React error #185, seen on
-    // /app/studio/routines). Bailing out (returning the SAME object) when the
+    // /app/studio/automations). Bailing out (returning the SAME object) when the
     // value hasn't actually changed makes React skip the re-render and stops
     // the cascade regardless of how often the child's unstable-prop effect
     // re-invokes us with the same value.

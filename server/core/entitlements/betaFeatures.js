@@ -37,6 +37,13 @@ const log = require('../../telemetry/log');
 //                      on a plan that allows it (org admin can still
 //                      disable, but doesn't have to opt in)
 //   - 'deprecated'   — slated for removal; UI shows sunset banner
+//
+// `groupScoped` (optional, default false): the org-access menu alone does NOT
+// hand this beta to every member. It reaches "All members" only while its id
+// is in the org's everyone-list (organizations.org_beta_everyone; NULL = every
+// group-scoped beta, so orgs that never chose keep the old behaviour), and
+// otherwise only the groups the org admin granted it to. See buildOrgGrant in
+// entitlements.js and writeOrgAccessGrants in auth/admin/featureAccessRoutes.js.
 const BetaLifecycle = Object.freeze({
     EXPERIMENTAL: 'experimental',
     BETA: 'beta',
@@ -115,14 +122,13 @@ async function _scopeAllowsBeta({ userId = null, organizationId = null, tierHint
 }
 
 const BETA_FEATURES = [
-    { id: 'meeting_notes', name: 'Meeting Notes', description: 'Audio transcription, meeting summaries, and action item extraction', licenseFeature: 'meeting_notes', lifecycle: BetaLifecycle.BETA },
-    { id: 'advanced_analytics', name: 'Advanced Analytics', description: 'Extended analytics dashboards and reporting', licenseFeature: 'advanced_analytics', lifecycle: BetaLifecycle.BETA },
+    { id: 'meeting_notes', name: 'Meeting Notes', description: 'Audio transcription, meeting summaries, and action item extraction', licenseFeature: 'meeting_notes', lifecycle: BetaLifecycle.GA, groupScoped: true },
+    { id: 'advanced_analytics', name: 'Advanced Analytics', description: 'Extended analytics dashboards and reporting', licenseFeature: 'advanced_analytics', lifecycle: BetaLifecycle.GA },
     { id: 'custom_themes', name: 'Custom Themes', description: 'Organization-level custom branding and theme support', licenseFeature: 'custom_themes', lifecycle: BetaLifecycle.BETA },
-    { id: 'skills', name: 'Skills', description: 'Reusable instruction packs for consistent AI task execution', licenseFeature: 'skills', lifecycle: BetaLifecycle.BETA },
-    { id: 'flow', name: 'Flow Model Tier', description: 'Multi-stage orchestration chat tier ("Flow") that bootstraps chat-local session skills. Requires the Skills beta feature to function — both must be enabled.', lifecycle: BetaLifecycle.BETA },
+    { id: 'skills', name: 'Skills', description: 'Reusable instruction packs for consistent AI task execution', licenseFeature: 'skills', lifecycle: BetaLifecycle.GA },
+    { id: 'flow', name: 'Flow Model Tier', description: 'Multi-stage orchestration chat tier ("Flow") that bootstraps chat-local session skills. Requires the Skills feature to function.', lifecycle: BetaLifecycle.BETA },
     { id: 'voice_chat', name: 'Voice Chat (Beta)', description: 'Realtime voice conversation with direct chat or agents, powered by Mistral Voxtral (STT + TTS). Requires a configured Mistral API key.', licenseFeature: 'voice_chat', lifecycle: BetaLifecycle.BETA },
     { id: 'swarm', name: 'Swarm Agents', description: 'Multi-agent swarms (Deep Research, etc.) that run specialised AI workers in parallel phases and synthesise a single answer. Workers share findings via a Hive Mind notebook.', licenseFeature: 'swarm', lifecycle: BetaLifecycle.BETA },
-    { id: 'knowledge_bases_beta', name: 'Knowledge Bases (Beta badge)', description: 'Show a "beta" badge on the Knowledge Bases sidebar item. Cosmetic — does not gate access.', lifecycle: BetaLifecycle.BETA },
     { id: 'webpages', name: 'Webpages', description: 'AI-built full-stack web apps. Vanilla (HTML/CSS/JS) or React + Material UI projects with a real per-page database, a sandboxed acts-as-author backend (integrations + automations), live preview, auto-versioning, KB-grounded AI chat, publishing/sharing, and ZIP download.', licenseFeature: 'webpages', lifecycle: BetaLifecycle.GA },
     // n8n-style free builder: GA (auto-on, no opt-in panel) and Community-
     // licensed. The blanket BETA_TIER_FLOOR short-circuit in getUserBetaFeatures
@@ -131,18 +137,18 @@ const BETA_FEATURES = [
     // Enterprise. Building automations is free; sharing them across a team
     // (`automation_sharing`) and team workspaces (`projects`) stay Enterprise.
     { id: 'automations', name: 'Automations', description: 'Conversational no-code automation builder. Users describe an automation in chat; the AI assembles a typed DAG that mixes scheduled triggers, integration actions, AI reasoning steps, conditions, loops, and notifications. Includes dry-run preview, run history, and webhook + app-event triggers.', licenseFeature: 'automations', lifecycle: BetaLifecycle.GA },
-    { id: 'agent_routines', name: 'Agent routines', description: 'Schedule recurring tasks that run through a specific agent. The routine fires the agent on a cron-like schedule with the full agent runtime (system prompt, attached skills, knowledge bases, integrations) and saves the result to a persistent chat thread.', licenseFeature: 'agent_routines', lifecycle: BetaLifecycle.GA },
+    { id: 'agent_routines', name: 'Agent schedules', description: 'Schedule recurring tasks that run through a specific agent. The schedule fires the agent on a cron-like schedule with the full agent runtime (system prompt, attached skills, knowledge bases, integrations) and saves the result to a persistent chat thread.', licenseFeature: 'agent_routines', lifecycle: BetaLifecycle.GA },
     // Security Scan is no longer a built-in beta: it ships as a downloadable
     // .bfmod (Hub marketplace) that registers its own beta descriptor at install
     // time via setRemoteBetaFeatures(). Its license feature stays in tiers.js
     // (enterprise) so self-hosted tier-gating for the remote beta still resolves.
-    { id: 'support_inbox', name: 'Customer Support Inbox (Beta)', description: 'Run your own customer-support desk in the Studio: connect support mailbox(es) (Gmail/Outlook), turn inbound email into tickets, and reply with an AI agent grounded in your knowledge base. Configurable per inbox (draft / auto-send / autonomous) with SLA, assignment, and a routine template that distils solved tickets into KB articles.', licenseFeature: 'support_inbox', lifecycle: BetaLifecycle.BETA },
+    { id: 'support_inbox', name: 'Customer Support Inbox (Beta)', description: 'Run your own customer-support desk in the Studio: connect support mailbox(es) (Gmail/Outlook), turn inbound email into tickets, and reply with an AI agent grounded in your knowledge base. Configurable per inbox (draft / auto-send / autonomous) with SLA, assignment, and an automation template that distils solved tickets into KB articles.', licenseFeature: 'support_inbox', lifecycle: BetaLifecycle.BETA },
     { id: 'mcp_marketplace', name: 'MCP Server Marketplace', description: 'Browse, install and manage Model Context Protocol (MCP) servers (GitHub, Slack, Postgres, Playwright, and dozens more) to extend AI agent capabilities. Installed servers expose their tools to agents in chat. Enterprise beta — a later implementation still stabilising.', licenseFeature: 'mcp_marketplace', lifecycle: BetaLifecycle.BETA },
     // App Studio — GA (auto-on, no opt-in panel; Enterprise-licensed). GA just
     // removes the per-org beta opt-in that used to gate viewers too; the
     // app_studio licence feature (tiers.js, enterprise) still gates the whole
     // surface, so anyone who can be an app's audience already holds it.
-    { id: 'app_studio', name: 'App Studio', description: 'Build internal apps in the Studio — like PowerApps, but easier. Describe the app and the AI builds the whole thing: it designs a data model (tables, fields, relations), seeds sample data, wires forms/grids/charts/kanban to that data, sets up roles and row-level access, and proposes an editable plan first for larger apps. Then tweak everything visually — a live component ribbon, sliders, colour pickers, drag-and-drop, formulas and validation. Actions run your Routines, create/update records, or call external data connectors. Publish finished apps to your organisation or specific groups.', licenseFeature: 'app_studio', lifecycle: BetaLifecycle.GA },
+    { id: 'app_studio', name: 'App Studio', description: 'Build internal apps in the Studio — like PowerApps, but easier. Describe the app and the AI builds the whole thing: it designs a data model (tables, fields, relations), seeds sample data, wires forms/grids/charts/kanban to that data, sets up roles and row-level access, and proposes an editable plan first for larger apps. Then tweak everything visually — a live component ribbon, sliders, colour pickers, drag-and-drop, formulas and validation. Actions run your Automations, create/update records, or call external data connectors. Publish finished apps to your organisation or specific groups.', licenseFeature: 'app_studio', lifecycle: BetaLifecycle.GA },
     // Learning Center (Bee Flow Academy) — courses, AI coach, badges and shareable
     // certificates. GA (stable, not a "beta") so it can be toggled per subscription
     // plan via "Included beta features" yet still ships on self-hosted: the licence
@@ -408,7 +414,7 @@ async function getUserBetaFeatures(userId, session = null, { tierHint = null } =
     // Self-hosted ONLY: below the enterprise beta floor (a Community install),
     // the only betas available are the GA features whose licence feature is part
     // of the Community tier — the n8n-style free builder (Automations + Agent
-    // Routines). Everything else stays Enterprise-gated. Derived from the
+    // Automations). Everything else stays Enterprise-gated. Derived from the
     // registry + the licence tier so it self-tracks tiers.js (no hand-maintained
     // id list).
     //

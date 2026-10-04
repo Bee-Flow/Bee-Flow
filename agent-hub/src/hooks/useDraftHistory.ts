@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /**
  * Undo/redo stack for a JSON draft (automation definitions, App Studio
  * app definitions, ...). Promoted from
- * components/admin/AITasksDesigner/Builder/flow/useRoutineDraftHistory.js —
- * that path re-exports this hook, so the routines builder is untouched.
+ * components/admin/AITasksDesigner/Builder/flow/useAutomationDraftHistory.js —
+ * that path re-exports this hook, so the automations builder is untouched.
  *
  * Owns:
  *   - past[]   — snapshots predecessor states (most recent at end)
@@ -51,6 +51,8 @@ export interface UseDraftHistoryReturn<T extends Draft> {
     canRedo: boolean;
     /** Clear both stacks (used after server-confirmed loads). */
     reset: () => void;
+    /** Record the state before a streamed external edit as one undo entry. */
+    checkpoint: (before: T) => void;
 }
 
 interface Stacks<T> {
@@ -103,7 +105,7 @@ export default function useDraftHistory<T extends Draft>(
             setStacksBoth({ past: p, future: [] });
         } else if (current == null) {
             // A nullish baseline is "no draft yet" — the state before the very
-            // first edit on a fresh routine. Undoing to it would apply `null`
+            // first edit on a fresh automation. Undoing to it would apply `null`
             // as a definition, which the save path then persisted as an empty
             // object and wedged the builder (BFSF-318). There is nothing
             // meaningful to undo TO, so never push it.
@@ -115,6 +117,12 @@ export default function useDraftHistory<T extends Draft>(
         }
 
         applyRef.current?.(nextDef);
+    }, [setStacksBoth]);
+
+    const checkpoint = useCallback((before: T) => {
+        if (sameDraft(before, currentRef.current)) return;
+        setStacksBoth({ past: [...stacksRef.current.past, safeClone(before)].slice(-CAP), future: [] });
+        lastCommitAtRef.current = 0;
     }, [setStacksBoth]);
 
     const undo = useCallback(() => {
@@ -145,6 +153,7 @@ export default function useDraftHistory<T extends Draft>(
 
     return {
         commit,
+        checkpoint,
         undo,
         redo,
         canUndo: past.length > 0,

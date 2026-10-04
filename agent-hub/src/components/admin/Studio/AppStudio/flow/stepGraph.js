@@ -22,7 +22,7 @@
  * ── HOW BRANCHES MAP ────────────────────────────────────────────────
  * condition → `then` / `else`; switch → `case:<index>` / `case:default`; loop →
  * its body. Each is a CONTAINER node whose children live in their own scope,
- * addressed by a prefixed id (`s2/then/s5`) — the same trick the routine
+ * addressed by a prefixed id (`s2/then/s5`) — the same trick the automation
  * builder's inline flowlets use, so the ids stay flat and unique while the
  * nesting stays real.
  *

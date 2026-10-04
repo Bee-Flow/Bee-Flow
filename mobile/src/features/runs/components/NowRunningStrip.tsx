@@ -1,13 +1,13 @@
 /**
  * "Now running · last 24 hours" — the card at the top of Runs & log, the
- * web's NowRunningStrip.jsx. One line per routine: a dot, the name, one
+ * web's NowRunningStrip.jsx. One line per automation: a dot, the name, one
  * phrase, and how long ago.
  *
  * Three states that may not borrow each other's look: LOADING (the first
  * read), UNREADABLE (the rollup is null — never drawn as "nothing is
- * running") and READ (possibly empty, which is a real answer). A routine name
+ * running") and READ (possibly empty, which is a real answer). An automation name
  * opens its automation only in "my runs": in the organisation scope it is a
- * colleague's routine, which the automation screen refuses.
+ * colleague's automation, which the automation screen refuses.
  */
 
 import React from 'react';
@@ -43,7 +43,7 @@ const INK: Record<NowRunningTone, TextTone> = { error: 'error', waiting: 'warnin
 function StripLine({ line, onOpen }: { line: NowRunningLine; onOpen: ((automationId: string) => void) | null }) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
-    const title = line.title || t('runs.now.untitled', 'A routine without a name');
+    const title = line.title || t('runs.now.untitled', 'An automation without a name');
     const name = (
         <Text variant="caption" weight="medium" numberOfLines={1} style={styles.name}>
             {title}
@@ -82,7 +82,7 @@ function StripBody({ facets, loading, failed, onOpen }: NowRunningStripProps) {
                 <Text variant="caption" tone="secondary" style={styles.phrase}>
                     {failed
                         ? t('runs.now.unreadable', 'Could not read what is running — this is not “nothing is running”.')
-                        : t('runs.now.unsupported', 'This server did not report per-routine activity, so this strip has nothing to show. The runs below are unaffected.')}
+                        : t('runs.now.unsupported', 'This server did not report per-automation activity, so this strip has nothing to show. The runs below are unaffected.')}
                 </Text>
             </View>
         );
@@ -101,7 +101,7 @@ function StripBody({ facets, loading, failed, onOpen }: NowRunningStripProps) {
             ))}
             {model.hidden > 0 ? (
                 <Text variant="label" tone="tertiary">
-                    {nOf(t, 'runs.now.more', model.hidden, { one: 'and {count} more routine', many: 'and {count} more routines' })}
+                    {nOf(t, 'runs.now.more', model.hidden, { one: 'and {count} more automation', many: 'and {count} more automations' })}
                 </Text>
             ) : null}
         </>

@@ -5,7 +5,7 @@
 const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { dynamicUpdate, parseJSON } = require('./shared');
-const { deleteUser } = require('./users');
+const { deleteUser, assertNotStageRunAs } = require('./users');
 const { setOrgSubscription } = require('./subscriptions');
 const { getDefaultOrgPlanId } = require('./billingLifecycle');
 const log = require('../../telemetry/log');
@@ -34,6 +34,8 @@ function parseOrg(o) {
         orgGrantedCapabilities: parseJSON(o.org_granted_capabilities, []),
         // null = no restriction (org may use everything its ceiling allows).
         orgAvailableCapabilities: o.org_available_capabilities == null ? null : parseJSON(o.org_available_capabilities, null),
+        // null = every group-scoped beta is on for all members (never chosen).
+        orgBetaEveryone: o.org_beta_everyone == null ? null : parseJSON(o.org_beta_everyone, null),
         registrationSource: o.registration_source || null,
     };
 }
@@ -319,6 +321,28 @@ async function setOrgAvailableCapabilities(orgId, ids) {
     return rowCount > 0;
 }
 
+// Which GROUP-SCOPED betas (betaFeatures.js `groupScoped`) the org grants to
+// ALL members. Returns null when the org never chose: every group-scoped beta
+// is then on for everyone, the behaviour from before the list existed. An
+// array (possibly empty) is an explicit choice; the rest go to groups only.
+async function getOrgBetaEveryone(orgId) {
+    await initDB();
+    const o = await getOne('SELECT "org_beta_everyone" FROM organizations WHERE id = $1', [orgId]);
+    if (!o || o.org_beta_everyone == null) return null;
+    const list = parseJSON(o.org_beta_everyone, null);
+    return Array.isArray(list) ? list : null;
+}
+
+async function setOrgBetaEveryone(orgId, ids) {
+    await initDB();
+    const value = ids == null ? null : JSON.stringify(Array.from(new Set((Array.isArray(ids) ? ids : []).filter(Boolean))));
+    const { rowCount } = await run(
+        'UPDATE organizations SET "org_beta_everyone" = $1 WHERE id = $2',
+        [value, orgId]
+    );
+    return rowCount > 0;
+}
+
 /**
  * The per-org config rows whose key does NOT follow the `org_<orgId>_*`
  * convention, and which the LIKE wipe in deleteOrganization therefore misses.
@@ -387,6 +411,9 @@ async function deleteOrganization(orgId) {
     let step = 'users';
     try {
         const orgUsers = await getAll('SELECT id FROM users WHERE "organizationId" = $1', [orgId]);
+        // All of them first: deleteUser refuses an account that runs a Solution
+        // stage, and the org must not be left half-deleted when the last one does.
+        for (const u of orgUsers) await assertNotStageRunAs(u.id);
         for (const u of orgUsers) await deleteUser(u.id);
         if (orgUsers.length > 0) log.info(`[UserStore] Deleted ${orgUsers.length} user(s) from org '${orgId}'`);
 
@@ -404,8 +431,8 @@ async function deleteOrganization(orgId) {
         await run('DELETE FROM connection_grants WHERE org_id = $1', [orgId]);
         step = 'integration_connections';
         await run('DELETE FROM integration_connections WHERE org_id = $1', [orgId]);
-        step = 'routine_credentials';
-        await run('DELETE FROM routine_credentials WHERE org_id = $1', [orgId]);
+        step = 'automation_credentials';
+        await run('DELETE FROM automation_credentials WHERE org_id = $1', [orgId]);
 
         // Through the store, so the memoised per-org usage counters go with the rows.
         step = 'integration cache';
@@ -523,6 +550,7 @@ module.exports = {
     getOrgEnabledIntegrations, setOrgEnabledIntegrations, getOrgEnabledBetaFeatures, setOrgEnabledBetaFeatures,
     getOrgGrantedCapabilities, setOrgGrantedCapabilities,
     getOrgAvailableCapabilities, setOrgAvailableCapabilities,
+    getOrgBetaEveryone, setOrgBetaEveryone,
     backfillAutoProvisionedNcOrgNames,
     orgConfigKeys,
     MAX_ORG_ID_LENGTH,

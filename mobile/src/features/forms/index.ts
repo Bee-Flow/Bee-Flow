@@ -3,9 +3,9 @@
  * Settings), a new form, and filling a form in natively. Import from
  * '@/features/forms'.
  *
- * A form is a routine whose trigger is a form: its questions save through the
- * flow editor's draft store, its link is the routine's form link, and going
- * live is arming the routine.
+ * A form is an automation whose trigger is a form: its questions save through the
+ * flow editor's draft store, its link is the automation's form link, and going
+ * live is arming the automation.
  */
 
 export { FormsScreen } from './screens/FormsScreen';

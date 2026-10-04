@@ -5,7 +5,7 @@
  * keywords and payload, in order.
  *
  * A step's NAME and DESCRIPTION come from nodeDefs (translated under
- * `routines.node.*`); the picker owns only the id, icon, search keywords and
+ * `automations.node.*`); the picker owns only the id, icon, search keywords and
  * drop payload. The entries the web words itself — the triggers, the two form
  * pages, the Privacy Shield, "Create flowlet" — carry `labelKey`/`descKey`
  * under `mobile.flow.palette.*` with the web's English as the fallback, and
@@ -62,12 +62,12 @@ export const SECONDARY_TRIGGERS: readonly PaletteItem[] = TRIGGERS.filter((t) =>
     (t) => ({ ...t, payload: { ...t.payload, asSecondaryTrigger: true } }),
 );
 
-/** The triggers as offered beside the steps once a routine has one: add, or replace (and say so). */
+/** The triggers as offered beside the steps once an automation has one: add, or replace (and say so). */
 export function additionalTriggerItems(): PaletteItem[] {
     return TRIGGERS.map((t) =>
         CAN_BE_SECONDARY.has(t.payload.triggerKind as string)
             ? {
-                ...t, desc: 'Adds another way to start this routine', descKey: `${KEY}.trigger_adds_desc`,
+                ...t, desc: 'Adds another way to start this automation', descKey: `${KEY}.trigger_adds_desc`,
                 payload: { ...t.payload, asSecondaryTrigger: true },
             }
             : { ...t, desc: 'Replaces the current trigger', descKey: `${KEY}.trigger_replaces_desc` },

@@ -4,7 +4,7 @@
  *
  * Runs every 24 hours:
  *   1. DEADLINE sweep — active memories whose `expires_at` has passed →
- *      status='expired'. Only rows that carry a TTL (the routine_coverage
+ *      status='expired'. Only rows that carry a TTL (the schedule_coverage
  *      bookkeeping rows) ever match; it runs on every install, always.
  *   2. AGE sweep — per organization, ONLY when that org has switched it on:
  *      active memories not confirmed within the org's declared retention

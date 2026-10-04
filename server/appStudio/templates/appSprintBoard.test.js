@@ -417,7 +417,7 @@ test('nothing in the app requires Nextcloud to be connected', () => {
         };
         if (action.kind === 'sequence') walk(action.steps); else stepKinds.add(action.kind);
     }
-    assert.equal(stepKinds.has('run_automation'), false, 'a routine dependency would not install cleanly');
+    assert.equal(stepKinds.has('run_automation'), false, 'an automation dependency would not install cleanly');
 });
 
 test('identity is the viewer\'s user id, and something can actually write it', () => {

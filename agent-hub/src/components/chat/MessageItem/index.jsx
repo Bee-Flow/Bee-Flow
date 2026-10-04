@@ -523,7 +523,7 @@ const MessageItem = ({
                 )}
 
                 {/* What the assistant did for this answer — the same numbered
-                    timeline the routine and app builders show while they build.
+                    timeline the automation and app builders show while they build.
                     Live rows spin, finished rows tick, and the card stays after
                     the turn: the tools are the story of the answer. */}
                 {!isUser && !isTool && (

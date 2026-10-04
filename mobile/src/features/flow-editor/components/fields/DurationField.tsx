@@ -90,7 +90,7 @@ export function DurationField({
                     accessibilityLabel={t('mobile.flow.wait.unit', 'Duration unit')}
                     options={[
                         { value: 'seconds', label: t('mobile.flow.wait.seconds', 'seconds'), disabled },
-                        { value: 'minutes', label: t('routines.settings.minutes', 'minutes'), disabled },
+                        { value: 'minutes', label: t('automations.settings.minutes', 'minutes'), disabled },
                         { value: 'hours', label: t('mobile.flow.wait.hours', 'hours'), disabled },
                     ]}
                 />

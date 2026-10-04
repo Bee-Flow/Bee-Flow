@@ -5,7 +5,7 @@
  * read "integration_action · 1.2s", "knowledge_write", "stop_error" — the
  * engine's own identifiers, and the only description of a step a phone shows
  * at all. The browser, on the very same run, says "Action", "To knowledge
- * base", "Stop". One run reading as two different routines depending on which
+ * base", "Stop". One run reading as two different automations depending on which
  * screen you opened is the thing this closes.
  *
  * stepLockstep.test.ts pins that every server step type HAS a name.
@@ -99,7 +99,7 @@ describe('the step title', () => {
         layers: { addr: { title: 'Tidy the address', steps: [{ id: 'act_9f2c', type: 'set', label: 'Split the street' }] } },
     } as unknown as AutomationDefinition;
 
-    it('is the name the routine gave the step, never its id or its tool', async () => {
+    it('is the name the automation gave the step, never its id or its tool', async () => {
         await draw(
             [
                 step({ stepId: 'trg_1', stepType: 'trigger' }),

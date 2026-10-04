@@ -92,6 +92,8 @@ let nextReply;
 let told;
 let cancelled;
 let signals;
+let taskDrops;
+let orgLookupFails = false;
 /** Per organisation: what an admin switched off since the chats were set up. */
 let withdrawn = {};
 
@@ -130,7 +132,10 @@ const api = serve('/api/projects', makeProjectChatsRouter({
     isChatAgentAllowed: async () => true,
     filedIds: async (_projectId, kind) => (kind === 'meeting' ? new Set(['mt-1']) : new Set()),
     listChatAgents: async () => [],
-    resolveOrgs: async () => ({ orgId: 'org1', limitOrgId: 'org1' }),
+    resolveOrgs: async () => {
+        if (orgLookupFails) throw new Error('db gone');
+        return { orgId: 'org1', limitOrgId: 'org1' };
+    },
     emit: async (projectId, event) => { events.push({ projectId, ...event }); },
     logActivity: async (projectId, actorId, action, details) => { activity.push({ projectId, actorId, action, details }); },
     postLimiter: function rateLimitMiddleware(req, res, next) { next(); },
@@ -138,6 +143,7 @@ const api = serve('/api/projects', makeProjectChatsRouter({
     policy: fakePolicy,
     participationStore,
     signalProjectChanged: (project, reason) => { signals.push({ projectId: project.id, reason }); },
+    taskStore: { dropLinksTo: async (...args) => { taskDrops.push(args); return 0; } },
 }), { user: EDITOR });
 
 before(async () => {
@@ -155,7 +161,9 @@ beforeEach(() => {
     told = [];
     cancelled = [];
     signals = [];
+    taskDrops = [];
     withdrawn = {};
+    orgLookupFails = false;
 });
 
 const call = (method, url, opts = {}) => api.call(method, url, opts);
@@ -222,6 +230,7 @@ test('only the creator or the owner deletes a chat', async () => {
         { targetType: 'project_chat', targetId: second.id },
     ]);
     assert.deepStrictEqual(events.filter((e) => e.kind === 'chat.deleted').map((e) => e.payload), [{ chatId: chat.id }, { chatId: second.id }]);
+    assert.deepStrictEqual(taskDrops, [['p1', 'chat', chat.id], ['p1', 'chat', second.id]], 'tasks stop linking a deleted chat');
 });
 
 test('only the author edits; the author or the owner deletes a message', async () => {
@@ -242,6 +251,7 @@ test('only the author edits; the author or the owner deletes a message', async (
     assert.strictEqual((await call('DELETE', `/api/projects/p1/chats/${chat.id}/messages/${message.id}`, { user: EDITOR2 })).status, 403);
     const del = await call('DELETE', `/api/projects/p1/chats/${chat.id}/messages/${message.id}`, { user: OWNER });
     assert.strictEqual(del.status, 200);
+    assert.deepStrictEqual(taskDrops, [['p1', 'thread', message.id]], 'tasks stop linking the thread of a deleted message');
     const again = await call('PATCH', `/api/projects/p1/chats/${chat.id}/messages/${message.id}`, { body: { content: 'too late' } });
     assert.strictEqual(again.status, 409);
     assert.strictEqual(again.body.code, 'message_deleted');
@@ -776,4 +786,34 @@ test('how an answer was made is served to readers, sealed at rest, and only whil
     assert.strictEqual((await call('GET', `/api/projects/p1/chats/${chat.id}/messages/${asked.id}/trace`)).status, 404, 'a message with no trace');
     await call('DELETE', `/api/projects/p1/chats/${chat.id}/messages/${asked.id}`);
     assert.strictEqual((await call('GET', `/api/projects/p1/chats/${chat.id}/messages/${id}/trace`)).status, 404, 'the message it answered was deleted');
+});
+
+test('a post that is stored but whose AI step fails is still a 201, and a retry is the same message', async () => {
+    const { chat } = await startChat({ title: 'Flaky', aiMode: 'always' });
+    orgLookupFails = true;
+    const first = await say(chat.id, 'what is the plan?', { clientMsgId: 'cm-flaky' });
+    assert.strictEqual(first.status, 201, first.text);
+    assert.deepStrictEqual(first.body.ai, { status: 'skipped', reason: 'unavailable' });
+    assert.strictEqual(first.body.message.content, 'what is the plan?');
+    assert.strictEqual(replies.length, 0);
+
+    orgLookupFails = false;
+    const retry = await say(chat.id, 'what is the plan?', { clientMsgId: 'cm-flaky' });
+    assert.strictEqual(retry.body.message.id, first.body.message.id, 'the retry finds the stored message');
+    assert.deepStrictEqual(retry.body.ai, { status: 'skipped', reason: 'duplicate' });
+});
+
+test('a chat started with a first message that cannot be stored is taken back, not left as an empty orphan', async () => {
+    const before = await countRows('project_chats');
+    const real = store.appendMessage;
+    store.appendMessage = async () => { throw new Error('db gone'); };
+    events.length = 0;
+    try {
+        const res = await call('POST', '/api/projects/p1/chats', { body: { message: 'Budget review Q3?' }, user: EDITOR });
+        assert.strictEqual(res.status, 500);
+    } finally {
+        store.appendMessage = real;
+    }
+    assert.strictEqual(await countRows('project_chats'), before, 'no orphan chat is left');
+    assert.deepStrictEqual(events.map((e) => e.kind), ['chat.created', 'chat.deleted'], 'the team is told it is gone again');
 });

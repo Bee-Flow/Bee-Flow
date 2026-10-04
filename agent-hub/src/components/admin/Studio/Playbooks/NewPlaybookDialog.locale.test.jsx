@@ -55,7 +55,7 @@ const BUILTIN = {
     id: 'invoice_tracker', title: 'Invoice tracker', description: 'Read invoices.', source: 'builtin',
     table: { fields: [{ key: 'date', name: 'Date', type: 'date' }] },
     inputs: [{ key: 'folderPath', label: 'Nextcloud folder with the invoices', kind: 'folder', default: '/Invoices' }],
-    phases: [{ key: 'table', kind: 'table', label: 'Table' }, { key: 'routine', kind: 'routine', label: 'Routine' }],
+    phases: [{ key: 'table', kind: 'table', label: 'Table' }, { key: 'automation', kind: 'automation', label: 'Automation' }],
 };
 
 beforeEach(() => {

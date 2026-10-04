@@ -173,6 +173,7 @@ test('a first visit shows nothing yet; after a pause, what others changed — ne
     const res = await call('GET', `${P()}/changes`);
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.since, 'visit');
+    assert.strictEqual(res.body.truncated, false, 'nothing was cut');
     const byId = Object.fromEntries(res.body.groups.map((g) => [g.item.id, g]));
     assert.deepStrictEqual(Object.keys(byId).sort(), ['d1', 'n1'], 'Vera’s own edit of d2 is not news to her');
     assert.deepStrictEqual(byId.d1.item, { type: 'document', id: 'd1', title: 'Launch brief', available: true });

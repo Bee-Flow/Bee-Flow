@@ -39,14 +39,14 @@ export function readsAsMarkdown(text) {
  * @param {object} props
  * @param {object} props.msg
  * @param {React.ReactNode} [props.activity] — what to render under the bubble
- *   instead of the routine builder's BuilderActivity (the App Studio builder
- *   passes its own typed activity rows; the default child reads routine step
+ *   instead of the automation builder's BuilderActivity (the App Studio builder
+ *   passes its own typed activity rows; the default child reads automation step
  *   types and would render nothing for app tools).
  * @param {object|null} [props.liveRun] — the test run in flight under THIS
  *   message, as flow/runFocus.js reads it; BuilderActivity shows it as its
  *   live row, and only while the message is still streaming.
  */
-export default function MessageBubble({ msg, activity, liveRun = null }) {
+export default function MessageBubble({ msg, activity, liveRun = null, onFocusStep = null }) {
     const { t } = useTranslation();
     const isUser = msg.role === 'user';
     const asDoc = isUser && readsAsMarkdown(msg.content);
@@ -72,7 +72,7 @@ export default function MessageBubble({ msg, activity, liveRun = null }) {
             )}
             {!isUser && (activity !== undefined
                 ? activity
-                : <BuilderActivity toolCalls={msg.toolCalls} running={!!msg.isStreaming} liveRun={liveRun} t={t} />)}
+                : <BuilderActivity toolCalls={msg.toolCalls} running={!!msg.isStreaming} liveRun={liveRun} t={t} onFocusStep={onFocusStep} />)}
         </div>
     );
 }

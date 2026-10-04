@@ -6,7 +6,7 @@
  *
  * The regression this pins: the route used to ignore the decision entirely.
  * It cleared `needsFirstRunConfirm` on the automation ABOVE any branching and
- * then executed the routine live — so the SPA's "Reject" button started the
+ * then executed the automation live — so the SPA's "Reject" button started the
  * run and removed the gate for every future run. A gate that disappears when
  * you refuse it is not a gate.
  *
@@ -196,7 +196,7 @@ test('reject carries an optional reason into the summary, and works without one'
     assert.strictEqual(noReason.statusCode, 200, JSON.stringify(noReason.body));
     assert.strictEqual(
         calls.updateRun[0].updates.summary,
-        'First-run confirmation declined — the routine was not run live.',
+        'First-run confirmation declined — the automation was not run live.',
     );
 });
 

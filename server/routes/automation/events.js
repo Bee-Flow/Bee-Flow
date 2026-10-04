@@ -108,7 +108,7 @@ router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json
     // firing it would enter the live flow at its primary trigger instead.
     const { liveHasTrigger } = require('../../core/automationRunner/definitionForRun');
     if (automation.liveVersion != null && wh.triggerStepId && !liveHasTrigger(automation, wh.triggerStepId)) {
-        return res.status(409).json({ error: 'This webhook\'s trigger is not live yet. Publish the routine first.', code: 'trigger_not_live' });
+        return res.status(409).json({ error: 'This webhook\'s trigger is not live yet. Publish the automation first.', code: 'trigger_not_live' });
     }
     // Async run; ack immediately.
     const runner = require('../../core/automationRunner');
@@ -238,7 +238,7 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
 
     // Approval-by-reaction rides the SAME signed event (a 👍 on a card we
     // posted into Talk is a vote), additively: the trigger dispatch above
-    // is untouched, so a routine subscribed to talk.reaction.added still
+    // is untouched, so an automation subscribed to talk.reaction.added still
     // fires exactly as before.
     //
     // Deliberately NOT awaited. Approving resumes a paused run, which the
@@ -348,7 +348,7 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
                     payload: n,
                     userId: sub?.userId,
                 });
-                // A OneDrive drive subscription (a `file.*` routine trigger of
+                // A OneDrive drive subscription (a `file.*` automation trigger of
                 // this user) is also the only push a spreadsheet mirror in that
                 // drive gets (core/dataEngine/sources/spreadsheetFile/events).
                 // The notification names no file, so every mirror that user

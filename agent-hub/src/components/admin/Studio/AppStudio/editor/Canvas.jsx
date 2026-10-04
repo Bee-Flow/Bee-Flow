@@ -140,7 +140,7 @@ function CanvasBody({
         if (action.kind === 'navigate' && action.screenId) {
             dispatch({ type: 'set_screen', screenId: action.screenId });
         } else if (action.kind === 'run_automation') {
-            toast.info('Runs routine when the app is used');
+            toast.info('Runs automation when the app is used');
         }
     }, [dispatch]);
 

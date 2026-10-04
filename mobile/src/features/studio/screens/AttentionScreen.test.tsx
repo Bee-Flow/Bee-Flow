@@ -90,7 +90,7 @@ describe('AttentionScreen', () => {
     it('lists every finding under its source, with the group size', async () => {
         await renderWithProviders(<AttentionScreen />);
         expect(await screen.findByText('App has validation problems · 2')).toBeTruthy();
-        expect(screen.getByText('Routine failed several times in a row')).toBeTruthy();
+        expect(screen.getByText('Automation failed several times in a row')).toBeTruthy();
         expect(screen.getByText('Invoices failed three times in a row')).toBeTruthy();
         expect(screen.getByText('records binding references "t2" — not verified until publish.')).toBeTruthy();
         expect(screen.getAllByText('Publishing checks it exists.')).toHaveLength(2);

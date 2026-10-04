@@ -1000,14 +1000,14 @@ test('step: the executor gets the FULL viewer row filters read (id + role + org)
     assert.deepStrictEqual(stepCalls[0].ctx.viewer, { id: 'viewer-1', role: 'member', organizationId: ORG });
 });
 
-test('step: a routine step consumes the ACTION-RUN budget (no 6x bypass via /step)', async () => {
+test('step: an automation step consumes the ACTION-RUN budget (no 6x bypass via /step)', async () => {
     // Index 0 of the bare v1 action IS the run_automation step.
     const app = makeApp({ actionsPub: { act1: RUN_ACTION, seq: SEQ_ACTION } });
     let last = null;
     for (let i = 0; i < 11; i++) {
         last = await dispatch({ url: `/${app.id}/actions/act1/step`, user: 'step-flooder', orgIds: [ORG], body: { stepIndex: 0 } });
     }
-    assert.strictEqual(last.statusCode, 429, 'the 11th routine step in the window is throttled');
+    assert.strictEqual(last.statusCode, 429, 'the 11th automation step in the window is throttled');
     assert.strictEqual(stepCalls.length, 10);
     // One shared bucket with /run — the budget is spent, not doubled.
     const viaRun = await dispatch({ url: `/${app.id}/actions/act1/run`, user: 'step-flooder', orgIds: [ORG], body: {} });

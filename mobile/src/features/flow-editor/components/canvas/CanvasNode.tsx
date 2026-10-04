@@ -91,7 +91,7 @@ function useNodeGesture(key: string, draggable: boolean) {
 }
 
 function nodeWords(node: SceneNode, card: CardModel | null, t: ReturnType<typeof useTranslation>): string {
-    if (node.kind === 'entry') return t('routines.canvas.loop_each_item', 'Each item');
+    if (node.kind === 'entry') return t('automations.canvas.loop_each_item', 'Each item');
     if (node.kind === 'note') return typeof node.node.text === 'string' && node.node.text ? node.node.text : t('mobile.flow.canvas.note', 'Note');
     return card ? cardLabel(card, t) : node.nodeId;
 }

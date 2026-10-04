@@ -2,6 +2,7 @@ import { Building2, Eye, Loader2, Lock, Plus, ShieldAlert, ShieldCheck, User, Us
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { audienceOf, describeAccess, joinNames, GROUPS, ORG, PRIVATE } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
+import { readGrants } from './grants';
 import useTranslation from '../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../shared/ConfirmDialog';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
@@ -109,7 +110,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
     const loadGrants = useCallback(async () => {
         try {
             const b = await datatablesApi.listGrants(table.id);
-            setGrants(Array.isArray(b?.grants) ? b.grants : []);
+            setGrants(readGrants(b?.grants));
         } catch (e) {
             setError(e.message || t('datatables.err_grants', 'Could not load who this is shared with'));
         }

@@ -18,7 +18,7 @@
  "expect": {
   "phases": {
    "table": "done",
-   "routine": "done",
+   "automation": "done",
    "fill": [
     "done",
     "skipped"
@@ -26,7 +26,7 @@
    "app": "awaiting",
    "design": "done"
   },
-  "routine": {
+  "automation": {
    "finalized": true,
    "maxRounds": 10,
    "triggerKind": "manual"

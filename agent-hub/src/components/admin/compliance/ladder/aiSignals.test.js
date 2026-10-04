@@ -37,7 +37,7 @@ describe('aiSignals — the AI step list', () => {
         expect(isAiStep(null)).toBe(false);
     });
 
-    it('a routine whose only "AI-looking" step is summarize does not contain AI', () => {
+    it('an automation whose only "AI-looking" step is summarize does not contain AI', () => {
         const sig = signalsForAutomation({ id: 'x', definition: { steps: [{ id: 's', type: 'summarize' }, { id: 't', type: 'set' }] } });
         expect(sig.contains_ai).toBe(false);
         expect(sig.steps.ai).toEqual([]);
@@ -76,7 +76,7 @@ describe('aiSignals.listSteps — nesting like the server walker', () => {
     });
 });
 
-describe('aiSignals.signalsForAutomation — the artboard routine', () => {
+describe('aiSignals.signalsForAutomation — the artboard automation', () => {
     it('produces the server shape: 1 AI step, customer-facing via the form, generates content, unknowns null', () => {
         const sig = signalsForAutomation(quote);
         expect(sig).toEqual({

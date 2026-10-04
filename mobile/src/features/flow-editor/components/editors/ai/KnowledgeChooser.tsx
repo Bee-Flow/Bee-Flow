@@ -1,7 +1,7 @@
 /**
  * The knowledge bases an AI step is grounded in (BFSF-410) — the web's
  * AiStepKbSelect: searched once before the step runs and added as reference
- * material. Only the bases made available to routines are offered (K5); the
+ * material. Only the bases made available to automations are offered (K5); the
  * runner re-checks every id against the running user anyway, so this list is
  * advice, not authority.
  */
@@ -39,7 +39,7 @@ export function KnowledgeChooser({ draft, setMany, ctx }: StepEditorProps) {
     }
     return (
         <FieldRow
-            label={t('routines.versions.setting.knowledgeBaseIds', 'Knowledge bases')}
+            label={t('automations.versions.setting.knowledgeBaseIds', 'Knowledge bases')}
             hint={t(
                 'mobile.flow.ai.knowledge_bases_hint',
                 'Ground this step in these knowledge bases — searched once before the step runs and added to the prompt as reference material. Good for steerable content like a brand style guide or a positioning doc.',

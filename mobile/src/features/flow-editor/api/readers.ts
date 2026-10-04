@@ -1,5 +1,5 @@
 /**
- * Contract readers for the routine row as the editor holds it, and for what
+ * Contract readers for the automation row as the editor holds it, and for what
  * the save paths and the test runs answer.
  *
  * The row is the automations feature's reader (rowToAutomation's allow-list);

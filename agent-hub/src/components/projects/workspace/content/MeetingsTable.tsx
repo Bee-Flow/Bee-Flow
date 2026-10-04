@@ -1,3 +1,4 @@
+import { useViewport } from '../../../../hooks/useViewport';
 // The meetings filed in a project, as a table: title, date, length, action
 // items, owner. No transcript text travels in this list.
 
@@ -35,11 +36,20 @@ function useColumns(): TableColumn[] {
 export default function MeetingsTable({ meetings, loading, empty, ownerName, mayRemove, removingId, onOpen, onRemove }: MeetingsTableProps) {
     const { t, locale } = useTranslation();
     const columns = useColumns();
+    const { isMobile } = useViewport();
     const [titleCol, dateCol, durationCol, actionsCol, ownerCol, removeCol] = columns;
     return (
         <DataTable
             columns={columns}
             rows={meetings}
+            isMobile={isMobile}
+            renderCard={(doc: ProjectMeeting) => <div className="flex items-start gap-2 w-full min-w-0">
+                <button type="button" onClick={() => onOpen(doc)} className="min-w-0 flex-1 text-left py-1">
+                    <span className="block text-sm font-medium text-[var(--text-primary)] break-words">{doc.title || t('project_content.meeting_untitled', 'Untitled meeting')}</span>
+                    <span className="block text-xs text-[var(--text-secondary)]">{ownerName(doc.userId)}</span>
+                </button>
+                {mayRemove(doc) && <RemoveButton label={t('project_content.remove_from_project', 'Remove from project')} disabled={removingId === doc.id} onClick={() => onRemove(doc)} />}
+            </div>}
             loading={loading}
             skeletonRows={4}
             empty={empty}

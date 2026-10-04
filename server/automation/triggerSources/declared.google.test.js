@@ -104,3 +104,47 @@ test('losing the app stops the polling instead of failing silently', async () =>
     const run = poller(ev, { results: [], integration: 'something-else' });
     assert.strictEqual((await run(null)).skipped, 'no_capability');
 });
+
+test('a picked spreadsheet switches the trigger to watching its rows (BFSF-480)', async () => {
+    const ev = getEventDef('google-sheets', 'spreadsheet.changed');
+    assert.ok(ev.configFields.some(f => f.key === 'spreadsheetId'), 'the declaration names its config');
+
+    const calls = [];
+    const runOnce = (values, lastCursor) => {
+        const saved = [];
+        const passCtx = makePassCtx({
+            toolBudget: 10,
+            executeTool: async (tool, args) => { calls.push({ tool, args }); return { values }; },
+            resolveEntitlements: async () => ({ effective: { integration: new Set(['google-sheets']) } }),
+        });
+        const store = { updateSubscription: async (id, patch) => saved.push(patch) };
+        const sub = {
+            id: 's1', userId: 'u1', lastCursor,
+            filter: { spreadsheetId: 'sheet-1', sheet: 'Invoices', range: 'A1:D100' },
+        };
+        return runPollDiff(sub, ev, passCtx, { automationStore: store })
+            .then(out => ({ ...out, cursor: saved[saved.length - 1]?.lastCursor }));
+    };
+
+    const first = await runOnce([['date', 'who', 'amount'], ['2026-05-11', 'Acme', '100']], null);
+    assert.deepStrictEqual(first.events, [], 'connecting the watch fires nothing');
+    assert.strictEqual(calls[0].tool, 'sheets_get_values');
+    assert.deepStrictEqual(calls[0].args, { spreadsheetId: 'sheet-1', range: "'Invoices'!A1:D100" });
+
+    const second = await runOnce(
+        [['date', 'who', 'amount'], ['2026-05-11', 'Acme', '120']],
+        aged(first.cursor),
+    );
+    assert.strictEqual(second.events.length, 1);
+    assert.strictEqual(second.events[0].rowIndex, 1);
+    assert.deepStrictEqual(second.events[0].row, ['2026-05-11', 'Acme', '120']);
+    assert.strictEqual(second.events[0].spreadsheetId, 'sheet-1');
+    assert.strictEqual(second.events[0].sheet, 'Invoices');
+});
+
+test('without a picked spreadsheet the trigger still watches the file list', async () => {
+    const ev = getEventDef('google-sheets', 'spreadsheet.changed');
+    const run = poller(ev, { results: [{ id: 'a', name: 'A', url: 'u', modifiedTime: 't1' }], integration: 'google-sheets' });
+    const first = await run(null);
+    assert.ok(first.cursor, 'the base spec still polls sheets_list');
+});

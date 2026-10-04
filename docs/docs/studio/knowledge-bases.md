@@ -27,7 +27,7 @@ Click **New knowledge base**. There is no create form: the base is made immediat
 | **Sources** | Everything this base reads from, and how each one keeps itself current. |
 | **Test question** | Ask the base something and see which source answered. |
 | **Settings** | Name, purpose, where it may be used, who may see it, copy, delete. |
-| **Used by** | The agents, chats and routines that use this base. |
+| **Used by** | The agents, chats and automations that use this base. |
 
 The header carries the name (click to rename), the visibility capsule, and a chip that reads **Updated &lt;when&gt;** — the moment content last arrived, not the last edit — or **Nothing in it yet**.
 
@@ -45,7 +45,7 @@ A source is a *standing arrangement* to read something, not a one-off import: a 
 | **Meeting notes** | Everything tagged with a chosen meeting tag. |
 | **Web page / URL** | An address, optionally following links on the same site up to a page limit. |
 | **Paste text** | One pasted snippet. |
-| **Let an automation fill it** | Not a form. It explains that a source of this kind appears when a routine writes to this base — which you set up in the routine, and the panel links you there. |
+| **Let an automation fill it** | Not a form. It explains that a source of this kind appears when an automation writes to this base — which you set up in the automation, and the panel links you there. |
 
 Sources created before the source model exist as **Imported** rows. They cannot be created and have no button.
 
@@ -96,7 +96,7 @@ Ask this base a question. The sources it found render first, before the answer s
 |---|---|
 | **Name** | Commits on blur. |
 | **What is in it** | One sentence an agent can read to decide whether to look here. |
-| **Where it can be used** | Agents / Chat / Routines — which pickers offer this base. |
+| **Where it can be used** | Agents / Chat / Automations — which pickers offer this base. |
 | **Who may see and use it** | Personal, entire organisation, or specific groups. |
 | **Category** | Groups it in the list's chips. |
 | **Make a copy** | **Empty copy** or **Copy with its sources**. |

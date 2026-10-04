@@ -1,3 +1,4 @@
+import { discoveryKeys } from '../../../api/queries/projectDiscovery';
 // One live connection per open project, shared by every panel on the page.
 //
 // The project workspace shows several lists that other people change while you
@@ -9,7 +10,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import useProjectStream from '../../../hooks/useProjectStream';
+import useProjectStream, { type ProjectStreamReady } from '../../../hooks/useProjectStream';
 import { apiClient } from '../../../api/client';
 import { projectKeys } from '../../../api/queries/projects';
 
@@ -84,6 +85,8 @@ const INVALIDATION_RULES: Array<[(kind: string) => boolean, (id: string) => Read
     [k => k.startsWith('file.'), id => [projectKeys.files(id), projectKeys.resources(id)]],
     [k => k.startsWith('chat.') && !k.startsWith('chat.ai.'), id => [projectKeys.chats(id)]],
     [k => k.startsWith('task.'), id => [projectKeys.tasks(id)]],
+    // A sprint change can also move tasks in or out of it, so both lists go stale.
+    [k => k.startsWith('sprint.'), id => [projectKeys.sprints(id), projectKeys.tasks(id)]],
     [k => DETAIL_KINDS.has(k), id => [projectKeys.detail(id)]],
 ];
 
@@ -141,9 +144,14 @@ function usePresenceHeartbeat(projectId: string | null | undefined, enabled: boo
         const beat = () => {
             apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/presence`, {}, { retry: false }).catch(() => {});
         };
-        beat();
-        const timer = setInterval(beat, PRESENCE_BEAT_MS);
-        return () => clearInterval(timer);
+        // The stream is closed while the tab is hidden, and so is the beat: a hidden tab is not "here".
+        let timer: ReturnType<typeof setInterval> | null = null;
+        const start = () => { if (timer) return; beat(); timer = setInterval(beat, PRESENCE_BEAT_MS); };
+        const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+        const onVisibility = () => { if (document.hidden) stop(); else start(); };
+        if (!document.hidden) start();
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
     }, [projectId, enabled]);
 }
 
@@ -171,6 +179,9 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         const now = Date.now();
         const actor = event.actorId;
         if (!actor) return;
+        // A row replayed from the activity feed is history, not somebody being here now.
+        const at = typeof event.createdAt === 'string' ? Date.parse(event.createdAt) : NaN;
+        if (event.polled || (Number.isFinite(at) && now - at > PRESENCE_TTL_MS)) return;
         const fresh = !seen.current.has(actor);
         seen.current.set(actor, now);
         if (fresh) publishPresence();
@@ -189,6 +200,14 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         if (!projectId) return;
         const event = (raw && typeof raw === 'object' ? raw : {}) as ProjectLiveEvent;
         trackPeople(kind, event);
+        if (kind.startsWith('task.') || kind === 'resync') qc.invalidateQueries({ queryKey: [...projectKeys.detail(projectId), 'board'] });
+        if (kind.startsWith('file.') || kind === 'resync' || kind === 'forbidden') {
+            qc.invalidateQueries({ queryKey: [...projectKeys.detail(projectId), 'file-content'] });
+        }
+        if (kind === 'pins.changed' || kind === 'forbidden' || kind === 'resync' || kind.startsWith('content.') || kind.startsWith('resource_') || kind.startsWith('member_') || kind.startsWith('file.') || kind.startsWith('task.') || ['chat.created', 'chat.updated', 'chat.deleted'].includes(kind)) {
+            qc.invalidateQueries({ queryKey: discoveryKeys.pins(projectId) });
+            qc.invalidateQueries({ queryKey: discoveryKeys.search(projectId) });
+        }
         for (const key of keysForEvent(projectId, kind)) qc.invalidateQueries({ queryKey: key });
         if (affectsActivity(kind, event)) qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
         for (const handler of handlers.current) {
@@ -196,12 +215,33 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         }
     }, [projectId, qc, trackPeople]);
 
-    useProjectStream({ projectId, enabled: enabled && !!projectId, onEvent });
+    // While the stream is down only the activity feed is polled, and it logs few kinds of change:
+    // each tick re-reads the lists that would otherwise stay as they were.
+    const onPoll = useCallback(() => {
+        if (!projectId) return;
+        for (const key of [projectKeys.tasks(projectId), projectKeys.chats(projectId), projectKeys.threads(projectId), projectKeys.myChats(projectId)]) {
+            qc.invalidateQueries({ queryKey: key });
+        }
+    }, [projectId, qc]);
+
+    // The stream starts at "now": what happened since the lists in the cache were read (a quick return to a
+    // project within their staleTime) is not replayed, so those lists are read again.
+    const mountedAt = useRef(Date.now());
+    const onReady = useCallback((ready: ProjectStreamReady) => {
+        if (!projectId || ready.reconnect) return;
+        qc.invalidateQueries({
+            queryKey: projectKeys.project(projectId),
+            predicate: q => q.state.fetchStatus !== 'fetching' && q.state.dataUpdatedAt > 0 && q.state.dataUpdatedAt < mountedAt.current,
+        });
+    }, [projectId, qc]);
+
+    useProjectStream({ projectId, enabled: enabled && !!projectId, onEvent, onPoll, onReady });
 
     usePresenceHeartbeat(projectId, enabled);
 
     // Reset per project and expire stale presence/typing.
     useEffect(() => {
+        mountedAt.current = Date.now();
         seen.current.clear();
         typers.current.clear();
         setOnline([]);

@@ -103,7 +103,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
             const data = await res.json().catch(() => null);
             const url = data?.ocs?.data?.url || null;
             if (!url) return { error: 'Nextcloud did not return a direct link URL' };
-            // Nextcloud expires these after 24h. Say so, so a routine does not
+            // Nextcloud expires these after 24h. Say so, so an automation does not
             // persist the URL somewhere long-lived and expect it to keep working.
             return { fileId: Number(args.fileId), url, expiresInHours: 24 };
         }
@@ -212,7 +212,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
                     } catch (e) {
                         return { error: e.message };
                     }
-                    if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another routine).' };
+                    if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another automation).' };
                     body = file.buffer;
                     handleMime = args.sourceHandle.mimeType || file.mimeType || null;
                     // A folder path takes the file's own name.

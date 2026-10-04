@@ -53,7 +53,7 @@ export interface StepCardProps {
 }
 
 function listOf(ref: StepRef, picker: PickerData) {
-    return ref.kind === 'automation' ? picker.routines : ref.kind === 'kb' ? picker.kbs : picker.tables;
+    return ref.kind === 'automation' ? picker.automations : ref.kind === 'kb' ? picker.kbs : picker.tables;
 }
 
 function StepRefs({ step, readOnly, picker, onChange }: Pick<StepCardProps, 'step' | 'readOnly' | 'picker' | 'onChange'>) {

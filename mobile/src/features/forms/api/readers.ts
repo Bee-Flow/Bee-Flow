@@ -84,7 +84,7 @@ const readDetailExtras = shapeOf({
     questions: readQuestions,
     pages: field.list(readPage),
     definition: (raw: unknown) => field.recordOrNull<Record<string, unknown>>(raw),
-    routineTitle: field.str(''),
+    automationTitle: field.str(''),
 });
 
 const readSummary = shapeOf(SUMMARY_SPEC);

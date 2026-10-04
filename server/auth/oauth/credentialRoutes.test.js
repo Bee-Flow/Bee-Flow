@@ -2,7 +2,7 @@
  * Revoking a vaulted provider credential (auth/oauth/credentialRoutes.js).
  *
  * The vault keeps a refresh token and an access token that lives an hour and
- * is only refreshed when a routine runs. Revocation sent Google the ACCESS
+ * is only refreshed when an automation runs. Revocation sent Google the ACCESS
  * token — by the time somebody disconnects, usually an expired one, which
  * Google answers with `invalid_token` and revokes nothing. The grant stayed on
  * the person's Google account after "disconnect". Google revokes the whole
@@ -22,7 +22,7 @@ const fx = { cred: null, deleted: [], audits: [] };
 
 const MOCKS = {
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
-    '../../stores/routineCredentialStore': {
+    '../../stores/automationCredentialStore': {
         listProvidersForUser: async () => [],
         getCredential: async () => fx.cred,
         markRevoked: async () => {},

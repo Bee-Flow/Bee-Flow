@@ -9,6 +9,7 @@
 'use strict';
 
 const datatableStore = require('../../stores/datatableStore');
+const solutionStageStore = require('../../stores/solutionStageStore');
 const sources = require('../../core/dataEngine/sources');
 const { retentionFieldError } = require('../../core/dataEngine/dataModel/datatableFields');
 const { isDefinitionManagedKind } = require('../../core/dataEngine/dataModel/managedTables');
@@ -90,9 +91,29 @@ const PatchBody = z.preprocess(
     }),
 );
 
+/**
+ * Which Solution stage manages this table, for the builder's badge and lock
+ * (design 5.3): null for every table outside a stage project. Read through
+ * the store so the client never derives it. Best effort: a GET that cannot
+ * tell says null rather than failing, because every write is guarded in the
+ * store regardless of what the client was told.
+ */
+async function managedOf(table) {
+    if (!table || typeof table.projectId !== 'string' || !table.projectId) return null;
+    try {
+        return await solutionStageStore.managedPayloadFor({
+            projectId: table.projectId, kind: 'datatable', entityId: table.id,
+        });
+    } catch (e) {
+        log.warn('[datatables] managed lookup failed:', e.message);
+        return null;
+    }
+}
+
 function register(router) {
-    router.get('/:id', requireDatatableGrade('viewer'), (req, res) => {
-        res.json({ datatable: publicTable(req.datatable, req.datatableGrade) });
+    router.get('/:id', requireDatatableGrade('viewer'), async (req, res) => {
+        const managed = await managedOf(req.datatable);
+        res.json({ datatable: { ...publicTable(req.datatable, req.datatableGrade), managed } });
     });
 
     /**
@@ -205,7 +226,9 @@ function register(router) {
 
                 const t = await datatableStore.updateDatatableMeta(req.datatable.id, req.datatableScope, patch);
                 if (!t) return res.status(404).json({ error: 'Not found' });
-                res.json({ datatable: publicTable(t, req.datatableGrade) });
+                // The same shape as GET, so a client that replaces its state
+                // with this answer keeps the managed badge and lock.
+                res.json({ datatable: { ...publicTable(t, req.datatableGrade), managed: await managedOf(t) } });
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
                 log.error('[datatables] meta write failed:', e.message);

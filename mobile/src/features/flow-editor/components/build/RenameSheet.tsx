@@ -1,5 +1,5 @@
 /**
- * Rename the routine — the web header's click-to-rename title. The name
+ * Rename the automation — the web header's click-to-rename title. The name
  * goes through its own call (useUpdateFlowMeta); the definition stays the
  * draft store's. Mounted only while open, so every opening starts from the
  * current name.
@@ -27,7 +27,7 @@ export function RenameSheet({ flowKey, title, onClose }: { flowKey: string; titl
         <Sheet
             visible
             onClose={onClose}
-            title={t('mobile.flow.rename', 'Rename routine')}
+            title={t('mobile.flow.rename', 'Rename automation')}
             footer={
                 <Button
                     label={t('common.save', 'Save')}

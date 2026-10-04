@@ -1,4 +1,4 @@
-/** A routine's saved versions: compare and restore. See features/flow-editor VersionsScreen. */
+/** An automation's saved versions: compare and restore. See features/flow-editor VersionsScreen. */
 
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';

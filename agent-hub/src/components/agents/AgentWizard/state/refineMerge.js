@@ -34,7 +34,7 @@
  * die er staat kan behouden in plaats van hem opnieuw te verzinnen) en terug
  * (het model vult ze in). `unknown`, `language`, `mode` en `freeText` gaan
  * NOOIT mee: `unknown` heeft gevolgen in de config (strenge kennis, een app,
- * een routine-grant) en `language`/`mode`/`freeText` zijn van de editor, niet
+ * een automation-grant) en `language`/`mode`/`freeText` zijn van de editor, niet
  * van het model. Een plan is een voorstel, geen grant.
  *
  * `null` betekent "hier staat geen rol" en dat is een echt antwoord: de
@@ -161,7 +161,7 @@ const uniq = (arr) => Array.from(new Set((arr || []).filter(Boolean)));
  * een agent die in de kolom `{mode:'fields', unknown:{mode:'handoff',
  * automationId:'auto-1'}, language:'nl'}` kan hebben staan. Die twee
  * instellingen heeft deze code nooit gelezen en zou ze dus weggooien, waarna de
- * server ze terugvult op 'honest'/null: de doorgeef-routine en de taalregel
+ * server ze terugvult op 'honest'/null: de doorgeef-automation en de taalregel
  * stil verdwenen, en de vijf rolkaarten alleen-lezen. Onbekend versmalt naar
  * `undefined` — de PUT laat het veld dan weg en de kolom blijft staan.
  *

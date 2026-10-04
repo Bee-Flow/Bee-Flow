@@ -15,7 +15,7 @@ const multer = require('multer');
 // Route logic lives in focused sub-modules under routes/transcriptions/,
 // mounted here in the exact order the routes were registered before the split.
 // Order is semantics: GET /:id is registered ahead of the static GET routes
-// (/nextcloud-talk-recordings, /talk-meetings, /gmeet-*) and lets their literal
+// (/nextcloud-talk-recordings, /talk-meetings, /gmeet-*, /teams-*) and lets their literal
 // names fall through via RESERVED_GET_PATHS — see ./transcriptions/notes.js.
 //
 // ── THESE TWO GO FIRST, AND THAT IS CORRECTNESS ─────────────────────
@@ -40,6 +40,7 @@ router.use('/', require('./transcriptions/noteActions'));
 router.use('/', require('./transcriptions/speakers'));
 router.use('/', require('./transcriptions/nextcloud'));
 router.use('/', require('./transcriptions/gmeet'));
+router.use('/', require('./transcriptions/teams'));
 
 // ── Multer error handling ────────────────────────────────
 

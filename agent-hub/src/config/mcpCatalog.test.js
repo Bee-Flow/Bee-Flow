@@ -49,7 +49,7 @@ describe('Soverin entry', () => {
     const soverin = MCP_REGISTRY.find(s => s.id === 'soverin');
 
     it('keeps its id in step with the id the backend derives from the name', () => {
-        // McpMarketplace matches installed servers on either, so a drift would
+        // The server install dialog matches installed servers on either, so a drift would
         // show an already-installed server as installable.
         expect(slugify(soverin.name)).toBe(soverin.id);
     });

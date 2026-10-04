@@ -16,7 +16,7 @@ const p = (key: string, status: PhaseStatus, over: Partial<Phase> = {}): Phase =
 describe('shouldAutoStart', () => {
     it('starts the server phases and access, never a builder', () => {
         for (const key of ['table', 'fill', 'design', 'compliance', 'access']) expect(shouldAutoStart(p(key, 'ready'))).toBe(true);
-        for (const key of ['routine', 'app', 'approvals']) expect(shouldAutoStart(p(key, 'ready'))).toBe(false);
+        for (const key of ['automation', 'app', 'approvals']) expect(shouldAutoStart(p(key, 'ready'))).toBe(false);
         expect(shouldAutoStart(p('table', 'running'))).toBe(false);
         expect(shouldAutoStart(null)).toBe(false);
     });
@@ -26,7 +26,7 @@ describe('handoffFace', () => {
     it('picks the face from the phase, and none once the film is over', () => {
         expect(handoffFace(p('table', 'failed'), false)).toBe('failed');
         expect(handoffFace(p('table', 'awaiting'), false)).toBe('awaiting');
-        expect(handoffFace(p('routine', 'running'), false)).toBe('needs_input');
+        expect(handoffFace(p('automation', 'running'), false)).toBe('needs_input');
         expect(handoffFace(p('fill', 'running'), false)).toBeNull();
         expect(handoffFace(p('fill', 'running', { needsInput: true }), false)).toBe('needs_input');
         expect(handoffFace(p('table', 'awaiting'), true)).toBeNull();
@@ -36,10 +36,10 @@ describe('handoffFace', () => {
 
 describe('mark as done', () => {
     it('needs the automation or the app, and hands it back', () => {
-        expect(canMarkDone(p('routine', 'running'))).toBe(false);
-        const routine = p('routine', 'running', { artifacts: { automationId: 'a1' } });
-        expect(canMarkDone(routine)).toBe(true);
-        expect(markDoneArtifacts(routine)).toEqual({ automationId: 'a1' });
+        expect(canMarkDone(p('automation', 'running'))).toBe(false);
+        const automation = p('automation', 'running', { artifacts: { automationId: 'a1' } });
+        expect(canMarkDone(automation)).toBe(true);
+        expect(markDoneArtifacts(automation)).toEqual({ automationId: 'a1' });
         const app = p('x', 'running', { kind: 'app_turn', artifacts: { appId: 'p1' } });
         expect(canMarkDone(app)).toBe(true);
         expect(markDoneArtifacts(app)).toEqual({ appId: 'p1' });

@@ -30,7 +30,7 @@ test('a complete form page validates clean', () => {
     assert.deepEqual(formCodes(validateDefinition(definition([inputPage()]))), []);
 });
 
-test('a form page needs the routine to start with a form trigger', () => {
+test('a form page needs the automation to start with a form trigger', () => {
     // It is served on the trigger's public URL; without one it can never show.
     const res = validateDefinition(definition([inputPage()], {
         trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
@@ -38,7 +38,7 @@ test('a form page needs the routine to start with a form trigger', () => {
     assert.ok(codesOf(res).includes('form_page.no_form_trigger'));
     assert.equal(res.ok, false);
     // …and it is a hard error, not a completeness nag: no amount of filling in
-    // the page makes a manual-triggered routine able to show it.
+    // the page makes a manual-triggered automation able to show it.
     assert.equal(COMPLETENESS_CODES.has('form_page.no_form_trigger'), false);
 });
 

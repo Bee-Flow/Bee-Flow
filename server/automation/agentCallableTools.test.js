@@ -1,5 +1,5 @@
 /**
- * Unit tests for the agent-callable routine helpers (trigger.kind === 'agent_call').
+ * Unit tests for the agent-callable automation helpers (trigger.kind === 'agent_call').
  *
  * Run: node --test automation/agentCallableTools.test.js
  *
@@ -84,7 +84,7 @@ test('automationToTool defaults missing parametersSchema to an open object', () 
     assert.strictEqual(tool.function.parameters.additionalProperties, true);
 });
 
-test('getAgentCallableToolsForUser filters out inactive routines', async () => {
+test('getAgentCallableToolsForUser filters out inactive automations', async () => {
     fakeStore.automations = [
         agentAutomation({ id: 'active', isActive: true }),
         agentAutomation({ id: 'inactive', isActive: false }),
@@ -94,7 +94,7 @@ test('getAgentCallableToolsForUser filters out inactive routines', async () => {
     assert.strictEqual(tools[0].__automation.id, 'active');
 });
 
-test('dispatchAgentCallableTool runs the routine and returns its output', async () => {
+test('dispatchAgentCallableTool runs the automation and returns its output', async () => {
     fakeStore.automations = [agentAutomation()];
     lastRun = null;
     const out = await dispatchAgentCallableTool({ id: 'auto_1', userId: 'user_1' }, { limit: 5 }, { userId: 'user_1' });
@@ -112,7 +112,7 @@ test('dispatchAgentCallableTool rejects a non-owner', async () => {
     );
 });
 
-test('dispatchAgentCallableTool refuses an inactive routine', async () => {
+test('dispatchAgentCallableTool refuses an inactive automation', async () => {
     fakeStore.automations = [agentAutomation({ isActive: false })];
     await assert.rejects(
         () => dispatchAgentCallableTool({ id: 'auto_1', userId: 'user_1' }, {}, { userId: 'user_1' }),

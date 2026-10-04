@@ -1,5 +1,5 @@
 /**
- * formUploadText — the text of a file a visitor attached to a routine's form.
+ * formUploadText — the text of a file a visitor attached to an automation's form.
  *
  * The behaviour under test is mostly about what does NOT happen: a submission
  * is never lost because an attachment could not be read, and a truncated

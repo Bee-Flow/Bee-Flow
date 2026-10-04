@@ -4,7 +4,7 @@
  * Getest wordt één toevoeging (A3 deel A): `automationsState`. De routinelijst
  * landde tot nu toe op `[]` zowel wanneer ze leeg was als wanneer ze niet
  * gelezen kon worden — `/api/automation` hangt achter de automations-module en
- * kan 403'en — en op dat verschil hangt de vraag of een scherm "geen routines"
+ * kan 403'en — en op dat verschil hangt de vraag of een scherm "geen automations"
  * mag zeggen.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/AgentEditorBootstrapContext.test.jsx
@@ -64,7 +64,7 @@ describe('automationsState', () => {
         expect(probe().dataset.count).toBe('0');
     });
 
-    it('is ERROR wanneer de route weigert — nul routines is dan een bewering', async () => {
+    it('is ERROR wanneer de route weigert — nul automatiseringen is dan een bewering', async () => {
         handler = withAutomations({ ok: false, json: async () => ({}) });
         mount();
         await waitFor(() => expect(probe().dataset.loaded).toBe('true'));

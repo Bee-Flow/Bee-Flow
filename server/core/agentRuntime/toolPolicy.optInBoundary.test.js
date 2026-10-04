@@ -83,7 +83,7 @@ const { effectOf } = require('../../automation/sideEffectMap');
 
 // ── The stack a pre-A1b agent is handed ─────────────────────────────
 // Deliberately mixed: a read, a SEND (the one tool the confirm layer would
-// reach for), a write, a routine of the person asking, and a builtin the
+// reach for), a write, an automation of the person asking, and a builtin the
 // registry knows nothing about. Order is part of what is asserted — the model
 // sees this array, and a reordering is a different prompt.
 const fn = (name, extra = {}) => ({
@@ -190,14 +190,14 @@ test('a headless run keeps the mail tool autoSend exists to use', () => {
         const v = verdict(config, { unattended: true });
         assert.deepStrictEqual(v.dropped, [], `${label}: nothing is withheld`);
         assert.deepStrictEqual(v.offered, NAMES,
-            `${label}: a mailing routine that has always mailed must not stop mailing`);
+            `${label}: a mailing automation that has always mailed must not stop mailing`);
         assert.deepStrictEqual(v.gated, [], `${label}: and nothing parks waiting for a person who is not there`);
     }
 });
 
 test('a name outside the stack still reaches the dispatcher', () => {
     // The pre-A1b path: the dispatcher resolves an unoffered name against the
-    // caller's own routines and Steps, answers a progressive-disclosure name
+    // caller's own automations and Steps, answers a progressive-disclosure name
     // with a "load that group first" hint, and otherwise tries a component
     // tool. Refusing it here for an agent nobody curated is a behaviour change
     // with no field behind it.
@@ -209,14 +209,14 @@ test('a name outside the stack still reaches the dispatcher', () => {
     }
 });
 
-test('a routine in the stack cannot arm the gate on its own', () => {
+test('an automation in the stack cannot arm the gate on its own', () => {
     // `automationConfirms` is the one thing that gates an agent with no app
-    // map, so it must be empty unless the OWNER granted the routine. The stack
+    // map, so it must be empty unless the OWNER granted the automation. The stack
     // carries a real `__automation` definition here; without a grant it buys
     // nothing.
     for (const [label, config] of Object.entries(UNCURATED)) {
         assert.deepStrictEqual(verdict(config).overrides, [],
-            `${label}: an offered routine is not a stored decision about it`);
+            `${label}: an offered automation is not a stored decision about it`);
     }
 });
 

@@ -74,7 +74,7 @@ export function loadAutomationTitles(api) {
     return loadAutomationRows(api).then(titlesOf);
 }
 
-/** Drop the cache — for tests, and for a caller that just renamed a routine. */
+/** Drop the cache — for tests, and for a caller that just renamed an automation. */
 export function clearAutomationTitles() {
     cache = null;
     inflight = null;
@@ -100,14 +100,14 @@ export default function useAutomationTitles(enabled) {
 /**
  * The WHOLE rows, same cache, same single request.
  *
- * The canvas pill needs one word; the inspector's routine tile needs the step
- * count (from `definition`) and which solution the routine is filed in (from
+ * The canvas pill needs one word; the inspector's automation tile needs the step
+ * count (from `definition`) and which solution the automation is filed in (from
  * `projectId`). Those live on the row the list endpoint already returns — the
  * cache used to throw them away, so the tile would have had to fetch the same
  * list a second time to read fields that were in the first response.
  *
  * Failure resolves to an EMPTY map, never a rejection: a tile that cannot name
- * the routine still shows the routine, and no part of an inspector is worth an
+ * the automation still shows the automation, and no part of an inspector is worth an
  * error dialog.
  */
 export function useAutomationRows(enabled) {

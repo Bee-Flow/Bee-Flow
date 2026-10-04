@@ -69,6 +69,8 @@ export type SectionKey =
     | 'webpages'
     | 'datatables'
     | 'agents'
+    | 'skills'
+    | 'documentTemplates'
     | 'knowledgeBases'
     | 'approvals';
 

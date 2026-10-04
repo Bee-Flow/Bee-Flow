@@ -76,7 +76,7 @@ function OutputEditorPanel({
             <div className="px-3 py-1.5 text-[11px] text-[var(--text-tertiary)] leading-snug border-b border-[var(--border-default)]">
                 {/* One sentence, one key — the line break above was wrapping,
                     not punctuation. */}
-                {t('routines.ndv.output_editor_hint', 'What the steps after this one should see. Saved with the routine and replayed instead of running this step — so it is a stand-in for real data, not a note.')}
+                {t('automations.ndv.output_editor_hint', 'What the steps after this one should see. Saved with the automation and replayed instead of running this step — so it is a stand-in for real data, not a note.')}
             </div>
             {shape && (
                 <div className="flex-1 min-h-0 overflow-auto" data-testid="ndv-output-fields">
@@ -92,7 +92,7 @@ function OutputEditorPanel({
                     className="flex items-center gap-1 px-3 py-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] border-t border-[var(--border-default)] transition"
                 >
                     {rawOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    {t('routines.ndv.output_json', 'Output JSON')}
+                    {t('automations.ndv.output_json', 'Output JSON')}
                 </button>
             )}
             {/* `hidden` AND no display class while closed: Tailwind's `flex`
@@ -102,7 +102,7 @@ function OutputEditorPanel({
                 closed disclosure is not a removed escape hatch. */}
             <div hidden={!rawShown} className={rawShown ? 'flex-1 min-h-0 flex flex-col' : undefined}>
                 <textarea
-                    aria-label={t('routines.ndv.output_json', 'Output JSON')}
+                    aria-label={t('automations.ndv.output_json', 'Output JSON')}
                     value={text}
                     onChange={(e) => onChange(e.target.value)}
                     spellCheck={false}
@@ -142,10 +142,10 @@ function OutputSheetFooter({ t, saving, canRemove, onEmptyAnswers, onRemove, onC
                 <button
                     type="button"
                     onClick={onEmptyAnswers}
-                    title={t('routines.ndv.empty_answers_title', 'Fill in every declared question with an empty answer — the key set a submission has before anyone types anything')}
+                    title={t('automations.ndv.empty_answers_title', 'Fill in every declared question with an empty answer — the key set a submission has before anyone types anything')}
                     className="text-[11px] px-2 py-0.5 rounded border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                 >
-                    {t('routines.ndv.use_empty_answers', 'Use empty answers')}
+                    {t('automations.ndv.use_empty_answers', 'Use empty answers')}
                 </button>
             )}
             {canRemove && (
@@ -170,7 +170,7 @@ function OutputSheetFooter({ t, saving, canRemove, onEmptyAnswers, onRemove, onC
                 disabled={saving}
                 className="text-[11px] px-2.5 py-0.5 rounded bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-85 disabled:opacity-40 transition"
             >
-                {saving ? t('common.saving', 'Saving…') : t('routines.ndv.save_output', 'Save output')}
+                {saving ? t('common.saving', 'Saving…') : t('automations.ndv.save_output', 'Save output')}
             </button>
         </div>
     );

@@ -20,7 +20,7 @@ async function passNotebooks(req, res, next) { next(); }
  * @param {any} w  a world from core/collab/collab.testkit.js collabWorld()
  * @param {Record<string, Record<string, string>>} roles
  */
-function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = passNotebooks } = {}) {
+function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = passNotebooks, streamOptions } = {}) {
     const http = require('node:http');
     const express = require('express');
     const { makeCollabRouter } = require('./collab');
@@ -46,6 +46,7 @@ function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = pa
         getProjectRole: async (u, p) => roles[p]?.[u] || null,
         collab: w.collab,
         requireNotebooks,
+        streamOptions,
         log: quietLog,
     }));
     app.use('/api/projects', stream);

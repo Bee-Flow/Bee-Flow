@@ -375,7 +375,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
         ).toBe('true'));
     });
 
-    it('telt gegunde routines mee in de tabteller', async () => {
+    it('telt gegunde automations mee in de tabteller', async () => {
         render(<BuilderSplit {...baseProps} agent={{
             ...agent,
             config: { tools: { automations: { a1: { confirm: 'ask' } }, datatables: { t1: {} } } },

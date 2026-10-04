@@ -265,7 +265,7 @@ export default function StepNodeBase({
     const a11yLabel = [
         typeof name === 'string' ? name.trim() : '',
         typeof typeLabel === 'string' ? typeLabel.trim() : '',
-    ].filter(Boolean).join(', ') || t('routines.builder.node_generic', 'Step');
+    ].filter(Boolean).join(', ') || t('automations.builder.node_generic', 'Step');
 
     return (
         <div
@@ -540,7 +540,7 @@ export default function StepNodeBase({
                             <div className="flex items-center gap-1.5 text-[10px] leading-3 font-semibold uppercase tracking-[.06em] whitespace-nowrap overflow-hidden">
                                 {typeLabel && <span className="truncate" style={{ color: familyColor }}>{typeLabel}</span>}
                                 {stepNumber != null && <span className="shrink-0 text-[var(--text-tertiary)]" data-testid="node-step-number">· {stepNumber}</span>}
-                                {isSource && <span className="shrink-0 text-[var(--text-tertiary)]" data-testid="node-source-tag">· {t('routines.card.source', 'source')}</span>}
+                                {isSource && <span className="shrink-0 text-[var(--text-tertiary)]" data-testid="node-source-tag">· {t('automations.card.source', 'source')}</span>}
                             </div>
                         )}
                         <div className="text-[13px] font-semibold leading-[17px] text-[var(--text-primary)] line-clamp-2 break-words" data-testid="node-name">

@@ -1,7 +1,7 @@
 /**
  * Account/org deletion must take the credential vault with it.
  *
- * deleteUser cleaned routine_credentials but left integration_connections and
+ * deleteUser cleaned automation_credentials but left integration_connections and
  * connection_grants behind. Three consequences, all bad for a privacy product:
  *   - a departed employee's encrypted API keys stayed in the vault forever;
  *   - any org-wide lend they had made KEPT RESOLVING, so their credentials went
@@ -170,7 +170,7 @@ test('deleteUser removes the user\'s integration connections and grants', async 
         'the grantee arm must be restricted to user grants');
 
     // The pre-existing OAuth-token cleanup must still be there.
-    assert.strictEqual(deletesFrom('routine_credentials').length, 1);
+    assert.strictEqual(deletesFrom('automation_credentials').length, 1);
 });
 
 test('deleteUser deletes grants BEFORE connections (FK cascade ordering)', async () => {
@@ -186,14 +186,14 @@ test('deleteUser deletes grants BEFORE connections (FK cascade ordering)', async
     assert.ok(grantIdx < connIdx, 'grants first, so the FK cascade has nothing left to do');
 });
 
-test('deleteOrganization sweeps connections, grants and routine credentials by org', async () => {
+test('deleteOrganization sweeps connections, grants and automation credentials by org', async () => {
     runCalls.length = 0;
     getOneImpl = (sql) => (/FROM organizations WHERE id/i.test(sql) ? { id: 'orgA', name: 'Acme' } : null);
     getAllImpl = () => [];
 
     await userStore.deleteOrganization('orgA');
 
-    for (const table of ['connection_grants', 'integration_connections', 'routine_credentials']) {
+    for (const table of ['connection_grants', 'integration_connections', 'automation_credentials']) {
         const hits = deletesFrom(table).filter(c => /org_id = \$1/i.test(c.sql));
         assert.strictEqual(hits.length, 1, `${table} must be swept on org delete`);
         assert.deepStrictEqual(hits[0].params, ['orgA']);
@@ -388,6 +388,6 @@ test('deleteUser deletes owned projects through the project teardown, never a ba
 
     assert.strictEqual(runCalls.filter(c => /DELETE\s+FROM\s+projects\s+WHERE\s+owner_id/i.test(c.sql)).length, 0,
         'the owner-wide DELETE must be gone');
-    const byId = deletesFrom('projects').filter(c => /WHERE id = \$1/i.test(c.sql));
+    const byId = deletesFrom('projects').filter(c => /DELETE\s+FROM\s+projects\s+WHERE id = \$1/i.test(c.sql));
     assert.deepStrictEqual(byId.map(c => c.params), [['p-owned']], 'each owned project is deleted on its own');
 });

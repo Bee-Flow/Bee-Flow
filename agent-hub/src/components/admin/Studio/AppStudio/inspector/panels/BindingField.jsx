@@ -20,7 +20,7 @@ import FormField from '../../../../../shared/FormField';
  *   { kind: 'records', tableId, filter?, sort?, limit? }   — matching rows
  *   { kind: 'dataset', datasetId, pick? }                  — a saved query
  *   { kind: 'connector', connectorId, params? }            — external source
- *   { kind: 'actionResult', actionId, path }               — a routine result
+ *   { kind: 'actionResult', actionId, path }               — an automation result
  *
  * Nothing chosen yet (no binding, or the untouched `[]`/empty literal the
  * catalog defaults to) opens on the CHOOSER — one card per everyday way to
@@ -42,7 +42,7 @@ import FormField from '../../../../../shared/FormField';
 const SOURCE_CHOICES = [
     { kind: 'records', icon: Table2, title: 'A table in this app', blurb: 'Rows straight out of one of this app’s tables.' },
     { kind: 'dataset', icon: Database, title: 'A saved view', blurb: 'A question you saved earlier — or build a new one here.' },
-    { kind: 'actionResult', icon: Play, title: 'The result of a routine', blurb: 'Whatever a routine hands back when it finishes.' },
+    { kind: 'actionResult', icon: Play, title: 'The result of an automation', blurb: 'Whatever an automation hands back when it finishes.' },
     { kind: 'static', icon: Pencil, title: 'Type the values myself', blurb: 'Write the values in by hand.' },
 ];
 
@@ -208,8 +208,8 @@ function SourceSentence({ binding, appId }) {
         return <>Showing: rows from <Named appId={appId} kind="connector" id={binding.connectorId} />.</>;
     }
     if (kind === 'actionResult') {
-        if (!binding.actionId) return <>The result of a routine — pick which one below.</>;
-        return <>Showing: what a routine sends back.</>;
+        if (!binding.actionId) return <>The result of an automation — pick which one below.</>;
+        return <>Showing: what an automation sends back.</>;
     }
     if (kind === 'aggregate') {
         if (!binding.tableId) return <>A count or total — pick the table below.</>;
@@ -915,12 +915,12 @@ export default function BindingField({
                         >
                             <option value="">Pick an action…</option>
                             {runActions.map(([id]) => (
-                                <option key={id} value={id}>Run routine — {id}</option>
+                                <option key={id} value={id}>Run automation — {id}</option>
                             ))}
                         </select>
                         {runActions.length === 0 && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                                No “Run routine” actions in this app yet — wire one to a button or form first.
+                                No “Run automation” actions in this app yet — wire one to a button or form first.
                             </p>
                         )}
                         <input

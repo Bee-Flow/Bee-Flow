@@ -46,6 +46,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { trackUsageTotals, usageTotalsLogFields } = require('../../core/providers/usageNormalizer');
 const router = express.Router();
 
 const cmsStore = require('../../stores/cmsStore');
@@ -303,9 +304,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
                 agent_name: `CMS builder: ${draftWrap.site?.name || 'Untitled site'}`,
                 agent_type: 'cms_builder',
                 model: modelId,
-                prompt_tokens: usageTotals.inputTokens,
-                completion_tokens: usageTotals.outputTokens,
-                total_tokens: usageTotals.inputTokens + usageTotals.outputTokens,
+                ...usageTotalsLogFields(usageTotals),
                 duration_ms: durationMs,
                 source: 'cms_builder',
                 conversation_id: draftWrap.builderSessionId || siteId,
@@ -392,8 +391,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
 
             if (response.content) proseParts.push(response.content);
             if (response.usage) {
-                usageTotals.inputTokens += Number(response.usage.prompt_tokens) || 0;
-                usageTotals.outputTokens += Number(response.usage.completion_tokens) || 0;
+                trackUsageTotals(usageTotals, response.usage);
                 send('usage', { ...usageTotals });
             }
 

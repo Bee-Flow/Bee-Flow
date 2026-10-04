@@ -2,7 +2,7 @@
  * Notification vocabulary for the builder: data only.
  *
  * Two surfaces use it:
- *   - the routine's notification policy (`definition.notificationSettings`),
+ *   - the automation's notification policy (`definition.notificationSettings`),
  *     mirrored from server/automation/notificationDefaults.js. Keep the two in
  *     sync by hand; server/automation/notificationDefaults.test.js loads this
  *     file and fails when they disagree.

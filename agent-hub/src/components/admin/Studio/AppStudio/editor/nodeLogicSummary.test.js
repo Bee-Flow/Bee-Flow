@@ -216,7 +216,7 @@ describe('an action mark names the automation behind it', () => {
         expect(nodeLogicSummary(node, WIRED)[0].actionTitle).toBeNull();
         const named = nodeLogicSummary(node, WIRED, (id) => (id === 'auto_1' ? 'Calculate quote' : null));
         expect(named[0].actionTitle).toBe('Calculate quote');
-        expect(named[0].text).toBe('When clicked: Run routine — Calculate quote');
+        expect(named[0].text).toBe('When clicked: Run automation — Calculate quote');
     });
 
     it('leaves actionTitle null for a kind that is not an automation', () => {
@@ -269,7 +269,7 @@ describe('nodeLogicSummary — the wording comes from the dictionary', () => {
 
     it('hands the same t() down to the Logic view rows', () => {
         const rows = collectLogicMarks(WIRED, null, t);
-        expect(rows[0].mark.text).toBe('Bij klikken → Run routine');
+        expect(rows[0].mark.text).toBe('Bij klikken → Run automation');
     });
 
     it('falls back to English for a caller that has no t() at all', () => {

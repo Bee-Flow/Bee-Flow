@@ -60,16 +60,16 @@ async function buildCatalogForUser(userId, session) {
 
         // The authoritative per-user answer: org ∩ group ∩ toggle ∩ entitlement
         // ∩ CREDENTIALS, plus the four classes no static registry can know
-        // (MCP servers, org custom integrations, agent-callable routines, Step
+        // (MCP servers, org custom integrations, agent-callable automations, Step
         // tools). A failure here is not "the user has nothing" — it is "we do
         // not know", and the two must not look the same to the model.
         const userToolNames = new Set();
         try {
-            // `routineStep: true` because design time must equal run time: it is
+            // `automationStep: true` because design time must equal run time: it is
             // what execAi passes when it resolves the same set to authorise a
             // step, and without it a tool the runner will happily execute is
             // missing from the builder (and now, refused by it).
-            const r = await getIntegrationTools({ userId, session, isAdmin: !!session?.isAdmin, routineStep: true });
+            const r = await getIntegrationTools({ userId, session, isAdmin: !!session?.isAdmin, automationStep: true });
             for (const t of (r.tools || [])) if (t?.function?.name) userToolNames.add(t.function.name);
         } catch (e) {
             const err = new Error(`Could not resolve which integrations you can use: ${e.message}`);
@@ -114,7 +114,7 @@ async function buildCatalogForUser(userId, session) {
             // same lie one level down.
             const runnable = actions.filter(a => userToolNames.has(a.name));
             const connected = runnable.length > 0;
-            // getUserPermittedApps no longer throws for a routine config-lookup
+            // getUserPermittedApps no longer throws for an automation config-lookup
             // hiccup, so `permittedSet === null` should only happen on a
             // genuinely unexpected error; failing closed here is the safe
             // default for that case.
@@ -132,7 +132,7 @@ async function buildCatalogForUser(userId, session) {
         // `toolNames` is deliberately WIDER than anything in `apps`: it is the
         // raw resolved set, so it carries the four classes no registry entry
         // owns — MCP server tools, org custom integrations, agent-callable
-        // routines and Step tools — plus inline ones like browse_web. The
+        // automations and Step tools — plus inline ones like browse_web. The
         // add-time gate must authorise against THIS, not against `apps`, or it
         // would refuse a tool the user genuinely has purely because
         // TOOL_REGISTRY has no home for it.

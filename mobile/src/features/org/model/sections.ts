@@ -73,6 +73,16 @@ export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
     { id: 'org_azure', labelKey: 'settings.azure_config', label: 'Azure Configuration', icon: 'Cloud', color: '#0078D4', href: '/org/azure' },
 ];
 
+/**
+ * Web sections the phone deliberately does not offer (yet). Each one is a
+ * decision with a reason, not a gap nobody noticed: the lockstep tests skip
+ * exactly these and nothing else, and a deep link to one opens the org index.
+ *
+ *   org_mcp — the MCP library (Settings → Organisation → MCP), a web-only
+ *             screen for now; no mobile port planned in this round.
+ */
+export const WEB_ONLY_ORG_SECTIONS: readonly string[] = ['org_mcp'];
+
 /** The phone's extra rows, listed after the web's. */
 export const MOBILE_ORG_SECTIONS: readonly OrgSection[] = [
     { id: 'theme', labelKey: 'mobile.org.section_theme', label: 'Theme', icon: 'Palette', color: '#ec4899', href: '/org/theme' },

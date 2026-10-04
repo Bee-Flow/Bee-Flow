@@ -93,11 +93,11 @@ function DescribeRow({ disabled, onCreate, t }: { disabled: boolean; onCreate: (
 }
 
 export function OwnDataLanding({
-    types, readOnly, routines, note, onStart, onDescribe, t,
+    types, readOnly, automations, note, onStart, onDescribe, t,
 }: {
     types: CustomDataType[];
     readOnly: boolean;
-    routines: boolean;
+    automations: boolean;
     note: string | null;
     onStart: (starter: StarterId) => void;
     onDescribe: (text: string) => void;
@@ -107,7 +107,7 @@ export function OwnDataLanding({
     const disabled = readOnly || types.length >= LIMITS.types;
     return (
         <Card className="flex flex-col gap-[18px] px-[22px] py-5">
-            <OwnDataIntro routines={routines} t={t} />
+            <OwnDataIntro automations={automations} t={t} />
             {note && <p role="status" className="m-0 -mt-2 text-xs font-medium text-[var(--success-ink)]">{note}</p>}
             <div role="group" aria-labelledby={labelId} className="flex flex-col gap-2">
                 <SectionLabel id={labelId}>{t('shield_data.starters_label', 'Start from an example')}</SectionLabel>

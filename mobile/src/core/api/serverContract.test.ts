@@ -802,9 +802,10 @@ describe('every stream event the server emits', () => {
     const NOT_YET_HANDLED = [
         // A different SSE endpoint entirely (routes/ai/automationBuilder/
         // suggestions.js — the web builder's integration scan). The phone does
-        // not open that stream at all.
+        // not open that stream at all. Its per-tool `scan_step` frames are
+        // sent from server/automation/patterns/ideation.js now, outside the
+        // tree this test reads, so they are no longer listed here.
         'model',
-        'scan_step',
         // Agent-runtime telemetry: which test-mode the turn ran in and what
         // the sandbox withheld. Studio surface with no mobile screen behind
         // it. (How the prompt tokenised, the raw answer, the persona rule
@@ -966,10 +967,17 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         expect(put).toContain('res.json({ automation: projectForViewer(updated, access), warnings: saveWarnings');
         expect(routeSlice(crud, "router.post('/',")).toContain('res.json({ automation: a, answers');
         // Activation checks in checkBeforeLive and answers with its verdict.
-        expect(functionSlice(activate, 'checkBeforeLive')).toContain("return { ok: false, status: 400, body: { error: 'Invalid definition', details: v.errors } };");
+        // The checks themselves moved to automation/goLive.js
+        // (checkBeforeLiveCore); the route passes the refusal's status and
+        // body through, and an invalid definition is still 400 { error, details }.
+        expect(functionSlice(activate, 'checkBeforeLive')).toContain('return { ok: false, status: r.status, body: r.body };');
+        expect(read('automation/goLive.js')).toContain("refuse(400, 'invalid_definition', 'Invalid definition', { error: 'Invalid definition', details: v.errors })");
+        // A refusal goes out as its own status and body (answerRefusal), a
+        // success as { automation, warnings }.
         const activation = functionSlice(activate, 'activateAutomation');
-        expect(activation).toContain('if (!verdict.ok) return res.status(verdict.status).json(verdict.body);');
-        expect(activation).toContain('res.json({ automation: forViewer(u, access), warnings:');
+        expect(activation).toContain('if (!r.ok) return answerRefusal(res, r);');
+        expect(functionSlice(activate, 'answerRefusal')).toContain('return res.status(r.status).json(r.body);');
+        expect(activation).toContain('res.json({ automation: forViewer(r.automation, access), warnings: r.warnings });');
         expect(routeSlice(versions, "router.post('/:id/versions/:versionId/restore'")).toContain('res.json({ automation: projectForViewer(updated, access), restoredFromVersion: version.version');
         expect(routeSlice(crud, "router.get('/:id/export'")).toContain('res.json({ envelope, warnings })');
         expect(routeSlice(crud, "router.post('/import'")).toContain('res.json({ automation: a, warnings:');
@@ -1349,7 +1357,9 @@ describe('Meeting Notes tools (routes/transcriptions/*, routes/summaryTemplates.
 describe('studio documents payloads (server/stores/documentStore.js, routes/studioDocuments.js)', () => {
     // Mirrored by StudioDocumentRow / StudioDocument / DocumentVersion in
     // src/features/studioDocuments/model/types.ts; read by api/readers.ts.
-    const store = read('stores/documentStore.js');
+    // The row mappers moved out of documentStore.js into their own module
+    // (stores/document/rowMappers.js); documentStore requires them from there.
+    const store = read('stores/document/rowMappers.js');
     const routes = read('routes/studioDocuments.js');
     // The history moved to the uniform version API: its router is mounted at
     // /:id/versions (routes/studioDocuments/versions.js) and its rows are
@@ -1449,7 +1459,7 @@ describe('the run log (server/stores/automationStore/runs.js + routes/automation
         ).toEqual([]);
     });
 
-    it('rowToRunWithAutomation still adds the routine fields to my runs', () => {
+    it('rowToRunWithAutomation still adds the automation fields to my runs', () => {
         expect(
             missingFrom(functionSlice(store, 'rowToRunWithAutomation'), [
                 'automationTitle', 'automationKind', 'rootTriggerLabel', 'journeyRunId',
@@ -1457,7 +1467,7 @@ describe('the run log (server/stores/automationStore/runs.js + routes/automation
         ).toEqual([]);
     });
 
-    it('the facets still hold the chip maps and the per-routine rollup', () => {
+    it('the facets still hold the chip maps and the per-automation rollup', () => {
         const facets = functionSlice(store, 'getRunFacetsScoped');
         expect(absentTokens(facets, [
             'status', 'triggerKind', 'automationId', 'errorClass', 'automations', 'automationsTotal',
@@ -1731,7 +1741,7 @@ describe('the organisation integrations (features/orgIntegrations)', () => {
         for (const section of ["'openai'", "'chatModels'", "'docProcessing'", "'sso'"]) expect(source).toContain(section);
         expect(
             absentTokens(source, [
-                'azureEndpoint', 'hasAzureApiKey', 'azureApiVersion', 'azureModels', 'chatModelTiers',
+                'azureEndpoint', 'hasAzureApiKey', 'azureModels', 'chatModelTiers',
                 'useAzureDocProcessing', 'hasAzureDocKey', 'hasAzureEmbedKey', 'ssoClientId',
                 'hasSsoClientSecret', 'ssoTenantId', 'autoApproveSSO', 'groupSyncSettings', 'groupSyncStatus',
             ]),

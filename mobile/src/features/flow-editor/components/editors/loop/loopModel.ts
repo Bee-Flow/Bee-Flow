@@ -35,7 +35,7 @@ export function loopLists(groups: readonly VariableGroup[], sampleRoot: unknown,
         const resolved = sampleRoot ? walkPath(f.path, sampleRoot) : undefined;
         const preview = Array.isArray(resolved)
             ? t
-                ? t('routines.canvas.result.items', '{n} items', { n: resolved.length })
+                ? t('automations.canvas.result.items', '{n} items', { n: resolved.length })
                 : `${resolved.length} items`
             : previewValue(resolved !== undefined ? resolved : f.sample, 24);
         return { path: f.path, key: f.key, label: friendlyPath(f.path, labels, t), preview };

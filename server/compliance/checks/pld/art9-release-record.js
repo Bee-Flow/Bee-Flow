@@ -126,7 +126,7 @@ async function _solutionSubjects(orgId) {
                    MAX(r.published_at) AS last_release_at,
                    (ARRAY_AGG(r.version ORDER BY r.published_at DESC, r.id DESC))[1] AS last_version
             FROM projects p
-            JOIN project_releases r ON r.project_id = p.id
+            JOIN project_releases r ON r.project_id = p.id AND r.channel = 'gallery'
             WHERE p.organization_id = $1
             GROUP BY p.id, p.name, p.updated_at
             ORDER BY p.updated_at DESC

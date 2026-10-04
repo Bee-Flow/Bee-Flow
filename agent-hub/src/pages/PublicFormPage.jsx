@@ -4,7 +4,7 @@ import PublicFormRenderer, { FormEndingView, FormWaitingView } from '../componen
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/automation/form';
 
-// Poll cadence while the routine works. Starts sub-second so a fast routine
+// Poll cadence while the automation works. Starts sub-second so a fast automation
 // feels instant, then eases off so a slow one is not hammered.
 const POLL_MIN_MS = 700;
 const POLL_MAX_MS = 2000;
@@ -28,7 +28,7 @@ const POLL_CEILING_MS = 5 * 60 * 1000;
  *   • The token is the credential, so an unknown/paused/renamed form is one
  *     indistinguishable "not found" — never a hint that the URL was once real.
  *
- * MULTI-PAGE. A routine can pause at a `form_page` step. The visitor never
+ * MULTI-PAGE. An automation can pause at a `form_page` step. The visitor never
  * leaves this URL: submitting returns a session id, the page polls it, and
  * whatever comes back — another page, a closing summary, or a failure — is
  * rendered here. The session id is mirrored into `?s=…` so a reload resumes
@@ -91,7 +91,7 @@ export default function PublicFormPage({ token, authenticated = false }) {
         return () => { alive = false; };
     }, [token, setSession]);
 
-    // ── Poll while the routine is working ─────────────────────────────────
+    // ── Poll while the automation is working ─────────────────────────────────
     useEffect(() => {
         if (state.status !== 'working' || !sessionId) return undefined;
         let alive = true;
@@ -175,13 +175,13 @@ export default function PublicFormPage({ token, authenticated = false }) {
         );
         const body = await r.json().catch(() => ({}));
         if (!r.ok || !body?.notebookId) throw new Error(body?.error || 'Could not open this in Notebooks.');
-        window.location.href = `/app/notebooks/${body.notebookId}`;
+        window.location.href = `/app/studio/documents/notebook/${body.notebookId}`;
     }, [token]);
 
     /**
      * "Save to Notebook" on the export bar — the closing page's OWN TEXT, not
      * a generated file. Twin of openInNotebooks above, minus the fileId: most
-     * routines never take a generate_document step, so there is nothing to
+     * automations never take a generate_document step, so there is nothing to
      * reparse out of storage — the text rides straight from `state.ending`,
      * which is exactly what the visitor is already reading on screen.
      *
@@ -205,7 +205,7 @@ export default function PublicFormPage({ token, authenticated = false }) {
         );
         const body = await r.json().catch(() => ({}));
         if (!r.ok || !body?.notebookId) throw new Error(body?.error || 'Could not save this to Notebooks.');
-        window.location.href = `/app/notebooks/${body.notebookId}`;
+        window.location.href = `/app/studio/documents/notebook/${body.notebookId}`;
     }, [token, state.ending]);
     const saveToNotebook = notebookHandlerFor(authenticated, saveToNotebookImpl);
 
@@ -281,7 +281,7 @@ export default function PublicFormPage({ token, authenticated = false }) {
         if (!multiPage) return;
         // The first submission mints the session; later pages keep theirs.
         if (body.sessionId) setSession(body.sessionId);
-        // Hand over to the poll loop: only the server knows whether the routine
+        // Hand over to the poll loop: only the server knows whether the automation
         // paused for another page or ran to the end.
         setState(s => ({ ...s, status: 'working', form: null, progress: null, progressNote: null }));
     }, [token, state.csrf, state.issuedAt, nonce, setSession, multiPage]);

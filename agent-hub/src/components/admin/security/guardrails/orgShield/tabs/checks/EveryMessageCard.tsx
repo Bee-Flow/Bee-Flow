@@ -107,8 +107,8 @@ export function EveryMessageCard({
                 disabled={readOnly}
             />
             <ToggleCard
-                title={t('admin.shield_apply_automations', 'Also protect routines')}
-                description={t('shield_checks.automations_desc', 'Routines run on their own with nobody watching. Their data and AI steps are checked the same way as chat.')}
+                title={t('admin.shield_apply_automations', 'Also protect automations')}
+                description={t('shield_checks.automations_desc', 'Automations run on their own with nobody watching. Their data and AI steps are checked the same way as chat.')}
                 checked={f.applyToAutomations}
                 onChange={f.setApplyToAutomations}
                 disabled={readOnly}

@@ -108,7 +108,7 @@ export function datatableSummary(step, { tableNameById } = {}) {
  * A knowledge write, in the order the author needs to see it: WHERE it lands,
  * and whether it will keep leaving new documents behind.
  *
- * The sourceUri line earns its place on the card. Without one, a routine that
+ * The sourceUri line earns its place on the card. Without one, an automation that
  * runs nightly writes a new document every night and nothing about the
  * knowledge base says why it grew — and that is invisible until somebody opens
  * the base months later.

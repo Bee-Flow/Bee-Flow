@@ -29,8 +29,8 @@ function AgentChooser({ rows, agentId, onPick, disabled }: { rows: CatalogAgent[
     return (
         <>
             <OptionRow
-                label={t('routine_editor.agent_none_label', 'This step, on its own prompt')}
-                description={t('routine_editor.agent_none_hint', 'No agent — the prompt below is the whole instruction.')}
+                label={t('automation_editor.agent_none_label', 'This step, on its own prompt')}
+                description={t('automation_editor.agent_none_hint', 'No agent — the prompt below is the whole instruction.')}
                 selected={!agentId}
                 onPress={() => onPick(null)}
                 disabled={disabled}
@@ -39,7 +39,7 @@ function AgentChooser({ rows, agentId, onPick, disabled }: { rows: CatalogAgent[
                 <OptionRow
                     label={agentId}
                     description={t(
-                        'routine_editor.agent_unlisted_hint',
+                        'automation_editor.agent_unlisted_hint',
                         'This step runs on this agent, and it is not in the list above. Pick another one, or leave it and the step will say so when it runs.',
                     )}
                     selected
@@ -49,7 +49,7 @@ function AgentChooser({ rows, agentId, onPick, disabled }: { rows: CatalogAgent[
             {(rows || []).map((a) => (
                 <OptionRow
                     key={a.id}
-                    label={a.scope === 'personal' ? `${a.name} · ${t('routine_editor.agent_scope_personal', 'Personal')}` : a.name}
+                    label={a.scope === 'personal' ? `${a.name} · ${t('automation_editor.agent_scope_personal', 'Personal')}` : a.name}
                     description={!a.canUse ? say(t, agentReason(a.reason)) : a.description || undefined}
                     selected={agentId === a.id}
                     onPress={() => onPick(a.id)}
@@ -60,12 +60,12 @@ function AgentChooser({ rows, agentId, onPick, disabled }: { rows: CatalogAgent[
             {rows === null ? (
                 <Warn>
                     {t(
-                        'routine_editor.agent_list_unreadable',
+                        'automation_editor.agent_list_unreadable',
                         'The list of agents could not be read, so it is not shown. That is not the same as having none — try again in a moment. A step that already names an agent keeps it.',
                     )}
                 </Warn>
             ) : null}
-            {rows !== null && rows.length === 0 ? <Note>{t('routine_editor.agent_list_empty', 'No agents yet — build one under Agents first.')}</Note> : null}
+            {rows !== null && rows.length === 0 ? <Note>{t('automation_editor.agent_list_empty', 'No agents yet — build one under Agents first.')}</Note> : null}
         </>
     );
 }
@@ -78,9 +78,9 @@ export function AgentFields(editor: StepEditorProps) {
     return (
         <>
             <FieldRow
-                label={t('routine_editor.agent_field_label', 'Which agent')}
+                label={t('automation_editor.agent_field_label', 'Which agent')}
                 hint={t(
-                    'routine_editor.agent_field_hint',
+                    'automation_editor.agent_field_hint',
                     "An agent brings its published role, its knowledge and its tools to this step. Leave it on 'This step' and the step answers on its own prompt, exactly as before.",
                 )}
             >
@@ -88,10 +88,10 @@ export function AgentFields(editor: StepEditorProps) {
             </FieldRow>
             {agentId ? (
                 <FieldRow
-                    label={t('routine_editor.agent_permissions_label', 'What the agent may do here')}
+                    label={t('automation_editor.agent_permissions_label', 'What the agent may do here')}
                     hint={t(
-                        'routine_editor.agent_permissions_hint',
-                        'Off by default, all three. A routine runs without anyone watching, so the agent gets its role and its skills and nothing that reaches outside this step until you say so.',
+                        'automation_editor.agent_permissions_hint',
+                        'Off by default, all three. An automation runs without anyone watching, so the agent gets its role and its skills and nothing that reaches outside this step until you say so.',
                     )}
                 >
                     {AI_STEP_AGENT_PERMISSION_KEYS.map((key) => {

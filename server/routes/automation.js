@@ -82,13 +82,13 @@ router.use(require('./automation/crud'));
 router.use(require('./automation/runs'));
 router.use(require('./automation/versions'));
 router.use(require('./automation/webhooksAndRunOps'));
-// Handoff 5: who a routine is shared with, and handing it to a new owner.
+// Handoff 5: who an automation is shared with, and handing it to a new owner.
 // Every path has a literal second segment, so position is free.
 router.use(require('./automation/sharing').makeSharingRouter());
 // Handoff 5: the Settings page's Notifications section (read side; the policy
 // itself is saved with the definition). Literal second segment too.
 router.use(require('./automation/notifications').makeNotificationsRouter());
-// Handoff 5: the routine's AI Act check and its "Ready to activate?"
+// Handoff 5: the automation's AI Act check and its "Ready to activate?"
 // checklist (routes/automation/aiAct.js). Literal second segments too.
 router.use(require('./automation/aiAct').makeAiActRouter());
 // Handoff 5: the builder's "Frequently used" (routes/automation/usage.js).

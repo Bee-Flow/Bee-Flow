@@ -29,7 +29,7 @@ export default function NdvSideColumn({
         <div
             role="separator"
             aria-orientation="vertical"
-            aria-label={t('routines.ndv.resize_column', 'Resize column')}
+            aria-label={t('automations.ndv.resize_column', 'Resize column')}
             onPointerDown={onResizeDown}
             onPointerMove={onResizeMove}
             onPointerUp={onResizeUp}

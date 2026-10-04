@@ -1,11 +1,12 @@
 import { compile as compileExpr } from '@shared/expr/engine.mjs';
-import { ChevronDown, ChevronRight, Eye, FunctionSquare, Type } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, FunctionSquare, Type, Sparkles } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import previewBinding, { previewBindingShape } from './bindingPreview';
-import InsertDataButton from './InsertDataButton';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
+import previewBinding, { previewBindingShape } from './bindingPreview';
 import { ExpressionHelpBody } from './ExpressionHelp';
 import { EmptySlotNote, FieldLabelRow } from './fieldChrome';
+import { useFormRowLabel } from './FormRowLabelContext';
+import InsertDataButton from './InsertDataButton';
 import { pathListShape } from './listShape';
 import { detectMismatch, kindAtPath, remediesFor } from './mismatch';
 import MismatchResolver from './MismatchResolver';
@@ -22,6 +23,7 @@ import {
     formatPathForInsert,
     getAutocompleteTokenFromPrefix,
 } from '../../../../utils/bindingHelpers';
+import { useAssistantField } from '../chat/AssistantFieldContext';
 import { useFormMode } from '../flow/settings/formDensity';
 import { denseInputClass, listBadgeClass, AMBER_NOTE, FOCUS_RING_INSET } from '../flow/settings/formStyles';
 
@@ -77,6 +79,7 @@ export default function BindingField({
     // (forEach|null) => void — lets the chooser offer "run once per row".
     onRequestForEach = null,
 }) {
+    const rowLabel = useFormRowLabel();
     const seed = inputFromBinding(value);
     const [mode, setMode] = useState(seed.mode);
     const [text, setText] = useState(seed.text);
@@ -85,6 +88,7 @@ export default function BindingField({
     const inputRef = useRef(null);
     const { t } = useTranslation();
     const formMode = useFormMode();
+    const askAssistant = useAssistantField();
     const picker = useVariablePicker();
     const pickerCtx = useVariablePickerContext();
     const effectivePreviewSample = previewSample ?? pickerCtx.previewSample;
@@ -230,7 +234,7 @@ export default function BindingField({
         if (!onFocusField) return;
         onFocusField({
             id: label || placeholder || 'field',
-            label: label || placeholder || 'field',
+            label: label || rowLabel || '',
             insert: insertPath,
         });
     };
@@ -254,6 +258,7 @@ export default function BindingField({
 
     const binding = bindingFromInput(text, mode);
     const preview = previewBinding(binding, effectivePreviewSample);
+    const bindingMismatch = binding.kind === 'ref' && detectMismatch({ actualKind: kindAtPath(binding.path, effectivePreviewSample), expectedKind: expectKind });
 
     // Parse-check the expression as the user types, using the client-side
     // mirror of the SERVER's evaluator (agent-hub/src/shared/expr — kept
@@ -265,7 +270,7 @@ export default function BindingField({
         const src = String(text || '').trim();
         if (!src) return null;
         try { compileExpr(src); return null; }
-        catch (e) { return `${t('routines.builder.expr_invalid', 'Not valid yet')} — ${e.message}`; }
+        catch (e) { return `${t('automations.builder.expr_invalid', 'Not valid yet')} — ${e.message}`; }
     }, [mode, text, t]);
 
     const insertFromPicker = (path) => {
@@ -286,7 +291,9 @@ export default function BindingField({
 
     return (
         <div className="space-y-1">
-            <FieldLabelRow label={label} required={required} expectKind={expectKind} hint={hint} autoMapped={autoMapped} />
+            <div className="flex items-center gap-2"><div className="flex-1 min-w-0"><FieldLabelRow label={label} required={required} expectKind={expectKind} hint={hint} autoMapped={autoMapped} /></div>
+                {askAssistant && (exprError || resolver || bindingMismatch || (required && !String(text || '').trim())) && <button type="button" onClick={() => askAssistant({ label, value, expectKind })} className="inline-flex items-center gap-1 shrink-0 rounded-md px-1.5 py-0.5 text-[10px] text-[var(--type-ai)] bg-[color-mix(in_srgb,var(--type-ai)_9%,transparent)] hover:bg-[var(--bg-secondary)]"><Sparkles size={11} />{t('automations.assistant.map_field', 'Let AI map it')}</button>}
+            </div>
             <div className="group flex items-stretch gap-1">
                 <div className="flex-1 min-w-0">
                     <RefTokenInput
@@ -323,7 +330,7 @@ export default function BindingField({
                     with no way back to plain text. */}
                 {(formMode !== 'simple' || mode === 'expression') && <div
                     role="group"
-                    aria-label={t('routines.builder.mode_group', 'Value mode')}
+                    aria-label={t('automations.builder.mode_group', 'Value mode')}
                     className="shrink-0 flex items-center rounded border border-[var(--border-default)] overflow-hidden"
                 >
                     {/* A word beside each glyph: "Aa vs fx" is editor-culture
@@ -334,25 +341,25 @@ export default function BindingField({
                         type="button"
                         onClick={() => { if (mode !== 'fixed') toggleMode(); }}
                         aria-pressed={mode === 'fixed'}
-                        title={t('routines.builder.mode_text', 'Plain text — type a value. Use {{ }} to insert data from a previous step.')}
+                        title={t('automations.builder.mode_text', 'Plain text — type a value. Use {{ }} to insert data from a previous step.')}
                         className={`px-1.5 py-0.5 text-[11px] flex items-center justify-center gap-1 transition-colors ${FOCUS_RING_INSET}
                             ${mode === 'fixed'
                                 ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                                 : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
                     >
-                        <Type size={12} /><span>{t('routines.builder.mode_text_word', 'Text')}</span>
+                        <Type size={12} /><span>{t('automations.builder.mode_text_word', 'Text')}</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => { if (mode !== 'expression') toggleMode(); }}
                         aria-pressed={mode === 'expression'}
-                        title={t('routines.builder.mode_expression', 'Expression — compute the value, e.g. steps.s1.output.total > 100')}
+                        title={t('automations.builder.mode_expression', 'Expression — compute the value, e.g. steps.s1.output.total > 100')}
                         className={`px-1.5 py-0.5 text-[11px] font-mono border-l border-[var(--border-default)] flex items-center justify-center gap-1 transition-colors ${FOCUS_RING_INSET}
                             ${mode === 'expression'
                                 ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                                 : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
                     >
-                        <FunctionSquare size={12} /><span>{t('routines.builder.mode_formula_word', 'Formula')}</span>
+                        <FunctionSquare size={12} /><span>{t('automations.builder.mode_formula_word', 'Formula')}</span>
                     </button>
                 </div>}
             </div>
@@ -373,7 +380,7 @@ export default function BindingField({
                         aria-expanded={helpOpen}
                         className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                     >
-                        {helpOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {t('routines.builder.what_can_i_write', 'What can I write here?')}
+                        {helpOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {t('automations.builder.what_can_i_write', 'What can I write here?')}
                     </button>
                     {helpOpen && <ExpressionHelpBody />}
                 </div>
@@ -400,23 +407,23 @@ export default function BindingField({
                         {showLine && (
                             <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1.5 min-w-0">
                                 <Eye size={11} className="shrink-0" />
-                                <span>{t('routines.builder.how_it_looks', "Here's how it looks:")}</span>
+                                <span>{t('automations.builder.how_it_looks', "Here's how it looks:")}</span>
                                 <span className="font-mono text-[var(--text-secondary)] truncate">{preview}</span>
                                 {shape?.isList && !shape.empty && (
                                     <span className={listBadgeClass()}>
-                                        {t('routines.builder.list_of_n', 'list of {n}', { n: shape.count })}
+                                        {t('automations.builder.list_of_n', 'list of {n}', { n: shape.count })}
                                     </span>
                                 )}
                             </div>
                         )}
                         {shape?.isList && shape.empty && (
                             <div className={AMBER_NOTE}>
-                                {t('routines.builder.list_empty_sample', 'Nothing found here in the sample data — check the field name, or run the step above to get real data.')}
+                                {t('automations.builder.list_empty_sample', 'Nothing found here in the sample data — check the field name, or run the step above to get real data.')}
                             </div>
                         )}
                         {shape?.isList && !shape.empty && expectShape === 'scalar' && (
                             <div className={`${AMBER_NOTE} flex items-center gap-2 flex-wrap`}>
-                                {t('routines.builder.list_wants_one', 'This field wants one value, but you gave it a list of {n}.', { n: shape.count })}
+                                {t('automations.builder.list_wants_one', 'This field wants one value, but you gave it a list of {n}.', { n: shape.count })}
                                 {binding.kind === 'ref' && !resolver && (
                                     <button
                                         type="button"
@@ -440,7 +447,7 @@ export default function BindingField({
                                         }}
                                         className="underline hover:no-underline"
                                     >
-                                        {t('routines.builder.choose_list_use', 'Choose how to use the list')}
+                                        {t('automations.builder.choose_list_use', 'Choose how to use the list')}
                                     </button>
                                 )}
                             </div>
@@ -508,4 +515,3 @@ function deepEqualBinding(a, b) {
     try { return JSON.stringify(a) === JSON.stringify(b); }
     catch { return false; }
 }
-

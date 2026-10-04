@@ -35,7 +35,7 @@ export function JsonRow({
             onLongPress={() => onCopy(row)}
             accessibilityRole="button"
             accessibilityState={container ? { expanded: row.expanded } : undefined}
-            accessibilityLabel={`${row.key || t('routines.ndv.output_word', 'output')}: ${row.preview}`}
+            accessibilityLabel={`${row.key || t('automations.ndv.output_word', 'output')}: ${row.preview}`}
             accessibilityHint={container ? undefined : t('common.copy', 'Copy')}
             style={({ pressed }) => [styles.row, indent, pressed ? styles.pressed : null]}
         >

@@ -58,7 +58,7 @@ test('an HTTP request whose body carries a personal field is warned about, on th
     assert.match(w.path, /\.body$/, 'the path names the field the reference was found in');
 });
 
-test('camelCase and snake_case both count — the two spellings a routine actually uses', () => {
+test('camelCase and snake_case both count — the two spellings an automation actually uses', () => {
     for (const field of ['customerName', 'customer_name', 'phoneNumber', 'emailAddress']) {
         const r = validateDefinition(def([post('t1', `x {{trigger.output.${field}}}`)]));
         assert.ok(codesOf(r).includes('http_request.personal_data_outbound'),
@@ -163,7 +163,7 @@ test('the message names the destination — Art. 30(1)(d) asks who received it',
 
 // ── 2. A model reading personal data with no Privacy Shield ─────────────────
 
-test('an ai_step reading a personal field with no shield in the routine is warned about', () => {
+test('an ai_step reading a personal field with no shield in the automation is warned about', () => {
     const r = validateDefinition(def([
         { id: 'a1', type: 'ai_step', prompt: 'Vat samen: {{steps.dt.output.email}}' },
     ]));
@@ -190,7 +190,7 @@ test('an ai_step downstream of a datatable read that names a personal column is 
     assert.ok(codesOf(r).includes('ai_step.personal_data_unguarded'), JSON.stringify(codesOf(r)));
 });
 
-// The step every silencing test is about, and the bare routine that proves it
+// The step every silencing test is about, and the bare automation that proves it
 // speaks without one. Each case below adds exactly one step to `bare` — so a
 // case that stops failing means the added step silenced it, not that the rule
 // went missing.
@@ -218,7 +218,7 @@ test('a shield AFTER the model does not silence it — a shield is a position, n
     assert.ok(!codesOf(before).includes('ai_step.personal_data_unguarded'), JSON.stringify(codesOf(before)));
     // The same two steps, the other way round: the model has already read the
     // raw values by the time anything hides them. "Any shield anywhere" is how
-    // a routine could silence this by dragging the node to the end.
+    // an automation could silence this by dragging the node to the end.
     const after = validateDefinition(def([readsPersonal(), shield]));
     assert.ok(codesOf(after).includes('ai_step.personal_data_unguarded'), JSON.stringify(codesOf(after)));
 });
@@ -291,7 +291,7 @@ test('a fourth Privacy Shield shape forces a decision here rather than being ign
     // This rule NARROWS core/privacy/dataFlow's shield list by one shape.
     // A narrowing is only honest while it is deliberate: if a shape is added
     // there and nobody looks here, it silently stops counting as protection
-    // and every routine using it starts getting a warning it has already
+    // and every automation using it starts getting a warning it has already
     // answered. Take it or reject it in SHIELD_TYPES — do not delete this.
     const unaccounted = [...dataFlow.SHIELD_TYPES].filter(t => !SHIELD_TYPES.has(t) && t !== 'untokenize');
     assert.deepEqual(unaccounted, [],
@@ -320,7 +320,7 @@ test('"a model reads this" is automationGraph\'s answer, and it never includes s
     assert.ok(!codesOf(summarize).some(c => c.endsWith('.personal_data_unguarded')), JSON.stringify(codesOf(summarize)));
 });
 
-test('a routine that touches no personal data gets neither warning', () => {
+test('an automation that touches no personal data gets neither warning', () => {
     const schema = (props) => ({ type: 'object', properties: props });
     const r = validateDefinition(def([
         { id: 'a1', type: 'ai_step', prompt: 'Schrijf een samenvatting van {{trigger.output.invoice_total}}', outputSchema: schema({ summary: { type: 'string' } }) },

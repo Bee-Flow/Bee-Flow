@@ -40,9 +40,9 @@ test('buildRunFilterWhere scopes to the user and parameterises', () => {
     assert.equal(w.joinUsers, false);
 });
 
-test('buildRunFilterWhere org scope: COALESCE over the routine AND its owner, with the users join', () => {
+test('buildRunFilterWhere org scope: COALESCE over the automation AND its owner, with the users join', () => {
     const w = buildRunFilterWhere({ org: { orgId: 'org-9' } }, {}, 1);
-    // `a.organization_id = $1` alone would silently drop every routine created
+    // `a.organization_id = $1` alone would silently drop every automation created
     // before that column started being written (stores/automationStore/forms.js
     // documents the same trap). The COALESCE is the whole scope.
     assert.match(w.clause, /COALESCE\(a\.organization_id, u\."organizationId"\) = \$1/);
@@ -103,7 +103,7 @@ test('buildRunFilterWhere builds ANY() for array filters + scalar clauses', () =
 
 test('the org scope INTERSECTS its filters — automationId narrows, it never replaces', () => {
     // The one shape that would turn a narrowing filter into an alternative
-    // scope: ask for one routine and get it whether or not it is this
+    // scope: ask for one automation and get it whether or not it is this
     // organisation's. The org predicate has to still be in the clause, and the
     // automation filter has to be ANDed onto it.
     const w = buildRunFilterWhere({ org: { orgId: 'org-9' } }, { automationId: 'a1' }, 1);
@@ -119,7 +119,7 @@ test('buildRunFilterWhere ignores empty/blank filter values', () => {
     assert.deepEqual(w.params, ['u']);
 });
 
-test('buildRunFilterWhere leaves out runs of routines in the trash, except in the one-routine scope', () => {
+test('buildRunFilterWhere leaves out runs of automations in the trash, except in the one-automation scope', () => {
     assert.match(buildRunFilterWhere({ user: { userId: 'u' } }, {}, 1).clause, /a\.deleted_at IS NULL/);
     assert.match(buildRunFilterWhere({ org: { orgId: 'o' } }, {}, 1).clause, /a\.deleted_at IS NULL/);
     assert.doesNotMatch(buildRunFilterWhere({ automation: { automationId: 'a1' } }, {}, 1).clause, /deleted_at/);
@@ -143,7 +143,7 @@ test('buildRunFilterWhere lists journey heads only, whatever else is filtered', 
 //
 // The org branch reaches into `users` for one thing: the COALESCE fallback that
 // answers "whose organisation is this run in" when the automation row does not
-// say. As an INNER join that reach doubled as a filter — a routine whose owner
+// say. As an INNER join that reach doubled as a filter — an automation whose owner
 // has no users row left dropped out of the organisation's log even with
 // `a.organization_id` set and matching. A log that quietly loses entries is
 // worse than one that errors, because nothing looks wrong.

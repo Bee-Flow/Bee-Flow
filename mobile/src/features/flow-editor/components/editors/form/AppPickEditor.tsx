@@ -83,7 +83,7 @@ export function AppPickEditor({ field, index, sources, onChange, disabled = fals
             <ToggleField
                 value={withText}
                 onChange={(on) => onChange({ withText: on })}
-                label={t('mobile.flow.form.bring_content', 'Bring the content into the routine')}
+                label={t('mobile.flow.form.bring_content', 'Bring the content into the automation')}
                 description={
                     withText
                         ? t(

@@ -7,6 +7,7 @@
  */
 
 const BaseProvider = require("./base");
+const { qualifiesForStrict } = require("./openaiModelCaps");
 const {
     describeClaudeModel,
     resolveEffort,
@@ -14,6 +15,7 @@ const {
 const { downscaleClaudeMessages } = require("../documents/imageDownscale");
 const { inlineInternalImages } = require("../documents/imageInline");
 const log = require('../../telemetry/log');
+const { normalizeUsage } = require("./usageNormalizer");
 
 const DEFAULT_MAX_TOKENS = 8192;
 
@@ -228,7 +230,47 @@ function isThinkingReplayRejection(err) {
     return /invalid|verif|unexpected|expected|does not match|mismatch/i.test(body);
 }
 
+/**
+ * The instruction that stands in for a forced `tool_choice` on the models that
+ * refuse one (see supportsForcedToolChoice). `auto` does not guarantee a call,
+ * so the prompt has to say that the tool IS the answer — the documented
+ * replacement for `{type:'tool'}` / `{type:'any'}`.
+ */
+function forcedToolInstruction(toolName) {
+    return toolName
+        ? `Respond by calling the \`${toolName}\` tool exactly once, with arguments that follow its input schema. Do not answer in plain text.`
+        : 'Respond by calling one of the provided tools, with arguments that follow its input schema. Do not answer in plain text.';
+}
+
+/**
+ * The 400 a model answers a forced `tool_choice` with when it no longer
+ * supports one. Recognised so a model the catalog does not know yet still
+ * gets its answer through the `auto` fallback instead of a failed request.
+ */
+function isForcedToolChoiceRejection(err) {
+    if (err?.status && err.status !== 400) return false;
+    const body = JSON.stringify(err?.error || '') + (err?.message || '');
+    return /tool_choice/i.test(body) && /not supported/i.test(body);
+}
+
 class ClaudeProvider extends BaseProvider {
+    // Modern Claude models can reject forced tool_choice. Use native JSON for
+    // closed structured-output schemas; actual action tools keep their own path.
+    supportsStructuredOutput(modelId, schema) {
+        const match = describeClaudeModel(modelId).id.match(/^claude-(?:sonnet|opus|haiku|fable|mythos)-(\d+)/);
+        return !!match && Number(match[1]) >= 5 && (schema === undefined || qualifiesForStrict(schema));
+    }
+
+    /**
+     * Whether `tool_choice: {type:'tool'|'any'}` is accepted. False on Sonnet
+     * 5.5, Opus 5.5 and Fable/Mythos 5.1 onwards; _buildSdkParams then sends
+     * `auto` plus forcedToolInstruction, and llmClient.chatForcedTool retries
+     * once when the model still answered in prose.
+     */
+    supportsForcedToolChoice(modelId) {
+        return describeClaudeModel(modelId).forcedToolChoice;
+    }
+
     constructor() {
         super("claude");
     }
@@ -749,10 +791,18 @@ class ClaudeProvider extends BaseProvider {
         // reasoning adds nothing, so thinking yields to the force, never the
         // other way around. Skipping replay too: thinking blocks without a
         // thinking param are dead weight in the history.
+        //
+        // Sonnet 5.5, Opus 5.5 and Fable/Mythos 5.1 refuse a forced choice
+        // outright (400 `tool_choice: type "tool" and "any" are not supported
+        // for this model.`). There the call runs with `auto` plus an explicit
+        // instruction naming the tool (forcedToolFallback), and thinking STAYS
+        // on: it cannot be switched off on those models anyway, and dropping
+        // the config would only lose the effort and the max_tokens headroom.
         const tc = options.toolChoice;
-        const forcedChoice = tc === 'any' || tc === 'required'
-            || !!(tc && typeof tc === 'object' && (tc.name || tc.function?.name));
-        if (forcedChoice && thinkingConfig) {
+        const forcedName = tc && typeof tc === 'object' ? (tc.name || tc.function?.name || null) : null;
+        const forcedChoice = tc === 'any' || tc === 'required' || !!forcedName;
+        const unforced = forcedChoice && (options._noForcedToolChoice || !this.supportsForcedToolChoice(model));
+        if (forcedChoice && !unforced && thinkingConfig) {
             thinkingConfig = undefined;
         }
         const keepThinking = !!thinkingConfig && !options._noThinkingReplay;
@@ -781,10 +831,12 @@ class ClaudeProvider extends BaseProvider {
             // standalone tools breakpoint is redundant — drop it.
             params.tools = normalizedTools;
             if (options.toolChoice === "auto") params.tool_choice = { type: "auto" };
-            if (options.toolChoice === "any" || options.toolChoice === "required") {
+            if (unforced) {
+                params.tool_choice = { type: "auto" };
+                params.system = [...(params.system || []), { type: "text", text: forcedToolInstruction(forcedName) }];
+            } else if (options.toolChoice === "any" || options.toolChoice === "required") {
                 params.tool_choice = { type: "any" };
-            }
-            if (options.toolChoice && typeof options.toolChoice === "object") {
+            } else if (forcedName) {
                 // Force a single named tool. Accept BOTH the bare `{name}` form
                 // and the OpenAI wire shape `{type:'function',function:{name}}`
                 // that openai-style callers and llmClient.forcedToolChoice emit —
@@ -792,8 +844,7 @@ class ClaudeProvider extends BaseProvider {
                 // caller passing the OpenAI shape previously fell through here and
                 // silently ran with tool_choice unset (auto), breaking every
                 // forced-structured-output call routed to a Claude model.
-                const forcedName = options.toolChoice.name || options.toolChoice.function?.name;
-                if (forcedName) params.tool_choice = { type: "tool", name: forcedName };
+                params.tool_choice = { type: "tool", name: forcedName };
             }
         }
 
@@ -871,6 +922,10 @@ class ClaudeProvider extends BaseProvider {
             }
         }
 
+        if (options.responseFormat?.type === 'json_schema' && options.responseFormat.json_schema?.schema) {
+            params.output_config = { ...params.output_config,
+                format: { type: 'json_schema', schema: options.responseFormat.json_schema.schema } };
+        }
         return params;
     }
 
@@ -919,6 +974,13 @@ class ClaudeProvider extends BaseProvider {
                 log.warn('[Claude] thinking replay rejected — retrying without stored thinking blocks:', err.message);
                 return this.chat(apiKey, baseUrl, model, messages, { ...options, _noThinkingReplay: true });
             }
+            // A forced tool_choice on a model the catalog still thinks accepts
+            // one: rerun with `auto` plus the instruction rather than failing.
+            if (!options._noForcedToolChoice && isForcedToolChoiceRejection(err)
+                && ['tool', 'any'].includes(params.tool_choice?.type)) {
+                log.warn(`[Claude] forced tool_choice rejected for ${model} — retrying with auto:`, err.message);
+                return this.chat(apiKey, baseUrl, model, messages, { ...options, _noForcedToolChoice: true });
+            }
             // A rejection of the context-management beta (unexpected model /
             // beta drift) must not take down chat for the whole model — strip
             // the param and retry once without it.
@@ -964,7 +1026,7 @@ class ClaudeProvider extends BaseProvider {
             toolCalls: toolCalls && toolCalls.length > 0 ? toolCalls : null,
             stopReason: response.stop_reason,
             stopDetails: response.stop_details || null,
-            usage: response.usage || null,
+            usage: normalizeUsage('claude', response.usage),
             raw: response,
         };
     }
@@ -1000,6 +1062,7 @@ class ClaudeProvider extends BaseProvider {
         /** @type {{ partId: string, redacted: boolean, signature: string|null, redactedData?: string } | null} */
         let currentThinking = null; // Track in-progress thinking / redacted_thinking block
         let thinkingPartCounter = 0;
+        /** @type {Record<string, any> | null} */
         let streamUsage = null;
         let stopReason = null;
         let stopDetails = null;
@@ -1136,33 +1199,19 @@ class ClaudeProvider extends BaseProvider {
                 stopReason = finalMessage.stop_reason || null;
                 stopDetails = finalMessage.stop_details || null;
                 if (finalMessage.usage) {
-                    const u = finalMessage.usage;
-                    const cacheCreate5m = u.cache_creation?.ephemeral_5m_input_tokens || 0;
-                    const cacheCreate1h = u.cache_creation?.ephemeral_1h_input_tokens || 0;
-                    const cacheCreateTotal = u.cache_creation_input_tokens
-                        || (cacheCreate5m + cacheCreate1h)
-                        || 0;
-                    // When both TTLs were written, attribute the row to the
-                    // dominant TTL so cost stays approximately right. Mixed
-                    // writes are rare in this codebase (only system gets 1h).
-                    let cacheTtl = null;
-                    if (cacheCreate1h > 0 && cacheCreate1h >= cacheCreate5m) cacheTtl = '1h';
-                    else if (cacheCreate5m > 0) cacheTtl = '5m';
-                    else if (cacheCreateTotal > 0) cacheTtl = '1h';  // fallback: extractSystem places a 1h breakpoint
+                    // Same normaliser as the non-streaming chat(): input_tokens
+                    // stays the uncached remainder (usageNormalizer header), the
+                    // 5m/1h cache-write split is carried instead of one
+                    // "dominant" TTL, and tier/geo/server-tool counts ride along.
                     streamUsage = {
-                        prompt_tokens: u.input_tokens || 0,
-                        completion_tokens: u.output_tokens || 0,
-                        total_tokens: (u.input_tokens || 0) + (u.output_tokens || 0),
-                        cached_tokens: u.cache_read_input_tokens || 0,
-                        cache_creation_tokens: cacheCreateTotal,
-                        cache_ttl: cacheTtl,
+                        ...normalizeUsage('claude', finalMessage.usage),
                         stop_reason: finalMessage.stop_reason || null,
                     };
                     if (streamUsage.cached_tokens > 0) {
                         log.info(`[Claude] ⚡ Cache hit: ${streamUsage.cached_tokens} cached input tokens (saved ~${Math.round(streamUsage.cached_tokens * 0.9)} token-equivalents)`);
                     }
                     if (streamUsage.cache_creation_tokens > 0) {
-                        log.info(`[Claude] 📦 Cache created: ${streamUsage.cache_creation_tokens} tokens (ttl=${streamUsage.cache_ttl}, 5m=${cacheCreate5m}, 1h=${cacheCreate1h})`);
+                        log.info(`[Claude] 📦 Cache created: ${streamUsage.cache_creation_tokens} tokens (5m=${streamUsage.cache_creation_5m_tokens}, 1h=${streamUsage.cache_creation_1h_tokens})`);
                     }
                 }
             } catch (e) {
@@ -1182,6 +1231,13 @@ class ClaudeProvider extends BaseProvider {
             if (eventCount === 0 && !options._noThinkingReplay && isThinkingReplayRejection(err)) {
                 log.warn('[Claude] thinking replay rejected — retrying stream without stored thinking blocks:', err.message);
                 return this.stream(apiKey, baseUrl, model, messages, { ...options, _noThinkingReplay: true }, onEvent);
+            }
+            // See chat(): a forced tool_choice the model refuses reruns with
+            // `auto` — safe here for the same connect-time reason.
+            if (eventCount === 0 && !options._noForcedToolChoice && isForcedToolChoiceRejection(err)
+                && ['tool', 'any'].includes(params.tool_choice?.type)) {
+                log.warn(`[Claude] forced tool_choice rejected for ${model} — retrying stream with auto:`, err.message);
+                return this.stream(apiKey, baseUrl, model, messages, { ...options, _noForcedToolChoice: true }, onEvent);
             }
             log.error('[Claude] Stream error:', err.message);
             if (err.status) log.error('[Claude] Error status:', err.status);

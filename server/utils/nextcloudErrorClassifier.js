@@ -85,7 +85,7 @@ function classifyNextcloudError(input) {
     if (status === 429 || status === 503 || /rate limit|too many requests/i.test(lower)) {
         return make('THROTTLED', 'transient', 'TransientError',
             'Nextcloud is rate-limiting requests.',
-            'This is temporary — the routine will retry automatically.');
+            'This is temporary — the automation will retry automatically.');
     }
     if (/timeout|timed out|aborted/i.test(lower) || status === 408 || status === 504) {
         return make('TIMEOUT', 'transient', 'TimeoutError',

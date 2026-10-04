@@ -93,14 +93,14 @@ const NL_TRANSLATIONS = {
     // BFSF-255 — Google Workspace connector tile
     'settings.integrations_google_workspace': 'Google Workspace',
     'integ.google_desc': 'Verbind Gmail, Agenda en Drive zodat AI-tools met je Google-account kunnen werken',
-    'integ.google_connected': 'Verbonden — Gmail, Agenda en Drive werken in chat en routines',
-    'integ.google_connected_as': 'Verbonden als {email} — Gmail, Agenda en Drive werken in chat en routines',
-    'integ.google_needs_reauth': 'Je Google-verbinding is verlopen — verbind opnieuw zodat tools en routines blijven werken',
+    'integ.google_connected': 'Verbonden — Gmail, Agenda en Drive werken in chat en automatiseringen',
+    'integ.google_connected_as': 'Verbonden als {email} — Gmail, Agenda en Drive werken in chat en automatiseringen',
+    'integ.google_needs_reauth': 'Je Google-verbinding is verlopen — verbind opnieuw zodat tools en automatiseringen blijven werken',
     'integ.google_connect': 'Google Workspace verbinden',
     'integ.google_reconnect': 'Opnieuw verbinden',
     'integ.google_opening': 'Google openen…',
     'integ.google_not_configured': 'Google Workspace is niet geconfigureerd. Vraag je beheerder de Google Client ID en Secret in te stellen bij Beheer → Authenticatie.',
-    'integ.google_disconnect_note': 'Bij het verbreken worden routines die Gmail, Agenda of Drive gebruiken gepauzeerd totdat je opnieuw verbindt. Je blijft ingelogd.',
+    'integ.google_disconnect_note': 'Bij het verbreken worden automatiseringen die Gmail, Agenda of Drive gebruiken gepauzeerd totdat je opnieuw verbindt. Je blijft ingelogd.',
     'integ.google_error': 'De Google-verbinding kon niet worden gestart. Probeer het opnieuw.',
 
     // Drive-by: keys shipped by the 2026-07-15 autosave/conflict refactor

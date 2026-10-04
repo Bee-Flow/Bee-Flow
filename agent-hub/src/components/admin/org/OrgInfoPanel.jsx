@@ -452,10 +452,12 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
         if (!orgData?.id) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgData.id}`, {
+            // The id is the URL; the route refuses any key it does not update ("Unsupported field(s): id").
+            const { id, ...fields } = orgData;
+            const res = await authFetch(`${API_BASE}/auth/organizations/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orgData),
+                body: JSON.stringify(fields),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Changes saved' });

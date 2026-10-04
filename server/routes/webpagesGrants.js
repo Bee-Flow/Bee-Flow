@@ -13,7 +13,7 @@
  *   DELETE /:id/grants/automations/:automationId
  *   GET    /:id/data-cards                      — het kaartenmodel van de
  *                                                 Data-tab (tabellen, voedende
- *                                                 routines, waarschuwingen)
+ *                                                 automations, waarschuwingen)
  *   GET    /:id/bindings                        — wat de pagina ZELF doet: de
  *                                                 statische scan op uitgaande
  *                                                 oproepen in eigen code, WAAR

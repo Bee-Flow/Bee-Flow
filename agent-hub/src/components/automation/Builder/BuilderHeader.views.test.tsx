@@ -17,7 +17,7 @@ vi.mock('../../../utils/helpers', async (importOriginal) => ({
  * (persisted initialTab values, BFSF-343); only the words change.
  */
 const props = (over: Partial<BuilderHeaderProps> = {}): BuilderHeaderProps => ({
-    title: 'My routine',
+    title: 'My automation',
     triggerKind: 'manual',
     automation: { id: 'a1', isActive: false, isDraft: true, version: 1, liveVersion: null, neverLive: true },
     tab: 'build',
@@ -127,7 +127,7 @@ describe('BuilderHeader: right cluster per view', () => {
         expect(screen.getByRole('button', { name: 'Test' }).textContent).toContain('from Label commands');
     });
 
-    it('shows no entry-point choice for a single-trigger routine', async () => {
+    it('shows no entry-point choice for a single-trigger automation', async () => {
         const user = userEvent.setup();
         render(withQueryClient(<BuilderHeader {...props({ onRunLive: vi.fn() })} />));
         await user.click(screen.getByRole('button', { name: 'More ways to run' }));

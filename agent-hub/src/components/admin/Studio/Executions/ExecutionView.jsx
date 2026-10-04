@@ -122,9 +122,9 @@ export default function ExecutionView({
         // approve-step answers a step-level awaiting_approval. approve-step
         // returns the CHILD run that continues — open it.
         // The run-level gate TAKES the decision word too: approving promotes
-        // the routine to live, rejecting closes this run as cancelled and
+        // the automation to live, rejecting closes this run as cancelled and
         // leaves the first-run gate on. Dropping the word here (it used to be
-        // thrown away) made Reject run the routine and strip the gate.
+        // thrown away) made Reject run the automation and strip the gate.
         if (run?.status === 'awaiting_confirm') {
             await api.approveRun(runId, decision === 'reject' ? 'reject' : 'approve');
             await Promise.all([loadRun(), fetchSteps()]);

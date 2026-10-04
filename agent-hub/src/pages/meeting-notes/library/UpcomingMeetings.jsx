@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Loader2, RefreshCw, Video, Mic, Dot, FileText, AlertCircle } from 'lucide-react';
+import { Calendar, Loader2, RefreshCw, Video, Mic, Dot, FileText, AlertCircle, Users } from 'lucide-react';
 import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
 import useTranslation from '../../../hooks/useTranslation';
 import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
+import { openMicrosoftOAuthPopup } from '../../../lib/microsoftOAuthPopup';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import TagRow from '../detail/TagRow';
-import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord } from '../lib/transcriptionsApi';
+import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../lib/transcriptionsApi';
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices } from '../lib/upcomingMeta';
 
 /**
@@ -39,16 +40,12 @@ import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStat
  * De voetregel belooft alleen wat de bot echt doet, per provider — en zwijgt
  * over wat de payload niet zegt (`attendeeNotices`).
  *
- * ── AFWIJKING VAN HET ARTBOARD: GEEN TEAMS-RIJ ────────────────────────
- * Het artboard tekent naast Talk en Meet ook een Teams-rij. Die staat hier
- * bewust niet. Preciezer dan "Teams heeft geen bron": de AGENDA-bron bestaat
- * wél en is zelfs rijker dan die van Talk (server/integrations/
- * msCalendarTools.js:167-187 levert start/end, attendees[{email,name,status}]
- * en onlineMeeting.joinUrl). Wat ontbreekt is (a) een Meeting-Notes-koppeling
- * — er is geen `/api/transcriptions/teams-meetings` en geen msCalendar-variant
- * van talkCalendar/gmeetCalendar — en (b) een OPNAME-bron: Talk start de
- * opname zelf, Meet oogst uit Drive, en voor Teams heeft deze codebase geen
- * equivalent. Een Teams-rij zou dus een toggle tonen die niets aanzet.
+ * ── TEAMS ─────────────────────────────────────────────────────────────
+ * Teams rows come from the Outlook calendar (routes/transcriptions/teams.js)
+ * and are harvested after the meeting: Bee Flow downloads the Teams recording
+ * and transcribes it itself. Graph only gives recordings to the ORGANIZER, so
+ * a meeting someone else organises shows "Organizer only" with the toggle
+ * disabled instead of a switch that cannot do anything.
  */
 
 const Toggle = ({ on, onClick, disabled, label, title }) => (
@@ -90,6 +87,13 @@ function StatusChip({ status, onOpenNote, t }) {
             return <span className={base} style={muted}>{t('meetings.upcoming_not_moderator', 'Not a moderator')}</span>;
         case 'not_organizer':
             return <span className={base} style={muted}>{t('meetings.upcoming_organizer_only', 'Organizer only')}</span>;
+        case 'manual_record_teams':
+            return (
+                <span className={`${base} bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] text-[var(--warning-ink)]`}
+                    title={t('meetings.upcoming_manual_teams_hint', 'Start the recording in Teams — it will be imported afterwards.')}>
+                    {t('meetings.upcoming_record_in_teams', 'Record in Teams')}
+                </span>
+            );
         case 'manual_record':
             return (
                 <span className={base} title={t('meetings.upcoming_manual_hint', 'Start the recording in Google Meet — it will be imported afterwards.')} style={{ background: 'color-mix(in srgb, var(--warning) 12%, transparent)', color: 'var(--warning-ink)' }}>
@@ -111,7 +115,7 @@ function ProviderChip({ provider, icon: Icon }) {
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
             style={{ background: kindTint('meeting', 12), color: kindColorVar('meeting') }}>
             {Icon ? <Icon className="w-2.5 h-2.5" aria-hidden="true" /> : null}
-            {provider === 'gmeet' ? 'Meet' : 'Talk'}
+            {provider === 'gmeet' ? 'Meet' : provider === 'teams' ? 'Teams' : 'Talk'}
         </span>
     );
 }
@@ -124,6 +128,16 @@ function gmeetChipStatus(m, autoImport) {
     if (m.importedNoteId || m.status === 'imported') return 'recorded';
     if (m.excluded || !autoImport) return 'upcoming';
     return m.recordingControlledByHost ? 'manual_record' : 'will_record';
+}
+
+// Chip status for a Teams row. Only the organizer can import, and Teams'
+// "record automatically" is switched on for them when the settings allow it;
+// otherwise the organizer starts the recording in Teams.
+function teamsChipStatus(m, autoImport, autoRecordArmed) {
+    if (m.status === 'organizer_only') return 'not_organizer';
+    if (m.importedNoteId) return 'recorded';
+    if (m.excluded || !autoImport) return 'upcoming';
+    return autoRecordArmed ? 'will_record' : 'manual_record_teams';
 }
 
 /**
@@ -217,13 +231,16 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
     const { t } = useTranslation();
     const [talk, setTalk] = useState({ loading: true, error: null, data: null }); // { recordingEnabled, recordingMode, meetings }
     const [gmeet, setGmeet] = useState({ loading: true, error: null, data: null }); // { connection, autoImport, meetings }
+    const [teams, setTeams] = useState({ loading: true, error: null, data: null }); // { connection, autoImport, autoRecordConfig, meetings }
     const [busyKey, setBusyKey] = useState(null);
     const [gmeetRowErrors, setGmeetRowErrors] = useState({}); // eventId → message
+    const [teamsRowErrors, setTeamsRowErrors] = useState({}); // eventId → message
     // rowKey → true zodra de server meldde dat een BREDERE regel de keuze van
     // deze gebruiker overruled (org-breed, of de hele serie). Alleen dán krijgt
     // `opted_out` een uitleg: bij een eigen klik is die overbodig.
     const [overridden, setOverridden] = useState({});
     const [reconnecting, setReconnecting] = useState(false);
+    const [reconnectingMs, setReconnectingMs] = useState(false);
 
     const loadTalk = async () => {
         setTalk(s => ({ ...s, loading: true, error: null }));
@@ -235,27 +252,38 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
         try { setGmeet({ loading: false, error: null, data: await listGoogleMeetMeetings() }); }
         catch (err) { setGmeet(s => ({ ...s, loading: false, error: err })); }
     };
-    const load = () => { setGmeetRowErrors({}); setOverridden({}); loadTalk(); loadGmeet(); };
+    const loadTeams = async () => {
+        setTeams(s => ({ ...s, loading: true, error: null }));
+        try { setTeams({ loading: false, error: null, data: await listTeamsMeetings() }); }
+        catch (err) { setTeams(s => ({ ...s, loading: false, error: err })); }
+    };
+    const load = () => { setGmeetRowErrors({}); setTeamsRowErrors({}); setOverridden({}); loadTalk(); loadGmeet(); loadTeams(); };
     useEffect(() => { load(); }, []);
 
-    const loading = talk.loading || gmeet.loading;
+    const loading = talk.loading || gmeet.loading || teams.loading;
     const recordingEnabled = !!talk.data?.recordingEnabled;
     const recordingMode = talk.data?.recordingMode || 'audio';
     const connection = gmeet.data?.connection || null;
     const meetScopesGranted = connection?.meetScopesGranted === true;
     const autoImport = !!gmeet.data?.autoImport;
+    const teamsConnection = teams.data?.connection || null;
+    const teamsScopesGranted = teamsConnection?.teamsScopesGranted === true;
+    const teamsAutoImport = !!teams.data?.autoImport;
+    const teamsAutoRecordArmed = teams.data?.autoRecordConfig === true && teamsConnection?.hasMeetingWriteScope === true;
     // Bewust NIET met `!!`: `undefined` (het veld ontbreekt in de payload) is
     // hier "onbekend" en moet iets anders opleveren dan een expliciete `false`.
     const postSummaryBack = talk.data ? talk.data.postSummaryBack : undefined;
 
     const talkMeetings = (!talk.loading && !talk.error && talk.data?.meetings) || [];
     const gmeetMeetings = (!gmeet.loading && !gmeet.error && gmeet.data?.meetings) || [];
+    const teamsMeetings = (!teams.loading && !teams.error && teams.data?.meetings) || [];
     // De EFFECTIEVE chipstatus reist mee in de rij: de voetregel hangt eraan,
     // en die mag niet op `!excluded` afgaan — dat is de stand van de schakelaar,
     // niet de uitkomst (zie attendeeNotices).
     const rows = [
         ...talkMeetings.map(m => ({ provider: 'talk', key: `talk:${m.uid || ''}:${m.talkToken}`, start: m.start, m, status: m.status })),
         ...gmeetMeetings.map(m => ({ provider: 'gmeet', key: `gmeet:${m.eventId}`, start: m.start, m, status: gmeetChipStatus(m, autoImport) })),
+        ...teamsMeetings.map(m => ({ provider: 'teams', key: `teams:${m.eventId}`, start: m.start, m, status: teamsChipStatus(m, teamsAutoImport, teamsAutoRecordArmed) })),
     ].sort((a, b) => new Date(a.start || 0).getTime() - new Date(b.start || 0).getTime());
 
     // Report the count once both sources have answered; while loading the
@@ -264,8 +292,8 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
     // 0" leest als "je hebt geen vergaderingen", terwijl het "we konden ze
     // niet ophalen" is. Eén werkende bron is wél een antwoord (de andere toont
     // zijn eigen foutbanner in het paneel).
-    const bothFailed = !!talk.error && !!gmeet.error;
-    const rowCount = (loading || bothFailed) ? null : rows.length;
+    const allFailed = !!talk.error && !!gmeet.error && !!teams.error;
+    const rowCount = (loading || allFailed) ? null : rows.length;
     useEffect(() => { onRowsChange?.(rowCount); }, [rowCount, onRowsChange]);
 
     const notices = attendeeNotices({
@@ -275,6 +303,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
         // zin over de opnamemelding er staan (server: settings.autoRecordConfig
         // + connection.hasSettingsScope + organizerSelf).
         meetAutoRecordArmed: gmeet.data?.autoRecordConfig === true && connection?.hasSettingsScope === true,
+        teamsAutoRecordArmed,
     });
 
     /**
@@ -343,6 +372,47 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
         }
     };
 
+    const toggleTeams = async (m) => {
+        const nextRecord = m.excluded;
+        setBusyKey(`teams:${m.eventId}`);
+        setTeamsRowErrors(prev => {
+            if (!(m.eventId in prev)) return prev;
+            const next = { ...prev }; delete next[m.eventId]; return next;
+        });
+        setTeams(s => s.data ? { ...s, data: { ...s.data, meetings: s.data.meetings.map(x => x.eventId === m.eventId ? { ...x, excluded: !nextRecord } : x) } } : s);
+        try {
+            const body = await setTeamsMeetingRecord(m.eventId, nextRecord, { seriesMasterId: m.seriesMasterId });
+            const effective = typeof body?.effectiveRecord === 'boolean' ? body.effectiveRecord : nextRecord;
+            setOverridden(prev => ({ ...prev, [`teams:${m.eventId}`]: body?.overridden === true }));
+            setTeams(s => s.data ? {
+                ...s,
+                data: {
+                    ...s.data,
+                    meetings: s.data.meetings.map(x => x.eventId === m.eventId
+                        ? { ...x, excluded: !effective, recordReason: effective ? 'opted_in' : 'opted_out', recordDecided: true }
+                        : x),
+                },
+            } : s);
+        } catch (err) {
+            if (err?.code) setTeamsRowErrors(prev => ({ ...prev, [m.eventId]: err.message || t('meetings.upcoming_update_failed', "Couldn't update this meeting.") }));
+            await loadTeams();
+        } finally {
+            setBusyKey(null);
+        }
+    };
+
+    const reconnectMicrosoft = async () => {
+        setReconnectingMs(true);
+        try {
+            await openMicrosoftOAuthPopup({ authFetch, apiBase: API_BASE });
+            await loadTeams();
+        } catch {
+            // popup blocked / auth-url failed — the banner stays, user can retry
+        } finally {
+            setReconnectingMs(false);
+        }
+    };
+
     const reconnectGoogle = async () => {
         setReconnecting(true);
         try {
@@ -401,6 +471,19 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                 </div>
             )}
 
+            {!teams.loading && !teams.error && teamsConnection?.microsoftConnected && !teamsScopesGranted && (
+                <div className="mx-3 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]" style={WARN_BANNER}>
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--warning)]" aria-hidden="true" />
+                    <span className="flex-1">{t('meetings.upcoming_teams_scopes', "Your Microsoft 365 connection doesn't include Teams meeting permissions yet — reconnect to import the Teams meetings you organise.")}</span>
+                    <button
+                        type="button" onClick={reconnectMicrosoft} disabled={reconnectingMs}
+                        className="px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0 border-[var(--warning)] text-[var(--warning-ink)]"
+                    >
+                        {reconnectingMs ? t('meetings.upcoming_reconnecting', 'Reconnecting…') : t('meetings.upcoming_reconnect', 'Reconnect')}
+                    </button>
+                </div>
+            )}
+
             <div className="flex-1 overflow-y-auto px-3 pb-3">
                 {loading && (
                     <div className="flex items-center gap-2 px-3 py-6 justify-center">
@@ -423,14 +506,21 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                     </div>
                 )}
 
-                {!loading && !talk.error && !gmeet.error && rows.length === 0 && (
+                {!teams.loading && teams.error && (
+                    <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER}>
+                        <div className="font-semibold">{t('meetings.upcoming_teams_failed', "Couldn't load Microsoft Teams meetings")}</div>
+                        <div className="text-[var(--text-secondary)]">{teams.error.message}</div>
+                    </div>
+                )}
+
+                {!loading && !talk.error && !gmeet.error && !teams.error && rows.length === 0 && (
                     <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
                         <div className="w-12 h-12 rounded-2xl grid place-items-center" style={{ background: kindTint('meeting', 12), color: kindColorVar('meeting') }} aria-hidden="true">
                             <Calendar className="w-6 h-6" />
                         </div>
                         <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meetings.upcoming_empty_title', 'No upcoming meetings')}</div>
                         <div className="text-[11px] max-w-xs" style={{ color: 'var(--text-tertiary)' }}>
-                            {t('meetings.upcoming_empty_desc', 'Meetings in your calendar with a Nextcloud Talk conversation or a Google Meet link show up here.')}
+                            {t('meetings.upcoming_empty_desc_teams', 'Meetings in your calendar with a Nextcloud Talk conversation, a Google Meet link or a Microsoft Teams link show up here.')}
                         </div>
                     </div>
                 )}
@@ -448,6 +538,22 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                         toggleDisabled={!recordingEnabled || m.isModerator === false || busyKey === `talk:${m.talkToken}`}
                         onToggle={() => toggleTalk(m)}
                         overridden={overridden[`talk:${m.talkToken}`] === true}
+                        t={t}
+                    />
+                ) : provider === 'teams' ? (
+                    <UpcomingMeetingRow
+                        key={key}
+                        provider="teams"
+                        icon={Users}
+                        meeting={m}
+                        status={status}
+                        noteId={m.importedNoteId}
+                        onOpenNote={onOpenNote}
+                        record={!m.excluded}
+                        toggleDisabled={!teamsScopesGranted || m.organizerSelf !== true || busyKey === `teams:${m.eventId}`}
+                        onToggle={() => toggleTeams(m)}
+                        overridden={overridden[`teams:${m.eventId}`] === true}
+                        error={teamsRowErrors[m.eventId]}
                         t={t}
                     />
                 ) : (

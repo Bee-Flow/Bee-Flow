@@ -1,33 +1,33 @@
 /**
- * Routines (automations) over MCP — tool surface, draft loading and dispatch.
+ * Automations (automations) over MCP — tool surface, draft loading and dispatch.
  *
  * WHY THIS EXISTS
  * ---------------
  * The sibling of appStudio/mcpBuilder.js, for the other half of Studio. Until
- * now a routine could be authored two ways: by talking to the in-product
+ * now an automation could be authored two ways: by talking to the in-product
  * builder agent (routes/ai/automationBuilder.js), or by hand on the canvas.
  * Neither is reachable from an external coding agent, so building a customer's
- * routine meant driving a chat UI turn by turn — or, worse, writing the
+ * automation meant driving a chat UI turn by turn — or, worse, writing the
  * definition JSON straight into the row and hoping it matched the contract.
  * This module is the third way: the SAME builder toolset, spoken over MCP, so
- * Claude Code in VS Code edits routines live in a running instance.
+ * Claude Code in VS Code edits automations live in a running instance.
  *
  * IT IS THE SAME TOOLS, DELIBERATELY
  * ----------------------------------
  * Every mutation still goes through builderTools.applyToolCall → the same
  * binding fixups → persistDraft → automation/validate.js. No second write
  * path, no second validator, no "import a definition blob" back door: a
- * routine built from VS Code is byte-identical in provenance to one built in
+ * automation built from VS Code is byte-identical in provenance to one built in
  * the product, and the `_fixHint` a rejected call returns is the same string
  * the in-product agent gets.
  *
- * STATELESS, ONE ROUTINE PER CALL
+ * STATELESS, ONE AUTOMATION PER CALL
  * -------------------------------
  * The in-product builder holds one draftWrap for a whole SSE turn. MCP has no
  * turn — each tools/call is its own HTTP request — so the draft is re-read
  * from the store on every call and `automationId` is a REQUIRED argument on
  * every builder_* tool. That is the same trade appStudio/mcpBuilder.js makes,
- * for the same reason: a browser tab open on the same routine cannot silently
+ * for the same reason: a browser tab open on the same automation cannot silently
  * lose work, and there is no server-side session to expire mid-build.
  *
  * GATING — see routes/mcpAutomations.js for the mount. This module is inert
@@ -86,12 +86,12 @@ const ROUTE_ONLY_TOOLS = new Set([
     'builder_generate_layers',
 ]);
 
-/** Tools that need no routine to act on — the entry points. */
-const ROUTINELESS_TOOLS = new Set(['routines_get_guide', 'routines_list', 'routines_create']);
+/** Tools that need no automation to act on — the entry points. */
+const AUTOMATIONLESS_TOOLS = new Set(['automations_get_guide', 'automations_list', 'automations_create']);
 
 const AUTOMATION_ID_PROP = {
     type: 'string',
-    description: 'The routine to act on (uuid from routines_list or routines_create). Required on every builder_* tool: each call is independent and re-reads the routine from the database.',
+    description: 'The automation to act on (uuid from automations_list or automations_create). Required on every builder_* tool: each call is independent and re-reads the automation from the database.',
 };
 
 /**
@@ -107,22 +107,22 @@ const AUTOMATION_ID_PROP = {
  */
 function toMcpTool(fn) {
     const params = (fn.parameters && typeof fn.parameters === 'object') ? fn.parameters : { type: 'object' };
-    const needsRoutine = !ROUTINELESS_TOOLS.has(fn.name);
-    const properties = needsRoutine
+    const needsAutomation = !AUTOMATIONLESS_TOOLS.has(fn.name);
+    const properties = needsAutomation
         ? { automationId: AUTOMATION_ID_PROP, ...(params.properties || {}) }
         : { ...(params.properties || {}) };
-    const required = needsRoutine
+    const required = needsAutomation
         ? ['automationId', ...(Array.isArray(params.required) ? params.required : [])]
         : (Array.isArray(params.required) ? [...params.required] : []);
 
     // Derived from the same set the dispatcher persists on, so a tool that
     // starts mutating cannot keep advertising itself as read-only by omission.
     // builder_finalize is not in MUTATING_TOOLS (it does not change the
-    // definition) but it flips the routine out of draft, which is exactly the
+    // definition) but it flips the automation out of draft, which is exactly the
     // kind of call a client should be able to confirm.
     const writes = MUTATING_TOOLS.has(fn.name)
         || fn.name === 'builder_finalize'
-        || fn.name === 'routines_create';
+        || fn.name === 'automations_create';
 
     const inputSchema = { ...params, type: 'object', properties };
     if (required.length) inputSchema.required = required;
@@ -135,7 +135,7 @@ function toMcpTool(fn) {
         annotations: {
             title: fn.name,
             readOnlyHint: !writes,
-            // Nothing here deletes a routine; builder_remove_step removes a
+            // Nothing here deletes an automation; builder_remove_step removes a
             // node INSIDE one. Honest either way: a client that confirms
             // destructive calls should confirm that.
             destructiveHint: writes && /remove|delete/.test(fn.name),
@@ -144,30 +144,30 @@ function toMcpTool(fn) {
 }
 
 /** The three MCP-only tools, in the same OpenAI shape as TOOL_SCHEMAS. */
-const ROUTINE_TOOLS = [
+const AUTOMATION_TOOLS = [
     {
-        name: 'routines_get_guide',
-        description: 'The routine-builder guide: the trigger catalog, the full step vocabulary with every field, the binding kinds (literal/ref/template/expr), the restricted expression grammar and its functions, and how edges and branches wire together. CALL THIS FIRST, once per session, before authoring anything — the builder_* tool descriptions teach the call protocol only, not the vocabulary, and step types or binding shapes invented without the guide get rejected by the validator.',
+        name: 'automations_get_guide',
+        description: 'The automation-builder guide: the trigger catalog, the full step vocabulary with every field, the binding kinds (literal/ref/template/expr), the restricted expression grammar and its functions, and how edges and branches wire together. CALL THIS FIRST, once per session, before authoring anything — the builder_* tool descriptions teach the call protocol only, not the vocabulary, and step types or binding shapes invented without the guide get rejected by the validator.',
         parameters: { type: 'object', properties: {} },
     },
     {
-        name: 'routines_list',
-        description: 'List the routines this token\'s user owns (id, title, trigger type, draft/active state, last run). Start here to find the automationId to work on.',
+        name: 'automations_list',
+        description: 'List the automations this token\'s user owns (id, editorPath — the page that shows it in the product —, title, trigger type, draft/active state, last run). Start here to find the automationId to work on.',
         parameters: {
             type: 'object',
             properties: {
-                includeBlocks: { type: 'boolean', description: 'Also list reusable Steps (kind="block"), not just routines. Default false.' },
+                includeBlocks: { type: 'boolean', description: 'Also list reusable Steps (kind="block"), not just automations. Default false.' },
             },
         },
     },
     {
-        name: 'routines_create',
-        description: 'Create a new, empty routine owned by this token\'s user and return its automationId. It is created as a DRAFT — nothing runs until you call builder_finalize and the user activates it.',
+        name: 'automations_create',
+        description: 'Create a new, empty automation owned by this token\'s user and return its automationId. It is created as a DRAFT — nothing runs until you call builder_finalize and the user activates it.',
         parameters: {
             type: 'object',
             properties: {
-                title: { type: 'string', description: 'Routine title (max 120 chars).' },
-                description: { type: 'string', description: 'One or two sentences on what the routine does.' },
+                title: { type: 'string', description: 'Automation title (max 120 chars).' },
+                description: { type: 'string', description: 'One or two sentences on what the automation does.' },
             },
             required: ['title'],
         },
@@ -179,11 +179,11 @@ function buildToolList() {
     const builder = TOOL_SCHEMAS
         .map((t) => t.function)
         .filter((fn) => fn && !ROUTE_ONLY_TOOLS.has(fn.name));
-    return [...ROUTINE_TOOLS, ...builder].map(toMcpTool);
+    return [...AUTOMATION_TOOLS, ...builder].map(toMcpTool);
 }
 
 const TOOL_NAMES = new Set([
-    ...ROUTINE_TOOLS.map((t) => t.name),
+    ...AUTOMATION_TOOLS.map((t) => t.name),
     ...TOOL_SCHEMAS.map((t) => t.function?.name).filter((n) => n && !ROUTE_ONLY_TOOLS.has(n)),
 ]);
 
@@ -194,8 +194,8 @@ const TOOL_NAMES = new Set([
  * loadOrCreateDraft — same fields, same fallback to emptyDefinition() for a
  * row whose definition is an empty object.
  *
- * Ownership is the same check the store's own update path makes: the routine
- * must belong to this token's user. A shared/published routine is deliberately
+ * Ownership is the same check the store's own update path makes: the automation
+ * must belong to this token's user. A shared/published automation is deliberately
  * NOT editable here — publishing shares the RUN, not the source.
  */
 async function loadDraft(automationId, userId) {
@@ -203,7 +203,7 @@ async function loadDraft(automationId, userId) {
 
     const a = await automationStore.getAutomation(automationId);
     if (!a || a.userId !== userId) {
-        return { error: `Routine "${automationId}" not found, or this token's user does not own it. Call routines_list for the ids you own.` };
+        return { error: `Automation "${automationId}" not found, or this token's user does not own it. Call automations_list for the ids you own.` };
     }
 
     const draftWrap = {
@@ -236,7 +236,7 @@ async function loadDraft(automationId, userId) {
 // ── The MCP-only tools ──────────────────────────────────────────────────────
 
 /**
- * The offline session unattended routines run with — the same builder
+ * The offline session unattended automations run with — the same builder
  * automation/triggerBus gives the scheduler, so a connector-bound user reaches
  * their apps here exactly as they would in a scheduled run. There is no cookie
  * on an MCP request; this is the honest substitute, not a privilege escalation:
@@ -275,22 +275,30 @@ async function runGetGuide(userId) {
     return { guide: turnNote ? `${guide}\n\n${turnNote}` : guide };
 }
 
+/**
+ * Where the automation opens in the product, relative to the app's origin. A
+ * coding agent that edits over MCP can hand this to a browser to SEE what the
+ * user sees (canvas, step panels, mappings) instead of guessing from JSON.
+ */
+const editorPath = (id) => `/app/studio/automations/${id}`;
+
 async function runList(userId, args) {
     const automationStore = require('../stores/automationStore');
     const rows = await automationStore.getAutomationsForUser(userId);
     const includeBlocks = args?.includeBlocks === true;
     return {
-        routines: (rows || [])
+        automations: (rows || [])
             .filter((a) => includeBlocks || (a.kind || 'automation') === 'automation')
             .map((a) => ({
                 automationId: a.id,
+                editorPath: editorPath(a.id),
                 title: a.title,
                 description: a.description || '',
                 kind: a.kind || 'automation',
                 triggerType: a.triggerType,
                 isDraft: !!a.isDraft,
                 isActive: !!a.isActive,
-                // Canvas annotations (BFSF-411) are not steps the routine
+                // Canvas annotations (BFSF-411) are not steps the automation
                 // runs — counting them here would inflate "12 steps" to
                 // include sticky notes nobody wired into the flow.
                 stepCount: Array.isArray(a.definition?.steps)
@@ -304,7 +312,7 @@ async function runList(userId, args) {
 
 async function runCreate(userId, args) {
     const title = typeof args?.title === 'string' ? args.title.trim() : '';
-    if (!title) return { error: 'A title is required to create a routine.' };
+    if (!title) return { error: 'A title is required to create an automation.' };
 
     // orgId stays null: persistDraft backfills it from the user record when a
     // draft has none. That backfill exists precisely because a row created
@@ -327,8 +335,9 @@ async function runCreate(userId, args) {
 
     return {
         automationId: draftWrap.automationId,
+        editorPath: editorPath(draftWrap.automationId),
         title: draftWrap.title,
-        next: 'Call routines_get_guide if you have not yet, then builder_propose_trigger to set how it starts (builder_add_trigger for extra entry points), then the builder_add_* tools for the steps. Verify with builder_request_dry_run before builder_finalize.',
+        next: 'Call automations_get_guide if you have not yet, then builder_propose_trigger to set how it starts (builder_add_trigger for extra entry points), then the builder_add_* tools for the steps. Verify with builder_request_dry_run before builder_finalize.',
     };
 }
 
@@ -348,20 +357,20 @@ async function callTool(name, rawArgs, { userId }) {
 
     const args = (rawArgs && typeof rawArgs === 'object') ? { ...rawArgs } : {};
 
-    if (name === 'routines_get_guide') {
+    if (name === 'automations_get_guide') {
         const result = await runGetGuide(userId);
         // Tens of kb of prose, and JSON.stringify would ship it as one escaped
         // string with every newline as \n — technically readable, painful to
         // actually read. It is documentation: send it as text.
         return { result, text: result.guide };
     }
-    if (name === 'routines_list') return { result: await runList(userId, args) };
-    if (name === 'routines_create') return { result: await runCreate(userId, args) };
+    if (name === 'automations_list') return { result: await runList(userId, args) };
+    if (name === 'automations_create') return { result: await runCreate(userId, args) };
 
     const automationId = typeof args.automationId === 'string' ? args.automationId.trim() : '';
     delete args.automationId; // never reaches the builder tool — it is our envelope
     if (!automationId) {
-        return { result: { error: `${name} needs an automationId. Call routines_list to find one, or routines_create to make one.` } };
+        return { result: { error: `${name} needs an automationId. Call automations_list to find one, or automations_create to make one.` } };
     }
 
     const loaded = await loadDraft(automationId, userId);
@@ -396,7 +405,7 @@ async function callTool(name, rawArgs, { userId }) {
             return {
                 result: {
                     error: persisted.error,
-                    _fixHint: 'The routine changed underneath this call — most likely the builder is open on it in a browser. Re-read with builder_summarise and re-apply.',
+                    _fixHint: 'The automation changed underneath this call — most likely the builder is open on it in a browser. Re-read with builder_summarise and re-apply.',
                 },
             };
         }
@@ -431,6 +440,6 @@ module.exports = {
     loadDraft,
     TOOL_NAMES,
     ROUTE_ONLY_TOOLS,
-    ROUTINELESS_TOOLS,
-    _test: { toMcpTool, ROUTINE_TOOLS },
+    AUTOMATIONLESS_TOOLS,
+    _test: { toMcpTool, AUTOMATION_TOOLS },
 };

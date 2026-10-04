@@ -3,7 +3,7 @@
  "icon": "🔗",
  "estMinutes": 11,
  "title": "Make it change real answers",
- "desc": "Publish it to the right audience, attach to an agent, apply in a routine AI step, toggle per chat — and retire one safely.",
+ "desc": "Publish it to the right audience, attach to an agent, apply in an automation AI step, toggle per chat — and retire one safely.",
  "gate": {
   "permissionsAll": [
    "manage_skills",
@@ -18,14 +18,14 @@
    "id": "doors",
    "icon": "🚪",
    "title": "Three doors into production",
-   "bodyMd": "You wrote a good method. Until you attach it somewhere it changes nothing: a skill never runs on its own. It reaches a model turn through exactly three doors.\n\n- **An agent** — Studio → Agents → tab **Can use** → card **Skills** (\"The working methods it follows\") → **Link**. An attached skill is in play on every turn that agent takes.\n- **A routine AI step** — inside the step, the section **Who does the thinking** → **Skills for this step**.\n- **One chat** — **Skills** in the chat composer's tools menu, under the hint \"Toggle reusable instruction packs for this chat\". A session skill lasts for that conversation only; **Import into skill library** is what keeps it.\n\nAt Van Dijk Groep the skill *Offerte beoordelen* goes through door one for the agent *Inkoopassistent*, and through door two for the routine that empties the procurement mailbox. One method, two doors, no copy."
+   "bodyMd": "You wrote a good method. Until you attach it somewhere it changes nothing: a skill never runs on its own. It reaches a model turn through exactly three doors.\n\n- **An agent** — Studio → Agents → tab **Can use** → card **Skills** (\"The working methods it follows\") → **Link**. An attached skill is in play on every turn that agent takes.\n- **An automation AI step** — inside the step, the section **Who does the thinking** → **Skills for this step**.\n- **One chat** — **Skills** in the chat composer's tools menu, under the hint \"Toggle reusable instruction packs for this chat\". A session skill lasts for that conversation only; **Import into skill library** is what keeps it.\n\nAt Van Dijk Groep the skill *Offerte beoordelen* goes through door one for the agent *Inkoopassistent*, and through door two for the automation that empties the procurement mailbox. One method, two doors, no copy."
   },
   {
    "type": "slide",
    "id": "leading",
    "icon": "🥇",
    "title": "The leading skill sets the step's fields",
-   "bodyMd": "On a routine AI step you tick skills under **Skills for this step**. The first one you tick wears a **Leading** pill, and the hint under **Skills for this step** says what that buys you: its instructions come first, and the step inherits its output fields.\n\nSo the fields under **Delivers** in *Offerte beoordelen* — leverancier, offertenummer, totaal_excl_btw, advies — become the fields the routine's later steps can write into a table.\n\nThe same hint carries the other half: with an agent picked as well, the step's skills come before the agent's own. Order is simply the order you ticked, so tick the method you want in charge first."
+   "bodyMd": "On an automation AI step you tick skills under **Skills for this step**. The first one you tick wears a **Leading** pill, and the hint under **Skills for this step** says what that buys you: its instructions come first, and the step inherits its output fields.\n\nSo the fields under **Delivers** in *Offerte beoordelen* — leverancier, offertenummer, totaal_excl_btw, advies — become the fields the automation's later steps can write into a table.\n\nThe same hint carries the other half: with an agent picked as well, the step's skills come before the agent's own. Order is simply the order you ticked, so tick the method you want in charge first."
   },
   {
    "type": "quiz",
@@ -58,14 +58,14 @@
      "feedback": "Last time only reports when a skill last actually fired. It is history, not a rule about what gets injected."
     }
    ],
-   "explanation": "Five skills per turn is the cap. Attached skills go in first, then any session skills from the chat, deduped and truncated at five. The same cap applies on a routine AI step — and there the step's own skills go in first, so five step skills push the agent's own skills off the edge."
+   "explanation": "Five skills per turn is the cap. Attached skills go in first, then any session skills from the chat, deduped and truncated at five. The same cap applies on an automation AI step — and there the step's own skills go in first, so five step skills push the agent's own skills off the edge."
   },
   {
    "type": "slide",
    "id": "activation",
    "icon": "⚡",
    "title": "Static or dynamic — and what dynamic grants",
-   "bodyMd": "Open **All options** at the bottom of the **May use** card on the Method tab and you find **Dynamic activation**: \"When on, the agent decides at runtime whether to apply this skill based on the user message.\"\n\nA new skill is **static**: the whole body goes into the system prompt on every turn. Dynamic puts a single manifest line in instead, and the model calls the skill when a message actually matches.\n\nThe catch is the grants. **May use** — apps, routines, knowledge — follows the same split. A dynamic skill contributes nothing at all until it has been activated in that conversation. Dynamic earns its place when an agent carries several methods and only one applies per message."
+   "bodyMd": "Open **All options** at the bottom of the **May use** card on the Method tab and you find **Dynamic activation**: \"When on, the agent decides at runtime whether to apply this skill based on the user message.\"\n\nA new skill is **static**: the whole body goes into the system prompt on every turn. Dynamic puts a single manifest line in instead, and the model calls the skill when a message actually matches.\n\nThe catch is the grants. **May use** — apps, automations, knowledge — follows the same split. A dynamic skill contributes nothing at all until it has been activated in that conversation. Dynamic earns its place when an agent carries several methods and only one applies per message."
   },
   {
    "type": "quiz",
@@ -89,7 +89,7 @@
      "id": "c",
      "label": "The knowledge base, but not the steps and rules",
      "correct": false,
-     "feedback": "Grants follow the body. An unactivated dynamic skill contributes no apps, no routines, no tables and no knowledge."
+     "feedback": "Grants follow the body. An unactivated dynamic skill contributes no apps, no automations, no tables and no knowledge."
     },
     {
      "id": "d",
@@ -104,19 +104,19 @@
    "type": "slide",
    "id": "legacy",
    "icon": "🪤",
-   "title": "The linked routine that replaces everything",
-   "bodyMd": "Some older skills carry a linked routine. Under **All options** the note is blunt: \"This skill runs routine {id} instead of its own steps. Steps, rules and examples are ignored while that is set.\"\n\nThe routine is the body. Whatever the steps say, the routine answers. The runtime also treats such a skill as dynamic no matter how the checkbox is set, so its grants wait for activation too.\n\nIf you inherit a skill like this, read that note before you touch anything. The id in it tells you which routine is actually in charge — and that routine, not the Method tab, is where a change belongs."
+   "title": "The linked automation that replaces everything",
+   "bodyMd": "Some older skills carry a linked automation. Under **All options** the note is blunt: \"This skill runs automation {id} instead of its own steps. Steps, rules and examples are ignored while that is set.\"\n\nThe automation is the body. Whatever the steps say, the automation answers. The runtime also treats such a skill as dynamic no matter how the checkbox is set, so its grants wait for activation too.\n\nIf you inherit a skill like this, read that note before you touch anything. The id in it tells you which automation is actually in charge — and that automation, not the Method tab, is where a change belongs."
   },
   {
    "type": "quiz",
    "id": "q-legacy",
    "icon": "🔍",
-   "question": "You spend an hour rewriting an inherited skill's steps. Every test run comes back exactly as before. All options shows a linked routine. What happened?",
+   "question": "You spend an hour rewriting an inherited skill's steps. Every test run comes back exactly as before. All options shows a linked automation. What happened?",
    "multi": false,
    "choices": [
     {
      "id": "a",
-     "label": "The linked routine replaces the body, so steps, rules and examples are ignored while it is set",
+     "label": "The linked automation replaces the body, so steps, rules and examples are ignored while it is set",
      "correct": true
     },
     {
@@ -138,7 +138,7 @@
      "feedback": "Leading decides whose instructions come first and which output fields the step inherits. It does not decide whether steps count at all."
     }
    ],
-   "explanation": "A linked routine is a whole-body replacement, and the editor says so under All options rather than hiding it. Check that note first on any skill you did not write yourself; hours disappear into this one."
+   "explanation": "A linked automation is a whole-body replacement, and the editor says so under All options rather than hiding it. Check that note first on any skill you did not write yourself; hours disappear into this one."
   },
   {
    "type": "slide",
@@ -196,7 +196,7 @@
      },
      {
       "id": "fields",
-      "left": "The routine that empties the procurement mailbox must hand an advies field to a later step that writes a table row.",
+      "left": "The automation that empties the procurement mailbox must hand an advies field to a later step that writes a table row.",
       "right": "Tick it first on the AI step",
       "note": "The first skill ticked is the leading one, and the step inherits its Delivers fields."
      },
@@ -249,14 +249,14 @@
    "id": "retire",
    "icon": "🗑️",
    "title": "Retiring one happens next to the damage",
-   "bodyMd": "There is no delete in the skills list and no overflow menu. **Delete skill** sits at the bottom of the **Used by** tab, underneath the list of agents and routine steps that depend on it, beside the notice \"Agents that attach this skill lose the behaviour immediately.\" You type the skill's name to confirm, and that typing is the confirmation of the breakage.\n\nIf the server finds a dependant the list missed, it refuses the delete and shows that list, and you confirm the breakage on purpose before it goes through.\n\nRead the list before you decide, including a line such as \"Not everything could be checked, so this list may be short.\" In the skills list a blank subline, and in the **All skills** table an em dash, means not counted — never nobody."
+   "bodyMd": "There is no delete in the skills list and no overflow menu. **Delete skill** sits at the bottom of the **Used by** tab, underneath the list of agents and automation steps that depend on it, beside the notice \"Agents that attach this skill lose the behaviour immediately.\" You type the skill's name to confirm, and that typing is the confirmation of the breakage.\n\nIf the server finds a dependant the list missed, it refuses the delete and shows that list, and you confirm the breakage on purpose before it goes through.\n\nRead the list before you decide, including a line such as \"Not everything could be checked, so this list may be short.\" In the skills list a blank subline, and in the **All skills** table an em dash, means not counted — never nobody."
   },
   {
    "type": "slide",
    "id": "recap",
    "icon": "✅",
    "title": "What you can do now",
-   "bodyMd": "- **Set the reach first.** Publish to… decides who can even see the method: Personal (only you), Entire organisation, or specific groups. A Personal skill is in nobody else's picker.\n- **Choose a door.** Attach to an agent for every turn, tick it on a routine AI step when a later step needs its fields, toggle it in a chat for one conversation.\n- **Avoid the three silences.** The sixth attached skill never arrives, a dynamic skill grants nothing until it is activated, and a linked routine ignores every step you write.\n- **Retire from Used by.** Read who depends on it first, confirm the breakage on purpose, and treat a blank count as unknown rather than as zero.\n\nA skill only pays off the second time it is used — by you, or by the team you published it to."
+   "bodyMd": "- **Set the reach first.** Publish to… decides who can even see the method: Personal (only you), Entire organisation, or specific groups. A Personal skill is in nobody else's picker.\n- **Choose a door.** Attach to an agent for every turn, tick it on an automation AI step when a later step needs its fields, toggle it in a chat for one conversation.\n- **Avoid the three silences.** The sixth attached skill never arrives, a dynamic skill grants nothing until it is activated, and a linked automation ignores every step you write.\n- **Retire from Used by.** Read who depends on it first, confirm the breakage on purpose, and treat a blank count as unknown rather than as zero.\n\nA skill only pays off the second time it is used — by you, or by the team you published it to."
   }
  ],
  "rubrics": {
@@ -265,7 +265,7 @@
    "task": "Write a six or seven line plan for putting one specific skill into production: which door, why that door, which audience it is published to, static or dynamic with its cost, and one check performed before attaching.",
    "criteria": [
     "Names one specific door and a real screen or control: Can use → Skills → Link, Skills for this step on an AI step, or Skills in the chat composer's tools menu.",
-    "Justifies the door by how often the method must apply — every turn, one routine step, or one conversation.",
+    "Justifies the door by how often the method must apply — every turn, one automation step, or one conversation.",
     "Chooses an audience in the Publish to… capsule — Personal, Entire organisation or specific groups — and says who that lets attach the skill.",
     "Makes a static or dynamic choice and states its cost, in particular that a dynamic skill grants nothing from May use until it is activated.",
     "Shows one concrete check before attaching: the five-skills-per-turn cap, which skill leads, or which Delivers fields the step inherits."
@@ -276,15 +276,15 @@
  },
  "practiceTopic": {
   "title": "Putting a skill to work",
-  "summary": "How a skill reaches a model turn — agent, routine AI step or chat — who may see it at all, and what silently stops it.",
+  "summary": "How a skill reaches a model turn — agent, automation AI step or chat — who may see it at all, and what silently stops it.",
   "facts": [
-   "A skill reaches a turn in three ways only: attached to an agent (Can use tab → card Skills → Link), applied by a routine AI step, or toggled as a session skill in one chat.",
-   "A routine AI step's first ticked skill wears the Leading pill: its instructions come first and the step inherits its Delivers fields.",
+   "A skill reaches a turn in three ways only: attached to an agent (Can use tab → card Skills → Link), applied by an automation AI step, or toggled as a session skill in one chat.",
+   "An automation AI step's first ticked skill wears the Leading pill: its instructions come first and the step inherits its Delivers fields.",
    "At most five skills reach any one turn: attached skills go in first, then session skills, deduped and truncated — the sixth never arrives.",
    "A skill's header capsule Publish to… sets its reach: Personal (\"Only you can access\"), Entire organisation (\"All members can access\") or specific groups; a new skill starts Personal.",
    "Widening a skill's audience asks \"Share more widely?\" with Share or Keep as is, and sharing never grants editing: people who may not edit see a read-only banner.",
    "Dynamic activation puts only a one-line manifest entry in the prompt, and the skill's May use grants stay out until the model activates it.",
-   "A skill with a linked routine runs that routine instead of its own steps; steps, rules and examples are ignored while it is set.",
+   "A skill with a linked automation runs that automation instead of its own steps; steps, rules and examples are ignored while it is set.",
    "Delete skill lives at the bottom of the Used by tab, requires typing the skill's name, and warns that agents lose the behaviour immediately; a blank usage count means not counted, not zero."
   ]
  },

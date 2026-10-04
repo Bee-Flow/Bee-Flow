@@ -137,6 +137,17 @@ async function getAvailableIntegrations(userId) {
 
     const isGoogleUser = !!user?.oauthProvider && user.oauthProvider === 'google';
     const isMicrosoftUser = !!user?.oauthProvider && user.oauthProvider === 'microsoft';
+    // Microsoft 365 connected through Settings → Connections (the vault),
+    // which is how a Google-SSO or password user gets Outlook into an agent:
+    // getIntegrationTools lifts the Outlook tools off that credential.
+    let hasMicrosoftConnection = false;
+    let hasGoogleConnection = false;
+    try {
+        const automationCredentialStore = require('../../stores/automationCredentialStore');
+        const rows = await automationCredentialStore.listProvidersForUser(userId);
+        hasMicrosoftConnection = rows.some(r => r.provider === 'microsoft' && r.status === 'active');
+        hasGoogleConnection = rows.some(r => r.provider === 'google' && r.status === 'active');
+    } catch (_) { /* no vault → SSO-only gating, as before */ }
     const hasFirefliesKey = !!(await configStore.getSecret(`fireflies_api_key_user_${userId}`).catch(() => null));
     const hasYouTrackConfig = !!(await configStore.getSecret(`youtrack_url_user_${userId}`).catch(() => null))
         && !!(await configStore.getSecret(`youtrack_token_user_${userId}`).catch(() => null));
@@ -163,7 +174,15 @@ async function getAvailableIntegrations(userId) {
         if (orgEnabled && !orgEnabled.includes(item.id)) return false;
         if (orgActiveSet && !ncIdSet.has(item.id) && !orgActiveSet.has(item.id)) return false;
         if (item.group === 'google') return isGoogleUser;
-        if (item.id === 'outlook' || item.id === 'ms-calendar' || item.id === 'onedrive' || item.id === 'ms-contacts') return isMicrosoftUser;
+        // Outlook works off a vault connection next to any SSO session; the
+        // other Microsoft apps only when nothing else owns the session (the
+        // vault then hydrates it as Microsoft), as getIntegrationTools does.
+        // That hydration tries Google first, so an active Google vault row
+        // wins the session and these three would load no tools.
+        if (item.id === 'outlook') return isMicrosoftUser || hasMicrosoftConnection;
+        if (item.id === 'ms-calendar' || item.id === 'onedrive' || item.id === 'ms-contacts') {
+            return isMicrosoftUser || (hasMicrosoftConnection && !hasGoogleConnection && !user?.oauthProvider);
+        }
         if (item.requiresKey) return !!status[item.requiresKey];
         return true;
     });
@@ -195,9 +214,9 @@ const PLAN_SCHEMA = `{
     "doesNot": ["string", ...]              // 0-5 short rules of what it must NEVER do
   },
   "systemPrompt": "string (concrete instructions for the agent, written in the user's language)",
-  "routine": null | {                       // OPTIONAL — set ONLY when the user is asking to schedule a recurring task for THIS agent.
-    "title": "string (short routine name, in the user's language)",
-    "prompt": "string (what the agent should do each time the routine fires)",
+  "schedule": null | {                      // OPTIONAL — set ONLY when the user is asking to schedule a recurring task for THIS agent.
+    "title": "string (short name for the recurring task, in the user's language)",
+    "prompt": "string (what the agent should do each time it runs)",
     "repeatInterval": "hourly|daily|weekdays|weekly|biweekly|monthly",
     "daysOfWeek": ["mon","tue","wed","thu","fri","sat","sun"] | null,  // only for daily/weekly/biweekly when specific days matter
     "timeOfDay": "HH:MM" | null,             // 24h, in the user's local timezone; null for hourly
@@ -258,7 +277,7 @@ Rules:
 - persona is the SOURCE of the agent's role: "who", "tone", "does" and "doesNot" are the fields its owner edits afterwards, so put the real substance there and write them in ${langName}. Say the same things you would put in systemPrompt, split across the fields: scope and responsibility in "who", house style in "tone", the concrete rules in "does", and the hard limits ("never promise a refund") in "doesNot". Keep each does/doesNot entry to one short sentence.
 - persona and systemPrompt must agree. Fill in persona ALWAYS; systemPrompt stays the prose version for agents whose owner writes their instructions by hand.
 - systemPrompt must be self-contained: tone, scope, what to do, what to avoid.
-- routine: leave null UNLESS the user is explicitly asking to SCHEDULE a recurring task ("every morning", "each Monday", "weekly", "every 2 hours", "monthly report"). When set, write title/prompt in ${langName}, and pick the cadence and time that match the user's request. Do NOT invent a routine for vague capability requests like "summarize emails" — only when there's a clear time signal.
+- schedule: leave null UNLESS the user is explicitly asking to SCHEDULE a recurring task ("every morning", "each Monday", "weekly", "every 2 hours", "monthly report"). When set, write title/prompt in ${langName}, and pick the cadence and time that match the user's request. Do NOT invent a schedule for vague capability requests like "summarize emails" — only when there's a clear time signal.
 - Respond with raw JSON only, no markdown fences.`;
 }
 
@@ -271,7 +290,7 @@ Rules:
  * would truncate or a chip list the editor would silently drop. Only the four
  * fields come back out: `unknown`, `language`, `mode` and `freeText` are NOT
  * the model's business. `unknown` in particular has config side effects
- * (strict knowledge, an app, a routine grant), and a plan is a suggestion, not
+ * (strict knowledge, an app, an automation grant), and a plan is a suggestion, not
  * a grant.
  *
  * NULL IS LOAD-BEARING. It is the difference between "the model wrote a role"
@@ -330,17 +349,17 @@ function normalizePlan(plan, availableIntegrationIds) {
     if (!Array.isArray(plan.knowledge_base_ids)) plan.knowledge_base_ids = [];
     plan.knowledge_base_ids = plan.knowledge_base_ids.map(s => String(s || '').trim()).filter(Boolean);
 
-    // Routine: optional. Validate the cadence enum + day tokens; drop the
-    // whole field if it's malformed (the chat panel handles missing routines
-    // gracefully, but bad data would break the routine creator on the client).
-    if (plan.routine && typeof plan.routine === 'object') {
-        const r = plan.routine;
+    // Schedule: optional. Validate the cadence enum + day tokens; drop the
+    // whole field if it's malformed (the chat panel handles a missing schedule
+    // gracefully, but bad data would break the schedule creator on the client).
+    if (plan.schedule && typeof plan.schedule === 'object') {
+        const r = plan.schedule;
         const VALID_CADENCES = ['hourly', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly'];
         const VALID_DOW = new Set(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
         if (!r.title || !r.prompt || !VALID_CADENCES.includes(r.repeatInterval)) {
-            delete plan.routine;
+            delete plan.schedule;
         } else {
-            plan.routine = {
+            plan.schedule = {
                 title: String(r.title).trim().slice(0, 200),
                 prompt: String(r.prompt).trim().slice(0, 4000),
                 repeatInterval: r.repeatInterval,
@@ -350,13 +369,14 @@ function normalizePlan(plan, availableIntegrationIds) {
                 timeOfDay: typeof r.timeOfDay === 'string' && /^\d{2}:\d{2}$/.test(r.timeOfDay) ? r.timeOfDay : null,
                 timezone: typeof r.timezone === 'string' && r.timezone.trim() ? r.timezone.trim() : null,
             };
-            if (Array.isArray(plan.routine.daysOfWeek) && plan.routine.daysOfWeek.length === 0) {
-                plan.routine.daysOfWeek = null;
+            if (Array.isArray(plan.schedule.daysOfWeek) && plan.schedule.daysOfWeek.length === 0) {
+                plan.schedule.daysOfWeek = null;
             }
         }
     } else {
-        delete plan.routine;
+        delete plan.schedule;
     }
+    delete plan.automation;
 
     return plan;
 }
@@ -401,7 +421,7 @@ async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, loca
     const result = await llmClient.chat(modelId, messages, {
         temperature: tierConfig?.temperature ?? 0.4,
         // A full refined plan (systemPrompt + several skills-with-instructions +
-        // capabilities + routine + KBs) can exceed 4000 tokens and truncate,
+        // capabilities + schedule + KBs) can exceed 4000 tokens and truncate,
         // which fails extractJSON. 8000 fits a realistic plan and stays under
         // every tier's real max.
         maxTokens: Math.min(tierConfig?.maxTokens ?? 4000, 8000),
@@ -643,24 +663,25 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
         { persona }
     );
 
-    // ── Optional: AI proposed a routine for this new agent ─────────
-    // The wizard plan schema lets the model return an OPTIONAL `routine`
-    // block. When present and the user has the `agent_routines` beta we
-    // create the AI task atomically with agent creation so the user
-    // doesn't need a second round-trip.
-    let createdRoutine = null;
-    if (agent?.id && plan.routine && typeof plan.routine === 'object') {
+    // ── Optional: AI proposed a schedule for this new agent ────────
+    // The wizard plan schema lets the model return an OPTIONAL `schedule`
+    // block. When present and the user has the `agent_routines` beta (the
+    // licence id of "run as an agent" in Cowork) we create the Cowork item
+    // atomically with agent creation so the user doesn't need a second
+    // round-trip. It runs as this agent.
+    let createdSchedule = null;
+    if (agent?.id && plan.schedule && typeof plan.schedule === 'object') {
         try {
             const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
             const allowed = await userHasBetaFeature(userId, 'agent_routines', req.session).catch(() => false);
             if (allowed) {
-                const aiTaskStore = require('../../stores/aiTaskStore');
-                const { computeRoutineNextRun } = require('../../utils/routineSchedule');
-                const r = plan.routine;
+                const coworkStore = require('../../stores/coworkStore');
+                const { computeScheduleNextRun } = require('../../utils/scheduleNextRun');
+                const r = plan.schedule;
                 // Shared TZ-aware helper — same one the modal and wizard chat
                 // use, so behavior is identical regardless of entry point.
-                const nextRunAt = computeRoutineNextRun(r, r.timezone || 'UTC');
-                createdRoutine = await aiTaskStore.createTask({
+                const nextRunAt = computeScheduleNextRun(r, r.timezone || 'UTC');
+                createdSchedule = await coworkStore.createSchedule({
                     userId,
                     agentId: agent.id,
                     title: r.title,
@@ -673,12 +694,12 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
                     timeOfDay: r.timeOfDay,
                 });
             }
-        } catch (routineErr) {
-            log.warn('Wizard: routine auto-create failed (non-fatal):', routineErr.message);
+        } catch (scheduleErr) {
+            log.warn('Wizard: schedule auto-create failed (non-fatal):', scheduleErr.message);
         }
     }
 
-    res.json({ agent, createdSkills, routine: createdRoutine });
+    res.json({ agent, createdSkills, schedule: createdSchedule });
 });
 
 module.exports = router;

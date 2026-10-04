@@ -105,9 +105,42 @@ const { friendlyError } = require('../../core/kb/friendlyError');
 // preview + text/meeting retry.
 const MAX_STORED_TEXT = 1_000_000;
 
+// What one notebook accepts: pasted/imported text is embedded in full, and the
+// source list is read on every chat turn.
+const MAX_SOURCE_TEXT_CHARS = 2_000_000;
+const MAX_SOURCES_PER_NOTEBOOK = 200;
+
+const NO_READABLE_TEXT = 'This source has no readable text.';
+const MIN_READABLE_CHARS = 10;
+
+// Every status/stage write of an ingestion is conditional on the row still being
+// `processing`: a cancel (status 'error') or a delete (row gone) that happened
+// while extraction/embedding was running must win, not be overwritten with
+// 'ready' by the late-finishing pipeline. Returns false when the write did not
+// land, i.e. the ingestion was cancelled or the source deleted.
+function writeWhileProcessing(sourceId, updates) {
+    return notebookStore.updateSource(sourceId, updates, { onlyIfProcessing: true });
+}
+
+/** Remove the chunks an ingestion wrote for a source that was cancelled/deleted meanwhile. */
+async function discardChunks(kbId, tenantId, sourceId) {
+    try {
+        // Lazy: notebookCascade pulls in the stores, keep module load light.
+        const { cleanupSourceArtifacts } = require('../../core/kb/notebookCascade');
+        // No storageKey on purpose: the original upload stays for a retry.
+        await cleanupSourceArtifacts({ knowledgeBaseIds: [kbId] }, { id: sourceId }, tenantId);
+    } catch (e) {
+        log.warn(`[SourceIngestion] could not discard chunks of cancelled source ${sourceId}: ${e.message}`);
+    }
+}
+
 async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) {
-    if (!text || text.length < 10) {
-        await notebookStore.updateSource(sourceId, { status: 'ready', stage: 'ready', wordCount: 0, contentText: text || '' });
+    if (!text || text.trim().length < MIN_READABLE_CHARS) {
+        // Nothing to embed: "ready" with 0 words would be a source that looks
+        // fine and can never be found. Tell the person instead.
+        await writeWhileProcessing(sourceId, {
+            status: 'error', stage: 'error', error: NO_READABLE_TEXT, wordCount: 0, contentText: text || '',
+        });
         return;
     }
 
@@ -117,7 +150,10 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
     try {
         // Store the extracted text first (powers the preview panel + retry) and
         // flip to the embedding stage so the UI shows real progress.
-        await notebookStore.updateSource(sourceId, { stage: 'embedding', contentText: text.slice(0, MAX_STORED_TEXT) });
+        if (!await writeWhileProcessing(sourceId, { stage: 'embedding', contentText: text.slice(0, MAX_STORED_TEXT) })) {
+            log.info(`[SourceIngestion] "${sourceName}" was cancelled or deleted before embedding; stopping`);
+            return;
+        }
         const { kbId, tenantId: kbTenantId } = await ensureNotebookKBFor(notebookId, userId);
 
         // ── Privacy Shield: build the notebook's PII token map at INGEST ──────
@@ -193,6 +229,13 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
             log.warn(`[SourceIngestion] PII map build failed for "${sourceName}": ${piiErr.message}`);
         }
 
+        // The PII scan above can take a minute: look again before the expensive
+        // embedding step.
+        if (await notebookStore.getSourceStatus(sourceId) !== 'processing') {
+            log.info(`[SourceIngestion] "${sourceName}" was cancelled or deleted; skipping embedding`);
+            return;
+        }
+
         // Use shared ingestion (dedup + chunk + embed)
         // Stored under the notebook owner's tenant, like the base itself: the
         // search and the cleanup of a source both run under that tenant, so a
@@ -214,7 +257,12 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
             }
         );
 
-        await notebookStore.updateSource(sourceId, { status: 'ready', stage: 'ready', wordCount });
+        if (!await writeWhileProcessing(sourceId, { status: 'ready', stage: 'ready', wordCount })) {
+            // Cancelled/deleted while embedding: the chunks must not stay searchable.
+            log.info(`[SourceIngestion] "${sourceName}" was cancelled or deleted during embedding; discarding its chunks`);
+            await discardChunks(kbId, kbTenantId, sourceId);
+            return;
+        }
         log.info(`[SourceIngestion] Source "${sourceName}" ingested: ${result.chunks} chunks, ${wordCount} words`);
     } catch (e) {
         // Duplicates are not fatal for notebook sources — mark ready, but flag it
@@ -222,11 +270,11 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
         if (e.code === 'DUPLICATE') {
             log.info(`[SourceIngestion] Duplicate content for "${sourceName}", marking ready`);
             const cur = await notebookStore.getSource(sourceId).catch(() => null);
-            await notebookStore.updateSource(sourceId, { status: 'ready', stage: 'ready', wordCount, metadata: { ...(cur?.metadata || {}), duplicate: true } });
+            await writeWhileProcessing(sourceId, { status: 'ready', stage: 'ready', wordCount, metadata: { ...(cur?.metadata || {}), duplicate: true } });
             return;
         }
         log.error(`[SourceIngestion] Failed to ingest "${sourceName}":`, e.message);
-        await notebookStore.updateSource(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
+        await writeWhileProcessing(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
     }
 }
 
@@ -236,12 +284,12 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
  */
 async function ingestFileSource(notebookId, sourceId, userId, buffer, fileName, mimeType) {
     try {
-        await notebookStore.updateSource(sourceId, { stage: 'extracting' });
+        if (!await writeWhileProcessing(sourceId, { stage: 'extracting' })) return;
         const text = await extractFileContent(buffer, mimeType, fileName);
         await ingestTextIntoKB(notebookId, sourceId, userId, text, fileName);
     } catch (e) {
         log.error(`[SourceIngestion] File parse failed for "${fileName}":`, e.message);
-        await notebookStore.updateSource(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
+        await writeWhileProcessing(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
     }
 }
 
@@ -251,18 +299,18 @@ async function ingestFileSource(notebookId, sourceId, userId, buffer, fileName, 
  */
 async function ingestUrlSource(notebookId, sourceId, userId, url) {
     try {
-        await notebookStore.updateSource(sourceId, { stage: 'fetching' });
+        if (!await writeWhileProcessing(sourceId, { stage: 'fetching' })) return;
         const { content, title, resolvedUrl } = await fetchUrlContent(url);
 
-        await notebookStore.updateSource(sourceId, {
+        if (!await writeWhileProcessing(sourceId, {
             metadata: { url: resolvedUrl, charCount: content.length },
             name: normalizeSourceName(title || url, url)
-        });
+        })) return;
 
         await ingestTextIntoKB(notebookId, sourceId, userId, content, resolvedUrl);
     } catch (e) {
         log.error(`[SourceIngestion] URL fetch failed for "${url}":`, e.message);
-        await notebookStore.updateSource(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
+        await writeWhileProcessing(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
     }
 }
 
@@ -289,4 +337,7 @@ module.exports = {
     ensureNotebookKB,
     ensureNotebookKBFor,
     MAX_STORED_TEXT,
+    NO_READABLE_TEXT,
+    MAX_SOURCE_TEXT_CHARS,
+    MAX_SOURCES_PER_NOTEBOOK,
 };

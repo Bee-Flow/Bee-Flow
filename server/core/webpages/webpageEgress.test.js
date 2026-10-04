@@ -8,11 +8,11 @@
  * called the dispatcher directly. One sandbox, two callers, opposite postures:
  * a code step's calls are scanned and land in the outbound ledger, a webpage
  * handler's did neither, at 2-4x the limits, acting as the page's AUTHOR and
- * holding a `db` bridge no routine gets.
+ * holding a `db` bridge no automation gets.
  *
  * These tests pin the CONTRACT rather than the wording: every route out calls
  * the guard, asks prepareForEgress what may leave, writes exactly one ledger
- * row, and files it as a webpage rather than as a routine.
+ * row, and files it as a webpage rather than as an automation.
  *
  * Run: cd server && node --test --test-force-exit core/webpages/webpageEgress.test.js
  */
@@ -40,7 +40,7 @@ const safetyStub = {
     },
     buildAuditBase(ctx, step, opts) {
         calls.push({ fn: 'buildAuditBase', stepId: step && step.id, opts, automationId: ctx.automationId });
-        return { source: (opts && opts.source) || 'routine', organization_id: ctx.orgId, model: null };
+        return { source: (opts && opts.source) || 'automation', organization_id: ctx.orgId, model: null };
     },
     async guardToolInput(payload, _p, _a, mode) {
         calls.push({ fn: 'guardToolInput', payload, mode });
@@ -80,7 +80,7 @@ const names = () => calls.map(c => c.fn);
 
 // ── Policy identity ─────────────────────────────────────────────────────────
 
-test('a webpage handler does NOT inherit the org opt-out named "Apply to routines"', async () => {
+test('a webpage handler does NOT inherit the org opt-out named "Apply to automations"', async () => {
     // The switch's own label is exactly what it says. A handler inheriting it
     // would drop the shield on a surface the admin never agreed to exclude.
     await session();
@@ -88,12 +88,12 @@ test('a webpage handler does NOT inherit the org opt-out named "Apply to routine
     assert.deepStrictEqual(resolve.opts, { honourAutomationOptOut: false });
 });
 
-test('its ledger rows are filed as a webpage, not as a routine', async () => {
+test('its ledger rows are filed as a webpage, not as an automation', async () => {
     await session();
     const audit = calls.find(c => c.fn === 'buildAuditBase');
     assert.strictEqual(audit.opts.source, 'webpage_api');
     assert.strictEqual(egress.WEBPAGE_SOURCE, 'webpage_api');
-    // Grouped per page the way a routine's rows group per automation.
+    // Grouped per page the way an automation's rows group per automation.
     assert.strictEqual(audit.automationId, 'wp_1');
 });
 

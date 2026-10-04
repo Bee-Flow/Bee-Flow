@@ -281,6 +281,37 @@ function extractAttachments(payload, ctx = {}) {
 }
 
 /**
+ * Headers gmail_search asks for per message (format: 'metadata').
+ * List-Unsubscribe and Precedence are what mailing-list software sets
+ * (RFC 2369 / RFC 3834); they let a caller tell newsletters and bulk mail
+ * apart from mail a person wrote, without reading a body.
+ */
+const SEARCH_METADATA_HEADERS = ['From', 'To', 'Subject', 'Date', 'List-Unsubscribe', 'Precedence'];
+
+/**
+ * The search summary of one message from a metadata GET. The raw
+ * List-Unsubscribe value (URLs, addresses) is not passed on: only whether it
+ * was there, plus the Precedence keyword and the bulk verdict both imply.
+ * @param {object} data - users.messages.get response data
+ */
+function summarizeSearchMessage(data) {
+    const headers = data?.payload?.headers || [];
+    const hasListUnsubscribe = !!String(getHeader(headers, 'List-Unsubscribe') || '').trim();
+    const precedence = String(getHeader(headers, 'Precedence') || '').trim().toLowerCase() || null;
+    return {
+        id: data?.id,
+        from: getHeader(headers, 'From'),
+        to: getHeader(headers, 'To'),
+        subject: getHeader(headers, 'Subject') || '(no subject)',
+        date: getHeader(headers, 'Date'),
+        snippet: data?.snippet || '',
+        hasListUnsubscribe,
+        precedence,
+        isBulk: hasListUnsubscribe || precedence === 'bulk' || precedence === 'list' || precedence === 'junk',
+    };
+}
+
+/**
  * Create an authenticated Gmail client from session tokens.
  */
 async function createGmailClient(session) {
@@ -344,17 +375,9 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
                             userId: 'me',
                             id: msg.id,
                             format: 'metadata',
-                            metadataHeaders: ['From', 'To', 'Subject', 'Date'],
+                            metadataHeaders: SEARCH_METADATA_HEADERS,
                         });
-                        const headers = detail.data.payload?.headers || [];
-                        return {
-                            id: detail.data.id,
-                            from: getHeader(headers, 'From'),
-                            to: getHeader(headers, 'To'),
-                            subject: getHeader(headers, 'Subject') || '(no subject)',
-                            date: getHeader(headers, 'Date'),
-                            snippet: detail.data.snippet || '',
-                        };
+                        return summarizeSearchMessage(detail.data);
                     } catch {
                         return null;
                     }
@@ -814,4 +837,6 @@ module.exports = {
     resolveLabelIds,
     buildRawMessage,
     sanitizeHeaderValue,
+    summarizeSearchMessage,
+    SEARCH_METADATA_HEADERS,
 };

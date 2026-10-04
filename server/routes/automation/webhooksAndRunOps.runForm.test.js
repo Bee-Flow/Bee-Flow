@@ -4,9 +4,9 @@
  * Testing a form journey from the builder — GET/POST /runs/:runId/form and
  * POST /:id/form-pick.
  *
- * These exist because a form-triggered routine is the one kind that cannot be
+ * These exist because a form-triggered automation is the one kind that cannot be
  * tested by pressing Run: its trigger IS a page, and its public page 404s while
- * the routine is still a draft. What is pinned here is that they are RUN
+ * the automation is still a draft. What is pinned here is that they are RUN
  * OPERATIONS and not a second public form surface — owner-only, no token, no
  * session, no anonymous path — and that continuing a paused run coerces the
  * answers against the page the run is ACTUALLY waiting on.
@@ -218,7 +218,7 @@ test('a picked record is read as the person testing, before the run continues', 
     assert.strictEqual(calls.resume[0].opts.decision.call.text, 'the text of tr_1');
 });
 
-// ── The picker, while the routine is still a draft ────────────────────────
+// ── The picker, while the automation is still a draft ────────────────────────
 
 test('the builder picker searches by SOURCE, as the owner', async () => {
     reset();

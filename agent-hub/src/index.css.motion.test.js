@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 
 /**
- * Source scan of index.css for the routines-canvas motion rules — the same
+ * Source scan of index.css for the automations-canvas motion rules — the same
  * shape as i18n/i18nGuard.test.js: read the file, parse just enough, pin the
  * invariants that a browser would not report and a reviewer would not spot.
  *

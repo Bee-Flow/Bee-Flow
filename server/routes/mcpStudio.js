@@ -2,7 +2,7 @@
  * App Studio as an MCP server — build Bee Flow apps from an external editor.
  *
  * `routes/mcpServer.js` exposes the caller's INTEGRATION tools (mail, calendar,
- * routines) so an assistant can act on their behalf. This is the other half of
+ * automations) so an assistant can act on their behalf. This is the other half of
  * the platform story: the App Studio BUILDER toolset, so a coding agent — Claude
  * Code in VS Code — authors and edits real apps in a running instance.
  *

@@ -77,8 +77,8 @@ export const STEP_CATALOG = {
         blurb: 'Remove a row for good.',
     },
     run_automation: {
-        label: 'Run a routine', group: 'Data', icon: Workflow, server: true,
-        blurb: 'Hand the work to one of your routines.',
+        label: 'Run an automation', group: 'Data', icon: Workflow, server: true,
+        blurb: 'Hand the work to one of your automations.',
     },
     request_approval: {
         label: 'Ask for approval', group: 'Data', icon: BadgeCheck, server: true,

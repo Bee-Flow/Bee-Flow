@@ -20,10 +20,10 @@ const TRANSITIONS = Object.freeze({
     running: ['awaiting', 'failed', 'skipped'],
     awaiting: ['done', 'failed', 'skipped'],
     // `failed → awaiting`: a builder phase keeps its shell mounted after a
-    // failure (RoutineStage, AppStage), so the person carries on in the chat and
+    // failure (AutomationStage, AppStage), so the person carries on in the chat and
     // the builder finalises — and that finalize used to 409 for ever. The
     // awaiting gate in routes/playbooks.js re-verifies the owner and that the
-    // routine is no longer a draft, so nothing half-built lands this way.
+    // automation is no longer a draft, so nothing half-built lands this way.
     failed: ['ready', 'skipped', 'awaiting'],
     skipped: ['ready'],
     locked: ['skipped', 'ready'],
@@ -101,7 +101,7 @@ function currentPhaseKey(phases) {
 /**
  * The brief a phase runs on, composed from the recipe with the playbook's
  * REAL artifacts. null for phases the server runs (table, fill). Throws when
- * the artifacts a brief needs are not there yet (a routine brief before the
+ * the artifacts a brief needs are not there yet (an automation brief before the
  * table exists) — the route reports that as 409 `artifacts_missing`. Both
  * recipe shapes (the built-in module, a recipe document) answer through
  * `composeBrief(key, { table, options, playbook })`.

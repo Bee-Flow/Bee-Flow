@@ -42,7 +42,7 @@ describe('the list (Enterprise)', () => {
         const { ui } = renderableTab();
         render(ui);
         expect(screen.getByRole('heading', { name: 'Hide things only your organisation uses' })).toBeInTheDocument();
-        expect(screen.getByText(/just like names and email addresses, in chat, agents and routines\./)).toBeInTheDocument();
+        expect(screen.getByText(/just like names and email addresses, in chat, agents and automations\./)).toBeInTheDocument();
         expect(screen.getByRole('group', { name: 'Start from an example' })).toBeInTheDocument();
         for (const s of ['Project code names', 'Customer or contract numbers', 'A list of names or words', 'Describe it in your words']) {
             expect(screen.getByRole('button', { name: s })).toBeInTheDocument();
@@ -91,11 +91,11 @@ describe('the list (Enterprise)', () => {
         expect(form.current?.customDataTypes).toEqual([]);
     });
 
-    it('does not promise routines when the shield is off for them', () => {
+    it('does not promise automations when the shield is off for them', () => {
         const { ui } = renderableTab({ init: { applyToAutomations: false } });
         render(ui);
         expect(screen.getByText(/just like names and email addresses, in chat and agents\./)).toBeInTheDocument();
-        expect(screen.queryByText(/routines/)).toBeNull();
+        expect(screen.queryByText(/automations/)).toBeNull();
     });
 
     it('lets a read-only admin look, not start', () => {

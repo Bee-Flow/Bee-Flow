@@ -37,7 +37,7 @@ const failedRun = (settingKey: string, status = 'error') => ({
     errorInfo: {
         code: 'nextcloud_no_access',
         title: 'Bee may not open this folder',
-        titleKey: 'routines.step_error.nextcloud_no_access.title',
+        titleKey: 'automations.step_error.nextcloud_no_access.title',
         settingKey,
         fixes: [],
     },

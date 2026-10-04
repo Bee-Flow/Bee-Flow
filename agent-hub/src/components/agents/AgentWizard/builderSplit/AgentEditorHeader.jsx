@@ -2,6 +2,8 @@ import { FlaskConical, Link2, Rocket, UserRound, Wrench } from 'lucide-react';
 import React from 'react';
 import SaveStateIndicator from './SaveStateIndicator';
 import { isImageAvatar, resolveAvatarSrc } from '../../../../utils/agentAvatar';
+import { managedOf } from '../../../shared/managedPart';
+import ManagedPartBanner from '../../../shared/ManagedPartBanner';
 import StatusActionPill from '../../../shared/StatusActionPill';
 import StudioSectionHeader, { OBJHEAD, PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import VisibilityCapsule from '../../../shared/VisibilityCapsule';
@@ -40,6 +42,13 @@ import VisibilityCapsule from '../../../shared/VisibilityCapsule';
  * naast elkaar ziet:
  *   published_version > 0  →  LIVE   · "Publish new version"
  *   published_version = 0  →  DRAFT  · "Publish"
+ *
+ * ── AN AGENT A SOLUTION STAGE MANAGES ──────────────────────────────
+ * `managed` (from the agent GET, or the prop) makes the agent read-only for
+ * whoever edits it: no rename and no "Publish" (a deploy owns the version),
+ * with the banner under the row. The AUDIENCE stays settable: sharing and
+ * `embed_enabled` are on the stage's allow-list, so the capsule keeps working.
+ * The AI builder chat lives in BuilderSplit and goes away there.
  *
  * ── WAT DE KOP NIET DOET ────────────────────────────────────────────
  * Geen `inert` op deze rij. Alleen-lezen (BFSF-271) haalt de BEWERKENDE
@@ -172,11 +181,12 @@ function HeaderStatus({ t, publishedVersion, savingState, savedAt, saveErrorMsg,
 /**
  * Het primaire slot. Drie gevallen, in deze volgorde:
  *   alleen-lezen        niets — er valt niets te publiceren
+ *   managed (`locked`)  niets — a Solution deploy owns the version
  *   concept zonder id   de expliciete eerste opslag (POST /agents)
  *   opgeslagen agent    de LIVE/CONCEPT-split-knop
  */
-function PrimarySlot({ t, ro, agent, savingState, saveDraft, publishedVersion, onPublishVersion, publishing }) {
-    if (ro) return null;
+function PrimarySlot({ t, ro, locked = false, agent, savingState, saveDraft, publishedVersion, onPublishVersion, publishing }) {
+    if (ro || locked) return null;
     if (!agent?.id) {
         return (
             <button
@@ -214,8 +224,18 @@ function PrimarySlot({ t, ro, agent, savingState, saveDraft, publishedVersion, o
     );
 }
 
-export default function AgentEditorHeader({
-    t, ro = false, agent, name, avatar,
+export default function AgentEditorHeader(props) {
+    const managed = props.managed ?? managedOf(props.agent);
+    return (
+        <>
+            <AgentHeaderRow {...props} onRename={managed ? undefined : props.onRename} managed={!!managed} />
+            {managed ? <ManagedPartBanner managed={managed} /> : null}
+        </>
+    );
+}
+
+function AgentHeaderRow({
+    t, ro = false, managed, agent, name, avatar,
     onBack, onRename,
     tabs, activeTab, onTab,
     savingState, savedAt, saveErrorMsg, onRetrySave, saveDraft,
@@ -272,6 +292,7 @@ export default function AgentEditorHeader({
                 <PrimarySlot
                     t={t}
                     ro={ro}
+                    locked={managed}
                     agent={agent}
                     savingState={savingState}
                     saveDraft={saveDraft}

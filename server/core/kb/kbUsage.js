@@ -278,7 +278,7 @@ async function scrubReferences(kbId, { db = pool } = {}) {
 
     // The ingest target is a scalar, so it cannot be filtered out of an
     // array — it is cleared, and the ingest switched off with it. Leaving the
-    // flag on with a null target would keep the routine running against
+    // flag on with a null target would keep the automation running against
     // nothing, which is the silent version of the same breakage.
     try {
         if (await tableExists('support_inboxes', db)) {
@@ -299,7 +299,7 @@ async function scrubReferences(kbId, { db = pool } = {}) {
      *
      * The id sits at an unknown depth inside a definition that also encodes
      * the shape of a canvas. Rewriting arbitrary JSON in place risks
-     * corrupting a routine somebody spent an afternoon building, to save them
+     * corrupting an automation somebody spent an afternoon building, to save them
      * an error message that already names the missing base. The run-time
      * check (`execAi` drops an unresolvable id with a warning) is the safer
      * half of this pair, and the Used-by list told them before they confirmed.

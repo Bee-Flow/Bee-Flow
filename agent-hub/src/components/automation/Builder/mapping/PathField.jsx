@@ -1,16 +1,17 @@
 import { Check, List } from 'lucide-react';
-import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
-import InsertDataButton from './InsertDataButton';
 import React, { useEffect, useRef, useState } from 'react';
+import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
+import { useFormRowLabel } from './FormRowLabelContext';
+import InsertDataButton from './InsertDataButton';
+import { describeListPath } from './listShape';
 import RefTokenInput from './RefTokenInput';
 import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { walkPath, previewValue, getAutocompleteTokenFromPrefix } from '../../../../utils/bindingHelpers';
 import { humanizeExpression } from '../flow/displayHelpers';
 import FieldHint from '../flow/FieldHint';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { describeListPath } from './listShape';
 import { denseInputClass, AMBER_NOTE } from '../flow/settings/formStyles';
 
 /**
@@ -55,6 +56,7 @@ export default function PathField({
     onFocusField,
     previewSample = null,
 }) {
+    const rowLabel = useFormRowLabel();
     const { t } = useTranslation();
     const [text, setText] = useState(String(value ?? ''));
     const inputRef = useRef(null);
@@ -85,7 +87,7 @@ export default function PathField({
         if (!onFocusField) return;
         onFocusField({
             id: label || placeholder || 'path',
-            label: label || placeholder || 'path',
+            label: label || rowLabel || '',
             insert: (path) => replaceWith(path),
         });
     };
@@ -119,17 +121,17 @@ export default function PathField({
                 // the same line.
                 footer = {
                     tone: 'warn',
-                    text: `${t('routines.builder.path_column_merges', 'This path takes one value from every row and merges them into one list.')} — ${previewValue(resolved, 40)}`,
+                    text: `${t('automations.builder.path_column_merges', 'This path takes one value from every row and merges them into one list.')} — ${previewValue(resolved, 40)}`,
                 };
             } else if (expectArray && !Array.isArray(resolved)) {
-                footer = { tone: 'warn', text: t('routines.builder.path_not_list', "This isn't a list in the sample data — pick a field that holds multiple items.") };
+                footer = { tone: 'warn', text: t('automations.builder.path_not_list', "This isn't a list in the sample data — pick a field that holds multiple items.") };
             } else {
                 footer = { tone: 'ok', text: previewValue(resolved, 60) };
             }
         } else if (allowLiteral === 'date' && !Number.isNaN(Date.parse(trimmed))) {
-            footer = { tone: 'ok', text: t('routines.builder.path_literal_date', 'Fixed date') + `: ${previewValue(trimmed, 40)}` };
+            footer = { tone: 'ok', text: t('automations.builder.path_literal_date', 'Fixed date') + `: ${previewValue(trimmed, 40)}` };
         } else if (effectivePreviewSample) {
-            footer = { tone: 'warn', text: t('routines.builder.path_no_sample', 'No sample data found at this path — check it after a test run.') };
+            footer = { tone: 'warn', text: t('automations.builder.path_no_sample', 'No sample data found at this path — check it after a test run.') };
         }
     }
 
@@ -164,10 +166,10 @@ export default function PathField({
     // data panel, not something a reader is meant to hear.
     const exampleSyntax = isPathSyntax(placeholder) ? String(placeholder).trim() : null;
     const placeholderText = exampleSyntax
-        ? t('routines.builder.path_placeholder', 'Pick a field with the { } button')
+        ? t('automations.builder.path_placeholder', 'Pick a field with the { } button')
         : placeholder;
     const exampleTitle = (exampleSyntax && !trimmed)
-        ? t('routines.builder.path_example_title', 'Or type a path yourself, like {path}', { path: exampleSyntax })
+        ? t('automations.builder.path_example_title', 'Or type a path yourself, like {path}', { path: exampleSyntax })
         : undefined;
 
     return (
@@ -211,14 +213,14 @@ export default function PathField({
             </div>
             {footer && (
                 <div className={`flex items-center gap-1.5 ${footer.tone === 'warn' ? AMBER_NOTE : 'text-[10px] text-[var(--text-tertiary)]'}`}>
-                    <span className="uppercase tracking-wide">{footer.tone === 'warn' ? '!' : t('routines.builder.example', 'example')}</span>
+                    <span className="uppercase tracking-wide">{footer.tone === 'warn' ? '!' : t('automations.builder.example', 'example')}</span>
                     <span className={`truncate ${footer.tone === 'warn' ? '' : 'font-mono text-[var(--text-secondary)]'}`}>{footer.text}</span>
                 </div>
             )}
             {Array.isArray(quickPicks) && quickPicks.length > 0 && (
                 <div className="rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 divide-y divide-[var(--border-default)]">
                     <div className="px-2 py-1 text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)]">
-                        {quickPicksLabel || t('routines.builder.lists_detected', 'Lists found in previous steps')}
+                        {quickPicksLabel || t('automations.builder.lists_detected', 'Lists found in previous steps')}
                     </div>
                     {quickPicks.map(q => {
                         const selected = trimmed === q.path;

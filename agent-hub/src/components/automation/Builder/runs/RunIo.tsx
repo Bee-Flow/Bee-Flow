@@ -43,7 +43,7 @@ export default function RunIo({ step, label }: { step: RunStepRecord | null; lab
     const { t } = useTranslation();
     const inFields = useMemo(() => ioFields(t, step?.input), [t, step]);
     const outFields = useMemo(() => ioFields(t, step?.output), [t, step]);
-    const list = useMemo(() => mainList(step?.output), [step]);
+    const list = useMemo(() => mainList(step?.output, step?.stepType), [step]);
 
     if (!step) {
         return <div className="p-4 text-xs text-[var(--text-tertiary)]">{t('runs.tab.pick_step', 'Pick a step to see what it got and passed on.')}</div>;

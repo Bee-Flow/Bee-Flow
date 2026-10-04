@@ -101,7 +101,7 @@ test('no already-shipped event was regenerated out of existence', () => {
 
 test('provider ordering is preserved (the builder snaps a new trigger to providers[0])', () => {
     // SettingsForm auto-selects the first available provider for a fresh
-    // trigger, so reordering silently changes what every new routine defaults
+    // trigger, so reordering silently changes what every new automation defaults
     // to. Discovery order must never decide this.
     assert.deepStrictEqual(
         buildAppEventProviders(FULL_CTX).map(p => p.id),

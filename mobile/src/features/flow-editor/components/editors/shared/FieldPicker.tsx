@@ -68,7 +68,7 @@ function PickSheet({ open, onClose, title, path, options, fallbackBase, onPick, 
     const typedPath = `${fallbackBase}.${typed}`;
     return (
         <Sheet visible={open} onClose={onClose} title={title} tall>
-            <SearchField value={query} onChangeText={setQuery} placeholder={t('routines.mapping.search_open', 'Search fields')} />
+            <SearchField value={query} onChangeText={setQuery} placeholder={t('automations.mapping.search_open', 'Search fields')} />
             <View style={styles.list}>
                 {options.length === 0 ? (
                     <Text variant="caption" tone="tertiary">

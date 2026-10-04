@@ -3,18 +3,18 @@
   "icon": "🗂️",
   "estMinutes": 10,
   "title": "Run it as a project, not as four private chats",
-  "desc": "The Projects group in the sidebar and the eight tabs behind it: three roles, a shared memory pool, and what sharing a conversation does to its encryption.",
+  "desc": "The Projects group in the sidebar and the rail behind it: three roles, team chats versus shared AI chats, project memory, and what deleting a project takes with it.",
   "gate": {
     "feature": "projects"
   },
-  "learningGoal": "After this lesson you can create a project, invite a colleague as Editor or Viewer, share a conversation into it knowing exactly what that changes, and tell the project's memory pool apart from your own.",
+  "learningGoal": "After this lesson you can create a project, give it instructions for the AI, invite a colleague as Editor or Viewer, tell a team chat from a shared AI chat and what sharing does to its encryption, and find the project's own memory.",
   "steps": [
     {
       "type": "slide",
       "id": "why",
       "icon": "🧭",
       "title": "Four people, four private chats, one job",
-      "bodyMd": "Marieke is projectleider at **Van Dijk Groep**, the sixty-person installation firm near Zwolle. She is preparing a tender for a housing renovation with three colleagues, and right now the job lives in four separate heads: Bas has the supplier prices in his chat history, Karin has the drawings in a notebook only she can open, and Marieke keeps re-pasting the same house style into every prompt.\n\nNothing there is broken. It is just that a conversation in Bee Flow belongs to one person by default, and so does almost everything else.\n\nA **project** is the exception. It is a named workspace that several colleagues open on the same footing: the conversations they choose to share, the knowledge bases the answers should draw on, the items they built, and a set of standing instructions that every chat inside it obeys. Projects are part of the Enterprise edition, so the row only appears if your organisation has it."
+      "bodyMd": "Marieke is projectleider at **Van Dijk Groep**, the sixty-person installation firm near Zwolle. She is preparing a tender for a housing renovation with three colleagues, and right now the job lives in four separate heads: Bas has the supplier prices in his chat history, Karin has the drawings in a notebook only she can open, and Marieke keeps re-pasting the same house style into every prompt.\n\nNothing there is broken. It is just that a conversation in Bee Flow belongs to one person by default, and so does almost everything else.\n\nA **project** is the exception. It is a named workspace that several colleagues open on the same footing: team chats, tasks, documents, notebooks and meeting notes, the files and knowledge bases the answers should draw on, and a set of instructions that every AI chat inside it follows. Projects are part of the Enterprise edition, so the row only appears if your organisation has it."
     },
     {
       "type": "tour",
@@ -25,21 +25,21 @@
       "optional": true,
       "timeoutMs": 7000,
       "title": "The part of the sidebar you have scrolled past",
-      "body": "This is the top of the sidebar. Once you have a project, a group headed Projects sits lower down: a plus titled New Project beside the heading, a row per project — a colleague's tagged shared — and All projects for the full list. Until then it is one New Project row. The group is hidden in Simple Mode. The list page adds search, sorting and the filters All, Mine and Shared with me."
+      "body": "This is the top of the sidebar. Once you have a project, a group headed Projects sits lower down: a plus titled New Project, a row per project (tagged shared if a colleague owns it; hover it for a plus that starts a chat there) and All projects. Until then it is one New Project row. Neither shows in Simple Mode. The list page adds search, sorting and the filters All, Mine and Shared with me."
     },
     {
       "type": "slide",
       "id": "tabs",
       "icon": "🗂️",
-      "title": "Eight tabs, and each one owns a question",
-      "bodyMd": "Open a project and you get one strip of tabs:\n\n- **General** — a description, **Custom Instructions**, the **Extract Project Memories** checkbox, and the colour and icon; the name sits in the header above the tabs.\n- **Chats** — the conversations members have shared into the project.\n- **Content** — headed *In this project*: notebooks, apps, routines, webpages, tables, agents, knowledge bases and approvals.\n- **Knowledge** — the knowledge bases every chat in this project searches. There is a **Create KB** button, and a cap on how many bases one project may carry.\n- **Members** — who is in, and at what role.\n- **Activity** — what has happened here.\n- **Memory** — the project's own memory pool.\n- **Danger** — deleting the project. This tab is not hidden from you out of politeness: it is only rendered for the owner.\n\nCustom Instructions are the quiet workhorse. Whatever you type there is added to the system prompt of **every** chat in this project, so the house style gets written once instead of pasted four times a day."
+      "title": "One rail, ten sections",
+      "bodyMd": "Open a project and a rail runs down its left side, under the project's name and your role:\n\n- **Collaborate** — **Overview** first: start a conversation, see what changed since your last visit, add work, and a summary of the instructions, members and knowledge. Then **Chats** (team chats and AI chats in the project), **Tasks**, and **Meetings** for recorded or uploaded meetings with their notes.\n- **Content** — **Documents** to write together, **Notebooks**, and **Knowledge**: the files, knowledge bases and project memory every chat can draw on.\n- **Manage** — **Members**, **Activity**, and **Settings**: name, description, icon and colour, the AI's instructions, and at the bottom delete (owner) or leave (everyone else).\n\nNotebooks is left out of the rail for anyone whose plan or role does not include notebooks.\n\n**Instructions for the AI**, under Settings, are the quiet workhorse: *\"Added to every AI chat in this project: tone, context, what to keep in mind.\"* The house style gets written once instead of pasted four times a day."
     },
     {
       "type": "sim",
       "id": "which-tab",
       "icon": "🧩",
-      "title": "Send each request to its tab",
-      "instruction": "Six things the tender team needs. Match each to the tab that owns it — General, Chats, Content, Knowledge, Members, Activity, Memory or Danger.",
+      "title": "Send each request to its section",
+      "instruction": "Six things the tender team needs. Match each to the section of the project's rail that owns it.",
       "sim": {
         "kind": "match",
         "pairs": [
@@ -47,37 +47,37 @@
             "id": "p1",
             "left": "\"Bas should be able to open the two conversations we are working from.\"",
             "right": "Chats",
-            "note": "Chats lists the conversations members have shared. Until someone shares one it reads: No shared conversations yet. Share one to work on it together."
+            "note": "Chats lists every conversation of the project: team chats, AI chats members shared, and your own private ones filed here. The filter offers All, Unread, Shared and Private."
           },
           {
             "id": "p2",
             "left": "\"Answers here should quote our own tender documents, not the open web.\"",
             "right": "Knowledge",
-            "note": "Knowledge holds the bases every chat in this project searches, with a Create KB button for editors."
+            "note": "Knowledge holds the files uploaded into the project (up to 20 MB each) and the linked knowledge bases. Chats in this project answer from both."
           },
           {
             "id": "p3",
-            "left": "\"The routine Bas built should be reachable by the whole team, not just him.\"",
-            "right": "Content",
-            "note": "Content is the In this project list: notebooks, apps, routines, webpages, tables, agents, knowledge bases and approvals. Bas files his routine in himself with Add existing — you can only file in items you own."
+            "left": "\"Marieke and Bas need to write the tender letter together.\"",
+            "right": "Documents",
+            "note": "Documents is for writing together: everyone in the project can read a document and editors can write in it. New document starts one; Add existing files in one of your own."
           },
           {
             "id": "p4",
             "left": "\"Karin wants to know who changed her role last week.\"",
             "right": "Activity",
-            "note": "Activity is the log of the project: who invited whom and at which role, who changed someone's role from which rung to which, who left, whose instructions changed, and which conversations and knowledge bases went in or out."
+            "note": "Activity is the project's log: who invited whom as which role, who changed whose role, who left, who updated the instructions for the AI, which AI chats were shared or made private again. It can be filtered by Chats, Content, People or Project."
           },
           {
             "id": "p5",
-            "left": "\"Bas keeps re-telling the AI that our standard delivery period is six weeks. It should just know by now.\"",
-            "right": "Memory",
-            "note": "A fact the team keeps repeating belongs in the project's memory pool, where every member sees it and it is recalled for all of them. A rule about how answers should be written belongs in Custom Instructions on General."
+            "left": "\"Every answer in this project should be in Dutch, with prices ex VAT.\"",
+            "right": "Settings",
+            "note": "A standing rule for the AI goes in Instructions for the AI on Settings, which is added to every AI chat in the project. A fact the team keeps repeating fits project memory on Knowledge instead."
           },
           {
             "id": "p6",
-            "left": "\"The tender is lost; Marieke wants the workspace gone.\"",
-            "right": "Danger",
-            "note": "Danger holds Delete Project, and it only renders for the owner."
+            "left": "\"Tuesday's site meeting with the supplier should be kept with the job, action items and all.\"",
+            "right": "Meetings",
+            "note": "Meetings takes a recording or an upload (Record or upload) and keeps its transcript, summary and action items in the project. Every member can read them; only the person who recorded a meeting can change it."
           }
         ]
       }
@@ -87,12 +87,12 @@
       "id": "roles",
       "icon": "👥",
       "title": "Owner, Editor, Viewer — and who may hand out which",
-      "bodyMd": "On **Members** the owner gets an **Invite Member** panel: pick a user or a group, then a permission. The dropdown offers exactly two, **Viewer** and **Editor**, and the panel says what separates them: *\"Editors can update project settings and KBs. Viewers can read and chat in the project.\"*\n\n**Owner** is not on that list. It is whoever created the project, and it is the only role that can invite, change someone's role, remove a member, or see the Danger tab. The role dropdown beside each member is disabled for everyone else — a member can only remove themselves, which Activity records as leaving rather than as being removed.\n\nA **Viewer** is genuinely read-only. They can open the shared conversations and chat in the project, but they get no Add, Edit or Delete controls — not on Knowledge, not on Content, and not in project memory. The buttons are hidden rather than shown and refused, because the server would refuse them anyway."
+      "bodyMd": "On **Members** the owner gets an **Invite people** form: choose **Person** or **Group**, pick who, then a role. The role dropdown offers exactly two, **Editor** and **Viewer**, with Viewer preselected. Below the list, *What each role can do* spells them out:\n\n- **Owner** — *\"Everything an editor can, plus managing members and deleting the project.\"*\n- **Editor** — *\"Starts chats, manages tasks and content, and changes project and AI settings.\"*\n- **Viewer** — *\"Reads everything in the project, changes nothing.\"*\n\n**Owner** is not on the invite list. It is whoever created the project, and only the owner sees the role dropdown and the remove button beside each member. Everyone else sees a role label, and on their own row a **Leave** button, which Activity records as leaving rather than being removed.\n\nA Viewer really changes nothing: in a team chat they read *\"You can read this chat. Only editors can post in it.\"* The buttons are hidden rather than shown and refused, because the server would refuse them anyway."
     },
     {
       "type": "quiz",
       "id": "q-roles",
-      "question": "Marieke wants Bas to add a knowledge base and adjust the project's Custom Instructions, but she does not want him inviting the rest of the office. Which role does she pick when she invites him?",
+      "question": "Marieke wants Bas to link a knowledge base and adjust the project's instructions for the AI, but she does not want him inviting the rest of the office. Which role does she pick when she invites him?",
       "multi": false,
       "choices": [
         {
@@ -104,76 +104,76 @@
           "id": "b",
           "label": "Viewer",
           "correct": false,
-          "feedback": "A Viewer can read the project and chat in it, but gets no Add, Edit or Delete controls anywhere — including the Knowledge tab and project memory."
+          "feedback": "A Viewer reads everything in the project and changes nothing: no linking on Knowledge, no saving on Settings, not even a post in a team chat."
         },
         {
           "id": "c",
           "label": "Owner",
           "correct": false,
-          "feedback": "Owner is not on offer in the Invite panel at all: the permission dropdown holds Viewer and Editor only. The owner is whoever created the project, and that role also unlocks Danger."
+          "feedback": "Owner is not on offer when inviting: the role dropdown holds Editor and Viewer only. The owner is whoever created the project, and that role is exactly the one that manages members and can delete the project."
         },
         {
           "id": "d",
-          "label": "Editor, and she also ticks Extract Project Memories so he can write to the pool",
+          "label": "Editor, and she also turns on Remember useful facts from chats so he can write to project memory",
           "correct": false,
-          "feedback": "Two unrelated things. Extract Project Memories decides whether conversations are mined for memories automatically; writing to the pool by hand is already an Editor's right without it."
+          "feedback": "Two unrelated things. That toggle lets the AI save facts from chats on its own; adding, changing and removing project memory entries by hand is already an editor's right without it."
         }
       ],
-      "explanation": "Editor is the working role: update project settings and knowledge bases, write project memory, reply in shared conversations. Inviting people, changing roles and deleting the project stay with the owner."
+      "explanation": "Editor is the working role: start chats, manage tasks and content, change the project and AI settings, write project memory. Inviting people, changing roles, removing members and deleting the project stay with the owner."
     },
     {
       "type": "slide",
       "id": "sharing",
       "icon": "🔑",
-      "title": "Sharing a conversation changes its lock",
-      "bodyMd": "It takes two moves, and they are deliberately not one. In the sidebar's ⋯ menu beside a conversation, the projects are listed: click one and the chat is **filed** there. Only then does a second item appear, **Share with project** — and that is the one that publishes it.\n\nA shared conversation lands on the project's **Chats** tab for everyone, under the hint editors get: *\"Everyone in this project can read these. Editors can reply.\"* A thread someone else shared carries their name beside the title, and shows *answering…* while their turn is running.\n\nThe warning the app gives you is worth reading twice: *\"Shared conversations are encrypted with an organisation key so every project member and background jobs can read them. Your private conversations are unchanged.\"*\n\nThat is literal. A private conversation is sealed with its owner's key; sharing rewrites the messages on the spot under the project's own key, which the organisation holds, because colleagues and background jobs all have to open them. **Stop sharing** re-keys them back.\n\nBoth moves are the owner's alone — *\"Only a conversation's owner can share it.\"* Re-encrypting has to read the existing messages first, and on the zero-knowledge tier the key for that exists only while the owner is signed in."
+      "title": "How a chat becomes the team's",
+      "bodyMd": "A project holds two kinds of chat, and they start out differently.\n\n**New chat** on Chats, or *Start a conversation* on Overview, opens a **team chat**: *\"Everyone in this project can read along. Mention @AI when you want its help.\"* It starts on **On mention**, and **When the AI answers** at the top of the chat can change that.\n\nAn **AI chat** you start with the plus beside the project in the sidebar uses the project's instructions and knowledge, but it is listed on Chats as *Private: only you can see it*. To bring the team in, click **Share with members** on its row (the sidebar's ⋯ menu calls it **Share with project**). The confirmation is worth reading: *\"Every member can then read it, and editors can continue it. It is encrypted with the project key instead of your own; your other chats stay private.\"*\n\nThat is literal: sharing re-encrypts the messages on the spot, and **Stop sharing** re-keys them back to you. Only a chat's owner can do either — on the zero-knowledge tier the key for the private version exists only while its owner is signed in."
     },
     {
       "type": "quiz",
       "id": "q-crypto",
-      "question": "Marieke shares her supplier thread into the tender project. What actually happens to that conversation?",
+      "question": "Marieke shares her private supplier AI chat with the tender project. What actually happens to that conversation?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "Its messages are re-encrypted at that moment under the project's own key, which the organisation holds, so members and background jobs can read them — and Stop sharing re-keys them back to her.",
+          "label": "Its messages are re-encrypted at that moment with the project key instead of hers, so every member can read it and editors can continue it — and Stop sharing re-keys it back to her.",
           "correct": true
         },
         {
           "id": "b",
           "label": "Nothing changes about the encryption; the project simply links to the conversation.",
           "correct": false,
-          "feedback": "It cannot stay as it was. A private conversation is sealed with its owner's key, which nobody else and no background job holds — sharing has to re-key it or no member could open it."
+          "feedback": "It cannot stay as it was. A private chat is sealed with its owner's key, which no colleague holds — sharing has to re-key it, or no member could open it."
         },
         {
           "id": "c",
           "label": "A copy is placed in the project and the original stays private.",
           "correct": false,
-          "feedback": "There is no copy. It is the same conversation, now readable by the project — which is why Stop sharing puts it back rather than deleting a duplicate."
+          "feedback": "There is no copy. It is the same conversation, now readable by the project — which is why Stop sharing makes it private again rather than deleting a duplicate."
         },
         {
           "id": "d",
-          "label": "It stays unreadable to anyone but Editors until Marieke grants a key.",
+          "label": "It becomes readable to Editors only, until Marieke grants each Viewer a key.",
           "correct": false,
-          "feedback": "There is no per-member key handout. Everyone in the project can read a shared conversation; the Editor rung decides who may reply, not who may read."
+          "feedback": "There is no per-member key handout. Every member can read a shared chat; the Editor role decides who may continue it, not who may read it."
         }
       ],
-      "explanation": "Sharing is a re-key, not a link. It is the one place where a conversation stops being sealed to you alone — so decide before you share, and remember that only its owner can share it or take it back."
+      "explanation": "Sharing is a re-key, not a link. It is the one moment a private AI chat stops being sealed to you alone — so decide before you share, and remember that only its owner can share it or take it back. Team chats need no sharing: they belong to the project from the first message."
     },
     {
       "type": "slide",
       "id": "memory-pool",
       "icon": "🧠",
-      "title": "A third memory pool, with names on the cards",
-      "bodyMd": "You already have a personal memory. A project adds a second, separate pool, opened from the **Memory** tab, where the panel title reads **Project Memory** and every card shows *by* whoever put it there. The types on offer here are **Instruction, Project, Fact** and **Context**.\n\nTwo things to set straight before the team leans on it:\n\n- It is **shared, not private**. Every member sees it and any Editor can delete from it. A Viewer sees the pool with the note *\"You have view-only access to this project, so project memory is read-only.\"*\n- It is **empty until you ask for it**. The **Extract Project Memories** checkbox on **General** — *\"Automatically learn and recall facts from conversations within this project.\"* — is off by default. Until it is ticked, nothing is learned here automatically; you can still add entries by hand.\n\nYour own memory is not shut out: inside a project, up to fifteen of your global Instructions and Preferences are merged on top of the project pool. Your other personal memories stay out."
+      "title": "Project memory, with names on the entries",
+      "bodyMd": "You already have a personal memory. A project keeps a separate one, at the bottom of **Knowledge** under **Project memory**: *\"What the assistant remembers for this project, shared by every member. Editors can add, change and remove entries.\"* Each entry shows *by* whoever put it there, and an entry added by hand is an **Instruction, Project, Fact** or **Context**.\n\nTwo things to set straight before the team leans on it:\n\n- It is **shared, not private**. Every member reads it; a Viewer gets no **Add memory** button.\n- It is **quiet until you switch it on**. **Remember useful facts from chats**, under *AI in this project* on Settings, is off by default: *\"The AI saves facts from chats in this project as project memory, so later chats can use them. Review them under Knowledge.\"* Until then the empty pool reads *\"Automatic memory is off. Editors can add shared project facts here.\"*\n\nOverview's *About this project* shows at a glance whether project memory is On or Off."
     },
     {
       "type": "exercise",
       "id": "ex-instructions",
       "icon": "🎯",
       "exerciseId": "ex-projects-shared-workspace-instructions",
-      "title": "Your turn: write the project's Custom Instructions",
-      "instruction": "Write the Custom Instructions for Marieke's tender project — the text that goes on the General tab and is added to the system prompt of every chat in the project. Three to five sentences. Make them standing rules the assistant should follow every time (language, tone, units, what to always include, what never to do), not a task for today. Keep customer names, addresses and account numbers out of it: this text is read by every chat in the project.",
+      "title": "Your turn: write the project's instructions for the AI",
+      "instruction": "Write the Instructions for the AI for Marieke's tender project — the text that goes under AI in this project on Settings and is added to every AI chat in the project. Three to five sentences. Make them standing rules the assistant should follow every time (language, tone, units, what to always include, what never to do), not a task for today. Keep customer names, addresses and account numbers out of it: every member of the project can read this text.",
       "placeholder": "e.g. Answer in Dutch unless the question is in English. All prices are ex VAT in euros, and every quotation must name a delivery period. Never promise an installation date without a source in the project's knowledge bases…",
       "passScore": 70,
       "maxAttempts": 4
@@ -182,40 +182,40 @@
       "type": "slide",
       "id": "content-and-remove",
       "icon": "📦",
-      "title": "Three different ways to take something out",
-      "bodyMd": "This is where people trip, because three different controls all sound like undo.\n\n- On **Content**, an item you own carries **Remove from project**. That un-files it: it goes back to being standalone and owner-only, untouched, and nothing is deleted. The button is offered narrowly — no viewer sees it, and an editor gets none on a colleague's routine, because only its owner may take it back out. A knowledge base is the loose end: it is linked from the project rather than owned by the item, so any editor may unlink it. **Approvals** are the other extreme — stamped with the project when they are raised and never re-filed, so they list with no remove button at all.\n- In the sidebar's ⋯ menu, a filed conversation has two of these. **Stop sharing** takes it off the Chats tab and re-keys it back to its owner, but leaves it filed under the project. **Remove from project** un-files it altogether. Neither deletes the chat — **Delete**, at the bottom of the same menu, does.\n- On **Danger**, **Delete Project** ends the workspace: *\"Conversations will be unassigned but not deleted. Members and activity history will be removed.\"* Items on Content are handed back to their owners. The memory pool goes with the project."
+      "title": "Remove, stop sharing, delete: three different exits",
+      "bodyMd": "This is where people trip, because several controls all sound like undo.\n\n- On **Documents**, **Notebooks** and **Meetings**, **Remove from project** takes an item out without deleting it: *\"stays with its owner. Members of this project will no longer see it.\"* The button shows for the item's owner and for the project owner; a Viewer never sees it. On **Knowledge**, **Unlink** stops chats searching a knowledge base without changing the base itself.\n- For an AI chat, **Stop sharing** makes it private again but leaves it filed in the project; **Remove from project** in the sidebar's ⋯ menu un-files it; only **Delete** deletes it. Deleting a team chat removes its messages for everyone.\n- At the bottom of **Settings**, the owner's **Delete this project** asks for the project's name and warns: *\"Team chats are deleted with it. Documents, notebooks, meetings and private chats stay with the people who made them. Chats shared with the project must be made private first.\"* Everyone else sees **Leave this project** there instead."
     },
     {
       "type": "quiz",
       "id": "q-delete",
-      "question": "The tender is lost. Marieke opens Danger and clicks Delete Project. Which outcome should she expect?",
+      "question": "The tender is lost. Marieke opens Settings and clicks Delete this project. Which outcome should she expect?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "The shared conversations survive as ordinary chats; members and the activity history are removed, and the project's memory pool goes too.",
+          "label": "Team chats, the member list, the activity history and project memory are deleted; documents, notebooks, meetings and private chats stay with the people who made them.",
           "correct": true
         },
         {
           "id": "b",
-          "label": "Everything the team put in the project is deleted with it, conversations included.",
+          "label": "Everything the team put in the project is deleted with it, documents and meetings included.",
           "correct": false,
-          "feedback": "The Danger panel says the opposite before you click: conversations are unassigned, not deleted. Notebooks, routines and the rest are handed back to their owners as standalone items."
+          "feedback": "The warning says the opposite before you confirm: documents, notebooks, meetings and private chats stay with the people who made them, as standalone items."
         },
         {
           "id": "c",
           "label": "Nothing happens until every member has left the project first.",
           "correct": false,
-          "feedback": "There is no such precondition. Deleting removes the members, which is exactly why the panel warns that membership and activity history are lost."
+          "feedback": "Members do not need to leave. What does block the delete is an AI chat still shared with the project: its owner has to make it private first, because a shared chat cannot outlive its project."
         },
         {
           "id": "d",
           "label": "Bas can undo it, because he is an Editor.",
           "correct": false,
-          "feedback": "Bas never saw the button: the Danger tab is only rendered for the owner. And there is no undo — the safe move for a finished job is to leave the project alone rather than delete it."
+          "feedback": "Bas never saw the button: Delete this project is only shown to the owner, and editors see Leave this project instead. There is no undo — which is why it asks for the project's name first."
         }
       ],
-      "explanation": "Deleting a project unpicks the collaboration, not the work. The one thing that genuinely disappears is what only existed because the project existed: its membership, its activity history and its memory pool."
+      "explanation": "Deleting a project unpicks the collaboration, not people's own work. What disappears is what only existed because the project existed: its team chats, membership, activity history and project memory."
     },
     {
       "type": "action",
@@ -223,7 +223,7 @@
       "icon": "🏗️",
       "checkId": "project-created",
       "title": "Build one — we'll verify it",
-      "instruction": "In the sidebar, start a new project — the plus beside the Projects heading, or the New Project row if you have none yet — and give it a name (Marieke would use the job name). On the General tab, fill in Custom Instructions with the standing rules you just wrote and save. Then open Members and invite one colleague as Viewer or Editor.",
+      "instruction": "In the sidebar, click the plus beside the Projects heading (or the New Project row if you have none yet), name the project — Marieke would use the job name — and click Create project. Open Settings in the project's rail, paste the instructions you just wrote into Instructions for the AI and click Save. Then open Members and invite one colleague as Viewer or Editor.",
       "launch": {
         "navigateTo": "agents",
         "label": "Open the workspace"
@@ -234,13 +234,13 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Set a job up as a project.** New Project in the sidebar, then General for the name, Custom Instructions and the colour — and those instructions reach every chat in the project without anyone pasting them.\n- **Put people on the right rung.** Owner invites and deletes; Editor updates settings, knowledge and project memory; Viewer reads, chats, and sees the read-only note everywhere else.\n- **Share with your eyes open.** Share with project re-keys a conversation to the project so the team and background jobs can read it; Stop sharing re-keys it back, and only its owner can do either.\n\nOne habit to take with you: project memory is a team noticeboard, not a private notebook. Put conventions there, keep customer details out of it — and tick Extract Project Memories only when you want the project to start learning on its own."
+      "bodyMd": "- **Set a job up as a project.** New Project in the sidebar, then Settings for the name, the colour and the Instructions for the AI — which reach every AI chat in the project without anyone pasting them.\n- **Put people on the right rung.** The owner invites, changes roles and deletes; an Editor starts chats and manages tasks, content and settings; a Viewer reads everything and changes nothing.\n- **Share with your eyes open.** A team chat belongs to the project from the start. A private AI chat only joins when its owner clicks Share with members, which re-encrypts it with the project key; Stop sharing re-keys it back.\n\nOne habit to take with you: project memory on Knowledge is a team noticeboard, not a private notebook. Put conventions there, keep customer details out of it — and turn on Remember useful facts from chats only when you want the project to start learning on its own."
     }
   ],
   "rubrics": {
     "ex-projects-shared-workspace-instructions": {
-      "title": "Custom Instructions for a shared project",
-      "task": "Write three to five sentences of Custom Instructions for a tender project at Van Dijk Groep — standing rules added to the system prompt of every chat in the project, with no personal or customer data in them.",
+      "title": "Instructions for the AI in a shared project",
+      "task": "Write three to five sentences of Instructions for the AI for a tender project at Van Dijk Groep — standing rules added to every AI chat in the project, with no personal or customer data in them.",
       "criteria": [
         "Reads as standing rules that apply to every chat in the project (language, tone, units, format, what to always include or never do), not as a one-off task or a question.",
         "At least two concrete, checkable rules rather than vague ambition — for example a language, a currency or VAT convention, a required element in every quotation, or a source requirement.",
@@ -253,16 +253,16 @@
   },
   "practiceTopic": {
     "title": "Projects: the shared workspace",
-    "summary": "How a project's eight tabs, three roles, shared memory pool and re-keyed conversations fit together for a team working on one job.",
+    "summary": "How a project's rail, three roles, team and shared AI chats, project memory and delete fit together for a team working on one job.",
     "facts": [
-      "A project's tabs are General, Chats, Content, Knowledge, Members, Activity, Memory and Danger; the Danger tab is only rendered for the owner.",
-      "Custom Instructions on the General tab are added to the system prompt of every chat in the project; the same tab holds the Extract Project Memories checkbox, which is off by default.",
-      "The Invite Member panel offers two permissions, Viewer and Editor: editors can update project settings and KBs, viewers can read and chat in the project. Only the owner invites or changes roles.",
-      "Share with project re-encrypts a conversation's messages under the project's key so every member and background jobs can read them; Stop sharing re-keys them back, and only the conversation's owner can do either.",
-      "Project memory is a shared pool on the Memory tab with types Instruction, Project, Fact and Context; each card names who added it, and a view-only member is told project memory is read-only.",
-      "Inside a project, up to fifteen of your own global Instructions and Preferences are merged on top of the project pool; your other personal memories stay out.",
-      "Content lists notebooks, apps, routines, webpages, tables, agents, knowledge bases and approvals under the heading In this project; an owner or editor files in items they own with Add existing and takes them out again with Remove from project, while approvals can never be removed.",
-      "Delete Project unassigns the conversations rather than deleting them, but removes the members, the activity history and the project's memory pool."
+      "A project's rail has three groups: Collaborate (Overview, Chats, Tasks, Meetings), Content (Documents, Notebooks, Knowledge) and Manage (Members, Activity, Settings); Notebooks is left out for anyone whose plan or role does not include notebooks.",
+      "Settings holds About this project (name, description, icon, colour) and AI in this project: Instructions for the AI, added to every AI chat in the project, and the toggle Remember useful facts from chats, which is off by default.",
+      "The Invite people form on Members offers two roles, Editor and Viewer, with Viewer preselected. Only the owner invites, changes roles or removes members; a Viewer reads everything in the project and changes nothing.",
+      "New chat on the Chats tab starts a team chat every member can read; the AI answers when someone mentions @AI, and viewers can read but not post.",
+      "An AI chat filed in a project stays private until its owner clicks Share with members (Share with project in the sidebar menu): it is re-encrypted with the project key, every member can read it and editors can continue it; Stop sharing re-keys it back.",
+      "Project memory sits on the Knowledge tab next to Files and Knowledge bases; every member sees it, editors add, change and remove entries, and each entry names who added it.",
+      "Remove from project on Documents, Notebooks and Meetings takes an item out without deleting it: it stays with its owner. It is offered to the item's owner and the project owner.",
+      "Delete this project (owner only, at the bottom of Settings) deletes team chats, members, activity and project memory, keeps documents, notebooks, meetings and private chats with their makers, and is refused while chats are still shared with the project."
     ]
   },
   "actionChecks": [
@@ -270,7 +270,7 @@
       "checkId": "project-created",
       "existing": false,
       "label": "Create a project of your own",
-      "hint": "Sidebar → New Project, name it, then fill in Custom Instructions on the General tab and save.",
+      "hint": "Sidebar → New Project, name it and click Create project; then fill in Instructions for the AI on the project's Settings and save.",
       "endpoints": [
         {
           "method": "GET",
@@ -282,7 +282,7 @@
         {
           "id": "owned",
           "label": "A project you own exists",
-          "hint": "Click New Project in the sidebar and give it a name — the project you create is yours. The Custom Instructions you type on the General tab are stored inside the project, where this check cannot look.",
+          "hint": "Click New Project in the sidebar, give it a name and click Create project — the project you create is yours. The instructions you type on Settings are stored inside the project, where this check cannot look.",
           "rule": "GET /api/projects → at least one row whose ownerId is the learner (rows check; shared projects carry someone else’s ownerId)",
           "endpoint": "/api/projects",
           "expect": {

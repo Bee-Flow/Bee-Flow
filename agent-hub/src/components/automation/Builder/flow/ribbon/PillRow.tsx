@@ -113,12 +113,12 @@ export default function PillRow({ segments, testId, enabled, onAdd, openKey, set
                     <Stamped origins={origins}>
                         <DropdownPill
                             id={MORE_KEY}
-                            label={t('routines.ribbon.more', 'More')}
+                            label={t('automations.ribbon.more', 'More')}
                             glyph={<MoreHorizontal size={14} />}
                             desc={names}
-                            tipFooter={t('routines.ribbon.more_hint', 'What did not fit on the ribbon.')}
+                            tipFooter={t('automations.ribbon.more_hint', 'What did not fit on the ribbon.')}
                             sections={foldSections(foldedPills)}
-                            filterLabel={moreFilterLabel || ((n) => t('routines.ribbon.filter_steps', 'Filter {n} steps…', { n }))}
+                            filterLabel={moreFilterLabel || ((n) => t('automations.ribbon.filter_steps', 'Filter {n} steps…', { n }))}
                             onAdd={onAdd}
                             openKey={openKey}
                             setOpenKey={setOpenKey}

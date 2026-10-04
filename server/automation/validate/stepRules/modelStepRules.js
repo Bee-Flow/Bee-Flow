@@ -66,8 +66,8 @@ function checkAiStep(ctx, step, at) {
                 // Direct refs only: the runner infers { <fields>: string }
                 // from exactly these refs and wraps a prose answer under
                 // the first field (execAi.js collectAiStepOutputFields),
-                // so the routine runs — this was an ERROR that 400'd every
-                // save of a working routine (a label edit PUTs the whole
+                // so the automation runs — this was an ERROR that 400'd every
+                // save of a working automation (a label edit PUTs the whole
                 // definition) and refused to re-activate it.
                 pushW({
                     code: 'ai_step.output_schema_inferred',
@@ -103,9 +103,9 @@ function checkAiStep(ctx, step, at) {
         // here and one deliberately is not.
         //
         // WHAT IS CHECKED HERE. Shape, always; and identity — does this
-        // agent exist, is it in the routine owner's organisation, is it
+        // agent exist, is it in the automation owner's organisation, is it
         // published — whenever the caller injected a catalog. The catalog
-        // is a Set of agent ids the ROUTINE OWNER may actually use, built
+        // is a Set of agent ids the AUTOMATION OWNER may actually use, built
         // by whoever has the database in hand (routes/automation/crud.js
         // on activate). Same construction as `availableTools`: without one
         // this validator stays the pure, DB-free pass it is for every
@@ -113,9 +113,9 @@ function checkAiStep(ctx, step, at) {
         //
         // ONE ANSWER FOR THREE FAILURES, ON PURPOSE. An id from another
         // organisation is NOT reported differently from an id that does
-        // not exist. If it were, anyone who can author a routine could ask
+        // not exist. If it were, anyone who can author an automation could ask
         // this validator "is agt_x a real agent somewhere?" and read the
-        // answer off the error code — a routine editor turned into an
+        // answer off the error code — an automation editor turned into an
         // existence oracle for every other workspace on the install. So
         // deleted, foreign, not-shared-with-you and never-published all
         // produce the SAME code, the same severity, the same path and the
@@ -124,7 +124,7 @@ function checkAiStep(ctx, step, at) {
         // nothing about which one it was.
         //
         // WHAT IS NOT CHECKED HERE, AND WHAT HAPPENS INSTEAD. This rule
-        // runs when the routine is SAVED and when it is ACTIVATED. The run
+        // runs when the automation is SAVED and when it is ACTIVATED. The run
         // happens later — days later, on a schedule, with nobody watching
         // — and by then the agent may have been deleted, unpublished,
         // moved to another organisation, or had its sharing narrowed. No
@@ -133,7 +133,7 @@ function checkAiStep(ctx, step, at) {
         // question of the world as it is (resolveStepAgent in
         // core/automationRunner/aiStepAgent.js) and FAILS the step when
         // the answer is no. It does not fall back to running the step's own
-        // prompt without the agent — that would be a routine quietly
+        // prompt without the agent — that would be an automation quietly
         // doing different work than it says it does, with a green run
         // behind it. A failed step is visible, has an error branch, and
         // says which agent it wanted.
@@ -146,8 +146,8 @@ function checkAiStep(ctx, step, at) {
             && !availableAgents.has(step.agentId.trim())) {
             pushE({
                 code: 'ai_step.agent_unavailable', severity: 'error', path: at + '.agentId',
-                message: `Step ${step.id}: there is no agent "${step.agentId}" this routine can use.`,
-                hint: 'Pick an agent in the step. The same answer is given whether the agent was deleted, was never published, belongs to another workspace, or is not shared with this routine\'s owner — deliberately, so a routine cannot be used to find out which agents exist elsewhere.',
+                message: `Step ${step.id}: there is no agent "${step.agentId}" this automation can use.`,
+                hint: 'Pick an agent in the step. The same answer is given whether the agent was deleted, was never published, belongs to another workspace, or is not shared with this automation\'s owner — deliberately, so an automation cannot be used to find out which agents exist elsewhere.',
             });
         }
         // The skills, IN ORDER: the first is the leading one, which is why
@@ -196,7 +196,7 @@ function checkAiStep(ctx, step, at) {
         // coerced `"false"` is truthy, and a truthy value nobody wrote is
         // the widest possible answer to the least readable input. It is
         // completeness-listed all the same, because only a raw PUT or an
-        // import can produce one and such a routine has to stay openable
+        // import can produce one and such an automation has to stay openable
         // and fixable — it just cannot go live.
         const perms = step.agentPermissions;
         const hasAgent = typeof step.agentId === 'string' && !!step.agentId.trim();
@@ -214,13 +214,13 @@ function checkAiStep(ctx, step, at) {
                     pushW({ code: 'ai_step.agent_permissions_unknown', severity: 'warning', path: at + '.agentPermissions', message: `Step ${step.id}: ${unknown.map(k => `"${k}"`).join(', ')} is not a permission this step grants — it is stored and does nothing.`, hint: `The permissions are ${AI_STEP_AGENT_PERMISSION_KEYS.join(', ')}. Remove the rest so the step does not read as more configured than it is.` });
                 }
                 // A step that applies skills without an agent reads the
-                // switches too (skill knowledge, a skill that runs a routine).
+                // switches too (skill knowledge, a skill that runs an automation).
                 if (!hasAgent && !hasStepSkills) {
                     pushW({ code: 'ai_step.agent_permissions_orphan', severity: 'warning', path: at + '.agentPermissions', message: `Step ${step.id}: this step sets agent permissions but names no agent, so nothing reads them.`, hint: 'Pick an agent for the step, or remove agentPermissions.' });
                 }
             }
         } else if (hasAgent) {
-            pushW({ code: 'ai_step.agent_permissions_missing', severity: 'warning', path: at + '.agentPermissions', message: `Step ${step.id}: no agent permissions are set, so the agent answers from its role alone — no knowledge bases, no tools, and it cannot start other routines.`, hint: 'That is the deliberate default. Turn on only what this step needs in the step\'s permissions.' });
+            pushW({ code: 'ai_step.agent_permissions_missing', severity: 'warning', path: at + '.agentPermissions', message: `Step ${step.id}: no agent permissions are set, so the agent answers from its role alone — no knowledge bases, no tools, and it cannot start other automations.`, hint: 'That is the deliberate default. Turn on only what this step needs in the step\'s permissions.' });
         }
         // Prompt placeholder lint (C28): the runner interpolates the
         // prompt with leaveUnresolved:true — a {{steps.ghost.output.x}}

@@ -8,7 +8,7 @@ import { bigFlow, placedBigFlow } from './testing';
 
 const keysOf = (xs: readonly { key: string }[]) => xs.map((x) => x.key);
 
-describe('the scene of a routine', () => {
+describe('the scene of an automation', () => {
     it('draws every node with its ports, and a condition with its two named ones', () => {
         const scene = buildScene(clone(branchy));
         expect(keysOf(scene.nodes)).toEqual(['trg', 'cond_1', 'act_a', 'act_b', 'notif_1']);
@@ -104,14 +104,14 @@ describe('the scene of a routine', () => {
         for (const e of tangled.edges) expect(tangled.byKey.has(e.from) && tangled.byKey.has(e.to)).toBe(true);
     });
 
-    it('draws nothing for an empty routine', () => {
+    it('draws nothing for an empty automation', () => {
         const scene = buildScene({ trigger: null, steps: [], edges: [] });
         expect(scene.nodes).toEqual([]);
         expect(scene.bounds).toBeNull();
     });
 });
 
-describe('a 150-step routine', () => {
+describe('a 150-step automation', () => {
     it('is laid out and drawn in time, every line between two drawn nodes', () => {
         const def = bigFlow();
         const t0 = Date.now();

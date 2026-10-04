@@ -17,7 +17,6 @@ const state = {
     // Step 2: AI Config
     azureEndpoint: '',
     azureKey: '',
-    azureVersion: '2025-04-01-preview',
     azureModels: '',
     bingKey: '',
     bingMarket: '',
@@ -298,7 +297,7 @@ function renderAiConfig() {
 
 function renderAzureConfig() {
     const azureModels = state.azureModels.trim()
-        ? state.azureModels.split(',').map(m => m.trim()).filter(Boolean) : [];
+        ? state.azureModels.split(',').map(m => m.split('=')[0].trim()).filter(Boolean) : [];
 
     $('stepContent').innerHTML = `
         <div class="form-group">
@@ -307,17 +306,10 @@ function renderAzureConfig() {
                 onchange="state.azureEndpoint=this.value"
                 placeholder="https://your-resource.openai.azure.com">
         </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label class="form-label">API Key</label>
-                <input class="form-input" type="password" value="${esc(state.azureKey)}"
-                    onchange="state.azureKey=this.value" placeholder="Azure API key">
-            </div>
-            <div class="form-group">
-                <label class="form-label">API Version</label>
-                <input class="form-input" value="${esc(state.azureVersion)}"
-                    onchange="state.azureVersion=this.value" placeholder="2025-04-01-preview">
-            </div>
+        <div class="form-group">
+            <label class="form-label">API Key</label>
+            <input class="form-input" type="password" value="${esc(state.azureKey)}"
+                onchange="state.azureKey=this.value" placeholder="Azure API key">
         </div>
         <div class="form-group">
             <label class="form-label">Model Deployments</label>
@@ -820,7 +812,7 @@ async function startDeploy() {
                 hfToken: state.hfToken,
                 deploymentType: state.deploymentType,
                 azureEndpoint: state.azureEndpoint, azureKey: state.azureKey,
-                azureVersion: state.azureVersion, azureModels: state.azureModels,
+                azureModels: state.azureModels,
                 bingKey: state.bingKey, bingMarket: state.bingMarket,
                 msClientId: state.msClientId, msClientSecret: state.msClientSecret,
                 msTenantId: state.msTenantId, officeAppsEnabled: state.officeAppsEnabled,

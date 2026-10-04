@@ -67,9 +67,9 @@ export type DeleteGuardRow = {
     role?: string;
     foreign?: boolean;
     /**
-     * Where inside the user it applies — "step 3" for a routine step, a tag
+     * Where inside the user it applies — "step 3" for an automation step, a tag
      * filter for a meeting source. The server sends one row PER site, so one
-     * routine can come back twice; this is what tells the two apart. Absent on
+     * automation can come back twice; this is what tells the two apart. Absent on
      * a foreign row.
      */
     siteLabel?: string | null;

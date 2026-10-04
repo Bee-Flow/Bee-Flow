@@ -1,16 +1,16 @@
 /**
- * Saved changes that are not live yet (handoff 5). Once a routine has gone
+ * Saved changes that are not live yet (handoff 5). Once an automation has gone
  * live, a save only changes its working copy: runs keep executing the live
  * version until that copy is made live. The web says so beside its status
  * pill ("editing v5 · 2 changes not live yet") and offers "Make v5 live";
  * this is that line and that button, in the banner the agent editor uses for
  * its own saved-but-not-published changes (agents' EditorBanners).
  *
- * The button is there while the routine is switched on (the web's `publish`
- * primary). On a paused routine the line alone says what is pending: Go live
+ * The button is there while the automation is switched on (the web's `publish`
+ * primary). On a paused automation the line alone says what is pending: Go live
  * switches the live version back on, and the pending changes then get the
  * button. Like the web's, it waits for the autosave, so what goes live is the
- * version on screen, and it sends that version along: a routine saved
+ * version on screen, and it sends that version along: an automation saved
  * elsewhere in the meantime is read again and the person is told.
  */
 
@@ -45,7 +45,7 @@ function usePublish({ flowKey, onFindings }: Pick<PublishBannerProps, 'flowKey' 
     const { toast } = useToast();
     return usePublishFlow(flowKey, {
         onSuccess: (result, version) =>
-            toast(t('routines.header.make_live_title', 'Runs use v{version} from now on', { version: result.automation?.liveVersion ?? version ?? '' }), 'success'),
+            toast(t('automations.header.make_live_title', 'Runs use v{version} from now on', { version: result.automation?.liveVersion ?? version ?? '' }), 'success'),
         onError: (err) => {
             if (!isVersionChanged(err)) {
                 reportLiveRefusal(err, toast, onFindings);
@@ -54,7 +54,7 @@ function usePublish({ flowKey, onFindings }: Pick<PublishBannerProps, 'flowKey' 
             toast(
                 t(
                     'mobile.flow.publish.version_changed',
-                    'This routine was saved elsewhere in the meantime. The latest version is shown now; check it, then make it live.',
+                    'This automation was saved elsewhere in the meantime. The latest version is shown now; check it, then make it live.',
                 ),
                 'error',
             );
@@ -72,16 +72,16 @@ export function PublishBanner({ flowKey, store, live, canPublish, busy, onFindin
     if (!live || !text) return null;
     const version = live.workingVersion;
     const hint = !canPublish
-        ? t('routines.header.activate_incomplete', 'Add a trigger and at least one step first')
+        ? t('automations.header.activate_incomplete', 'Add a trigger and at least one step first')
         : saving
-          ? t('routines.header.wait_for_save', 'Saving your last change first')
-          : t('routines.header.make_live_title', 'Runs use v{version} from now on', { version: version ?? '' });
+          ? t('automations.header.wait_for_save', 'Saving your last change first')
+          : t('automations.header.make_live_title', 'Runs use v{version} from now on', { version: version ?? '' });
     const action =
         live.primary === 'publish' ? (
             <Button
                 size="sm"
                 iconName="Upload"
-                label={t('routines.header.make_live', 'Make v{version} live', { version: version ?? '' })}
+                label={t('automations.header.make_live', 'Make v{version} live', { version: version ?? '' })}
                 accessibilityHint={hint}
                 disabled={busy || saving || !canPublish || publish.isPending}
                 loading={publish.isPending}

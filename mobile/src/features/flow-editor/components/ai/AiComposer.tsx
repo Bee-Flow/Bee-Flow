@@ -1,6 +1,6 @@
 /**
  * The assistant's composer: what to build, the model tier it is built on
- * (the tiers this person may use for building routines — the web builder's
+ * (the tiers this person may use for building automations — the web builder's
  * `automation` task list — `auto` always offered), and Send, which turns
  * into Stop while a turn streams. No attachments: the phone's builder turn
  * sends none (api/builder.ts builderTurnBody).
@@ -55,7 +55,7 @@ export function AiComposer({ text, onText, tier, onTier, streaming, onSend, onSt
                     <TextField
                         value={text}
                         onChangeText={onText}
-                        placeholder={t('mobile.flow.ai.placeholder', 'Describe what the routine should do…')}
+                        placeholder={t('mobile.flow.ai.placeholder', 'Describe what the automation should do…')}
                         multiline
                         maxLines={5}
                         editable={!streaming}

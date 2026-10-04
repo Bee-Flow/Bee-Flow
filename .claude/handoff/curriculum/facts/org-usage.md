@@ -27,7 +27,7 @@ Source of truth read for this sheet (all paths relative to the repo root):
 ## 1. What the feature is for
 
 Usage & Monitoring is the org admin's money-and-activity report for everything AI in the
-workspace. Every model call the product makes — chat, agents, routines, Studio apps, forms,
+workspace. Every model call the product makes — chat, agents, automations, Studio apps, forms,
 web pages, transcription drafts, embeddings — writes one row into `ai_usage_log`. This page
 reads those rows back, aggregated, so an admin can answer four questions:
 
@@ -198,7 +198,7 @@ sample of at least **10** events.
 - **Billed cost** — estimated cost × (1 + the plan's `markup_percent`/100). This is the number
   a cloud customer sees; the raw provider cost is never shown to them.
 - **Source / "app area"** — which part of the product made the call (`direct`, `agent`,
-  `agent_stream`, `notebook`, `routine`, `studio_app_ai`, `form_ai_draft`, …).
+  `agent_stream`, `notebook`, `automation`, `studio_app_ai`, `form_ai_draft`, …).
 - **Model tier** — the user-facing choice (Auto, Fast, Think, Deep Thinking, Write, Flow,
   Swarm). Cloud customers see tiers instead of model ids.
 - **Cost cap (`max_cost_per_month`)** — the monthly AI ceiling. Explicit subscription override
@@ -259,7 +259,7 @@ sample of at least **10** events.
 5. Note the model/tier badge on the bad answers; if one model dominates, change the tier
    mapping in Admin → AI Config, or fix the agent's instructions.
 
-### W5 — "A routine keeps dying halfway."
+### W5 — "An automation keeps dying halfway."
 1. Usage & Monitoring → tab **Terminations**.
 2. Range **7d**; read the KPI row (**Max tokens / Max iterations / Errors / Aborted /
    Large input**).
@@ -401,7 +401,7 @@ the **enterprise** tier; community does not have it):
 ## 9. How it connects to the rest of the product
 
 - **Every AI surface feeds it.** `usageStore.logUsage` is called from direct chat, agent chat
-  and streaming, the swarm runtime, the automation/routine runner (`execAi`,
+  and streaming, the swarm runtime, the automation/automation runner (`execAi`,
   `execData`, `execDataExtraction`), App Studio (`studio_app_ai`, `studio_app_chat`,
   `studio_app_action`, `studio_app_browse`, `studio_app_public`, `studio_app_builder`),
   web pages (`webpage_bridge_ai`), forms (`form_ai_draft`), datatables
@@ -445,7 +445,7 @@ the **enterprise** tier; community does not have it):
    traffic.
 7. **Unrecognised sources look ugly.** `SOURCE_MAP` only labels `agent`, `chat`, `direct`,
    `notebook`, `research`, `template`, `designer`, `agent_stream`. Everything else
-   (`studio_app_ai`, `form_ai_draft`, `routine`, …) renders as its raw string with a generic
+   (`studio_app_ai`, `form_ai_draft`, `automation`, …) renders as its raw string with a generic
    grey bot icon. That is cosmetic, not missing data.
 8. **There is no export button.** `usageHelpers.js` exports `rowsToCsv`/`downloadCsv`, but no
    panel on this page wires them up. Do not teach a "Download CSV" step.
@@ -463,11 +463,11 @@ the **enterprise** tier; community does not have it):
 
 ## 11. Three scenarios for Van Dijk Groep (Dutch SME, ~40 people)
 
-**S1 — Procurement / inkoop.** The inkoop team has a routine that reads supplier PDFs, pulls
+**S1 — Procurement / inkoop.** The inkoop team has an automation that reads supplier PDFs, pulls
 out article numbers and prices, and writes them into a datatable. In week one of the quarter
 the spend hero jumps from €40 to €180. The admin sets the range to **7d**, sees **By app area**
-dominated by the routine source, opens **Models per Agent**, and finds the extraction agent
-running on a Deep Thinking tier. Switching the routine's AI step to **Fast** and re-checking
+dominated by the automation source, opens **Models per Agent**, and finds the extraction agent
+running on a Deep Thinking tier. Switching the automation's AI step to **Fast** and re-checking
 the next week shows the same page count at a fraction of the cost. *(Teaches: range control,
 By app area, Models per Agent, tier vs. cost.)*
 

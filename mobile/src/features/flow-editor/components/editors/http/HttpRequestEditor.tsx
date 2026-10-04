@@ -42,7 +42,7 @@ function Headers({ editor }: { editor: StepEditorProps }) {
     const headers = recordOf(draft.headers);
     const entries = Object.entries(headers);
     return (
-        <Band editor={editor} sectionKey="headers" title={t('routines.versions.setting.headers', 'Headers')} hasContent={entries.length > 0}>
+        <Band editor={editor} sectionKey="headers" title={t('automations.versions.setting.headers', 'Headers')} hasContent={entries.length > 0}>
             {entries.length === 0 ? <Note>{t('mobile.flow.http.no_headers', 'No headers set.')}</Note> : null}
             {entries.map(([key, value]) => (
                 <RowCard key={key} title={key} onRemove={() => set('headers', removeHeader(headers, key))} removeLabel={t('mobile.flow.http.remove_header', 'Remove header')} disabled={ctx.disabled}>
@@ -141,7 +141,7 @@ export function HttpRequestEditor(editor: StepEditorProps) {
                 />
                 <SelectField
                     required
-                    label={t('routines.versions.setting.method', 'Method')}
+                    label={t('automations.versions.setting.method', 'Method')}
                     value={method}
                     options={HTTP_METHODS.map((m) => ({ value: m, label: m }))}
                     onChange={(m) => set('method', m)}

@@ -15,6 +15,7 @@ const { MASK_VALUES, resolveHttpAuthHeaders, evictToken } = require('./httpAuth'
 // "Ask this web service only once" — every rule about reusing an http_request
 // answer lives there, so this file gains call sites and no policy.
 const httpCache = require('./httpCache');
+const { fetchFollowingSameHost } = require('./sameHostFetch');
 const { HTTP_RESPONSE_CAP } = require('../../automation/httpResponseLimits');
 // Every secret this run can see, for the one refusal the visible cache tier
 // adds: a credential must never become a permanent row (execDatatable's own
@@ -182,7 +183,7 @@ const HTTP_PARSE_MODES = new Set(['auto', 'never', 'always']);
  *
  *  - NEVER THROWS. A malformed body is a bad answer from someone else's
  *    server; turning that into a failed run would replace "output I cannot
- *    use" with "routine that stops", which is strictly worse.
+ *    use" with "automation that stops", which is strictly worse.
  *  - Never parses a TRUNCATED body. A response clipped at 1 MiB is invalid
  *    JSON by construction, and a half-parsed document that silently loses its
  *    tail is worse than the text we already have.
@@ -220,14 +221,16 @@ function parseHttpBody(text, contentType, mode, truncated) {
  * are synthesized so a preview can never cause a real external side effect.
  */
 async function execHttpRequest(step, ctx, runState, mode) {
-    const url = interpolateTemplate(step.url || '', runState);
+    // A request carries DATA, not prose: lists stay JSON here (listAs 'json').
+    const asData = { listAs: 'json' };
+    const url = interpolateTemplate(step.url || '', runState, asData);
     const method = (step.method || 'GET').toUpperCase();
     const headers = {};
     for (const [k, v] of Object.entries(step.headers || {})) {
-        headers[k] = interpolateTemplate(typeof v === 'string' ? v : '', runState);
+        headers[k] = interpolateTemplate(typeof v === 'string' ? v : '', runState, asData);
     }
     const isWrite = HTTP_REQUEST_WRITE_METHODS.has(method);
-    const body = isWrite && step.body ? interpolateTemplate(step.body, runState) : undefined;
+    const body = isWrite && step.body ? interpolateTemplate(step.body, runState, asData) : undefined;
     // Feature C — optional saved-credential reference. Absent/null auth keeps
     // the pre-existing path byte-for-byte (no store call, no decryption).
     const authConnectionId = (step.auth && typeof step.auth === 'object'
@@ -261,7 +264,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
     let credentialFingerprint = null;
     let credentialGrantId = null;
     if (authConnectionId) {
-        const auth = await resolveHttpAuthHeaders({ connectionId: authConnectionId, blockPrivateTargets }, ctx);
+        const auth = await resolveHttpAuthHeaders({ connectionId: authConnectionId, blockPrivateTargets, auth: step.auth, url: parsedUrl.href }, ctx);
         credentialFingerprint = auth.fingerprint || null;
         credentialGrantId = auth.grantId || null;
         for (const [name, value] of Object.entries(auth.headers)) {
@@ -386,7 +389,13 @@ async function execHttpRequest(step, ctx, runState, mode) {
         // Sent AND read inside the capture context: the peer (the address the
         // socket really reached, redirects included) comes from this call.
         const call = await captured(async () => {
-            const r = await fetchImpl(sendUrl, { method, headers, body: sendBody, signal: ac.signal });
+            // A stored credential must never follow a redirect to another
+            // host (the allowed-hosts binding is checked on the first URL only,
+            // and a custom auth header survives a cross-origin hop): follow
+            // same-host hops by hand and refuse the rest.
+            const r = authInjectedHeaders.size > 0
+                ? await fetchFollowingSameHost(fetchImpl, sendUrl, { method, headers, body: sendBody, signal: ac.signal })
+                : await fetchImpl(sendUrl, { method, headers, body: sendBody, signal: ac.signal });
             return { resp: r, text: await r.text() };
         });
         httpProbe = call.probe;
@@ -446,7 +455,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
         if (cache && !(resp.status === 304 && cache.revalidate)) await httpCache.store(cache, out);
         // `data` — the SAME body, parsed, when it is JSON.
         //
-        // `body` deliberately stays a string forever: every saved routine, every
+        // `body` deliberately stays a string forever: every saved automation, every
         // {{template}} and every {kind:'ref'} binding already reads it as text,
         // and changing its type would rewrite the meaning of those silently.
         // The parsed copy is additive, so a JSON API is finally usable as a
@@ -541,7 +550,7 @@ async function execCode(step, ctx, runState, mode) {
 
     // The code's own rules: BLOCK findings stop it, declared parameters get
     // their defaults and types, ctx.http keeps to the host list (codeStepGuard.js).
-    const guard = prepareCodeRun(step, resolveInputs(step.inputs || {}, runState, { allowSecrets: false }));
+    const guard = prepareCodeRun(step, resolveInputs(step.inputs || {}, runState, { allowSecrets: false, listAs: 'json' }));
     if (guard.refusal) {
         if (rehearsal) return codeStepSkipped(guard.refusal);
         throw new Error(guard.refusal);
@@ -590,13 +599,13 @@ async function execCode(step, ctx, runState, mode) {
         try {
             const { getIntegrationTools } = require('../integrations/integrationTools');
             const lendPolicy = (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
-                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'routine', resourceId: ctx.automationId || null }
+                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'automation', resourceId: ctx.automationId || null }
                 : null;
             const r = await getIntegrationTools({
                 userId: ctx.userId,
                 session: ctx.session,
                 isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
-                routineStep: true,
+                automationStep: true,
                 connectionPolicy: lendPolicy,
             });
             ctx.allowedToolNames = new Set((r.tools || []).map(t => t?.function?.name).filter(Boolean));

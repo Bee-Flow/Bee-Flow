@@ -117,8 +117,11 @@ function ncMenuToast(t, ncRes, enabled) {
     }
 }
 
-export default function PublishModal({ open, onClose, app, onPublished, definition, onRevealNode }) {
+export default function PublishModal({ open, onClose, app, onPublished, definition, onRevealNode, managed = false }) {
     const { t } = useTranslation();
+    // `managed`: a Solution stage manages the app, so its deploys publish it
+    // and the stage's operator decides only WHO opens it. Audience only: no
+    // pre-flight check of a draft there is no way to change.
     const currentAudience = audienceOf(app);
     const currentGroups = useMemo(() => sharedGroupsOf(app), [app]);
     const publishedAt = formatWhen(app?.publishedAt ?? app?.published_at);
@@ -293,7 +296,9 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
             open={open}
             onClose={() => !busy && onClose?.()}
             title={t('app_studio.publish.title', 'Publish app')}
-            description={t('app_studio.publish.desc', 'Choose who can open this app. Publishing takes a copy of the app as it is now — you can keep editing afterwards, and readers stay on that copy until you publish again.')}
+            description={managed
+                ? t('app_studio.header.publish_unknown_title', 'Choose who can use this app')
+                : t('app_studio.publish.desc', 'Choose who can open this app. Publishing takes a copy of the app as it is now — you can keep editing afterwards, and readers stay on that copy until you publish again.')}
             size="md"
             footer={(
                 <>
@@ -338,6 +343,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                   * that was renamed all surface here rather than in front of a
                   * colleague.
                   */}
+                {!managed && (
                 <div
                     className="rounded-lg border px-3 py-2.5"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
@@ -381,6 +387,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                         )
                     ) : null}
                 </div>
+                )}
 
                 {/* Current status */}
                 <div

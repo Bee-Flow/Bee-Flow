@@ -102,7 +102,7 @@ const NL_TRANSLATIONS = {
     'admin.shield_hiw_subtitle': 'Wat er met een bericht gebeurt, in de volgorde waarin het gebeurt, en welk van deze panelen waarover beslist.',
     'admin.shield_hiw_own_server': 'Dit gebeurt allemaal op je eigen server. Een bericht wordt gelezen en ontdaan van persoonsgegevens VOORDAT het ergens heen gaat, en er gaat niets naar elders om het te controleren.',
     'admin.shield_hiw_in_title': 'Iemand stuurt een bericht',
-    'admin.shield_hiw_in_body': 'Een chat, een agent, of — als je “Also protect routines” aan laat staan — een routine die \'s nachts draait zonder dat iemand meekijkt.',
+    'admin.shield_hiw_in_body': 'Een chat, een agent, of — als je “Also protect automatiseringen” aan laat staan — een automatisering die \'s nachts draait zonder dat iemand meekijkt.',
     'admin.shield_hiw_detect_body': 'De tekst wordt doorzocht op de soorten persoonsgegevens die je hebt aangevinkt. Een soort die je NIET hebt aangevinkt wordt nooit aan het model gevraagd en kan dus ook nooit gevonden worden — daarom vindt een schild dat aan staat zonder aangevinkte soorten helemaal niets.',
     'admin.shield_hiw_open_detection': 'Open de matrix',
     'admin.shield_hiw_process_body': 'Wat er gevonden is wordt óf vervangen door placeholders — de AI ziet [email_1], nooit het adres, en Bee Flow zet de echte waarde terug in het antwoord — óf het bericht wordt tegengehouden en de persoon wordt gevraagd het te herschrijven. Deze poort gaat bij ELK bericht dicht.',
@@ -212,7 +212,7 @@ const NL_TRANSLATIONS = {
     'admin.shield_activity_filter_place': 'Filter op {place}',
     'admin.shield_activity_filter_dest': 'Filter op {host}',
     'admin.shield_activity_d_result': 'Resultaat',
-    'admin.shield_activity_d_run': 'Routine-uitvoering',
+    'admin.shield_activity_d_run': 'Uitvoering van de automatisering',
 };
 
 async function up() {

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React, { useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
@@ -118,5 +119,37 @@ describe('AnchoredMenu', () => {
         expect(document.querySelector('[data-anchored-menu]')).toBeNull();
         fireEvent.mouseDown(document.body);
         expect(onClose).not.toHaveBeenCalled();
+    });
+});
+
+describe('AnchoredMenu: a text field inside a menu', () => {
+    beforeEach(cleanup);
+
+    it('leaves Home, End and the side arrows to a text field inside a menu', async () => {
+        const user = userEvent.setup();
+        function SearchMenu() {
+            const anchorRef = useRef(null);
+            return (
+                <div ref={anchorRef}>
+                    <AnchoredMenu open onClose={() => {}} anchorRef={anchorRef} role="menu">
+                        <button type="button" role="menuitem">first</button>
+                        <input aria-label="Search labels" defaultValue="abc" />
+                        <button type="button" role="menuitem">last</button>
+                    </AnchoredMenu>
+                </div>
+            );
+        }
+        render(<SearchMenu />);
+        const search = screen.getByRole('textbox', { name: 'Search labels' });
+        await user.click(search);
+        await user.keyboard('{End}');
+        expect(search).toHaveFocus();
+        await user.keyboard('{ArrowLeft}{Home}{ArrowRight}');
+        expect(search).toHaveFocus();
+        expect(search.selectionStart).toBe(1);
+        // Outside the field the menu pattern still holds: End jumps to the last item.
+        screen.getByRole('menuitem', { name: 'first' }).focus();
+        await user.keyboard('{End}');
+        expect(screen.getByRole('menuitem', { name: 'last' })).toHaveFocus();
     });
 });

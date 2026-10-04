@@ -1,5 +1,5 @@
 /**
- * Curated automation templates surfaced in the Routines studio gallery.
+ * Curated automation templates surfaced in the Automations studio gallery.
  *
  * Each template has:
  *   - id            stable slug used for analytics + bookmarking
@@ -204,7 +204,7 @@ const TEMPLATES = [
                     inputs: {
                         // Left empty on purpose: the activate path's
                         // `param_missing` check blocks until the user picks a
-                        // table, which is a clear prompt instead of a routine
+                        // table, which is a clear prompt instead of an automation
                         // that activates and then fails on first fire.
                         tableId: { kind: 'literal', value: '' },
                         values: {
@@ -443,7 +443,7 @@ const TEMPLATES = [
                 // `knowledge_base_ingest` integration_action it was built on.
                 // Same executor underneath — the step calls the same tool — but
                 // the write is now visible as a write: it has its own node on
-                // the canvas, its knowledge base is checked when the routine is
+                // the canvas, its knowledge base is checked when the automation is
                 // SAVED rather than only when it runs, and it survives an
                 // export with the base blanked rather than carrying an id into
                 // somebody else's install.
@@ -538,7 +538,7 @@ function getTemplate(id) {
 
 // ── Organisation templates (handoff 5, "Save as template") ──────────────
 //
-// Rows in automation_templates, saved from an organisation's own routines.
+// Rows in automation_templates, saved from an organisation's own automations.
 // They lead the gallery (`source: 'org'`); they carry no category, so a
 // category chip narrows to the built-in ones. A store that cannot be read
 // leaves the gallery with the built-in templates rather than failing it.

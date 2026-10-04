@@ -149,7 +149,7 @@ test('a webhook for the primary trigger still needs no body', async () => {
 
 test('args that are not an object are refused by name, instead of silently becoming {}', async () => {
     // `(typeof req.body.args === 'object')` dropped a string, a number and a
-    // boolean alike: the routine ran on an empty payload and said nothing.
+    // boolean alike: the automation ran on an empty payload and said nothing.
     await refuses({ method: 'POST', url: '/a1/agent-invoke', body: { args: 'hello' } }, 'body.args');
 });
 

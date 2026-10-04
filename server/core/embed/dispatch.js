@@ -15,6 +15,7 @@
 const configStore = require('../../stores/configStore');
 const { recordEmbedCall } = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
+const { toV1BaseUrl } = require('../../utils/azureUrl');
 
 /**
  * Generate embeddings via Azure OpenAI (legacy direct config).
@@ -26,8 +27,8 @@ const log = require('../../telemetry/log');
  * @returns {Promise<number[][]>} — array of embedding vectors
  */
 async function azureEmbed(texts, endpoint, apiKey, model) {
-    const cleanEndpoint = endpoint.replace(/\/$/, '');
-    const url = `${cleanEndpoint}/openai/deployments/${model}/embeddings?api-version=2024-06-01`;
+    // Azure v1 GA: no api-version, the deployment name goes in the body as `model`.
+    const url = `${toV1BaseUrl(endpoint)}/embeddings`;
 
     // Batch in groups of 16 to avoid rate limits
     const BATCH_SIZE = 16;
@@ -42,7 +43,7 @@ async function azureEmbed(texts, endpoint, apiKey, model) {
                 'api-key': apiKey,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ input: batch }),
+            body: JSON.stringify({ model, input: batch }),
             signal: AbortSignal.timeout(30000),
         });
 
@@ -125,8 +126,10 @@ async function dispatchEmbedTexts(texts, options = {}) {
         if (targetUsable) {
             const root = target.endpoint.replace(/\/+$/, '');
             const isAzure = target.providerType === 'azure';
+            // Azure v1 GA: `<origin>/openai/v1/embeddings`, no api-version,
+            // the deployment name travels as `model` in the body like everywhere else.
             const url = isAzure
-                ? `${root}/openai/deployments/${encodeURIComponent(target.modelId)}/embeddings?api-version=2024-06-01`
+                ? `${toV1BaseUrl(target.endpoint)}/embeddings`
                 : (root.endsWith('/v1') ? `${root}/embeddings` : `${root}/v1/embeddings`);
 
             const BATCH = 16;
@@ -142,9 +145,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
                         'Content-Type': 'application/json',
                         ...(target.apiKey ? { Authorization: `Bearer ${target.apiKey}` } : {}),
                     };
-                const body = isAzure
-                    ? JSON.stringify({ input: batch })
-                    : JSON.stringify({ model: target.modelId, input: batch });
+                const body = JSON.stringify({ model: target.modelId, input: batch });
                 const res = await fetch(url, { method: 'POST', headers, body, signal: AbortSignal.timeout(30000) });
                 if (!res.ok) {
                     const errTxt = await res.text();

@@ -65,7 +65,7 @@ describe('buildTestPayload — bestandsvelden gaan nooit mee, en dat wordt gezeg
         expect(skipped).toEqual([{ param: 'doc', field: 'upload', reason: SKIP_REASONS.FILE }]);
     });
 
-    it('slaat een parameter over die de routine als `file` declareert, ook zonder bestandsveld', () => {
+    it('slaat een parameter over die de automatisering als `file` declareert, ook zonder bestandsveld', () => {
         // De picker schrijft `{kind:'static', value:''}` als er geen
         // bestandsinvoer is om naar te wijzen. Die lege string als bestand
         // meesturen is erger dan hem overslaan: de stap faalt dan op iets
@@ -146,11 +146,11 @@ describe('alwaysSkipped — wat er onder de knop kan staan vóór de klik', () =
 
 // ── de UNIE van gedeclareerde parameters en mapping-regels ──────────────────
 //
-// Een parameter die de routine declareert maar die geen mapping-regel heeft is
-// de drift-toestand die ContractDrift op het scherm al toont ("The routine also
+// Een parameter die de automatisering declareert maar die geen mapping-regel heeft is
+// de drift-toestand die ContractDrift op het scherm al toont ("The automatisering also
 // expects: + invoiceFile *"). Liep de lus alleen over `inputMapping`, dan reisde
 // die parameter niet mee ÉN werd hij niet gemeld — de tester zag een run met een
-// lege trigger-output en concludeerde dat de routine stuk was.
+// lege trigger-output en concludeerde dat de automatisering stuk was.
 
 describe('een gedeclareerde parameter zonder mapping-regel', () => {
     const paramMeta = {
@@ -183,7 +183,7 @@ describe('een gedeclareerde parameter zonder mapping-regel', () => {
         expect(skipped).toEqual([]);
     });
 
-    it('een mapping-regel voor een parameter die de routine NIET meer kent gaat gewoon mee', () => {
+    it('een mapping-regel voor een parameter die de automatisering NIET meer kent gaat gewoon mee', () => {
         // De andere kant van de unie. Wat er wél gemapt is blijft reizen: de
         // testroute doet geen contractcontrole, en wegfilteren zou de test iets
         // anders laten draaien dan de knop.

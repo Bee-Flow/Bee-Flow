@@ -56,10 +56,10 @@ function checkBranchWiring(ctx, step, at) {
                 : { code: 'condition.dead_branch', severity: 'error', path: at + '.edges', message: `Step ${step.id}: condition has no 'then' or 'else' edges — both branches dead-end.`, hint: `Append the next step with afterStepId:"${step.id}" (the edge auto-labels then, then else), or wire EXISTING steps onto the branches with builder_update_step({stepId:"${step.id}", patch:{thenStepId:"<id>", elseStepId:"<id>"}}).` });
         } else if (!labels.has('then') || !labels.has('else')) {
             // One-sided is legitimate for a guard — "alert me when there is
-            // personal data, otherwise stop" is a complete routine — so it
+            // personal data, otherwise stop" is a complete automation — so it
             // stays a warning there too, worded as a check rather than a fault.
             pushW(isGuard
-                ? { code: 'guard.partial_branch', severity: 'warning', path: at + '.edges', message: `Step ${step.id}: guard has only the ${labels.has('then') ? '"personal data"' : '"clean"'} branch wired — the other ends the run.`, hint: 'That is fine if it is what you meant; wire both to keep the routine going either way.' }
+                ? { code: 'guard.partial_branch', severity: 'warning', path: at + '.edges', message: `Step ${step.id}: guard has only the ${labels.has('then') ? '"personal data"' : '"clean"'} branch wired — the other ends the run.`, hint: 'That is fine if it is what you meant; wire both to keep the automation going either way.' }
                 : { code: 'condition.partial_branch', severity: 'warning', path: at + '.edges', message: `Step ${step.id}: condition has only one branch wired — the other will dead-end.`, hint: `Wire the "${labels.has('then') ? 'else' : 'then'}" branch: append the next step with afterStepId:"${step.id}", branch:"${labels.has('then') ? 'else' : 'then'}", or MOVE an existing step there with builder_update_step({stepId:"<that step>", patch:{afterStepId:"${step.id}", branch:"${labels.has('then') ? 'else' : 'then'}"}}). Remove the condition if a one-sided check is intended.` });
         }
     }

@@ -35,12 +35,12 @@ import {
     pageFromPath,
     isApprovalsPageArg,
     isApprovalsStudioPath,
-    parseAITasksUrl,
     parseCoworkUrl,
     parseAgentUrl,
     parseDirectChatUrl,
     usesStudioRail,
 } from './appRoutes';
+import { parseStudioUrl } from '../components/admin/Studio/studioRoutes';
 
 const MOVE_HINT = 'Moving a route = ONE commit across PAGE_ROUTES + a pageFromPath alias '
     + 'for the old path + MOBILE_ALLOWED_PAGES/guards + mobile route.ts + this freeze. '
@@ -58,7 +58,6 @@ describe('PAGE_ROUTES is frozen', () => {
             agentDesignerAdvanced: '/app/agent-designer-advanced',
             agentWizard: '/app/agent-wizard',
             studio: '/app/studio',
-            aiTasks: '/app/routines',
             cowork: '/app/cowork',
             apps: '/app/apps',
             forms: '/app/forms',
@@ -185,9 +184,10 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
         // the branch that parses it is never dead code.
         const aliases = [
             ['/', 'agents'],
-            ['/app/ai-tasks', 'aiTasks'], // pre-Aug-2026 slug of /app/routines
-            ['/app/ai-tasks/t1', 'aiTasks'],
-            ['/app/routines/t1', 'aiTasks'],
+            ['/app/ai-tasks', 'studio'], // the old standalone automations page, under three names
+            ['/app/ai-tasks/t1', 'studio'],
+            ['/app/routines/t1', 'studio'],
+            ['/app/automations/t1', 'studio'],
             ['/app/work', 'cowork'], // Cowork's previous name
             ['/app/work/w1', 'cowork'],
             ['/app/studio/cowork', 'cowork'], // Cowork's previous life as a Studio tab
@@ -207,7 +207,7 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
             ['/app/apps/app-1', 'appRun'],
             ['/app/forms', 'forms'],
             ['/app/forms/tok3n', 'formView'],
-            ['/app/notebooks/n1', 'notebooks'],
+            ['/app/notebooks/n1', 'studio'], // a notebook opens in Studio → Documents now
             ['/app/projects/p1', 'projects'],
             ['/app/projects/p1/chats/c1', 'projects'],
             ['/app/projects/new', 'projects'],
@@ -224,8 +224,10 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
     it('keeps the deep-link ids of the renamed pages parseable', () => {
         // The alias landing on the right PAGE is not enough — the id must
         // survive too, or the page opens empty.
-        expect(parseAITasksUrl('/app/ai-tasks/t1')).toBe('t1');
-        expect(parseAITasksUrl('/app/routines/t1')).toBe('t1');
+        // The old standalone automations page opens Studio → Automations, on the same automation.
+        for (const path of ['/app/ai-tasks/t1', '/app/routines/t1', '/app/automations/t1']) {
+            expect(parseStudioUrl(path)).toMatchObject({ section: 'aiTasks', id: 't1' });
+        }
         expect(parseCoworkUrl('/app/studio/cowork/c1')).toBe('c1');
         expect(parseCoworkUrl('/app/work/w1')).toBe('w1');
         expect(parseCoworkUrl('/app/cowork/c1')).toBe('c1');
@@ -274,7 +276,7 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
 describe('mobile allow-list is frozen', () => {
     it('matches the frozen set exactly', () => {
         expect([...MOBILE_ALLOWED_PAGES].sort(), MOVE_HINT).toEqual(
-            ['agents', 'approvals', 'appRun', 'apps', 'cowork', 'formView', 'forms', 'settings'].sort(),
+            ['agents', 'approvals', 'appRun', 'apps', 'cowork', 'formView', 'forms', 'projects', 'settings'].sort(),
         );
     });
 
@@ -288,12 +290,12 @@ describe('mobile allow-list is frozen', () => {
         expect(MOBILE_ALLOWED_PAGES.has('studio')).toBe(false);
     });
 
-    it('keeps every projects page off the phone, down to one item in a workspace', () => {
+    it('allows responsive projects pages on phones, including item routes', () => {
         // navigateToPage speaks project pages as 'projects/<id>/<tab>/<sub>';
-        // the workspace is a desktop layout, so none of them may slip past.
+        // the workspace now has a labelled mobile section selector.
         expect(mobilePageKey('projects')).toBe('projects');
         expect(mobilePageKey('projects/p1/chats/c1')).toBe('projects');
-        expect(MOBILE_ALLOWED_PAGES.has('projects')).toBe(false);
+        expect(MOBILE_ALLOWED_PAGES.has('projects')).toBe(true);
     });
 
     it('reads the approvals slice from ONE predicate, in both of its shapes', () => {

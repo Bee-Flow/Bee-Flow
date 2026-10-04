@@ -26,16 +26,16 @@ const STEP_TOOL_RX = /^builder_(add_\w+|replace_step|update_steps?)$/;
 const ACTIVITY_CAPTIONS = Object.freeze({
     builder_request_dry_run: ['testing', 'Running a test…'],
     builder_set_plan: ['planning', 'Writing the plan…'],
-    builder_summarise: ['summarising', 'Summarising the routine…'],
-    builder_summarize: ['summarising', 'Summarising the routine…'],
-    builder_finalize: ['finalizing', 'Saving the routine…'],
-    builder_finalise: ['finalizing', 'Saving the routine…'],
+    builder_summarise: ['summarising', 'Summarising the automation…'],
+    builder_summarize: ['summarising', 'Summarising the automation…'],
+    builder_finalize: ['finalizing', 'Saving the automation…'],
+    builder_finalise: ['finalizing', 'Saving the automation…'],
     builder_wire_error_branch: ['wiring', 'Wiring the error branch…'],
     builder_remove_step: ['editing', 'Adjusting a step…'],
     builder_remove_steps: ['editing', 'Adjusting a step…'],
 });
 
-const K = 'routines.canvas.draft';
+const K = 'automations.canvas.draft';
 
 /** `{app}` → the value, literally (never a replacement pattern — see useTranslation.interpolate). */
 function fill(text, params) {

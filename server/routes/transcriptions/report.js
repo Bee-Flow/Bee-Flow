@@ -194,7 +194,7 @@ ${useTranscripts ? '' : '\nNote: you received meeting summaries and artifacts, n
         });
     } catch (err) {
         log.error('[Transcriptions] Report error:', err.message);
-        res.status(500).json({ error: `Failed to generate report: ${err.message}` });
+        res.status(500).json({ error: 'Failed to generate report' });
     }
 });
 

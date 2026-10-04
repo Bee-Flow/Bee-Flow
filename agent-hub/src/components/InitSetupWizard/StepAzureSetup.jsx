@@ -29,7 +29,6 @@ const Label = ({ children }) => (
 const StepAzureSetup = ({
     azureEndpoint, setAzureEndpoint,
     azureKey, setAzureKey,
-    azureVersion, setAzureVersion,
     azureModels, setAzureModels,
     bingKey, setBingKey,
     bingMarket, setBingMarket,
@@ -78,26 +77,18 @@ const StepAzureSetup = ({
                     placeholder="https://your-resource.openai.azure.com"
                     className={inputClass} style={inputStyle} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-                <div>
-                    <Label>API Key</Label>
-                    <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
-                        placeholder="Your Azure API key"
-                        className={inputClass} style={inputStyle} />
-                </div>
-                <div>
-                    <Label>API Version</Label>
-                    <input type="text" value={azureVersion} onChange={e => setAzureVersion(e.target.value)}
-                        placeholder="2025-04-01-preview"
-                        className={inputClass} style={inputStyle} />
-                </div>
+            <div>
+                <Label>API Key</Label>
+                <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
+                    placeholder="Your Azure API key"
+                    className={inputClass} style={inputStyle} />
             </div>
             <div>
                 <Label>Deployment Names</Label>
                 <input type="text" value={azureModels} onChange={e => setAzureModels(e.target.value)}
                     placeholder="gpt-5.6-terra, gpt-6-astra, gpt-4.1"
                     className={inputClass} style={inputStyle} />
-                <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>Comma-separated names from your Azure portal</p>
+                <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>Comma-separated names from your Azure portal. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra).</p>
             </div>
         </Section>
 

@@ -55,7 +55,7 @@ const selectStyle = {
 /** Where a step lives, said the way somebody could go and find it. */
 function stepWhere(row, t) {
     const parts = [t('solutions.install_at_step', 'step {step}', { step: row.stepId })];
-    if (row.title) parts.push(t('solutions.install_in_routine', 'in {name}', { name: row.title }));
+    if (row.title) parts.push(t('solutions.install_in_automation', 'in {name}', { name: row.title }));
     if (row.layerKey) parts.push(t('solutions.install_in_flowlet', 'flowlet {key}', { key: row.layerKey }));
     return parts.join(' · ');
 }
@@ -63,7 +63,7 @@ function stepWhere(row, t) {
 // ── Step 1: what is in it ──────────────────────────────────────────
 
 /*
- * "3 routines", and "1 routine" when there is one — from solutionCounts, which
+ * "3 automations", and "1 automation" when there is one — from solutionCounts, which
  * the overview card's chip row reads too. The reasoning behind the key shape
  * lives there; the reason it is shared is that the two screens count the same
  * seven things and must not word them differently.
@@ -337,11 +337,11 @@ export function GrantRows({ rows, catalog, ticked, onTick }) {
         return (
             <Row key={`grant-${i}`} testId="install-grant-automation">
                 <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {t('solutions.install_grant_foreign_routine',
-                        '"{page}" wants to run a routine that is not in this file.', { page: row.name })}
+                    {t('solutions.install_grant_foreign_automation',
+                        '"{page}" wants to run an automation that is not in this file.', { page: row.name })}
                 </p>
                 <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                    {t('solutions.install_grant_foreign_routine_hint',
+                    {t('solutions.install_grant_foreign_automation_hint',
                         'It named one on the instance the file came from, so there is nothing here to point it at. Open the page and grant one of yours.')}
                 </p>
             </Row>

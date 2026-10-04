@@ -25,9 +25,9 @@ export default function OutputFieldsView({ value, basePath = '', onInsert = null
     const { t } = useTranslation();
     const fields = value && typeof value === 'object' && !Array.isArray(value)
         ? sampleToFields(value, basePath)
-        : [{ key: t('routines.ndv.output_word', 'output'), path: basePath, sample: value }];
+        : [{ key: t('automations.ndv.output_word', 'output'), path: basePath, sample: value }];
     if (!fields.length) {
-        return <div className="px-3 py-4 text-[11px] text-[var(--text-tertiary)] italic">{t('routines.ndv.output_empty_record', 'An empty record — no fields came out.')}</div>;
+        return <div className="px-3 py-4 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.ndv.output_empty_record', 'An empty record — no fields came out.')}</div>;
     }
     return (
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-1" data-testid="output-fields">

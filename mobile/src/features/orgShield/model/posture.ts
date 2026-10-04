@@ -19,7 +19,7 @@ export type PostureId =
     | 'sensitivity'
     | 'action'
     | 'transparency'
-    | 'routines'
+    | 'automations'
     | 'dlp'
     | 'toolcalls'
     | 'websearch'
@@ -74,7 +74,7 @@ function processingRows(f: ShieldFields, canTokenize: boolean): PostureRow[] {
     return [
         { id: 'action', tab: 'processing', tone: unlicensed ? 'warn' : 'ok', value: { action: f.piiAction, unlicensed } },
         { id: 'transparency', tab: 'processing', tone: transparencyOn ? 'note' : 'ok', value: { on: transparencyOn } },
-        { id: 'routines', tab: 'processing', tone: 'ok', value: { on: f.applyToAutomations } },
+        { id: 'automations', tab: 'processing', tone: 'ok', value: { on: f.applyToAutomations } },
     ];
 }
 

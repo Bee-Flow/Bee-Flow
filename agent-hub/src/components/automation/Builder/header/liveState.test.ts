@@ -34,3 +34,28 @@ describe('liveStateOf: where the working copy stands against the live version', 
         expect(liveStateOf(null).kind).toBe('paused');
     });
 });
+
+describe('liveStateOf: an automation managed by a Solution stage', () => {
+    const managed = { solutionId: 's1', solutionName: 'Intake', stage: 'prd', releaseSeq: 7, devRef: null };
+
+    it('live: Publish is hidden even when the working copy is ahead, Pause stays', () => {
+        expect(liveStateOf({ isActive: true, version: 5, liveVersion: 3, neverLive: false, pendingChanges: 2, managed }))
+            .toMatchObject({ kind: 'live', managed: true, primary: null, canPause: true, pendingChanges: 0 });
+    });
+
+    it('paused: Activate (On) stays, there is nothing to make live', () => {
+        expect(liveStateOf({ isActive: false, version: 5, liveVersion: 3, neverLive: false, pendingChanges: 2, managed }))
+            .toMatchObject({ kind: 'paused', managed: true, primary: 'activate', canPause: false, notDeployed: false });
+    });
+
+    it('never deployed: flagged, so the button can say why it cannot switch on', () => {
+        expect(liveStateOf({ isActive: false, version: 1, liveVersion: null, neverLive: true, managed }))
+            .toMatchObject({ kind: 'never', managed: true, notDeployed: true });
+    });
+
+    it('an unmanaged automation is untouched by the flag', () => {
+        expect(liveStateOf({ isActive: true, version: 5, liveVersion: 3, neverLive: false, pendingChanges: 2, managed: null }))
+            .toMatchObject({ managed: false, notDeployed: false, primary: 'publish', pendingChanges: 2 });
+        expect(liveStateOf({ isActive: false, neverLive: true })).toMatchObject({ managed: false, notDeployed: false });
+    });
+});

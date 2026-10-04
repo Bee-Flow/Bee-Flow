@@ -1,66 +1,106 @@
+// @typecheck
 /**
- * Automation Builder — "Find repeating work": the bounded, read-only agentic
- * scan of the user's connected tools (POST /suggest), the last cached scan
- * (GET /suggest/last), and the dismissed / built / asked reactions that
- * suppress ideas in future scans (POST /feedback).
+ * Automation Builder — "Find repeating work": the scan (POST /suggest, SSE),
+ * the sources it can read (GET /suggest/sources), the viewer's last scan
+ * (GET /suggest/last) and the reactions that hide a result next time
+ * (POST /feedback).
+ *
+ * A thin adapter. The work lives in automation/patterns/:
+ *   mode 'patterns' (default)  pipeline.js: a deterministic miner over the
+ *                              user's own activity; the model only names what
+ *                              it found, from de-identified evidence cards
+ *   mode 'ideas'               ideation.js: the model-led tool loop, for the
+ *                              meeting-notes RulesPanel and the "Suggest ideas
+ *                              instead" link
+ * Both read through one scan reader (patterns/scanReader.js): the Shield's
+ * tool block lists, the egress ledger under source `pattern_scan`.
+ *
+ * Privacy, decided here:
+ *   - the policy is resolved with honourAutomationOptOut: false. The scan is
+ *     not an automation, so an org's "Apply to automations: off" does not unshield it;
+ *   - cache and feedback are per USER (`user:<id>`), and the user is in the
+ *     cache key too: /suggest/last never serves a colleague's scan;
+ *   - suppression runs after the cache read, so a pattern snoozed or built
+ *     since the scan does not come back from the cache;
+ *   - the client's disconnect aborts the sources and the model call.
  *
  * ── What a caller may send ──────────────────────────────────────────
  *
- * Both bodies are zod schemas, behind the beta gate so a 403 stays a 403.
- * What the hand-rolled reads let through under a 200:
- *
- *   - `integrationIds` that was not an array — one app as a string, a
- *     misspelled key, a list of blanks — became "no selection", and no
- *     selection means EVERY connected app: someone who picked Gmail had
- *     Drive, Outlook and the rest read into a model as well. `[]` still
- *     means all apps (the meeting-notes panel sends it on purpose); anything
- *     that is not a list of app ids is a 400;
- *   - `focus` was cut at 280 characters without a word. The meeting-notes
- *     panel sends a ~200-character preamble before "Wanted: <what the user
- *     typed>", so about 80 characters of the user's own ask reached the
- *     model. The cap is 2000 now, and past it is a 400, not a cut;
- *   - `focus` that was not text, or `force` as anything but a boolean (the
- *     text 'true' / 'false' is still read as one), was ignored.
+ * Both bodies are zod schemas, behind the beta gate so a 403 stays a 403:
+ *   - `mode` is patterns or ideas; `sources` names source groups or apps
+ *     ([] or absent: every connected one). The older `integrationIds` is
+ *     still read: as the ideas mode's app list, and as `sources` when a
+ *     patterns scan sends no `sources`;
+ *   - `integrationIds` that is not a list of app ids is a 400 (it used to
+ *     become "no selection", which means EVERY app);
+ *   - `focus` is at most 2000 characters (the RulesPanel sends a ~200-character
+ *     preamble before the user's own words); past it is a 400, not a cut;
+ *   - `timezone` is the viewer's IANA zone (the browser's). A patterns scan
+ *     counts weekdays and hours in it, so a card says "Mon 09–10" for the
+ *     hour the person keeps. A zone this server does not know, or none,
+ *     means UTC; it is never a 400, because an odd browser zone must not cost
+ *     the scan.
  *
  * The feedback `suggestion` is the scan's own object echoed back, so it may
- * carry keys this route never reads (evidence, value, triggerKind, …): it is
- * `.passthrough()`, and the five fields that ARE stored are picked by name.
+ * carry keys this route never reads: it is `.passthrough()`, and what IS
+ * stored is picked field by field.
+ *
+ * Collaborators are injected (createSuggestionsRouter(deps)); the default
+ * export is the router on the real ones.
  */
 
 const express = require('express');
 const { z } = require('zod');
 const log = require('../../../telemetry/log');
-const router = express.Router();
-
-const automationStore = require('../../../stores/automationStore');
-const { isEUModeActive, resolveModelForTierName } = require('../../../core/llm/modelResolver');
-const llmClient = require('../../../core/llm/llmClient');
-const { requireAuth } = require('../../../auth/permissions');
+const { depsWith } = require('../../../automation/patterns/depsWith');
 const { validate } = require('../../../core/http/validate');
-const { suggestRateLimit, feedbackRateLimit } = require('./rateLimits');
+const { HttpError } = require('../../../core/http/errors');
+const { scanCacheKey } = require('../../../automation/patterns/pipeline');
+const { isTimeZone } = require('../../../automation/patterns/periodicity');
+const { asToolExecutor } = require('../../../automation/patterns/scanReader');
+const { integrationOf } = require('../../../automation/patterns/ideation');
+const { fingerprintTitle } = require('../../../automation/suggestions');
+const { usageLogFields } = require('../../../core/providers/usageNormalizer');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
 const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
 
+const MODES = ['patterns', 'ideas'];
 const FOCUS_MAX_CHARS = 2000;
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 const INTEGRATIONS_TEXT = 'integrationIds is a list of app ids, like ["gmail", "google-drive"] — or [] for all of them.';
+const SOURCES_TEXT = 'sources is a list of source ids, like ["mail", "files"] — or [] for all of them.';
+const MODE_TEXT = 'mode is patterns or ideas.';
+const TIMEZONE_TEXT = 'timezone is an IANA zone name, like Europe/Amsterdam.';
+const idList = (text, max) => z.array(worded(text).trim().min(1, text).max(100, text), { invalid_type_error: text }).max(max, text);
+
 const SuggestBody = z.object({
-    integrationIds: z.array(worded(INTEGRATIONS_TEXT).trim().min(1, INTEGRATIONS_TEXT).max(100, INTEGRATIONS_TEXT),
-        { invalid_type_error: INTEGRATIONS_TEXT }).max(200, INTEGRATIONS_TEXT),
+    mode: z.enum(/** @type {[string, ...string[]]} */ (MODES), { errorMap: () => ({ message: MODE_TEXT }) }),
+    sources: idList(SOURCES_TEXT, 50),
+    integrationIds: idList(INTEGRATIONS_TEXT, 200),
     focus: worded('focus is text: what the scan should look for.')
         .max(FOCUS_MAX_CHARS, `A focus is at most ${FOCUS_MAX_CHARS} characters.`),
+    timezone: worded(TIMEZONE_TEXT).trim().max(64, TIMEZONE_TEXT),
     // Re-scan / Try-again bypasses the server-side cache.
     force: z.preprocess((v) => (v === 'true' ? true : v === 'false' ? false : v),
         z.boolean({ invalid_type_error: 'force is true or false.' })),
 }).partial().strict();
 
-const ACTION_TEXT = 'action is dismissed, built or asked.';
+const LastQuery = z.object({
+    mode: z.enum(/** @type {[string, ...string[]]} */ (MODES), { errorMap: () => ({ message: MODE_TEXT }) }).optional(),
+});
+
+// The store's own lists are the source of truth, read when they are needed.
+const feedbackLists = () => require('../../../stores/suggestionFeedbackStore');
+const ACTION_TEXT = 'action is dismissed, built, asked, snoozed or opened.';
+const REASON_CODE_TEXT = 'reasonCode is wrong_grouping, do_myself, already_automated or privacy.';
 const TITLE_TEXT = 'suggestion.title is required.';
 const LIST_TEXT = 'suggestion.requiredIntegrations is a list of app ids.';
+const SIGNATURE_TEXT = 'signature is the pattern signature the scan returned.';
 const FeedbackBody = z.object({
-    // The store's own list is the source of truth, read when it is needed.
-    action: worded(ACTION_TEXT).trim()
-        .refine((a) => require('../../../stores/suggestionFeedbackStore').VALID_ACTIONS.includes(a), ACTION_TEXT),
+    action: worded(ACTION_TEXT).trim().refine((a) => feedbackLists().VALID_ACTIONS.includes(a), ACTION_TEXT),
+    signature: worded(SIGNATURE_TEXT).trim().regex(/^[A-Za-z0-9_-]{8,128}$/, SIGNATURE_TEXT).nullish(),
+    reasonCode: worded(REASON_CODE_TEXT).trim().refine((c) => feedbackLists().VALID_REASON_CODES.includes(c), REASON_CODE_TEXT).nullish(),
     suggestion: z.object({
         id: z.string({ invalid_type_error: 'suggestion.id must be text.' }).max(200).nullish(),
         title: worded(TITLE_TEXT).min(1, TITLE_TEXT).max(200, 'suggestion.title is at most 200 characters.'),
@@ -72,454 +112,317 @@ const FeedbackBody = z.object({
     reason: z.string({ invalid_type_error: 'reason must be text.' }).max(300, 'A reason is at most 300 characters.').nullish(),
 }).strict();
 
-/** The Automations beta gate, ahead of the schema so a 403 stays a 403. */
-async function requireAutomationsBeta(req, res, next) {
-    const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
-    if (!await userHasBetaFeature(req.session.user.id, 'automations', req.session)) {
-        return res.status(403).json({ error: 'The Automations beta is not enabled for your organisation.' });
+/** Every collaborator, loaded on first use unless a test passed its own. */
+const LOADERS = {
+    requireAuth: () => require('../../../auth/permissions').requireAuth,
+    suggestRateLimit: () => require('./rateLimits').suggestRateLimit,
+    feedbackRateLimit: () => require('./rateLimits').feedbackRateLimit,
+    userHasBetaFeature: () => require('../../../core/entitlements/betaFeatures').userHasBetaFeature,
+    setupSSE: () => require('../../../core/http/sseHelpers').setupSSE,
+    startSseHeartbeat: () => require('../../../core/http/sseHelpers').startSseHeartbeat,
+    getIntegrationTools: () => require('../../../core/integrations/integrationTools').getIntegrationTools,
+    resolveIntegration: () => require('../../../core/integrations/integrationToolMap').resolveIntegration,
+    isEUModeActive: () => require('../../../core/llm/modelResolver').isEUModeActive,
+    resolveModelForTierName: () => require('../../../core/llm/modelResolver').resolveModelForTierName,
+    llmClient: () => require('../../../core/llm/llmClient'),
+    safety: () => require('../../../core/automationRunner/safety'),
+    scanCache: () => require('../../../stores/suggestionScanCache'),
+    feedbackStore: () => require('../../../stores/suggestionFeedbackStore'),
+    logUsage: () => require('../../../stores/usageStore').logUsage,
+    listSourceGroups: () => require('../../../automation/patterns/sources').listSourceGroups,
+    makeScanReader: () => require('../../../automation/patterns/scanReader').makeScanReader,
+    runPatternScan: () => require('../../../automation/patterns/pipeline').runPatternScan,
+    suppressSuggestions: () => require('../../../automation/patterns/pipeline').suppressSuggestions,
+    runIdeasScan: () => require('../../../automation/patterns/ideation').runIdeasScan,
+    suppressIdeas: () => require('../../../automation/patterns/ideation').suppressIdeas,
+    now: () => Date.now,
+};
+
+const cleanFocus = (focus) => String(focus || '').replace(/[\x00-\x1f\x7f]/g, ' ').replace(/\s+/g, ' ').trim();
+const cleanIds = (list) => [...new Set((list || []).map((s) => String(s).trim().toLowerCase()).filter(Boolean))];
+
+/** The user's tools: the definitions, their names and the integrations they belong to. */
+async function loadTools(d, req) {
+    let tools = [];
+    try {
+        const r = await d.getIntegrationTools({ userId: req.session.user.id, session: req.session, isAdmin: !!req.session?.isAdmin, automationStep: true });
+        tools = Array.isArray(r?.tools) ? r.tools : [];
+    } catch (err) {
+        log.warn('[RepeatingWork] could not load the user\'s tools:', err?.message);
     }
-    return next();
+    const names = new Set();
+    const integrationIds = new Set();
+    for (const t of tools) {
+        const name = t?.function?.name;
+        if (!name) continue;
+        names.add(name);
+        integrationIds.add(integrationOf(d.resolveIntegration, name));
+    }
+    return { tools, names, integrationIds };
 }
 
-// Bounds for the read-only scan loop. The model must actually READ the user's
-// recent data to find concrete repeating work — the activity digest only tells
-// it which tools to prioritise, not what's in them. Keep enough rounds/reads
-// for that; the efficiency win is the forced structured synthesis + the 4h
-// cache, NOT skipping reads.
-const SUGGEST_MAX_ROUNDS = 6;
-const SUGGEST_MAX_TOOL_CALLS = 12;
-const SUGGEST_MAX_SUGGESTIONS = 6;
-// Per-integration read cap. A scan only needs a few samples of an app to see its
-// repeating patterns; without this, the model fixates on its highest-volume tool
-// (e.g. Gmail) and burns the whole budget re-searching one inbox while never
-// looking at the other selected apps. Capping per app keeps the scan EFFICIENT
-// and BROAD. Deterministic — it doesn't rely on the model obeying a prose hint.
-const SUGGEST_MAX_READS_PER_INTEGRATION = 4;
+/** One usage row per scan model call: chatForcedTool and runToolLoop log nothing themselves. */
+async function recordUsage(d, { userId, orgId, modelId, usage, mode, startedAt }) {
+    if (!usage) return;
+    try {
+        await d.logUsage({
+            user_id: userId, organization_id: orgId || null, agent_name: `repeating-work-${mode}`, agent_type: 'system',
+            model: modelId, ...usageLogFields(usage), source: 'pattern_scan', duration_ms: d.now() - startedAt,
+        });
+    } catch (err) {
+        log.warn('[RepeatingWork] usage not logged:', err?.message);
+    }
+}
 
 /**
- * POST /suggest — "Find repeating work" automation suggestions (SSE).
- *
- * Body: { integrationIds?: string[], focus?: string }
- *
- * Streams a bounded, READ-ONLY agentic scan of the user's connected tools
- * (search recent emails, list recent files, …). Every tool result is guarded
- * through the org/user Privacy Shield (server/core/automationRunner/safety.js) —
- * tokenize/redact/block per policy — BEFORE the model sees it, and each read is
- * audit-logged. Returns specs only — no automation definition is built here; the
- * client feeds a chosen suggestion's `buildPrompt` into the existing /stream
- * builder ("build directly" or "ask for changes").
- *
- * SSE events:
- *   phase     — { phase: 'scanning' | 'synthesising' }
- *   model     — { eu: boolean }                          (transparency)
- *   scan_step — { tool, integration, phase: 'start' | 'done', ok?, piiCategories? }
- *   done      — { suggestions, reason?, summary: { integrations, toolCalls, piiCategories } }
- *   error     — { error }
- *
- * Model output is untrusted: complexity is re-derived and required integrations
- * are intersected with what the user can use (server/automation/suggestions.js).
+ * @param {Record<string, any>|null} [deps] collaborators to replace (tests)
  */
-// The beta gate and the schema run BEFORE the response switches to SSE, so
-// their refusals stay clean JSON.
-router.post('/suggest', requireAuth, suggestRateLimit, requireAutomationsBeta, validate({ body: SuggestBody }), async (req, res) => {
-    const userId = req.session.user.id;
-    const session = req.session;
-    const orgId = req.session?.user?.organizationId || null;
+function createSuggestionsRouter(deps = null) {
+    const d = depsWith(LOADERS, deps);
+    const router = express.Router();
 
-    const { setupSSE, startSseHeartbeat } = require('../../../core/http/sseHelpers');
-    const { sendEvent, abortController, markEnded } = setupSSE(res);
-    const stopHeartbeat = startSseHeartbeat(res);
-    const finish = () => { stopHeartbeat(); markEnded(); try { res.end(); } catch (_) { /* already closed */ } };
+    const hasBeta = (req) => d.userHasBetaFeature(req.session.user.id, 'automations', req.session);
+    /** The Automations beta gate, ahead of the schema so a 403 stays a 403. */
+    const requireAutomationsBeta = async (req, res, next) => {
+        if (!await hasBeta(req)) {
+            return res.status(403).json({ error: 'The Automations beta is not enabled for your organisation.' });
+        }
+        return next();
+    };
 
-    try {
-        const {
-            buildScanSystemPrompt, buildScanDigest, parseSuggestionsJson, extractSuggestionsFromToolCall,
-            normaliseSuggestions, buildActivityIndex, computeScanCacheKey, resolveActivityFilter, SUGGESTIONS_TOOL,
-        } = require('../../../automation/suggestions');
-        const suggestionScanCache = require('../../../stores/suggestionScanCache');
-        const suggestionFeedbackStore = require('../../../stores/suggestionFeedbackStore');
-        const integrationActivityStore = require('../../../stores/integrationActivityStore');
-        const { getIntegrationTools } = require('../../../core/integrations/integrationTools');
-        const { isSideEffect } = require('../../../automation/sideEffectMap');
-        const { resolveIntegration } = require('../../../core/integrations/integrationToolMap');
-        const { executeTool } = require('../../../core/tools/toolDispatcher');
-        const { captureCall } = require('../../../core/http/captureCall');
-        const safety = require('../../../core/automationRunner/safety');
+    const suppressFor = (mode, suggestions, userId) => (mode === 'ideas'
+        ? d.suppressIdeas(suggestions, { userId })
+        : d.suppressSuggestions(suggestions, { userId, now: d.now() }));
 
-        // ── Inputs (shape-checked by SuggestBody) ──
-        const { integrationIds = [], force = false } = req.body;
-        const selectedSet = new Set(integrationIds.map(s => s.toLowerCase()));
-        const focus = (req.body.focus || '').replace(/[\x00-\x1f\x7f]/g, ' ').replace(/\s+/g, ' ').trim();
-
-        const integOf = (toolName) => (resolveIntegration(toolName)?.integration || String(toolName).split('_')[0] || '').toLowerCase();
-
-        // ── Build the user's tool sets ──
-        let toolResult;
+    /** A fresh cache hit, re-checked against the user's feedback; null on a miss or a store hiccup. */
+    async function cachedScan({ scopeKey, cacheKey, mode, userId }) {
         try {
-            toolResult = await getIntegrationTools({ userId, session, isAdmin: !!req.session?.isAdmin, routineStep: true });
-        } catch (_) {
-            toolResult = { tools: [] };
+            // The clock that set expiresAt on the write decides freshness on the read.
+            const hit = await d.scanCache.getCachedScan({ scopeKey, cacheKey, now: d.now() });
+            if (!hit || !Array.isArray(hit.suggestions)) return null;
+            return { ...hit, suggestions: await suppressFor(mode, hit.suggestions, userId) };
+        } catch (err) {
+            log.warn('[RepeatingWork] cache read failed, scanning live:', err?.message);
+            return null;
         }
-        const allTools = Array.isArray(toolResult?.tools) ? toolResult.tools : [];
+    }
 
-        // Full available integration set (read + write) — used to flag a
-        // suggestion that references an app the user does not have at all.
-        const availableIntegrationIds = new Set();
-        for (const t of allTools) {
-            const name = t?.function?.name;
-            if (name) availableIntegrationIds.add(integOf(name));
-        }
-        if (availableIntegrationIds.size === 0) {
-            sendEvent('done', { suggestions: [], reason: 'no_integrations' });
-            return finish();
-        }
+    /**
+     * GET /suggest/sources — the source groups a patterns scan can read, with
+     * each app's connection state.
+     */
+    router.get('/suggest/sources', d.requireAuth, requireAutomationsBeta, async (req, res) => {
+        const { names } = await loadTools(d, req);
+        res.json(d.listSourceGroups(names));
+    });
 
-        // Resolve which integrations to focus on (default: everything available).
-        const focusInteg = selectedSet.size > 0
-            ? [...availableIntegrationIds].filter(id => selectedSet.has(id))
-            : [...availableIntegrationIds];
-        if (focusInteg.length === 0) {
-            sendEvent('done', { suggestions: [], reason: 'no_integrations' });
-            return finish();
-        }
-        const focusSet = new Set(focusInteg);
+    /**
+     * POST /suggest — one scan, streamed (SSE).
+     *
+     * Events: model {eu}; phase {phase}; patterns: source_step, stats,
+     * suggestion {suggestion}; ideas: scan_step; then done {suggestions,
+     * summary, reason?, cached, scannedAt, mode} or error {error}.
+     */
+    router.post('/suggest', d.requireAuth, d.suggestRateLimit, requireAutomationsBeta, validate({ body: SuggestBody }), async (req, res) => {
+        const userId = req.session.user.id;
+        const orgId = req.session?.user?.organizationId || null;
+        const mode = req.body.mode || 'patterns';
+        const force = !!req.body.force;
+        const focus = cleanFocus(req.body.focus);
+        const timeZone = isTimeZone(req.body.timezone) ? req.body.timezone : null;
+        const integrationIds = cleanIds(req.body.integrationIds);
+        const sources = mode === 'patterns' ? cleanIds(req.body.sources ?? integrationIds) : [];
+        const keyList = mode === 'patterns' ? sources : integrationIds;
 
-        // Read-only tools within the focus set — what the model may actually call
-        // while scanning. May be empty (e.g. a write-only app) → pure ideation.
-        const scanTools = allTools.filter(t => {
-            const name = t?.function?.name;
-            return name && !isSideEffect(name) && focusSet.has(integOf(name));
-        });
+        const { sendEvent, abortController, markEnded } = d.setupSSE(res);
+        const stopHeartbeat = d.startSseHeartbeat(res);
+        const signal = abortController.signal;
+        const finish = () => { stopHeartbeat(); markEnded(); try { res.end(); } catch (_) { /* already closed */ } };
+        const framing = { mode, ...(mode === 'patterns' ? { sources } : {}), focus };
 
-        // ── Cheap secondary signals (parallelised) ──
-        const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-        const activityFilter = { ...resolveActivityFilter({ organizationId: orgId, userId }), startDate: since };
-        const [activityRowsRaw, automationList, suppressedTitlesRaw] = await Promise.all([
-            integrationActivityStore.getIntegrationByTool(activityFilter).catch(() => []),
-            automationStore.getAutomationsForUser(userId).catch(() => []),
-            suggestionFeedbackStore.getRecentSuppressedTitles({ organizationId: orgId, userId }).catch(() => []),
-        ]);
+        try {
+            const tools = await loadTools(d, req);
+            if (mode === 'ideas' && tools.integrationIds.size === 0) {
+                sendEvent('done', { suggestions: [], reason: 'no_integrations', cached: false, ...framing });
+                return finish();
+            }
 
-        // Activity rows scoped to the focused integrations → grounding digest + scoring index.
-        const activityByTool = (activityRowsRaw || []).filter(r =>
-            r && r.tool_name && Number(r.total) > 0 && focusSet.has(String(r.integration_type || '').toLowerCase()));
-        const activityIndex = buildActivityIndex(activityByTool);
+            const scopeKey = d.scanCache.deriveScopeKey({ userId });
+            const cacheKey = scanCacheKey({ userId, mode, sources: keyList, focus, now: d.now(), timeZone: mode === 'patterns' ? timeZone : null });
+            let eu = false;
+            try { eu = !!(await d.isEUModeActive({ userOrgId: orgId, userId }))?.isEU; } catch (_) { /* transparency only */ }
 
-        // Suppress ideas the user already automated AND ones they dismissed/built/asked about.
-        const ownTitles = (automationList || []).map(a => a.title).filter(Boolean).slice(0, 50);
-        const existingTitles = [...new Set([...ownTitles, ...(suppressedTitlesRaw || [])])];
-
-        // ── Cache scope/key (the rate limiter already gated this request) ──
-        const scopeKey = suggestionScanCache.deriveScopeKey({ organizationId: orgId, userId });
-        const cacheKey = computeScanCacheKey({ focusInteg, focus, existingTitles });
-
-        // EU routing transparency (mirrored into the cache row).
-        let euActive = false;
-        try { const eu = await isEUModeActive({ userOrgId: orgId, userId }); euActive = !!(eu && eu.isEU); } catch (_) { /* transparency only */ }
-
-        // ── Cache read: a fresh hit returns instantly (no model call) unless force ──
-        if (!force) {
-            try {
-                const hit = await suggestionScanCache.getCachedScan({ scopeKey, cacheKey });
-                if (hit && Array.isArray(hit.suggestions)) {
-                    sendEvent('model', { eu: euActive });
+            if (!force) {
+                const hit = await cachedScan({ scopeKey, cacheKey, mode, userId });
+                if (hit) {
+                    sendEvent('model', { eu });
                     sendEvent('done', {
-                        suggestions: hit.suggestions,
-                        summary: hit.summary || { integrations: [], toolCalls: 0, piiCategories: [] },
-                        reason: hit.reason || undefined,
-                        cached: true,
-                        scannedAt: hit.scannedAt,
+                        suggestions: hit.suggestions, summary: hit.summary || null, reason: hit.reason || undefined,
+                        cached: true, scannedAt: hit.scannedAt, ...framing,
                     });
                     return finish();
                 }
-            } catch (_) { /* cache miss / store hiccup → fall through to a live scan */ }
-        }
-
-        // ── Privacy Shield guard policy (same pipeline the routine runner uses) ──
-        const guardCtx = { orgId, userId, automationId: null, automationTitle: 'Suggestion scan', runId: null };
-        const policy = await safety.resolveAutomationPolicy(guardCtx);
-        const auditBase = safety.buildAuditBase(guardCtx, { id: 'scan' });
-        const guardMode = 'live';
-
-        // ── Model: 'fast' tier — re-derives complexity itself. The model does
-        // live reads to find concrete patterns; the activity digest below only
-        // tells it which tools are worth reading first. (EU routing honoured by
-        // the resolver.) ──
-        const modelId = await resolveModelForTierName('fast', { userOrgId: orgId, userId, fallback: 'gemini-2.0-flash-lite' });
-        sendEvent('model', { eu: euActive });
-
-        // Compact, PII-safe digest of the user's recent tool activity — a priority
-        // hint for which tools to sample first, NOT a replacement for live reads.
-        const digest = buildScanDigest({ activityByTool, existingTitles: [], focus: '', toolShapes: {} });
-
-        const sys = buildScanSystemPrompt({
-            selectedIntegrations: focusInteg, activityHints: [], existingTitles, focus, maxSuggestions: SUGGEST_MAX_SUGGESTIONS,
-        });
-        const messages = [
-            { role: 'system', content: sys },
-            { role: 'user', content: `Recent tool activity (frequency signal):\n\n${digest}\n\nScan my connected tools for repeating work and call return_suggestions with up to ${SUGGEST_MAX_SUGGESTIONS} automation ideas.` },
-        ];
-
-        // ── Scan ──
-        const scannedIntegrations = new Set();
-        const allCategories = new Set();
-        const readsByIntegration = new Map();
-        // Apps the model can actually READ (have read-only tools in the focus set).
-        // The breadth-first steer only ever points the model at apps it can sample.
-        const readableIntegrations = new Set(
-            scanTools.map(t => integOf(t?.function?.name)).filter(Boolean));
-        let toolCalls = 0;
-
-        // The Privacy Shield tool block lists ("Outside tools" / "Own server")
-        // on the scan's reads, as in chat (BFSF-354). policy.shield is null
-        // when the org keeps routines out of the shield, as the guard above.
-        const shieldGate = require('../../../core/privacy/toolPiiGate').toolLoopGate({
-            shield: policy.shield, tag: 'SuggestionScan',
-            audit: (fields) => require('../../../stores/guardrailEventStore').logGuardrailEvent({ ...auditBase, ...fields }),
-        });
-
-        const boundedExecute = async (name, args) => {
-            if (abortController.signal.aborted) return 'Scan cancelled.';
-            // Defence in depth: never run a side-effecting tool during the scan.
-            if (isSideEffect(name)) {
-                return `Error: ${name} is a write action and is not allowed during a read-only scan.`;
             }
-            const integration = integOf(name);
-            const usedForInteg = readsByIntegration.get(integration) || 0;
 
-            // Breadth-first: before a SECOND read of any app, make sure every other
-            // readable selected app has been sampled at least once. Without this the
-            // model fixates on its highest-volume app (Gmail) and burns the whole
-            // budget there, never looking at the others the user explicitly selected.
-            // A steer is a redirect — no scan_step, no global-budget spend.
-            if (usedForInteg >= 1) {
-                const unsampled = [...readableIntegrations]
-                    .filter(i => i !== integration && !readsByIntegration.has(i));
-                if (unsampled.length > 0) {
-                    return `You've already looked at ${integration}. Take ONE quick look at each selected app you haven't checked yet first: ${unsampled.join(', ')}. Read one of those now, then come back to ${integration} only if you still need more signal.`;
+            // ── Shield policy: always on for the scan, whatever automations do ──
+            const guardCtx = { orgId, userId, automationId: null, automationTitle: 'Suggestion scan', runId: null };
+            const policy = await d.safety.resolveAutomationPolicy(guardCtx, { honourAutomationOptOut: false });
+            const auditBase = d.safety.buildAuditBase(guardCtx, { id: 'scan' }, { source: 'pattern_scan' });
+            const reader = d.makeScanReader({ userId, orgId, session: req.session, policy, auditBase, signal });
+            const modelId = await d.resolveModelForTierName('fast', { userOrgId: orgId, userId, fallback: 'gemini-2.0-flash-lite' });
+            sendEvent('model', { eu });
+
+            const startedAt = d.now();
+            const usageOf = (usage) => recordUsage(d, { userId, orgId, modelId, usage, mode, startedAt });
+            let result = null;
+            if (mode === 'ideas') {
+                result = await d.runIdeasScan({
+                    userId, orgId, integrationIds, focus, tools: tools.tools, availableIntegrationIds: tools.integrationIds,
+                    modelId, policy, auditBase, guardCtx, reader, send: sendEvent, signal,
+                });
+                if (result) await usageOf(result.usage);
+            } else {
+                const scan = d.runPatternScan({
+                    userId, sources, focus, signal, timeZone,
+                    availableToolNames: tools.names, availableIntegrationIds: tools.integrationIds,
+                    executeTool: asToolExecutor(reader),
+                    nextcloudUid: req.session?.nextcloudUid || null,
+                    naming: {
+                        modelId, llmClient: d.llmClient,
+                        guard: (messages) => d.safety.guardAiInput(messages, policy, auditBase, 'live', guardCtx),
+                    },
+                });
+                for await (const { event, data } of scan) {
+                    if (event === 'result') result = data;
+                    else sendEvent(event, data);
                 }
+                if (result) await usageOf(result.usage);
             }
-            // Per-app backstop: once breadth is done, don't re-search one inbox forever.
-            if (usedForInteg >= SUGGEST_MAX_READS_PER_INTEGRATION) {
-                return `You've sampled ${integration} enough (${usedForInteg} reads) to see its patterns. Read a different app, or if you have enough signal, stop and call return_suggestions now.`;
-            }
-            toolCalls++;
-            if (toolCalls > SUGGEST_MAX_TOOL_CALLS) {
-                return 'Tool-call budget reached — stop scanning and call return_suggestions now.';
-            }
-            // Mark sampled before executing so a failed read still counts (no retry
-            // loop on a broken tool, and breadth-first moves on).
-            readsByIntegration.set(integration, usedForInteg + 1);
-            sendEvent('scan_step', { tool: name, integration, phase: 'start' });
+            if (!result || signal.aborted) return finish();
 
-            const refusal = await shieldGate.refuse(name, args);
-            if (refusal) {
-                sendEvent('scan_step', { tool: name, integration, phase: 'done', ok: false });
-                return JSON.stringify({ error: refusal.modelError });
-            }
-
-            // Inside its own capture context, so the ledger row below names
-            // where the read went (and the dispatcher does not write a second).
-            const readT0 = Date.now();
-            const call = await captureCall(() => executeTool(name, args, { userId, session, orgId }));
-            if (!call.ok) {
-                const e = call.error;
-                try {
-                    await safety.logEgress({ toolName: name, toolArgs: args, error: e, probe: call.probe, policy, auditBase, mode: guardMode, durationMs: Date.now() - readT0 });
-                } catch (_) { /* never fail the scan on logging */ }
-                sendEvent('scan_step', { tool: name, integration, phase: 'done', ok: false });
-                return `Error: ${e && e.message}`;
-            }
-            const out = call.value;
-
-            // Guard the tool OUTPUT through the Privacy Shield before the model
-            // sees it. In 'block' mode guardToolOutput throws on PII — we keep the
-            // content from the model but let the scan continue on what's allowed.
-            let guardedText;
-            let categories = [];
-            let blocked = false;
+            const { suggestions, summary, reason } = result;
+            const scannedAt = new Date(d.now()).toISOString();
+            log.info('[RepeatingWork] scan user=%s mode=%s model=%s suggestions=%s reason=%s',
+                userId, mode, modelId, suggestions.length, reason || '-');
             try {
-                // guardCtx is passed so every tool result in ONE scan shares a
-                // token namespace: the same person read from Gmail and from
-                // Drive must reach the model as the same placeholder, or it
-                // will read them as two different people.
-                const g = await safety.guardToolOutput(out, policy, auditBase, guardMode, guardCtx);
-                guardedText = typeof g.result === 'string' ? g.result : JSON.stringify(g.result);
-                categories = g.categories || [];
-            } catch (e) {
-                blocked = true;
-                categories = (e && e.categories) || [];
-                guardedText = `[withheld: contains sensitive data${categories.length ? ` (${categories.join(', ')})` : ''}]`;
+                await d.scanCache.upsertScan({
+                    scopeKey, cacheKey, userId, organizationId: orgId, mode, focus,
+                    integrationIds: keyList, suggestions, summary, reason: reason || null,
+                    model: modelId, eu, expiresAt: new Date(d.now() + CACHE_TTL_MS),
+                });
+            } catch (err) {
+                log.warn('[RepeatingWork] cache write failed:', err?.message);
             }
-
-            // Audit-log the read (records PII categories, not raw content).
+            sendEvent('done', { suggestions, summary, reason: reason || undefined, cached: false, scannedAt, ...framing });
+            finish();
+        } catch (e) {
+            if (!signal.aborted) log.error('[RepeatingWork] scan failed:', e?.message);
             try {
-                await safety.logEgress({ toolName: name, toolArgs: args, result: out, probe: call.probe, policy, auditBase, mode: guardMode, durationMs: Date.now() - readT0 });
-            } catch (_) { /* never fail the scan on logging */ }
-
-            scannedIntegrations.add(integration);
-            for (const c of categories) allCategories.add(c);
-            sendEvent('scan_step', { tool: name, integration, phase: 'done', ok: !blocked, piiCategories: categories });
-            // What the model reads, with the categories this tool's class
-            // forbids stripped out (BFSF-354).
-            return shieldGate.forModel(guardedText, name);
-        };
-
-        // The model must READ the user's actual data to find concrete repeating
-        // work — the digest only says which tools to prioritise. So whenever there
-        // are read-only tools, run the agentic loop (live reads) and force the
-        // structured synthesis at the end. Only when there's NOTHING readable
-        // (write-only apps) do we fall back to a single ideation call.
-        let rounds = 0;
-        let structuredOk = false;
-        let rawSuggestions = [];
-
-        sendEvent('phase', { phase: 'scanning' });
-        if (scanTools.length === 0) {
-            // 4096 (not 2500): the forced synthesis emits up to 6 suggestions, each
-            // with a detailed buildPrompt (~1200 chars) — at 2500 the tool-call
-            // JSON args can truncate mid-array and fail to parse (structured=null →
-            // zero suggestions). The headroom is a ceiling, not a target.
-            // reasoningEffort 'none' (like stepLabels / mapJsonFields): without
-            // it a self-hosted Qwen3 thinks by template default and spends the
-            // whole 4096 on reasoning → structured null → zero suggestions,
-            // while burning the GPU right after every build.
-            const { structured, content } = await llmClient.chatForcedTool(
-                modelId, messages, SUGGESTIONS_TOOL, { maxTokens: 4096, temperature: 0.2, reasoningEffort: 'none' });
-            structuredOk = !!structured;
-            rawSuggestions = structured ? extractSuggestionsFromToolCall(structured) : parseSuggestionsJson(content);
-        } else {
-            const loop = await llmClient.runToolLoop(
-                modelId, messages, scanTools,
-                { maxTokens: 4096, temperature: 0.2, reasoningEffort: 'none', finalTool: SUGGESTIONS_TOOL },
-                boundedExecute, SUGGEST_MAX_ROUNDS);
-            rounds = loop?.toolCallRounds ?? 0;
-            structuredOk = !!loop?.structured;
-            rawSuggestions = loop?.structured
-                ? extractSuggestionsFromToolCall(loop.structured)
-                : parseSuggestionsJson(loop?.content);
+                sendEvent('error', { error: mode === 'ideas'
+                    ? 'Could not generate ideas right now. Please try again.'
+                    : 'Could not finish the scan right now. Please try again.' });
+            } catch (_) { /* stream gone */ }
+            finish();
         }
-        sendEvent('phase', { phase: 'synthesising' });
+    });
 
-        // Untrusted model output: re-derive complexity, clamp, dedupe, attach
-        // server-computed evidence/value, and rank by value (activityIndex).
-        const suggestions = normaliseSuggestions(rawSuggestions, {
-            availableIntegrationIds, existingTitles, max: SUGGEST_MAX_SUGGESTIONS, activityIndex,
-        });
-
-        // Diagnostic: makes an empty result debuggable at a glance — raw=0 means
-        // the model returned nothing; raw>0 but final=0 means suppression/repair
-        // filtered everything.
-        log.info('[automationBuilder/suggest] user=%s model=%s rounds=%s reads=%s raw=%s structured=%s final=%s existingTitles=%s',
-            userId, modelId, rounds, toolCalls, Array.isArray(rawSuggestions) ? rawSuggestions.length : 0, structuredOk, suggestions.length, existingTitles.length);
-
-        const summary = {
-            integrations: [...scannedIntegrations],
-            toolCalls,
-            piiCategories: [...allCategories],
-            rounds,
-            structured: structuredOk,
-        };
-        const scannedAt = new Date().toISOString();
-        const reason = suggestions.length ? undefined : 'no_patterns';
-
-        // ── Cache write (best-effort; 4h TTL) ──
-        try {
-            await suggestionScanCache.upsertScan({
-                scopeKey, cacheKey, userId, organizationId: orgId, focus,
-                integrationIds: focusInteg, suggestions, summary,
-                reason: reason || null, model: modelId, eu: euActive,
-                expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000),
-            });
-        } catch (_) { /* cache write is best-effort */ }
-
-        sendEvent('done', { suggestions, summary, reason, cached: false, scannedAt });
-        finish();
-    } catch (e) {
-        log.error('[automationBuilder/suggest] error:', e.message);
-        try { sendEvent('error', { error: 'Could not generate ideas right now. Please try again.' }); } catch (_) { /* stream gone */ }
-        finish();
-    }
-});
-
-/**
- * GET /suggest/last — the user's most recent cached scan (if any), so the
- * Routines studio can show "Last scanned X ago" + the prior results without
- * re-running the scan. 204 when there's no cached scan. Beta-gated.
- */
-router.get('/suggest/last', requireAuth, async (req, res) => {
-    try {
+    /**
+     * GET /suggest/last?mode= — the viewer's most recent scan of that mode
+     * (patterns by default), re-checked against their feedback. 204 when there
+     * is none, the beta is off, or the store is unavailable: the page then
+     * simply starts empty.
+     */
+    router.get('/suggest/last', d.requireAuth, validate({ query: LastQuery }), async (req, res) => {
         const userId = req.session.user.id;
-        const orgId = req.session?.user?.organizationId || null;
-        const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
-        const hasFeature = await userHasBetaFeature(userId, 'automations', req.session);
-        if (!hasFeature) return res.status(204).end();
-        const suggestionScanCache = require('../../../stores/suggestionScanCache');
-        const scopeKey = suggestionScanCache.deriveScopeKey({ organizationId: orgId, userId });
-        const last = await suggestionScanCache.getLatestScan({ scopeKey });
-        if (!last || !Array.isArray(last.suggestions)) return res.status(204).end();
+        const mode = req.query.mode || 'patterns';
+        let last = null;
+        let suggestions = [];
+        try {
+            if (!await hasBeta(req)) return res.status(204).end();
+            last = await d.scanCache.getLatestScan({ scopeKey: d.scanCache.deriveScopeKey({ userId }), mode });
+            if (!last || !Array.isArray(last.suggestions)) return res.status(204).end();
+            suggestions = await suppressFor(mode, last.suggestions, userId);
+        } catch (err) {
+            log.warn('[RepeatingWork] last scan unavailable:', err?.message);
+            return res.status(204).end();
+        }
+        const stored = typeof last.integrationIds === 'string' ? last.integrationIds.split(',').filter(Boolean) : [];
         res.json({
-            suggestions: last.suggestions,
-            summary: last.summary || { integrations: [], toolCalls: 0, piiCategories: [] },
+            suggestions,
+            summary: last.summary || null,
             reason: last.reason || undefined,
             scannedAt: last.scannedAt,
             eu: !!last.eu,
             cached: true,
+            mode,
+            ...(mode === 'patterns' ? { sources: stored } : {}),
+            focus: last.focus || '',
         });
-    } catch (_) {
-        res.status(204).end();
-    }
-});
+    });
 
-/**
- * POST /feedback — record a user's reaction to a suggestion (dismissed / built /
- * asked). Persisted as a title fingerprint so future scans suppress dismissed
- * ideas and don't re-suggest ones already acted on. Untrusted input — validated
- * + clamped. Beta-gated + rate-limited.
- */
-router.post('/feedback', requireAuth, feedbackRateLimit, requireAutomationsBeta, validate({ body: FeedbackBody }), async (req, res) => {
-    try {
+    /**
+     * POST /feedback — the viewer's reaction to a result. Keyed by the
+     * pattern's signature when there is one (stable across the model's
+     * wording), else by the title (ideas). `dismissed`, `snoozed` and
+     * `opened` lapse after 30 days; `built` and `asked` stay. A dismiss or a
+     * snooze also strips the result from the viewer's cached scans.
+     */
+    router.post('/feedback', d.requireAuth, d.feedbackRateLimit, requireAutomationsBeta, validate({ body: FeedbackBody }), async (req, res) => {
         const userId = req.session.user.id;
         const orgId = req.session?.user?.organizationId || null;
-
-        const suggestionFeedbackStore = require('../../../stores/suggestionFeedbackStore');
-        const { fingerprintTitle } = require('../../../automation/suggestions');
         const { action, suggestion: s } = req.body;
-        const title = s.title;
-        const reason = req.body.reason || null;
-        const buildPrompt = s.buildPrompt || '';
-        const titleFingerprint = fingerprintTitle(title, buildPrompt);
-        await suggestionFeedbackStore.saveSuggestionFeedback({
-            userId, organizationId: orgId, action, reason,
-            suggestion: { title, buildPrompt, complexity: s.complexity, requiredIntegrations: s.requiredIntegrations, groundedIn: s.groundedIn },
-            titleFingerprint,
-            ttlDays: action === 'dismissed' ? 30 : undefined,
+        const signature = req.body.signature || null;
+        const reasonCode = req.body.reasonCode || null;
+        if (reasonCode && action !== 'dismissed') {
+            throw new HttpError(400, 'reason_code_needs_dismiss', 'A reasonCode goes with action dismissed only.');
+        }
+        const pattern = s.pattern && typeof s.pattern === 'object' ? s.pattern : {};
+        const titleFingerprint = fingerprintTitle(s.title, s.buildPrompt || '');
+        await d.feedbackStore.saveSuggestionFeedback({
+            userId, organizationId: orgId, action, reason: req.body.reason || null, reasonCode, signature, titleFingerprint,
+            ttlDays: undefined, // the store's default: 30 days for the actions that lapse
+            // Template-safe fields only: never the build prompt, the
+            // description or the evidence the client echoed back.
+            suggestion: {
+                title: s.title,
+                kind: pattern.kind,
+                signature,
+                apps: Array.isArray(pattern.apps) ? pattern.apps : s.requiredIntegrations,
+                template: pattern.template,
+            },
         });
 
-        // A "dismissed" reaction is the Delete action: also strip the suggestion
-        // from the persisted scan rows so it doesn't resurface from getLatestScan
-        // after a reload/restart (the feedback row above only suppresses it in
-        // FUTURE scans). Best-effort — never fail the request on this.
-        if (action === 'dismissed') {
+        if (action === 'dismissed' || action === 'snoozed') {
+            const delId = typeof s.id === 'string' ? s.id : null;
             try {
-                const suggestionScanCache = require('../../../stores/suggestionScanCache');
-                const scopeKey = suggestionScanCache.deriveScopeKey({ organizationId: orgId, userId });
-                const delId = typeof s.id === 'string' ? s.id : null;
-                await suggestionScanCache.removeSuggestionsFromScope({
-                    scopeKey,
+                await d.scanCache.removeSuggestionsFromScope({
+                    scopeKey: d.scanCache.deriveScopeKey({ userId }),
                     predicate: (stored) => {
                         if (!stored) return false;
                         if (delId && stored.id === delId) return true;
-                        return fingerprintTitle(stored.title || '', stored.buildPrompt || '') === titleFingerprint;
+                        if (signature && stored.pattern?.signature === signature) return true;
+                        return !signature && fingerprintTitle(stored.title || '', stored.buildPrompt || '') === titleFingerprint;
                     },
                 });
-            } catch (_) { /* best-effort persisted-list cleanup */ }
+            } catch (err) {
+                // The feedback row already hides it from the next scan.
+                log.warn('[RepeatingWork] cached result not stripped:', err?.message);
+            }
         }
         res.json({ ok: true });
-    } catch (e) {
-        log.error('[automationBuilder/feedback] error:', e.message);
-        res.status(500).json({ error: 'Could not record feedback.' });
-    }
-});
+    });
 
-module.exports = router;
+    return router;
+}
+
+// The real router is built on its first request, so requiring this module
+// (a test after createSuggestionsRouter) loads no auth, store or model code.
+/** @type {import('express').Router|null} */
+let defaultRouter = null;
+function suggestionsRouter(req, res, next) {
+    if (!defaultRouter) defaultRouter = createSuggestionsRouter();
+    return defaultRouter(req, res, next);
+}
+
+module.exports = suggestionsRouter;
+module.exports.createSuggestionsRouter = createSuggestionsRouter;

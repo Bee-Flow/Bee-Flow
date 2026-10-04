@@ -2,7 +2,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import type { LiveState } from './liveState';
 
 /**
- * The routine's status in plain language (artboard 5a/5d):
+ * The automation's status in plain language (artboard 5a/5d):
  *   "Draft · never live"  open circle, neutral outline
  *   "Live · v3"           success tint, filled dot
  *   "Paused"              neutral outline, filled dot
@@ -15,12 +15,12 @@ import type { LiveState } from './liveState';
 export default function LiveStatusPill({ live }: { live: LiveState }) {
     const { t } = useTranslation();
     let label: string;
-    if (live.kind === 'never') label = t('routines.header.status_never_live', 'Draft · never live');
+    if (live.kind === 'never') label = t('automations.header.status_never_live', 'Draft · never live');
     else if (live.kind === 'live') {
         label = live.liveVersion != null
-            ? t('routines.header.status_live_version', 'Live · v{version}', { version: live.liveVersion })
-            : t('routines.header.status_live', 'Live');
-    } else label = t('routines.header.status_paused', 'Paused');
+            ? t('automations.header.status_live_version', 'Live · v{version}', { version: live.liveVersion })
+            : t('automations.header.status_live', 'Live');
+    } else label = t('automations.header.status_paused', 'Paused');
 
     const tone = live.kind === 'live'
         ? 'bg-[color-mix(in_srgb,var(--success)_12%,transparent)] text-[var(--success)] font-semibold'
@@ -31,8 +31,8 @@ export default function LiveStatusPill({ live }: { live: LiveState }) {
 
     const pending = live.kind !== 'never' && live.pendingChanges > 0;
     const pendingText = !pending ? undefined : (live.pendingChanges === 1
-        ? t('routines.header.editing_pending_one', 'editing v{version} · 1 change not live yet', { version: live.workingVersion ?? '' })
-        : t('routines.header.editing_pending_other', 'editing v{version} · {n} changes not live yet', { version: live.workingVersion ?? '', n: live.pendingChanges }));
+        ? t('automations.header.editing_pending_one', 'editing v{version} · 1 change not live yet', { version: live.workingVersion ?? '' })
+        : t('automations.header.editing_pending_other', 'editing v{version} · {n} changes not live yet', { version: live.workingVersion ?? '', n: live.pendingChanges }));
     return (
         <>
             <span

@@ -1,6 +1,7 @@
-import { Copy, Trash2, Play, Power, Unlink, ChevronDown, ChevronRight } from 'lucide-react';
+import { Copy, Trash2, Play, Power, Unlink, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useTranslation from '../../../../hooks/useTranslation';
 
 /**
  * Right-click menu for a node on the flow canvas (BFSF-319).
@@ -13,8 +14,9 @@ import { createPortal } from 'react-dom';
  * Rendered in a portal at viewport coordinates so it escapes the React Flow
  * transform (a menu inside the pane would scale and translate with the canvas).
  */
-export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDetach, onDuplicate, onDetach, onDelete, onExecute, onToggleDisabled, disabled, onToggleInline, inlineExpanded = false, onClose }) {
+export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDetach, onDuplicate, onDetach, onDelete, onExecute, onToggleDisabled, disabled, onToggleInline, inlineExpanded = false, onAskAssistant = null, onClose }) {
     const ref = useRef(null);
+    const { t } = useTranslation();
 
     // Dismiss on outside click, Escape, scroll, or canvas pan.
     useEffect(() => {
@@ -48,6 +50,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
             className="fixed z-[1000] min-w-[200px] py-1 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-lg"
             onContextMenu={(e) => e.preventDefault()}
         >
+            {onAskAssistant && <button type="button" role="menuitem" className={`${item} text-[var(--type-ai)] hover:bg-[var(--bg-tertiary)]`} onClick={() => { onClose(); onAskAssistant(); }}><Sparkles size={12} />{t('automations.assistant.ask_step', 'Ask the assistant…')}<span className="ml-auto text-[10px]">⌘ J</span></button>}
             {onExecute && (
                 <button
                     type="button" role="menuitem" className={`${item} text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]`}

@@ -8,6 +8,43 @@ const { initDB, run, getAll, getClient } = require('./core');
 const { rowToAutomation, safeParse } = require('./rowMappers');
 const { getAutomation } = require('./automations');
 
+/**
+ * The managed-write guard (stores/lib/managedParts.js) for a Step of a
+ * Solution stage: its definition, publish pointer and tool exposure change
+ * through a deploy only; its sharing stays the stage's own. Lazy, like the
+ * guard in automations.js; `override` is a test's own instance.
+ */
+async function assertStepWrite({ projectId, changedKeys, managedWrite = null, client = null, managedParts = null }) {
+    const guard = managedParts || require('../lib/managedParts');
+    await guard.assertManagedWrite({ kind: 'automation', projectId: projectId ?? null, changedKeys, managedWrite, client });
+}
+
+/**
+ * The stage a Step row sits in (its project), read and row-locked before a
+ * guarded write: on a transaction's client the lock holds until its write, so
+ * no filing into a stage or deploy lands between the check and the write.
+ */
+async function stepProjectId(q, id) {
+    const r = await q.query(`SELECT project_id FROM automations WHERE id = $1 AND kind = 'block' FOR UPDATE`, [id]);
+    return r.rows[0] ? r.rows[0].project_id ?? null : undefined;
+}
+
+/** Run `fn` on one pooled client inside BEGIN/COMMIT (ROLLBACK on a throw). */
+async function inTx(fn) {
+    const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        const out = await fn(client);
+        await client.query('COMMIT');
+        return out;
+    } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+    } finally {
+        client.release();
+    }
+}
+
 // ── Steps (reusable building blocks, kind='block') ─────
 //
 // Steps reuse the automations table + automation_versions + builder_session.
@@ -105,28 +142,14 @@ async function createStep({ userId, organizationId = null, title, description = 
 /** Publish the current draft: snapshot definition_json into a fresh
  *  automation_versions row and point published_version at it. Reuses the
  *  version counter so the snapshot and pointer never collide. */
-async function publishStep(id, savedByUserId) {
+async function publishStep(id, savedByUserId, { managedWrite = null } = {}) {
     await initDB();
     const client = await getClient();
     try {
         await client.query('BEGIN');
-        const cur = await client.query(`SELECT definition_json, version FROM automations WHERE id = $1 AND kind = 'block' FOR UPDATE`, [id]);
-        if (!cur.rows[0]) { await client.query('ROLLBACK'); return null; }
-        const nextVersion = (cur.rows[0].version || 1) + 1;
-        const def = cur.rows[0].definition_json;
-        const defJson = typeof def === 'string' ? def : JSON.stringify(def || {});
-        await client.query(
-            `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary)
-             VALUES ($1,$2,$3,$4,$5,'Published')
-             ON CONFLICT (automation_id, version) DO NOTHING`,
-            [crypto.randomUUID(), id, nextVersion, defJson, savedByUserId],
-        );
-        const upd = await client.query(
-            `UPDATE automations SET version = $2, published_version = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
-            [id, nextVersion],
-        );
-        await client.query('COMMIT');
-        return rowToAutomation(upd.rows[0]);
+        const out = await publishStepWith(client, id, savedByUserId, { managedWrite });
+        await client.query(out ? 'COMMIT' : 'ROLLBACK');
+        return out;
     } catch (e) {
         await client.query('ROLLBACK').catch(() => {});
         throw e;
@@ -135,25 +158,134 @@ async function publishStep(id, savedByUserId) {
     }
 }
 
-async function setStepSharing(id, { isPublished, sharedGroups }) {
+/**
+ * publishStep on a transaction the caller owns (BEGIN/COMMIT are theirs).
+ * Answers the row, or null when there is no such Step.
+ *
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} client
+ * @param {string} id
+ * @param {string|null} savedByUserId
+ * @param {{ managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]
+ */
+async function publishStepWith(client, id, savedByUserId, { managedWrite = null, managedParts = null } = {}) {
+    const cur = await client.query(`SELECT definition_json, version, project_id FROM automations WHERE id = $1 AND kind = 'block' FOR UPDATE`, [id]);
+    if (!cur.rows[0]) return null;
+    await assertStepWrite({ projectId: cur.rows[0].project_id, changedKeys: ['publishedVersion'], managedWrite, client, managedParts });
+    const nextVersion = (cur.rows[0].version || 1) + 1;
+    const def = cur.rows[0].definition_json;
+    const defJson = typeof def === 'string' ? def : JSON.stringify(def || {});
+    await client.query(
+        `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary)
+         VALUES ($1,$2,$3,$4,$5,'Published')
+         ON CONFLICT (automation_id, version) DO NOTHING`,
+        [crypto.randomUUID(), id, nextVersion, defJson, savedByUserId],
+    );
+    const upd = await client.query(
+        `UPDATE automations SET version = $2, published_version = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
+        [id, nextVersion],
+    );
+    return rowToAutomation(upd.rows[0]);
+}
+
+/**
+ * Who may see and call a Step. `is_published` on a Step is its sharing
+ * visibility (shared into the org or not), not a publish of its content (that
+ * is published_version), so on a Step of a Solution stage it is a sharing key
+ * the stage may change without a deploy.
+ */
+async function setStepSharing(id, sharing, { managedWrite = null } = {}) {
     await initDB();
+    const updated = await inTx((client) => setStepSharingWith(client, id, sharing, { managedWrite }));
+    return updated ? getAutomation(id) : null;
+}
+
+/**
+ * setStepSharing's write on a `{ query }` handle. Answers whether a Step row
+ * was updated.
+ *
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+ * @param {string} id
+ * @param {{ isPublished?: boolean, sharedGroups?: string[] }} sharing
+ * @param {{ managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]
+ */
+async function setStepSharingWith(q, id, { isPublished, sharedGroups }, { managedWrite = null, managedParts = null } = {}) {
+    const projectId = await stepProjectId(q, id);
+    if (projectId !== undefined) {
+        await assertStepWrite({ projectId, changedKeys: ['visibility', 'sharedGroups'], managedWrite, client: q, managedParts });
+    }
     const groups = Array.isArray(sharedGroups) ? sharedGroups : [];
-    const r = await run(
+    const r = await q.query(
         `UPDATE automations SET is_published = $2, shared_groups = $3, updated_at = NOW()
           WHERE id = $1 AND kind = 'block' RETURNING id`,
         [id, !!isPublished, JSON.stringify(groups)],
     );
-    return r.rowCount > 0 ? getAutomation(id) : null;
+    return r.rows.length > 0;
 }
 
-async function setStepExpose(id, exposeAsTool) {
+async function setStepExpose(id, exposeAsTool, { managedWrite = null } = {}) {
     await initDB();
-    const r = await run(
+    const updated = await inTx((client) => setStepExposeWith(client, id, exposeAsTool, { managedWrite }));
+    return updated ? getAutomation(id) : null;
+}
+
+/**
+ * setStepExpose's write on a `{ query }` handle. Answers whether a Step row
+ * was updated.
+ *
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+ * @param {string} id
+ * @param {boolean} exposeAsTool
+ * @param {{ managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]
+ */
+async function setStepExposeWith(q, id, exposeAsTool, { managedWrite = null, managedParts = null } = {}) {
+    const projectId = await stepProjectId(q, id);
+    if (projectId !== undefined) await assertStepWrite({ projectId, changedKeys: ['exposeAsTool'], managedWrite, client: q, managedParts });
+    const r = await q.query(
         `UPDATE automations SET expose_as_tool = $2, updated_at = NOW()
           WHERE id = $1 AND kind = 'block' RETURNING id`,
         [id, !!exposeAsTool],
     );
-    return r.rowCount > 0 ? getAutomation(id) : null;
+    return r.rows.length > 0;
+}
+
+/**
+ * A deploy's commit flip for a Step (kind 'block'): the working copy the
+ * prepare phase wrote becomes the version consumers run, `published_version =
+ * version`, on the commit transaction's `client` (no BEGIN here: the caller
+ * owns the transaction). The automation_versions snapshot of that version is
+ * written when it is missing, so the pointer never names a version without a
+ * row (publishStep's pattern, without bumping the counter).
+ *
+ * On a Step of a Solution stage it needs the deploy's `managedWrite`.
+ * Answers the row, or null when there is no such Step.
+ *
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} client
+ * @param {string} id
+ * @param {{ managedWrite?: { deploymentId?: string }|null, savedByUserId?: string|null, managedParts?: any }} [opts]
+ */
+async function publishBlockVersionWith(client, id, { managedWrite = null, savedByUserId = null, managedParts = null } = {}) {
+    const cur = await client.query(
+        `SELECT user_id, definition_json, version, project_id FROM automations
+          WHERE id = $1 AND kind = 'block' AND deleted_at IS NULL FOR UPDATE`,
+        [id],
+    );
+    const row = cur.rows[0];
+    if (!row) return null;
+    await assertStepWrite({ projectId: row.project_id, changedKeys: ['publishedVersion'], managedWrite, client, managedParts });
+    const version = Number(row.version) || 1;
+    const def = row.definition_json;
+    const defJson = typeof def === 'string' ? def : JSON.stringify(def || {});
+    await client.query(
+        `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary)
+         VALUES ($1,$2,$3,$4,$5,'Published')
+         ON CONFLICT (automation_id, version) DO NOTHING`,
+        [crypto.randomUUID(), id, version, defJson, savedByUserId || row.user_id],
+    );
+    const upd = await client.query(
+        `UPDATE automations SET published_version = version, updated_at = NOW() WHERE id = $1 RETURNING *`,
+        [id],
+    );
+    return rowToAutomation(upd.rows[0] || null);
 }
 
 /** Automations (kind='automation') that reference a Step via a call_block step.
@@ -232,7 +364,7 @@ function promoteDeps(overrides = {}) {
  * @returns {Promise<{ ok: true, step, definition, callInputs, contract, warnings }
  *                 | { ok: false, reason, issues }>}
  *   `callInputs` is what the call_block replacing the step in its original
- *   routine must bind, so the routine it was promoted out of keeps doing
+ *   automation must bind, so the automation it was promoted out of keeps doing
  *   exactly what it did before.
  * @param {{ userId?: string, organizationId?: string|null, title?: string, description?: string, icon?: string|null, category?: string|null, step?: any, outputs?: any }} [opts]
  * @param [deps]
@@ -266,4 +398,4 @@ async function createStepFromCodeStep({
     };
 }
 
-module.exports = { getStepsForUser, getCallableStepsForUser, createStep, publishStep, setStepSharing, setStepExpose, getStepConsumers, createStepFromCodeStep, promoteDeps };
+module.exports = { getStepsForUser, getCallableStepsForUser, createStep, publishStep, publishStepWith, publishBlockVersionWith, setStepSharing, setStepSharingWith, setStepExpose, setStepExposeWith, getStepConsumers, createStepFromCodeStep, promoteDeps };

@@ -43,7 +43,7 @@ export function RunLogRow({ run, openable, onOpen }: { run: LogRun; openable: bo
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const said = whatHappened(run);
-    const title = run.automationTitle || t('runs.now.untitled', 'A routine without a name');
+    const title = run.automationTitle || t('runs.now.untitled', 'An automation without a name');
     const sentence = t(said.key, said.en, said.params);
     return (
         <Pressable

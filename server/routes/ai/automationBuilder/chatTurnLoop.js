@@ -14,7 +14,7 @@ const VALIDATION_NOTE_PREFIX = '[VALIDATION REPORT — machine-generated, not fr
 
 // The truncation / provider-error / usage / arg-parsing mechanics are the
 // shared core/llm/toolLoop.js (one implementation for both builders); this
-// module binds the routine builder's note prefix and parameterless set.
+// module binds the automation builder's note prefix and parameterless set.
 const toolLoop = require('../../../core/llm/toolLoop');
 const { TRUNCATION_PLACEHOLDER, isTruncatedStop, providerErrorExcerpt, accumulateUsage } = toolLoop;
 const { recoverLeakedToolCalls, RECOVERED_CALL_HINT, REPAIRED_CALL_HINT } = require('../../../core/llm/leakedToolCalls');

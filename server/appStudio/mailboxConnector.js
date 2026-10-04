@@ -388,7 +388,7 @@ function groupIntoThreads(messages, partialThreads = null) {
         if (msg.direction === 'inbound' && msg.is_read === false) t.has_unread = true;
 
         // First response time — a fact about the MAIL, not a judgement, which is
-        // why it belongs here and not in a routine. Computed only for threads we
+        // why it belongs here and not in an automation. Computed only for threads we
         // hold in full (see `complete` below).
         const at = msg.received_at || null;
         if (at && msg.direction === 'inbound' && (!entry.firstInboundAt || at < entry.firstInboundAt)) {

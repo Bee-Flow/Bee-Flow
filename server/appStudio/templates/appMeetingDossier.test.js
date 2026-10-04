@@ -772,7 +772,7 @@ test('every fill section is a single 12-column row', () => {
 });
 
 // ===========================================================================
-// RUNS WITH AND WITHOUT NEXTCLOUD, AND WITH AND WITHOUT A ROUTINE
+// RUNS WITH AND WITHOUT NEXTCLOUD, AND WITH AND WITHOUT A AUTOMATION
 // ===========================================================================
 
 test('nothing in the app requires Nextcloud or any connector to be configured', () => {
@@ -790,11 +790,11 @@ test('nothing in the app requires Nextcloud or any connector to be configured', 
 });
 
 /**
- * The routine hop is deliberate and it is exactly one. Anywhere else,
+ * The automation hop is deliberate and it is exactly one. Anywhere else,
  * automationId:null would be an unfinished button; here it is the honest edge of
  * what an app step can do — and the UI says so on two screens.
  */
-test('exactly one step needs a routine, it is the transcription hop, and the app says so', () => {
+test('exactly one step needs an automation, it is the transcription hop, and the app says so', () => {
     const unwired = allSteps().filter(({ step }) => step.kind === 'run_automation');
     assert.equal(unwired.length, 1, 'every other capability in this app must work with nothing wired');
     assert.equal(unwired[0].actionId, 'act_mdtrans');
@@ -803,14 +803,14 @@ test('exactly one step needs a routine, it is the transcription hop, and the app
     // And the app owns the half it can do itself: the queue flag.
     const queue = flatSteps(definition.actions.act_mdtrans).find((s) => s.kind === 'update_record');
     assert.equal(queue.values.transcription_status.value, 'queued',
-        'the routine picks work up from a queue, which is the only contract that survives it running on a schedule');
+        'the automation picks work up from a queue, which is the only contract that survives it running on a schedule');
 
     for (const id of ['cmp_mdnote', 'cmp_stnote']) {
-        assert.match(nodeById(id).props.text, /routine/i, `${id} must warn that this one button needs wiring`);
+        assert.match(nodeById(id).props.text, /automation/i, `${id} must warn that this one button needs wiring`);
     }
 });
 
-test('extraction is an app step, not a routine — it needs nothing configured', () => {
+test('extraction is an app step, not an automation — it needs nothing configured', () => {
     for (const { actionId, step } of extractSteps()) {
         assert.equal(step.kind, 'ai_extract', `${actionId} must not route the extraction through an automation`);
         assert.deepEqual(step.knowledgeBaseIds, [], 'a knowledge base id would be a dangling reference on a fresh install');

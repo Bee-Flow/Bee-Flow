@@ -81,7 +81,7 @@ export interface Skill {
      */
     dynamicActivation: boolean;
     sharedGroups: string[];
-    /** The legacy scalar routine: when set it REPLACES the skill body. */
+    /** The legacy scalar automation: when set it REPLACES the skill body. */
     automationId: string | null;
     enabledIntegrations: string[];
     /**

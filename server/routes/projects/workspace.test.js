@@ -50,6 +50,10 @@ const reset = () => {
 };
 
 const projectFiles = {
+    async fileContent(project, fileId) {
+        rec.files.push(['content', project.id, fileId]);
+        return fileId === FILE_ID ? { file: { id: fileId, name: 'plan.pdf', status: 'ready' }, content: 'Processed text', available: true } : null;
+    },
     async listFiles(project) {
         rec.files.push(['list', project.id]);
         return { files: [{ id: FILE_ID, name: 'plan.pdf', status: 'ready' }], kbId: 'kb_files' };
@@ -301,4 +305,16 @@ test('every /:id route carries the role gate first', () => {
         const names = layer.route.stack.map(s => s.name);
         assert.strictEqual(names[0], 'requireProjectRoleMw', `${Object.keys(layer.route.methods)} ${layer.route.path}: ${names}`);
     }
+});
+
+
+test('source content is viewer-readable only inside the current project', async () => {
+    const path = `/api/projects/p1/files/${FILE_ID}/content`;
+    const result = await call('GET', path);
+    assert.strictEqual(result.status, 200);
+    assert.strictEqual(result.body.content, 'Processed text');
+    reset();
+    assert.strictEqual((await call('GET', path, { user: STRANGER })).status, 404);
+    assert.strictEqual(rec.files.length, 0);
+    assert.strictEqual((await call('GET', '/api/projects/p1/files/44444444-4444-4444-8444-444444444444/content')).status, 404);
 });

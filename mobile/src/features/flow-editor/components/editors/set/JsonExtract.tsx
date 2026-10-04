@@ -88,7 +88,7 @@ function JsonPanel({ candidates, customSource, setCustomSource, sampleRoot, onPi
                 <Text variant="caption" tone="secondary" numberOfLines={1} style={styles.grow}>
                     {t('mobile.flow.set.json_from', 'From {source}', { source: sourceLabel })}
                 </Text>
-                <Button size="sm" variant="ghost" label={changing ? t('mobile.flow.set.done', 'done') : t('routines.builder.change_word', 'change')} onPress={() => setChanging((c) => !c)} />
+                <Button size="sm" variant="ghost" label={changing ? t('mobile.flow.set.done', 'done') : t('automations.builder.change_word', 'change')} onPress={() => setChanging((c) => !c)} />
                 <Button size="sm" variant="ghost" label={t('mobile.flow.set.hide', 'hide')} onPress={onHide} />
             </View>
             {changing ? <BindingInput mode="path" value={sourcePath} onChange={(v) => setCustomSource(String(v))} prompt={t('mobile.flow.set.json_source_prompt', 'Tap Insert data to pick the text that holds the JSON')} /> : null}

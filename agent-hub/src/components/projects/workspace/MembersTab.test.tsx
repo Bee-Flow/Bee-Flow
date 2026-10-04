@@ -14,11 +14,11 @@ vi.mock('../../../utils/helpers', async (importOriginal) => ({
     authFetch: fetchMock,
 }));
 
-function renderTab(role: WorkspaceTabProps['role'], userId: string, extra: Partial<WorkspaceTabProps> = {}) {
+function renderTab(role: WorkspaceTabProps['role'], userId: string, extra: Partial<WorkspaceTabProps> = {}, directory: { members?: Parameters<typeof makeMembers>[0]; groups?: unknown[] } = {}) {
     fetchMock.mockImplementation(makeFakeApi({
-        'GET /api/projects/p1/members': makeMembers(),
+        'GET /api/projects/p1/members': makeMembers(directory.members),
         'GET /auth/users': [{ id: 'u-new', displayName: 'Nina Newcomer' }],
-        'GET /auth/groups': [],
+        'GET /auth/groups': directory.groups ?? [],
     }).fetchImpl);
     const props: WorkspaceTabProps = {
         projectId: 'p1', project: makeProject({ role }), role, currentUser: { id: userId },
@@ -30,9 +30,9 @@ function renderTab(role: WorkspaceTabProps['role'], userId: string, extra: Parti
 beforeEach(() => { fetchMock.mockReset(); });
 
 describe('MembersTab', () => {
-    it('counts the owner plus every share, and explains the roles', async () => {
+    it('distinguishes people and group grants, and explains the roles', async () => {
         renderTab('viewer', EDITOR_ID);
-        expect(await screen.findByText('4')).toBeInTheDocument();
+        expect(await screen.findByText('3 people · 1 groups')).toBeInTheDocument();
         expect(screen.getByTestId('members-roles')).toHaveTextContent('Reads everything in the project, changes nothing.');
         expect(screen.queryByTestId('members-invite-open')).toBeNull();
     });
@@ -50,5 +50,34 @@ describe('MembersTab', () => {
         renderTab('owner', OWNER_ID, { intent: 'invite' });
         const picker = await screen.findByTestId('member-invite-picker');
         await waitFor(() => expect(picker).toHaveFocus());
+    });
+
+    it('offers only the groups of the project\'s own organisation: the server refuses the others', async () => {
+        const user = userEvent.setup();
+        renderTab('owner', OWNER_ID, {}, {
+            members: { organizationId: 'org-a' },
+            groups: [
+                { id: 'g-own', name: 'Our group', organizationId: 'org-a' },
+                { id: 'g-other', name: 'Another tenant', organizationId: 'org-b' },
+                { id: 'g-none', name: 'No organisation' },
+            ],
+        });
+        await screen.findByTestId('member-invite-picker');
+        await user.click(screen.getByRole('radio', { name: 'Group' }));
+        expect(await screen.findByRole('option', { name: 'Our group' })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'Another tenant' })).toBeNull();
+        expect(screen.queryByRole('option', { name: 'No organisation' })).toBeNull();
+    });
+
+    it('an organisation-less project offers only the organisation-less groups', async () => {
+        const user = userEvent.setup();
+        renderTab('owner', OWNER_ID, {}, {
+            members: { organizationId: '' },
+            groups: [{ id: 'g-own', name: 'Our group', organizationId: 'org-a' }, { id: 'g-none', name: 'No organisation' }],
+        });
+        await screen.findByTestId('member-invite-picker');
+        await user.click(screen.getByRole('radio', { name: 'Group' }));
+        expect(await screen.findByRole('option', { name: 'No organisation' })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'Our group' })).toBeNull();
     });
 });

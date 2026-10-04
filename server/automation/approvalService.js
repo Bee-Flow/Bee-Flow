@@ -12,7 +12,7 @@
  * and quotas — resumeFromStep re-enters executeAutomation with the automation
  * row, whoever decided. The decider is RECORDED (approval.decided_by, the
  * audit event, steps.<id>.output.by), never impersonated. An org admin
- * approving a colleague's routine is authorising the owner's own automation
+ * approving a colleague's automation is authorising the owner's own automation
  * to continue, not running anything as themselves.
  */
 
@@ -21,6 +21,62 @@ const log = require('../telemetry/log');
 
 /** Small typed outcome so routes stay one-line thin. */
 function outcome(code, body) { return { code, body }; }
+
+/**
+ * Run-less: the row has no run to resume or fail — the decision IS the
+ * outcome. 'app' (an App Studio request) and 'deployment' (a Solution's PRD
+ * deploy gate) both are; only 'run' carries a run.
+ */
+function isRunless(approval) {
+    return (approval?.source || 'run') !== 'run';
+}
+
+/**
+ * Four-eyes for a deployment gate: whoever requested the deploy never
+ * decides it, in any shape (single, panel, stage chain). A row without a
+ * recorded requester falls back to its owner (the Solution owner, who is the
+ * requester in v1), so a missing column fails closed.
+ */
+function isOwnDeploymentRequest(approval, userId) {
+    if (!userId) return false;
+    return deploymentRequesterId(approval) === userId;
+}
+
+/** The requester four-eyes bars on a deployment gate, else null. */
+function deploymentRequesterId(approval) {
+    if (approval?.source !== 'deployment') return null;
+    return approval.requestedBy || approval.ownerId || null;
+}
+
+/**
+ * The seats that can actually vote. On a deployment gate the requester's
+ * personal seat is dead (four-eyes), so it does not count toward 'all' or a
+ * quorum: otherwise an 'all' stage that seats the requester could never
+ * pass. A group seat stays (another member can fill it). Never below 1: a
+ * stage seating only the requester stays open (and expires) rather than
+ * passing on zero votes.
+ */
+function votableSeatCount(approvers, requesterId) {
+    const seats = Array.isArray(approvers) ? approvers : [];
+    if (!requesterId) return seats.length;
+    return Math.max(1, seats.filter(s => !(s?.userId && s.userId === requesterId)).length);
+}
+
+/**
+ * Hand a final deployment-gate row to the deployment it guards: the store
+ * moves the deployment out of awaiting_approval (approved / rejected /
+ * cancelled). A store, not projects/, so automation/ keeps its layering.
+ * Best-effort after the decision committed: the runner's
+ * reconcileAwaitingApprovals is the backstop for a failed call.
+ */
+async function recordDeploymentOutcome(approval) {
+    if (approval?.source !== 'deployment' || approval.status === 'pending') return;
+    try {
+        await require('../stores/solutionStageStore').recordDeploymentDecision(approval);
+    } catch (e) {
+        log.warn(`[approvalService] deployment decision for ${approval.id} not recorded (reconcile will retry): ${e.message}`);
+    }
+}
 
 async function deciderName(userId) {
     try {
@@ -153,10 +209,11 @@ function isChainParticipant(approval, viewer) {
  * evaluatePanel applies — a stage IS a panel, just one of several — so the
  * rules cannot drift between a one-stage approval and stage 3 of five.
  */
-function evaluateStage(stage, stageVotes) {
+function evaluateStage(stage, stageVotes, requesterId = null) {
     return evaluatePanel(
         { approvers: stage.approvers || [], approvalRule: stage.rule, quorumCount: stage.quorum },
         stageVotes,
+        requesterId,
     );
 }
 
@@ -190,8 +247,8 @@ function seatIndexFor(approvers, panelVotes, viewer) {
  *              (the requester hears fast, the rest are stood down). Also the
  *              fail-safe for an unknown rule — the strictest reading.
  */
-function evaluatePanel(approval, panelVotes) {
-    const seatCount = approval.approvers.length;
+function evaluatePanel(approval, panelVotes, requesterId = deploymentRequesterId(approval)) {
+    const seatCount = votableSeatCount(approval.approvers, requesterId);
     const approvals = panelVotes.filter(v => v.decision === 'approve').length;
     const rejects = panelVotes.filter(v => v.decision === 'reject').length;
     const rule = approval.approvalRule || 'all';
@@ -231,6 +288,12 @@ function voteSummary(v) {
  * its own state (done / current / waiting / skipped) — because "where is this
  * and who is it on" is the question the surface exists to answer.
  */
+/** Approvals a rule needs over `seats` votable seats (the evaluatePanel arithmetic). */
+function neededVotes(rule, quorum, seats) {
+    if (rule === 'quorum') return Math.min(Math.max(Number(quorum) || 1, 1), seats);
+    return rule === 'first' ? 1 : seats;
+}
+
 function panelProgress(approval, votes) {
     if (hasStages(approval)) {
         const { activeStages, stagePosition } = require('./approvalStages');
@@ -238,6 +301,7 @@ function panelProgress(approval, votes) {
         const order = activeStages(approval.stages).map(st => st.key);
         const curIdx = cur ? order.indexOf(cur.key) : -1;
         const terminal = approval.status && approval.status !== 'pending';
+        const requesterId = deploymentRequesterId(approval);
         return {
             kind: 'stages',
             stage: cur?.key || null,
@@ -257,9 +321,7 @@ function panelProgress(approval, votes) {
                     key: st.key, name: st.name, description: st.description || null,
                     rule: st.rule, seatCount, approvals,
                     rejects: stageVotes.filter(v => v.decision === 'reject').length,
-                    needed: st.rule === 'quorum'
-                        ? Math.min(Math.max(Number(st.quorum) || 1, 1), seatCount)
-                        : (st.rule === 'first' ? 1 : seatCount),
+                    needed: neededVotes(st.rule, st.quorum, votableSeatCount(st.approvers, requesterId)),
                     state,
                     votes: stageVotes.map(voteSummary),
                 };
@@ -277,15 +339,17 @@ function panelProgress(approval, votes) {
         seatCount,
         approvals,
         rejects: panelVotes.filter(v => v.decision === 'reject').length,
-        needed: rule === 'quorum'
-            ? Math.min(Math.max(Number(approval.quorumCount) || 1, 1), seatCount)
-            : (rule === 'first' ? 1 : seatCount),
+        needed: neededVotes(rule, approval.quorumCount,
+            votableSeatCount(approval.approvers, deploymentRequesterId(approval))),
         hasFinalStage: !!(approval.finalApproverUserId || approval.finalApproverGroupId),
     };
 }
 
 function canDecide(approval, viewer) {
     if (!approval || !viewer?.userId) return false;
+    // Four-eyes before every shape below: a deploy's requester holds no
+    // decision on it, whatever seat, ownership or admin right they also hold.
+    if (isOwnDeploymentRequest(approval, viewer.userId)) return false;
     // Staged rows: only the CURRENT stage's people may act. Someone seated in
     // stage 3 has no vote while stage 1 is running — being asked later is not
     // being asked now.
@@ -359,6 +423,11 @@ async function decide({ approval, run, deciderId, decision, reason = null, answe
     if (approval.status !== 'pending') {
         return outcome(409, { error: `This approval was already ${approval.status}.`, status: approval.status });
     }
+    // Four-eyes, enforced here as well as in canDecide: the Nextcloud
+    // reaction path checks seats, not canDecide, and reaches decide directly.
+    if (isOwnDeploymentRequest(approval, deciderId)) {
+        return outcome(403, { error: 'You requested this deployment, so someone else has to decide it.' });
+    }
     // Deadline: expired approvals refuse the decision and flip the row so the
     // list agrees with the refusal the caller just saw.
     if (approval.expiresAt && new Date(approval.expiresAt).getTime() < Date.now()) {
@@ -370,6 +439,7 @@ async function decide({ approval, run, deciderId, decision, reason = null, answe
         if (flipped) {
             require('./approvalEvents').dispatchApprovalDecided(flipped);
             await require('./approvalHooks').runOnDecidedHook(flipped);
+            await recordDeploymentOutcome(flipped);
         }
         return outcome(410, { error: 'Approval window expired.', error_class: 'ApprovalExpired' });
     }
@@ -410,11 +480,12 @@ async function decide({ approval, run, deciderId, decision, reason = null, answe
         coercedAnswers = values;
     }
 
-    // Run guard — for RUN-sourced approvals only. An app-sourced approval has
-    // no run by design: the decision itself is the outcome (recorded on the
-    // row, delivered via the on_decided hook and the approval.decided event).
-    const isAppSourced = approval.source === 'app';
-    if (!isAppSourced && (!run || run.status !== 'awaiting_approval' || !run.awaitingStepId)) {
+    // Run guard — for RUN-sourced approvals only. A run-less approval (app or
+    // deployment) has no run by design: the decision itself is the outcome
+    // (recorded on the row, delivered via the on_decided hook, the
+    // approval.decided event, or the deployment it guards).
+    const runless = isRunless(approval);
+    if (!runless && (!run || run.status !== 'awaiting_approval' || !run.awaitingStepId)) {
         // The run moved on without us (cancelled, decided elsewhere pre-table,
         // deleted). Close the row so the list stops advertising a decision
         // nobody can make.
@@ -449,7 +520,7 @@ async function decide({ approval, run, deciderId, decision, reason = null, answe
  * steps can read steps.<id>.output.votes.
  */
 async function finalizeDecision({ approval, run, deciderId, decision, trimmedReason, coercedAnswers, source, votes = null }) {
-    const isAppSourced = approval.source === 'app';
+    const runless = isRunless(approval);
     const decidedByName = await deciderName(deciderId);
     const decidedAt = new Date().toISOString();
 
@@ -479,8 +550,11 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
     // AFTER the decision committed; a failure is audited and belled, never
     // rolled back (at-least-once-decided, best-effort-hook).
     await require('./approvalHooks').runOnDecidedHook(decided);
+    // A deployment gate: the decided row moves its deployment (approved →
+    // the runner executes it after re-checking the plan; rejected closes it).
+    await recordDeploymentOutcome(decided);
 
-    // Tell the owner when someone else decided their routine's approval.
+    // Tell the owner when someone else decided their automation's approval.
     // card:false — an outcome notice has nothing left to react to, so it goes
     // to the bell (and whatever else the policy names) but never posts a card
     // with a 👍 that would decide something already decided.
@@ -499,10 +573,11 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
         }).catch(() => {});
     }
 
-    // App-sourced: there is no run to resume or fail — the decided row IS the
-    // outcome. The app learns of it via its own refetch, the on_decided
-    // record-write hook (phase 3) and the approval.decided event above.
-    if (isAppSourced) {
+    // Run-less: there is no run to resume or fail — the decided row IS the
+    // outcome. An app learns of it via its own refetch, the on_decided
+    // record-write hook (phase 3) and the approval.decided event above; a
+    // deployment through recordDeploymentOutcome.
+    if (runless) {
         return outcome(200, { accepted: true, decision, approval: decided, ...(votes ? { votes: votes.map(voteSummary) } : {}) });
     }
 
@@ -624,7 +699,7 @@ async function castStageVote({ approval, run, deciderId, decision, trimmedReason
     }).catch(() => {});
 
     const allVotes = [...votes, vote];
-    const verdict = evaluateStage(stage, [...stageVotes, vote]);
+    const verdict = evaluateStage(stage, [...stageVotes, vote], deploymentRequesterId(approval));
 
     // A rejection anywhere ends the chain. No send-back, no skip: every stage
     // holds a veto, and the requester hears immediately.
@@ -707,7 +782,9 @@ async function notifyStageApprovers(approval, stage) {
     await notifyApproval({
         approval,
         automation: await automationForApproval(approval),
-        recipientIds: await panelRecipientIds(stage.approvers),
+        // Four-eyes: the deploy's requester is never asked to decide it.
+        recipientIds: (await panelRecipientIds(stage.approvers))
+            .filter(id => id !== deploymentRequesterId(approval)),
         category: 'heads_up',
         title: `🔔 Your approval is needed: ${stage.name}`,
         message: `${approval.prompt || 'An approval'}${where}${stage.description ? ` — ${stage.description}` : ''}`,
@@ -889,6 +966,8 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
     }).catch(() => {});
     require('./approvalEvents').dispatchApprovalDecided(cancelled);
     await require('./approvalHooks').runOnDecidedHook(cancelled);
+    // A withdrawn deployment gate cancels the deployment it guarded.
+    await recordDeploymentOutcome(cancelled);
 
     // Close the paused run — it is the withdrawn question's mechanism.
     if (approval.runId) {
@@ -975,6 +1054,7 @@ async function validateApprovalAssignees(definition, ownerId) {
 
 module.exports = {
     decide, withdraw, canDecide, canView, ensureApprovalForRun, validateApprovalAssignees,
+    isRunless,
     // Panel machinery — the routes render progress; tests pin the rulebook.
     hasPanel, panelProgress, voteSummary, seatIndexFor,
     // Stage machinery — the routes need to know whose turn it is.

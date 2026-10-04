@@ -23,7 +23,13 @@ const GATEWAY_DROP_MESSAGE = 'The connection to the builder dropped while it was
  *  canvas and composer contribute to it. */
 export interface AutomationBuilderSendOptions {
     message?: string;
+    targetAutomationId?: string | null;
     modelTier?: string;
+    workMode?: string;
+    alwaysPlanLarge?: boolean;
+    pauseAfterStep?: boolean;
+    approvedPlanId?: string | null;
+    selectedStepId?: string | null;
     timezone?: string;
     history?: unknown;
     attachments?: unknown[];
@@ -72,6 +78,9 @@ export interface AutomationBuilderState {
     lastDone: Record<string, unknown> | null;
     /** The agent's self-managed plan — a read-only checklist. */
     todos: BuilderTodo[];
+    reviewPlan: Record<string, unknown> | null;
+    reviewQuestions: unknown[] | null;
+    proposal: Record<string, unknown> | null;
     /** Bookkeeping for the CURRENT turn's silence before the first token; see
      *  openTurn(). Reset on every send; null until the first one. */
     turn: BuilderTurn | null;
@@ -84,7 +93,7 @@ export interface AutomationBuilderState {
     /** Bumped on every `dryrun` event so the canvas can replay the run step by
      *  step (BuildTab useDryRunReplay) — the rows land in `steps` at once. */
     dryRunSeq: number;
-    /** The routine's name as the server last reported it (`metadata`), and a
+    /** The automation's name as the server last reported it (`metadata`), and a
      *  counter bumped on each so the shell can refetch the header row. */
     title: string | null;
     metadataSeq: number;
@@ -122,6 +131,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
         aborted: null,
         lastDone: null,
         todos: [],
+        reviewPlan: null, reviewQuestions: null, proposal: null,
         turn: null,
         toolDraft: null,
         engine: null,
@@ -144,7 +154,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
     const appliedPollSeqRef = useRef(0);
 
     const reset = useCallback(() => {
-        setState(s => ({ ...s, messages: [], draft: null, summary: '', dryRun: null, steps: [], finalizedId: null, lastDone: null, error: null, validation: null, aborted: null, todos: [], toolDraft: null, dryRunSeq: 0 }));
+        setState(s => ({ ...s, messages: [], draft: null, summary: '', dryRun: null, steps: [], finalizedId: null, lastDone: null, error: null, validation: null, aborted: null, todos: [], toolDraft: null, dryRunSeq: 0, reviewPlan: null, reviewQuestions: null, proposal: null }));
     }, []);
 
     /**
@@ -171,6 +181,9 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 summary: snapshot.summary || s.summary,
                 validation: snapshot.lastValidation || s.validation,
                 todos: Array.isArray(snapshot.todos) ? snapshot.todos : s.todos,
+                reviewPlan: 'reviewPlan' in snapshot ? (snapshot.reviewPlan as Record<string, unknown>) ?? null : s.reviewPlan,
+                reviewQuestions: (snapshot.reviewQuestions as unknown[]) || null,
+                proposal: 'proposal' in snapshot ? (snapshot.proposal as Record<string, unknown>) ?? null : s.proposal,
                 builderSessionId: snapshot.sessionId || s.builderSessionId,
                 // Allow lazy assignment of the automationId when the builder
                 // creates a draft via the visual editor BEFORE the chat
@@ -217,11 +230,14 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
      * client-side (server-side it still ran; next save round-trip
      * will reconcile).
      */
+    const dismissProposal = useCallback(() => setState(s => ({ ...s, proposal: null })), []);
+    const dismissPlan = useCallback(() => setState(s => ({ ...s, reviewPlan: null })), []);
+
     const dismissExternalDraft = useCallback(() => {
         setState(s => ({ ...s, pendingExternalDraft: null }));
     }, []);
 
-    const send = useCallback(async ({ message, modelTier = 'auto', timezone, history, attachments = [], webSearchEnabled = true, disabledMedia = {}, canvasScope = null, resume = false, seedMetadata = null }: AutomationBuilderSendOptions) => {
+    const send = useCallback(async ({ message, targetAutomationId, modelTier = 'auto', workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId = null, selectedStepId = null, timezone, history, attachments = [], webSearchEnabled = true, disabledMedia = {}, canvasScope = null, resume = false, seedMetadata = null }: AutomationBuilderSendOptions) => {
         if (abortRef.current) {
             try { abortRef.current.abort(); } catch {}
         }
@@ -234,10 +250,11 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             error: null,
             // A stop used to stick: `aborted` was only ever cleared by reset(),
             // so every later turn still reported itself aborted. A host that
-            // reads onTurnEnd (the playbook's routine phase) then failed the
+            // reads onTurnEnd (the playbook's automation phase) then failed the
             // phase however well the build had gone.
             aborted: null,
             lastDone: null,
+            proposal: null, reviewQuestions: null,
             turn: openTurn(modelTier),
             toolDraft: null,
             // Clear any stale isStreaming on prior messages (e.g. an aborted
@@ -258,9 +275,10 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 body: JSON.stringify({
                     message,
                     modelTier,
+                    ...(workMode ? { workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId, selectedStepId } : {}),
                     timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Amsterdam',
                     builderSessionId: state.builderSessionId,
-                    automationId: state.automationId,
+                    automationId: targetAutomationId || state.automationId,
                     // The WHOLE transcript, deliberately unwindowed. The server
                     // decides how much of it reaches the model; a client-side
                     // `.slice(-20)` shifted the head of the conversation by one
@@ -339,7 +357,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
      * the run currently is, including upstream steps that run first.
      * Returns a stop() for the caller's finally.
      */
-    const watchActiveRun = useCallback((automationId?: string | null) => {
+    const watchActiveRun = useCallback((automationId?: string | null, onFound?: (runId: string) => void) => {
         const aid = automationId || state.automationId;
         if (!aid) return () => {};
         let alive = true;
@@ -354,6 +372,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 );
                 if (run && alive) {
                     found = true;
+                    onFound?.(run.runId);
                     setState(s => ({ ...s, dryRun: { id: run.runId, status: 'running', startedAt: run.startedAt } }));
                 }
             } catch { /* transient — keep trying until stopped */ }
@@ -389,8 +408,25 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
         // read "no partial run" and the poll would reset the whole step map
         // (BFSF-360).
         partialRunRef.current = true;
-        // Light up live progress (the run may execute upstream steps first).
-        const stopWatch = watchActiveRun(state.automationId);
+        // Light up live progress (the run may execute upstream steps first),
+        // and remember the run id: when the request itself is cut off by a
+        // proxy in between (the Nextcloud connector gives up after 60 s
+        // without response headers) the run goes on on the server, and its
+        // result is fetched from there instead of reporting a failure.
+        let runId: string | null = null;
+        const startedAt = Date.now();
+        const stopWatch = watchActiveRun(state.automationId, (id) => { runId = id; });
+        const automationId = state.automationId;
+        const recoverFromDrop = async (): Promise<boolean> => {
+            const rec = await awaitRunAfterDrop(automationId, runId, startedAt);
+            if (!rec) return false;
+            setState(s => {
+                const byId = new Map(s.steps.map(st => [st.stepId, st]));
+                for (const ns of rec.steps) byId.set(ns.stepId, ns);
+                return { ...s, executingStepId: null, dryRun: rec.run || settleRunStub(s.dryRun), steps: Array.from(byId.values()) };
+            });
+            return true;
+        };
         try {
             const r = await authFetch(`${API_BASE}/api/automation/${state.automationId}/steps/${encodeURIComponent(stepId)}/run`, {
                 method: 'POST',
@@ -400,6 +436,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 // body would read as "deliberately empty" to a future reader.
                 body: JSON.stringify(triggerPayload == null ? { mode } : { mode, triggerPayload }),
             });
+            if (GATEWAY_DROP.has(r.status) && await recoverFromDrop()) return { recovered: true };
             const j = await r.json().catch(() => ({}));
             if (!r.ok) {
                 const msg = j?.error || `HTTP ${r.status}`;
@@ -422,6 +459,9 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             });
             return j;
         } catch (e) {
+            // A dropped connection is not a failed step: the run may well
+            // still finish on the server.
+            if (await recoverFromDrop()) return { recovered: true };
             const msg = (e instanceof Error && e.message) || 'Execute step failed';
             setState(s => ({ ...s, executingStepId: null, error: msg, dryRun: settleRunStub(s.dryRun), steps: markStepFailed(s.steps, stepId, msg) }));
             return null;
@@ -555,7 +595,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
      * Adopt a validation verdict that did not come from the AI builder: the one
      * a manual save's PUT answers with (BFSF-58). The `validation_errors` event
      * used to be the only writer, so after a canvas edit the chip and the node
-     * badges kept the builder's last pass, and a routine built by hand never
+     * badges kept the builder's last pass, and an automation built by hand never
      * showed one at all. Last writer wins: a builder pass that lands after the
      * save describes the newer draft and replaces this again.
      */
@@ -645,7 +685,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             : s));
     }, []);
 
-    return { state, send, stop, reset, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, clearError, setValidation, settleRun, setRunResult, watchActiveRun };
+    return { state, send, stop, reset, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, clearError, setValidation, settleRun, setRunResult, watchActiveRun };
 }
 
 // Mark any in-flight assistant message as no-longer-streaming and stamp the
@@ -946,6 +986,15 @@ function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, even
                 return { ...s, messages: msgs };
             });
             break;
+        case 'review_questions':
+            setState(s => ({ ...s, reviewQuestions: data.questions as unknown[] }));
+            break;
+        case 'review_plan':
+            setState(s => ({ ...s, reviewPlan: data.plan as Record<string, unknown> }));
+            break;
+        case 'proposal_preview':
+            setState(s => ({ ...s, proposal: data as Record<string, unknown> }));
+            break;
         case 'draft':
             // Conflict-aware: if the user's local draft is already in
             // sync with the last server-confirmed draft, accept silently.
@@ -1011,7 +1060,7 @@ function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, even
             setState(s => ({ ...s, finalizedId: data.automationId || null }));
             break;
         case 'metadata':
-            // The routine's name changed (builder_set_metadata, or the
+            // The automation's name changed (builder_set_metadata, or the
             // server's own fallback at finalize / turn end). The header reads
             // its title off the server row, so the seq is what triggers the
             // refetch; `title` is for anyone who wants it without one.
@@ -1051,6 +1100,9 @@ function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, even
                     summary: snapshot.summary || s.summary,
                     validation: snapshot.lastValidation || s.validation,
                     todos: Array.isArray(snapshot.todos) ? snapshot.todos : s.todos,
+                reviewPlan: 'reviewPlan' in snapshot ? (snapshot.reviewPlan as Record<string, unknown>) ?? null : s.reviewPlan,
+                reviewQuestions: (snapshot.reviewQuestions as unknown[]) || null,
+                proposal: 'proposal' in snapshot ? (snapshot.proposal as Record<string, unknown>) ?? null : s.proposal,
                 }));
             }
             break;
@@ -1101,6 +1153,54 @@ function stepRowUnchanged(a: Record<string, unknown> | null, b: Record<string, u
  * record — e.g. an errored execute. A genuine completed run (status
  * 'success'/'error' from the server) is left untouched.
  */
+/** A proxy between the browser and the server gave up, not the step. */
+const GATEWAY_DROP = new Set([408, 502, 503, 504]);
+/** How long a dropped "Execute step" keeps waiting for its run to finish. */
+const DROP_WAIT_MS = 15 * 60 * 1000;
+const DROP_POLL_MS = 1500;
+const RUN_DONE = (status?: string) => !!status && status !== 'running' && status !== 'queued';
+
+/**
+ * The run behind an "Execute step" whose request was cut off (a proxy timeout
+ * or a dropped connection): find it, wait until it settles, and return its run
+ * and step rows — or null when there is no such run to wait for, so the caller
+ * reports the failure as before.
+ *
+ * The run id normally comes from watchActiveRun; when the drop came before it
+ * was seen, the automation's newest run counts if it started after the click.
+ */
+async function awaitRunAfterDrop(
+    automationId: string | null | undefined,
+    knownRunId: string | null,
+    clickedAt: number,
+): Promise<{ run: DryRun | null; steps: Array<{ stepId: string }> } | null> {
+    if (!automationId) return null;
+    const getJson = async (url: string) => {
+        try {
+            const r = await authFetch(url);
+            return r.ok ? await r.json().catch(() => null) : null;
+        } catch { return null; }
+    };
+    let runId = knownRunId;
+    if (!runId) {
+        const j = await getJson(`${API_BASE}/api/automation/${encodeURIComponent(automationId)}/runs?limit=1`);
+        const run = Array.isArray(j?.runs) ? j.runs[0] : null;
+        if (run?.id && run.startedAt && new Date(run.startedAt).getTime() >= clickedAt - 5000) runId = run.id;
+    }
+    if (!runId) return null;
+    const deadline = Date.now() + DROP_WAIT_MS;
+    let run: DryRun | null = null;
+    while (Date.now() < deadline) {
+        const j = await getJson(`${API_BASE}/api/automation/runs/${encodeURIComponent(runId)}`);
+        run = (j?.run as DryRun) || null;
+        if (run && RUN_DONE(run.status)) break;
+        await new Promise(res => setTimeout(res, DROP_POLL_MS));
+    }
+    if (!run || !RUN_DONE(run.status)) return null;
+    const js = await getJson(`${API_BASE}/api/automation/runs/${encodeURIComponent(runId)}/steps`);
+    return { run, steps: Array.isArray(js?.steps) ? js.steps : [] };
+}
+
 function settleRunStub(d: DryRun | null): DryRun | null {
     return d && d.status === 'running' ? { ...d, status: 'error' } : d;
 }

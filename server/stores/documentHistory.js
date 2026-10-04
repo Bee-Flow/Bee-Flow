@@ -13,12 +13,17 @@
  *   write   its owner, an org admin for a team template or section, and the
  *           editors and owner of the project it is filed in
  *   delete  a version: the document's OWNER only
+ *
+ * A template filed into a Solution stage (solution_project_id) is managed:
+ * restore and naming go through documentStore.lockForWrite, which refuses
+ * them (409 managed_part), and deleteVersion asks the same guard.
  */
 
 'use strict';
 
 const crypto = require('crypto');
 const versions = require('./documentVersions');
+const solutionTemplates = require('./document/solutionTemplates');
 
 /**
  * @param {object} deps
@@ -149,8 +154,8 @@ function makeDocumentHistory(deps) {
 
     /**
      * Delete one version. The document's owner only, and never the current
-     * revision, the baseline a routine falls back to, or a revision something
-     * else pins: `referencedIds` (the ids a routine or an app step prints, which
+     * revision, the baseline an automation falls back to, or a revision something
+     * else pins: `referencedIds` (the ids an automation or an app step prints, which
      * only the caller can collect; an iterable, or a function answering one, so
      * the lookup runs only for the owner) would otherwise fail on its next run.
      *
@@ -161,12 +166,14 @@ function makeDocumentHistory(deps) {
         const doc = await getDocument(documentId, userId);
         if (!doc) return null;
         if (doc.userId !== userId) throw failure('Only the owner of this document can delete versions of it.', 403, 'document_owner_only');
+        // A template a Solution stage manages keeps the revisions its automations are pinned to.
+        await solutionTemplates.assertTemplateWrite(documentId, ['versions']);
         if (ref === doc.versionId || ref === doc.baselineVersionId) {
             throw failure('This version is the document\'s current or first revision and stays.', 409, 'version_in_use');
         }
         const pinned = new Set(typeof referencedIds === 'function' ? await referencedIds() : referencedIds);
         if (pinned.has(ref)) {
-            throw failure('A routine or an app uses this version of the document, so it stays.', 409, 'version_in_use');
+            throw failure('An automation or an app uses this version of the document, so it stays.', 409, 'version_in_use');
         }
         const result = await run('DELETE FROM studio_document_versions WHERE id = $1 AND document_id = $2', [ref, documentId]);
         return (result?.rowCount || 0) > 0;

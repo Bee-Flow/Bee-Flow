@@ -4,7 +4,7 @@
  * Same job as builderDatatableCatalog.js, and the same lesson behind it: a
  * prompt that says "documentId must be a document that exists" while the
  * catalog it renders carries no documents teaches the model to invent ids.
- * The routine builder and the App Studio builder both read this list, so a
+ * The automation builder and the App Studio builder both read this list, so a
  * `fill_document` step is either pointed at a real template or refused.
  *
  * FAILURE IS THE CALLER'S DECISION, exactly as for datatables: this throws on
@@ -17,7 +17,7 @@
  * WHY IT IS USER-SCOPED and the datatable list is not: a document belongs to
  * the person who made it (stores/documentStore.js is owner-scoped in SQL),
  * where a datatable belongs to an organisation with per-table grades. A
- * routine runs as its owner, so the owner's documents are exactly the ones it
+ * automation runs as its owner, so the owner's documents are exactly the ones it
  * can fill — there is no second scope to walk.
  */
 

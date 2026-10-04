@@ -1,4 +1,4 @@
-/** What starts a routine, with the button that changes it. */
+/** What starts an automation, with the button that changes it. */
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';

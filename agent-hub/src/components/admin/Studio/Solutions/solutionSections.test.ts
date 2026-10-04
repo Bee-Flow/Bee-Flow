@@ -8,11 +8,16 @@ const section = (key: string) => {
 };
 
 describe('the sections a Solution holds', () => {
-    it('lists the same eight kinds, in order', () => {
+    it('lists the same ten kinds, in the order the server shows them', () => {
         expect(SECTIONS.map(s => s.key)).toEqual([
             'notebooks', 'apps', 'automations', 'webpages',
-            'datatables', 'agents', 'knowledgeBases', 'approvals',
+            'datatables', 'agents', 'skills', 'documentTemplates', 'knowledgeBases', 'approvals',
         ]);
+    });
+
+    it('mirrors the server kind names of the skill and the document template', () => {
+        expect(section('skills').kind).toBe('skill');
+        expect(section('documentTemplates').kind).toBe('document_template');
     });
 
     it('names a distinct server kind per section', () => {
@@ -25,6 +30,7 @@ describe('the sections a Solution holds', () => {
         const kinds = SECTIONS.map(s => s.kind);
         expect(kinds).not.toContain('document');
         expect(kinds).not.toContain('meeting');
+        expect(SECTIONS.map(s => s.key)).not.toContain('documents');
     });
 });
 
@@ -59,6 +65,14 @@ describe('mayRemove', () => {
         expect(mayRemove(section('apps'), { ownerUserId: 'me' }, 'me', true)).toBe(false);
         expect(mayRemove(section('datatables'), { ownerUserId: 'me' }, 'me', true)).toBe(true);
         expect(mayRemove(section('agents'), { ownerId: 'me' }, 'me', true)).toBe(true);
+    });
+
+    it('reads the owner of a skill as ownerId and of a template as userId', () => {
+        expect(mayRemove(section('skills'), { ownerId: 'me' }, 'me', true)).toBe(true);
+        expect(mayRemove(section('skills'), { userId: 'me' }, 'me', true)).toBe(false);
+        expect(mayRemove(section('documentTemplates'), { userId: 'me' }, 'me', true)).toBe(true);
+        expect(mayRemove(section('documentTemplates'), { userId: 'anna' }, 'me', true)).toBe(false);
+        expect(mayRemove(section('documentTemplates'), { userId: 'me' }, 'me', false)).toBe(false);
     });
 
     it('treats a knowledge base link as the Solution\'s, not the item owner\'s', () => {

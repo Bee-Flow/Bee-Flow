@@ -6,7 +6,7 @@
  * These tests pin exactly that for the flag that will back the "Privacy
  * shield on" pill on non-agent runs:
  *   - MISSING config ⇒ { enabled:false, configured:false } — an existing org
- *     (and its scheduled Routines, which share this path) keeps today's
+ *     (and its scheduled Automations, which share this path) keeps today's
  *     behaviour and no pill can claim protection;
  *   - only an explicit true enables it;
  *   - a config-store failure reads as OFF without throwing — no claim while

@@ -139,7 +139,7 @@ export function fitInside(rect: Rect, size: Size, insets: Insets, opts: { minSca
 }
 
 /**
- * The first view of a routine: the whole of it when that is still readable,
+ * The first view of an automation: the whole of it when that is still readable,
  * else its start at the smallest size a card is drawn as a card — a phone
  * that opens on a field of tiles has to be zoomed before anything can be
  * read or tapped. Fit shows the whole of it at any size.

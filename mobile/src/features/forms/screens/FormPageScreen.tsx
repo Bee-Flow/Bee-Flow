@@ -1,9 +1,9 @@
 /**
  * One form's page — Studio → Forms → a form (the web's FormPage).
  *
- * Addressed by the ROUTINE's id: the page token is the form's whole
+ * Addressed by the AUTOMATION's id: the page token is the form's whole
  * credential and never travels in a route. An older link that still carries
- * a token (/forms/<token>) is resolved to its routine through the forms list
+ * a token (/forms/<token>) is resolved to its automation through the forms list
  * and the route swapped for one that does not carry it.
  *
  * The owner gets Questions · Share · Answers · Settings; a colleague the
@@ -27,7 +27,7 @@ import { canOpenForm, TABS_VIEWER } from '../model/formPage';
 import type { FormDetail } from '../model/types';
 
 export interface FormPageScreenProps {
-    /** The routine's id — or, from an older link, the form's page token. */
+    /** The automation's id — or, from an older link, the form's page token. */
     formRef: string;
     /** The tab to open on (`?tab=`), when the caller may see it. */
     tab?: string | null;

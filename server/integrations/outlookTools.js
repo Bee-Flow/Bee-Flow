@@ -7,6 +7,7 @@
 
 const { graphFetch, isMicrosoftConnected } = require('./msGraphClient');
 const log = require('../telemetry/log');
+const { MESSAGE_ID_TEXT, FOLDER_TEXT, assertGraphId } = require('./graphIds');
 
 /**
  * Tool definitions in OpenAI function-calling format.
@@ -69,6 +70,14 @@ const OUTLOOK_TOOLS = [
                     unreadOnly: {
                         type: 'boolean',
                         description: 'If true, only return unread emails (default: false)'
+                    },
+                    since: {
+                        type: 'string',
+                        description: 'Optional ISO date/time: only emails received (sent, for sentitems) at or after this moment, e.g. "2026-01-01T00:00:00Z"'
+                    },
+                    maxPages: {
+                        type: 'integer',
+                        description: 'Optional: follow Graph paging for up to this many pages (1-10, default 1). Above 1, maxResults may go up to 200.'
                     }
                 },
                 required: []
@@ -79,7 +88,7 @@ const OUTLOOK_TOOLS = [
         type: 'function',
         function: {
             name: 'outlook_compose',
-            description: 'Compose and send a new email or reply to an existing email. The user will see a preview with Send, Save as Draft, and Discard buttons before anything is sent — no email is sent automatically. IMPORTANT: When replying, set replyToMessageId to the original message ID. For replies, prefix subject with "Re: ". For forwarding, prefix with "Fwd: " and include the original email body.',
+            description: 'Compose and send a new email or reply to an existing email. In a chat the user sees a preview with Send and Discard buttons before anything is sent; in an unattended run (automation, scheduled agent) the email is sent directly. IMPORTANT: When replying, set replyToMessageId to the original message ID. For replies, prefix subject with "Re: ". For forwarding, prefix with "Fwd: " and include the original email body.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -133,10 +142,108 @@ function stripHtml(html) {
         .trim();
 }
 
+const LIST_RECENT_SELECT = 'id,subject,from,toRecipients,receivedDateTime,sentDateTime,bodyPreview,hasAttachments,isRead';
+const LIST_RECENT_MAX_PAGES = 10;
+const LIST_RECENT_PAGED_CAP = 200;
+const LIST_RECENT_PAGE_SIZE = 50;
+const GRAPH_NEXT_LINK_PREFIX = 'https://graph.microsoft.com/';
+
+/** The lower bound that lets unreadOnly lead with the date field without narrowing anything. */
+const OPEN_LOWER_BOUND = '1900-01-01T00:00:00Z';
+
+/**
+ * outlook_list_recent. One page of at most 20 by default, as it always was.
+ * With maxPages > 1 it follows @odata.nextLink (Graph's own continuation URL,
+ * so the filter and order carry over) until maxResults (cap 200) or the page
+ * cap is reached. `since` becomes a `ge` filter on the folder's date field;
+ * Graph wants the $orderby property first in $filter, so it leads.
+ *
+ * @param {object} args - tool arguments
+ * @param {(path: string) => Promise<any>} fetchPage - Graph GET (path or absolute nextLink URL)
+ */
+async function listRecentMessages(args, fetchPage) {
+    const { maxResults = 10, folder = 'inbox', unreadOnly = false, since } = args || {};
+    const maxPages = Math.min(Math.max(parseInt(args?.maxPages) || 1, 1), LIST_RECENT_MAX_PAGES);
+    const want = maxPages > 1
+        ? Math.min(Math.max(parseInt(maxResults) || 10, 1), LIST_RECENT_PAGED_CAP)
+        : Math.min(Math.max(parseInt(maxResults) || 10, 1), 20);
+    const top = Math.min(want, LIST_RECENT_PAGE_SIZE);
+
+    assertGraphId(folder, FOLDER_TEXT);
+    const isSentFolder = String(folder).toLowerCase() === 'sentitems';
+    const orderField = isSentFolder ? 'sentDateTime' : 'receivedDateTime';
+
+    let sinceIso = null;
+    if (since !== undefined && since !== null && since !== '') {
+        const ms = Date.parse(String(since));
+        if (!Number.isFinite(ms)) throw new Error('since must be an ISO date/time');
+        sinceIso = new Date(ms).toISOString();
+    }
+
+    // Graph refuses a $filter that sorts by a field it does not filter on first
+    // ("InefficientFilter"), so the date field always leads once there is a
+    // filter: the caller's `since`, or for unreadOnly alone an open lower bound.
+    const filters = [];
+    if (sinceIso) filters.push(`${orderField} ge ${sinceIso}`);
+    else if (unreadOnly) filters.push(`${orderField} ge ${OPEN_LOWER_BOUND}`);
+    if (unreadOnly) filters.push('isRead eq false');
+
+    let path = `/me/mailFolders/${folder}/messages?$top=${top}&$orderby=${orderField} desc&$select=${LIST_RECENT_SELECT}`;
+    if (filters.length) {
+        path += `&$filter=${filters.join(' and ')}`;
+    }
+
+    const raw = [];
+    let next = path;
+    let pages = 0;
+    let hasMore = false;
+    while (next && pages < maxPages && raw.length < want) {
+        const data = await fetchPage(next);
+        pages++;
+        for (const msg of (data?.value || [])) raw.push(msg);
+        const link = data?.['@odata.nextLink'];
+        // Only Graph's own host gets the bearer token on the next request.
+        next = typeof link === 'string' && link.startsWith(GRAPH_NEXT_LINK_PREFIX) ? link : null;
+    }
+    if (next || raw.length > want) hasMore = true;
+
+    const messages = raw.slice(0, want).map(msg => ({
+        id: msg.id,
+        from: msg.from?.emailAddress ? `${msg.from.emailAddress.name || ''} <${msg.from.emailAddress.address}>` : '',
+        to: (msg.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+        subject: msg.subject || '(no subject)',
+        date: (isSentFolder ? msg.sentDateTime : msg.receivedDateTime) || msg.receivedDateTime || msg.sentDateTime || '',
+        snippet: msg.bodyPreview || '',
+        isRead: msg.isRead ?? true,
+        hasAttachments: msg.hasAttachments || false,
+    }));
+
+    const result = {
+        results: messages,
+        total: messages.length,
+        folder,
+    };
+    if (maxPages > 1 || sinceIso) {
+        result.pages = pages;
+        result.hasMore = hasMore;
+    }
+    return result;
+}
+
 /**
  * Execute an Outlook tool call.
+ *
+ * @param {string} toolName
+ * @param {Object} args
+ * @param {Object} session - a Microsoft session (SSO or the vault shim)
+ * @param {Object} [opts]
+ * @param {boolean} [opts.autoSend=false] - For outlook_compose: when true the
+ *   mail is sent straight away instead of returning an email_draft for the
+ *   user to approve. Only unattended callers (the automation runner, a
+ *   scheduled agent run) set it — there is nobody to click Send there, and a
+ *   draft would sit unsent forever. Same contract as gmail_compose.
  */
-async function executeOutlookTool(toolName, args, session) {
+async function executeOutlookTool(toolName, args, session, opts = {}) {
     if (!isMicrosoftConnected(session)) {
         throw new Error('Not connected to Outlook — user must log in with Microsoft');
     }
@@ -169,39 +276,12 @@ async function executeOutlookTool(toolName, args, session) {
         };
 
     } else if (toolName === 'outlook_list_recent') {
-        const { maxResults = 10, folder = 'inbox', unreadOnly = false } = args;
-        const top = Math.min(Math.max(parseInt(maxResults) || 10, 1), 20);
-
-        const isSentFolder = String(folder).toLowerCase() === 'sentitems';
-        const orderField = isSentFolder ? 'sentDateTime' : 'receivedDateTime';
-
-        let path = `/me/mailFolders/${folder}/messages?$top=${top}&$orderby=${orderField} desc&$select=id,subject,from,toRecipients,receivedDateTime,sentDateTime,bodyPreview,hasAttachments,isRead`;
-        if (unreadOnly) {
-            path += `&$filter=isRead eq false`;
-        }
-
-        const data = await graphFetch(path, session);
-
-        const messages = (data.value || []).map(msg => ({
-            id: msg.id,
-            from: msg.from?.emailAddress ? `${msg.from.emailAddress.name || ''} <${msg.from.emailAddress.address}>` : '',
-            to: (msg.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
-            subject: msg.subject || '(no subject)',
-            date: (isSentFolder ? msg.sentDateTime : msg.receivedDateTime) || msg.receivedDateTime || msg.sentDateTime || '',
-            snippet: msg.bodyPreview || '',
-            isRead: msg.isRead ?? true,
-            hasAttachments: msg.hasAttachments || false,
-        }));
-
-        return {
-            results: messages,
-            total: messages.length,
-            folder,
-        };
+        return listRecentMessages(args, (path) => graphFetch(path, session));
 
     } else if (toolName === 'outlook_read') {
         const { messageId } = args;
         if (!messageId) throw new Error('messageId is required');
+        assertGraphId(messageId, MESSAGE_ID_TEXT);
 
         const msg = await graphFetch(
             `/me/messages/${messageId}?$select=id,subject,from,toRecipients,ccRecipients,receivedDateTime,body,hasAttachments,conversationId`,
@@ -254,6 +334,7 @@ async function executeOutlookTool(toolName, args, session) {
     } else if (toolName === 'outlook_compose') {
         const { to, cc, bcc, subject, body, replyToMessageId } = args;
         if (!to || !subject || !body) throw new Error('to, subject, and body are required');
+        if (replyToMessageId) assertGraphId(replyToMessageId, MESSAGE_ID_TEXT);
 
         // For replies, fetch conversation context
         let conversationId = null;
@@ -267,6 +348,19 @@ async function executeOutlookTool(toolName, args, session) {
             } catch (err) {
                 log.info('[Outlook] Could not fetch reply context:', err.message);
             }
+        }
+
+        if (opts.autoSend) {
+            await executeOutlookSend({ to, cc, bcc, subject, body, replyToMessageId }, session);
+            log.info(`[Outlook] (autoSend) Email sent to ${String(to).split(',').length} recipient(s)`);
+            return {
+                sent: true,
+                to,
+                subject,
+                replyToMessageId: replyToMessageId || null,
+                conversationId: conversationId || null,
+                message: `Email sent to ${to}.`,
+            };
         }
 
         return {
@@ -347,6 +441,7 @@ async function executeOutlookSend(draft, session) {
 
     // If replying, use the reply endpoint
     if (draft.replyToMessageId) {
+        assertGraphId(draft.replyToMessageId, MESSAGE_ID_TEXT);
         await graphFetch(`/me/messages/${draft.replyToMessageId}/reply`, session, {
             method: 'POST',
             body: JSON.stringify({
@@ -416,4 +511,5 @@ module.exports = {
     isOutlookTool,
     // exposed for tests
     buildOutlookMessage,
+    listRecentMessages,
 };

@@ -15,12 +15,14 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 // Namespaces that exist only because of handoff 5, so every English key
 // under them must have Dutch here (or be declared identical).
+// `automations.repeating.` moved to add-nl-repeating-work-translations when the
+// "Find repeating work" page was rebuilt (2026-10); its test owns it now.
 const OWNED_PREFIXES = [
-    'routines.agent_step.', 'routines.aiact.', 'routines.header.',
-    'routines.holidays.', 'routines.library.', 'routines.notify.', 'routines.people.',
-    'routines.ready.', 'routines.repeating.', 'routines.role.', 'routines.schedule.', 'routines.settings.',
-    'routines.sharing.', 'routines.status.', 'routines.step_error.', 'routines.templates.',
-    'routines.versions.', 'runs.day.', 'runs.duration.', 'runs.how.', 'runs.io.', 'runs.log.', 'runs.noun.',
+    'automations.agent_step.', 'automations.aiact.', 'automations.header.',
+    'automations.holidays.', 'automations.library.', 'automations.notify.', 'automations.people.',
+    'automations.ready.', 'automations.role.', 'automations.schedule.', 'automations.settings.',
+    'automations.sharing.', 'automations.status.', 'automations.step_error.', 'automations.templates.',
+    'automations.versions.', 'runs.day.', 'runs.duration.', 'runs.how.', 'runs.io.', 'runs.log.', 'runs.noun.',
     'runs.reason.', 'runs.sentence.', 'runs.tab.', 'runs.timeline.', 'runs.waited.',
 ];
 
@@ -63,11 +65,11 @@ test('no dashes as punctuation in the new text, in either language', () => {
 });
 
 test('the artboard words are the ones used', () => {
-    assert.strictEqual(NL_TRANSLATIONS['routines.header.status_never_live'], 'Concept · nog nooit live');
-    assert.strictEqual(NL_TRANSLATIONS['routines.header.make_live'], 'v{version} live zetten');
-    assert.strictEqual(NL_TRANSLATIONS['routines.settings.sharing'], 'Wie mag wat');
+    assert.strictEqual(NL_TRANSLATIONS['automations.header.status_never_live'], 'Concept · nog nooit live');
+    assert.strictEqual(NL_TRANSLATIONS['automations.header.make_live'], 'v{version} live zetten');
+    assert.strictEqual(NL_TRANSLATIONS['automations.settings.sharing'], 'Wie mag wat');
     assert.strictEqual(NL_TRANSLATIONS['runs.tab.run_again'], 'Nog eens met deze invoer');
-    assert.strictEqual(NL_TRANSLATIONS['routines.versions.milestonesOnly'], 'Alleen mijlpalen');
+    assert.strictEqual(NL_TRANSLATIONS['automations.versions.milestonesOnly'], 'Alleen mijlpalen');
 });
 
 test('a blob without the keys gets all of them, a workspace\'s own wording is kept', () => {
@@ -75,8 +77,8 @@ test('a blob without the keys gets all of them, a workspace\'s own wording is ke
     assert.strictEqual(added, Object.keys(NL_TRANSLATIONS).length);
     assert.deepStrictEqual(merged, NL_TRANSLATIONS);
 
-    const own = applyNl({ 'routines.header.activate': 'Aanzetten' });
-    assert.strictEqual(own.merged['routines.header.activate'], 'Aanzetten');
+    const own = applyNl({ 'automations.header.activate': 'Aanzetten' });
+    assert.strictEqual(own.merged['automations.header.activate'], 'Aanzetten');
     assert.strictEqual(own.added, Object.keys(NL_TRANSLATIONS).length - 1);
 });
 

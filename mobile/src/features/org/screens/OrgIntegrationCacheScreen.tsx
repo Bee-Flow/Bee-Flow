@@ -1,5 +1,5 @@
 /**
- * Answer reuse (web: org/OrgIntegrationCacheEditor.jsx): may a routine keep
+ * Answer reuse (web: org/OrgIntegrationCacheEditor.jsx): may an automation keep
  * what an app or a web service answered, so a LATER run can use it? Off by
  * default — it means storing a third party's reply — with two separate
  * scopes and a lifetime. Switching it off forgets what is stored; the purge
@@ -35,7 +35,7 @@ function modeChoices(t: TranslateFn): Choice<Mode>[] {
             label: t('admin.integration_cache.off', 'Ask every run (recommended)'),
             description: t(
                 'admin.integration_cache.off_desc',
-                'Nothing an app answers is stored. A routine can still avoid asking the same thing twice inside one run — that reuse never leaves the run.',
+                'Nothing an app answers is stored. An automation can still avoid asking the same thing twice inside one run — that reuse never leaves the run.',
             ),
         },
         {
@@ -124,7 +124,7 @@ export function OrgIntegrationCacheScreen() {
                             title={t('admin.integration_cache.choose', 'Reusing answers between runs')}
                             footer={t(
                                 'admin.integration_cache.intro',
-                                'Routines often ask an app the same question over and over. This decides whether the answer may be stored so a later run can use it — which means storing what the app sent back.',
+                                'Automations often ask an app the same question over and over. This decides whether the answer may be stored so a later run can use it — which means storing what the app sent back.',
                             )}
                             choices={modeChoices(t)}
                             value={draft.enabled ? 'on' : 'off'}

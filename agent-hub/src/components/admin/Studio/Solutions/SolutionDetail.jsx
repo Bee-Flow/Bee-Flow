@@ -1,20 +1,30 @@
-import { Boxes, Download, GitBranch, History, LayoutDashboard, Package, ShieldCheck, Upload, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { effectiveStage, readStateOf } from './pipeline/pipelineModel';
+import PipelineTab from './pipeline/PipelineTab';
+import StageSettingsTab from './pipeline/settings/StageSettingsTab';
+import VariablesDeclarations from './pipeline/settings/VariablesDeclarations';
+import StageHistory from './pipeline/StageHistory';
+import StageRail from './pipeline/StageRail';
+import { getPipeline, stageFromSearch } from './pipeline/stagesApi';
+import StageStatus from './pipeline/StageStatus';
+import { useStageLabel } from './pipeline/StageSwitcher';
 import ProjectAudienceCapsule from './ProjectAudienceCapsule';
 import ProjectFlowTab from './ProjectFlowTab';
 import ProjectOverviewTab from './ProjectOverviewTab';
-import SolutionAccessDialog from './SolutionAccessDialog';
 import SolutionContentTable from './SolutionContentTable';
-import SolutionControlPanel, { isBlocking } from './SolutionControlPanel';
-import SolutionExportDialog from './SolutionExportDialog';
+import SolutionControlPanel from './SolutionControlPanel';
+import { blueprintVersionFor, controlBadge, humanizeActivity, OPEN_PATH, STAGE_TABS, SUB_TABS, useSolutionData } from './solutionDetailData';
+import SolutionDetailDialogs from './SolutionDetailDialogs';
+import { HeaderExtras, PublishButton } from './SolutionDetailParts';
 import SolutionInstallsTab, { installsBadge } from './SolutionInstallsTab';
 import SolutionVersionsTab from './SolutionVersionsTab';
-import UpgradeDialog, { UpdateBanner, updateAvailability } from './upgradeClient';
-import useProjectStream from '../../../../hooks/useProjectStream';
+import { UpdateBanner, updateAvailability } from './upgradeClient';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { formatRelative } from '../../../projects/relativeTime';
-import StudioSectionHeader, { OBJHEAD_FOLD, PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import StudioSectionHeader from '../../../shared/StudioSectionHeader';
+
+export { blueprintVersionFor, controlBadge };
 
 /**
  * One Solution, opened in the builder.
@@ -24,302 +34,39 @@ import StudioSectionHeader, { OBJHEAD_FOLD, PRIMARY_ACTION_STYLE } from '../../.
  * and the two halves share nothing but the project row you clicked.
  */
 
-// Automation runs use their OWN feed kinds. The bare `run.*` names belong to
-// CHAT runs keyed on a conversation id — reusing them would spin an indicator
-// on a thread that is not running.
-const AUTOMATION_RUN_KINDS = new Set([
-    'automation.run.started', 'automation.run.finished', 'automation.run.failed',
-]);
-
-// Kinds that change what the Solution HOLDS, so counts and lists refetch.
-// Filing a notebook, document or meeting in or out is announced as
-// `content.moved_in` / `content.moved_out` (server projects/itemFiling), not as
-// `resource_added` / `resource_removed`, so both pairs are listed.
-const CONTENT_KINDS = new Set([
-    'approval.requested', 'approval.decided', 'resource_added', 'resource_removed',
-    'content.moved_in', 'content.moved_out',
-]);
-
 /**
- * Kinds that mean a new version of a Blueprint exists.
- *
- * THE EVENT IS A POKE, NEVER THE ANSWER. Its payload is not read for a version
- * number and not read for a Blueprint id: it only triggers the two scoped reads
- * — the gallery listing and this project's release history — and those decide
- * what, if anything, the screen may claim. Trusting the payload would let an
- * event about a Blueprint this reader is not allowed to see put a version number
- * on their screen, which is the one thing the banner must not do.
- *
- * De afzender staat in routes/projects/packaging.js (`announcePublication`),
- * direct na een geslaagde publicatie. Die schrijft ALLEBEI de helften: een
- * `project_activity`-regel voor de pollende fallback van de hook, en het event
- * zelf voor de live stroom. Op een verbinding die nooit SSE krijgt arriveert dit
- * dus op de volgende poll in plaats van live — de eerlijke helft van de belofte,
- * geen gat. En het event draagt bewust geen Blueprint-id en geen versienummer,
- * om precies de reden hierboven.
+ * The detail view of ONE project id: Dev's own, or a stage's (`dataId`). It is
+ * remounted (by `key`) when the stage changes, so nothing read for one project
+ * can be painted under another's name.
  */
-const RELEASE_KINDS = new Set(['blueprint.published']);
-
-/**
- * Eén losse lees van dit project, opnieuw op te vragen.
- *
- * `status` reist mee omdat "kon niet gelezen worden" en "er is niets" op de
- * Versies- en Installaties-tab twee verschillende antwoorden zijn — zie
- * releaseModel.js. Los van useRemote omdat die geen tweede lees kent, en deze
- * twee moeten opnieuw zodra er gepubliceerd wordt.
- */
-function useProjectRead(projectId, path) {
-    const [state, setState] = useState({ status: 'loading', data: null });
-    const refetch = useCallback(async () => {
-        if (!projectId) return;
-        try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}${path}`);
-            const body = await res.json().catch(() => null);
-            setState({ status: res.ok ? 'ok' : 'error', data: res.ok ? body : null });
-        } catch {
-            setState({ status: 'error', data: null });
-        }
-    }, [projectId, path]);
-    return [state, refetch];
-}
-
-/** Automation runs in flight, keyed by runId. */
-function reduceAutomationRuns(prev, kind, event) {
-    const runId = event?.payload?.runId || event?.targetId;
-    if (!runId) return prev;
-    if (kind === 'automation.run.started') {
-        return { ...prev, [runId]: { runId, automationTitle: event.payload?.automationTitle || '' } };
-    }
-    const next = { ...prev };
-    delete next[runId];
-    return next;
-}
-
-// Where each member kind opens. The Solution page is a directory, not a second
-// viewer — same mapping the projects page uses.
-const OPEN_PATH = {
-    notebook: (id) => `/app/notebooks/${id}`,
-    app: (id) => `/app/apps/${id}`,
-    automation: (id) => `/app/routines/${id}`,
-    webpage: (id) => `/app/studio/webpages/${id}`,
-    approval: (id) => `/app/studio/approvals/${id}`,
-};
-
-/**
- * Overview's activity rows, without the member directory. The full formatter
- * (actor names, target names) needs the directory the project page loads for
- * its Members tab; here a readable action beats loading all of that.
- */
-function humanizeActivity(item) {
-    const text = String(item.action || '').replace(/[._]/g, ' ');
-    return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-/** Everything the detail view fetches, plus the live-feed wiring. */
-function useSolutionData(projectId) {
-    const [resources, setResources] = useState(null);
-    const [resourcesLoading, setResourcesLoading] = useState(false);
-    const [activity, setActivity] = useState([]);
-    const [graph, setGraph] = useState(null);
-    const [graphLoading, setGraphLoading] = useState(false);
-    const [completeness, setCompleteness] = useState(null);
-    const [completenessLoading, setCompletenessLoading] = useState(false);
-    const [completenessError, setCompletenessError] = useState(false);
-    const [members, setMembers] = useState(null);
-    const [blueprints, setBlueprints] = useState(null);
-    const [runs, setRuns] = useState({});
-    const [releases, fetchReleases] = useProjectRead(projectId, '/package/releases');
-    const [installs, fetchInstalls] = useProjectRead(projectId, '/package/installs');
-
-    const fetchResources = useCallback(async () => {
-        if (!projectId) return;
-        setResourcesLoading(true);
-        try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/resources`);
-            // null-vs-[] survives untouched: null = a store could not be
-            // reached, and must not render as "you have none".
-            if (res.ok) setResources(await res.json());
-        } catch { /* keep the previous view rather than blanking it */ } finally {
-            setResourcesLoading(false);
-        }
-    }, [projectId]);
-
-    const fetchActivity = useCallback(async () => {
-        if (!projectId) return;
-        try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/activity?limit=20`);
-            if (!res.ok) return;
-            const data = await res.json();
-            setActivity(Array.isArray(data) ? data : (data.items || []));
-        } catch { /* the stream will re-trigger this */ }
-    }, [projectId]);
-
-    const fetchGraph = useCallback(async () => {
-        if (!projectId) return;
-        setGraphLoading(true);
-        try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/graph`);
-            if (res.ok) setGraph(await res.json());
-        } catch { /* keep the previous view */ } finally {
-            setGraphLoading(false);
-        }
-    }, [projectId]);
-
-    /**
-     * The checks, and the verdict the publish button reads.
-     *
-     * A failure DROPS the previous answer instead of keeping it. Everywhere
-     * else on this screen a stale view is the kinder choice; here it is the
-     * dangerous one — a "nothing blocking" from two minutes ago would leave the
-     * publish button live while the server can no longer confirm anything.
-     */
-    const fetchCompleteness = useCallback(async () => {
-        if (!projectId) return;
-        setCompletenessLoading(true);
-        try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/completeness`);
-            const body = await res.json().catch(() => null);
-            if (!res.ok || !body || typeof body.blocked !== 'boolean') {
-                setCompleteness(null);
-                setCompletenessError(true);
-                return;
-            }
-            setCompleteness(body);
-            setCompletenessError(false);
-        } catch {
-            setCompleteness(null);
-            setCompletenessError(true);
-        } finally {
-            setCompletenessLoading(false);
-        }
-    }, [projectId]);
-
-    const fetchMembers = useCallback(async () => {
-        if (!projectId) return;
-        try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/members`);
-            if (!res.ok) { setMembers(null); return; }
-            const body = await res.json();
-            // Unknown stays unknown: the capsule renders nothing rather than
-            // the narrower of the two possible audiences.
-            setMembers(Array.isArray(body?.members) ? body.members : null);
-        } catch { setMembers(null); }
-    }, [projectId]);
-
-    const fetchBlueprints = useCallback(async () => {
-        try {
-            const res = await authFetch(`${API_BASE}/api/projects/package/blueprints`);
-            if (!res.ok) { setBlueprints(null); return; }
-            const body = await res.json();
-            setBlueprints(Array.isArray(body?.blueprints) ? body.blueprints : null);
-        } catch { setBlueprints(null); }
-    }, []);
-
-    useProjectStream({
-        projectId,
-        enabled: !!projectId,
-        onEvent: useCallback((kind, event) => {
-            if (AUTOMATION_RUN_KINDS.has(kind)) {
-                setRuns(prev => reduceAutomationRuns(prev, kind, event));
-            }
-            if (CONTENT_KINDS.has(kind)) {
-                fetchResources();
-                fetchActivity();
-                // Filing something in or out changes which edges are internal —
-                // the difference between a dependency a Blueprint carries and
-                // one the installer has to supply.
-                fetchGraph();
-                // …and it changes what there is to check, so the publish
-                // verdict is re-asked rather than inherited.
-                fetchCompleteness();
-            }
-            if (RELEASE_KINDS.has(kind)) {
-                // Allebei ORG-GESCOOPTE lezen. De galerijlijst beslist opnieuw
-                // of deze lezer bij die Blueprint mag — de banner leest zijn
-                // versie daaruit en nooit uit het event.
-                fetchBlueprints();
-                fetchReleases();
-            }
-        }, [fetchResources, fetchActivity, fetchGraph, fetchCompleteness, fetchBlueprints, fetchReleases]),
-    });
-
-    return {
-        resources, resourcesLoading, activity, graph, graphLoading,
-        completeness, completenessLoading, completenessError, members, blueprints, runs,
-        releases, installs,
-        fetchResources, fetchActivity, fetchGraph, fetchCompleteness, fetchMembers, fetchBlueprints,
-        fetchReleases, fetchInstalls,
-    };
-}
-
-/**
- * The tab strip.
- *
- * The redesign names four tabs — Content · Check n · Versions · Installs n — and
- * both of the last two now have a data model behind them: `project_releases`
- * holds one immutable row per publication (blueprintStore.publishRelease) and
- * `projects.installed_from_blueprint_id` records where an installed Solution
- * came from. Until they existed, a Versions tab could only have shown a number
- * somebody made up and an Installs badge could only have counted zero, which is
- * why they were held back rather than faked.
- *
- * Flow and Overview stay alongside them rather than being displaced: Flow is the
- * wiring and what this Solution depends on outside itself, Overview its counts,
- * live runs and recent activity. Both are pinned by their own tests, and the
- * grouped Content table replaces neither — it shows dependency pills, not the
- * external list, and shows no activity at all.
- */
-const SUB_TABS = [
-    { id: 'content', labelKey: 'solutions.tab_content', fallback: 'Content', icon: Boxes },
-    { id: 'control', labelKey: 'solutions.tab_control', fallback: 'Check', icon: ShieldCheck },
-    { id: 'versions', labelKey: 'solutions.tab_versions', fallback: 'Versions', icon: History },
-    { id: 'installs', labelKey: 'solutions.tab_installs', fallback: 'Installs', icon: Download },
-    { id: 'flow', labelKey: 'solutions.tab_flow', fallback: 'Flow', icon: GitBranch },
-    { id: 'overview', labelKey: 'solutions.tab_overview', fallback: 'Overview', icon: LayoutDashboard },
-];
-
-/**
- * The version chip, or nothing.
- *
- * `project_blueprints.version` is bumped per (solution_key, created_by), so two
- * owners who both export produce two independent series and "the version of
- * this Solution" has no single answer. The chip is therefore shown only when
- * ONE person's series exists, and it says Blueprint — which is what the number
- * actually counts — rather than claiming to be the Solution's own version.
- * Nothing is shown when there is no Blueprint yet: an invented "v1.0" would be
- * a release nobody made.
- */
-export function blueprintVersionFor(blueprints, projectId) {
-    if (!Array.isArray(blueprints) || !projectId) return null;
-    const mine = blueprints.filter(b => b?.solutionKey === `sol_${projectId}`);
-    if (mine.length === 0) return null;
-    if (new Set(mine.map(b => b.createdBy)).size > 1) return null;
-    const highest = mine.reduce((max, b) => Math.max(max, Number(b.version) || 0), 0);
-    return highest > 0 ? highest : null;
-}
-
-/** The Check tab's badge: how many findings, and whether any of them block. */
-export function controlBadge(completeness) {
-    if (!completeness || !Array.isArray(completeness.findings)) return { count: undefined };
-    const findings = completeness.findings;
-    if (findings.length === 0) return { count: undefined };
-    return { count: findings.length, tone: findings.some(isBlocking) ? 'error' : 'warning' };
-}
-
-export default function SolutionDetail({ project, onBack, currentUserId }) {
+function SolutionDetailView({
+    project, onBack, currentUserId, dataId, stage, stageRow, pipeline, pipelineState, onSelectStage, initialTab,
+    onReloadPipeline, pipelineTick, onOpenStageSettings,
+}) {
     const { t } = useTranslation();
-    const [tab, setTab] = useState('content');
+    const stageLabel = useStageLabel();
+    const isStage = stage !== 'dev';
+    // Unknown is not empty: a read that failed (5xx, network) or was refused for
+    // the licence keeps the tab, so it can say so; only "not a Solution" and
+    // "no access" mean there is nothing to show.
+    const showPipelineTab = !!pipeline?.dev || pipelineState === 'unreadable' || pipelineState === 'no_licence';
+    const tabList = isStage ? STAGE_TABS : SUB_TABS.filter(tabDef => tabDef.id !== 'pipeline' || showPipelineTab);
+    const [tab, setTab] = useState(() => {
+        const wanted = initialTab && tabList.some(tabDef => tabDef.id === initialTab) ? initialTab : null;
+        return wanted || (isStage ? 'status' : 'content');
+    });
     const [dialog, setDialog] = useState(null);          // null | 'export' | 'publish' | 'upgrade' | 'access'
     const [name, setName] = useState(project.name);
-    const data = useSolutionData(project.id);
+    const data = useSolutionData(dataId);
     const {
         fetchResources, fetchActivity, fetchGraph, fetchCompleteness, fetchMembers, fetchBlueprints,
         fetchReleases, fetchInstalls,
     } = data;
     // The resources listing carries the caller's authoritative role; the list
     // row's permission covers the gap until it loads.
-    const role = data.resources?.role || project.permission || 'viewer';
-    const canEdit = role === 'owner' || role === 'editor';
+    const role = data.resources?.role || (isStage ? stageRow?.role : project.permission) || 'viewer';
+    // A stage is read-only for everyone: its parts are changed in Dev and deployed.
+    const canEdit = !isStage && (role === 'owner' || role === 'editor');
     const isOwner = role === 'owner';
 
     // The server's name is the truth; the local copy only exists so a rename
@@ -336,11 +83,14 @@ export default function SolutionDetail({ project, onBack, currentUserId }) {
     // through, so the banner cannot promise a version before the scope is known.
     useEffect(() => {
         fetchResources();
+        if (isStage) return;
+        // The checks, the audience, the Blueprint gallery and the install count
+        // are Dev's: every one of those routes answers 404 for a stage id.
         fetchCompleteness();
         fetchMembers();
         fetchBlueprints();
         fetchInstalls();
-    }, [fetchResources, fetchCompleteness, fetchMembers, fetchBlueprints, fetchInstalls]);
+    }, [isStage, fetchResources, fetchCompleteness, fetchMembers, fetchBlueprints, fetchInstalls]);
 
     useEffect(() => {
         if (tab === 'overview') fetchActivity();
@@ -395,7 +145,7 @@ export default function SolutionDetail({ project, onBack, currentUserId }) {
         blueprints: data.blueprints,
     }), [project.installedFromBlueprintId, project.update?.installedVersion, data.blueprints]);
 
-    const tabs = SUB_TABS.map(tabDef => ({
+    const tabs = tabList.map(tabDef => ({
         id: tabDef.id,
         label: t(tabDef.labelKey, tabDef.fallback),
         icon: tabDef.icon,
@@ -413,69 +163,100 @@ export default function SolutionDetail({ project, onBack, currentUserId }) {
             <StudioSectionHeader
                 kind="solution"
                 title={name}
-                onRename={canEdit ? rename : undefined}
-                statusChip={version ? t('solutions.blueprint_version', 'Blueprint v{version}').replace('{version}', String(version)) : null}
+                // A stage is named by its Solution: renaming is a Dev action.
+                onRename={canEdit && !isStage ? rename : undefined}
+                statusChip={isStage
+                    ? (stageRow?.currentRelease?.seq != null
+                        ? t('solution_stages.chip_stage_release', '{stage} · Release {seq}', { stage: stageLabel(stage), seq: stageRow.currentRelease.seq })
+                        : stageLabel(stage))
+                    : (version ? t('solutions.blueprint_version', 'Blueprint v{version}').replace('{version}', String(version)) : null)}
                 tabs={tabs}
                 activeTab={tab}
                 onTab={setTab}
                 onBack={onBack}
                 backLabel={t('solutions.back', 'All Solutions')}
-                capsule={<ProjectAudienceCapsule members={data.members} />}
-                primary={
-                    <button
+                capsule={isStage ? undefined : <ProjectAudienceCapsule members={data.members} />}
+                primary={isStage ? undefined : (
+                    <PublishButton
                         onClick={() => setDialog('publish')}
                         disabled={!isOwner || publishBlocked}
-                        data-testid="solution-publish"
-                        title={publishBlocked
-                            ? t('solutions.publish_blocked', 'Not while there are things to fix — or while the checks could not be run.')
-                            : undefined}
-                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium disabled:opacity-50"
-                        style={PRIMARY_ACTION_STYLE}
-                    >
-                        <Upload className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span className={OBJHEAD_FOLD.action}>{t('solutions.publish', 'Publish')}</span>
-                    </button>
-                }
-                extras={
-                    <>
-                        <button
-                            onClick={() => setDialog('export')}
-                            data-testid="solution-export"
-                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                        >
-                            <Package className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span className={OBJHEAD_FOLD.action}>{t('solutions.export', 'Export')}</span>
-                        </button>
-                        {/* Who can open this Solution. A Solution is not a
-                            project workspace, so its members are managed here
-                            rather than on /app/projects. */}
-                        <button
-                            onClick={() => setDialog('access')}
-                            data-testid="solution-manage-access"
-                            aria-label={t('solutions.manage_access', 'Manage access')}
-                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border border-[var(--border-default)] text-[var(--text-secondary)]"
-                        >
-                            <Users className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span className={OBJHEAD_FOLD.action}>{t('solutions.manage_access', 'Manage access')}</span>
-                        </button>
-                    </>
-                }
+                        blocked={publishBlocked}
+                    />
+                )}
+                extras={isStage ? undefined : (
+                    <HeaderExtras onExport={() => setDialog('export')} onAccess={() => setDialog('access')} />
+                )}
+            />
+
+            {/* Dev → UAT → Production under every tab, with the one next step.
+                The Pipeline tab carries its own buttons, a stage view has none. */}
+            <StageRail
+                solutionId={project.id}
+                solutionName={name}
+                pipeline={pipeline}
+                readState={pipelineState}
+                owner={!isStage && isOwner}
+                active={stage}
+                onSelect={onSelectStage}
+                onReload={onReloadPipeline}
+                onOpenSettings={onOpenStageSettings}
+                showAction={!isStage && tab !== 'pipeline'}
+                poll={tab !== 'pipeline'}
             />
 
             <div className="flex-1 min-h-0 overflow-y-auto">
-                <div className="max-w-3xl mx-auto px-6 py-5 space-y-5">
+                <div className="max-w-5xl mx-auto px-4 md:px-6 py-5 space-y-6">
                     {/* Boven elke tab, want "er is een nieuwere versie" gaat over
                         de Oplossing en niet over het tabblad dat toevallig open
                         staat. Alleen de eigenaar kan hem toepassen — dezelfde
                         rol die de route eist — dus alleen die krijgt de knop. */}
-                    <UpdateBanner
-                        availability={availability}
-                        onOpen={isOwner ? () => setDialog('upgrade') : undefined}
-                    />
+                    {!isStage && (
+                        <UpdateBanner
+                            availability={availability}
+                            onOpen={isOwner ? () => setDialog('upgrade') : undefined}
+                        />
+                    )}
+                    {isStage && tab === 'status' && (
+                        <StageStatus solutionId={project.id} stage={stage} row={stageRow} refreshKey={pipelineTick} />
+                    )}
+                    {isStage && tab === 'history' && (
+                        <StageHistory
+                            solutionId={project.id}
+                            stage={stage}
+                            canAct={role === 'owner'}
+                            refreshKey={pipelineTick}
+                            onChanged={onReloadPipeline}
+                        />
+                    )}
+                    {isStage && tab === 'settings' && (
+                        <StageSettingsTab
+                            solutionId={project.id}
+                            solutionName={name}
+                            stage={stage}
+                            stageRow={stageRow}
+                            currentUserId={currentUserId}
+                            onChanged={onReloadPipeline}
+                        />
+                    )}
+                    {!isStage && tab === 'pipeline' && (
+                        <PipelineTab
+                            solutionId={project.id}
+                            solutionName={name}
+                            pipeline={pipeline}
+                            readState={pipelineState}
+                            owner={isOwner}
+                            onReload={onReloadPipeline}
+                            onOpenSettings={onOpenStageSettings}
+                            onOpenChecks={() => setTab('control')}
+                        />
+                    )}
+                    {!isStage && tab === 'pipeline' && pipeline?.dev && (
+                        <VariablesDeclarations solutionId={project.id} canEdit={canEdit} />
+                    )}
                     {tab === 'content' && (
                         <SolutionContentTable
-                            projectId={project.id}
+                            projectId={dataId}
+                            readOnly={isStage}
                             resources={data.resources}
                             loading={data.resourcesLoading}
                             role={role}
@@ -483,13 +264,14 @@ export default function SolutionDetail({ project, onBack, currentUserId }) {
                             graph={data.graph}
                             completeness={data.completeness}
                             onOpen={(kind, item) => OPEN_PATH[kind] && window.location.assign(OPEN_PATH[kind](item.id))}
-                            onRemove={removeResource}
-                            onAdded={() => { fetchResources(); fetchGraph(); fetchCompleteness(); }}
+                            onRemove={isStage ? undefined : removeResource}
+                            onAdded={() => { fetchResources(); fetchGraph(); if (!isStage) fetchCompleteness(); }}
                         />
                     )}
                     {tab === 'control' && (
                         <SolutionControlPanel
                             completeness={data.completeness}
+                            readOnly={isStage}
                             loading={data.completenessLoading}
                             error={data.completenessError}
                             onOpen={(href) => window.location.assign(href)}
@@ -512,48 +294,98 @@ export default function SolutionDetail({ project, onBack, currentUserId }) {
                 </div>
             </div>
 
-            {/* The audience capsule reads the member list, so it is re-read
-                when the dialog closes. Leaving the Solution from the panel
-                ends access to all of it: back to the overview, which
-                re-reads the list without it. */}
-            <SolutionAccessDialog
-                open={dialog === 'access'}
-                onClose={() => { setDialog(null); fetchMembers(); }}
-                onLeft={() => { setDialog(null); onBack(); }}
-                projectId={project.id}
-                projectName={name}
+            <SolutionDetailDialogs
+                dialog={dialog}
+                setDialog={setDialog}
+                project={project}
+                name={name}
                 role={role}
-                currentUserId={currentUserId || null}
-            />
-
-            <SolutionExportDialog
-                open={dialog === 'export' || dialog === 'publish'}
-                onClose={() => { setDialog(null); fetchBlueprints(); fetchReleases(); }}
-                projectId={project.id}
-                projectName={name}
-                role={role}
-                mode={dialog === 'publish' ? 'publish' : 'export'}
+                currentUserId={currentUserId}
                 completeness={data.completeness}
-            />
-
-            {/* `blueprintId` komt uit `availability`, en dat veld is alleen
-                gevuld als de Blueprint in de org-gescoopte lijst gevonden is —
-                er valt hier dus geen plan op te vragen voor een id dat de scope
-                niet passeerde. De server controleert het daarna nog een keer:
-                de aanroep stuurt het id, nooit een manifest. */}
-            <UpgradeDialog
-                open={dialog === 'upgrade'}
-                onClose={() => setDialog(null)}
-                projectId={project.id}
-                blueprintId={availability.blueprintId}
-                latestVersion={availability.latestVersion}
-                onDone={() => {
-                    fetchResources();
-                    fetchGraph();
-                    fetchCompleteness();
-                }}
+                availability={availability}
+                onBack={onBack}
+                refresh={{ fetchMembers, fetchBlueprints, fetchReleases, fetchResources, fetchGraph, fetchCompleteness }}
             />
         </div>
     );
 }
 
+
+/**
+ * `?stage=` and `?tab=` follow the screen via replaceState, so the Studio
+ * router (which owns the path) never sees a change and nothing remounts.
+ */
+function mirrorToUrl(stage, tab) {
+    try {
+        const url = new URL(window.location.href);
+        if (stage === 'dev') url.searchParams.delete('stage'); else url.searchParams.set('stage', stage);
+        if (tab) url.searchParams.set('tab', tab); else url.searchParams.delete('tab');
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    } catch { /* a URL that cannot be written only costs a deep link */ }
+}
+
+/**
+ * One Solution, Dev or one of its stages.
+ *
+ * The stage lives HERE, not in the router: the stage rail under the header
+ * (Dev, UAT, Production and the next step) opens a stage, and the choice is
+ * mirrored to `?stage=`. Dev shows
+ * its tabs plus Pipeline; UAT and Production show Status, Content, Flow and
+ * History of THEIR project id. A stage the pipeline does not list (or a failed
+ * read) falls back to Dev, never to a blank page.
+ */
+export default function SolutionDetail({ project, onBack, currentUserId, initialStage = null }) {
+    const [read, setRead] = useState({ status: 'loading', data: null, state: 'ok' });
+    const [wanted, setWanted] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return { stage: initialStage || stageFromSearch(window.location.search), tab: params.get('tab') };
+    });
+
+    // `reload` only asks; the read itself sits in the effect so a late answer
+    // for an earlier Solution or an earlier ask can never overwrite a newer one.
+    const [asked, setAsked] = useState(0);
+    const reload = useCallback(() => setAsked(n => n + 1), []);
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            const res = await getPipeline(project.id);
+            if (!alive) return;
+            setRead(res.ok ? { status: 'ok', data: res.data, state: 'ok' } : { status: 'error', data: null, state: readStateOf(res) });
+        })();
+        return () => { alive = false; };
+    }, [project.id, asked]);
+
+    const stages = read.data?.stages || [];
+    const hasDev = !!read.data?.dev;
+    const stage = effectiveStage(wanted.stage, { status: read.status, stages, hasDev });
+    const stageRow = stage === 'dev' ? undefined : stages.find(s => s.stage === stage);
+
+    const choose = useCallback((next, tab = null) => {
+        setWanted({ stage: next, tab });
+        mirrorToUrl(next, tab);
+    }, []);
+
+    // A deep link to a stage cannot name the stage project until the pipeline is read.
+    if (stage !== 'dev' && !stageRow) {
+        return <div className="h-full flex items-center justify-center text-[var(--text-tertiary)]" data-testid="solution-stage-loading" />;
+    }
+
+    return (
+        <SolutionDetailView
+            key={`${stageRow ? stageRow.projectId : project.id}:${wanted.tab || ''}`}
+            project={project}
+            onBack={onBack}
+            currentUserId={currentUserId}
+            dataId={stageRow ? stageRow.projectId : project.id}
+            stage={stage}
+            stageRow={stageRow}
+            pipeline={read.data}
+            pipelineState={read.state}
+            onSelectStage={(next) => choose(next)}
+            initialTab={wanted.tab}
+            onReloadPipeline={reload}
+            pipelineTick={asked}
+            onOpenStageSettings={(next) => choose(next, 'settings')}
+        />
+    );
+}

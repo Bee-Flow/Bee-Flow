@@ -10,7 +10,7 @@
  * Vier deelvragen, en ze zijn met opzet los van elkaar:
  *
  *   solution    de Oplossing waarin de pagina is opgeborgen (`webpages.project_id`)
- *   automation  de routines die haar bij naam noemen (`automations.definition_json`)
+ *   automation  de automatiseringen die haar bij naam noemen (`automations.definition_json`)
  *   chat        de gesprekken die haar erbij halen — NIET VASTGELEGD
  *   agent       de agents die haar als tool mogen openen — VANDAAG ONBEKEND
  *
@@ -90,18 +90,18 @@
  *
  * ── WAAROM `automation` ER WÉL IS ───────────────────────────────────
  *
- * Een routine bindt een pagina DUURZAAM. `automation/builderPrompt.js` zegt de
+ * Een automatisering bindt een pagina DUURZAAM. `automation/builderPrompt.js` zegt de
  * bouwer letterlijk: "Every webpage tool requires `webpageId` … bind it as a
  * literal", en het meegeleverde sjabloon in `automation/templates.js` doet dat
  * ook. Die id's staan in `automations.definition_json` en zijn op te vragen met
  * exact de query die dit huis voor elke andere soort schrijft — `kbUsage.js`
  * doet het zo, en `stores/agent/agentUsage.js` heeft `automation` gewoon in
- * KINDS. Zonder deze scan verdween een factuurroutine die elke ochtend in de
+ * KINDS. Zonder deze scan verdween een factuurautomatisering die elke ochtend in de
  * pagina schrijft uit élk scherm dat de vraag stelt, en faalde zij vanaf de
  * volgende run stil op `resolveWebpageForAccess`.
  *
  * Wat de scan NIET vindt is een binding via `{kind:'ref', path:…}`: dan kiest de
- * routine haar pagina pas tijdens de run en staat het id nergens. Dat is een
+ * automatisering haar pagina pas tijdens de run en staat het id nergens. Dat is een
  * bewust gekozen dynamische modus, geen standaard, en de rijen die er wél zijn
  * blijven kloppen — de soort meldt zich dus als `checked`.
  */
@@ -201,7 +201,7 @@ async function scanSolution(webpage, db) {
 }
 
 /**
- * Routines die deze pagina bij naam noemen.
+ * Automatiseringen die deze pagina bij naam noemen.
  *
  * De id's zitten op onbekende diepte in `definition_json` (een stap-argument,
  * een quick-mode-veld, een sjabloon), dus de containment-operator kan niet —
@@ -236,7 +236,7 @@ async function scanAutomation(webpage, db) {
             kind: 'automation',
             id: row.id,
             title: row.title || null,
-            // Een routine LEEST de pagina en schrijft in haar database
+            // Een automatisering LEEST de pagina en schrijft in haar database
             // (`webpage_db_exec`, `webpage_file_write`) — dezelfde rol die de
             // index voor een schrijvende binding gebruikt.
             role: 'readwrite',

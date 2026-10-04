@@ -31,7 +31,7 @@ function cleanApp(id = 'app1', name = 'Desk') {
     };
 }
 
-function cleanRoutine(id = 'a1', title = 'Nightly', extra = {}) {
+function cleanAutomation(id = 'a1', title = 'Nightly', extra = {}) {
     return {
         id, title, userId: 'alice', isActive: false, isDraft: true,
         definition: { trigger: { id: 'trg1', kind: 'manual' }, steps: [], edges: [] },
@@ -43,8 +43,8 @@ function cleanRoutine(id = 'a1', title = 'Nightly', extra = {}) {
 
 test('a clean Solution has nothing to report and may publish', () => {
     const out = buildCompleteness({
-        graph: buildProjectGraph({ project: { id: 'p1' }, apps: [cleanApp()], automations: [cleanRoutine()] }),
-        apps: [cleanApp()], automations: [cleanRoutine()],
+        graph: buildProjectGraph({ project: { id: 'p1' }, apps: [cleanApp()], automations: [cleanAutomation()] }),
+        apps: [cleanApp()], automations: [cleanAutomation()],
     });
     assert.deepStrictEqual(out.findings, []);
     assert.strictEqual(out.complete, true);
@@ -102,10 +102,10 @@ test('an app whose definition cannot be validated blocks instead of reading as c
     assert.strictEqual(out.blocked, true, 'an unvalidatable app is not a clean app');
 });
 
-// ═══ 2. The routine ladder ═══════════════════════════════════════════
+// ═══ 2. The automation ladder ═══════════════════════════════════════════
 
-test('a DRAFT routine\'s missing field is advice tagged blockedAt: activate', () => {
-    const draft = cleanRoutine();
+test('a DRAFT automation\'s missing field is advice tagged blockedAt: activate', () => {
+    const draft = cleanAutomation();
     draft.definition.steps = [{ id: 's1', type: 'ai_step' }];        // prompt missing
     draft.definition.edges = [{ from: 'trg1', to: 's1' }];
 
@@ -117,8 +117,8 @@ test('a DRAFT routine\'s missing field is advice tagged blockedAt: activate', ()
     assert.strictEqual(out.blocked, false, 'a half-built draft must not lock the release button');
 });
 
-test('the SAME routine, live, blocks — the completeness code is an error at activate', () => {
-    const live = cleanRoutine('a1', 'Nightly', { isActive: true, isDraft: false });
+test('the SAME automation, live, blocks — the completeness code is an error at activate', () => {
+    const live = cleanAutomation('a1', 'Nightly', { isActive: true, isDraft: false });
     live.definition.steps = [{ id: 's1', type: 'ai_step' }];
     live.definition.edges = [{ from: 'trg1', to: 's1' }];
 
@@ -131,7 +131,7 @@ test('the SAME routine, live, blocks — the completeness code is an error at ac
     assert.strictEqual(out.blocked, true);
 });
 
-test('stageFor: only a live, non-draft routine is held to the activate bar', () => {
+test('stageFor: only a live, non-draft automation is held to the activate bar', () => {
     assert.strictEqual(stageFor({ isActive: true, isDraft: false }), 'activate');
     assert.strictEqual(stageFor({ isActive: true, isDraft: true }), 'draft');
     assert.strictEqual(stageFor({ isActive: false, isDraft: false }), 'draft');
@@ -193,11 +193,11 @@ test('an UNREADABLE document count is a named gap, never "it is empty"', () => {
 test('a cross-owner run edge arrives as a blocking finding', () => {
     const app = cleanApp();
     app.definition.actions = { act1: { kind: 'run_automation', automationId: 'a1' } };
-    const routine = cleanRoutine();
-    routine.userId = 'bob';                       // …owned by somebody else
+    const automation = cleanAutomation();
+    automation.userId = 'bob';                       // …owned by somebody else
 
-    const graph = buildProjectGraph({ project: { id: 'p1' }, apps: [app], automations: [routine] });
-    const out = buildCompleteness({ graph, apps: [app], automations: [routine] });
+    const graph = buildProjectGraph({ project: { id: 'p1' }, apps: [app], automations: [automation] });
+    const out = buildCompleteness({ graph, apps: [app], automations: [automation] });
 
     const f = out.findings.find(x => x.code === 'cross_owner');
     assert.ok(f, JSON.stringify(out.findings.map(x => x.code)));
@@ -230,7 +230,7 @@ test('a record the Finding shape REFUSES becomes a named gap, never a silent dro
     // exists to remove. `severity: 'blocker'` is not in SEVERITIES, so
     // makeFinding throws on it.
     const out = buildCompleteness({
-        graph: { problems: [{ code: 'cross_owner', severity: 'blocker', kind: 'app', message: 'Desk runs someone else\'s routine.' }] },
+        graph: { problems: [{ code: 'cross_owner', severity: 'blocker', kind: 'app', message: 'Desk runs someone else\'s automation.' }] },
     });
     assert.deepStrictEqual(out.findings, [], 'the record genuinely could not be converted');
     assert.ok(out.unavailable.includes('graphProblems'),
@@ -241,7 +241,7 @@ test('a record the Finding shape REFUSES becomes a named gap, never a silent dro
 test('errors sort above warnings, so what blocks is read first', () => {
     const app = cleanApp();
     app.definition.screens[0].sections[0].children = [{ id: 'b1', type: 'button', props: { label: 'Go' } }];
-    const live = cleanRoutine('a1', 'Nightly', { isActive: true, isDraft: false });
+    const live = cleanAutomation('a1', 'Nightly', { isActive: true, isDraft: false });
     live.definition.steps = [{ id: 's1', type: 'ai_step' }];
     live.definition.edges = [{ from: 'trg1', to: 's1' }];
 
@@ -282,10 +282,10 @@ test('kind vocabulary: the graph\'s knowledge_base is the palette\'s kb', () => 
 // ═══ Typed requires ══════════════════════════════════════════════════
 
 test('a datatable step names the AUTHOR\'S key, the step and the layer', () => {
-    const routine = cleanRoutine();
-    routine.definition.steps = [{ id: 'st1', type: 'datatable', datatableId: 'dt_live', datatableKey: 'invoices', op: 'insert' }];
+    const automation = cleanAutomation();
+    automation.definition.steps = [{ id: 'st1', type: 'datatable', datatableId: 'dt_live', datatableKey: 'invoices', op: 'insert' }];
 
-    const { items, counts } = collectRequires({ automations: [routine] });
+    const { items, counts } = collectRequires({ automations: [automation] });
     const dt = items.find(i => i.kind === 'datatable');
     assert.ok(dt, JSON.stringify(items));
     assert.strictEqual(dt.datatableKey, 'invoices');
@@ -295,13 +295,13 @@ test('a datatable step names the AUTHOR\'S key, the step and the layer', () => {
 });
 
 test('a saved connection and an approver seat travel as requirements, never as people', () => {
-    const routine = cleanRoutine();
-    routine.definition.steps = [
+    const automation = cleanAutomation();
+    automation.definition.steps = [
         { id: 'h1', type: 'http_request', auth: { connectionId: 'conn_1' } },
         { id: 'ap1', type: 'approval', prompt: 'Ship it?', approval: { approvers: ['u_alice'] } },
     ];
 
-    const { items } = collectRequires({ automations: [routine] });
+    const { items } = collectRequires({ automations: [automation] });
     const conn = items.find(i => i.kind === 'connection');
     const appr = items.find(i => i.kind === 'approver');
     assert.ok(conn && conn.stepId === 'h1');
@@ -310,23 +310,23 @@ test('a saved connection and an approver seat travel as requirements, never as p
     assert.ok(!JSON.stringify(items).includes('u_alice'), 'an approver id is a person');
 });
 
-test('collecting requirements never mutates the routine it reads', () => {
-    const routine = cleanRoutine();
-    routine.definition.steps = [{ id: 'st1', type: 'datatable', datatableId: 'dt_live', datatableKey: 'invoices', op: 'insert' }];
-    const before = JSON.stringify(routine.definition);
+test('collecting requirements never mutates the automation it reads', () => {
+    const automation = cleanAutomation();
+    automation.definition.steps = [{ id: 'st1', type: 'datatable', datatableId: 'dt_live', datatableKey: 'invoices', op: 'insert' }];
+    const before = JSON.stringify(automation.definition);
 
-    collectRequires({ automations: [routine] });
-    assert.strictEqual(JSON.stringify(routine.definition), before,
+    collectRequires({ automations: [automation] });
+    assert.strictEqual(JSON.stringify(automation.definition), before,
         'the scrub is run on a CLONE — packaging is frozen and this only reads it');
 });
 
 test('what leaves the bundle by reference is listed with how many things point at it', () => {
-    const routine = cleanRoutine();
-    routine.definition.steps = [{ id: 'st1', type: 'call_block', blockId: 'blk_elsewhere' }];
-    routine.definition.edges = [{ from: 'trg1', to: 'st1' }];
-    const graph = buildProjectGraph({ project: { id: 'p1' }, automations: [routine] });
+    const automation = cleanAutomation();
+    automation.definition.steps = [{ id: 'st1', type: 'call_block', blockId: 'blk_elsewhere' }];
+    automation.definition.edges = [{ from: 'trg1', to: 'st1' }];
+    const graph = buildProjectGraph({ project: { id: 'p1' }, automations: [automation] });
 
-    const { items } = collectRequires({ automations: [routine], graph });
+    const { items } = collectRequires({ automations: [automation], graph });
     const ext = items.find(i => i.externalId === 'blk_elsewhere');
     assert.ok(ext, JSON.stringify(items));
     assert.strictEqual(ext.kind, 'automation');
@@ -338,13 +338,13 @@ test('what leaves the bundle by reference is listed with how many things point a
 //
 // The export dialog draws "whoever installs this has to supply …" entirely
 // from `requires.items`, and an EMPTY list is what a self-contained Solution
-// looks like. So a routine this walk skipped must not print the same screen as
-// a routine it read and found nothing in.
+// looks like. So an automation this walk skipped must not print the same screen as
+// an automation it read and found nothing in.
 
 // Two paths name this same gap — the findings walk (section 2) and the
 // requirements walk — so either one alone holds the verdict. That is on
 // purpose: the label is the fact, not which loop noticed it.
-test('a routine handed over without its definition is a named gap, not a clean bill', () => {
+test('an automation handed over without its definition is a named gap, not a clean bill', () => {
     const out = buildCompleteness({ automations: [{ id: 'a1', title: 'Nightly' }] });
     assert.deepStrictEqual(out.requires.items, []);
     assert.ok(out.unavailable.includes('automations'), 'the gap is named');
@@ -353,13 +353,13 @@ test('a routine handed over without its definition is a named gap, not a clean b
 });
 
 test('collectRequires says so itself, so any caller can fold it in', () => {
-    const { items, unreadable } = collectRequires({ automations: [{ id: 'a1' }, cleanRoutine('a2')] });
+    const { items, unreadable } = collectRequires({ automations: [{ id: 'a1' }, cleanAutomation('a2')] });
     assert.deepStrictEqual(items, []);
     assert.deepStrictEqual(unreadable, ['automations']);
 });
 
-test('a routine that WAS read contributes no gap', () => {
-    const out = buildCompleteness({ automations: [cleanRoutine()] });
+test('an automation that WAS read contributes no gap', () => {
+    const out = buildCompleteness({ automations: [cleanAutomation()] });
     assert.deepStrictEqual(out.requires.unreadable, []);
     assert.ok(!out.unavailable.includes('automations'));
 });

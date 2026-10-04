@@ -42,12 +42,12 @@ function useRestoreFlow(automation: AutomationLike | null | undefined, onRestore
     const run = async (target: VersionRow) => {
         const params = { version: target.version };
         const description = automation?.liveVersion != null
-            ? t('routines.versions.restoreConfirmLive', 'Your working copy goes back to v{version}. What runs now stays live until you make it live.', params)
-            : t('routines.versions.restoreConfirm', 'The routine goes back to how it looked in v{version}; the current steps are replaced.', params);
+            ? t('automations.versions.restoreConfirmLive', 'Your working copy goes back to v{version}. What runs now stays live until you make it live.', params)
+            : t('automations.versions.restoreConfirm', 'The automation goes back to how it looked in v{version}; the current steps are replaced.', params);
         const ok = !confirmAction || await confirmAction({
-            title: t('routines.versions.restoreConfirmTitle', 'Restore v{version}?', params),
+            title: t('automations.versions.restoreConfirmTitle', 'Restore v{version}?', params),
             description,
-            confirmLabel: t('routines.versions.restore', 'Restore'),
+            confirmLabel: t('automations.versions.restore', 'Restore'),
             destructive: true,
         });
         if (!ok) return;
@@ -64,7 +64,7 @@ function ListPane({ query, ...listProps }: {
 } & React.ComponentProps<typeof VersionList>) {
     const { t } = useTranslation();
     if (query.isError) {
-        return <div role="alert" className="p-4 text-[12px] text-[var(--error)]">{t('routines.versions.listFailed', 'The versions could not be loaded.')}</div>;
+        return <div role="alert" className="p-4 text-[12px] text-[var(--error)]">{t('automations.versions.listFailed', 'The versions could not be loaded.')}</div>;
     }
     if (query.isLoading) return <div className="p-4 text-[12px] text-[var(--text-tertiary)]">{t('common.loading', 'Loading…')}</div>;
     return <VersionList {...listProps} />;
@@ -88,7 +88,7 @@ export default function VersionsTab({ automation, onRestored }: Props) {
     if (!automationId) {
         return (
             <div className="p-6 text-sm text-[var(--text-tertiary)]">
-                {t('routines.versions.unsaved', 'Versions appear here once this routine has been saved for the first time.')}
+                {t('automations.versions.unsaved', 'Versions appear here once this automation has been saved for the first time.')}
             </div>
         );
     }
@@ -112,7 +112,7 @@ export default function VersionsTab({ automation, onRestored }: Props) {
                 <div className="min-h-0 min-w-0 flex flex-col bg-[var(--bg-primary)]">
                     {restore.isError && (
                         <div role="alert" className="mx-7 mt-4 text-[12px] text-[var(--error)]">
-                            {restore.error?.message || t('routines.versions.restoreFailed', 'The version could not be restored.')}
+                            {restore.error?.message || t('automations.versions.restoreFailed', 'The version could not be restored.')}
                         </div>
                     )}
                     {selected ? (

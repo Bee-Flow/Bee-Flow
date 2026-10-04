@@ -149,6 +149,8 @@ function register(router) {
                 sources,
             });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Create failed:', err);
             res.status(500).json({ error: 'Failed to create webpage' });
         }
@@ -176,6 +178,8 @@ function register(router) {
             }
             res.json({ webpages });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] List failed:', err);
             res.status(500).json({ error: 'Failed to list webpages' });
         }
@@ -202,13 +206,15 @@ function register(router) {
 
             // WHICH bytes: the owner edits the live row, everyone else reads the
             // snapshot the owner pinned by publishing (readSlotsForReader).
-            const [sources, read, chatMessages, extraFiles] = await Promise.all([
+            const [sources, read, chatMessages, extraFiles, managed] = await Promise.all([
                 webpageStore.getSources(webpage.id),
                 readSlotsForReader(webpage, userId),
                 // Chat history is per-owner; non-owner viewers get an empty array
                 // (don't leak the owner's chat with the AI builder).
                 webpage.userId === userId ? webpageStore.getChatMessages(webpage.id, userId) : Promise.resolve([]),
                 webpageStore.listExtraFiles(webpage.id),
+                // The Solution stage that manages this page, or null (design 5.3).
+                webpageStore.managedPayloadOf(webpage),
             ]);
             // timeoutStuckSources is a write (UPDATE ... WHERE status='processing');
             // its own WHERE clause already filters to stale rows, but running it on
@@ -242,8 +248,11 @@ function register(router) {
                 // Which snapshot these bytes came from — null for the live row.
                 // The client shows what it got; it never has to guess.
                 servedVersionId: read.servedVersionId ?? null,
+                managed,
             });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Get failed:', err);
             res.status(500).json({ error: 'Failed to get webpage' });
         }
@@ -272,6 +281,12 @@ function register(router) {
                 if (newSha !== current[slot]) {
                     slotUpdates[slot] = { content: incoming[slot] || '', sha: newSha };
                 }
+            }
+
+            // A managed page (a Solution stage) refuses a file change before
+            // anything is written, the auto-version below included.
+            if (Object.keys(slotUpdates).length > 0) {
+                await webpageStore.assertWebpageWrite(id, ['files'], { projectId: wp.projectId || null });
             }
 
             // Auto-version: if any slot is changing AND debounce elapsed AND there's
@@ -353,8 +368,10 @@ function register(router) {
             webpageUsageSync.reconcileWebpageUsageDetached(id);
             res.json({ success: true });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Update failed:', err);
-            res.status(500).json({ error: 'Failed to update webpage: ' + err.message });
+            res.status(500).json({ error: 'Failed to update webpage' });
         }
     });
 }

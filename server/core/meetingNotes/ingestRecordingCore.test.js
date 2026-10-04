@@ -573,3 +573,27 @@ test('core: een GESLAAGDE pass zegt niets extra en schrijft gewoon wat hij vond'
     assert.deepStrictEqual(p.actionItems, fx.actionItems);
     assert.deepStrictEqual(p.tags, ['planning']);
 });
+
+test('core: a ready-made transcript (Teams VTT) skips transcription, naming and audio', async () => {
+    resetFx();
+    const out = await ingestLocalRecording({
+        userId: 'u1', orgId: 'orgA', fileName: 'Overleg.vtt',
+        provider: 'teams_transcript', source: 'teams', sourceUri: 'teams://orgA/MSo1/transcript/T1',
+        transcriptResponse: { text: 'hallo hoi', segments: fx.whisperResponse.segments },
+        speakersNamed: true,
+    });
+    trackCreates();
+    assert.strictEqual(fx.transcribeCalls.length, 0, 'no transcription engine call');
+    assert.strictEqual(fx.identifyCalls.length, 0, 'the platform already named the speakers');
+    assert.strictEqual(fx.creates[0].provider, 'teams_transcript');
+    assert.strictEqual(fx.creates[0].audioPath, '');
+    assert.strictEqual(fx.creates[0].audioStorageKey, null);
+    assert.deepStrictEqual(fx.creates[0].speakers.map(s => s.id), ['speaker_0', 'speaker_1'],
+        'names kept as given, not replaced by "Spreker N"');
+    assert.strictEqual(out.source, 'teams');
+});
+
+test('core: without a transcript a filePath is still required', async () => {
+    resetFx();
+    await assert.rejects(ingestLocalRecording({ userId: 'u1' }), (err) => err.code === 'missing_path');
+});

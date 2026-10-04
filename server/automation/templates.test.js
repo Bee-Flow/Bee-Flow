@@ -62,7 +62,7 @@ for (const meta of templates) {
          * A template is a STARTING POINT, and some deliberately ship a blank
          * for the user to fill: the Talk digest has no room token, the
          * resolved-tickets one has no knowledge base — the person picking the
-         * template picks those, and until they do the routine cannot activate.
+         * template picks those, and until they do the automation cannot activate.
          *
          * So the bar is two-part, and both halves matter:
          *   draft    — must be clean. A template that a user cannot even SAVE
@@ -139,7 +139,7 @@ test('nc-form-intake loads into the builder cleanly', () => {
 test('nc-form-intake blocks activation until the user picks a table and a board', () => {
     // The ids are intentionally empty literals. Activation runs the strict
     // gate, which turns "you did not choose a table" into a clear pre-flight
-    // error instead of a routine that activates, reports healthy, and fails on
+    // error instead of an automation that activates, reports healthy, and fails on
     // its first fire. Regressing this to a placeholder number (0) would restore
     // exactly that silent failure.
     const { loadTools, TOOL_REGISTRY } = require('./toolRegistry');

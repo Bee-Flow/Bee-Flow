@@ -150,7 +150,7 @@ describe('what only the web components say', () => {
         expect(read('flow/nodes/GuardNode.jsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
         expect(read('flow/nodes/SwitchNode.jsx')).toContain("{ id: 'case:default', label: 'otherwise', tone: 'default' }");
         const loop = read('flow/nodes/LoopNode.jsx');
-        expect(loop).toMatch(/\{ id: 'done', label: t\('routines\.canvas\.loop_port_done', 'Done'\), tone: 'then' \},\s*\{ id: 'on_error', label: t\('routines\.canvas\.loop_port_on_error', 'On error'\), tone: 'error' \}/);
+        expect(loop).toMatch(/\{ id: 'done', label: t\('automations\.canvas\.loop_port_done', 'Done'\), tone: 'then' \},\s*\{ id: 'on_error', label: t\('automations\.canvas\.loop_port_on_error', 'On error'\), tone: 'error' \}/);
         // An open loop keeps its ports on its header strip.
         expect(loop).toContain('id="done"\n                style={{ top: CONTAINER_HEADER / 2 - 8 }}');
         expect(loop).toContain('id="on_error"\n                style={{ top: CONTAINER_HEADER / 2 + 10 }}');

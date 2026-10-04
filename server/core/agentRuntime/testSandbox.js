@@ -20,7 +20,7 @@
  *             is the product's own name-level classification (the one the
  *             draft cards already run on), and it is fail-closed: a name
  *             `sideEffectMap` has never seen counts as a WRITE, not as a send.
- *   routines  every tool carrying `__automation`. A routine's behaviour lives
+ *   automations  every tool carrying `__automation`. An automation's behaviour lives
  *             in its definition, not in its name, so nothing here can prove it
  *             does not mail somebody in step four. `automationEffect` (which
  *             would answer that) does not exist yet; until it does, the honest
@@ -30,7 +30,7 @@
  *   confirms  anything `confirmForTool` puts on `ask`. There is no one to ask.
  *             Unlike the headless drop in `toolPolicy.buildToolPolicy`, this
  *             does NOT wait for the agent to have a curated `tools` map: that
- *             opt-in exists so a mailing routine keeps working unattended, and
+ *             opt-in exists so a mailing automation keeps working unattended, and
  *             a test run is the opposite situation — it may lose capability,
  *             it may not gain permission.
  *
@@ -95,7 +95,7 @@ const TEST_RUNS_KEEP = 20;
 const STATUSES = Object.freeze(['pass', 'fail', 'blocked', 'error']);
 
 /** Why a tool was kept out of a test run. */
-const WITHHELD_REASONS = Object.freeze(['sends', 'routine', 'confirm', 'unnamed']);
+const WITHHELD_REASONS = Object.freeze(['sends', 'automation', 'confirm', 'unnamed']);
 
 // ── Input shaping ────────────────────────────────────────────────────
 
@@ -186,12 +186,12 @@ function sandboxToolStack(tools, agentConfig) {
             withheld.push({ name: null, reason: 'unnamed' });
             continue;
         }
-        // A routine first: it is the one tool whose name cannot be classified
+        // An automation first: it is the one tool whose name cannot be classified
         // at all, so it must not fall through to the `writes` default below.
-        let isRoutine = false;
-        try { isRoutine = !!(t && t.__automation); } catch (_) { isRoutine = true; }
-        if (isRoutine) {
-            withheld.push({ name, reason: 'routine' });
+        let isAutomation = false;
+        try { isAutomation = !!(t && t.__automation); } catch (_) { isAutomation = true; }
+        if (isAutomation) {
+            withheld.push({ name, reason: 'automation' });
             continue;
         }
         let effect;

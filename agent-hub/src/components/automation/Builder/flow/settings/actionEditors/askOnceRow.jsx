@@ -15,7 +15,7 @@
  * disabled with "this action is a write", which is simply untrue.
  *
  * The word "cache" is deliberately absent from the label. In this product
- * "reuse" already means a reusable sub-flow (routines.node.call_layer.help),
+ * "reuse" already means a reusable sub-flow (automations.node.call_layer.help),
  * a concept that suffers four names already; a fifth overload is not
  * affordable. cache/caching/ttl/memo live in search keywords only — the same
  * trick stepPalette uses for "cron".

@@ -1,8 +1,8 @@
 import { ArrowLeft, RotateCcw, Ban, Check, X, ExternalLink, Link2, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { enteredTriggerLabel, errorClassLabel, runTitle, triggerLabel } from './runLanguage';
-import { formatDuration, formatRelative, formatExpiry } from '../RoutinesStudio/historyUtils';
-import { RunStatusBadge, DryRunBadge } from '../RoutinesStudio/RunStatusBits';
+import { formatDuration, formatRelative, formatExpiry } from '../AutomationsStudio/historyUtils';
+import { RunStatusBadge, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
 
 /**
  * Top bar of the full-screen execution view: back, the run's NAME (when it
@@ -79,7 +79,7 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
                     {(run.triggerKind || run.automationTriggerType) && (
                         <span className="text-xs text-[var(--text-tertiary)]">· {triggerLabel(run.triggerKind || run.automationTriggerType)}</span>
                     )}
-                    {/* The entry point, for a routine with several triggers —
+                    {/* The entry point, for an automation with several triggers —
                         resolved against the snapshot that ran, not today's. */}
                     {enteredTriggerLabel(run, definition) && (
                         <span className="text-xs text-[var(--text-tertiary)]" title="The trigger this run started from">· via {enteredTriggerLabel(run, definition)}</span>
@@ -118,7 +118,7 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
 
                     <div className="ml-auto flex items-center gap-2">
                         {isError && onRetry && (
-                            <BarButton onClick={() => act('retry', onRetry)} pending={pending === 'retry'} icon={<RotateCcw size={14} />} tone="primary" title="Uses the routine as it is now">
+                            <BarButton onClick={() => act('retry', onRetry)} pending={pending === 'retry'} icon={<RotateCcw size={14} />} tone="primary" title="Uses the automation as it is now">
                                 Run it again
                             </BarButton>
                         )}
@@ -132,7 +132,7 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
                             buttons couldn't carry one). The RUN-level first-run
                             confirm needs no reason and no answers, so both of
                             its answers stay here, one click each: Approve
-                            promotes the routine to live, Reject closes this run
+                            promotes the automation to live, Reject closes this run
                             and leaves the gate on for next time. Each button
                             hands its own word to onApprove — the view acts on
                             the word rather than assuming approval. */}

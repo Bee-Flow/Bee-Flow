@@ -37,7 +37,7 @@ const { installResolveStub } = require('../testUtils/stubRequire');
 // resolver. (Resolve BEFORE installing — require.resolve is patched too.)
 const STUBBED = [
     './permissions', './ssoUserResolver', '../stores/userStore', './encryption',
-    './establishSession', '../integrations/azureGroupSync', '../stores/routineCredentialStore',
+    './establishSession', '../integrations/azureGroupSync', '../stores/automationCredentialStore',
     '../utils/freeEmailDomains', './signupGuards', '../stores/encryptionAvailability',
 ];
 const realPaths = STUBBED.map((r) => { try { return require.resolve(r); } catch (_) { return null; } });
@@ -54,7 +54,7 @@ const DEEPER = {
     './encryption': '../encryption',
     './establishSession': '../establishSession',
     '../integrations/azureGroupSync': '../../integrations/azureGroupSync',
-    '../stores/routineCredentialStore': '../../stores/routineCredentialStore',
+    '../stores/automationCredentialStore': '../../stores/automationCredentialStore',
     '../utils/freeEmailDomains': '../../utils/freeEmailDomains',
     './signupGuards': '../signupGuards',
     '../stores/encryptionAvailability': '../../stores/encryptionAvailability',
@@ -125,7 +125,7 @@ const restore = installResolveStub(bothDepths({
     },
     './establishSession': { establishSession: async () => { } },
     '../integrations/azureGroupSync': { syncUserGroupsOnLogin: async () => { } },
-    '../stores/routineCredentialStore': { upsertCredential: async () => { }, listCredentials: async () => [] },
+    '../stores/automationCredentialStore': { upsertCredential: async () => { }, listCredentials: async () => [] },
     '../utils/freeEmailDomains': { getEffectiveFreeEmailDomains: async () => ['gmail.com'] },
     './signupGuards': { checkWebSignupAllowed: async () => ({ ok: true }), resolveSignupLocale: async () => 'en' },
     '../stores/encryptionAvailability': { isEncryptionEnabledForUser: async () => false },

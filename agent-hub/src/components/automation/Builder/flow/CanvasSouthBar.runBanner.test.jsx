@@ -53,7 +53,7 @@ describe('CanvasSouthBar — the run banner', () => {
         expect(screen.getByTestId('canvas-run-banner').textContent).toContain('waiting for the form');
     });
 
-    it('draws NO link when the routine is parked but has no form page provisioned', () => {
+    it('draws NO link when the automation is parked but has no form page provisioned', () => {
         // Never a dead control: the refusal path this whole banner is judged on.
         render(<CanvasSouthBar runFocus={focus({ awaitingForm: true })} formUrl={null} />);
         expect(screen.queryByTestId('canvas-run-open-form')).toBeNull();

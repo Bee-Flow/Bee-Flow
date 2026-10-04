@@ -17,14 +17,14 @@ import useTranslation from '../../../../../hooks/useTranslation';
  *
  *  • "not used" — a form field bound to nothing. The form collects it, the
  *    person fills it in, and it goes nowhere. Nothing said so, and the failure
- *    looks exactly like a broken routine.
+ *    looks exactly like a broken automation.
  *
  *  • the signed-in user — every app_trigger run already carries the viewer's
  *    ID (`_viewerUserId`, audited server-side). It is genuinely sent, so it is
  *    listed. What it carries is an ID and NOTHING else: not a name, not an
  *    e-mail address. The row says which, because "the signed-in user is sent"
  *    would let an author believe a name travels with it — and then write a
- *    routine that mails it onward.
+ *    automation that mails it onward.
  */
 
 /** One row per DECLARED parameter, plus the form fields nothing is using. */
@@ -32,7 +32,7 @@ export function buildRows({ paramMetaByName, inputMapping, formFields }) {
     const mapping = inputMapping && typeof inputMapping === 'object' ? inputMapping : {};
     const fields = Array.isArray(formFields) ? formFields : [];
 
-    // A declared contract is authoritative about WHAT the routine wants. With
+    // A declared contract is authoritative about WHAT the automation wants. With
     // no contract, the mapping itself is all there is to go on.
     const names = paramMetaByName ? Object.keys(paramMetaByName) : Object.keys(mapping);
 
@@ -48,14 +48,14 @@ export function buildRows({ paramMetaByName, inputMapping, formFields }) {
             type: meta?.type || null,
             required: !!meta?.required,
             source,
-            // Declared, required, and bound to nothing: the routine will run
+            // Declared, required, and bound to nothing: the automation will run
             // with a hole in it. That is a warning, not a fact to render flat.
             missing: !bound,
         };
     });
 
     // Form inputs that feed no parameter. Only meaningful when we know what
-    // the routine declares — without a contract, an unmapped field may well be
+    // the automation declares — without a contract, an unmapped field may well be
     // deliberate, and calling it "not used" would be an accusation we cannot
     // support.
     const used = new Set(Object.values(mapping).filter((m) => m?.kind === 'field').map((m) => m.name));
@@ -119,7 +119,7 @@ export default function SentInputsTable({ paramMetaByName, inputMapping, formFie
     if (!rows.length && !showViewerRow) {
         return (
             <p className="text-[11px] text-[var(--text-secondary)]">
-                {t('app_studio.inspector.sent_nothing_at_all', 'Nothing is sent with this — the routine runs on what it can find itself.')}
+                {t('app_studio.inspector.sent_nothing_at_all', 'Nothing is sent with this — the automation runs on what it can find itself.')}
             </p>
         );
     }
@@ -127,7 +127,7 @@ export default function SentInputsTable({ paramMetaByName, inputMapping, formFie
     return (
         <table className="w-full text-[11px] border-collapse">
             <caption className="sr-only">
-                {t('app_studio.inspector.sent_caption', 'What this button sends to the routine')}
+                {t('app_studio.inspector.sent_caption', 'What this button sends to the automation')}
             </caption>
             <thead>
                 <tr className="text-left text-[var(--text-tertiary)]">
@@ -167,7 +167,7 @@ export default function SentInputsTable({ paramMetaByName, inputMapping, formFie
                         <td className="py-1 text-[var(--text-secondary)]">
                             {/* Says WHAT travels, not just THAT something does.
                                 An author who reads "the signed-in user is sent"
-                                may write a routine that mails their name. Only
+                                may write an automation that mails their name. Only
                                 the id goes. */}
                             {t('app_studio.inspector.sent_viewer_value', 'their ID only — no name or e-mail address')}
                         </td>

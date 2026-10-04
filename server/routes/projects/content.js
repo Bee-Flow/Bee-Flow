@@ -63,6 +63,7 @@ function makeContentRouter(deps = {}) {
     const notebooks = () => deps.notebooks || require('../../stores/notebookStore');
     const starters = (locale) => (deps.starters || require('../../core/documents/documentStarters').starters)(locale);
     const membership = () => deps.membership || require('../../projects/membership');
+    const orgOf = () => deps.projectOrg || require('../../projects/projectOrg');
     const changeFeed = () => deps.changeFeed || require('../../projects/changeFeed');
 
     // Creating is cheap per call but not free (a document composes its house
@@ -89,7 +90,8 @@ function makeContentRouter(deps = {}) {
             throw conflict('KIND_NOT_ALLOWED', `A Studio Solution holds no ${noun}. Create it in a project instead.`);
         }
         const user = await getUser(userIdOf(req));
-        if ((user?.organizationId || '') !== (project.organizationId || '')) {
+        const { projectOrgOf, belongsToProjectOrg } = orgOf();
+        if (!await belongsToProjectOrg(userIdOf(req), await projectOrgOf(project))) {
             throw conflict('project_org_mismatch', `This project belongs to another organization, so a ${kind} you create cannot be filed in it.`);
         }
         return { project, user };
@@ -149,6 +151,8 @@ function makeContentRouter(deps = {}) {
                 kind: 'document',
                 visibility: 'private',
                 projectId: project.id,
+                // loadTarget has checked the creator belongs to the project's organisation.
+                projectOrgChecked: true,
             });
         } catch (err) {
             throw fromStoreError(err);
@@ -170,7 +174,7 @@ function makeContentRouter(deps = {}) {
             name,
             description: description || '',
             projectId: project.id,
-            organizationId: user?.organizationId || null,
+            organizationId: orgOf().itemOrgFor(project, user),
         });
 
         await recordCreated(project.id, userId, 'notebook', notebook.id);

@@ -12,7 +12,7 @@
  * while they can still do something about it — and again HERE, keyed on the
  * identity the run actually has.
  *
- * The third is not redundant. A routine is saved once and runs for months: the
+ * The third is not redundant. An automation is saved once and runs for months: the
  * author's `manage_knowledge` can be taken away, the base's sharing can narrow,
  * and the definition is data that an import, a restored version or an MCP patch
  * can put an id into that no save path ever saw. A stored definition records
@@ -41,7 +41,7 @@ const MAX_TITLE_CHARS = 200;
  * split `execDatatable` uses.
  *
  * The output always carries the bindable keys too, so a downstream step reading
- * `steps.<id>.output.written` gets `false` rather than a crash — a routine that
+ * `steps.<id>.output.written` gets `false` rather than a crash — an automation that
  * branches on "did this land" must keep working on the run where it did not.
  */
 function skipped(reason, message, extra = {}) {
@@ -93,8 +93,8 @@ async function execKnowledgeWrite(step, ctx, runState, mode) {
         /**
          * Skipped, not failed. The usual reason is an upstream step that found
          * nothing this run — a ticket with no resolution yet, a summary that
-         * did not generate — and a routine that turns amber every time there
-         * is nothing to say is a routine somebody switches off.
+         * did not generate — and an automation that turns amber every time there
+         * is nothing to say is an automation somebody switches off.
          */
         return skipped('knowledge_write_empty', 'There was nothing to write this run.', { knowledgeBaseId });
     }
@@ -144,17 +144,17 @@ async function execKnowledgeWrite(step, ctx, runState, mode) {
     const result = await executeKbIngestTool('knowledge_base_ingest', {
         knowledgeBaseId, title, content, sourceUri, nearDuplicateStrategy,
     }, {
-        // The routine's OWNER, which is who a run acts as everywhere else —
+        // The automation's OWNER, which is who a run acts as everywhere else —
         // so a trigger anyone can fire cannot become a way to write as
         // somebody with rights the person firing it does not have.
         userId: ctx.userId,
         orgId: ctx.orgId,
         automationId: ctx.automationId || null,
-        // How the document is FILED. Without this every routine's article was
+        // How the document is FILED. Without this every automation's article was
         // stamped `support_ticket` / provider `support` — the tool's original
         // and only caller — so a nightly system summary showed up in the
         // Sources list as a support ticket.
-        origin: 'routine',
+        origin: 'automation',
         automationTitle: ctx.automationTitle || null,
     });
 
@@ -179,7 +179,7 @@ async function execKnowledgeWrite(step, ctx, runState, mode) {
             chunks: Number(result?.chunks_created) || 0,
             // `refreshed` means the same sourceUri replaced its own document
             // rather than adding a second — which is what makes a nightly
-            // routine idempotent, and worth being able to branch on.
+            // automation idempotent, and worth being able to branch on.
             refreshed: !!result?.refreshed,
             deduped: !!result?.deduped,
             sourceUri: result?.sourceUri ?? sourceUri,

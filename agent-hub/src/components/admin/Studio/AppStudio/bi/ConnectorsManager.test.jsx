@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // useIntegrationCatalog) for the app menu, each action's parameter schema and
 // the chain suggestions. Stub the api hook so tests control it; the hook caches
 // the first getCatalog() promise for the session.
-// listAutomations backs the routine field + picker.
+// listAutomations backs the automation field + picker.
 const getCatalog = vi.fn(() => Promise.resolve({
     apps: [
         {
@@ -79,7 +79,7 @@ describe('ConnectorsManager — adding one', () => {
     it('asks where the data comes from before creating anything', () => {
         const { onChange, getByRole } = renderMgr([]);
         const group = getByRole('radiogroup', { name: /where should this get its data/i });
-        // mailbox, app, routine, web address
+        // mailbox, app, automation, web address
         expect(within(group).getAllByRole('radio')).toHaveLength(4);
         expect(onChange).not.toHaveBeenCalled();
     });
@@ -105,9 +105,9 @@ describe('ConnectorsManager — adding one', () => {
         expect(onChange).not.toHaveBeenCalled();
     });
 
-    it('creates a routine connector from the second card', () => {
+    it('creates an automation connector from the second card', () => {
         const { last, getByRole } = renderMgr([]);
-        fireEvent.click(getByRole('radio', { name: /one of my routines/i }));
+        fireEvent.click(getByRole('radio', { name: /one of my automations/i }));
         fireEvent.click(getByRole('button', { name: /add it/i }));
         expect(last()[0].kind).toBe('automation');
     });
@@ -125,7 +125,7 @@ describe('ConnectorsManager — adding one', () => {
         const { onChange, getByRole, queryByRole } = renderMgr(base);
         expect(queryByRole('radiogroup')).toBeNull();
 
-        fireEvent.click(getByRole('button', { name: /routine or web address/i }));
+        fireEvent.click(getByRole('button', { name: /automation or web address/i }));
         expect(getByRole('radiogroup', { name: /where should this get its data/i })).toBeTruthy();
 
         fireEvent.click(getByRole('button', { name: /cancel/i }));
@@ -201,7 +201,7 @@ describe('ConnectorsManager — editing', () => {
         expect(connectorProblem({ kind: 'rest' })).toMatch(/web address/i);
         expect(connectorProblem({ kind: 'rest', url: 'https://x.example/y' })).toBeNull();
         expect(connectorProblem({ kind: 'integration_tool' })).toMatch(/app and an action/i);
-        expect(connectorProblem({ kind: 'automation' })).toMatch(/routine/i);
+        expect(connectorProblem({ kind: 'automation' })).toMatch(/automation/i);
         expect(connectorProblem({ kind: 'automation', automationId: 'auto-1' })).toBeNull();
     });
 
@@ -220,17 +220,17 @@ describe('ConnectorsManager — editing', () => {
     });
 });
 
-describe('ConnectorsManager — the routine kind', () => {
-    it('shows the routine by name instead of by id', async () => {
+describe('ConnectorsManager — the automation kind', () => {
+    it('shows the automation by name instead of by id', async () => {
         const base = [{ id: 'conn_aaa111', kind: 'automation', name: 'Report', automationId: 'auto-1' }];
         const { findByText } = renderMgr(base);
         expect(await findByText('Weekly invoice report')).toBeTruthy();
     });
 
-    it('picks a routine from the shared picker', async () => {
+    it('picks an automation from the shared picker', async () => {
         const base = [{ id: 'conn_aaa111', kind: 'automation', name: 'Report', params: [] }];
         const { last, getByRole, findByRole } = renderMgr(base);
-        fireEvent.click(getByRole('button', { name: /choose a routine/i }));
+        fireEvent.click(getByRole('button', { name: /choose an automation/i }));
         fireEvent.click(await findByRole('button', { name: /Sync contacts/i }));
         expect(last()[0].automationId).toBe('auto-2');
     });
@@ -239,7 +239,7 @@ describe('ConnectorsManager — the routine kind', () => {
         const base = [{ id: 'conn_aaa111', kind: 'automation', name: 'Report', params: [] }];
         const { last, getByRole } = renderMgr(base);
         fireEvent.click(getByRole('button', { name: /type the id myself/i }));
-        fireEvent.change(getByRole('textbox', { name: /routine id/i }), { target: { value: 'auto-9' } });
+        fireEvent.change(getByRole('textbox', { name: /automation id/i }), { target: { value: 'auto-9' } });
         expect(last()[0].automationId).toBe('auto-9');
     });
 });
@@ -392,7 +392,7 @@ describe('ConnectorsManager — picking apps & actions in bulk', () => {
         const { findByText } = renderMgr(base);
         expect(await findByText('Gmail')).toBeTruthy();
         expect(await findByText('Drive')).toBeTruthy();
-        expect(await findByText(/Routines & web addresses/i)).toBeTruthy();
+        expect(await findByText(/Automations & web addresses/i)).toBeTruthy();
     });
 });
 

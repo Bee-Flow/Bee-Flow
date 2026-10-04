@@ -18,6 +18,7 @@ import MemberInviteForm from './MemberInviteForm';
 import { useProjectLive } from './ProjectLiveContext';
 import MemberColorPicker from './MemberColorPicker';
 import { personColor } from './memberColors';
+import { projectErrorText } from './projectErrorText';
 import { Avatar, ErrorText, GhostButton, LoadingRow, SecondaryButton, SELECT_CLASS } from './workspaceUi';
 
 export interface ProjectMembersPanelProps {
@@ -178,7 +179,7 @@ function useMemberActions(projectId: string, onLeft: (() => void) | undefined, s
     const changeRole = useChangeMemberRole(projectId);
     const remove = useRemoveMember(projectId);
     const setColor = useSetMemberColor(projectId);
-    const fail = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
+    const fail = (e: unknown) => setError(projectErrorText(t, e, t('project_home.members.action_failed', 'Could not change the members.')));
 
     const actions: RowActions = {
         onColor: (userId, color) => {

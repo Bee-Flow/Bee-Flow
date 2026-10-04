@@ -1,6 +1,6 @@
 /**
  * collectDeck is the "very flexible" half of the presentation step: one
- * parameter that accepts every shape a routine or app can bind. One test per
+ * parameter that accepts every shape an automation or app can bind. One test per
  * shape, and what each yields after normalizeDeck.
  *
  * Run: node --test --test-force-exit core/documents/deckCollect.test.js

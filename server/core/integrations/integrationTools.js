@@ -66,7 +66,7 @@ const log = require('../../telemetry/log');
 // IDs that are exempt from org-level gating (admin-only tools, internal utilities)
 // 'memory' (2026-09-04): first-party, per-user data that never leaves the
 // instance — gated by the memory feature itself, not by an org integration grant.
-const ORG_EXEMPT_APPS = ['workspace', 'regex-gen', 'kb-ingest', 'memory', 'routine-evolution'];
+const ORG_EXEMPT_APPS = ['workspace', 'regex-gen', 'kb-ingest', 'memory', 'automation-evolution'];
 
 // Integrations auto-enabled for users with an existing saved enabled-apps list
 // (they were added after the user saved their list, so they wouldn't be in it).
@@ -78,18 +78,18 @@ const ORG_EXEMPT_APPS = ['workspace', 'regex-gen', 'kb-ingest', 'memory', 'routi
 // per-user toggle nobody could see. Kept as a plain literal (rather than a
 // spread of the catalog) because two suites read this list out of the source
 // text; ncCatalogDrift.test.js is what now fails the build if it drifts again.
-const AUTO_ENABLED_APPS = ['agent-search', 'browser-fetch', 'workspace', 'image-gen', 'music-gen', 'video-gen', 'elevenlabs', 'google-maps', 'linkedin', 'github', 'google-contacts', 'google-keep', 'outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts', 'google-groups', 'n8n', 'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts', 'nextcloud-deck', 'nextcloud-mail', 'nextcloud-notifications', 'nextcloud-talk', 'nextcloud-tasks', 'nextcloud-notes', 'nextcloud-activity', 'nextcloud-tables', 'nextcloud-forms', 'nextcloud-teams', 'nextcloud-status', 'webpages', 'memory', 'routine-evolution'];
+const AUTO_ENABLED_APPS = ['agent-search', 'browser-fetch', 'workspace', 'image-gen', 'music-gen', 'video-gen', 'elevenlabs', 'google-maps', 'linkedin', 'github', 'google-contacts', 'google-keep', 'outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts', 'google-groups', 'n8n', 'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts', 'nextcloud-deck', 'nextcloud-mail', 'nextcloud-notifications', 'nextcloud-talk', 'nextcloud-tasks', 'nextcloud-notes', 'nextcloud-activity', 'nextcloud-tables', 'nextcloud-forms', 'nextcloud-teams', 'nextcloud-status', 'webpages', 'memory', 'automation-evolution'];
 
 /**
  * May this user receive the webpage automation tools (webpages_*, webpage_db_*)?
  *
  * ONE rule, read by both the runtime (getIntegrationTools) and the design-time
- * gate (buildUserAppGate → routine save/activate validation, the AI builder):
+ * gate (buildUserAppGate → automation save/activate validation, the AI builder):
  * never in Simple Mode; otherwise the `webpages` beta feature, or — failing
  * that — actually having a webpage to act on (owning one, or one org/group-
  * shared to the user). `webpages` is a beta capability, not an org integration,
  * so it can never appear in an org integration allow-list; when the design-
- * time gate judged it by that list instead, a routine the runtime would happily
+ * time gate judged it by that list instead, an automation the runtime would happily
  * run was refused as "not in user's catalog".
  *
  * Never throws: a failed lookup answers false (fail closed).
@@ -99,7 +99,7 @@ async function webpageToolsAllowed({ userId, session = null, groupIds = [], orgI
     let ok = false;
     try {
         // The beta feature is the real gate for the whole Webpages capability:
-        // it unlocks the Studio app, the direct webpage chat and the routines
+        // it unlocks the Studio app, the direct webpage chat and the automations
         // catalog (routes/automation/catalog.js) alike.
         ok = await userHasBetaFeature(userId, 'webpages', session);
     } catch (_) { return false; /* beta lookup failed — fail closed */ }
@@ -107,7 +107,7 @@ async function webpageToolsAllowed({ userId, session = null, groupIds = [], orgI
     // Fallback: a user who actually has a webpage they can act on can edit
     // that page even without the beta toggle — otherwise a legitimate webpage
     // owner hit "You no longer have permission to use webpages_list" when a
-    // routine step ran. NOT fail-open: dispatch re-checks canWriteWebpage per
+    // automation step ran. NOT fail-open: dispatch re-checks canWriteWebpage per
     // call (toolDispatcher → isWebpageAutomationTool), so the tools only act
     // on pages the caller genuinely has access to.
     try {
@@ -136,7 +136,7 @@ async function webpageToolsAllowed({ userId, session = null, groupIds = [], orgI
  *   or skip credential/session checks.
  * @returns {Object} { tools: Array, n8nOrgId: string|null }
  */
-async function getIntegrationTools({ userId, session, isAdmin, agentConfig, routineStep = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {
+async function getIntegrationTools({ userId, session, isAdmin, agentConfig, automationStep = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {
     const extraAppSet = new Set(Array.isArray(extraEnabledApps) ? extraEnabledApps : []);
     const tools = [];
     let n8nOrgId = null;
@@ -364,6 +364,24 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
         if (isAppOn('ms-calendar')) addTools(MS_CALENDAR_TOOLS);
         if (isAppOn('onedrive')) addTools(ONEDRIVE_TOOLS);
         if (isAppOn('ms-contacts')) addTools(MS_CONTACTS_TOOLS);
+    } else if (userId && (isAppOn('outlook') || isAppOn('outlook-readonly'))) {
+        // Multi-provider: a Google (or Nextcloud) session whose user ALSO
+        // connected Microsoft 365 through Settings → Connections — or a
+        // automation session whose primary provider is not Microsoft but which
+        // carries `automationProviders.microsoft`. The session itself stays as it
+        // is (the Google tools above need its token); the Outlook tools get a
+        // Microsoft-only shim at dispatch (toolDispatcher). Only Outlook is
+        // lifted here: its approval routes resolve the same shim, the other
+        // Microsoft apps still read the live session.
+        let msSession = null;
+        try {
+            const { resolveMicrosoftSession } = require('../../auth/microsoftSessionHydration');
+            msSession = await resolveMicrosoftSession(session, userId);
+        } catch (_) { /* non-fatal — Outlook just stays unavailable */ }
+        if (msSession?.accessToken) {
+            if (isAppOn('outlook')) addTools(OUTLOOK_TOOLS);
+            if (isAppOn('outlook-readonly')) addTools(OUTLOOK_READONLY_TOOLS);
+        }
     }
 
     // Image Generation — requires Google API key
@@ -578,6 +596,9 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
     // No credentials, no org toggle; the simple mode is the only switch.
     if (!userSimpleMode) {
         addTools(require('../../integrations/presentationTools').PRESENTATION_TOOLS);
+        // Word documents — the same footing: a real .docx in the org's Word
+        // house style, kept in storage (or Nextcloud) behind a download link.
+        addTools(require('../../integrations/wordDocumentTools').WORD_DOCUMENT_TOOLS);
     }
 
     // Personal memory — the user's own user_memories, read and written through
@@ -587,10 +608,10 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
     if (isAppOn('memory')) {
         addTools(require('../../integrations/memoryTools').MEMORY_TOOLS);
     }
-    // Routine evolution — routine steps only (never chat): a routine proposes
+    // Automation evolution — automation steps only (never chat): an automation proposes
     // and, after approval, applies changes to its OWN definition.
-    if (routineStep && isAppOn('routine-evolution')) {
-        addTools(require('../../integrations/routineEvolutionTools').ROUTINE_EVOLUTION_TOOLS);
+    if (automationStep && isAppOn('automation-evolution')) {
+        addTools(require('../../integrations/automationEvolutionTools').AUTOMATION_EVOLUTION_TOOLS);
     }
 
     // KB Search — available when agent has knowledge bases configured
@@ -615,10 +636,10 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
         log.warn('[IntegrationTools] datatable_query unavailable:', e.message);
     }
 
-    // KB Ingest — routine-only WRITE tool (Support Studio "solved tickets → KB"
-    // template). Never surfaced to chat agents (routineStep gate) and only to
+    // KB Ingest — automation-only WRITE tool (Support Studio "solved tickets → KB"
+    // template). Never surfaced to chat agents (automationStep gate) and only to
     // holders of the org-level support_inbox permission.
-    if (routineStep && isAppOn('kb-ingest') && await hasPermission(userId, 'support_inbox', session)) {
+    if (automationStep && isAppOn('kb-ingest') && await hasPermission(userId, 'support_inbox', session)) {
         addTools(KB_INGEST_TOOLS);
     }
 
@@ -628,13 +649,13 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
         addTools(LINKEDIN_TOOLS);
     }
 
-    // Withings — requires an OAuth credential in the routine vault. Health data
+    // Withings — requires an OAuth credential in the automation vault. Health data
     // is GDPR Article 9 special category, so it is deliberately NOT lendable:
     // no isLentProvider clause, and a teammate borrowing an owner's connection
     // must never inherit their body measurements.
     if (isAppOn('withings')) {
-        const routineCredentialStore = require('../../stores/routineCredentialStore');
-        const withingsCred = await routineCredentialStore.getCredential(userId, 'withings').catch(() => null);
+        const automationCredentialStore = require('../../stores/automationCredentialStore');
+        const withingsCred = await automationCredentialStore.getCredential(userId, 'withings').catch(() => null);
         if (withingsCred?.status === 'active') addTools(WITHINGS_TOOLS);
     }
 
@@ -735,19 +756,19 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
     // Webpages (automation-flavoured surface). Gated ONLY on webpageToolsAllowed
     // (the "webpages" beta feature, or access to a webpage) — deliberately NOT
     // also on isAppOn('webpages'). buildUserAppGate asks the same helper, so
-    // the routine validator and this runtime cannot disagree.
+    // the automation validator and this runtime cannot disagree.
     //
     // The beta feature is the real gate for the whole Webpages capability: it's
     // what unlocks the Studio app, what the DIRECT webpage chat gates on
     // (routes/ai/webpageChat.js injects its builder tools on the beta feature
-    // alone), and what the routines catalog uses to decide availability
+    // alone), and what the automations catalog uses to decide availability
     // (routes/automation/catalog.js: `available = webpagesAvailable`). Requiring
-    // the separate org-integration entitlement here too meant agents/routines
+    // the separate org-integration entitlement here too meant agents/automations
     // were advertised the webpage actions but then never actually received them
     // at runtime — so an agent could edit a webpage from the in-editor chat but
     // not from a normal agent conversation. Gating all three surfaces on the
     // same beta feature fixes that. (Dispatch stays distinct: direct chat checks
-    // isBuilderTool/isDbTool first; agents + the routine runner go through
+    // isBuilderTool/isDbTool first; agents + the automation runner go through
     // toolDispatcher → isWebpageAutomationTool, which re-checks canWriteWebpage
     // per call, so this is not a fail-open — writes still require ownership or a
     // share into the caller's org/group.)
@@ -769,25 +790,25 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
     // is enforced inside the helper.
     await appendCustomIntegrationTools(tools, { effectiveIntegrations, orgId: userOrgId, isToolGranted: _isToolGranted });
 
-    // Agent-callable routines (automations with trigger.kind === 'agent_call').
+    // Agent-callable automations (automations with trigger.kind === 'agent_call').
     // Each active one the user owns becomes a function tool the model can call
     // from direct chat or a configured agent. Gated by the same 'automations'
     // capability the scheduler checks — fail closed if the org lacks it or the
-    // lookup throws, so we never surface routines on installs without routines.
+    // lookup throws, so we never surface automations on installs without automations.
     //
     // NARROWED for a CURATED agent. This exposure is keyed to the ASKER, so it
-    // hands an agent every active routine of whoever happens to be chatting —
+    // hands an agent every active automation of whoever happens to be chatting —
     // which is precisely what the per-agent grant list replaces. So an agent
-    // that declares `config.tools.automations` keeps only the routines its
+    // that declares `config.tools.automations` keeps only the automations its
     // OWNER granted, whoever is asking; direct chat (no agentConfig) is
     // untouched, and so is an agent nobody has curated yet.
     //
     // It NARROWS rather than suppresses on purpose. Suppressing the whole set
     // here only made sense if a curated set were injected somewhere else, and
     // nothing injected one: the first person to write `config.tools.automations`
-    // lost every routine the agent could call, including the one they had just
+    // lost every automation the agent could call, including the one they had just
     // granted. Filtering the caller's own set by the granted ids needs no
-    // second injector and cannot widen — a routine the asker does not have is
+    // second injector and cannot widen — an automation the asker does not have is
     // simply not in the list to keep.
     const _plainObjectLike = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
     const _automationGrants = (() => {
@@ -801,8 +822,8 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
     // and "I could not read the owner's list" is not permission to offer the
     // asker's whole one.
     // De AANWEZIGHEID van de sectie is de keuze, niet de inhoud. Een lege
-    // sectie betekent "ik heb alle routines uitgevinkt" en levert dus geen
-    // enkele routine op. Zou leeg als ongecureerd gelden, dan gaf uitvinken
+    // sectie betekent "ik heb alle automatiseringen uitgevinkt" en levert dus geen
+    // enkele automation op. Zou leeg als ongecureerd gelden, dan gaf uitvinken
     // juist de volledige lijst van de vrager terug — het tegenovergestelde
     // van wat de eigenaar aanklikte. De normalisatie bewaart die lege sectie
     // daarom bewust (zie toolPolicy.normaliseToolsConfig).
@@ -813,7 +834,7 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
         && Object.prototype.hasOwnProperty.call(agentConfig.tools, 'automations'));
     try {
         if (_curatedAutomations && !_automationGrants) {
-            log.warn('[IntegrationTools] Automation grants unreadable — offering no agent-callable routines');
+            log.warn('[IntegrationTools] Automation grants unreadable — offering no agent-callable automations');
             throw { __skip: true };
         }
         const { hasCapability } = require('../entitlements/entitlements');
@@ -833,7 +854,7 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
             }
         }
     } catch (e) {
-        log.warn('[IntegrationTools] Failed to load agent-callable routines:', e.message);
+        log.warn('[IntegrationTools] Failed to load agent-callable automations:', e.message);
     }
 
     // Reusable Steps (kind='block') the user published and marked "available in
@@ -935,19 +956,23 @@ async function availableMcpServerIds(toolNames, userId) {
  *   Each integration `custom:<uuid>` must be present in the set to expose its
  *   tools_cache entries (already OpenAI-format with cint_-prefixed names,
  *   frozen at activation — including any `_cint` metadata they carry).
- *   The dark-ship feature flag is re-checked here so flipping it off removes
+ *   The run gate (customIntegrations/mcpLibrary/gate.js) is re-checked here
+ *   per row: the builder's dark-ship flag for builder rows, the server-wide
+ *   org MCP policy for MCP-library rows. Flipping either off removes
  *   injection without touching callers.
  */
 async function appendCustomIntegrationTools(tools, { effectiveIntegrations, orgId, isToolGranted = null }) {
     if (!effectiveIntegrations) return; // fail closed
     if (!orgId || orgId === '__system__') return; // org-scoped feature — no org, no tools
     try {
-        const { isCustomIntegrationsEnabled } = require('../customIntegrations/featureFlag');
-        if (!(await isCustomIntegrationsEnabled())) return; // feature ships dark
+        const { loadRunGate } = require('../customIntegrations/mcpLibrary/gate');
+        const gate = await loadRunGate();
+        if (!gate.anyRunnable) return; // both families switched off
         const store = require('../../stores/orgCustomIntegrationStore');
         const rows = await store.listActiveForOrg(orgId);
         for (const row of Array.isArray(rows) ? rows : []) {
             if (!row || !row.id) continue;                            // unidentifiable ⇒ fail closed
+            if (!gate.isRunnable(row)) continue;
             if (!effectiveIntegrations.has(`custom:${row.id}`)) continue;
             for (const entry of Array.isArray(row.toolsCache) ? row.toolsCache : []) {
                 const name = entry?.function?.name;
@@ -1010,6 +1035,7 @@ async function buildToolHint(tools, _userId = null) {
     }
     if (tools.some(t => t.function.name === 'generate_image')) integrations.push('Image generation');
     if (tools.some(t => t.function.name === 'create_presentation')) integrations.push('Presentations (create_presentation builds a real .pptx deck and returns a download link you must put in your reply; nextcloud_create_presentation saves it into Nextcloud so it opens in Nextcloud Office)');
+    if (tools.some(t => t.function.name === 'create_word_document')) integrations.push('Word documents (create_word_document builds a real, editable .docx in the organisation\'s Word house style and returns a download link you must put in your reply; with nextcloudPath it is saved into Nextcloud instead)');
     if (tools.some(t => t.function.name === 'generate_music')) integrations.push('Music generation (instrumental AI music via Lyria)');
     if (tools.some(t => t.function.name === 'generate_video')) integrations.push('Video generation (short AI video clips via Veo 3.1 — takes 1-3 minutes)');
     if (tools.some(t => t.function.name === 'agent_search')) integrations.push('Agent Search (AI-powered web search with reranking)');
@@ -1146,9 +1172,9 @@ async function buildUserAppGate({ userId, session, isAdmin, onlyAppId = null } =
     // alone, which is the SUPER-admin allow-list; the org-admin's own
     // distribution (org_enabled_integrations, written by the Integration
     // access screen) never reached it. An org whose legacy column was seeded
-    // narrow at creation therefore had a palette and a routine validator that
+    // narrow at creation therefore had a palette and an automation validator that
     // contradicted the screen the admin was looking at — the builder offered
-    // agent_search, and saving the routine rejected it as "not in user's
+    // agent_search, and saving the automation rejected it as "not in user's
     // catalog". Same fallback posture as getIntegrationTools: a resolver
     // failure drops back to the legacy inline gate rather than stripping
     // everything.

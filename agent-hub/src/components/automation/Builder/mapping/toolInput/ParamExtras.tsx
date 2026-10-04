@@ -41,7 +41,7 @@ export function EnumChoice({ options, value, recommended, onPick, label }: {
                         {/* Codes (EUR, GET, PDF) stay as written; only names get prettified. */}
                         {/^[A-Z0-9_]+$/.test(opt) ? opt : (humanize(opt) || opt)}
                         {recommended === opt && (
-                            <span className="font-medium text-[var(--type-ai)]">· {t('routines.ndv.recommended', 'recommended')}</span>
+                            <span className="font-medium text-[var(--type-ai)]">· {t('automations.ndv.recommended', 'recommended')}</span>
                         )}
                     </button>
                 );
@@ -64,14 +64,14 @@ export function SuggestionChip({ suggestion, onUse }: { suggestion: ParamSuggest
             <button
                 type="button"
                 onClick={onUse}
-                title={t('routines.ndv.use_suggestion', 'Use this suggestion')}
+                title={t('automations.ndv.use_suggestion', 'Use this suggestion')}
                 className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-dashed border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
             >
                 <Sparkles size={11} className="text-[var(--type-ai)]" />
                 {suggestion.label}
             </button>
             <span className="px-1.5 rounded-full leading-4 text-[10px] font-semibold bg-[color-mix(in_srgb,var(--type-ai)_12%,transparent)] text-[var(--type-ai)]">
-                {t('routines.ndv.suggestion', 'suggestion')}
+                {t('automations.ndv.suggestion', 'suggestion')}
             </span>
         </div>
     );
@@ -94,7 +94,7 @@ function FrequentValuesInner({ tool, input, onPick }: { tool: string; input: str
     if (!data || !data.length) return null;
     return (
         <div className="flex items-center flex-wrap gap-1.5 text-[11px] text-[var(--text-tertiary)]" data-testid="param-frequent">
-            <span>{t('routines.ndv.frequently_used', 'Frequently used:')}</span>
+            <span>{t('automations.ndv.frequently_used', 'Frequently used:')}</span>
             {data.map(v => (
                 <button
                     key={v.value}

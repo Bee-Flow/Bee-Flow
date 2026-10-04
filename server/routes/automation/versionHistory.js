@@ -101,14 +101,14 @@ function makeVersionHistoryHandlers(deps) {
 
     /**
      * Resolve a reference to `{ version, row, definition }`, or throw 404/400.
-     * A version row that went missing (legacy routines) still resolves for the
-     * working and live copies, which are on the routine itself.
+     * A version row that went missing (legacy automations) still resolves for the
+     * working and live copies, which are on the automation itself.
      */
     async function resolveRef(a, ref) {
         let n = null;
         let row = null;
         if (ref === 'live') {
-            if (a.liveVersion == null) throw new HttpError(404, 'never_live', 'This routine has never been live.');
+            if (a.liveVersion == null) throw new HttpError(404, 'never_live', 'This automation has never been live.');
             n = a.liveVersion;
         } else if (ref === 'working' || ref === 'current') {
             n = a.version;
@@ -121,8 +121,8 @@ function makeVersionHistoryHandlers(deps) {
             n = row.version;
         }
         if (!row) row = await store.getVersionByNumber(a.id, n);
-        const onRoutine = n === a.version || (a.liveVersion != null && n === a.liveVersion);
-        if (!row && !onRoutine) throw new HttpError(404, 'version_not_found', 'Version not found');
+        const onAutomation = n === a.version || (a.liveVersion != null && n === a.liveVersion);
+        if (!row && !onAutomation) throw new HttpError(404, 'version_not_found', 'Version not found');
         return { version: n, row, definition: effectiveDefinition(a, n, row) };
     }
 

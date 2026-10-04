@@ -18,12 +18,12 @@ import { artNum, artStr } from '../model/artifacts';
 import { kindOf } from '../model/phaseMachine';
 import type { Phase, Playbook } from '../model/types';
 
-/** The automation this fill runs: the nearest routine phase before it (the server's routineBefore). */
-function routineAutomationId(playbook: Playbook, key: string): string | null {
+/** The automation this fill runs: the nearest automation phase before it (the server's automationBefore). */
+function automationAutomationId(playbook: Playbook, key: string): string | null {
     const i = playbook.phases.findIndex((p) => p.key === key);
     for (let j = i - 1; j >= 0; j--) {
         const p = playbook.phases[j];
-        if (p && kindOf(p) === 'routine') return artStr(p.artifacts, 'automationId');
+        if (p && kindOf(p) === 'automation') return artStr(p.artifacts, 'automationId');
     }
     return null;
 }
@@ -44,7 +44,7 @@ export function FillStage({ playbook, phase }: { playbook: Playbook; phase: Phas
     const added = artNum(a, 'rowCount') !== null && before !== null ? rows - before : null;
     const landed = phase.status === 'awaiting' || phase.status === 'done';
     const runId = artStr(a, 'runId');
-    const automationId = routineAutomationId(playbook, phase.key);
+    const automationId = automationAutomationId(playbook, phase.key);
     const status = statusLine(phase, rows, t);
     return (
         <StageCard

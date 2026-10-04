@@ -251,42 +251,42 @@ router.post('/inboxes/:id/disconnect', async (req, res) => {
 router.delete('/inboxes/:id', async (req, res) => {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
-    // Tear down the per-inbox KB-ingestion routine first so it can't keep
+    // Tear down the per-inbox KB-ingestion automation first so it can't keep
     // firing on a dead inbox_id filter after the mailbox is gone.
-    if (inbox.kb_ingest_routine_id) {
-        const { teardownRoutine } = require('../automation/provisionRoutine');
-        await teardownRoutine(inbox.kb_ingest_routine_id).catch(() => {});
+    if (inbox.kb_ingest_automation_id) {
+        const { teardownAutomation } = require('../automation/provisionAutomation');
+        await teardownAutomation(inbox.kb_ingest_automation_id).catch(() => {});
     }
     const { purgedThreads } = await supportInboxStore.deleteInbox(req.params.id, inbox.organization_id);
     audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'inbox_deleted', payload: { provider: inbox.provider, emailAddress: inbox.email_address || null, purgedThreads } });
     res.json({ ok: true, purgedThreads });
 });
 
-// ── KB ingestion: provision/enable/disable the resolved-tickets→KB routine ────
-// straight from the Support settings panel (no trip to Routines).
+// ── KB ingestion: provision/enable/disable the resolved-tickets→KB automation ────
+// straight from the Support settings panel (no trip to Automations).
 
 /**
- * Build (or update) the per-inbox "resolved tickets → KB" routine from the
+ * Build (or update) the per-inbox "resolved tickets → KB" automation from the
  * support-ticket-to-kb template, bound to this inbox + chosen KB, and activate
- * it. Idempotent: re-uses the stored routine id when present. Returns the
- * routine id + any non-blocking warnings.
+ * it. Idempotent: re-uses the stored automation id when present. Returns the
+ * automation id + any non-blocking warnings.
  */
 async function ensureKbAutomation(inbox, userId, session, kbId) {
     const templates = require('../automation/templates');
     const automationStore = require('../stores/automationStore');
-    const { activateRoutine } = require('../automation/provisionRoutine');
+    const { activateAutomation } = require('../automation/provisionAutomation');
     const { syncKbSources } = require('../core/kb/kbSourceSync');
 
     const tmpl = templates.getTemplate('support-ticket-to-kb');
     if (!tmpl) throw new Error('KB-ingestion template not found');
     const def = JSON.parse(JSON.stringify(tmpl.definition));
-    // Bind the trigger to THIS inbox so the routine only fires for its tickets.
+    // Bind the trigger to THIS inbox so the automation only fires for its tickets.
     def.trigger.appEvent = def.trigger.appEvent || {};
     def.trigger.appEvent.filter = { ...(def.trigger.appEvent.filter || {}), inboxId: inbox.id };
     // Fill the KB on the ingest step. Since K10 that step is a first-class
     // `knowledge_write`, which carries the base on the step itself rather than
     // in `inputs` — the legacy `knowledge_base_ingest` action is still matched
-    // so a routine provisioned before the migration keeps working when this
+    // so an automation provisioned before the migration keeps working when this
     // panel re-saves it.
     const ingestStep = (def.steps || []).find(s => s.type === 'knowledge_write' || s.tool === 'knowledge_base_ingest');
     if (!ingestStep) throw new Error('KB-ingestion template is missing its ingest step');
@@ -297,12 +297,12 @@ async function ensureKbAutomation(inbox, userId, session, kbId) {
         ingestStep.inputs.knowledgeBaseId = { kind: 'literal', value: kbId };
     }
 
-    let routineId = inbox.kb_ingest_routine_id || null;
-    const existing = routineId ? await automationStore.getAutomation(routineId).catch(() => null) : null;
+    let automationId = inbox.kb_ingest_automation_id || null;
+    const existing = automationId ? await automationStore.getAutomation(automationId).catch(() => null) : null;
     if (existing) {
-        // goLive: this provisioned routine runs what Support settings wrote
+        // goLive: this provisioned automation runs what Support settings wrote
         // (handoff 5 live split), never a pending working copy.
-        await automationStore.updateAutomation(routineId, { definition: def, triggerType: 'app_event', isDraft: false }, userId, { goLive: true });
+        await automationStore.updateAutomation(automationId, { definition: def, triggerType: 'app_event', isDraft: false }, userId, { goLive: true });
     } else {
         const created = await automationStore.createAutomation({
             userId, organizationId: inbox.organization_id,
@@ -310,16 +310,16 @@ async function ensureKbAutomation(inbox, userId, session, kbId) {
             description: 'Auto-provisioned from Support settings — distils resolved tickets into the knowledge base.',
             definition: def, triggerType: 'app_event',
         });
-        routineId = created.id;
+        automationId = created.id;
     }
-    // This path creates and updates a routine WITHOUT going through
+    // This path creates and updates an automation WITHOUT going through
     // PUT /api/automation/:id, so it has to reconcile the knowledge-base
-    // sources itself — and it is the one routine whose whole purpose is to
+    // sources itself — and it is the one automation whose whole purpose is to
     // write to a base, so a missing source here is the most visible miss there
     // is. Never fails the provisioning: the source is bookkeeping.
-    await syncKbSources(routineId, def, { userId, title: `Support → KB: ${inbox.email_address || inbox.display_name || inbox.provider}` });
-    const { warnings } = await activateRoutine(routineId, { userId, session, isAdmin: !!session?.isAdmin });
-    return { routineId, warnings };
+    await syncKbSources(automationId, def, { userId, title: `Support → KB: ${inbox.email_address || inbox.display_name || inbox.provider}` });
+    const { warnings } = await activateAutomation(automationId, { userId, session, isAdmin: !!session?.isAdmin });
+    return { automationId, warnings };
 }
 
 router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }), async (req, res) => {
@@ -327,12 +327,12 @@ router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }),
     if (!inbox) return;
     const userId = getUserId(req);
     const enabled = !!req.body.enabled;
-    const { teardownRoutine } = require('../automation/provisionRoutine');
+    const { teardownAutomation } = require('../automation/provisionAutomation');
 
     if (!enabled) {
-        if (inbox.kb_ingest_routine_id) await teardownRoutine(inbox.kb_ingest_routine_id).catch(() => {});
+        if (inbox.kb_ingest_automation_id) await teardownAutomation(inbox.kb_ingest_automation_id).catch(() => {});
         // Keep kb id so re-enabling pre-selects the previous KB.
-        const updated = await supportInboxStore.setKbAutomation(req.params.id, { enabled: false, routineId: null }, inbox.organization_id);
+        const updated = await supportInboxStore.setKbAutomation(req.params.id, { enabled: false, automationId: null }, inbox.organization_id);
         audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'kb_automation_changed', payload: { enabled: false } });
         return res.json({ inbox: updated });
     }
@@ -356,10 +356,10 @@ router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }),
         return res.status(400).json({ error: e.message, details: e.details || null });
     }
     const updated = await supportInboxStore.setKbAutomation(
-        req.params.id, { enabled: true, kbId: knowledgeBaseId, routineId: provisioned.routineId }, inbox.organization_id
+        req.params.id, { enabled: true, kbId: knowledgeBaseId, automationId: provisioned.automationId }, inbox.organization_id
     );
-    audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'kb_automation_changed', payload: { enabled: true, knowledgeBaseId, routineId: provisioned.routineId } });
-    res.json({ inbox: updated, routineId: provisioned.routineId, warnings: provisioned.warnings || [] });
+    audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'kb_automation_changed', payload: { enabled: true, knowledgeBaseId, automationId: provisioned.automationId } });
+    res.json({ inbox: updated, automationId: provisioned.automationId, warnings: provisioned.warnings || [] });
 });
 
 // ── Historical response-time scan (aggregate-only, on-demand) ─────────────────
@@ -647,7 +647,7 @@ router.post('/threads/:id/reply', validate({ body: S.ReplyBody }), async (req, r
     } catch (sendErr) {
         log.error('[SupportInbox] send failed:', sendErr.message);
         await supportStore.setMessageEmailStatus(msg.id, { ok: false, error: sendErr.message, at: new Date().toISOString() });
-        res.status(502).json({ error: `Reply saved but sending failed: ${sendErr.message}`, messageId: msg.id });
+        res.status(502).json({ error: 'Reply saved but sending failed', messageId: msg.id });
     }
 });
 
@@ -956,7 +956,7 @@ function inboxToSettings(inbox) {
         kbIngest: {
             enabled: !!inbox.kb_ingest_enabled,
             kb_id: inbox.kb_ingest_kb_id || null,
-            routine_id: inbox.kb_ingest_routine_id || null,
+            automation_id: inbox.kb_ingest_automation_id || null,
         },
         access: {
             shared_groups: Array.isArray(inbox.shared_groups) ? inbox.shared_groups : [],

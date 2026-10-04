@@ -81,7 +81,7 @@ export const FAMILY_EXEMPT: Readonly<Record<string, string>> = {
     ghost_step: 'the dashed next-step slot ahead of the build frontier (GhostStepNode.jsx), not a step card',
 };
 
-const K = 'routines.node';
+const K = 'automations.node';
 type TextField = 'typeLabel' | 'defaultLabel' | 'help' | 'label' | 'desc';
 
 const own = (type: string) => (Object.prototype.hasOwnProperty.call(NODE_DEFS, type) ? NODE_DEFS[type] : undefined);

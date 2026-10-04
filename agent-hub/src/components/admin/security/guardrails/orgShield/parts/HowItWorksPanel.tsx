@@ -109,7 +109,7 @@ function PathStages({ go, t }: { go: (tab: string) => () => void; t: TranslateFn
                 Icon={MessageSquareText}
                 title={t('admin.shield_hiw_in_title', 'Someone sends a message')}
                 body={t('admin.shield_hiw_in_body',
-                    'A chat, an agent, or — if you leave “Also protect routines” on — a routine running overnight with nobody watching.')}
+                    'A chat, an agent, or — if you leave “Also protect automations” on — an automation running overnight with nobody watching.')}
             />
             <Stage
                 n={1}

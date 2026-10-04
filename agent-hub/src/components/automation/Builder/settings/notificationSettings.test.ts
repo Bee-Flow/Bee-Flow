@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { NOTIFICATION_SETTINGS_DEFAULTS, normalizeNotificationSettings, toggleChannel } from './notificationSettings';
 
 describe('normalizeNotificationSettings', () => {
-    it('fills a routine without settings with the quiet defaults', () => {
+    it('fills an automation without settings with the quiet defaults', () => {
         const s = normalizeNotificationSettings(undefined);
         expect(s).toEqual(NOTIFICATION_SETTINGS_DEFAULTS);
         expect(s.onSuccess.enabled).toBe(false);
@@ -18,7 +18,7 @@ describe('normalizeNotificationSettings', () => {
             onSuccess: { enabled: false, level: 'ai_task', channels: ['inapp'] },
         });
         expect(s.onError).toMatchObject({ enabled: true, channels: ['bell', 'email'], urgency: 'urgent' });
-        // Like the server: an old routine gets no throttle and direct delivery.
+        // Like the server: an old automation gets no throttle and direct delivery.
         expect(s.onError).toMatchObject({ throttle: { maxPerHour: null }, delivery: 'direct', recipients: [{ type: 'owner' }] });
         expect(s.onSuccess.delivery).toBe('direct');
         expect(s.onApproval).toMatchObject({ channels: ['bell', 'talk'], urgency: 'normal' });

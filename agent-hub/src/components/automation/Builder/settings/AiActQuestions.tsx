@@ -105,14 +105,14 @@ function Question({ q, draft, onChange, disabled }: { q: AiActOpenQuestion; draf
                             {o.label}
                             {/* The space outside the span, so it is part of the radio's accessible name. */}
                             {bee && ' '}
-                            {bee && <span className="font-medium text-[var(--type-ai)]">· {t('routines.aiact.bee_thinks', 'Bee thinks this')}</span>}
+                            {bee && <span className="font-medium text-[var(--type-ai)]">· {t('automations.aiact.bee_thinks', 'Bee thinks this')}</span>}
                         </button>
                     );
                 })}
             </div>
             {q.id === 'sensitiveUse' && value === 'yes' && (
                 <fieldset className="flex flex-col gap-1 pl-1" data-testid="aiact-domains">
-                    <legend className="font-semibold mb-1">{t('routines.aiact.domains', 'Which area? Pick at least one.')}</legend>
+                    <legend className="font-semibold mb-1">{t('automations.aiact.domains', 'Which area? Pick at least one.')}</legend>
                     {q.domains.map(d => (
                         <label key={d.id} className="flex items-start gap-2 cursor-pointer">
                             <input
@@ -134,7 +134,7 @@ function Question({ q, draft, onChange, disabled }: { q: AiActOpenQuestion; draf
             <p className="flex items-center gap-1.5 text-[var(--text-tertiary)]">
                 <BookOpen className="w-3 h-3 shrink-0" aria-hidden />
                 <a href={text.why.href} target="_blank" rel="noopener noreferrer" className="underline">
-                    {t('routines.aiact.why', 'Why do we ask this?')}
+                    {t('automations.aiact.why', 'Why do we ask this?')}
                 </a>
                 <span>· {text.why.label}</span>
             </p>

@@ -9,7 +9,7 @@
  *
  * `slides` is resolved WHOLE — a records binding arrives as an array, an
  * ai_generate result as its text — and handed to the same collector the
- * routine step uses (core/documents/deckCollect.js): a markdown outline, a
+ * automation step uses (core/documents/deckCollect.js): a markdown outline, a
  * JSON deck, rows with a title and content, all become one deck. The house
  * style is the app OWNER's organisation's, like a filled document's
  * letterhead: an app prints on the company's paper.

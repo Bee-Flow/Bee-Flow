@@ -48,7 +48,9 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
     const actions = useMemo(() => ([
         { id: 'record', label: 'Start recording', icon: Mic, accent: '#ffd400', run: () => { openCapture('record'); setOpen(false); } },
         { id: 'upload', label: 'Upload audio file', icon: Upload, accent: 'var(--accent-primary)', run: () => { openCapture('upload'); setOpen(false); } },
-        { id: 'bot', label: 'Send meeting bot', icon: Video, accent: '#10b981', run: () => { openCapture('bot'); setOpen(false); } },
+        // Bee Flow has no meeting bot (removed): this opens the source picker,
+        // where Talk, Google Meet and Teams recordings are imported.
+        { id: 'import', label: 'Import a meeting recording', icon: Video, accent: '#10b981', run: () => { openCapture(null); setOpen(false); } },
     ]), [openCapture]);
 
     const filteredActions = useMemo(() => (

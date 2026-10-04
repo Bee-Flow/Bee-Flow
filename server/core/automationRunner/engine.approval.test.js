@@ -78,7 +78,7 @@ test('dry-run previews the rendered question too', async () => {
 
 test('a legacy `title` still works when there is no prompt', async () => {
     // Imported and pre-editor definitions carry `title`; the builder never
-    // writes it, but dropping the read would break stored routines.
+    // writes it, but dropping the read would break stored automations.
     const err = await pauseOf({ id: 'appr_4', type: 'approval', title: 'Old-style approval' });
     assert.strictEqual(err.prompt, 'Old-style approval');
 });

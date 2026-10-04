@@ -149,7 +149,7 @@
       "id": "used-by",
       "icon": "🔗",
       "title": "Used by: what breaks if this disappears",
-      "bodyMd": "An agent is rarely alone. The **Used by** tab lists everything that would break without it: scheduled tasks, Cowork schedules, support inboxes, routines, apps and webpages.\n\nTwo details are worth knowing before you rely on that list.\n\n- Items built by other people are **counted but not named**. You learn that something depends on this agent without learning what a colleague called it.\n- If the list cannot be read, the tab refuses to guess: **\"Could not load who uses this agent, so nothing is claimed here.\"** with a **Retry**. What is unknown is never drawn as nothing."
+      "bodyMd": "An agent is rarely alone. The **Used by** tab lists everything that would break without it: scheduled tasks, Cowork schedules, support inboxes, automations, apps and webpages.\n\nTwo details are worth knowing before you rely on that list.\n\n- Items built by other people are **counted but not named**. You learn that something depends on this agent without learning what a colleague called it.\n- If the list cannot be read, the tab refuses to guess: **\"Could not load who uses this agent, so nothing is claimed here.\"** with a **Retry**. What is unknown is never drawn as nothing."
     },
     {
       "type": "exercise",
@@ -192,7 +192,7 @@
           "feedback": "Their conversations are removed with the agent — that is part of what \"cannot be undone\" means here, and it is not limited to the builder's own chats."
         }
       ],
-      "explanation": "The block is a warning, not a lock. Repoint the routine or remove the app block first, then delete — and note that a kind the check could not read counts as in use, because guessing wrong here is unrecoverable."
+      "explanation": "The block is a warning, not a lock. Repoint the automation or remove the app block first, then delete — and note that a kind the check could not read counts as in use, because guessing wrong here is unrecoverable."
     },
     {
       "type": "action",

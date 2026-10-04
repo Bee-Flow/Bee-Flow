@@ -1,10 +1,10 @@
 'use strict';
 
 /**
- * What the routine CRUD routes accept, and what they say when they refuse
+ * What the automation CRUD routes accept, and what they say when they refuse
  * (routes/automation/crud.js).
  *
- * The checks these schemas replaced answered "Title is required" to a routine
+ * The checks these schemas replaced answered "Title is required" to an automation
  * titled `42` — the title was there, it just was not text — and let a key the
  * router does not read through with a 200, so a person watched a setting they
  * had typed fail to stick with nothing on screen to explain it. What this
@@ -39,13 +39,13 @@ function mock(absId, exports) {
 const touched = [];
 const note = (what) => (...args) => { touched.push({ what, args }); return null; };
 
-const ROUTINE = { id: 'a1', userId: 'u1', organizationId: 'org1', title: 'Weekly', definition: { trigger: { id: 't', kind: 'manual' }, steps: [] } };
+const AUTOMATION = { id: 'a1', userId: 'u1', organizationId: 'org1', title: 'Weekly', definition: { trigger: { id: 't', kind: 'manual' }, steps: [] } };
 
 mock(path.join(SERVER, 'stores/automationStore'), {
     getAutomationsForUser: async () => [],
-    getAutomation: async (id) => { touched.push({ what: 'getAutomation', args: [id] }); return { ...ROUTINE }; },
-    createAutomation: async (p) => { touched.push({ what: 'createAutomation', args: [p] }); return { ...ROUTINE, ...p }; },
-    updateAutomation: async (id, patch) => { touched.push({ what: 'updateAutomation', args: [id, patch] }); return { ...ROUTINE, ...patch }; },
+    getAutomation: async (id) => { touched.push({ what: 'getAutomation', args: [id] }); return { ...AUTOMATION }; },
+    createAutomation: async (p) => { touched.push({ what: 'createAutomation', args: [p] }); return { ...AUTOMATION, ...p }; },
+    updateAutomation: async (id, patch) => { touched.push({ what: 'updateAutomation', args: [id, patch] }); return { ...AUTOMATION, ...patch }; },
     listFolders: async () => [],
     getFolder: note('getFolder'),
     ensureFormPage: async () => ({ id: 'page1' }),
@@ -111,7 +111,7 @@ async function refuses(request, field) {
 
 test('an event without a provider is refused, not answered with the whole list', async () => {
     // It narrows nothing on its own, and the answer to a narrowing parameter
-    // that narrows nothing used to be every routine the caller owns — which
+    // that narrows nothing used to be every automation the caller owns — which
     // is the failure the provider check exists to prevent, arriving through
     // the other half of the filter.
     const res = await dispatch({ method: 'GET', url: '/?triggerEvent=meeting.processed' });
@@ -126,10 +126,10 @@ test('a query key the route does not read is refused rather than silently ignore
 
 // ═══ POST / ═════════════════════════════════════════════════════════
 
-test('a routine with no title is refused in words, not with "Required"', async () => {
+test('an automation with no title is refused in words, not with "Required"', async () => {
     const res = await dispatch({ method: 'POST', url: '/', body: { definition: {} } });
     assert.strictEqual(res.statusCode, 400);
-    assert.strictEqual(res.body.error, 'A routine needs a title.', 'the caller reads this sentence');
+    assert.strictEqual(res.body.error, 'An automation needs a title.', 'the caller reads this sentence');
     assert.ok(res.body.details.some((d) => d.path === 'body.title'));
     assert.deepStrictEqual(touched, []);
 });
@@ -138,10 +138,10 @@ test('a numeric title is refused by name instead of reaching the store as a numb
     await refuses({ method: 'POST', url: '/', body: { title: 42, definition: {} } }, 'body.title');
 });
 
-test('a routine with no definition is refused in words', async () => {
+test('an automation with no definition is refused in words', async () => {
     const res = await dispatch({ method: 'POST', url: '/', body: { title: 'Weekly' } });
     assert.strictEqual(res.statusCode, 400);
-    assert.strictEqual(res.body.error, 'A routine needs a definition — the flow itself.');
+    assert.strictEqual(res.body.error, 'An automation needs a definition — the flow itself.');
     assert.ok(res.body.details.some((d) => d.path === 'body.definition'));
 });
 
@@ -162,7 +162,7 @@ test('the create defaults live in the schema: manual, Amsterdam, no schedule', a
 // ═══ PUT /:id ═══════════════════════════════════════════════════════
 
 test('a misspelled key is refused rather than unsetting nothing with a 200', async () => {
-    // `folderID` is not `folderId`: the routine stayed where it was and the
+    // `folderID` is not `folderId`: the automation stayed where it was and the
     // person was told the move had worked.
     await refuses({ method: 'PUT', url: '/a1', body: { folderID: 'f1' } }, 'body');
 });
@@ -175,7 +175,7 @@ test('a blank rename is refused rather than stored as an empty title', async () 
     await refuses({ method: 'PUT', url: '/a1', body: { title: '   ' } }, 'body.title');
 });
 
-test('null unfiles a routine; the schema keeps that apart from leaving folderId out', async () => {
+test('null unfiles an automation; the schema keeps that apart from leaving folderId out', async () => {
     const cleared = await dispatch({ method: 'PUT', url: '/a1', body: { folderId: null } });
     assert.strictEqual(cleared.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'updateAutomation').args[1].folderId, null);
@@ -184,7 +184,7 @@ test('null unfiles a routine; the schema keeps that apart from leaving folderId 
     const untouched = await dispatch({ method: 'PUT', url: '/a1', body: { title: 'Weekly' } });
     assert.strictEqual(untouched.statusCode, 200);
     assert.ok(!('folderId' in touched.find((t) => t.what === 'updateAutomation').args[1]),
-        'a rename must not unfile the routine');
+        'a rename must not unfile the automation');
 });
 
 // ═══ PUT /forms/:automationId/audience ══════════════════════════════

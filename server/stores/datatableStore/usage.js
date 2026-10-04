@@ -4,7 +4,7 @@
 /**
  * The dependents index: which CONSUMER touches which table.
  *
- * `automation_datatable_usage` was built for routines and is now the index for
+ * `automation_datatable_usage` was built for automations and is now the index for
  * every kind of consumer — `consumer_kind` says which, and `automation_id` is
  * the generic consumer id. The column keeps its old name on purpose; the
  * header of stores/datatableStore.js explains at length why neither the table
@@ -52,12 +52,12 @@ function normalizeMode(mode) {
  * Delete-then-insert for that `(consumer_kind, consumer id)`, called on every
  * save of the consumer's definition. It is not derived by scanning definitions
  * at read time, because getAutomationsForUser is `WHERE user_id = $1` — nobody
- * can read a colleague's routines to build the index, so it has to be written
+ * can read a colleague's automations to build the index, so it has to be written
  * as they save. Same for apps and webpages.
  *
  * The DELETE is keyed on BOTH columns. Ids of the three kinds never collide in
  * practice (all UUIDs), but "in practice" is not a reason to let an app's save
- * be able to erase a routine's rows.
+ * be able to erase an automation's rows.
  *
  * @param {'automation'|'app'|'webpage'} consumerKind
  * @param {string} consumerId  the automation, studio_apps or webpages id
@@ -70,7 +70,7 @@ function normalizeMode(mode) {
  *   caller, so a single DELETE + one INSERT per entry still covers every scope
  *   in one transaction. A single scope behaves exactly as before.
  * @param {Array<{datatableId:string, stepId:string, mode?:'read'|'write'|'readwrite', columns?:string[]}>} entries
- *   `stepId` is the part of the consumer that touches the table: a routine
+ *   `stepId` is the part of the consumer that touches the table: an automation
  *   step id, an app table id, a webpage block id. Unique within the consumer.
  * @returns {Promise<number>} rows actually written — NOT how many were offered.
  *   The INSERT is guarded on the table existing in `scope`, so a caller with the
@@ -134,8 +134,8 @@ async function reconcileUsageFor(consumerKind, consumerId, scope, entries) {
 }
 
 /**
- * Reconcile which steps of ONE routine touch which tables — the original
- * entry point, kept so every routine save path is unchanged. It IS
+ * Reconcile which steps of ONE automation touch which tables — the original
+ * entry point, kept so every automation save path is unchanged. It IS
  * reconcileUsageFor('automation', …); nothing else.
  */
 async function reconcileUsage(automationId, scope, entries) {
@@ -171,10 +171,10 @@ async function consumerJoins() {
  * Who uses this table — every consumer kind, one query.
  *
  * Per row: the consumer's kind, id, title and owner (joined per kind), the
- * part of it that touches the table, and for a routine step its position and
- * type read from the routine's stored definition plus the routine's last run.
+ * part of it that touches the table, and for an automation step its position and
+ * type read from the automation's stored definition plus the automation's last run.
  * No per-row lookups: the definition rides the JOIN and is walked once per
- * routine, and `automations.last_run_at` is what the runner stamps at the end
+ * automation, and `automations.last_run_at` is what the runner stamps at the end
  * of every live run.
  *
  * The `automationId` / `automationTitle` / `automationOwner` names are kept as
@@ -211,7 +211,7 @@ async function listUsage(datatableId) {
           ORDER BY u.updated_at DESC`,
         [datatableId],
     );
-    // Walked once per routine, not once per row: a routine with four datatable
+    // Walked once per automation, not once per row: an automation with four datatable
     // steps rides the JOIN four times but is only parsed once.
     const positionsByAutomation = new Map();
     const positionsFor = (automationId, definition) => {

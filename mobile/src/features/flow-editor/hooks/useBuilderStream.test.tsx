@@ -2,7 +2,7 @@
  * "Ask AI" wired into the draft store, over a fake stream: the draft is saved
  * before the turn, the store is locked while it streams, the AI's drafts
  * replace the definition without being sent back, its findings become the
- * builder's, and the transcript grows by the turn. A turn on a routine that
+ * builder's, and the transcript grows by the turn. A turn on an automation that
  * does not exist yet hands over the id the server created.
  */
 
@@ -135,7 +135,7 @@ it('saves first, locks while streaming, adopts the AI drafts and grows the trans
     await unmount();
 });
 
-it('a turn on a new routine hands over the id the server created', async () => {
+it('a turn on a new automation hands over the id the server created', async () => {
     const { wrapper } = setup();
     const finish = feed([{ event: 'builder_session', data: { builderSessionId: 'bs1', automationId: 'made-by-ai' } }]);
     const onCreated = jest.fn();

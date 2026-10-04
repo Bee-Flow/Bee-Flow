@@ -1,6 +1,6 @@
 /**
  * Export and import, on the device: the export is written as a JSON FILE and
- * handed to Android's share sheet (a routine pasted into a chat app is
+ * handed to Android's share sheet (an automation pasted into a chat app is
  * truncated by half of them; with no share target it goes to the clipboard),
  * and an import is a file picked with the document picker, read, and sent to
  * POST /import — which makes a NEW inactive draft with fresh step ids.
@@ -29,7 +29,7 @@ function writeExport(name: string, text: string): File {
     return file;
 }
 
-/** Export this routine and share the file; resolves with the export's warnings (what was left out). */
+/** Export this automation and share the file; resolves with the export's warnings (what was left out). */
 export function useShareExport(flowKey: string, title: string) {
     const t = useTranslation();
     const { toast } = useToast();
@@ -47,7 +47,7 @@ export function useShareExport(flowKey: string, title: string) {
                 await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: title, UTI: 'public.json' });
             } else {
                 await Clipboard.setStringAsync(text);
-                toast(t('mobile.flow.settings.export_copied', 'Copied the routine to the clipboard'), 'success');
+                toast(t('mobile.flow.settings.export_copied', 'Copied the automation to the clipboard'), 'success');
             }
             return result.warnings;
         } catch (err) {
@@ -58,7 +58,7 @@ export function useShareExport(flowKey: string, title: string) {
     return { share, busy: exporter.isPending };
 }
 
-/** Pick a routine file and import it as a new draft; `onImported` gets the result. */
+/** Pick an automation file and import it as a new draft; `onImported` gets the result. */
 export function usePickImport(onImported: (result: SaveResult) => void) {
     const t = useTranslation();
     const { toast } = useToast();
@@ -76,7 +76,7 @@ export function usePickImport(onImported: (result: SaveResult) => void) {
         }
         const parsed = parseImportFile(text);
         if (!parsed.ok) {
-            toast(t('mobile.flow.settings.import_not_routine', 'That file is not an exported routine.'), 'error');
+            toast(t('mobile.flow.settings.import_not_automation', 'That file is not an exported automation.'), 'error');
             return;
         }
         importer.mutate(parsed.envelope);

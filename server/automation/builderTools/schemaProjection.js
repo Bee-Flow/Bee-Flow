@@ -103,7 +103,7 @@ const SHARED_PARAMS = Object.freeze({
 // The one sentence on builder_set_metadata is the same on BOTH variants (the
 // full text lives in schemas.js); it is repeated here so the projection is
 // self-contained and a test can pin the two against each other.
-const SET_METADATA_DESCRIPTION = 'Name the routine. REQUIRED once per new draft — in your FIRST reply, bundled with the trigger call: title ≤ 60 chars, in the user\'s language, saying what the routine does ("Facturen uit /Invoices naar tabel Facturen"); description = one sentence. When the request states a title, use it verbatim. Call again to rename.';
+const SET_METADATA_DESCRIPTION = 'Name the automation. REQUIRED once per new draft — in your FIRST reply, bundled with the trigger call: title ≤ 60 chars, in the user\'s language, saying what the automation does ("Facturen uit /Invoices naar tabel Facturen"); description = one sentence. When the request states a title, use it verbatim. Call again to rename.';
 
 /**
  * Per-tool description and property overrides. `props` entries merge into
@@ -315,12 +315,12 @@ const LEAN = Object.freeze({
         },
     },
     builder_finalize: {
-        description: 'Save the routine as finished (still inactive until the user activates it). Only after a clean dry run, and only when builder_set_metadata has named it.',
+        description: 'Save the automation as finished (still inactive until the user activates it). Only after a clean dry run, and only when builder_set_metadata has named it.',
     },
     builder_set_metadata: {
         description: SET_METADATA_DESCRIPTION,
         props: {
-            title: { description: '≤ 60 chars, the user\'s language, what the routine does.' },
+            title: { description: '≤ 60 chars, the user\'s language, what the automation does.' },
             description: { description: 'One sentence.' },
         },
     },

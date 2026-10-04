@@ -40,7 +40,7 @@
  * ── What never travels ────────────────────────────────────────────────────
  *
  * The scrub list is shared (projects/packaging/scrub.js), so what a Blueprint
- * refuses to carry an app template refuses to carry too: routine ids, approver
+ * refuses to carry an app template refuses to carry too: automation ids, approver
  * seats, knowledge-base references. On top of that this module drops the two
  * key classes manifest.js calls never-installable — an integration call's
  * `fixedArgs` and any `ai.public*` flag — by calling its function rather than
@@ -136,7 +136,7 @@ function exportFilename(template) {
  * a built-in by review, a captured one by templateCapture. It costs one walk
  * and it closes the window where a template was written by an older build, or
  * by a path that gains a reference next year. What it clears is reported, not
- * swallowed: the person exporting learns their template referenced a routine
+ * swallowed: the person exporting learns their template referenced an automation
  * that the recipient will have to wire up.
  */
 function buildExport(template, { exportedAt = null, source = null } = {}) {
@@ -169,7 +169,7 @@ function buildExport(template, { exportedAt = null, source = null } = {}) {
         const automations = report.filter((r) => r.rule === RULES.APP_AUTOMATION_REFERENCE).length;
         const seats = report.filter((r) => r.rule === RULES.APP_APPROVER_IDENTITY).length;
         const bases = report.filter((r) => r.rule === RULES.APP_KNOWLEDGE_BASE_REFERENCE).length;
-        if (automations) warnings.push(`${automations} routine reference(s) removed — whoever installs this connects their own.`);
+        if (automations) warnings.push(`${automations} automation reference(s) removed — whoever installs this connects their own.`);
         if (seats) warnings.push(`${seats} approver seat(s) removed: a seat names a real person in this organisation.`);
         if (bases) warnings.push(`${bases} knowledge-base reference(s) removed: they name internal resources of this organisation.`);
     }

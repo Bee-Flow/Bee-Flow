@@ -760,7 +760,7 @@ export default function useAppBuilderStream({
 }
 
 /**
- * The live turn record the waiting card reads. Same contract as the routine
+ * The live turn record the waiting card reads. Same contract as the automation
  * builder's (useAutomationBuilderStream openTurn) so BuilderWaitingCard and
  * timeToFirstToken serve both: sentAt/sessionAt/pings/modelId for the
  * milestones, roundStartedAt/promptChars/progress for the reading bar,

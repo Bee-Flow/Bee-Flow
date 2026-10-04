@@ -27,7 +27,7 @@ function recordsLabel(n: number): string {
 }
 
 function itemsLabel(n: number): string {
-    return n === 1 ? t('mobile.flow.summary.one_item', '1 item') : t('routines.canvas.result.items', '{n} items', { n });
+    return n === 1 ? t('mobile.flow.summary.one_item', '1 item') : t('automations.canvas.result.items', '{n} items', { n });
 }
 
 /** Is every element (that we sampled) an object? Then it reads as records. */
@@ -94,7 +94,7 @@ export function summariseData(value: unknown): DataSummary | null {
             kind: 'text',
             label: value.length > LONG_TEXT
                 ? t('mobile.flow.summary.long_text', 'text · {n} characters', { n: value.length })
-                : t('routines.kind.text', 'text'),
+                : t('automations.kind.text', 'text'),
         };
     }
     return { count: 1, kind: 'value', label: t('mobile.flow.summary.one_value', '1 value') };

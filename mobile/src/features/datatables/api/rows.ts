@@ -8,7 +8,7 @@
  * access predicate in regardless. The list query is `.strict()`, so only
  * those and `limit`/`cursor` are ever sent. `cursor` is the keyset token the
  * previous page returned — not an offset, which both skips and repeats rows
- * on a table two routines are writing to.
+ * on a table two automations are writing to.
  */
 
 import { api, type QueryParams } from '@/core/api/client';

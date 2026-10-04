@@ -1,5 +1,5 @@
 /**
- * The pending count of the open routine: how many structural versions the
+ * The pending count of the open automation: how many structural versions the
  * working copy is ahead of the live one (handoff 5).
  *
  * The row carries it when it comes from a read (GET /:id) or a publish, but
@@ -10,7 +10,7 @@
  * autosave never blinks the count away while the new one is on its way.
  *
  * Nothing is read from a server without the live split (no `liveVersion` on
- * the row) or for a routine that never went live.
+ * the row) or for an automation that never went live.
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';

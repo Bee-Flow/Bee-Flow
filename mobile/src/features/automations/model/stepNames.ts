@@ -5,13 +5,13 @@
  * run read "integration_action · 1.2s", "knowledge_write", "stop_error". Those
  * are the engine's own identifiers — the same machine vocabulary the web
  * builder spent a release getting off its canvas — and they are the only
- * description of a step a phone shows at all. Someone checking on a routine
+ * description of a step a phone shows at all. Someone checking on an automation
  * from their phone got a column of snake_case tokens where the browser, on the
  * very same run, says "Action", "To knowledge base", "Stop".
  *
  * The names here are WEB'S names, copied deliberately rather than invented:
  * nodeDefs.js `typeLabel` in agent-hub. One run must not read as two different
- * routines depending on which screen you opened it on, and a second
+ * automations depending on which screen you opened it on, and a second
  * vocabulary invented here would be exactly that. stepLockstep.test.ts is what
  * keeps this list answerable to the server's own step-type registry — adding a
  * step type on the server fails that test until a person decides what the

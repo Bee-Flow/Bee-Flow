@@ -27,9 +27,10 @@ export interface DlpMark {
 }
 
 /**
- * The server no longer holds the question. decisionQueue.js keeps one for
- * about 60 seconds and treats silence as a block (fail-closed), so by the
- * time this is thrown nothing was sent — whatever the person chose.
+ * The server no longer holds the question. decisionQueue.js expires one
+ * after ten minutes of silence — the open review heartbeats against that —
+ * and treats silence as a block (fail-closed), so by the time this is thrown
+ * nothing was sent — whatever the person chose.
  */
 export class DlpQuestionExpired extends Error {
     constructor() {

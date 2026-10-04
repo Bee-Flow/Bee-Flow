@@ -20,9 +20,18 @@
  *   403 — a grade, but too low. Say which, and offer the person the ask.
  *   409 — someone else changed the columns while this editor was open.
  *   402 — sharing is the paid boundary; reading and writing rows never is.
+ *
+ * A table a Solution stage manages answers 409 `managed_part` to the columns,
+ * its settings, its delete and (a reference table's) every row write. That 409
+ * is NOT the column-conflict one above: the error then carries `.managed`
+ * (the ManagedPartBanner's input, managedPart.fromError) beside the server's
+ * own sentence, and a caller tells the two apart by `.managed`, never by the
+ * status alone. The table's own `managed` is on the GET: `{ datatable: {
+ * managed } }` (managedPart.managedOf reads it).
  */
 
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { fromError } from '../../../shared/managedPart';
 
 const base = `${API_BASE}/api/datatables`;
 const enc = encodeURIComponent;
@@ -39,6 +48,8 @@ async function request(url, options = {}) {
         err.status = res.status;
         err.code = body?.code || null;
         err.body = body;
+        const managed = fromError(body);
+        if (managed) err.managed = managed;
         throw err;
     }
     return body;
@@ -106,9 +117,9 @@ export const datatablesApi = {
      */
     repair: (id) => request(`${base}/${enc(id)}/repair`, { method: 'POST' }),
     /**
-     * The server refuses (409 `in_use`) when routines still name this table,
+     * The server refuses (409 `in_use`) when automations still name this table,
      * unless the caller confirms. Pass `{confirmBreaking:true}` only from a
-     * surface that has SHOWN the person which routines break — DangerZone lists
+     * surface that has SHOWN the person which automations break — DangerZone lists
      * them and makes you type the table name first. On the query string, not a
      * body: a DELETE with a body is dropped by enough proxies to be a bad place
      * for a confirmation.
@@ -119,7 +130,7 @@ export const datatablesApi = {
     // Columns. The read hands back `modelVersion`; send it back on the write
     // and a concurrent edit comes back as a 409 instead of silently winning.
     // `confirmBreaking` answers the OTHER 409 (`breaking_change`): a column a
-    // routine still reads. Two different 409 codes, and the caller must tell
+    // automation still reads. Two different 409 codes, and the caller must tell
     // them apart — one means reload, the other means ask.
     getSchema: (id) => request(`${base}/${enc(id)}/schema`),
     putSchema: (id, fields, expectedVersion, { confirmBreaking = false } = {}) => request(`${base}/${enc(id)}/schema`, {
@@ -136,7 +147,7 @@ export const datatablesApi = {
     // still no way to express SQL from here, and there never will be.
     //
     // `cursor` is the keyset token the PREVIOUS page returned as `nextCursor`.
-    // Not an offset: on a table two routines are writing to, an offset both
+    // Not an offset: on a table two automations are writing to, an offset both
     // skips and repeats rows between pages.
     listRows: (id, { limit = 50, cursor = null, filters = null, match = null, sort = null, dir = null, q = null } = {}) => {
         const qs = new URLSearchParams();
@@ -191,7 +202,7 @@ export const datatablesApi = {
      *
      * Fetched rather than linked. An `<a href download>` pointing at the API
      * would carry no auth header, and on this stack a same-origin download link
-     * navigates the SPA away from itself — the routines library learned that the
+     * navigates the SPA away from itself — the automations library learned that the
      * hard way. The caller turns the text into a Blob and revokes the URL.
      */
     exportCsv: async (id) => {
@@ -227,7 +238,7 @@ export const datatablesApi = {
     }),
     removeGrant: (id, grantId) => request(`${base}/${enc(id)}/grants/${enc(grantId)}`, { method: 'DELETE' }),
 
-    /** Which routines read or write this table — the answer before a delete. */
+    /** Which automations read or write this table — the answer before a delete. */
     listUsage: (id) => request(`${base}/${enc(id)}/usage`),
 
     // A table that MIRRORS a Nextcloud Tables table (server/core/dataEngine/

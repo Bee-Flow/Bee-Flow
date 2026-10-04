@@ -22,7 +22,7 @@ const dataModel = require('./dataModel');
 const OWNER = 'owner-1';
 const ORG = 'org-1';
 const app = { id: 'app-1', userId: OWNER, organizationId: ORG };
-const OWNER_SESSION = { user: { id: OWNER, organizationId: ORG }, isAdmin: false, routineProviders: {} };
+const OWNER_SESSION = { user: { id: OWNER, organizationId: ORG }, isAdmin: false, automationProviders: {} };
 
 // A recording executeTool built from a { toolName: handler } map.
 function stubTools(handlers) {

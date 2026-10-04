@@ -8,11 +8,11 @@ import { StepBadge, TimelineRail } from '../../../../chat/MessageItem/timelinePa
  * of automation/Builder/chat/BuilderActivity.jsx.
  *
  * Same furniture on purpose (StepBadge, TimelineRail, the entrance animation,
- * a `<details>` per call): the routine builder one tab over shows its build as
+ * a `<details>` per call): the automation builder one tab over shows its build as
  * this timeline, and two lists with different bolletjes read as two kinds of
  * evidence for one stream. What differs is the tile: a component's own
  * palette icon (the same glyph the ribbon and the canvas cell carry) tinted
- * with the editor accent, instead of the routine's step-family colours.
+ * with the editor accent, instead of the automation's step-family colours.
  *
  * A batch (app_add_components) is one row with one compact line per landed
  * component — the same cards the canvas is revealing one at a time to the

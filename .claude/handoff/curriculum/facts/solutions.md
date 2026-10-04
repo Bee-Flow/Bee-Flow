@@ -20,7 +20,7 @@ Source of truth read for this sheet:
 ## 1. What the feature is for
 
 A **Solution** is not a new database object. It is a **project seen as the thing it bundles**: the
-routines, apps, webpages, tables, agents, knowledge bases and approvals that work together, plus the
+automations, apps, webpages, tables, agents, knowledge bases and approvals that work together, plus the
 wiring between them. Studio → Solutions is the **builder's** view of that project. The same project's
 *collaboration* side (chats, members, memory) stays on `/app/projects`, which is where the people who
 *use* the Solution live.
@@ -46,7 +46,7 @@ not an implementation detail — several UI strings exist only to say it out lou
 ## 2. Where it lives / how you get there
 
 - Left sidebar → **Studio** → rail row **Solutions** (label key `studio.tab.solutions`, description
-  "Bundle routines, apps and webpages into one installable Solution", icon `Boxes`, category `bundle`,
+  "Bundle automations, apps and webpages into one installable Solution", icon `Boxes`, category `bundle`,
   kind colour `solution`).
 - URL: `/app/studio/solutions` (overview) and `/app/studio/solutions/<projectId>` (one Solution).
 - The Studio "New" menu offers **Solution** (`studio.new.solution`), which navigates to
@@ -63,7 +63,7 @@ not an implementation detail — several UI strings exist only to say it out lou
 | Element | Real string |
 |---|---|
 | Heading | **Solutions** |
-| Intro | "A Solution bundles routines, apps and webpages that work together — and packages as a Blueprint you can install elsewhere." |
+| Intro | "A Solution bundles automations, apps and webpages that work together — and packages as a Blueprint you can install elsewhere." |
 | Name field placeholder | "Name the Solution…" |
 | Create button | **New Solution** (`data-testid="solutions-create"`) |
 | Install button | **Install a Blueprint** (file picker, `.json` only) |
@@ -96,7 +96,7 @@ run line · update chip.
   **Could not be fully read** (title: "Part of this Solution could not be read, so how much needs
   fixing is not known."), **Complete**, **Not checked** (title: "The checks did not run for this
   Solution, so this is not a clean bill of health.").
-- Count chips (7 counted kinds, `COUNTED_SECTIONS`): routines, apps, pages, tables, agents,
+- Count chips (7 counted kinds, `COUNTED_SECTIONS`): automations, apps, pages, tables, agents,
   knowledge bases, notebooks. `approvals` is deliberately **not** counted (an approval listing is
   viewer-scoped; a count would leak how many decisions you may not see).
 - Partial counts: "Not everything could be counted: {sections}".
@@ -122,7 +122,7 @@ run line · update chip.
 ### 3.4 Content tab (`SolutionContentTable.jsx`)
 Three grouped bands:
 - **People use** → apps, webpages
-- **Work happens** → routines, approvals
+- **Work happens** → automations, approvals
 - **Knowledge & data** → tables, agents, knowledge bases, notebooks
 
 Per row: name, sub-badges **live** / **paused** / **draft** / **public form** / **public**,
@@ -169,9 +169,9 @@ Per changed entity, one AI-written sentence where it exists, else
   "{kind} outside this Solution ({id})".
 - Button **Package this Solution**; checkbox "Also keep it on this instance, so colleagues can
   install it without a file" (forced ON in publish mode); **Download** button afterwards.
-- Result line: "{n} routines · {n} apps · {n} webpages".
+- Result line: "{n} automations · {n} apps · {n} webpages".
 - "What this Blueprint does not carry" — the warnings list. This is the point of the screen.
-- Intro: "A Blueprint is this Solution written down — its routines, apps and webpages, and the links
+- Intro: "A Blueprint is this Solution written down — its automations, apps and webpages, and the links
   between them — so it can be installed somewhere else. Decisions, credentials and people never
   travel with it."
 - Refusals: "Only the project owner can package it." / "Packaging a Solution is part of the {required}
@@ -207,7 +207,7 @@ Modal title **Install a Blueprint**, subtitle "{step}/3 · {title}". Footer note
   - "\"{page}\" asks to let anonymous visitors spend your AI budget." + "It asks for up to ${cap} a
     day. Installing never switches this on — open the page and decide there." (shown, never offered:
     no REST route can switch public AI on)
-  - "\"{page}\" wants to run a routine that is not in this file."
+  - "\"{page}\" wants to run an automation that is not in this file."
 - Every picker that fails: "That list could not be loaded, so what you can choose from here is not
   the whole picture."
 
@@ -249,7 +249,7 @@ Modal title **Install a Blueprint**, subtitle "{step}/3 · {title}". Footer note
 
 ## 4. Concepts a learner must understand
 
-- **Solution** — a project viewed as a bundle of routines, apps, webpages, tables, agents, knowledge
+- **Solution** — a project viewed as a bundle of automations, apps, webpages, tables, agents, knowledge
   bases, notebooks and approvals. Studio → Solutions is its builder view; `/app/projects` is its
   collaboration view. Same row in the database.
 - **Blueprint** — a Solution written down as JSON: the entities and the links between them, with
@@ -261,7 +261,7 @@ Modal title **Install a Blueprint**, subtitle "{step}/3 · {title}". Footer note
 - **Catalogue** — the gallery of Blueprints on this instance, scoped to your organisation (plus
   personal ones you created). Not a Bee Flow-wide store.
 - **The Check (completeness)** — an aggregator that runs four existing validators (App Studio,
-  routines, project graph, knowledge bases) over the members of one Solution and returns one list of
+  automations, project graph, knowledge bases) over the members of one Solution and returns one list of
   findings plus a single verdict, `blocked`. It is the publish gate.
 - **`blocked` / `complete`** — `complete: false` means part of the Solution could not be read;
   **unknown blocks**, so a failed read disables Publish just as a real error does.
@@ -294,7 +294,7 @@ Modal title **Install a Blueprint**, subtitle "{step}/3 · {title}". Footer note
 1. Left sidebar → **Studio** → **Solutions**.
 2. Type a name in "Name the Solution…" and press **New Solution**. (It is created with icon `📦`.)
 3. The Solution opens on the **Content** tab. Use "Add existing" → "Choose a kind…" to file in your
-   existing routines, apps, webpages, tables, agents and knowledge bases. (You can only file in items
+   existing automations, apps, webpages, tables, agents and knowledge bases. (You can only file in items
    **you own**; you need editor+ on the Solution.)
 4. Open the **Check** tab. Fix everything under "Has to be fixed first" using **Show me**, which deep-links
    to the builder screen for that object (`/app/studio/apps/<id>`, `/app/studio/automations/<id>`, …).
@@ -317,7 +317,7 @@ Modal title **Install a Blueprint**, subtitle "{step}/3 · {title}". Footer note
 5. Step **3/3 · Who can reach it**: add people or groups with **Can view** / **Can edit**. Press **Install**.
 6. Step **Installed**: read "Not installed: …", the warnings, and "Still to grant, on the pages
    themselves". Press **Open it**.
-7. The new Solution opens. **Everything arrives as a draft** — routines are inactive drafts, webpages
+7. The new Solution opens. **Everything arrives as a draft** — automations are inactive drafts, webpages
    are unpublished. Activate what you want, by hand.
 
 ### W3 — Install from a file someone e-mailed you
@@ -369,7 +369,7 @@ Modal title **Install a Blueprint**, subtitle "{step}/3 · {title}". Footer note
 | "Keep it on this instance" default | **off** for Export, **forced on** for Publish | `ProjectBlueprintTab` |
 | App table data in a Blueprint | **opt-in per table, default none** | `capture.js` |
 | Webpage `data.db` | **never exported** | `capture.js` |
-| Installed routines | `is_active = FALSE`, `is_draft = TRUE` | `install.js` |
+| Installed automations | `is_active = FALSE`, `is_draft = TRUE` | `install.js` |
 | Installed webpages | unpublished | `install.js` |
 | Public AI on an installed page | **off**, whatever the file says | `install.js` |
 | Integration grants on an installed page | **empty, always** | `install.js` |
@@ -434,7 +434,7 @@ Modal title **Install a Blueprint**, subtitle "{step}/3 · {title}". Footer note
 | Export / Publish, releases, installs, upgrade plan + apply, share/unshare, delete | **owner** |
 | Install a Blueprint (creates a project) | any authed user with the licence |
 
-Why owner for export: "Export reads EVERY member of the project, including apps and routines
+Why owner for export: "Export reads EVERY member of the project, including apps and automations
 belonging to other members. Editor is not enough for that."
 
 ### Org roles (`server/config/orgRoles.json`)
@@ -454,7 +454,7 @@ role, not an org role. Do not teach a `manage_solutions` permission; it does not
 
 ## 9. How Solutions connects to the rest of the product
 
-- **Routines / App Studio / Webpages / Datatables / Agents / Knowledge Studio / Meeting notes** —
+- **Automations / App Studio / Webpages / Datatables / Agents / Knowledge Studio / Meeting notes** —
   these are the *members* of a Solution. Solutions does not edit them; every "Show me" and every row
   click deep-links out to the object's own builder screen.
 - **Approvals** — filed into a Solution and shown on the Content tab, but never counted (viewer-scoped)
@@ -479,7 +479,7 @@ role, not an org role. Do not teach a `manage_solutions` permission; it does not
 1. **Expecting a Blueprint to carry data.** It does not. Tables travel as *shapes* — no rows, no
    grants. Knowledge bases travel as empty shells. A webpage's database is never exported. App table
    data is opt-in and off by default.
-2. **Expecting it to arrive running.** Everything arrives as a draft: routines inactive, pages
+2. **Expecting it to arrive running.** Everything arrives as a draft: automations inactive, pages
    unpublished, public AI off, integration grants empty. Learners who install and then wait for a
    schedule to fire will wait forever.
 3. **Reading "Not checked" as "fine".** Only "Complete" — reachable exclusively from a whole, successful
@@ -494,7 +494,7 @@ role, not an org role. Do not teach a `manage_solutions` permission; it does not
 8. **Expecting the version chip always to appear.** It hides when two different people have published
    the same project, because there is then no single "the version".
 9. **Expecting an upgrade to remove things.** Nothing is ever deleted, and tables/knowledge bases are
-   never replaced — only added. A dropped routine stays behind.
+   never replaced — only added. A dropped automation stays behind.
 10. **Reading the Installs numbers as exact.** They are a lower bound on *this instance only*.
 11. **Confusing Studio → Solutions with /app/projects.** Same entity, two audiences. Members are only
     changeable on the project page.
@@ -509,12 +509,12 @@ role, not an org role. Do not teach a `manage_solutions` permission; it does not
 ## 11. Three scenarios for "Van Dijk Groep" (Dutch SME)
 
 ### 11.1 Procurement — "Inkoopfacturen Q3"
-Van Dijk Groep's finance lead builds a Solution called **Inkoopfacturen**: a routine that reads the
+Van Dijk Groep's finance lead builds a Solution called **Inkoopfacturen**: an automation that reads the
 purchasing mailbox, a `data_extraction` step that pulls supplier, invoice number and amount, a
 datatable keyed `inkoopfacturen`, an approval step for anything above €2 500, and a small App Studio
 screen for the controller.
 - She files all five into the Solution on the **Content** tab.
-- **Check** flags "Worth a look" on the routine because it is still a draft, and "Has to be fixed
+- **Check** flags "Worth a look" on the automation because it is still a draft, and "Has to be fixed
   first" on the app because a button is wired to nothing. She fixes the button via **Show me**.
 - She presses **Publish**; the dialog says whoever installs it has to supply *a table for
   "inkoopfacturen" · step 6 · in Factuurintake* and *someone to approve · step 9*.
@@ -526,7 +526,7 @@ screen for the controller.
   stayed behind. Only the *shape* travelled.
 
 ### 11.2 HR — "Onboarding nieuwe medewerker"
-HR builds a Solution with a public webpage (the intake form), a routine that creates the account
+HR builds a Solution with a public webpage (the intake form), an automation that creates the account
 request and books the laptop, a knowledge base *Personeelshandboek*, and an agent that answers new
 starters' questions.
 - **Check** reports: *"Personeelshandboek" is used for answers but holds no documents, so anything
@@ -541,7 +541,7 @@ starters' questions.
   you make on the page, never something an install hands over.
 
 ### 11.3 Sales — "Offertemotor", and version 2
-Sales builds **Offertemotor**: a routine that turns a filled-in form into a PDF quote, a datatable
+Sales builds **Offertemotor**: an automation that turns a filled-in form into a PDF quote, a datatable
 `offertes`, an approval step for discounts over 10 %, and a customer-facing webpage.
 - They publish v1 and the operations team installs it in their own project.
 - Three weeks later sales adds a `generate_document` step and a second approval tier, and publishes
@@ -549,7 +549,7 @@ Sales builds **Offertemotor**: a routine that turns a filled-in form into a PDF 
   each.
 - Operations sees the banner "Version 2 of the Blueprint this Solution came from is available. You
   have version 1." and presses **See what would change**:
-  - *1 thing is replaced by the new version* — the quote routine ("You have not touched these since
+  - *1 thing is replaced by the new version* — the quote automation ("You have not touched these since
     you installed them.")
   - *1 thing you changed stays as it is* — the webpage, which they restyled in Van Dijk house style.
   - *1 thing stays as it is* — the `offertes` table, never rewritten because it holds live data.

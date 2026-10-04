@@ -3,7 +3,7 @@
  * agent-hub/src/components/admin/Studio/Runs/nowRunning.js, pinned to it by
  * nowRunning.lockstep.test.ts (both run on the same facets).
  *
- * One line per routine that ran in the window, drawn from the facets'
+ * One line per automation that ran in the window, drawn from the facets'
  * `automations` rollup rather than from the list below it: the list shows one
  * page, the strip is a claim about the whole window.
  *
@@ -69,7 +69,7 @@ function titleOf(rollup: RunRollup): string | null {
 
 /**
  * One rollup, one line. The tone is the most urgent thing in the window, not
- * the most recent: a routine that failed this morning and succeeded since is
+ * the most recent: an automation that failed this morning and succeeded since is
  * still one somebody should look at.
  */
 export function toLine(rollup: RunRollup): NowRunningLine {
@@ -94,8 +94,8 @@ export function toLine(rollup: RunRollup): NowRunningLine {
 
 /**
  * The strip, or null when the rollup could not be read. `hidden` counts the
- * routines that did not fit, including the ones past the server's own cap
- * (`automationsTotal`), so "3 routines" never stands in for "3 of 40".
+ * automations that did not fit, including the ones past the server's own cap
+ * (`automationsTotal`), so "3 automations" never stands in for "3 of 40".
  */
 export function nowRunningLines(
     facets: RunFacets | null | undefined,

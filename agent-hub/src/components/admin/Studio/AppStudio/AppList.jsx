@@ -342,7 +342,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
  * Hand the browser a file to save.
  *
  * A blob URL and a real anchor, revoked on the next tick. An `<a href="#"
- * download>` does nothing at all in a SPA — the routines library learned that
+ * download>` does nothing at all in a SPA — the automations library learned that
  * one the slow way — and a data: URL breaks on anything of size.
  */
 function saveJsonFile(filename, data) {
@@ -812,9 +812,9 @@ function NewAppModal({ open, onClose, onCreated }) {
     /**
      * Write a gallery template out to a file.
      *
-     * The server's warnings are shown rather than swallowed: "3 routine
+     * The server's warnings are shown rather than swallowed: "3 automation
      * references removed" is the difference between a recipient who knows to
-     * wire their own routine and one who finds out when a button does nothing.
+     * wire their own automation and one who finds out when a button does nothing.
      */
     const exportTemplate = useCallback(async (tpl) => {
         if (exportingTemplateId) return;
@@ -1125,7 +1125,7 @@ export default function AppList({ onOpen }) {
                     <EmptyState
                         icon={<LayoutGrid className="w-12 h-12" />}
                         title="Build your first app"
-                        description="Turn a routine into a small internal tool — a form, a dashboard, a tracker — without writing code. Describe what you need and the AI can build it for you."
+                        description="Turn an automation into a small internal tool — a form, a dashboard, a tracker — without writing code. Describe what you need and the AI can build it for you."
                         action={{
                             label: 'New app',
                             onClick: () => setShowCreate(true),

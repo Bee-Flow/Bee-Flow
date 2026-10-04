@@ -19,23 +19,23 @@ Key source files
   vocabulary: `server/core/dataEngine/dataModel/vocabulary.js`;
   managed kinds: `server/core/dataEngine/dataModel/managedTables.js`;
   retention sweep: `server/jobs/datatableRetention.js`;
-  routine step: `server/core/automationRunner/execDatatable.js`
+  automation step: `server/core/automationRunner/execDatatable.js`
 
 ---
 
 ## 1. What the feature is for
 
-A **datatable** is a table of rows that lives **outside** any single routine or app and
+A **datatable** is a table of rows that lives **outside** any single automation or app and
 **outlives the run that wrote it**. The section intro says it plainly:
 
 > "Rows that stay put after a run ends. An automation can read back what an earlier run
 > wrote, and other automations can use the same table."
 
-Rail description: *"Rows your routines keep between runs"*.
+Rail description: *"Rows your automations keep between runs"*.
 
 Three things make it different from an App Studio table:
 1. It is **shared org data** with its own sharing model and its own "Used by" list —
-   which routines, apps, web pages and knowledge bases depend on it.
+   which automations, apps, web pages and knowledge bases depend on it.
 2. It carries a **GDPR Art. 30 processing purpose** (the description is mandatory),
    a lawful basis, a subject column and a **retention window** that a nightly job enforces.
 3. It can be a **mirror** of an external source: a Nextcloud Tables table/view, or one
@@ -52,7 +52,7 @@ name with `400 {code:'sql_not_accepted'}` — "Datatables are queried with filte
 ## 2. Screens, with their real labels
 
 ### 2.1 Studio rail → "Datatables"
-- Rail label `studio.tab.datatables` = **"Datatables"**, description **"Rows your routines keep between runs"**, icon `Table2`, category *build*.
+- Rail label `studio.tab.datatables` = **"Datatables"**, description **"Rows your automations keep between runs"**, icon `Table2`, category *build*.
 - New-menu entry label: **"Table"** (`studio.new.datatable`) → route `studio/datatables/new`.
 - URL: `/app/studio/datatables`, `/app/studio/datatables/<id>`, `/app/studio/datatables/<id>/<tab>`.
 
@@ -136,7 +136,7 @@ Under the bar: the description, then `6 columns · 412 rows`.
 **"Unlink this table…"**.
 
 Delete dialog: **"Delete this table"** (or **"Unlink this table"**). You must type the table
-name (`requireName`) and it lists the routines that break. Extra notices:
+name (`requireName`) and it lists the automations that break. Extra notices:
 - form answers: *"This table holds the answers to a form. Deleting it deletes every answer;
   the form stays and stops collecting."*
 - managed: *"Rows here hold what a third-party service answered, in plain text, readable and
@@ -296,7 +296,7 @@ Nothing is stored by the AI route — the draft only fills the unsaved form.
 
 ## 3. Concepts a learner must understand
 
-- **Datatable** — a named table of rows in the workspace that outlives any run; routines,
+- **Datatable** — a named table of rows in the workspace that outlives any run; automations,
   apps, web pages and knowledge bases can all read and write it.
 - **Scope (organisation vs personal)** — a table belongs either to the organisation or to one
   account. A *personal* table is deny-by-default: it grades `owner` for its account and
@@ -321,7 +321,7 @@ Nothing is stored by the AI route — the draft only fills the unsaved form.
   `org_id`. A column key may not collide with them.
 - **Model version** — the columns are one optimistic-locked document per scope. `GET /schema`
   returns `modelVersion`; `PUT /schema` must send it back as `expectedVersion` or it is a 400.
-- **Breaking change** — dropping a column (or the table) that a routine still names. The
+- **Breaking change** — dropping a column (or the table) that an automation still names. The
   server answers `409 {code:'breaking_change', breaking:[…]}` / `409 {code:'in_use', usage}`
   until the caller confirms (`confirmBreaking`).
 - **Retention window** — `retentionDays` + `retentionField`. A nightly sweep deletes rows
@@ -336,7 +336,7 @@ Nothing is stored by the AI route — the draft only fills the unsaved form.
 - **Used by (usage index)** — the recorded consumers of the table and of each column; it is
   what the destructive dialogs read.
 - **Keyset cursor** — row paging uses `nextCursor`, not an offset, so pages do not skip or
-  repeat while a routine writes.
+  repeat while an automation writes.
 
 ---
 
@@ -355,14 +355,14 @@ Nothing is stored by the AI route — the draft only fills the unsaved form.
 9. Open the **"Rows"** tab → **"Add a row"** → fill the cells → **"Add row"**.
 10. Use **"Import"** to paste a block from Excel, or **"Export CSV"** to take it out again.
 
-### W2 — Add a column safely to a table routines already use
+### W2 — Add a column safely to a table automations already use
 1. Open the table → **"Columns"** tab.
 2. Click **"Add a column"**, type its name, pick the **Kind** (for "One of a list" also fill
    the options box).
 3. Drag the handle to put it in the right order.
 4. Click **"Save columns"** → note **"Columns saved."**
 5. If you also REMOVED or RETYPED a column, the dialog **"This throws away data"** appears and
-   names the rows and the routines it costs; confirm only after checking the **"Used by"** tab.
+   names the rows and the automations it costs; confirm only after checking the **"Used by"** tab.
 6. If a colleague saved in the meantime you get *"Someone else changed these columns while you
    were editing…"* — reload and redo your change.
 
@@ -385,7 +385,7 @@ Nothing is stored by the AI route — the draft only fills the unsaved form.
    without it you get *"Pick the date column the age is measured from."*
 4. Read back the state line: **"Rows are deleted 30 days after their created_at."**
 5. Check **"About to expire"** to see how many rows go in the next 7 days.
-6. Remember the caveat: a routine's `find_rows` output copy in the run history is **not**
+6. Remember the caveat: an automation's `find_rows` output copy in the run history is **not**
    deleted by this sweep.
 
 ### W5 — Mirror a Nextcloud Tables table
@@ -402,17 +402,17 @@ Nothing is stored by the AI route — the draft only fills the unsaved form.
 8. Edit rows on the **"Rows"** tab — each write goes to Nextcloud first
    (*"Writing to Nextcloud…"*), and the copy is rewritten from Nextcloud's answer.
 
-### W6 — Draft a table with AI, then use it from a routine
+### W6 — Draft a table with AI, then use it from an automation
 1. **"New table"** → **"An ordinary table"** → in **"Build it with AI"** describe the table
    (e.g. the supplier-invoices example) → **"Draft the columns"**.
 2. Check the filled-in Name / purpose / Columns (use **"Undo"** to go back) → **"Create"**.
-3. Go to **Studio → Automations**, open or make a routine, add a **Datatable** step.
+3. Go to **Studio → Automations**, open or make an automation, add a **Datatable** step.
 4. Pick this table and an operation: `find_rows`, `count_rows`, `add_row`, `save_row`,
    `update_rows` or `delete_rows`.
 5. For `update_rows` / `delete_rows` give at least one condition — the step refuses to run
    unbounded.
-6. Run the routine, then open the table's **"Rows"** tab to see what it wrote, and the
-   **"Used by"** tab to see the routine listed.
+6. Run the automation, then open the table's **"Rows"** tab to see what it wrote, and the
+   **"Used by"** tab to see the automation listed.
 
 ---
 
@@ -445,7 +445,7 @@ HTTP surface (`routes/datatables.js`):
 - AI draft: **10 requests/minute per user**, max 4000 output tokens, fast-tier model.
 - Mirror import cap: **500** rows per bulk into a mirror.
 
-Routine `datatable` step (`automation/validate/constants.js`):
+Automation `datatable` step (`automation/validate/constants.js`):
 - ops `find_rows, count_rows, add_row, save_row, update_rows, delete_rows`
 - **20** filters max, limit max **1000**, `update_rows`/`delete_rows` require ≥1 condition.
 
@@ -475,8 +475,8 @@ Retention sweep (`jobs/datatableRetention.js`):
 | Table/row/scope quota | **409 `quota_exceeded`** with `limit` and `used` |
 | `PUT /schema` without `expectedVersion` | **400 `version_required`** |
 | Concurrent column edit | **409 `version_conflict`** + `currentVersion` |
-| Dropping a column a routine uses | **409 `breaking_change`** + the `breaking` list; retry with `confirmBreaking` |
-| Deleting a table routines use | **409 `in_use`** + `usage` |
+| Dropping a column an automation uses | **409 `breaking_change`** + the `breaking` list; retry with `confirmBreaking` |
+| Deleting a table automations use | **409 `in_use`** + `usage` |
 | Editing a row without `expectedUpdatedAt` | **400 `expected_updated_at_required`** |
 | Somebody else edited the row | **409 `row_conflict`** + the current row ("Someone else changed this row while you had it open") |
 | Widening rowScope `own → all` | **409 `row_scope_widening`** |
@@ -542,14 +542,14 @@ plus, inside the router: `requireBetaFeature('automations')`,
 5. `write_mode = 'audience'` + in the read audience → `editor`;
 6. a viewer grant, or the read audience → `viewer`; otherwise `null`.
 
-The routine runner resolves the grade **on every run** through the same function, so a
+The automation runner resolves the grade **on every run** through the same function, so a
 revoked grant stops working immediately.
 
 ---
 
 ## 8. How it connects to the rest of the product
 
-- **Routines / Automations** — the `datatable` step (`core/automationRunner/execDatatable.js`)
+- **Automations / Automations** — the `datatable` step (`core/automationRunner/execDatatable.js`)
   is the main consumer: `find_rows, count_rows, add_row, save_row, update_rows, delete_rows`.
   It looks for the table in the run's organisation and then in the owner's personal scope, and
   nowhere else (`datatable_no_org` otherwise). An unresolved filter **skips** the operation, it
@@ -591,9 +591,9 @@ revoked grant stops working immediately.
    means creating a new table and moving the rows. Get it right in the dialog.
 5. **Setting a retention window and expecting a sensible default column.** `retentionField`
    must travel in the same request; the UI forces the **"Counted from"** picker.
-6. **Believing retention erases everything.** A routine's `find_rows` output sits in the run
+6. **Believing retention erases everything.** An automation's `find_rows` output sits in the run
    history and ages out on `AUTOMATION_RUN_RETENTION_DAYS` (default 90) instead.
-7. **Dropping a column that a nightly routine writes** — confirm only after reading
+7. **Dropping a column that a nightly automation writes** — confirm only after reading
    **"Used by"**; the failure otherwise surfaces at 3 am inside somebody else's run.
 8. **Editing a mirror's columns in Bee Flow.** They belong to Nextcloud / the sheet's header
    row; change them there and refresh.
@@ -613,7 +613,7 @@ revoked grant stops working immediately.
 ## 10. Three scenarios for "Van Dijk Groep" (Dutch SME)
 
 ### 10.1 Procurement — `leveranciersfacturen` (supplier invoices)
-Van Dijk Groep receives ~120 supplier invoices a month by e-mail. A routine reads the
+Van Dijk Groep receives ~120 supplier invoices a month by e-mail. An automation reads the
 mailbox, extracts the fields and writes one row per invoice into an **organisation** table
 `leveranciersfacturen`.
 - Columns: `leverancier` (Text), `factuurnummer` (Text), `factuurdatum` (Date),
@@ -623,9 +623,9 @@ mailbox, extracts the fields and writes one row per invoice into an **organisati
   and payment runs use the same list."*
 - Sharing: **"Specific groups"** → *Inkoop* read; write by invitation for the two buyers.
 - Retention: 2555 days (7 years, the Dutch tax retention period), counted from `factuurdatum`.
-- Second routine each Monday: `find_rows` where `status is nieuw` → a reminder to the buyers.
+- Second automation each Monday: `find_rows` where `status is nieuw` → a reminder to the buyers.
 - Teaching points: the AI draft panel produces exactly these columns from one brief; the
-  "Used by" tab then shows both routines; dropping `status` would break the Monday routine.
+  "Used by" tab then shows both automations; dropping `status` would break the Monday automation.
 
 ### 10.2 HR — `verzuimmeldingen` (sick-leave notifications)
 A form on the intranet lets employees report sick leave. "Collect answers in a table" creates a
@@ -643,12 +643,12 @@ A form on the intranet lets employees report sick leave. "Collect answers in a t
 
 ### 10.3 Sales — `offertes` mirrored from a Google Sheet
 Sales keeps a quotes sheet in Google Drive that two account managers edit daily. Instead of a
-copy-paste routine, they link it: **"New table" → "A spreadsheet from your files" →
+copy-paste automation, they link it: **"New table" → "A spreadsheet from your files" →
 "Choose files…"**, pick `Offertes 2026.xlsx`, sheet `Q3`, header row 1.
 - The table `offertes` is a `spreadsheet_file` mirror: the columns are the sheet's header row,
   refresh every 15 minutes by default and live-refreshed while somebody has the tab open.
-- A routine reads it (`find_rows` where `status is verzonden` and `vervaldatum` is before
-  today) and sends a follow-up; a second routine writes `status = opgevolgd` back — which is
+- An automation reads it (`find_rows` where `status is verzonden` and `vervaldatum` is before
+  today) and sends a follow-up; a second automation writes `status = opgevolgd` back — which is
   written **into the file**.
 - No Retention tab: rows stay as long as they are in the file.
 - If the sheet is an `.xls` or the linker does not own it, the table is read-only here —
@@ -693,7 +693,7 @@ route additionally resolves the caller's grade (404 when there is none).
 (or the row `total`) for "they put data in it". For "they shared it":
 `GET /api/datatables/:id` → `isPublished` / `sharedGroups` / `writeMode`, or
 `GET /api/datatables/:id/grants`. For "they set retention": `retentionDays` + `retentionField`
-on the same projection. For "a routine uses it": `GET /api/datatables/:id/usage`.
+on the same projection. For "an automation uses it": `GET /api/datatables/:id/usage`.
 
 Write routes exist for completeness but are not verification calls: `POST /`, `POST /managed`,
 `POST /ai/draft`, `PATCH /:id`, `PUT /:id/schema`, `POST /:id/repair`, `POST /:id/rows`,

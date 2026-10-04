@@ -6,7 +6,7 @@
  * stores/runner, most of which require live env config (DB) at import time —
  * same split as webpagesPreviewRateLimits.js.
  *
- * The action-run endpoint executes the APP OWNER's routine (acts-as-owner,
+ * The action-run endpoint executes the APP OWNER's automation (acts-as-owner,
  * real side effects) but is callable by any org/group viewer of a published
  * app. Keyed `userId:appId` so one noisy viewer can't drain other viewers'
  * budget for the same app, and a user hammering app A doesn't lock themselves
@@ -17,7 +17,7 @@
 
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
-// Tightest tier — every hit can trigger a full routine execution (LLM calls,
+// Tightest tier — every hit can trigger a full automation execution (LLM calls,
 // integration side effects) under the owner's credentials. Tunable via env;
 // read at module load like AUTOMATION_RUN_TRIGGER_RPM in routes/automation/runs.js.
 const ACTION_RUN_RPM = parseInt(process.env.STUDIO_APP_ACTION_RUN_RPM, 10) || 10;
@@ -26,12 +26,12 @@ const ACTION_RUN_RPM = parseInt(process.env.STUDIO_APP_ACTION_RUN_RPM, 10) || 10
 // server-authoritative data step to POST /:id/actions/:aid/step individually,
 // so one multi-step run can spend many /step hits — the tight /run cap (10/min)
 // would throttle a normal multi-step run mid-flight. A data step is far cheaper
-// than a /run (one record write, no routine graph), so it gets its own higher
+// than a /run (one record write, no automation graph), so it gets its own higher
 // bucket (default 60/min, env STUDIO_APP_STEP_RATE). Same userId:appId keying.
 const STEP_RPM = parseInt(process.env.STUDIO_APP_STEP_RATE, 10) || 60;
 
 // Connector-run tier. POST /:id/data/connectors/:connectorId/run dispatches an
-// external fetch / tool / routine acts-as-owner — same class of side effect as
+// external fetch / tool / automation acts-as-owner — same class of side effect as
 // /run, but a connector is typically a read (list rows), so it gets its own
 // middle bucket (default 20/min, env STUDIO_APP_CONNECTOR_RATE). Same
 // userId:appId keying so one noisy viewer can't drain another's budget.

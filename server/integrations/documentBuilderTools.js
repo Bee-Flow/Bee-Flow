@@ -34,6 +34,8 @@ const log = require('../telemetry/log');
  */
 const readOnlyFor = (doc) => !!doc.projectRole && !canEditAs(doc.projectRole);
 const READ_ONLY = { error: 'Document is read-only.' };
+// A spreadsheet's cells are in a datatable, not in the body slots.
+const sheetTools = () => require('./sheetDocumentTools');
 
 // A page edited live has no stored revision that says what the model read: the
 // live state moves with every keystroke. document_read hands out a versionId
@@ -76,7 +78,7 @@ const DOCUMENT_TOOLS = [
         type: 'function',
         function: {
             name: 'create_document',
-            description: 'Create a new rendered Document (an invoice, quote, letter, report or similar) owned by the current user. Returns { documentId, url, name, message }.\n\nCall this FIRST when the user asks for a NEW document; do not call it to edit an existing one. A document has exactly TWO slots — `bodyHtml` (the body markup) and `css` (the stylesheet) — which you fill with document_write immediately afterwards.\n\nUse a Document, not a Webpage, whenever the thing is meant to be PRINTED or sent as a PDF: invoices, quotes, order confirmations, letters, certificates, reports. Use a Webpage when it is meant to be interactive or visited in a browser.\n\nA PRESENTATION in the library is `docType: "presentation"`: its body slot is a slide OUTLINE (markdown: "# " title, "## " per slide, "- " bullets, "### " cards, ```chart / ```stats blocks) and it has no css — the house style paints it. It opens as a slide viewer in Bee Flow and downloads as .pptx or PDF. Prefer create_presentation when the user just wants a deck now; use this when they want a reusable slide TEMPLATE with {{placeholders}} for routines.',
+            description: 'Create a new rendered Document (an invoice, quote, letter, report or similar) owned by the current user. Returns { documentId, url, name, message }.\n\nCall this FIRST when the user asks for a NEW document; do not call it to edit an existing one. A document has exactly TWO slots — `bodyHtml` (the body markup) and `css` (the stylesheet) — which you fill with document_write immediately afterwards.\n\nUse a Document, not a Webpage, whenever the thing is meant to be PRINTED or sent as a PDF: invoices, quotes, order confirmations, letters, certificates, reports. Use a Webpage when it is meant to be interactive or visited in a browser. When the user asks for a WORD file (.docx) to edit in Word, use create_word_document instead.\n\nA PRESENTATION in the library is `docType: "presentation"`: its body slot is a slide OUTLINE (markdown: "# " title, "## " per slide, "- " bullets, "### " cards, ```chart / ```stats blocks) and it has no css — the house style paints it. It opens as a slide viewer in Bee Flow and downloads as .pptx or PDF. Prefer create_presentation when the user just wants a deck now; use this when they want a reusable slide TEMPLATE with {{placeholders}} for automations.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -88,7 +90,7 @@ const DOCUMENT_TOOLS = [
                         type: 'string',
                         // A page is written in the rich-text editor and made from a
                         // project; what the chat creates is designed (body + css).
-                        enum: documentStore.DOC_TYPES.filter((t) => t !== 'page'),
+                        enum: documentStore.DOC_TYPES.filter((t) => t !== 'page' && t !== 'spreadsheet'),
                         description: 'What kind of document this is. Used for the icon and grouping in the Documents list; it does not change how the document renders.',
                     },
                     description: {
@@ -130,6 +132,7 @@ const DOCUMENT_TOOLS = [
                     bodyHtml: { type: 'string', description: 'The document body markup. Omit to leave the current body untouched.' },
                     css: { type: 'string', description: 'The document stylesheet. Omit to leave the current stylesheet untouched.' },
                     summary: { type: 'string', description: 'A short note for the version history, e.g. "Added VAT row".' },
+                    cells: { type: 'object', additionalProperties: { type: 'string' }, description: 'SPREADSHEETS ONLY (docType "spreadsheet", which has no bodyHtml or css): the cells to set, e.g. { "A1": "Rent", "B1": "1200", "B3": "=SUM(B1:B2)" }. Columns A–Z, rows from 1; "" clears a cell. At most 500 cells per call.' },
                 },
                 required: ['documentId'],
             },
@@ -217,7 +220,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
 
         const deck = doc.docType === 'presentation';
         const lines = deck
-            ? [`Created presentation "${doc.name}". Now write its outline with document_write({ documentId: "${doc.id}", bodyHtml: <outline> }) — markdown: "# Title" once, "## " per slide, "- " bullets, "### Card {icon: name}" blocks (2–6 per slide), \`\`\`chart and \`\`\`stats blocks, "<!-- layout: timeline|closing -->", "Notes: …" for speaker notes, {{placeholders}} where a routine fills values. No HTML, no css: the house style (colours, fonts, logo) is applied automatically. Reply with a clickable link "[${doc.name}](${documentUrl(doc.id)})" — it opens the slides in Bee Flow.`]
+            ? [`Created presentation "${doc.name}". Now write its outline with document_write({ documentId: "${doc.id}", bodyHtml: <outline> }) — markdown: "# Title" once, "## " per slide, "- " bullets, "### Card {icon: name}" blocks (2–6 per slide), \`\`\`chart and \`\`\`stats blocks, "<!-- layout: timeline|closing -->", "Notes: …" for speaker notes, {{placeholders}} where an automation fills values. No HTML, no css: the house style (colours, fonts, logo) is applied automatically. Reply with a clickable link "[${doc.name}](${documentUrl(doc.id)})" — it opens the slides in Bee Flow.`]
             : [`Created document "${doc.name}". Now fill it with document_write({ documentId: "${doc.id}", bodyHtml, css }).`];
         if (house && !deck) {
             lines.push(
@@ -243,6 +246,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
     if (toolName === 'document_read') {
         const doc = await documentStore.getDocument(String(args.documentId || ''), userId);
         if (!doc) return { error: 'Document not found.' };
+        if (doc.docType === 'spreadsheet') return sheetTools().readSheetDocument(doc);
         // A page edited live: what people see now is the live state, and the
         // versionId names the live update it was read at.
         const live = await documentFeed.liveCollabFor(doc);
@@ -274,6 +278,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         const existing = await documentStore.getDocument(documentId, userId);
         if (!existing) return { error: 'Document not found.' };
         if (readOnlyFor(existing)) return READ_ONLY;
+        if (existing.docType === 'spreadsheet') return sheetTools().writeSheetDocument(existing, args);
         if (existing.versionId && (existing.bodyHtml || existing.css) && !args.expectedVersionId) return { error: 'Read document_read first and pass its versionId as expectedVersionId.' };
         const expected = parseExpected(args.expectedVersionId);
 
@@ -336,6 +341,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         const doc = await documentStore.getDocument(documentId, userId);
         if (!doc) return { error: 'Document not found.' };
         if (readOnlyFor(doc)) return READ_ONLY;
+        if (doc.docType === 'spreadsheet') return sheetTools().SHEET_EDIT_REFUSAL;
         if (slot === 'css' && doc.docType === 'presentation') return { error: 'A presentation has no stylesheet — edit slot "body" (the slide outline); its look is settings.deck.' };
 
         const field = slot === 'body' ? 'bodyHtml' : 'css';

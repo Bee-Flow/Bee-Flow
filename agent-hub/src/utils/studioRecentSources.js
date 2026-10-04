@@ -263,7 +263,7 @@ export const STUDIO_RECENT_SOURCES = {
     // every table you hold ANY grade on, so a colleague's table you can read
     // ranks here beside your own. That is right for this panel — "recently
     // worked on" for a datatable means "recently written to", and a table
-    // another routine is filling is exactly the one you want to jump back to.
+    // another automation is filling is exactly the one you want to jump back to.
     datatables: {
         url: '/api/datatables',
         pick: (d) => d?.datatables,

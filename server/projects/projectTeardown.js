@@ -12,7 +12,7 @@
  *                  co-editing log cascades with the project row, so edits not
  *                  yet materialised would otherwise be gone for good, and
  *                  those items are usually other members' work.
- *   2. detach      every SOFT reference (notebooks, routines, apps, pages,
+ *   2. detach      every SOFT reference (notebooks, automations, apps, pages,
  *                  tables, agents, meetings) is cleared, so the item survives
  *                  standalone instead of pointing at nothing
  *                  (projects/membership.js `detachableKinds`)
@@ -30,9 +30,62 @@
  *
  * Steps 1, 2 and 4 are best-effort: a failure is logged with ids only and
  * never stops the delete.
+ *
+ * ── Solution stages ──
+ * A UAT or PRD stage project, and a Dev project that still has stages, is
+ * never torn down here: 409 `solution_has_stages`, before anything is folded
+ * back or detached. The one exception is the commit of a `remove` deployment
+ * (design 6.8), which passes `{ removal: { deploymentId } }`: valid while that
+ * deployment is an active `remove` of exactly the stage project being torn
+ * down. The same capability then lets the detachers clear the stage's items.
+ * A Dev project's stages are removed or detached first; no capability covers it.
  */
 
 'use strict';
+
+const { storeError } = require('../stores/lib/managedParts');
+
+/**
+ * How a project relates to Solution stages, read uncached. `stageOf` is the
+ * Solution a stage project belongs to (the project row, through `projects`,
+ * the same store the teardown deletes through); `hasStages` says a Dev project
+ * still has one. Only a Solution can: createStages fixes the Dev's kind to
+ * 'solution', and setProjectKind refuses to change it while stages exist.
+ *
+ * @param {string} projectId
+ * @param {{ getProject: (id: string) => Promise<any> }} [projects]
+ * @returns {Promise<{ stageOf: string|null, hasStages: boolean }>}
+ */
+async function readStageBinding(projectId, projects = require('../stores/projectStore')) {
+    const project = await projects.getProject(projectId);
+    if (!project) return { stageOf: null, hasStages: false };
+    if (project.stageOf) return { stageOf: project.stageOf, hasStages: false };
+    if (project.kind !== 'solution') return { stageOf: null, hasStages: false };
+    const { getOne } = require('../db');
+    if (await getOne('SELECT 1 AS x FROM projects WHERE stage_of = $1 LIMIT 1', [projectId])) {
+        return { stageOf: null, hasStages: true };
+    }
+    try {
+        const row = await getOne('SELECT 1 AS x FROM solution_stages WHERE solution_id = $1 LIMIT 1', [projectId]);
+        return { stageOf: null, hasStages: !!row };
+    } catch (err) {
+        // No stage table yet: no stage either.
+        if (/** @type {any} */ (err)?.code !== '42P01') throw err;
+        return { stageOf: null, hasStages: false };
+    }
+}
+
+/**
+ * Is `deploymentId` an active `remove` deployment of exactly this stage project?
+ * @param {string} deploymentId
+ * @param {string} stageProjectId
+ */
+async function isActiveRemoval(deploymentId, stageProjectId) {
+    const stages = require('../stores/solutionStageStore');
+    if (!(await stages.isActiveDeployment(deploymentId, stageProjectId))) return false;
+    const deployment = await stages.getDeployment(deploymentId);
+    return deployment?.kind === 'remove' && deployment.stageProjectId === stageProjectId;
+}
 
 /**
  * @param {{
@@ -41,6 +94,8 @@
  *   membership?: { detachableKinds: () => Array<{ section: string, clearProject: (projectId: string) => Promise<any> }> },
  *   removeFilesKb?: (project: any) => Promise<any>,
  *   log?: { warn: Function },
+ *   stageBinding?: (projectId: string) => Promise<{ stageOf: string|null, hasStages: boolean }>,
+ *   isActiveRemoval?: (deploymentId: string, stageProjectId: string) => Promise<boolean>,
  * }} [deps]
  */
 function makeProjectTeardown(deps = {}) {
@@ -49,6 +104,30 @@ function makeProjectTeardown(deps = {}) {
     const membership = () => deps.membership || require('./membership');
     const removeFilesKb = deps.removeFilesKb || ((project) => require('./projectFiles').removeFilesKb(project));
     const log = deps.log || require('../telemetry/log');
+    const stageBinding = deps.stageBinding || ((projectId) => readStageBinding(projectId, store()));
+    const activeRemoval = deps.isActiveRemoval || isActiveRemoval;
+
+    /**
+     * Why this project may not be torn down, or null. A stage project only
+     * under its own active `remove` deployment; a Dev project with stages never.
+     * @param {string} projectId
+     * @param {{ removal?: { deploymentId?: string }|null }} [opts]
+     * @returns {Promise<Error|null>}
+     */
+    async function teardownRefusal(projectId, { removal = null } = {}) {
+        const { stageOf, hasStages } = await stageBinding(projectId);
+        if (stageOf) {
+            const deploymentId = removal && typeof removal.deploymentId === 'string' ? removal.deploymentId : null;
+            if (deploymentId && await activeRemoval(deploymentId, projectId)) return null;
+            return storeError(409, 'solution_has_stages',
+                'This project is a stage of a Solution. Remove the stage from the Solution instead.', { solutionId: stageOf });
+        }
+        if (hasStages) {
+            return storeError(409, 'solution_has_stages',
+                'This Solution has stages. Detach or remove them first.', { solutionId: projectId });
+        }
+        return null;
+    }
 
     /**
      * Release every soft reference to a project that is about to be deleted.
@@ -57,26 +136,32 @@ function makeProjectTeardown(deps = {}) {
      * is an orphaned project_id, which the stores' own boot-time cleanup also
      * sweeps.
      * @param {string} projectId
+     * @param {{ managedWrite?: { deploymentId?: string }|null }} [ctx]  a removal's capability, for a stage's items
      */
-    async function detachResources(projectId) {
+    async function detachResources(projectId, ctx = {}) {
         for (const { section, clearProject } of membership().detachableKinds()) {
-            try { await clearProject(projectId); } catch (err) {
+            try { await clearProject(projectId, ctx); } catch (err) {
                 log.warn(`[Projects] could not detach ${section} from ${projectId}:`, /** @type {Error} */ (err).message);
             }
         }
     }
 
     /**
-     * Fold back, detach, delete, then remove the files base.
+     * Fold back, detach, delete, then remove the files base. Refuses a
+     * Solution stage, or a Dev project with stages, before any of it (see the
+     * header); `removal` is the capability of the stage's `remove` deployment.
      * @param {string} projectId
+     * @param {{ removal?: { deploymentId?: string }|null }} [opts]
      * @returns {Promise<boolean>} whether the project row was deleted
      */
-    async function deleteProject(projectId) {
+    async function deleteProject(projectId, { removal = null } = {}) {
         if (!projectId) return false;
+        const refused = await teardownRefusal(projectId, { removal });
+        if (refused) throw refused;
         try { await lifecycle().beforeProjectDeleted(projectId); } catch (err) {
             log.warn(`[Projects] could not fold back co-edited state of ${projectId}:`, /** @type {Error} */ (err).message);
         }
-        await detachResources(projectId);
+        await detachResources(projectId, removal ? { managedWrite: removal } : {});
 
         const project = await store().getProject(projectId);
         const ok = await store().deleteProject(projectId);
@@ -88,7 +173,7 @@ function makeProjectTeardown(deps = {}) {
         return ok;
     }
 
-    return { detachResources, deleteProject };
+    return { detachResources, deleteProject, teardownRefusal };
 }
 
-module.exports = { makeProjectTeardown };
+module.exports = { makeProjectTeardown, readStageBinding, isActiveRemoval };

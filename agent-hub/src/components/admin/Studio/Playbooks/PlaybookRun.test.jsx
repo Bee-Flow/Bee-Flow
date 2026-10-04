@@ -58,7 +58,7 @@ vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => ({ getRunS
 vi.mock('../../../automation/Builder/RunExecutionView', () => ({ default: ({ steps }) => <div data-testid="run-canvas" data-n={steps.length} /> }));
 vi.mock('../../../../hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 
-const PHASES = ['table', 'routine', 'fill', 'app', 'approvals'];
+const PHASES = ['table', 'automation', 'fill', 'app', 'approvals'];
 function pb(overrides = {}, phaseOverrides = {}) {
     const phases = PHASES.map((key) => ({ key, status: 'pending', attempt: 0, brief: null, artifacts: {}, summary: null, error: null, ...(phaseOverrides[key] || {}) }));
     return { id: 'pb_1', title: 'Facturen bijhouden', recipeId: 'invoice_tracker', status: 'active', version: 3, options: { tier: 'fast', tableMode: 'new' }, currentPhase: 'table', phases, ...overrides };
@@ -81,7 +81,7 @@ describe('PlaybookRun — the table phase and the handoff', () => {
         playbooksApi.get.mockResolvedValue({ playbook: pb({}, { table: { status: 'ready' } }) });
         const landed = pb({ version: 4, currentPhase: 'table' }, {
             table: { status: 'awaiting', artifacts: TABLE_ART, summary: 'Tabel "Facturen" aangemaakt met 8 kolommen.', startedAt: '2026-09-13T10:00:00Z', finishedAt: '2026-09-13T10:00:02Z' },
-            routine: { status: 'pending', brief: 'Build a routine on tbl_1' },
+            automation: { status: 'pending', brief: 'Build an automation on tbl_1' },
         });
         playbooksApi.runPhase.mockResolvedValue({ playbook: landed });
         renderRun();
@@ -89,53 +89,53 @@ describe('PlaybookRun — the table phase and the handoff', () => {
         expect(await screen.findByTestId('playbook-handoff')).toBeTruthy();
         expect(screen.getAllByTestId('playbook-table-column')).toHaveLength(2);
         // The brief is READ rendered; the textarea is one click away.
-        expect(screen.getByTestId('playbook-brief-preview').textContent).toContain('Build a routine on tbl_1');
+        expect(screen.getByTestId('playbook-brief-preview').textContent).toContain('Build an automation on tbl_1');
         fireEvent.click(screen.getByTestId('playbook-brief-edit'));
-        expect(screen.getByTestId('playbook-next-brief').value).toBe('Build a routine on tbl_1');
+        expect(screen.getByTestId('playbook-next-brief').value).toBe('Build an automation on tbl_1');
         expect(screen.getByTestId('playbook-phase-table').getAttribute('data-status')).toBe('awaiting');
 
         // Continue without touching the brief: ONE entry — the server keeps its own brief.
-        playbooksApi.patch.mockResolvedValue({ playbook: pb({ version: 5 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'ready', brief: 'Build a routine on tbl_1' } }) });
+        playbooksApi.patch.mockResolvedValue({ playbook: pb({ version: 5 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'ready', brief: 'Build an automation on tbl_1' } }) });
         fireEvent.click(screen.getByTestId('playbook-continue'));
         await waitFor(() => expect(playbooksApi.patch).toHaveBeenCalledWith('pb_1', { expectedVersion: 4, phases: [{ key: 'table', status: 'done' }] }));
     });
 
     it('an edited brief rides in the same CAS write as the done', async () => {
-        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 4 }, { table: { status: 'awaiting', artifacts: TABLE_ART }, routine: { status: 'pending', brief: 'old brief' } }) });
-        playbooksApi.patch.mockResolvedValue({ playbook: pb({ version: 5 }, { table: { status: 'done' }, routine: { status: 'ready', brief: 'new brief' } }) });
+        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 4 }, { table: { status: 'awaiting', artifacts: TABLE_ART }, automation: { status: 'pending', brief: 'old brief' } }) });
+        playbooksApi.patch.mockResolvedValue({ playbook: pb({ version: 5 }, { table: { status: 'done' }, automation: { status: 'ready', brief: 'new brief' } }) });
         renderRun();
         fireEvent.click(await screen.findByTestId('playbook-brief-edit'));
         const ta = screen.getByTestId('playbook-next-brief');
         fireEvent.change(ta, { target: { value: 'new brief' } });
         fireEvent.click(screen.getByTestId('playbook-continue'));
-        await waitFor(() => expect(playbooksApi.patch).toHaveBeenCalledWith('pb_1', { expectedVersion: 4, phases: [{ key: 'table', status: 'done' }, { key: 'routine', brief: 'new brief' }] }));
+        await waitFor(() => expect(playbooksApi.patch).toHaveBeenCalledWith('pb_1', { expectedVersion: 4, phases: [{ key: 'table', status: 'done' }, { key: 'automation', brief: 'new brief' }] }));
     });
 
     it('a 409 reloads the entity and says so, never retries', async () => {
-        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 4 }, { table: { status: 'awaiting', artifacts: TABLE_ART }, routine: { status: 'pending', brief: 'b' } }) });
-        const err = Object.assign(new Error('This playbook changed elsewhere.'), { status: 409, code: 'version_conflict', body: { playbook: pb({ version: 9 }, { table: { status: 'done' }, routine: { status: 'running', brief: 'b', artifacts: { automationId: 'auto_9' } } }) } });
+        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 4 }, { table: { status: 'awaiting', artifacts: TABLE_ART }, automation: { status: 'pending', brief: 'b' } }) });
+        const err = Object.assign(new Error('This playbook changed elsewhere.'), { status: 409, code: 'version_conflict', body: { playbook: pb({ version: 9 }, { table: { status: 'done' }, automation: { status: 'running', brief: 'b', artifacts: { automationId: 'auto_9' } } }) } });
         playbooksApi.patch.mockRejectedValueOnce(err);
         renderRun();
         fireEvent.click(await screen.findByTestId('playbook-continue'));
         await screen.findByText(/changed elsewhere/);
         expect(playbooksApi.patch).toHaveBeenCalledTimes(1);
-        // The reloaded entity is what the page shows now: routine running.
-        expect(screen.getByTestId('playbook-phase-routine').getAttribute('data-status')).toBe('running');
+        // The reloaded entity is what the page shows now: automation running.
+        expect(screen.getByTestId('playbook-phase-automation').getAttribute('data-status')).toBe('running');
     });
 });
 
-describe('PlaybookRun — the routine phase drives the routine builder', () => {
-    it('PATCHes running BEFORE the shell mounts, hands the brief as autoSendInput with the pinned tier, records the routine id and the finalized turn', async () => {
+describe('PlaybookRun — the automation phase drives the automation builder', () => {
+    it('PATCHes running BEFORE the shell mounts, hands the brief as autoSendInput with the pinned tier, records the automation id and the finalized turn', async () => {
         let resolvePatch;
-        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 5 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'ready', brief: 'Build a routine on tbl_1' } }) });
+        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 5 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'ready', brief: 'Build an automation on tbl_1' } }) });
         playbooksApi.patch.mockImplementationOnce(() => new Promise((r) => { resolvePatch = r; }));
         renderRun();
-        await waitFor(() => expect(playbooksApi.patch).toHaveBeenCalledWith('pb_1', { expectedVersion: 5, phases: [{ key: 'routine', status: 'running' }] }));
+        await waitFor(() => expect(playbooksApi.patch).toHaveBeenCalledWith('pb_1', { expectedVersion: 5, phases: [{ key: 'automation', status: 'running' }] }));
         // NOT mounted until the server confirmed: a reload mid-PATCH must land on running, never fire the brief twice.
         expect(screen.queryByTestId('builder-shell')).toBeNull();
-        await act(async () => { resolvePatch({ playbook: pb({ version: 6 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'running', brief: 'Build a routine on tbl_1', startedAt: '2026-09-13T10:00:00Z' } }) }); });
+        await act(async () => { resolvePatch({ playbook: pb({ version: 6 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'running', brief: 'Build an automation on tbl_1', startedAt: '2026-09-13T10:00:00Z' } }) }); });
         const shell = await screen.findByTestId('builder-shell');
-        expect(shell.getAttribute('data-autosend')).toBe('Build a routine on tbl_1');
+        expect(shell.getAttribute('data-autosend')).toBe('Build an automation on tbl_1');
         expect(shell.getAttribute('data-tier')).toBe('fast');
         expect(shell.getAttribute('data-automation')).toBe('');
         expect(shellProps.mock.calls.at(-1)[0].onOpenList).toBeNull();
@@ -146,24 +146,24 @@ describe('PlaybookRun — the routine phase drives the routine builder', () => {
         // preference it normally reads defaults to CLOSED.
         expect(shellProps.mock.calls.at(-1)[0].forceAssistantOpen).toBe(true);
 
-        // The builder created the routine: one artifact write.
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 7 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'running', brief: 'Build a routine on tbl_1', artifacts: { automationId: 'auto_1' } } }) });
+        // The builder created the automation: one artifact write.
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 7 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'running', brief: 'Build an automation on tbl_1', artifacts: { automationId: 'auto_1' } } }) });
         fireEvent.click(screen.getByText('resolve'));
-        await waitFor(() => expect(playbooksApi.patch).toHaveBeenLastCalledWith('pb_1', { expectedVersion: 6, phases: [{ key: 'routine', artifacts: { automationId: 'auto_1' } }] }));
+        await waitFor(() => expect(playbooksApi.patch).toHaveBeenLastCalledWith('pb_1', { expectedVersion: 6, phases: [{ key: 'automation', artifacts: { automationId: 'auto_1' } }] }));
 
         // The turn finalized: awaiting, with the title for the rail.
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 8 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'awaiting', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' }, summary: 'Automation "Facturen inlezen" ready · 4 steps' }, fill: { status: 'pending' } }) });
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 8 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'awaiting', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' }, summary: 'Automation "Facturen inlezen" ready · 4 steps' }, fill: { status: 'pending' } }) });
         fireEvent.click(screen.getByText('finalize'));
         await waitFor(() => expect(playbooksApi.patch).toHaveBeenLastCalledWith('pb_1', {
             expectedVersion: 7,
-            phases: [{ key: 'routine', status: 'awaiting', summary: 'Automation "Facturen inlezen" ready · 4 steps', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } }],
+            phases: [{ key: 'automation', status: 'awaiting', summary: 'Automation "Facturen inlezen" ready · 4 steps', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } }],
         }));
         expect(await screen.findByTestId('playbook-handoff')).toBeTruthy();
-        expect(screen.getByTestId('playbook-phase-routine').textContent).toContain('Automation "Facturen inlezen"');
+        expect(screen.getByTestId('playbook-phase-automation').textContent).toContain('Automation "Facturen inlezen"');
     });
 
     it('an aborted turn fails the phase; Retry POSTs retry with the version; a question shows the needs-input face with Mark as done', async () => {
-        const running = pb({ version: 6 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'running', brief: 'b', artifacts: { automationId: 'auto_1' } } });
+        const running = pb({ version: 6 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'running', brief: 'b', artifacts: { automationId: 'auto_1' } } });
         playbooksApi.get.mockResolvedValue({ playbook: running });
         renderRun();
         await screen.findByTestId('builder-shell');
@@ -173,17 +173,17 @@ describe('PlaybookRun — the routine phase drives the routine builder', () => {
         expect(screen.getByTestId('playbook-mark-done')).toBeTruthy();
         expect(playbooksApi.patch).not.toHaveBeenCalled();
 
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 7 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'failed', error: 'aborted', artifacts: { automationId: 'auto_1' } } }) });
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 7 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'failed', error: 'aborted', artifacts: { automationId: 'auto_1' } } }) });
         fireEvent.click(screen.getByText('abort'));
-        await waitFor(() => expect(playbooksApi.patch).toHaveBeenLastCalledWith('pb_1', { expectedVersion: 6, phases: [{ key: 'routine', status: 'failed', error: 'aborted' }] }));
+        await waitFor(() => expect(playbooksApi.patch).toHaveBeenLastCalledWith('pb_1', { expectedVersion: 6, phases: [{ key: 'automation', status: 'failed', error: 'aborted' }] }));
         expect((await screen.findByTestId('playbook-handoff')).getAttribute('data-face')).toBe('failed');
         expect(screen.getByText('The builder stopped before it finished.')).toBeTruthy();
 
-        playbooksApi.retryPhase.mockResolvedValueOnce({ playbook: pb({ version: 8 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'ready', attempt: 1, brief: 'b', artifacts: { automationId: 'auto_1' } } }) });
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 9 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'running', attempt: 1, brief: 'b', artifacts: { automationId: 'auto_1' } } }) });
+        playbooksApi.retryPhase.mockResolvedValueOnce({ playbook: pb({ version: 8 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'ready', attempt: 1, brief: 'b', artifacts: { automationId: 'auto_1' } } }) });
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 9 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'running', attempt: 1, brief: 'b', artifacts: { automationId: 'auto_1' } } }) });
         fireEvent.click(screen.getByTestId('playbook-retry'));
-        await waitFor(() => expect(playbooksApi.retryPhase).toHaveBeenCalledWith('pb_1', 'routine', 7, {}));
-        // A retry on an EXISTING routine prefills instead of auto-firing.
+        await waitFor(() => expect(playbooksApi.retryPhase).toHaveBeenCalledWith('pb_1', 'automation', 7, {}));
+        // A retry on an EXISTING automation prefills instead of auto-firing.
         await waitFor(() => expect(screen.getByTestId('builder-shell').getAttribute('data-automation')).toBe('auto_1'));
         expect(screen.getByTestId('builder-shell').getAttribute('data-autosend')).toBe('');
         expect(shellProps.mock.calls.at(-1)[0].initialChatInput).toBe('b');
@@ -194,8 +194,8 @@ describe('PlaybookRun — the routine phase drives the routine builder', () => {
     });
 
     it('a stopped playbook resumes: PATCH status active; the interrupted phase comes back failed with Retry', async () => {
-        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 7, status: 'stopped' }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'running', brief: 'b', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } } }) });
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 8 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'failed', error: 'interrupted', brief: 'b', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } } }) });
+        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 7, status: 'stopped' }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'running', brief: 'b', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } } }) });
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 8 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'failed', error: 'interrupted', brief: 'b', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } } }) });
         renderRun();
         const done = await screen.findByTestId('playbook-done');
         expect(done.textContent).toContain('stopped mid-build');
@@ -267,7 +267,7 @@ describe('PlaybookRun — the phase inspector and the rail', () => {
     it('a phase in the rail opens its details beside the stage, and the stage underneath is never unmounted', async () => {
         const running = pb({ version: 6 }, {
             table: { status: 'done', artifacts: TABLE_ART, summary: 'Tabel "Facturen" aangemaakt met 8 kolommen.', startedAt: '2026-09-13T10:00:00Z', finishedAt: '2026-09-13T10:00:02Z' },
-            routine: { status: 'running', brief: 'Build an automation on tbl_1', artifacts: { automationId: 'auto_1' } },
+            automation: { status: 'running', brief: 'Build an automation on tbl_1', artifacts: { automationId: 'auto_1' } },
         });
         playbooksApi.get.mockResolvedValue({ playbook: running });
         renderRun();
@@ -287,12 +287,12 @@ describe('PlaybookRun — the phase inspector and the rail', () => {
         expect(shellProps).toHaveBeenCalledTimes(shellProps.mock.calls.length);
 
         // The brief of a phase that has not run is there to read before it does.
-        fireEvent.click(screen.getByTestId('playbook-phase-open-routine'));
-        await waitFor(() => expect(screen.getByTestId('playbook-inspector').getAttribute('data-phase')).toBe('routine'));
+        fireEvent.click(screen.getByTestId('playbook-phase-open-automation'));
+        await waitFor(() => expect(screen.getByTestId('playbook-inspector').getAttribute('data-phase')).toBe('automation'));
         expect(screen.getByTestId('playbook-inspector-brief').textContent).toBe('Build an automation on tbl_1');
 
         // Clicking the same phase again closes it; so does the X.
-        fireEvent.click(screen.getByTestId('playbook-phase-open-routine'));
+        fireEvent.click(screen.getByTestId('playbook-phase-open-automation'));
         await waitFor(() => expect(screen.queryByTestId('playbook-inspector')).toBeNull());
         fireEvent.click(screen.getByTestId('playbook-phase-open-table'));
         fireEvent.click(await screen.findByTestId('playbook-inspector-close'));
@@ -302,7 +302,7 @@ describe('PlaybookRun — the phase inspector and the rail', () => {
     it('the rail folds to its circles while the rows are arriving, and a press pins it open', async () => {
         const filling = pb({ version: 6 }, {
             table: { status: 'done', artifacts: TABLE_ART },
-            routine: { status: 'done', artifacts: { automationId: 'auto_1' } },
+            automation: { status: 'done', artifacts: { automationId: 'auto_1' } },
             fill: { status: 'running', artifacts: { runId: 'run_1', rowsBefore: 0 } },
         });
         playbooksApi.get.mockResolvedValue({ playbook: filling });
@@ -321,8 +321,8 @@ describe('PlaybookRun — the phase inspector and the rail', () => {
 
 describe('PlaybookRun — fill, app, approvals, done', () => {
     it('fill: polls the run steps while running and shows the row count when it lands', async () => {
-        const running = pb({ version: 6 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done', artifacts: { automationId: 'auto_1' } }, fill: { status: 'running', artifacts: { runId: 'run_1', rowsBefore: 0 } } });
-        const landed = pb({ version: 7 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done', artifacts: { automationId: 'auto_1' } }, fill: { status: 'awaiting', artifacts: { runId: 'run_1', rowsBefore: 0, rowCount: 32, runStatus: 'success' }, summary: '32 rijen toegevoegd' }, app: { status: 'pending', brief: 'Build an app', artifacts: { appId: 'app_1' } } });
+        const running = pb({ version: 6 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done', artifacts: { automationId: 'auto_1' } }, fill: { status: 'running', artifacts: { runId: 'run_1', rowsBefore: 0 } } });
+        const landed = pb({ version: 7 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done', artifacts: { automationId: 'auto_1' } }, fill: { status: 'awaiting', artifacts: { runId: 'run_1', rowsBefore: 0, rowCount: 32, runStatus: 'success' }, summary: '32 rijen toegevoegd' }, app: { status: 'pending', brief: 'Build an app', artifacts: { appId: 'app_1' } } });
         playbooksApi.get.mockResolvedValueOnce({ playbook: running }).mockResolvedValue({ playbook: landed });
         renderRun();
         await screen.findByTestId('run-canvas');
@@ -335,12 +335,12 @@ describe('PlaybookRun — fill, app, approvals, done', () => {
     });
 
     it('app: opens the pre-created app, PATCHes running, the pane sees the brief ONCE with the pinned tier; the finalized turn lands awaiting with the app name', async () => {
-        const ready = pb({ version: 8 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done' }, fill: { status: 'done' }, app: { status: 'ready', brief: 'Build an app on tbl_1', artifacts: { appId: 'app_1' } } });
+        const ready = pb({ version: 8 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done' }, fill: { status: 'done' }, app: { status: 'ready', brief: 'Build an app on tbl_1', artifacts: { appId: 'app_1' } } });
         playbooksApi.get.mockResolvedValue({ playbook: ready });
         playbooksApi.patch
-            .mockResolvedValueOnce({ playbook: pb({ version: 9 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done' }, fill: { status: 'done' }, app: { status: 'running', brief: 'Build an app on tbl_1', artifacts: { appId: 'app_1' } } }) })
+            .mockResolvedValueOnce({ playbook: pb({ version: 9 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done' }, fill: { status: 'done' }, app: { status: 'running', brief: 'Build an app on tbl_1', artifacts: { appId: 'app_1' } } }) })
             // The stamp write's answer: this attempt's brief went out.
-            .mockResolvedValueOnce({ playbook: pb({ version: 10 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done' }, fill: { status: 'done' }, app: { status: 'running', brief: 'Build an app on tbl_1', artifacts: { appId: 'app_1', briefSentAttempt: 0, briefSentAt: 'x' } } }) });
+            .mockResolvedValueOnce({ playbook: pb({ version: 10 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done' }, fill: { status: 'done' }, app: { status: 'running', brief: 'Build an app on tbl_1', artifacts: { appId: 'app_1', briefSentAttempt: 0, briefSentAt: 'x' } } }) });
         renderRun();
         await waitFor(() => expect(playbooksApi.patch).toHaveBeenCalledWith('pb_1', { expectedVersion: 8, phases: [{ key: 'app', status: 'running' }] }));
         await screen.findByTestId('builder-pane');
@@ -352,12 +352,12 @@ describe('PlaybookRun — fill, app, approvals, done', () => {
         await waitFor(() => expect(playbooksApi.patch.mock.calls.at(-1)[1].phases[0].artifacts).toMatchObject({ briefSentAttempt: 0 }));
         await waitFor(() => expect(screen.getByTestId('builder-pane').getAttribute('data-autosend')).toBe(''));
 
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 11 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done' }, fill: { status: 'done' }, app: { status: 'awaiting', artifacts: { appId: 'app_1', appName: 'Facturen' }, summary: 'App "Facturen" built.' }, approvals: { status: 'locked' } }) });
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 11 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done' }, fill: { status: 'done' }, app: { status: 'awaiting', artifacts: { appId: 'app_1', appName: 'Facturen' }, summary: 'App "Facturen" built.' }, approvals: { status: 'locked' } }) });
         fireEvent.click(screen.getByText('finalize-app'));
         await waitFor(() => expect(playbooksApi.patch).toHaveBeenLastCalledWith('pb_1', { expectedVersion: 10, phases: [{ key: 'app', status: 'awaiting', summary: 'App "Facturen" built.', artifacts: { appId: 'app_1', appName: 'Facturen' } }] }));
         // Approvals is locked: nothing pending after app → the card says Finish.
         expect((await screen.findByTestId('playbook-continue')).textContent).toContain('Finish');
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 12, status: 'done' }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } }, fill: { status: 'done', artifacts: { rowCount: 32 } }, app: { status: 'done', artifacts: { appId: 'app_1', appName: 'Facturen' } }, approvals: { status: 'locked' } }) });
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 12, status: 'done' }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } }, fill: { status: 'done', artifacts: { rowCount: 32 } }, app: { status: 'done', artifacts: { appId: 'app_1', appName: 'Facturen' } }, approvals: { status: 'locked' } }) });
         fireEvent.click(screen.getByTestId('playbook-continue'));
         await waitFor(() => expect(playbooksApi.patch).toHaveBeenLastCalledWith('pb_1', { expectedVersion: 11, phases: [{ key: 'app', status: 'done' }] }));
         const done = await screen.findByTestId('playbook-done');
@@ -366,22 +366,22 @@ describe('PlaybookRun — fill, app, approvals, done', () => {
     });
 
     it('approvals: the same app, a NEW pane key, the approvals brief; a failed turn shows the error code in words', async () => {
-        const ready = pb({ version: 12 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done' }, fill: { status: 'done' }, app: { status: 'done', artifacts: { appId: 'app_1', appName: 'Facturen', briefSentAttempt: 0 } }, approvals: { status: 'ready', brief: 'Extend with approvals', artifacts: { appId: 'app_1' } } });
+        const ready = pb({ version: 12 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done' }, fill: { status: 'done' }, app: { status: 'done', artifacts: { appId: 'app_1', appName: 'Facturen', briefSentAttempt: 0 } }, approvals: { status: 'ready', brief: 'Extend with approvals', artifacts: { appId: 'app_1' } } });
         playbooksApi.get.mockResolvedValue({ playbook: ready });
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 13 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done' }, fill: { status: 'done' }, app: { status: 'done', artifacts: { appId: 'app_1', appName: 'Facturen', briefSentAttempt: 0 } }, approvals: { status: 'running', brief: 'Extend with approvals', artifacts: { appId: 'app_1' } } }) });
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 13 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done' }, fill: { status: 'done' }, app: { status: 'done', artifacts: { appId: 'app_1', appName: 'Facturen', briefSentAttempt: 0 } }, approvals: { status: 'running', brief: 'Extend with approvals', artifacts: { appId: 'app_1' } } }) });
         renderRun();
         await screen.findByTestId('builder-pane');
         expect(paneProps.mock.calls[0][0].autoSend).toContain('Extend with approvals');
         expect(screen.getByTestId('playbook-stage-app').getAttribute('data-phase')).toBe('approvals');
-        playbooksApi.patch.mockResolvedValue({ playbook: pb({ version: 14 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done' }, fill: { status: 'done' }, app: { status: 'done', artifacts: { appId: 'app_1' } }, approvals: { status: 'failed', error: 'model_empty_reply', artifacts: { appId: 'app_1' } } }) });
+        playbooksApi.patch.mockResolvedValue({ playbook: pb({ version: 14 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done' }, fill: { status: 'done' }, app: { status: 'done', artifacts: { appId: 'app_1' } }, approvals: { status: 'failed', error: 'model_empty_reply', artifacts: { appId: 'app_1' } } }) });
         fireEvent.click(screen.getByText('fail-app'));
         await waitFor(() => expect(playbooksApi.patch.mock.calls.some(([, body]) => body.phases?.[0]?.status === 'failed' && body.phases[0].error === 'model_empty_reply')).toBe(true));
         expect(await screen.findByText('The model returned nothing usable — try again.')).toBeTruthy();
     });
 
     it('Stop asks first, then PATCHes status stopped and shows what landed', async () => {
-        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 6 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'running', brief: 'b', artifacts: { automationId: 'auto_1' } } }) });
-        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 7, status: 'stopped' }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'running', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } } }) });
+        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 6 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'running', brief: 'b', artifacts: { automationId: 'auto_1' } } }) });
+        playbooksApi.patch.mockResolvedValueOnce({ playbook: pb({ version: 7, status: 'stopped' }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'running', artifacts: { automationId: 'auto_1', automationTitle: 'Facturen inlezen' } } }) });
         renderRun();
         fireEvent.click(await screen.findByTestId('playbook-bar-stop'));
         expect(playbooksApi.patch).not.toHaveBeenCalled();
@@ -397,8 +397,8 @@ describe('PlaybookRun — fill, app, approvals, done', () => {
 
     it('Autopilot lingers on a landing with a countdown (the rows stay visible), then continues once — "Continue now" skips the wait and never doubles', async () => {
         setItem('playbooks.autopilot', '1');
-        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 4 }, { table: { status: 'awaiting', artifacts: TABLE_ART }, routine: { status: 'pending', brief: 'b' } }) });
-        playbooksApi.patch.mockResolvedValue({ playbook: pb({ version: 5 }, { table: { status: 'awaiting', artifacts: TABLE_ART }, routine: { status: 'pending', brief: 'b' } }) });
+        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 4 }, { table: { status: 'awaiting', artifacts: TABLE_ART }, automation: { status: 'pending', brief: 'b' } }) });
+        playbooksApi.patch.mockResolvedValue({ playbook: pb({ version: 5 }, { table: { status: 'awaiting', artifacts: TABLE_ART }, automation: { status: 'pending', brief: 'b' } }) });
         renderRun();
         // The landing is shown first: a countdown chip, no handoff card, no PATCH yet.
         const chip = await screen.findByTestId('playbook-autopilot-countdown');
@@ -420,7 +420,7 @@ describe('PlaybookRun — fill, app, approvals, done', () => {
         // phase to hand the turn to. Autopilot refuses this one by design —
         // and the card used to hide BECAUSE autopilot was on, leaving a screen
         // with no countdown, no Continue and nothing to press (2026-09-17).
-        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 11 }, { table: { status: 'done', artifacts: TABLE_ART }, routine: { status: 'done', artifacts: { automationId: 'auto_1' } }, fill: { status: 'done', artifacts: { rowCount: 32 } }, app: { status: 'awaiting', artifacts: { appId: 'app_1', appName: 'Facturen' }, summary: 'App "Facturen" built.' }, approvals: { status: 'locked' } }) });
+        playbooksApi.get.mockResolvedValue({ playbook: pb({ version: 11 }, { table: { status: 'done', artifacts: TABLE_ART }, automation: { status: 'done', artifacts: { automationId: 'auto_1' } }, fill: { status: 'done', artifacts: { rowCount: 32 } }, app: { status: 'awaiting', artifacts: { appId: 'app_1', appName: 'Facturen' }, summary: 'App "Facturen" built.' }, approvals: { status: 'locked' } }) });
         renderRun();
         await screen.findByTestId('app-shell');
         const card = await screen.findByTestId('playbook-handoff');

@@ -52,7 +52,7 @@ test('the deadline comes from the catalogue milestone aia_marking_transition_end
     assert.ok(check._test.daysUntil(check._test.deadline(), LATER) < 0);
 });
 
-test('listSubjects: one subject per routine with an AI-fed document, label = title, no owner data', async () => {
+test('listSubjects: one subject per automation with an AI-fed document, label = title, no owner data', async () => {
     state.generating = [
         { id: 'au-1', title: 'Offerte-brieven', is_active: true, is_draft: false, aiStepIds: ['ai_1'], generating: [{ id: 'doc', label: 'Brief', signal: 'reference', aiStepIds: ['ai_1'] }], user_id: 'u-owner' },
         { id: 'au-2', title: null, is_active: false, is_draft: true, aiStepIds: ['ai_x'], generating: [{ id: 'd', label: '', signal: 'downstream', aiStepIds: ['ai_x'] }] },
@@ -65,7 +65,7 @@ test('listSubjects: one subject per routine with an AI-fed document, label = tit
         assert.deepStrictEqual(Object.keys(s).sort(), ['aiStepIds', 'generating', 'id', 'is_active', 'is_draft', 'label']);
     }
     state.generating = [];
-    assert.deepStrictEqual(await check.listSubjects('org-1'), [], 'no generating routines → no subjects (runner records not_applicable)');
+    assert.deepStrictEqual(await check.listSubjects('org-1'), [], 'no generating automations → no subjects (runner records not_applicable)');
 });
 
 const SUBJECT = { id: 'au-1', label: 'Offerte-brieven', is_active: true, is_draft: false, aiStepIds: ['ai_1'], generating: [{ id: 'doc', label: 'Brief', signal: 'reference', aiStepIds: ['ai_1'] }] };

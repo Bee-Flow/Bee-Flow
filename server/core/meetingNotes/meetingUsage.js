@@ -12,7 +12,7 @@
  *
  * ── NO LINK TABLE, ON PURPOSE ───────────────────────────────────────
  * Nothing "attaches" a meeting to a consumer. A knowledge source watches a
- * TAG, a routine subscribes to an EVENT with a filter, a notebook copied the
+ * TAG, an automation subscribes to an EVENT with a filter, a notebook copied the
  * text once. A link table would have to be written from four places that all
  * already store the truth somewhere else, and the copy that fell behind is
  * exactly the one that would answer "nothing depends on this".
@@ -45,21 +45,21 @@
  *    `{tags:['sales','klant']}`, and only an empty filter (or the DSL escape
  *    `expr:`) fired. `matchMeetingProcessedFilter` now answers `tags` and
  *    `reprocessed`, hands every other key back to `matchFilter`, and an empty
- *    tag list means EVERY finished note. So a routine with `{tags:['sales']}`
+ *    tag list means EVERY finished note. So an automation with `{tags:['sales']}`
  *    now really does fire, and this list now really does name it.
  *    None of that needed an edit here, and that is the point: the scan runs
  *    the stored filter through `pickMatcher` + `applyDslFilter` — the exact
  *    pair `dispatch.js` builds — rather than comparing tags itself. A list
- *    built on its own tag rules would show routines that never run, or hide
- *    routines that do. The next change to the matcher lands here for free too.
+ *    built on its own tag rules would show automations that never run, or hide
+ *    automations that do. The next change to the matcher lands here for free too.
  *
  * ── THE FAN-OUT IS OWNER-ONLY, WHATEVER THE DECLARATION SAYS ────────
  * `declared/meeting-notes.js` declares `scope: 'org'`, but
  * `emitMeetingProcessed` always passes the owner's `userId` and
  * `triggerBus/dispatch.js` then skips every subscription belonging to anyone
- * else. A colleague's routine on tag `sales` never fires on my meeting. The
+ * else. A colleague's automation on tag `sales` never fires on my meeting. The
  * automation scan is therefore scoped to the meeting's OWNER — showing the
- * org's routines would be a list of things that will not happen. If the
+ * org's automations would be a list of things that will not happen. If the
  * dispatch is ever widened to the declared org scope, widen this with it;
  * changing one without the other makes the bar untrue in one direction or
  * the other.
@@ -212,7 +212,7 @@ function triggerFires(trigger, payload) {
 }
 
 /**
- * What a row says about WHEN a routine fires: `{ siteLabel?, unfiltered? }`.
+ * What a row says about WHEN an automation fires: `{ siteLabel?, unfiltered? }`.
  *
  * Describes what was CONFIGURED; `triggerFires` decides whether it matches.
  * Two deliberate restraints:
@@ -403,27 +403,27 @@ function readTag(config) {
 }
 
 /**
- * Routines that run on this meeting.
+ * Automations that run on this meeting.
  *
  * Reads `automations.definition_json` rather than
  * `automation_event_subscriptions`, and the difference matters for the delete
- * guard: subscription rows exist only while a routine is ACTIVE (activate
+ * guard: subscription rows exist only while an automation is ACTIVE (activate
  * writes them, deactivate wipes them all), so the subscription table answers
  * "what will fire tonight" while the definition answers "what is wired to
- * this", drafts and paused routines included. Deleting a meeting out from
- * under a paused routine breaks it just the same, so the guard needs the
+ * this", drafts and paused automations included. Deleting a meeting out from
+ * under a paused automation breaks it just the same, so the guard needs the
  * second question.
  *
  * Scoped to the meeting's OWNER — see the header on the fan-out. Without an
  * owner there is nothing to scope to and the scan says so instead of
- * guessing; an unscoped read here would put every routine in the install into
+ * guessing; an unscoped read here would put every automation in the install into
  * one person's list.
  */
 async function scanAutomation(meeting, db) {
     const ownerId = meeting?.ownerId || meeting?.userId || null;
     if (!ownerId) {
         // Not an error and not "none" — the answer is unavailable.
-        const err = /** @type {Error & {unscoped?: boolean}} */ (new Error('meeting has no owner to scope routines to'));
+        const err = /** @type {Error & {unscoped?: boolean}} */ (new Error('meeting has no owner to scope automations to'));
         err.unscoped = true;
         throw err;
     }
@@ -455,7 +455,7 @@ async function scanAutomation(meeting, db) {
                 // A filter the real matcher could not judge. Not listed —
                 // a row here is a claim that it runs — but the kind goes
                 // into `partial`, so the answer reads as incomplete rather
-                // than as "this routine does not run".
+                // than as "this automation does not run".
                 undecided = true;
                 continue;
             }
@@ -469,8 +469,8 @@ async function scanAutomation(meeting, db) {
                 lastAt: row.last_at || null,
                 ownerId: row.owner_id || null,
             });
-            // One row per routine, not one per trigger: two meeting triggers
-            // on the same routine is still one thing that breaks.
+            // One row per automation, not one per trigger: two meeting triggers
+            // on the same automation is still one thing that breaks.
             break;
         }
     }
@@ -494,9 +494,9 @@ function parseDefinition(value) {
  *
  * ── WHY THIS KIND IS SO OFTEN `partial` ─────────────────────────────
  * `POST /notebooks/:id/sources/meeting` records the text and the name
- * `Meeting Note: <title>`, and nothing else: there is no column saying WHICH
- * meeting it came from. `source_ref_id` is the column that fixes it, it is
- * not on this install yet, and the rows written before it cannot be
+ * `Meeting Note: <title>`, and used to record nothing else: no column said
+ * WHICH meeting it came from. `source_ref_id` fixes it (notebookStore adds the
+ * column and the route fills it), but the rows written before it cannot be
  * backfilled — a title is not an id, two meetings share one every week, and
  * renaming a meeting rewrites nothing. So:
  *
@@ -615,7 +615,7 @@ async function usageForMeeting(meeting, { db = pool } = {}) {
  * Same rule as the knowledge-base Used-by tab: a row owned by somebody else
  * keeps its KIND and its ROLE — which is what "what would break" needs — and
  * loses its NAME, so a shared meeting cannot be used to enumerate an
- * organisation's routines and knowledge bases. A row with no owner at all
+ * organisation's automations and knowledge bases. A row with no owner at all
  * (org-scoped) is nobody's private business and stays whole.
  */
 function redactForeign(rows, userId) {

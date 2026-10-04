@@ -100,7 +100,11 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         }, SAVE_DEBOUNCE_MS);
     };
 
-    const betaReadOnly = (cap) => cap.kind === 'beta' && data?.betaGoverned;
+    // On cloud the subscription decides which betas reach all members, so the
+    // beta rows are read-only there. A group-scoped beta (e.g. Meeting Notes)
+    // is the exception in both modes: "All members" is a real choice for it,
+    // and a group can hold it while All members does not.
+    const betaReadOnly = (cap) => cap.kind === 'beta' && data?.betaGoverned && !cap.groupScoped;
     const isEveryoneScope = scope === EVERYONE;
 
     const toggle = (cap) => {

@@ -38,7 +38,7 @@
  * a long-lived accumulation of raw PII across all of a user's conversations,
  * and nothing searches it in SQL, so an "off" switch would have a real cost and
  * no benefit. It encrypts whenever a key resolves, on every tier — matching the
- * always-on posture of orgVault and routine_credentials.
+ * always-on posture of orgVault and automation_credentials.
  */
 
 const crypto = require('crypto');

@@ -1,6 +1,6 @@
 # Builder tools — the rules the loops taught us
 
-The routine builder is driven by small local models. Measured 2026-09-12/13 on one invoice
+The automation builder is driven by small local models. Measured 2026-09-12/13 on one invoice
 brief: such a model can ADD a step it is told to add, cannot EDIT one field of a batch it
 already sent (it resends the byte-identical call), and does not obey "stop retrying".
 Every rule below follows from that.
@@ -19,7 +19,7 @@ Every rule below follows from that.
    predict the next shape; the corpus does not either, but it never regresses.
 5. No builder change ships without `scripts/builder-live-run.sh` passing on the local
    model against `server/scripts/builder-briefs/*.json` — a rebuilt container, a real
-   build, the expected chain. "The tests pass" is not the gate; the routine on the canvas is.
+   build, the expected chain. "The tests pass" is not the gate; the automation on the canvas is.
 6. When adding a step type or tool, check the four seams that bit: fields under `inputs`
    that belong at the top level, step fields beside `spec`, prompt placeholders standing in
    for `source`, and silent coercion of an unknown enum value.

@@ -14,7 +14,7 @@ const WARN_CARD = 'p-3.5 rounded-xl border border-[color-mix(in_srgb,var(--warni
 
 /**
  * The AI Act check as Bee does it (Studio → Automations handoff 5): Bee
- * checks the routine by itself (GET /:id/ai-act/check) and records what it
+ * checks the automation by itself (GET /:id/ai-act/check) and records what it
  * can answer. The card says what came out, and asks only what Bee could not
  * tell:
  *
@@ -60,25 +60,25 @@ export default function AiActAutoCard({ automationId, stamp, canEdit, variant = 
         checking: () => (
             <p className="flex items-center gap-2 text-[var(--text-secondary)]" role="status" data-testid="aiact-checking">
                 <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" aria-hidden />
-                {t('routines.aiact.checking', 'Bee is checking…')}
+                {t('automations.aiact.checking', 'Bee is checking…')}
             </p>
         ),
         failed: () => (
             <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-[var(--text-secondary)]">{t('routines.aiact.check_failed', 'Bee could not check this automation right now.')}</p>
+                <p className="text-[var(--text-secondary)]">{t('automations.aiact.check_failed', 'Bee could not check this automation right now.')}</p>
                 <button type="button" onClick={() => { void check.refetch(); }} className={`${SECONDARY_BTN} ml-auto`}>
-                    {t('routines.aiact.retry', 'Try again')}
+                    {t('automations.aiact.retry', 'Try again')}
                 </button>
             </div>
         ),
         prohibited: () => (
             <p className="flex items-start gap-1.5 text-[var(--error)]">
                 <OctagonX className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />
-                {t('routines.aiact.prohibited_body', 'The check found a prohibited practice. This automation cannot go live. Ask your compliance officer to review it in the Compliance Hub.')}
+                {t('automations.aiact.prohibited_body', 'The check found a prohibited practice. This automation cannot go live. Ask your compliance officer to review it in the Compliance Hub.')}
             </p>
         ),
         valid: () => <Checked result={r} />,
-        unchecked: () => <p className="text-[var(--text-secondary)]">{t('routines.aiact.not_checked', 'Not checked yet. Bee checks it as soon as someone who can edit this automation opens it.')}</p>,
+        unchecked: () => <p className="text-[var(--text-secondary)]">{t('automations.aiact.not_checked', 'Not checked yet. Bee checks it as soon as someone who can edit this automation opens it.')}</p>,
     };
     const showChange = canEdit && (phase === 'valid' || phase === 'prohibited');
     return (
@@ -86,7 +86,7 @@ export default function AiActAutoCard({ automationId, stamp, canEdit, variant = 
             {body[phase]()}
             {showChange && (
                 <button type="button" onClick={() => setWizardOpen(true)} className={`${SECONDARY_BTN} self-start`}>
-                    {t('routines.aiact.change_answers', 'Change answers')}
+                    {t('automations.aiact.change_answers', 'Change answers')}
                 </button>
             )}
             {canEdit && <AiActWizard open={wizardOpen} onClose={() => setWizardOpen(false)} automationId={automationId} />}
@@ -98,10 +98,10 @@ export default function AiActAutoCard({ automationId, stamp, canEdit, variant = 
 function Checked({ result: r }: { result: AiActCheckResult }) {
     const { t } = useTranslation();
     const head = r.source === 'auto'
-        ? t('routines.aiact.checked_auto', 'Checked automatically')
-        : t('routines.aiact.checked', 'Checked');
+        ? t('automations.aiact.checked_auto', 'Checked automatically')
+        : t('automations.aiact.checked', 'Checked');
     const until = r.expiresAt
-        ? t('routines.aiact.valid_until_short', 'valid until {date}', { date: formatDate(r.expiresAt) })
+        ? t('automations.aiact.valid_until_short', 'valid until {date}', { date: formatDate(r.expiresAt) })
         : null;
     return (
         <>
@@ -112,13 +112,13 @@ function Checked({ result: r }: { result: AiActCheckResult }) {
             {r.findings.length > 0 && (
                 <details className="group">
                     <summary className="cursor-pointer text-[var(--text-secondary)] underline underline-offset-2 w-fit">
-                        {t('routines.aiact.what_bee_found', 'What Bee found')}
+                        {t('automations.aiact.what_bee_found', 'What Bee found')}
                     </summary>
                     <ul className="mt-1.5 flex flex-col gap-1 pl-1" data-testid="aiact-findings">
                         {r.findings.map(f => (
                             <li key={f.id} className="leading-4">
                                 <span className="font-semibold">{findingLabel(f.id, t)}: {answerWord(f.answer, t)}</span>
-                                {f.by === 'person' && <span className="text-[var(--text-tertiary)]"> ({t('routines.aiact.your_answer', 'your answer')})</span>}
+                                {f.by === 'person' && <span className="text-[var(--text-tertiary)]"> ({t('automations.aiact.your_answer', 'your answer')})</span>}
                                 {f.evidence.length > 0 && (
                                     <span className="text-[var(--text-tertiary)]"> · {f.evidence.map(e => reasonText(e, t)).filter(Boolean).join(' ')}</span>
                                 )}
@@ -149,29 +149,29 @@ function OpenQuestions({ automationId, result, canEdit }: { automationId: string
             <div className="flex items-center gap-2 font-semibold">
                 <ClipboardCheck className="w-[15px] h-[15px] text-[var(--warning)]" aria-hidden />
                 {shown === 1
-                    ? t('routines.aiact.questions_left_one', '1 question left')
-                    : t('routines.aiact.questions_left', '{n} questions left', { n: shown })}
+                    ? t('automations.aiact.questions_left_one', '1 question left')
+                    : t('automations.aiact.questions_left', '{n} questions left', { n: shown })}
             </div>
             <p className="text-[var(--text-secondary)] leading-[17px]">
                 {canEdit
-                    ? t('routines.aiact.questions_intro', 'Bee checked the rest by itself. Only you can answer this.')
-                    : t('routines.aiact.questions_viewer', 'Bee checked the rest by itself. Someone who can edit this automation has to answer this.')}
+                    ? t('automations.aiact.questions_intro', 'Bee checked the rest by itself. Only you can answer this.')
+                    : t('automations.aiact.questions_viewer', 'Bee checked the rest by itself. Someone who can edit this automation has to answer this.')}
             </p>
             <AiActQuestions questions={result.questions} draft={draft} onChange={onChange} disabled={!canEdit || answer.isPending} />
             {canEdit && complete && !answer.isPending && (
                 <button type="button" onClick={() => save(draft)} className={`${PRIMARY_BTN} self-start`}>
-                    {t('routines.aiact.save_answers', 'Save answers')}
+                    {t('automations.aiact.save_answers', 'Save answers')}
                 </button>
             )}
-            {answer.isPending && <p className="text-[var(--text-tertiary)]" role="status">{t('routines.aiact.saving', 'Saving…')}</p>}
+            {answer.isPending && <p className="text-[var(--text-tertiary)]" role="status">{t('automations.aiact.saving', 'Saving…')}</p>}
             {answer.error && (
                 <p role="alert" className="text-[var(--error)]">
                     {answer.error.code?.startsWith('ai_act') && answer.error.message
                         ? answer.error.message
-                        : t('routines.aiact.save_failed', 'Could not record the check. Try again.')}
+                        : t('automations.aiact.save_failed', 'Could not record the check. Try again.')}
                 </p>
             )}
-            <p className="text-[var(--text-tertiary)]">{t('routines.aiact.needed', 'Needed before you can activate · valid 12 months')}</p>
+            <p className="text-[var(--text-tertiary)]">{t('automations.aiact.needed', 'Needed before you can activate · valid 12 months')}</p>
         </div>
     );
 }

@@ -1,5 +1,5 @@
 /**
- * Shared visual vocabulary for the routine-builder forms — the node settings
+ * Shared visual vocabulary for the automation-builder forms — the node settings
  * panel (NDV) and everything it renders.
  *
  * Pure strings, no React on purpose: CollapsibleSection imports these, and it
@@ -23,7 +23,7 @@
 // between the two levels, which made a heading and a label read as the same
 // object at a glance.
 export function sectionHeaderClass() {
-    return 'text-[12px] uppercase tracking-[0.08em] font-semibold text-[var(--text-primary)]';
+    return 'text-[11px] uppercase tracking-[0.08em] font-semibold text-[var(--text-primary)]';
 }
 
 // L3 — field label ("Operation", "query"). Sentence case + the secondary
@@ -66,13 +66,15 @@ export function actionButtonClass() {
 // it is a distinct step in all eight themes — including high-contrast
 // (#141414 on a #000000 card) and the two translucent glass tiers.
 export function bandClass() {
-    return 'flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] pr-1.5';
+    // A hairline under the title, not a filled bar: the bars took more room
+    // (and more attention) than the fields they introduce.
+    return 'flex items-center gap-1.5 border-b border-[var(--border-subtle)] pr-1.5';
 }
 
 // The body of a section: a hairline rail showing where the group ends. The
 // band says where a group starts; the rail says what belongs to it.
 export function railClass() {
-    return 'pt-2.5 ml-1 pl-2.5 border-l border-[var(--border-subtle)] space-y-2.5';
+    return 'pt-2 ml-1 pl-2.5 border-l border-[var(--border-subtle)] space-y-2';
 }
 
 // --accent defaults to a neutral grey (#9ca3af) and measures ~2.3:1 on a light

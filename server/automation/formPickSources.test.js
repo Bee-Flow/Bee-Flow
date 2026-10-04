@@ -202,7 +202,7 @@ test('data carries the record\'s own fields, typed — not a second copy of its 
 });
 
 test('an empty structured field is dropped, never carried as ""', () => {
-    // A routine branching on data.organizer must be able to tell "no organizer"
+    // An automation branching on data.organizer must be able to tell "no organizer"
     // from "this source does not report one"; an empty string says neither.
     const sparse = ps.getSource('fireflies_transcript').mapRecord({ title: 'Kort', sentences: [] });
     assert.ok(!('organizer' in sparse.data));

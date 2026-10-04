@@ -1,5 +1,5 @@
 /**
- * The routine as the editor loads, saves, creates and arms it
+ * The automation as the editor loads, saves, creates and arms it
  * (routes/automation/crud.js and activate.js, mounted at /api/automation).
  *
  * Saving is validated at the lenient DRAFT stage: only an integrity problem
@@ -63,13 +63,13 @@ export async function saveFlow(id: string, patch: FlowPatch): Promise<SaveResult
     return flowResult(await updateAutomation(id, patch));
 }
 
-/** POST / — a new routine, created as a draft. */
+/** POST / — a new automation, created as a draft. */
 export async function createFlow(body: { title: string; definition: FlowDefinition; description?: string | null }): Promise<SaveResult> {
     return flowResult({ ...(await createAutomation(body)), answers: null });
 }
 
 /**
- * Arm or disarm the routine. Arming re-validates the STORED definition at the
+ * Arm or disarm the automation. Arming re-validates the STORED definition at the
  * strict stage — so the editor flushes its autosave first. A refusal is a 400
  * whose `details` are the reasons; `issueDetailsOf` reads them.
  */
@@ -86,7 +86,7 @@ export async function publishFlow(id: string, version: number | null): Promise<S
     return flowResult(await publishAutomation(id, version));
 }
 
-/** The routine moved on since the version the person was looking at (publish, or activating a never-live routine). */
+/** The automation moved on since the version the person was looking at (publish, or activating a never-live automation). */
 export function isVersionChanged(err: unknown): boolean {
     return err instanceof ApiError && err.status === 409 && err.code === 'version_changed';
 }

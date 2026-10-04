@@ -59,7 +59,7 @@ describe('NowRunningStrip — the three states never borrow each other\'s look',
 describe('NowRunningStrip — what a line says', () => {
     beforeEach(cleanup);
 
-    it('draws one line per routine, most urgent first, with its tone on the element', () => {
+    it('draws one line per automation, most urgent first, with its tone on the element', () => {
         render(<NowRunningStrip facets={{ automations: [
             roll({ automationId: 'ok', title: 'Digest', status: { success: 38 }, total: 38 }),
             roll({ automationId: 'bad', title: 'Credit check', status: { error: 1 }, lastErrorClass: 'rate_limit', lastErrorAt: new Date().toISOString() }),
@@ -90,12 +90,12 @@ describe('NowRunningStrip — what a line says', () => {
         expect(screen.getByTestId('now-running-line').textContent).toMatch(/failed/i);
     });
 
-    it('a routine with no title says so instead of inventing one', () => {
+    it('an automation with no title says so instead of inventing one', () => {
         render(<NowRunningStrip facets={{ automations: [roll({ title: null })] }} />);
         expect(screen.getByTestId('now-running-line').textContent).toMatch(/without a name/i);
     });
 
-    it('offers the routine only when the screen can navigate', () => {
+    it('offers the automation only when the screen can navigate', () => {
         const onOpenAutomation = vi.fn();
         render(<NowRunningStrip facets={{ automations: [roll()] }} onOpenAutomation={onOpenAutomation} />);
         fireEvent.click(screen.getByTestId('now-running-open'));
@@ -105,7 +105,7 @@ describe('NowRunningStrip — what a line says', () => {
         expect(screen.queryByTestId('now-running-open')).toBeNull();
     });
 
-    it('says how many routines it is NOT showing', () => {
+    it('says how many automations it is NOT showing', () => {
         const many = Array.from({ length: 9 }, (_, i) => roll({ automationId: `a${i}`, title: `R${i}` }));
         render(<NowRunningStrip facets={{ automations: many, automationsTotal: 40 }} />);
         expect(screen.getByTestId('now-running-more').textContent).toContain('34');

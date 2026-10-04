@@ -40,7 +40,7 @@
           "id": "c",
           "label": "No kinds of personal data are ticked, so nothing can ever be found.",
           "correct": false,
-          "feedback": "A real trap — the Overview row \"Kinds of data we look for\" reading \"0 of 21\" means the shield will never find a thing. But that would silence Monday's messages too, not only Wednesday's."
+          "feedback": "A real trap — Overview warning \"No kinds of data are selected\", with Kinds of data at \"0 of 21\", needs fixing at once. But that would silence Monday's messages too, not only Wednesday's."
         },
         {
           "id": "d",
@@ -135,7 +135,7 @@
       "id": "verify",
       "icon": "🔍",
       "title": "Verify, do not assume",
-      "bodyMd": "Every change has a screen that proves it took.\n\n- **Privacy Shield → Overview** shows a posture table. Its row *Kinds of data we look for* reading *\"0 of 21\"* means protection is on and nothing will ever be found.\n- **Users & Groups** carries a count badge on each tab, a member count on every group card, and a role chip on every row.\n- **Integrations → Integration access**: pick All members or one group on the left and read its toggles. An integration your subscription does not include is not shown at all, so a missing card means \"not in the plan\", not \"not granted yet\".\n- **Usage & Monitoring** answers the week after, through Top Users and By app area.\n\nOne trap: a blank Usage page is not proof of no usage. A refused request draws the same empty panels, with no error at all."
+      "bodyMd": "Every change has a screen that proves it took.\n\n- **Privacy Shield → Overview** shows *How things stand*, one card per step. *Kinds of data* reading *\"0 of 21\"* puts *\"No kinds of data are selected\"* on the review card above it: protection is on, and the page warns that nothing will ever be found.\n- **Users & Groups** carries a count badge on each tab, a member count on every group card, and a role chip on every row.\n- **Integrations → Integration access**: pick All members or one group on the left and read its toggles. An integration your subscription does not include is not shown at all, so a missing card means \"not in the plan\", not \"not granted yet\".\n- **Usage & Monitoring** answers the week after, through Top Users and By app area.\n\nOne trap: a blank Usage page is not proof of no usage. A refused request draws the same empty panels, with no error at all."
     },
     {
       "type": "sim",
@@ -155,8 +155,8 @@
           {
             "id": "cats",
             "left": "She ticked seven kinds of personal data in the shield",
-            "right": "The Privacy Shield posture table",
-            "note": "The row reads \"7 of 21\". Anything reading \"0 of 21\" is a shield that will never find a thing."
+            "right": "How things stand, on Privacy Shield → Overview",
+            "note": "Kinds of data reads \"7 of 21\". At \"0 of 21\" the review card says \"No kinds of data are selected\" and warns that nothing will ever be found."
           },
           {
             "id": "grant",
@@ -183,7 +183,7 @@
       "timeoutMs": 7000,
       "icon": "📊",
       "title": "Where next week lives",
-      "body": "Usage & Monitoring opens on the last 30 days and is read-only. The controls that change behaviour sit higher up the same Organisation menu, on License & Usage: the plan's cap, and the toggle Share AI usage across the organisation."
+      "body": "Usage & Monitoring opens on the last 30 days and is read-only. On Bee Flow Cloud, the controls that change behaviour sit higher up the same Organisation menu, on License & Usage: the plan's cap, and the toggle Share AI usage across the organisation."
     },
     {
       "type": "slide",
@@ -247,7 +247,7 @@
       "id": "now",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Sequence a change**: policy, then access, then people — and verification a week later, on purpose.\n- **Spot the one-way doors** before you open them: Sign-in Method and Reject on a pending member, plus the Zero-knowledge encryption level, whose save you can never un-ring. Announce those; the rest you can simply adjust.\n- **Prove it landed** on the screen that owns it — the shield's posture table, the group card, the Integration access panel, Usage & Monitoring — and keep your one-line note beside what the Access log already writes for you.\n\nThat is the whole method. You can let all sixty of Van Dijk Groep's people in now, in an order that will not need explaining afterwards."
+      "bodyMd": "- **Sequence a change**: policy, then access, then people — and verification a week later, on purpose.\n- **Spot the one-way doors** before you open them: Sign-in Method and Reject on a pending member, plus the Zero-knowledge encryption level, whose save you can never un-ring. Announce those; the rest you can simply adjust.\n- **Prove it landed** on the screen that owns it — the shield's How things stand, the group card, the Integration access panel, Usage & Monitoring — and keep your one-line note beside what the Access log already writes for you.\n\nThat is the whole method. You can let all sixty of Van Dijk Groep's people in now, in an order that will not need explaining afterwards."
     }
   ],
   "rubrics": {
@@ -271,10 +271,10 @@
     "facts": [
       "The Privacy Shield only checks messages sent after it is saved, and 'Also check knowledge bases when documents are added' redacts at the moment a document is added — neither is retroactive, so policy belongs at the start of a rollout.",
       "Saving the Zero-knowledge encryption level signs out everyone in the organisation, including the admin who saves it; existing messages are left exactly as they are and stay readable, and the level itself can still be changed back later even though the sign-out cannot.",
-      "The Privacy Shield Overview posture table shows a row 'Kinds of data we look for'; reading '0 of 21' means protection is on but nothing will ever be found.",
+      "Privacy Shield → Overview shows How things stand, where the row 'Kinds of data' counts the ticked kinds; at '0 of 21' the review card lists 'No kinds of data are selected' and warns that nothing will ever be found.",
       "A group's Allowed tiers pills restrict only that group, an empty selection means no restriction at all, and a Clear restrictions link puts it back.",
       "Demoting yourself while you are the only active Organisation Admin is refused: that change would leave the organisation without an administrator, so promote someone else first.",
-      "Usage & Monitoring is read-only and opens on the last 30 days; the plan cap and the toggle 'Share AI usage across the organisation' live higher up the same Organisation menu, on License & Usage.",
+      "Usage & Monitoring is read-only and opens on the last 30 days; on Bee Flow Cloud the plan cap and the toggle 'Share AI usage across the organisation' live higher up the same Organisation menu, on License & Usage.",
       "In the Organisation menu the Data Protection Officer and ISMS Internal Auditor roles open the Compliance Center and nothing else — they carry compliance and monitoring, not user management.",
       "Compliance → Access log records sign-ins, changes to who can reach what, and app publications, newest first, with server-side filters on event kind, date range and account, and an export capped at 50 000 rows per file and twenty exports an hour. It has no field for why a change was made."
     ]

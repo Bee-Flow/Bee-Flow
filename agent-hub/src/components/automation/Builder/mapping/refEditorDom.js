@@ -205,9 +205,67 @@ export function caretToEnd(host, win = window) {
     sel.addRange(range);
 }
 
+/** A pill reads as a word for spacing purposes. */
+const WORD = /[\p{L}\p{N}]/u;
+const SPACE_BEFORE = /[\p{L}\p{N},;:!?]/u;
+const PILL_CHAR = 'x';
+
+/** The character a node shows at its start (dir 1) or end (dir -1); a pill counts as a word character. */
+function edgeChar(node, dir) {
+    if (node.nodeType === 3) {
+        const t = node.nodeValue || '';
+        return t ? (dir < 0 ? t[t.length - 1] : t[0]) : null;
+    }
+    if (node.nodeType !== 1) return null;
+    if (node.hasAttribute?.(PILL_ATTR)) return PILL_CHAR;
+    if (node.hasAttribute?.(FILLER_ATTR)) return null;
+    if (node.nodeName === 'BR') return '\n';
+    const kids = node.childNodes;
+    for (let i = dir < 0 ? kids.length - 1 : 0; i >= 0 && i < kids.length; i += dir < 0 ? -1 : 1) {
+        const ch = edgeChar(kids[i], dir);
+        if (ch) return ch;
+    }
+    return null;
+}
+
+/** The visible character right before (dir -1) or after (dir 1) a collapsed range, or null at the edge of the host. */
+function neighbourChar(range, host, dir) {
+    const c = dir < 0 ? range.startContainer : range.endContainer;
+    const o = dir < 0 ? range.startOffset : range.endOffset;
+    let node;
+    let parent;
+    if (c.nodeType === 3) {
+        const t = c.nodeValue || '';
+        const part = dir < 0 ? t.slice(0, o) : t.slice(o);
+        if (part) return dir < 0 ? part[part.length - 1] : part[0];
+        node = dir < 0 ? c.previousSibling : c.nextSibling;
+        parent = c.parentNode;
+    } else {
+        node = dir < 0 ? c.childNodes[o - 1] : c.childNodes[o];
+        parent = c;
+    }
+    for (;;) {
+        while (node) {
+            const ch = edgeChar(node, dir);
+            if (ch) return ch;
+            node = dir < 0 ? node.previousSibling : node.nextSibling;
+        }
+        if (!parent || parent === host) return null;
+        node = dir < 0 ? parent.previousSibling : parent.nextSibling;
+        parent = parent.parentNode;
+    }
+}
+
 /**
  * Insert nodes at the caret (or at the end when the caret is elsewhere) and
  * leave the caret AFTER them, in a text node the author can type into.
+ *
+ * `spaced` keeps a reference from fusing with its neighbours: a word (a
+ * letter, a digit or another pill) or a `, ; : ! ?` right before it gets a
+ * single space in front, a word right after it a space behind. Dropping three
+ * fields in a row used to render "Hello world42true". Anything else stays put
+ * ("/{{id}}", "({{x}})", "{{x}}."), and a data slot (a URL, a JSON body)
+ * passes `spaced: false`.
  */
 export function insertAtCaret(host, nodes, opts = {}) {
     if (!host || !nodes.length) return;
@@ -232,18 +290,26 @@ export function insertAtCaret(host, nodes, opts = {}) {
     }
     range.deleteContents();
 
+    let padAfter = false;
+    if (opts.spaced) {
+        const before = neighbourChar(range, host, -1);
+        const next = neighbourChar(range, host, 1);
+        if (before && SPACE_BEFORE.test(before)) nodes = [doc.createTextNode(' '), ...nodes];
+        padAfter = Boolean(next && WORD.test(next));
+    }
+
     const frag = doc.createDocumentFragment();
     for (const n of nodes) frag.appendChild(n);
     const lastInserted = frag.lastChild;
     range.insertNode(frag);
 
-    const after = doc.createTextNode('');
+    const after = doc.createTextNode(padAfter ? ' ' : '');
     lastInserted.parentNode.insertBefore(after, lastInserted.nextSibling);
     ensureTrailingFiller(host, doc);
 
     if (sel) {
         const caret = doc.createRange();
-        caret.setStart(after, 0);
+        caret.setStart(after, after.nodeValue.length);
         caret.collapse(true);
         sel.removeAllRanges();
         sel.addRange(caret);

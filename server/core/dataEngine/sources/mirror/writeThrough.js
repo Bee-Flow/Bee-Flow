@@ -5,7 +5,7 @@
  * the answer back).
  *
  * Every write site that can touch a datatable's rows (the Studio routes, the
- * routine `datatable` step, App Studio's record actions, the webpage bridge)
+ * automation `datatable` step, App Studio's record actions, the webpage bridge)
  * branches here for a mirror, with one context:
  *
  *   ctx = { table, scope, scopeKey, tableMeta (with its access block), grade, viewerId }
@@ -36,7 +36,7 @@
  * the loop goes on — the bulk-import contract — stopping only when the
  * source is unreachable (`errorClass === 'datatable_source_unavailable'`),
  * because N copies of "could not be reached" tell the importer nothing more
- * than one. Without it the first refusal throws — the routine-step contract,
+ * than one. Without it the first refusal throws — the automation-step contract,
  * where a half-done step must be red.
  *
  * ── WHAT CANNOT BE WRITTEN ──────────────────────────────────────────

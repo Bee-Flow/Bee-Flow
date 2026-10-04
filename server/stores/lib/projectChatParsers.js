@@ -27,6 +27,7 @@ function parseAiMeta(v) {
     if (!meta || typeof meta !== 'object') return null;
     const str = (x) => (typeof x === 'string' && x ? x.slice(0, 64) : null);
     return {
+        ...(Array.isArray(meta.usedSources) ? { usedSources: parseRefs(meta.usedSources).slice(0, 20) } : {}),
         tier: str(meta.tier),
         requestedTier: str(meta.requestedTier),
         redacted: Number.isFinite(meta.redacted) ? Math.max(0, Math.floor(meta.redacted)) : 0,
@@ -34,7 +35,7 @@ function parseAiMeta(v) {
     };
 }
 
-/** The documents, notebooks and meeting notes a message tags: `{ kind, id }` pairs, nothing else. */
+/** The project items a message tags: `{ kind, id }` pairs, nothing else. */
 function parseRefs(v) {
     let list = v;
     if (typeof v === 'string') {
@@ -42,7 +43,7 @@ function parseRefs(v) {
     }
     if (!Array.isArray(list)) return [];
     return list
-        .filter((x) => x && (x.kind === 'document' || x.kind === 'notebook' || x.kind === 'meeting') && typeof x.id === 'string' && x.id)
+        .filter((x) => x && (x.kind === 'document' || x.kind === 'notebook' || x.kind === 'meeting' || x.kind === 'task') && typeof x.id === 'string' && x.id)
         .map((x) => ({ kind: x.kind, id: x.id }));
 }
 

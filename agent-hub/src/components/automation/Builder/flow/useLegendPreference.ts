@@ -16,10 +16,10 @@ import scopedStorage from '../../../../utils/scopedStorage';
 export const LEGEND_ROOM_PX = 1500;
 export const LEGEND_ROOM_HEIGHT_PX = 600;
 
-const CHOICE_KEY = 'routinesLegendChoice';
+const CHOICE_KEY = 'automationsLegendChoice';
 // The old key was written on every visit under an always-open default, so its
 // '1' says nothing; only a '0' is someone closing it.
-const LEGACY_KEY = 'routinesLegendOpen';
+const LEGACY_KEY = 'automationsLegendOpen';
 
 function readChoice(): boolean | null {
     try {

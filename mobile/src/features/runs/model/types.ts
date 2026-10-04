@@ -4,7 +4,7 @@
  *              GET /api/automation/_runs/recent) and rowToOrgRunRow (the
  *              organisation, GET /api/automation/_runs/org) — the org row is an
  *              allow-list of the same fields plus `mine`;
- *   RunFacets  getRunFacetsScoped, the chips' counts and the per-routine rollup.
+ *   RunFacets  getRunFacetsScoped, the chips' counts and the per-automation rollup.
  */
 
 /** Whose runs: always opens on 'mine' (see model/filters.ts). */
@@ -41,7 +41,7 @@ export interface RunPage {
     nextCursor: string | null;
 }
 
-/** One routine's activity in the facets window. */
+/** One automation's activity in the facets window. */
 export interface RunRollup {
     automationId: string;
     title: string | null;

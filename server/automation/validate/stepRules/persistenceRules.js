@@ -8,7 +8,7 @@
  * must never become a supported field — the whole design rests on the query
  * compiler being the only producer of SQL.
  *
- * Everything about authorisation — may this routine write to that knowledge
+ * Everything about authorisation — may this automation write to that knowledge
  * base, may it see that table — is checked where the database is in hand, at
  * save time and again at run time. This file stays DB-free.
  */
@@ -61,7 +61,7 @@ function checkKnowledgeWrite(ctx, step, at) {
         /**
          * A `sourceUri` is what makes this step idempotent: the same one
          * REPLACES its document instead of adding a second copy. Without
-         * it a routine that runs nightly writes a new document every
+         * it an automation that runs nightly writes a new document every
          * night, and nothing about the knowledge base says why it grew.
          *
          * A warning, not an error: a one-off run that appends is a real
@@ -110,7 +110,7 @@ function checkDatatable(ctx, step, at) {
             pushE({ code: 'datatable.table_missing', severity: 'error', path: at + '.datatableId', message: wanted
                 ? `Step ${step.id}: this step wants the datatable "${wanted}", which is not linked here.`
                 : `Step ${step.id}: pick which datatable to use.`, hint: wanted
-                ? `Pick the table called "${wanted}" from the list, or create it — an imported routine never carries another workspace's table.`
+                ? `Pick the table called "${wanted}" from the list, or create it — an imported automation never carries another workspace's table.`
                 : 'Choose a table from the list.' });
         }
         if (!step.op) {

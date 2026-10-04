@@ -37,8 +37,8 @@
       "type": "slide",
       "id": "no-pill",
       "icon": "🔑",
-      "title": "No Knowledge pill? Two honest ways round it",
-      "bodyMd": "The picker is a product gate, not a secret. You get it if you are an administrator, if your account carries the blanket permission, or if someone switched the **knowledge-bases beta** on for you. Otherwise the panel never appears.\n\nTwo things follow, and the second matters more than it looks.\n\n**You still see grounding you did not set.** If the conversation already carries bases, the pill is there as a *statement*, naming them — you simply cannot change the list. Grounding is never invisible: every turn searches those bases whether or not you may edit them.\n\n**You can ground one question without any of this.** Click **+** → **Add photos & files** and attach the document itself, up to 20 MB a file. That is one document for one conversation rather than a searchable library — but for \"what do our terms say about this\", often enough."
+      "title": "No Knowledge pill? Where it went, and a way round it",
+      "bodyMd": "Every signed-in account gets the picker in direct chat; it is no longer an admin or beta privilege. When the pill is missing, one of three things is true.\n\n**You are in Simple Mode.** The composer keeps only the essentials there (a narrow screen is always in Simple Mode), so the pill comes back when you switch Simple Mode off in your preferences.\n\n**You are talking to an agent.** An agent searches the knowledge bases its builder attached; there is nothing for you to pick.\n\n**The list did not load.** The pill stays away rather than claim \"no knowledge bases\" when it could not ask. Reload the chat.\n\n**You can ground one question without any of this.** Click **+** → **Add photos & files** and attach the document itself, up to 20 MB a file. That is one document for one conversation rather than a searchable library — but for \"what do our terms say about this\", often enough."
     },
     {
       "type": "quiz",

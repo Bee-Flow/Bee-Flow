@@ -28,7 +28,7 @@ export const MAX_FILE_BYTES = 20 * 1024 * 1024;
  * only one of the three that is true.
  *
  * ── THE AUTOMATION CARD IS A SIGNPOST, NOT A FORM ───────────────────
- * You do not create an automation source here: one appears when a routine
+ * You do not create an automation source here: one appears when an automation
  * writes to this knowledge base (the `knowledge_write` step). Its card spans
  * both columns and opens an EXPLANATION with a way through to the builder,
  * which is the honest shape of that relationship — and a third state the
@@ -113,10 +113,10 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
  * "you cannot add this one" needs to know what to do INSTEAD, in the same
  * breath. Two sentences and a link is the shortest thing that does that.
  *
- * The link goes to the routines builder rather than deep-linking a
- * pre-configured step: which routine should write here is the interesting
- * decision, and pre-answering it with a new empty routine would be a guess
- * most of the time — the usual case is a routine that already exists.
+ * The link goes to the automations builder rather than deep-linking a
+ * pre-configured step: which automation should write here is the interesting
+ * decision, and pre-answering it with a new empty automation would be a guess
+ * most of the time — the usual case is an automation that already exists.
  */
 export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources = [] }) {
     // The same relative-time hook the Sources list itself uses, so the two
@@ -127,7 +127,7 @@ export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources 
         <div className="space-y-2.5" data-testid="kb-signpost-automation">
             <p style={{ color: 'var(--text-secondary)' }}>
                 {t('knowledge.automation_signpost.what',
-                    'A routine adds itself here. Give any routine the “To knowledge base” step, point that step at {name}, and it appears in this list the moment the routine is saved.',
+                    'An automation adds itself here. Give any automation the “To knowledge base” step, point that step at {name}, and it appears in this list the moment the automation is saved.',
                     { name: kbName || t('knowledge.automation_signpost.this_base', 'this knowledge base') })}
             </p>
             <p style={{ color: 'var(--text-tertiary)' }}>
@@ -136,7 +136,7 @@ export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources 
             </p>
             {automationSources.length > 0 && (
                 /**
-                 * The other half of what this card is for: which routines are
+                 * The other half of what this card is for: which automations are
                  * ALREADY feeding this base, and when each last did. Without it
                  * the card explains a mechanism while staying silent about the
                  * instances of it sitting in the list right below.
@@ -176,7 +176,7 @@ export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources 
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
                 style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}
             >
-                {t('knowledge.automation_signpost.go', 'Open Routines')}
+                {t('knowledge.automation_signpost.go', 'Open Automations')}
             </a>
         </div>
     );

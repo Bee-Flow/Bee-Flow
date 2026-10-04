@@ -196,7 +196,7 @@ test('can_edit still comes from the same policy the mutating endpoints enforce',
 
 test('without ?usage=1 the counters are not computed and the field is ABSENT', async () => {
     const res = await dispatch();
-    assert.strictEqual(fx.usageCalls.length, 0, 'a pass over every routine, app and page, skipped');
+    assert.strictEqual(fx.usageCalls.length, 0, 'a pass over every automation, app and page, skipped');
     assert.ok(!('usage' in res.body[0]), 'absent — an empty object would render "used by 0"');
 });
 

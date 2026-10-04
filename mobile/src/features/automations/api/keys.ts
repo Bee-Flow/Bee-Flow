@@ -25,6 +25,6 @@ export const automationKeys = {
      * automations may not import approvals (approvals imports automations).
      */
     approvalLists: ['automate', 'approvals'] as const,
-    /** Which app buttons start this routine (GET /:id/usage). */
+    /** Which app buttons start this automation (GET /:id/usage). */
     usage: (id: string) => ['automate', 'automation', id, 'usage'] as const,
 };

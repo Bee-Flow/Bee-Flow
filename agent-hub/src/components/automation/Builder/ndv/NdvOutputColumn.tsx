@@ -38,7 +38,7 @@ export default function NdvOutputColumn({
             <NdvColumnHeader
                 n={3}
                 testId="ndv-col-output"
-                title={t('routines.ndv.continues', 'Continues on')}
+                title={t('automations.ndv.continues', 'Continues on')}
                 summary={runStep?.status === 'error'
                     // "Nothing, the step stopped" reads in the error colour (artboard 4a).
                     ? <span className="text-[var(--error)] font-medium">{summary}</span>
@@ -64,7 +64,7 @@ export default function NdvOutputColumn({
                 stands in while the output editor covers it. */}
             {editorOpen && downstream.length > 0 && (
                 <div className="px-3 py-1.5 text-[11px] text-[var(--text-tertiary)] border-t border-[var(--border-default)] shrink-0 truncate" data-testid="ndv-used-next">
-                    {t('routines.ndv.used_next', 'Used next by {steps}', { steps: downstream.join(', ') })}
+                    {t('automations.ndv.used_next', 'Used next by {steps}', { steps: downstream.join(', ') })}
                 </div>
             )}
         </>

@@ -5,7 +5,7 @@
  *
  * `traces/<date>-<name>.json` is ONE builder turn a real model produced, its
  * tool calls verbatim in order (`calls[].args`) with what the server answered
- * AT THE TIME (`observed` — history, not an expectation). The routine builder's
+ * AT THE TIME (`observed` — history, not an expectation). The automation builder's
  * corpus is one call per file because its calls are independent; here the
  * loop IS the sequence: a duplicate batch is only a duplicate after the first
  * one landed, a plan resend only a resend after the plan was set. So the whole

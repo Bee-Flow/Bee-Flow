@@ -102,7 +102,7 @@ const RELEVANCE_NOTES = {
 
 // "Affects you" on a candidate card. Counts the server derives per org; here
 // they describe the same fictional workspace the rest of the fixture does:
-// four published assistants, two routines that write documents from AI output,
+// four published assistants, two automations that write documents from AI output,
 // one published web page and two live public forms.
 const FRAMEWORK_AFFECTS = {
     aia: { automations: 2, agents: 4, webpages: null, forms: null },
@@ -255,12 +255,12 @@ const aia26Row = (subject) => {
     };
 };
 
-/* The Art. 50(2) marking check is per-source too, but over the ROUTINES that
+/* The Art. 50(2) marking check is per-source too, but over the AUTOMATIONS that
    write a document out of AI output — the server finds them with
    `signals.listGeneratingAutomations`. Both warn rather than fail: marking is
    only required from 2 December 2026, and the check says so with the number of
    days left, exactly as the server does. */
-const DOC_ROUTINES = [
+const DOC_AUTOMATIONS = [
     { id: 'auto_polisbrief', label: 'Polisvoorwaarden-brief', ai_step_ids: ['step_draft'] },
     { id: 'auto_schadebrief', label: 'Schadebesluit-brief', ai_step_ids: ['step_reason'] },
 ];
@@ -287,7 +287,7 @@ const markingRow = (subject) => ({
 const PER_SOURCE = {
     'GDPR-Art35-dpia-high-risk': { subjects: () => HIGH_RISK_AGENTS, row: art35Row },
     'AIA-Art26-human-oversight': { subjects: () => HIGH_RISK_AGENTS, row: aia26Row },
-    'AIA-Art50-content-marking': { subjects: () => DOC_ROUTINES, row: markingRow },
+    'AIA-Art50-content-marking': { subjects: () => DOC_AUTOMATIONS, row: markingRow },
 };
 
 /* The Art. 50 pair carries a NEWER stamp than the sweep: both are re-run by an
@@ -1296,7 +1296,7 @@ const ATTENTION = (state, limit = 5) => {
         if (!a.expires_at || new Date(a.expires_at).getTime() >= now()) continue;
         items.push(registerAttentionItem({
             id: `ai_act:${a.target_kind}:${a.target_id}`, code: 'ai_act_attestation_expired', severity: 'medium', status: 'warn',
-            title: `AI Act self-assessment expired (${a.target_kind === 'agent' ? 'agent' : 'routine'})`,
+            title: `AI Act self-assessment expired (${a.target_kind === 'agent' ? 'agent' : 'automation'})`,
             detail: `Recorded outcome "${a.outcome}" expired ${a.expires_at.slice(0, 10)} — reassess.`,
             section: 'frameworks', target: `${sectionPath('frameworks')}?tab=per_automation`,
             regulation: 'AIA', ref: 'Art. 53', at: new Date(a.expires_at).getTime(),
@@ -1410,7 +1410,7 @@ const DEADLINES = (state) => {
     for (const a of state.aiAct) {
         if (!a.expires_at) continue;
         items.push(deadlineItem('attestation_expiry', `${a.target_kind}:${a.target_id}`,
-            a.target_kind === 'agent' ? 'Agent' : 'Routine', a.title,
+            a.target_kind === 'agent' ? 'Agent' : 'Automation', a.title,
             { target_kind: a.target_kind, target_id: a.target_id, outcome: a.outcome },
             a.attested_at, a.expires_at, `${sectionPath('frameworks')}?tab=per_automation`));
     }
@@ -2457,7 +2457,7 @@ export const ROUTES = {
         aiActDetail(state, params.kind, params.id) || refuse('target_not_found', 404),
     // Recording an assessment stamps who and when, and starts the 12-month
     // clock the register counts down (Art. 53) — the same row the expired
-    // routine above is an example of.
+    // automation above is an example of.
     'PUT /api/compliance/ai-act/assessments/:kind/:id': ({ state, params, body }) => {
         const answers = body?.answers || {};
         const signals = AI_ACT_SIGNALS[aiActKey(params.kind, params.id)] || null;

@@ -1,7 +1,7 @@
 /**
  * DIFFERENTIAL lockstep: the flowlet helpers against the web's own
  * flowletScope.js, required from agent-hub and run on the same definitions
- * — a routine with flowlets calling each other, called from the root, from a
+ * — an automation with flowlets calling each other, called from the root, from a
  * loop body and from a parallel branch.
  */
 

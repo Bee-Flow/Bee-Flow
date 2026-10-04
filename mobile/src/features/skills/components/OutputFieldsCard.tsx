@@ -68,7 +68,7 @@ function AddField({ schema, onChange }: { schema: OutputSchema | null; onChange:
             <Button
                 variant="secondary"
                 iconName="Plus"
-                label={t('routines.ndv.extraction.add_field', 'Add field')}
+                label={t('automations.ndv.extraction.add_field', 'Add field')}
                 disabled={!valid}
                 onPress={() => {
                     onChange(addOutputField(schema, key, kind));

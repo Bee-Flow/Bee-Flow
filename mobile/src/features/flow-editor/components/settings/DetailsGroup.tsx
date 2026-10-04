@@ -1,5 +1,5 @@
 /**
- * The routine's name and description — the top of the web's SettingsTab.
+ * The automation's name and description — the top of the web's SettingsTab.
  * They go through their own call (useUpdateFlowMeta: never the definition,
  * which is the draft store's), with Save and Reset. The fields follow the
  * server again whenever nothing is typed here that is not saved yet, so an
@@ -63,7 +63,7 @@ export function DetailsGroup({ flowKey, title, description }: { flowKey: string;
                 />
                 <View style={styles.actions}>
                     <Text variant="caption" tone="tertiary" style={styles.count}>
-                        {t('routines.canvas.result.chars', '{n} characters', { n: draft.description.length })}
+                        {t('automations.canvas.result.chars', '{n} characters', { n: draft.description.length })}
                     </Text>
                     <Button size="sm" variant="ghost" label={t('mobile.flow.settings.reset', 'Reset')} disabled={!dirty || save.isPending} onPress={() => setDraft({ title, description })} />
                     <Button

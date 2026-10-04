@@ -62,8 +62,10 @@ function register(router) {
             webpageUsageSync.reconcileWebpageUsageDetached(cloned.id);
             res.json({ success: true, webpage: cloned });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Clone failed:', err);
-            res.status(500).json({ error: 'Failed to clone webpage: ' + err.message });
+            res.status(500).json({ error: 'Failed to clone webpage' });
         }
     });
 
@@ -72,11 +74,17 @@ function register(router) {
             const userId = req.session.user.id;
             const confirmed = req.query.confirm === true;
 
+            // Eigenaar-gescoopt, net als de verwijdering zelf: een niet-eigenaar
+            // krijgt dezelfde 404 als altijd en leert niets over de pagina.
+            const wp = await webpageStore.getWebpage(req.params.id, userId);
+            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+
+            // A managed page (a Solution stage) is retired by a deploy, never
+            // deleted. Refused here, before invalidate() below drops the
+            // unflushed data.db writes of the page.
+            await webpageStore.assertWebpageWrite(req.params.id, ['delete'], { projectId: wp.projectId || null });
+
             if (!confirmed) {
-                // Eigenaar-gescoopt, net als de verwijdering zelf: een niet-eigenaar
-                // krijgt dezelfde 404 als altijd en leert niets over de pagina.
-                const wp = await webpageStore.getWebpage(req.params.id, userId);
-                if (!wp) return res.status(404).json({ error: 'Webpage not found' });
                 const blocked = await describeWebpageDeleteBlock(wp, userId);
                 if (blocked) return res.status(409).json(blocked);
             }
@@ -109,6 +117,8 @@ function register(router) {
 
             res.json({ success: true });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Delete failed:', err);
             res.status(500).json({ error: 'Failed to delete webpage' });
         }

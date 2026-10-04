@@ -368,6 +368,15 @@ async function announceExpiredApproval(ap) {
     }).catch(() => {});
     require('../../automation/approvalEvents').dispatchApprovalDecided(ap);
     await require('../../automation/approvalHooks').runOnDecidedHook(ap);
+    // A deployment gate that ran out of time cancels its deployment. A store
+    // call; the runner's reconcileAwaitingApprovals backstops a failure.
+    if (ap.source === 'deployment') {
+        try {
+            await require('../../stores/solutionStageStore').recordDeploymentDecision(ap);
+        } catch (e) {
+            log.warn(`[ApprovalLifecycle] expired deployment approval ${ap.id} not recorded: ${e.message}`);
+        }
+    }
     // Owner + whoever was asked (assignee, group, or every panel seat),
     // urgent — direct store writes (the reaper has no per-run notification
     // policy in hand, and expiry is never noise).
@@ -381,9 +390,13 @@ async function announceExpiredApproval(ap) {
         try { for (const id of (await groupMemberIds(ap.assigneeGroupId)).ids) recipients.add(id); }
         catch { /* owner alone still hears about it */ }
     }
-    const closed = ap.source === 'app'
-        ? 'nobody decided before the deadline, so the request was closed.'
-        : 'nobody decided before the deadline, so the run was closed.';
+    // Run-less rows (app, deployment) have no run to close.
+    const isRunless = (ap.source || 'run') !== 'run';
+    const closed = !isRunless
+        ? 'nobody decided before the deadline, so the run was closed.'
+        : (ap.source === 'deployment'
+            ? 'nobody decided before the deadline, so the deployment was cancelled.'
+            : 'nobody decided before the deadline, so the request was closed.');
     // card:false — the window has closed; a card whose 👍 decides nothing
     // would only invite someone to try.
     const { notifyApproval, automationForApproval } = require('../../automation/approvalNotify');
@@ -422,6 +435,30 @@ async function expireApprovalsForReapedRuns(reapedRuns) {
  * can never nudge different people.
  */
 async function reminderRecipientIds(ap) {
+    const recipients = await owedRecipientIds(ap);
+    if (ap.source !== 'deployment') {
+        if (!recipients.size) recipients.add(ap.ownerId);
+        return [...recipients];
+    }
+    // Four-eyes: the deploy's requester can never decide, so is never told
+    // "still waiting on you" (and the owner fallback would be that same
+    // person in v1). An unstaged row falls back to the org admins, who may
+    // decide it; a panel or stage chain has nobody else to nudge.
+    const requester = ap.requestedBy || ap.ownerId;
+    recipients.delete(requester);
+    const unstaged = !(Array.isArray(ap.approvers) && ap.approvers.length);
+    if (!recipients.size && unstaged && ap.organizationId) {
+        try {
+            for (const id of await automationStore.listOrgAdminIds(ap.organizationId, GROUP_NOTIFY_CAP)) {
+                if (id !== requester) recipients.add(id);
+            }
+        } catch (e) { log.warn(`[ApprovalLifecycle] org admins for reminder ${ap.id}: ${e.message}`); }
+    }
+    return [...recipients];
+}
+
+/** The people still owing a decision on this row (may be empty). */
+async function owedRecipientIds(ap) {
     const recipients = new Set();
     if (Array.isArray(ap.approvers) && ap.approvers.length) {
         // Panel and staged rows: nudge only those still owing a decision
@@ -451,14 +488,13 @@ async function reminderRecipientIds(ap) {
                     if (!voted.has(id)) recipients.add(id);
                 }
             }
-        } catch { /* fall through to the owner */ }
+        } catch { /* fall through to the caller's fallback */ }
     } else if (ap.assigneeUserId) recipients.add(ap.assigneeUserId);
     else if (ap.assigneeGroupId) {
         try { for (const id of (await groupMemberIds(ap.assigneeGroupId)).ids) recipients.add(id); }
         catch { /* fall through to the owner */ }
     }
-    if (!recipients.size) recipients.add(ap.ownerId);
-    return [...recipients];
+    return recipients;
 }
 
 /**
@@ -473,7 +509,7 @@ function reminderBellMessage(ap, deadline = '') {
 
 /**
  * Send one "still waiting on you" reminder through the approval notification
- * path (bell plus the channels the routine's policy names). Returns the ids it
+ * path (bell plus the channels the automation's policy names). Returns the ids it
  * went to. Never throws: notifyApproval swallows its own failures.
  */
 async function sendApprovalReminder(ap) {
@@ -542,8 +578,9 @@ async function remindAndEscalateDueApprovals() {
 }
 
 /**
- * Reaper hook for APP-sourced approvals: they have no run for the run reaper
- * to notice, so their deadline gets its own conditional-UPDATE sweep.
+ * Reaper hook for RUN-LESS approvals (app requests and deployment gates):
+ * they have no run for the run reaper to notice, so their deadline gets its
+ * own conditional-UPDATE sweep.
  */
 async function expireOverdueAppApprovals() {
     let expired = [];

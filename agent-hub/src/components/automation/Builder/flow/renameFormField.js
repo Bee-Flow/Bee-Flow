@@ -202,10 +202,10 @@ export function isValidFieldName(name) {
  *   @param {string} opts.to    the new one
  * @returns {{definition: object, rewritten: number, ok: boolean, error?: string}}
  *   `rewritten` counts the BINDINGS that moved, so the caller can tell the
- *   author what just happened to the rest of their routine.
+ *   author what just happened to the rest of their automation.
  */
 export function renameFormField(definition, { base, from, to } = {}) {
-    if (!definition || typeof definition !== 'object') return { definition, rewritten: 0, ok: false, error: 'No routine to edit.' };
+    if (!definition || typeof definition !== 'object') return { definition, rewritten: 0, ok: false, error: 'No automation to edit.' };
     if (!base || !from || !to) return { definition, rewritten: 0, ok: false, error: 'Nothing to rename.' };
     if (from === to) return { definition, rewritten: 0, ok: true };
     if (!isValidFieldName(to)) {

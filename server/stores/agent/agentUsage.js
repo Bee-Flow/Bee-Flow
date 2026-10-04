@@ -8,11 +8,11 @@
  * Every consumer stores the agent id INSIDE its own row: a scheduled task in
  * `ai_tasks.agent_id`, a Cowork schedule in `cowork_schedules.agent_id`, a
  * support inbox in `support_inboxes.default_agent_id`, and — once R2/P/W3
- * land — a routine step, an app block and a webpage bridge grant somewhere
+ * land — an automation step, an app block and a webpage bridge grant somewhere
  * inside their own JSON documents. There is no join table, and adding one
  * would mean a write path in six places that all have to stay in step with
  * the documents they mirror; the copy that falls behind is the one that
- * answers "nothing uses this" about an agent two routines run every night.
+ * answers "nothing uses this" about an agent two automations run every night.
  *
  * So this reads the rows themselves. A handful of queries run when somebody
  * opens the Used-by tab or presses delete, never on a chat turn.
@@ -79,7 +79,7 @@ const SCANS = Object.freeze({
     // gone — the exact breakage this guard exists to announce first.
     task: {
         table: 'ai_tasks',
-        role: 'routine',
+        role: 'automation',
         sql: `SELECT t.agent_id AS agent_id, t.id AS id, t.title AS title,
                      t.user_id AS owner_id, COALESCE(t.last_run_at, t.created_at) AS last_at
                 FROM ai_tasks t
@@ -88,7 +88,7 @@ const SCANS = Object.freeze({
     // The same relationship on the Cowork side.
     cowork: {
         table: 'cowork_schedules',
-        role: 'routine',
+        role: 'automation',
         sql: `SELECT c.agent_id AS agent_id, c.id AS id, c.title AS title,
                      c.user_id AS owner_id, COALESCE(c.last_run_at, c.created_at) AS last_at
                 FROM cowork_schedules c
@@ -107,8 +107,8 @@ const SCANS = Object.freeze({
     },
     // R2's ai_step. The id sits at an unknown depth inside a definition that
     // also encodes a canvas, so the recursive accessor is the only form that
-    // finds it wherever the editor put it. DISTINCT because a routine that
-    // names the same agent in two steps is ONE routine that breaks.
+    // finds it wherever the editor put it. DISTINCT because an automation that
+    // names the same agent in two steps is ONE automation that breaks.
     automation: {
         table: 'automations',
         role: 'ai_step',
@@ -291,7 +291,7 @@ function unknownUsage() {
 /**
  * Narrow usage rows to what this person may know about.
  *
- * Seeing what depends on an agent means seeing the NAMES of routines, apps
+ * Seeing what depends on an agent means seeing the NAMES of automations, apps
  * and pages. Anything the asker does not own is COUNTED but not named, so the
  * tab stays honest about how much breaks without becoming a way to enumerate
  * an organisation. Same `foreign` flag as the knowledge-base Used-by tab; it
@@ -299,7 +299,7 @@ function unknownUsage() {
  * drift apart.
  *
  * STRICTER than that tab in one way, on purpose: the id and the owner go too,
- * not only the title. A routine id the asker cannot open is of no use to
+ * not only the title. An automation id the asker cannot open is of no use to
  * them, and `ownerId` names the colleague who built it — "who in this
  * organisation automates against this agent" is a question this endpoint was
  * never asked. The row keeps its shape so the client renders one row type,
@@ -307,7 +307,7 @@ function unknownUsage() {
  *
  * If A2 decides an org admin should see these names, that is a widening to
  * make deliberately, against whatever rule governs who may list an
- * organisation's routines — not something to inherit by accident from here.
+ * organisation's automations — not something to inherit by accident from here.
  */
 function redactForeign(rows, userId) {
     return (rows || []).map((r) => {

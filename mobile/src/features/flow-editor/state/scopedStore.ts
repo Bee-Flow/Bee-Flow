@@ -1,5 +1,5 @@
 /**
- * One flowlet of the routine as if it were the routine — the web's
+ * One flowlet of the automation as if it were the automation — the web's
  * useFlowletScope for the phone's draft store. The view answers the draft
  * store's state with `definition` swapped for `definition.layers[key]` (the
  * root's flowlets alongside, so a call inside it still knows its contract),
@@ -10,7 +10,7 @@
  * An edit that touches `layers` from inside (Create flowlet) lands on the
  * root's map; the flowlet's own graph goes to its entry. Undo, redo, flush,
  * the save state and the lock are the root store's own. Findings stay on the
- * routine's screen: their step ids are the root's.
+ * automation's screen: their step ids are the root's.
  */
 
 import type { StoreApi } from 'zustand/vanilla';

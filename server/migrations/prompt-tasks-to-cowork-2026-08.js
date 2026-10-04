@@ -64,7 +64,13 @@ async function tableExists(name) {
     return !!r?.oid;
 }
 
-async function up() {
+/**
+ * Move the `ai_tasks` rows that match `where` (SQL over alias `t`) into Cowork:
+ * copy, seed the one history row, pause the original, stamp it. Shared with
+ * agent-tasks-to-cowork-2026-10, which moves the agent-linked rows the same way.
+ * @param {{ where: string, label: string }} opts
+ */
+async function moveTasksToCowork({ where, label }) {
     // Force both schemas into existence first. coworkStore applies its own DDL
     // on import, and `npm run db:migrate` loads stores rather than migrations,
     // so requiring it is also what guarantees the target tables are there.
@@ -89,7 +95,7 @@ async function up() {
         `INSERT INTO cowork_schedules (${cols})
          SELECT ${selectCols}
            FROM ai_tasks t
-          WHERE ${PLAIN_TASK}
+          WHERE ${where}
             AND t.migrated_to_cowork_at IS NULL
             AND NOT EXISTS (SELECT 1 FROM cowork_schedules c WHERE c.id = t.id)`,
     );
@@ -112,7 +118,7 @@ async function up() {
                 CASE WHEN t.last_status = 'success' THEN t.last_result END,
                 CASE WHEN t.last_status IN ('error', 'needs_reauth') THEN t.last_result END
            FROM ai_tasks t
-          WHERE ${PLAIN_TASK}
+          WHERE ${where}
             AND t.last_run_at IS NOT NULL
             AND EXISTS (SELECT 1 FROM cowork_schedules c WHERE c.id = t.id)
             AND NOT EXISTS (SELECT 1 FROM cowork_runs r WHERE r.id = 'migrated-' || t.id)`,
@@ -126,7 +132,7 @@ async function up() {
     const deactivated = await run(
         `UPDATE ai_tasks t
             SET is_active = FALSE
-          WHERE ${PLAIN_TASK}
+          WHERE ${where}
             AND t.is_active = TRUE
             AND EXISTS (SELECT 1 FROM cowork_schedules c WHERE c.id = t.id)`,
     );
@@ -137,7 +143,7 @@ async function up() {
     await run(
         `UPDATE ai_tasks t
             SET migrated_to_cowork_at = NOW()
-          WHERE ${PLAIN_TASK}
+          WHERE ${where}
             AND t.migrated_to_cowork_at IS NULL
             AND EXISTS (SELECT 1 FROM cowork_schedules c WHERE c.id = t.id)`,
     );
@@ -149,7 +155,7 @@ async function up() {
     };
     if (summary.migrated > 0 || summary.deactivated > 0) {
         console.log(
-            `[Migration] prompt-tasks-to-cowork-2026-08 applied `
+            `[Migration] ${label} applied `
             + `(${summary.migrated} moved, ${summary.runsSeeded} history rows seeded, `
             + `${summary.deactivated} originals paused)`,
         );
@@ -157,7 +163,11 @@ async function up() {
     return summary;
 }
 
-module.exports = { up, CARRIED_COLUMNS };
+async function up() {
+    return moveTasksToCowork({ where: PLAIN_TASK, label: 'prompt-tasks-to-cowork-2026-08' });
+}
+
+module.exports = { up, moveTasksToCowork, CARRIED_COLUMNS, PLAIN_TASK };
 
 if (require.main === module) {
     up().then(() => process.exit(0)).catch(err => {

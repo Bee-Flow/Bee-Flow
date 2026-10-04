@@ -8,14 +8,14 @@ import { rememberFormOpened } from '../../utils/formRecents';
  * FormsHomePage — the directory at /app/forms.
  *
  * Every form published in the organisation. A published form has a public URL,
- * so it belongs to the organisation rather than to whoever built the routine
- * behind it — it used to be findable only by opening that routine and knowing
+ * so it belongs to the organisation rather than to whoever built the automation
+ * behind it — it used to be findable only by opening that automation and knowing
  * which panel held the link, which meant a colleague on holiday took the only
  * copy of the address with them.
  *
  * A tile is the form, not a record about the form: the whole card is a link
  * that opens it, and nothing else is on show. The address, the submission
- * count and the way through to the routine were all here at first and were
+ * count and the way through to the automation were all here at first and were
  * taken out — they turn a directory you scan into a table you read. The
  * address is still one click away, in the browser's own address bar, which is
  * also where you copy it from.
@@ -67,7 +67,7 @@ function FormCard({ form, onNavigate }) {
                             {form.description}
                         </div>
                     ) : null}
-                    {/* A form whose routine is paused or still a draft answers
+                    {/* A form whose automation is paused or still a draft answers
                         404 to its visitors (formPublic.js's loadForm). The one
                         piece of state worth keeping on the tile: without it the
                         card promises something the link will not deliver. */}
@@ -76,7 +76,7 @@ function FormCard({ form, onNavigate }) {
                             className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border"
                             style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-subtle)' }}
                         >
-                            Not live — the routine is paused or still a draft
+                            Not live — the automation is paused or still a draft
                         </div>
                     )}
                 </div>

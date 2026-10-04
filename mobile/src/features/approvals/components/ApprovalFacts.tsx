@@ -19,7 +19,7 @@ export function ApprovalFacts({ approval }: { approval: Approval }) {
                 <InfoRow label={t('mobile.approvals.fact_solution', 'Solution')} value={approval.projectTitle} />
             ) : null}
             {approval.automationTitle ? (
-                <InfoRow label={t('mobile.approvals.fact_routine', 'Routine')} value={approval.automationTitle} />
+                <InfoRow label={t('mobile.approvals.fact_automation', 'Automation')} value={approval.automationTitle} />
             ) : null}
             {approval.decidedAt ? (
                 <InfoRow

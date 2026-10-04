@@ -140,12 +140,12 @@ describe('FormsHomePage — the organisation\'s forms', () => {
         expect(recents.rememberFormOpened).toHaveBeenCalledWith('a'.repeat(48));
     });
 
-    it('warns on the tile when the routine behind a form is paused or still a draft', async () => {
+    it('warns on the tile when the automation behind a form is paused or still a draft', async () => {
         serve([form({ id: 'live', title: 'Live form' }), form({ id: 'dead', title: 'Paused form', live: false })]);
         render(<FormsHomePage />);
         await screen.findByText('Live form');
 
-        const pills = screen.getAllByText('Not live — the routine is paused or still a draft');
+        const pills = screen.getAllByText('Not live — the automation is paused or still a draft');
         expect(pills).toHaveLength(1);
         // Only the broken half is labelled: a working form gets no "Live" pill.
         // wart: FRM-02 wants a status pill on both — Live (green) and Draft

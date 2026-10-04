@@ -47,11 +47,11 @@ function MenuPill({ plan, onAdd, openKey, setOpenKey }: OpenState & { plan: Menu
             label={plan.title}
             glyph={<Icon size={14} className={(plan.family && FAMILY_TEXT[plan.family]) || 'text-[var(--text-secondary)]'} />}
             desc={`${plan.items.map(it => it.label).join(', ')}.`}
-            tipFooter={t('routines.ribbon.n_steps_pick', '{n} steps. Pick one.', { n: plan.items.length })}
+            tipFooter={t('automations.ribbon.n_steps_pick', '{n} steps. Pick one.', { n: plan.items.length })}
             origin={plan.origin}
             title={plan.title}
             sections={[{ key: plan.key, title: plan.title, rows: plan.items.map(itemRow) }]}
-            filterLabel={(n) => t('routines.ribbon.filter_steps', 'Filter {n} steps…', { n })}
+            filterLabel={(n) => t('automations.ribbon.filter_steps', 'Filter {n} steps…', { n })}
             onAdd={onAdd}
             openKey={openKey}
             setOpenKey={setOpenKey}

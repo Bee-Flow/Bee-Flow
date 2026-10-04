@@ -16,8 +16,8 @@
  *      gives meta; the wiring lives in the definition/config. Dropping the row
  *      removed its node, its edges AND its problems from the picture.
  *   3. "COULD NOT CHECK" IS NEVER REPORTED AS "GONE". The existence pass is
- *      all-or-nothing: one failed lookup abandons it, so an unplaced routine
- *      stays UNRESOLVED instead of becoming a MISSING error about a routine
+ *      all-or-nothing: one failed lookup abandons it, so an unplaced automation
+ *      stays UNRESOLVED instead of becoming a MISSING error about an automation
  *      nobody looked at.
  *
  * Plus the completeness route's own refusal path: unknown BLOCKS publishing.
@@ -160,7 +160,7 @@ function resetFx() {
     fx.failAgent = null;
     fx.failKbSources = false;
     fx.failExistence = false;
-    // One app that runs one routine that lives in this project, so the happy
+    // One app that runs one automation that lives in this project, so the happy
     // path has a real edge to lose.
     fx.appMetas = [{ id: 'app1', name: 'Desk' }];
     // A definition that BOTH validates clean and draws a run edge, so "no
@@ -281,9 +281,9 @@ test('unreadable knowledge sources are counted — a missing meeting feed is not
 
 // ═══ 3. "Could not check" is never reported as "gone" ═════════════════
 
-test('a failed existence lookup leaves the routine UNRESOLVED rather than MISSING', async () => {
+test('a failed existence lookup leaves the automation UNRESOLVED rather than MISSING', async () => {
     resetFx();
-    // The app points at a routine that is NOT in this project, so the second
+    // The app points at an automation that is NOT in this project, so the second
     // pass runs — and its store is down.
     fx.apps.app1.definition.actions.act1.automationId = 'gone1';
     fx.failExistence = true;
@@ -291,12 +291,12 @@ test('a failed existence lookup leaves the routine UNRESOLVED rather than MISSIN
     const res = await dispatch({ method: 'GET', url: '/p1/graph', session: ALICE });
     const codes = res.body.problems.map(p => p.code);
     assert.ok(codes.includes('unresolved'), `expected unresolved, got ${JSON.stringify(codes)}`);
-    assert.ok(!codes.includes('missing'), 'never claim a routine is gone on an unanswered lookup');
-    assert.ok(res.body.unavailable.includes('routineExistence'));
+    assert.ok(!codes.includes('missing'), 'never claim an automation is gone on an unanswered lookup');
+    assert.ok(res.body.unavailable.includes('automationExistence'));
     assert.strictEqual(res.body.complete, false);
 });
 
-test('a completed existence pass still promotes a truly absent routine to MISSING', async () => {
+test('a completed existence pass still promotes a truly absent automation to MISSING', async () => {
     resetFx();
     fx.apps.app1.definition.actions.act1.automationId = 'gone1';
 

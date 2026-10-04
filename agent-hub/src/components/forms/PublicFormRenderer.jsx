@@ -33,7 +33,7 @@ import { Field, INPUT_CLASS, inputStyle } from '../admin/Studio/AppStudio/runtim
  *   showSuccess — whether a resolved submit swaps the form for its
  *               successMessage. TRUE for a single-page form, where this
  *               component owns the ending. FALSE for a multi-page one, where
- *               the routine may still pause for another page and only the page
+ *               the automation may still pause for another page and only the page
  *               that is polling knows what comes next.
  */
 export default function PublicFormRenderer({ form, onSubmit = null, onUpload = null, onSearchApp = null, preview = false, showSuccess = true, downloadHref = null, onOpenInNotebooks = null }) {
@@ -154,7 +154,7 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
  * on its final step.
  */
 // Every description on a form page — a mid-run question as much as the closing
-// summary — is where the routine SHOWS the visitor something: the keyword it
+// summary — is where the automation SHOWS the visitor something: the keyword it
 // picked and why, the competitor analysis it just did, the text it wrote, a
 // link to the document. Rendered as a flat paragraph that meant reading raw
 // `##` and `**` and copy-pasting URLs by hand.
@@ -204,20 +204,20 @@ export function FormRichText({ children, className = '', style = null }) {
 }
 
 /**
- * The screen a visitor sits on while the routine works.
+ * The screen a visitor sits on while the automation works.
  *
  * A multi-page form pauses the run at every question, and the stretch between
  * two questions is whatever the author put there — a web search, a model call,
  * a document being written. That is regularly a minute or more, and a bare
  * spinner over an empty page reads as "this broke".
  *
- * So it says WHERE the routine is. `progress` is the trail the poll sends:
+ * So it says WHERE the automation is. `progress` is the trail the poll sends:
  * titles only, outermost flowlet first, the node it is on last. The last
  * segment is the headline because that is the thing actually happening; the
  * flowlets above it are context and sit in the eyebrow.
  *
  * `note` is the running flowlet's own one-line description, when its author
- * gave it one. A name says where the routine is; the description says what it
+ * gave it one. A name says where the automation is; the description says what it
  * is doing — "Searches Google for a given term and lets AI analyse top-ranking
  * pages…" is the difference between a wait that reads as progress and one that
  * reads as a hang. It takes the place of the generic reassurance line, which
@@ -283,7 +283,7 @@ export function FormWaitingView({ theme = null, progress = null, note = null, la
                     </div>
                 </div>
 
-                {/* Indeterminate on purpose. The routine cannot say how far
+                {/* Indeterminate on purpose. The automation cannot say how far
                     along it is — a percentage here would be a lie. */}
                 <span
                     aria-hidden="true"
@@ -317,20 +317,20 @@ const WAITING_KEYFRAMES = `
 // Short closings ("Thanks!") stay centred under the tick, the way they always
 // looked. A long one is a document — centring a blog is unreadable. The same
 // split gates the export bar below: a one-line "Thanks!" has nothing worth
-// keeping, a routine's real output does.
+// keeping, an automation's real output does.
 const LONG_ENDING_CHARS = 240;
 
 /**
  * The generic fallback for a closing page that has no `generate_document`
- * step at all (BFSF-419, Track 1) — the common case: the routine's whole
+ * step at all (BFSF-419, Track 1) — the common case: the automation's whole
  * "result" is markdown sitting in `form.description` (a blog post, a
  * summary, an analysis), with no download/notebook field wired, because the
  * author never added one. Without this, closing the tab loses the text for
  * good.
  *
  * Independent of any download/notebook field on purpose — those need the
- * routine to have produced an actual generated file; this needs nothing
- * from the routine at all, because the text is already sitting right there
+ * automation to have produced an actual generated file; this needs nothing
+ * from the automation at all, because the text is already sitting right there
  * in the page.
  *
  * "Download as .txt" and "Copy text" are pure client-side operations on the
@@ -464,7 +464,7 @@ export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = 
                     </>
                 ) : null}
                 {/* The closing page is where a produced document usually lands
-                    — "here is the thing the routine just made for you". Only
+                    — "here is the thing the automation just made for you". Only
                     display fields render here; a closing page collects nothing,
                     so anything else on it would have no way to be submitted. */}
                 {(form?.fields || []).filter(isDisplayField).map(field => (
@@ -493,7 +493,7 @@ const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);
  * before anyone types anything.
  *
  * Exported (BFSF-408b) because it is also the free answer to "what does this
- * trigger hand my next step?": the routine builder seeds an edited trigger
+ * trigger hand my next step?": the automation builder seeds an edited trigger
  * payload from it, so the author sees every declared key without filling the
  * form in. Deliberately the SAME function the renderer seeds its own state
  * with — a second generator would drift from the real submission shape (the
@@ -538,7 +538,7 @@ function fileKind(filename) {
 }
 
 /**
- * The document the routine produced, offered as a download.
+ * The document the automation produced, offered as a download.
  *
  * A plain anchor, not a fetch: the browser's own download handling is what a
  * visitor expects, works without JavaScript state, and keeps the bytes out of
@@ -697,7 +697,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
     const id = `ff_${field.name}`;
     const common = { id, name: field.name, disabled, className: INPUT_CLASS, style: inputStyle(!!error) };
 
-    // A download is the one field that GIVES rather than asks: the routine made
+    // A download is the one field that GIVES rather than asks: the automation made
     // a document and this hands it over. It collects nothing, so it has no
     // value, no error and no place in the submission.
     if (field.type === 'download') return <FormDownload field={field} href={downloadHref} />;
@@ -761,7 +761,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
  * What travels with the submission is a REFERENCE — `{ kind:'app_pick',
  * recordId, title }` — never the record itself. The server re-reads the record
  * as the person submitting, at submit time, which is what keeps this from being
- * a way to post someone else's transcript into a routine by hand-crafting a
+ * a way to post someone else's transcript into an automation by hand-crafting a
  * body.
  *
  * The search runs against the FILLER's own account. So "no results" here can

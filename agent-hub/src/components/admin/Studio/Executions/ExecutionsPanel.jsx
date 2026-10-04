@@ -3,7 +3,7 @@ import ExecutionsTable from './ExecutionsTable';
 import ExecutionView from './ExecutionView';
 
 /**
- * The single executions surface mounted by all three sections (global Routines
+ * The single executions surface mounted by all three sections (global Automations
  * tab, per-automation builder tab, per-Step builder tab). The n8n table (list)
  * and the full-screen ExecutionView (one run) — BOTH stay mounted, the table
  * merely hidden while a run is open, so closing a run restores the exact list

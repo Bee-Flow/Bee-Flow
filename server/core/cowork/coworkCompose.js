@@ -25,6 +25,7 @@
 
 const { parseJsonObject } = require('../meetingNotes/llmJson');
 const log = require('../../telemetry/log');
+const { usageLogFields } = require('../providers/usageNormalizer');
 
 const VALID_REPEAT_INTERVALS = new Set([
     'hourly', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly',
@@ -257,10 +258,7 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
                 agent_type: 'cowork',
                 model: modelId,
                 source: 'cowork_compose',
-                prompt_tokens: usage.prompt_tokens || 0,
-                completion_tokens: usage.completion_tokens || 0,
-                total_tokens: usage.total_tokens
-                    || ((usage.prompt_tokens || 0) + (usage.completion_tokens || 0)),
+                ...usageLogFields(usage),
                 duration_ms: Date.now() - callStart,
             }).catch(() => { /* bookkeeping only */ });
         } catch (_) { /* bookkeeping only */ }

@@ -5,7 +5,7 @@
  * Data copied from the web builder's flow/nodeDefs.js; nodeDefs.lockstep.test.ts
  * requires the web module and compares every record, so a changed word fails.
  * The palette wording is `labelFallback` here (the English under the
- * `routines.node.<type>.label` key; ./index.ts serves it as `label`), and a
+ * `automations.node.<type>.label` key; ./index.ts serves it as `label`), and a
  * quoted issue-map key is a validation path segment, not copy.
  */
 
@@ -16,7 +16,7 @@ export const TRIGGER_DEFS: Record<string, NodeDefSource> = {
         family: 'trigger',
         typeLabel: 'Trigger',
         defaultLabel: 'Trigger',
-        help: 'What starts this routine. Every routine has exactly one.',
+        help: 'What starts this automation. Every automation has exactly one.',
         sectionKeys: ['inputs', 'config'],
         simpleSections: ['inputs', 'config'],
         issueSections: {

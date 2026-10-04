@@ -27,7 +27,7 @@ export function FieldLabelRow({ label, required = false, expectKind = null, hint
             {required && <span className={requiredMarkClass()} title="Required">*</span>}
             {expectWord && expectKind !== 'text' && (
                 <span className="ml-1 text-[10px] font-normal normal-case tracking-normal text-[var(--text-tertiary)]" data-testid="binding-expects">
-                    · {t('routines.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}
+                    · {t('automations.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}
                 </span>
             )}
             <FieldHint title={label}>{hint}</FieldHint>
@@ -75,15 +75,15 @@ export function EmptySlotNote({ expectKind, empty, required = true, onPick = nul
             style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
             data-testid="binding-empty-required"
         >
-            <span>{t('routines.builder.still_empty', 'still empty')}</span>
-            <span className="text-[var(--text-secondary)]">· {t('routines.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}</span>
+            <span>{t('automations.builder.still_empty', 'still empty')}</span>
+            <span className="text-[var(--text-secondary)]">· {t('automations.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}</span>
             {onPick && (
                 <button
                     type="button"
                     onClick={onPick}
                     className="ml-auto underline hover:no-underline text-[var(--text-primary)]"
                 >
-                    {t('routines.builder.pick_n_fit', 'pick ▸ {n} fit', { n: fitCount })}
+                    {t('automations.builder.pick_n_fit', 'pick ▸ {n} fit', { n: fitCount })}
                 </button>
             )}
         </div>

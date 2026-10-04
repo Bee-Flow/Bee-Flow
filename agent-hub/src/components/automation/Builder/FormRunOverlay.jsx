@@ -4,13 +4,13 @@ import PublicFormRenderer from '../../forms/PublicFormRenderer';
 import apiClient from '../../../api/client';
 
 /**
- * Testing a form-triggered routine, as the person filling it in would see it.
+ * Testing a form-triggered automation, as the person filling it in would see it.
  *
  * A form trigger is the one kind you cannot test by pressing Run: the trigger
  * IS a page somebody fills in, and pressing Run with nothing to submit used to
  * open the node editor and leave you to find the inline preview inside it. The
  * public page is no help while you are building either — formPublic 404s a
- * draft or deactivated routine by design, and a real submission there would run
+ * draft or deactivated automation by design, and a real submission there would run
  * the flow for real.
  *
  * So this is the form, over the canvas, wired to a real run:
@@ -18,7 +18,7 @@ import apiClient from '../../../api/client';
  *   1. page one comes from the DECLARATION being edited, so it reflects what is
  *      on screen right now rather than what was last saved;
  *   2. submitting starts a live run with those answers as the trigger payload;
- *   3. if the routine pauses at a `form_page`, the overlay serves THAT page and
+ *   3. if the automation pauses at a `form_page`, the overlay serves THAT page and
  *      continues the same run — which is what makes it a test of the journey
  *      and not just of the first screen;
  *   4. when the run ends, the overlay says so and gets out of the way, leaving
@@ -28,7 +28,7 @@ import apiClient from '../../../api/client';
  * the theme, the field types and the app picker behave here exactly as they
  * will there. The picker is the one thing wired differently: it searches
  * through the builder's own owner-scoped endpoint, because the public one needs
- * a form token this routine does not have yet.
+ * a form token this automation does not have yet.
  */
 export default function FormRunOverlay({
     automationId,
@@ -141,12 +141,12 @@ export default function FormRunOverlay({
                 <div className="p-4 max-h-[75vh] overflow-auto">
                     {phase === 'form' && (
                         <>
-                            {/* Answers go through the routine for real — the
+                            {/* Answers go through the automation for real — the
                                 overlay is a test of the flow, not of the page. */}
                             <p className="mb-3 text-[11px] text-[var(--text-tertiary)]">
                                 {page.stepId
-                                    ? 'The routine paused here and is waiting for an answer.'
-                                    : 'What you submit runs the routine for real, with these answers as the trigger.'}
+                                    ? 'The automation paused here and is waiting for an answer.'
+                                    : 'What you submit runs the automation for real, with these answers as the trigger.'}
                             </p>
                             <PublicFormRenderer
                                 key={page.stepId || 'page1'}
@@ -161,7 +161,7 @@ export default function FormRunOverlay({
                     {phase === 'working' && (
                         <div className="py-12 text-center">
                             <Loader2 size={20} className="mx-auto animate-spin text-[var(--text-tertiary)]" />
-                            <p className="mt-3 text-sm text-[var(--text-secondary)]">Running the routine…</p>
+                            <p className="mt-3 text-sm text-[var(--text-secondary)]">Running the automation…</p>
                             <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                                 Each step lights up on the canvas behind this.
                             </p>
@@ -171,7 +171,7 @@ export default function FormRunOverlay({
                     {phase === 'done' && (
                         <div className="py-12 text-center">
                             <CheckCircle2 size={20} className="mx-auto text-emerald-500" />
-                            <p className="mt-3 text-sm text-[var(--text-primary)]">The routine finished.</p>
+                            <p className="mt-3 text-sm text-[var(--text-primary)]">The automation finished.</p>
                             <button
                                 type="button"
                                 onClick={onClose}

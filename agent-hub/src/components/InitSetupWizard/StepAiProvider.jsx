@@ -20,7 +20,6 @@ const StepAiProvider = ({
     aiProvider, setAiProvider,
     azureEndpoint, setAzureEndpoint,
     azureKey, setAzureKey,
-    azureVersion, setAzureVersion,
     azureModels, setAzureModels,
     genericKey, setGenericKey,
     clearMessages, inputClass, inputStyle,
@@ -49,19 +48,11 @@ const StepAiProvider = ({
                         placeholder="https://your-resource.openai.azure.com"
                         className={inputClass} style={inputStyle} />
                 </div>
-                <div className="flex gap-2">
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>API Key</label>
-                        <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
-                            placeholder="Azure API Key"
-                            className={inputClass} style={inputStyle} />
-                    </div>
-                    <div className="w-44">
-                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>API Version</label>
-                        <input type="text" value={azureVersion} onChange={e => setAzureVersion(e.target.value)}
-                            placeholder="API Version"
-                            className={inputClass} style={inputStyle} />
-                    </div>
+                <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>API Key</label>
+                    <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
+                        placeholder="Azure API Key"
+                        className={inputClass} style={inputStyle} />
                 </div>
                 <div>
                     <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Deployment Names</label>
@@ -69,7 +60,7 @@ const StepAiProvider = ({
                         placeholder="gpt-5.6-terra, gpt-6-astra, gpt-4.1"
                         className={inputClass} style={inputStyle} />
                     <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                        Comma-separated deployment names from your Azure portal
+                        Comma-separated deployment names from your Azure portal. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra).
                     </p>
                 </div>
             </div>

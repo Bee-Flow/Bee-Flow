@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * The run endpoints can enter a routine through a chosen ADDITIONAL trigger.
+ * The run endpoints can enter an automation through a chosen ADDITIONAL trigger.
  *
  * POST /:id/run, /:id/dry-run and /:id/steps/:stepId/run accept an optional
  * `triggerStepId`. A known secondary id becomes the runner's `rootStepId`; the
- * primary (or no id) keeps `rootStepId` null so nothing changes for a routine
+ * primary (or no id) keeps `rootStepId` null so nothing changes for an automation
  * with one trigger; an unknown id is a 400 — never a silent fall-back to the
  * primary, because the caller asked to test a specific root. The Gmail payload
  * synthesis on /run follows the chosen trigger's filter.

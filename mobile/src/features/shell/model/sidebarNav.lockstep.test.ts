@@ -51,7 +51,7 @@ const secondary = rowsOf('secondaryNav');
 describe('the web sidebar is readable at all', () => {
     it('found both arrays', () => {
         expect(core.length).toBe(4);
-        expect(secondary.length).toBe(5);
+        expect(secondary.length).toBe(4);
     });
 });
 

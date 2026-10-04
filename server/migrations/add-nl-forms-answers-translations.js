@@ -30,7 +30,7 @@ const NL_TRANSLATIONS = {
     'sidebar.all_forms': 'Alle formulieren',
     'sidebar.all_forms_desc': 'Elk formulier dat in de organisatie is gepubliceerd',
     'studio.tab.forms_desc': 'Gepubliceerde formulieren, en wat ze starten',
-    'forms.studio.intro': 'Een formulier is de voorkant van een routine: wie het invult, start hem. Een gepubliceerd formulier heeft een adres dat iedereen in de organisatie na inloggen kan openen, dus het hoort bij de organisatie en niet bij één persoon.',
+    'forms.studio.intro': 'Een formulier is de voorkant van een automatisering: wie het invult, start hem. Een gepubliceerd formulier heeft een adres dat iedereen in de organisatie na inloggen kan openen, dus het hoort bij de organisatie en niet bij één persoon.',
     'forms.studio.new': 'Nieuw formulier',
     'forms.studio.new_failed': 'Het formulier kon niet worden aangemaakt.',
     'forms.studio.refresh': 'Lijst verversen',
@@ -45,8 +45,8 @@ const NL_TRANSLATIONS = {
     'forms.studio.copy_link': 'Link kopiëren',
     'forms.studio.copied': 'Link gekopieerd',
     'forms.studio.copy_failed': 'De link kon niet worden gekopieerd — de browser weigerde toegang tot het klembord.',
-    'forms.studio.open_routine': 'Routine openen',
-    'forms.studio.not_yours': 'Gemaakt door een collega — alleen die kan de routine erachter openen',
+    'forms.studio.open_automation': 'Automatisering openen',
+    'forms.studio.not_yours': 'Gemaakt door een collega — alleen die kan de automatisering erachter openen',
     'forms.studio.last_submission': 'laatste {when}',
     'forms.studio.submissions': '{count} inzending',
     'forms.studio.submissions_plural': '{count} inzendingen',
@@ -56,9 +56,9 @@ const NL_TRANSLATIONS = {
     'forms.studio.open_named': '{title} openen',
     'forms.status.live_hint': 'Collega\'s in de organisatie kunnen dit na inloggen invullen.',
     'forms.status.off': 'Niet live',
-    'forms.status.off_hint': 'De routine erachter is gepauzeerd of nog een concept, dus de link antwoordt "niet beschikbaar".',
+    'forms.status.off_hint': 'De automatisering erachter is gepauzeerd of nog een concept, dus de link antwoordt "niet beschikbaar".',
     'forms.status.unknown': 'Status onbekend',
-    'forms.status.unknown_hint': 'Deze rij zei niet of het formulier live is. Open de routine om het na te kijken.',
+    'forms.status.unknown_hint': 'Deze rij zei niet of het formulier live is. Open de automatisering om het na te kijken.',
 
     // ── "Nieuw formulier" ───────────────────────────────────────────────
     'forms.new.title': 'Nieuw formulier',
@@ -68,8 +68,8 @@ const NL_TRANSLATIONS = {
     'forms.new.collect_title': 'Antwoorden verzamelen in een tabel',
     'forms.new.recommended': 'Aanbevolen',
     'forms.new.collect_blurb': 'Er wordt een tabel gemaakt met één kolom per vraag, die met het formulier meegroeit. Elk antwoord staat erin zodra iemand het formulier verstuurt, en wie de tabel gedeeld krijgt ziet de antwoorden op een dashboard.',
-    'forms.new.routine_title': 'Formulier dat een routine start',
-    'forms.new.routine_blurb': 'Elke inzending start de stappen die in de routine-bouwer worden gebouwd — een e-mail sturen, een ticket aanmaken, een agent iets vragen. Geen tabel, tenzij er een wordt toegevoegd.',
+    'forms.new.automation_title': 'Formulier dat een automatisering start',
+    'forms.new.automation_blurb': 'Elke inzending start de stappen die in de automatiseringsbouwer worden gebouwd — een e-mail sturen, een ticket aanmaken, een agent iets vragen. Geen tabel, tenzij er een wordt toegevoegd.',
     'forms.share.link_blurb_restricted': 'Alleen de personen en groepen onder “Wie kan het invullen” kunnen deze link openen, na aanmelden. De link werkt alleen zolang het formulier live is.',
     'forms.share.audience_title': 'Wie kan het invullen',
     'forms.share.audience_restricted': 'Alleen de personen en groepen die worden gekozen',
@@ -145,8 +145,8 @@ const NL_TRANSLATIONS = {
     'forms.page.unsaved_body': 'De vragen zijn gewijzigd en niet opgeslagen. Weggaan en de wijzigingen verliezen?',
     'forms.page.unsaved_leave': 'Weggaan',
     'forms.page.unsaved_stay': 'Verder bewerken',
-    'forms.page.pages_note': '{count} pagina extra — bewerk die in de routine',
-    'forms.page.pages_note_plural': '{count} pagina\'s extra — bewerk die in de routine',
+    'forms.page.pages_note': '{count} pagina extra — bewerk die in de automatisering',
+    'forms.page.pages_note_plural': '{count} pagina\'s extra — bewerk die in de automatisering',
     'forms.page.columns_note': 'Elke vraag hier is een kolom in de antwoordentabel. Een vraag hernoemen hernoemt de kolom; een vraag verwijderen laat de kolom staan, gemarkeerd als "niet meer op het formulier".',
 
     // ── Delen ──────────────────────────────────────────────────────────
@@ -181,7 +181,7 @@ const NL_TRANSLATIONS = {
     'forms.settings.retention_open': 'Bewaarinstellingen van de tabel openen',
     'forms.settings.kind_word': 'formulier',
     'forms.settings.delete_open': 'Dit formulier verwijderen',
-    'forms.settings.delete_notice': 'Het formulier verwijderen verwijdert de routine erachter. De antwoordentabel blijft staan — haal die weg onder Datatabellen als de antwoorden niet meer nodig zijn.',
+    'forms.settings.delete_notice': 'Het formulier verwijderen verwijdert de automatisering erachter. De antwoordentabel blijft staan — haal die weg onder Datatabellen als de antwoorden niet meer nodig zijn.',
 
     // ── Antwoorden (het dashboard) ─────────────────────────────────────
     'forms.answers.label': 'Antwoordendashboard',
@@ -243,7 +243,7 @@ const NL_TRANSLATIONS = {
     'forms.answers.load_failed': 'De antwoorden konden niet worden geladen.',
     'forms.answers.retry': 'Opnieuw proberen',
     'forms.answers.no_table_title': 'Geen antwoordentabel',
-    'forms.answers.no_table_body': 'Dit formulier start een routine en verzamelt zijn antwoorden niet in een tabel.',
+    'forms.answers.no_table_body': 'Dit formulier start een automatisering en verzamelt zijn antwoorden niet in een tabel.',
 
     // ── the Datatables side (`datatables.frm_*`) ────────────────────────
     'datatables.frm_kindchip': 'antwoorden van een formulier',

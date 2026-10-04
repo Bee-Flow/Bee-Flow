@@ -1,19 +1,19 @@
 'use strict';
 
 /**
- * W1/FIX1 — a schedule routine that LOSES its cron must not keep a stale
+ * W1/FIX1 — a schedule automation that LOSES its cron must not keep a stale
  * next_run_at.
  *
  * The bug: PUT /:id recomputed next_run_at only when
  * `triggerType === 'schedule' && scheduleCron`, and cleared it only when the
- * request explicitly sent a triggerType that was not 'schedule'. A routine
+ * request explicitly sent a triggerType that was not 'schedule'. An automation
  * that stayed a schedule trigger but lost its cron hit neither branch —
  * triggerColumnsFromDefinition maps a missing `trigger.schedule.cron` to null,
  * so schedule_cron went NULL while trigger_type stayed 'schedule' and
  * next_run_at kept its old, now-past value. claimDueAutomations
  * (stores/automationStore/automations.js) claims exactly that shape, and the
  * runner's post-run advance is gated on `automation.scheduleCron` — which was
- * now null. Net effect on an ACTIVE routine: it re-ran, with live side
+ * now null. Net effect on an ACTIVE automation: it re-ran, with live side
  * effects, every scheduler tick (~60s) forever.
  *
  * Route handler invoked directly — same harness as crud.subscriptionResync.js.
@@ -94,7 +94,7 @@ function makeRes() {
 
 const putHandler = findHandler(crudRouter, 'put', '/:id');
 
-// An ACTIVE, armed daily-at-09:00 routine whose next_run_at is already in the
+// An ACTIVE, armed daily-at-09:00 automation whose next_run_at is already in the
 // past — i.e. the row the scheduler is about to claim.
 const PAST = '2020-01-01T08:00:00.000Z';
 function seed(overrides = {}) {
@@ -216,7 +216,7 @@ test('a bad cron is still a 400 and an unreachable one still reports no upcoming
 
 // ── runPolicy is a setting: its timeout reaches the reaper's column on save ──
 
-test('a runPolicy save keeps run_timeout_ms in step, also on a live routine', async () => {
+test('a runPolicy save keeps run_timeout_ms in step, also on a live automation', async () => {
     seed({ liveVersion: 3 });
     const res = await put({
         definition: {

@@ -268,7 +268,10 @@ async function sendPdfForSigning(userId, { pdfBase64, fileName, signers, subject
     const token = await configStore.getSecret(`signrequest_token_user_${userId}`);
 
     if (!subdomain || !token) {
-        throw new Error('SignRequest not configured. Add your SignRequest subdomain and API token in Settings → Integrations.');
+        const err = new Error('SignRequest not configured. Add your SignRequest subdomain and API token in Settings → Integrations.');
+        // The notebook export route answers this one with a 400 the user can act on.
+        err.code = 'signrequest_not_configured';
+        throw err;
     }
 
     const payload = {

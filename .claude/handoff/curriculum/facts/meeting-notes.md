@@ -12,7 +12,7 @@ Meeting Notes turns a **conversation** into a **document you can work from**. Yo
 (microphone, an uploaded file, a Nextcloud Talk call recording, or a Google Meet recording); Bee Flow
 transcribes it, labels who said what, writes a summary in a style you choose, and pulls out
 **action items, decisions and open questions**. Those pieces can then be filed onward — into a
-knowledge base, a datatable, or a routine — and a note can be shared with the organisation or with
+knowledge base, a datatable, or an automation — and a note can be shared with the organisation or with
 specific groups.
 
 Two important product facts:
@@ -168,7 +168,7 @@ meeting?"* with **"Check the speakers"**.
 switched per-person stats off: *"Per-person statistics are disabled by your organization."*
 Not enough data: *"Not enough data for insights on this meeting."*
 
-**Used by tab** — what depends on this note (knowledge bases, routines, notebooks); empty:
+**Used by tab** — what depends on this note (knowledge bases, automations, notebooks); empty:
 *"Nothing uses this meeting yet."*
 
 **Tag row** — chips with **"Remove tag {tag}"**, plus **"Add tag"** (placeholder **"Add tag…"**).
@@ -228,13 +228,13 @@ Buttons **"Save template"**, **"Cancel"**, **"Delete"**.
 | **Voice profile (voiceprint)** | A ~25-second recording of your own voice, stored as an opaque numeric template. It lets Bee Flow put your name on your own turns automatically. It is biometric data (GDPR Art. 9), self-enrolled only, and never readable by an admin. |
 | **Summary template** | The instructions the AI follows when writing the summary. Five built-ins plus your own, saved at *Just me*, *Whole organization* or *Specific group* scope; one can be the default for new meetings. |
 | **Action item / decision / open question** | The three things the AI extracts from a transcript. Action items have an owner, a due date, a timestamp and a done-checkbox. |
-| **Destination** | Where you send an action item so someone can work on it: start a routine, add a row to a datatable, or file it in a knowledge base. The note remembers only a *reference* to where it went. |
-| **Tag** | A free-text label on a note. Tags drive the library filter chips, the "meetings with this tag" knowledge source, and routine trigger filters. Max 80 characters, max 50 per note. |
+| **Destination** | Where you send an action item so someone can work on it: start an automation, add a row to a datatable, or file it in a knowledge base. The note remembers only a *reference* to where it went. |
+| **Tag** | A free-text label on a note. Tags drive the library filter chips, the "meetings with this tag" knowledge source, and automation trigger filters. Max 80 characters, max 50 per note. |
 | **Publish / visibility** | Personal (owner only) → entire organisation → specific groups. Publishing makes the note readable, never editable, by others. |
 | **Attendees** | Who was in the room, typed before capture. The single strongest input to correct speaker names. |
 | **Series** | Notes recorded from the same Meet code or Talk room. The detail shows a "previously in this series" card. |
-| **Used by** | The list of knowledge bases, routines and notebooks that consume this note. It guards deletion. |
-| **Rule (`meeting.processed`)** | A routine that starts by itself when a meeting note is ready. Its payload is only the note id, tags, orgId and `reprocessed`. |
+| **Used by** | The list of knowledge bases, automations and notebooks that consume this note. It guards deletion. |
+| **Rule (`meeting.processed`)** | An automation that starts by itself when a meeting note is ready. Its payload is only the note id, tags, orgId and `reprocessed`. |
 
 ---
 
@@ -414,9 +414,9 @@ Mounts in `server/index.js` (lines 903–921):
   ("after every meeting" mode). It stores the **summary, decisions and optionally questions/actions —
   never the transcript**, enumerates as the KB's owner, and needs `manage_knowledge` to create.
   Max **500** meetings per pass.
-- **Routines / automations** — trigger provider `meeting-notes`, event **`meeting.processed`**
+- **Automations / automations** — trigger provider `meeting-notes`, event **`meeting.processed`**
   ("Meeting note ready"), org-scoped, fired on ingest, reprocess and regenerate; filterable on `tags`
-  and `reprocessed`. Action items can also *start* a routine as a destination.
+  and `reprocessed`. Action items can also *start* an automation as a destination.
 - **Datatables** — an action item can be appended as a row with mapped columns.
 - **Notebooks** and **Templates/Prompts pages** embed the shared **MeetingPicker** to use a meeting as
   context.
@@ -449,7 +449,7 @@ Mounts in `server/index.js` (lines 903–921):
    created immediately in `processing` and finishes in the background.
 6. **Choosing a wrong language and not noticing.** The language sits behind *"Advanced — …"* and
    defaults to Dutch; an English meeting transcribed as Dutch is a classic.
-7. **Deleting a meeting that a knowledge base or routine feeds on.** The 409 guard exists for this; do
+7. **Deleting a meeting that a knowledge base or automation feeds on.** The 409 guard exists for this; do
    not blindly type the title to get past it.
 8. **Expecting voice profiles to exist on any engine.** They only appear when an admin selected
    **pyannoteAI**; on Voxtral/WhisperX/Azure the whole section renders nothing.
@@ -458,7 +458,7 @@ Mounts in `server/index.js` (lines 903–921):
 10. **Reading a `failed` note's summary as a summary.** A failed note stores its failure reason in the
     summary field; the list surfaces it as `failureReason`, so trust the red status line.
 11. **Assuming the automation payload carries the content.** `meeting.processed` gives an id and tags
-    only — a routine must fetch the note itself (and only if entitled).
+    only — an automation must fetch the note itself (and only if entitled).
 12. **Regenerating and expecting your edits to vanish.** Action items you ticked or edited are kept
     and marked **"kept"** rather than being deleted by a regeneration.
 
@@ -487,7 +487,7 @@ outgoing destinations only ever receive a reference.
 ### Sales — the weekly pipeline call
 The sales team records their Tuesday Talk call with **"Auto-transcribe my Talk recordings"** on and
 **"Post summary back into Talk"** enabled, so the summary lands in the conversation. Every note is
-tagged `sales`. A routine with the trigger **"Meeting note ready"** filtered on `tags: ["sales"]` files
+tagged `sales`. An automation with the trigger **"Meeting note ready"** filtered on `tags: ["sales"]` files
 the note into the **Sales** knowledge base and notifies the account managers. At month end, Sandra
 selects the four most recent sales notes with **"AI report"** (max 10) and asks *"Welke bezwaren
 noemden klanten deze maand het vaakst?"* — the report cites the meetings it used.
@@ -542,8 +542,8 @@ Write endpoints (for context, not for verification): `POST /` (multipart `audio`
 
 ## 13. One thing that is built but not reachable
 
-`agent-hub/src/pages/meeting-notes/library/RulesPanel.jsx` (a "Rules" panel that lists the routines
+`agent-hub/src/pages/meeting-notes/library/RulesPanel.jsx` (a "Rules" panel that lists the automations
 triggered by `meeting.processed`, with an AI "Suggest a rule" helper) is fully written and tested but
 is **not imported by any screen** — the Meeting Notes page only renders **Library** and **Upcoming**.
 Do not write lesson steps that tell a learner to open a "Rules" tab inside Meeting Notes; rules are
-created in the Routines builder with the trigger **"Meeting note ready"**.
+created in the Automations builder with the trigger **"Meeting note ready"**.

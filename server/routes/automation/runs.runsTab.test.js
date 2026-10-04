@@ -100,7 +100,7 @@ test('GET /:id/runs: filters reach the store, rows are decorated, counts ride on
     assert.strictEqual(row.howStarted, 'manual');
     assert.strictEqual(row.isTest, false);
     assert.strictEqual(row.version, 3);
-    assert.strictEqual(row.stepsTotal, 2, 'the routine\'s definition stands in for a missing snapshot');
+    assert.strictEqual(row.stepsTotal, 2, 'the automation\'s definition stands in for a missing snapshot');
     assert.deepStrictEqual(row.stepStatuses, ['error', 'pending']);
     assert.strictEqual(row.outcome.code, 'stopped_at');
 

@@ -95,7 +95,7 @@ describe('posture', () => {
             toolcalls: 'outside tools 0/21',
             customterms: 'None',
             allowlist: 'Well-known companies only',
-            routines: 'On',
+            automations: 'On',
         });
         expect(p.attention).toBe(0);
         expect(p.rows.every((r) => postureHint(r, t) === null)).toBe(true);
@@ -116,7 +116,7 @@ describe('activity labels', () => {
 
     it('names the surface', () => {
         const row = { source: null, automationId: null, agentId: null, agentName: null };
-        expect(surfaceLabel({ ...row, automationId: 'r1', agentName: 'Digest' }, t)).toBe('Routine — Digest');
+        expect(surfaceLabel({ ...row, automationId: 'r1', agentName: 'Digest' }, t)).toBe('Automation — Digest');
         expect(surfaceLabel({ ...row, source: 'agent_chat' }, t)).toBe('Agent');
         expect(surfaceLabel({ ...row, source: 'direct_chat' }, t)).toBe('Direct chat');
         expect(surfaceLabel({ ...row, source: 'notebook' }, t)).toBe('Notebook');

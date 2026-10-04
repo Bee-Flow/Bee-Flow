@@ -524,7 +524,7 @@ function RouteFields({
                 {several && (
                     <FormRow
                         label="When several outputs match"
-                        hint="Routines built before this existed keep sending each record down the first match only, until you change it here."
+                        hint="Automations built before this existed keep sending each record down the first match only, until you change it here."
                     >
                         <select
                             value={fanOut ? 'all' : 'first'}
@@ -620,7 +620,7 @@ function upstreamFieldOptions(groups) {
  * path through this node, now that the mode override, the source path and the
  * compiled expression have all moved under Advanced. "Case" and "port" are
  * words from the runtime step types (routeModel.js keeps them because every
- * saved routine speaks them); nobody typing "invoices" here has met either,
+ * saved automation speaks them); nobody typing "invoices" here has met either,
  * and the monospace face said "this is code" about a field that takes plain
  * words. The name still becomes the port label — that is explained in the
  * lines beside the field, in the section that says what happens to a wired

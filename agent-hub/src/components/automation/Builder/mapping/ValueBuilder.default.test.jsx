@@ -84,6 +84,7 @@ describe('a schema-declared parameter renders as the visual editor', () => {
 
     it('offers the formula escape, and the chrome survives the switch', () => {
         renderForm({ subject: { kind: 'ref', path: 'steps.act_4d4307a.output.total' } });
+        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         fireEvent.click(screen.getAllByLabelText('Write this value as a formula')[0]);
         expect(screen.getByText('Back to the simple editor')).toBeTruthy();
         // Still labelled — switching editor must not drop the field's identity.

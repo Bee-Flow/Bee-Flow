@@ -49,7 +49,7 @@ function newTableId() { return `tbl_${randHex(6)}`; }
  *   geen `source`           de app bezit haar eigen opslag — de soort die er
  *                           altijd al was;
  *   {kind:'datatable', …}   de rijen staan in een STUDIO-DATATABEL, buiten de
- *                           app, gedeeld met routines en andere apps.
+ *                           app, gedeeld met automatiseringen en andere apps.
  *
  * Dat verschil MOET zichtbaar zijn. Twee tabellen die er identiek uitzien maar
  * zich anders gedragen — een kolom hernoemen doet daar niets, rijen bewerken kan
@@ -317,6 +317,9 @@ export default function TablesManager({
             } else if (res.invalid) {
                 const first = Array.isArray(res.errors) && res.errors.length ? res.errors[0] : null;
                 toast.error((typeof first === 'string' ? first : first?.message) || 'The data model is invalid.');
+            } else if (res.managed) {
+                // A Solution stage manages this app (409 managed_part).
+                toast.error(res.error || res.managed.message || 'This app is managed by a Solution stage.');
             }
         } catch (err) {
             toast.error(err?.message || 'Saving the data model failed.');

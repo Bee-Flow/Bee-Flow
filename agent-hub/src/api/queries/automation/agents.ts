@@ -162,7 +162,7 @@ export async function fetchAgentStepPreview(
     // Absent `tools` = the author set no allowlist; `tools=` (empty) = an empty
     // one, which means NO tools. The two stay apart on the wire.
     const tq = Array.isArray(tools) ? `&tools=${encodeURIComponent(tools.join(','))}` : '';
-    // The skills the step runs with grant apps and routines of their own, so the
+    // The skills the step runs with grant apps and automations of their own, so the
     // tool groups only match the run when the server knows which skills those are.
     const sq = idListParam('skillIds', scope.skillIds) + idListParam('disabledAgentSkillIds', scope.disabledAgentSkillIds);
     const res = await authFetch(`${API_BASE}/api/automation/catalog/agent/${encodeURIComponent(agentId)}?${q}${tq}${sq}`, { signal });

@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  *
  * All three run routes (`/run`, `/dry-run`, `/steps/:id/run`) have read
  * `req.body.triggerPayload` since they were written. The client sent none of
- * them one, so a routine you cannot fire for real yet — a form nobody has
+ * them one, so an automation you cannot fire for real yet — a form nobody has
  * submitted, an app_event with no matching message — entered every test run
  * with `trigger.output === {}`, and each of the steps mapping off the trigger
  * resolved to undefined. That is what BFSF-409 was really reporting when it
@@ -116,7 +116,7 @@ describe('BuilderShell — the trigger sample rides along with every run', () =>
     });
 
     it('starts from a secondary trigger with THAT trigger\'s own sample and its id', async () => {
-        // A routine with several entry points (definition.triggers[]). The
+        // An automation with several entry points (definition.triggers[]). The
         // header's "Start from" choice hands the trigger id to onDryRun /
         // onRunLive; the body must carry the secondary's pin, not the
         // primary's, and name the trigger so the server seeds the DAG there.
@@ -150,7 +150,7 @@ describe('BuilderShell — the trigger sample rides along with every run', () =>
     });
 
     it('sends nothing extra when the trigger has no saved sample', async () => {
-        // An untouched routine must post exactly what it always did — an
+        // An untouched automation must post exactly what it always did — an
         // explicit `triggerPayload: null` would read to a later maintainer as
         // "deliberately empty" rather than "never set".
         await mount(defWithPin(undefined));

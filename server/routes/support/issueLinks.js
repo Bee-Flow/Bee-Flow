@@ -238,7 +238,7 @@ function register(router) {
             });
         } catch (err) {
             log.error('[Support] GET /youtrack/search error:', err.message);
-            res.status(502).json({ error: `YouTrack search failed: ${err.message}` });
+            res.status(502).json({ error: 'YouTrack search failed' });
         }
     });
 
@@ -454,7 +454,7 @@ function register(router) {
             });
         } catch (err) {
             log.error('[Support] POST /threads/:id/issues/create error:', err.message);
-            res.status(502).json({ error: `Creating the issue failed: ${err.message}` });
+            res.status(502).json({ error: 'Creating the issue failed' });
         }
     });
 
@@ -473,7 +473,7 @@ function register(router) {
             ok(res, { issues: links.map(publicLink) });
         } catch (err) {
             log.error('[Support] POST /threads/:id/issues/refresh error:', err.message);
-            res.status(502).json({ error: `Refresh failed: ${err.message}` });
+            res.status(502).json({ error: 'Refresh failed' });
         }
     });
 

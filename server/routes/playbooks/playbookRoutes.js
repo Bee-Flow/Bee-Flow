@@ -304,14 +304,14 @@ function register(router, ctx) {
                 if (entry.status === 'awaiting') {
                     const art = { ...(cur.artifacts || {}), ...(patch.artifacts || {}) };
                     const kind = kindOf(cur);
-                    if (kind === 'routine') {
-                        if (!art.automationId) return sendErr(res, 409, 'artifacts_missing', 'The routine phase needs the automation id.');
+                    if (kind === 'automation') {
+                        if (!art.automationId) return sendErr(res, 409, 'artifacts_missing', 'The automation phase needs the automation id.');
                         const a = await d.automationStore.getAutomation(art.automationId);
-                        if (!a) return sendErr(res, 409, 'artifacts_missing', 'That routine does not exist.');
-                        if (a.userId !== pb.userId) return sendErr(res, 403, 'not_owner', 'That routine is not yours.');
-                        if (a.isDraft) return sendErr(res, 409, 'routine_not_finalized', 'The routine is still a draft — the builder has not finalised it.');
+                        if (!a) return sendErr(res, 409, 'artifacts_missing', 'That automation does not exist.');
+                        if (a.userId !== pb.userId) return sendErr(res, 403, 'not_owner', 'That automation is not yours.');
+                        if (a.isDraft) return sendErr(res, 409, 'automation_not_finalized', 'The automation is still a draft — the builder has not finalised it.');
                         // The fill phase REFUSES a non-manual trigger, and it
-                        // used to find out one phase too late: the routine
+                        // used to find out one phase too late: the automation
                         // landed, the playbook advanced, and the next phase died
                         // with a sentence about triggers on an automation the
                         // builder had already closed. Say it here, while the
@@ -319,7 +319,7 @@ function register(router, ctx) {
                         const trigger = a.definition && a.definition.trigger && a.definition.trigger.kind;
                         const feedsAFill = (pb.phases || []).slice((pb.phases || []).findIndex((x) => x.key === entry.key) + 1).some((x) => kindOf(x) === 'fill' && !lifecycle.TERMINAL.has(x.status));
                         if (feedsAFill && trigger && trigger !== 'manual') {
-                            return sendErr(res, 409, 'trigger_not_manual', `This routine starts on "${trigger}", not by hand — the next phase runs it once, which needs a manual trigger.`);
+                            return sendErr(res, 409, 'trigger_not_manual', `This automation starts on "${trigger}", not by hand — the next phase runs it once, which needs a manual trigger.`);
                         }
                         patch.artifacts = { ...art, automationTitle: a.title || art.automationTitle || null };
                     }

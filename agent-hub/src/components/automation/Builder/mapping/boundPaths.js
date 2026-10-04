@@ -9,7 +9,7 @@
  * server's binder reads, so a path counts as "in use" exactly when the run
  * would resolve it.
  */
-const REF_RE = /(?:steps\.[A-Za-z0-9_-]+\.output|trigger\.output|loop\.[A-Za-z0-9_]+)(?:\.[A-Za-z0-9_]+|\[\*\]|\[\d+\]|\["[^"]*"\])*/g;
+const REF_RE = /(?:steps\.[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.output|trigger\.output|loop\.[A-Za-z0-9_]+)(?:\.[A-Za-z0-9_]+|\[\*\]|\[\d+\]|\["[^"]*"\])*/g;
 
 /** Every reference path written anywhere in `step` (excluding its id/position). */
 export function usedPathsIn(step) {

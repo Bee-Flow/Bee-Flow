@@ -38,17 +38,22 @@ const dueDate = worded(DUE_TEXT).regex(/^\d{4}-\d{2}-\d{2}$/, DUE_TEXT)
     .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().startsWith(v), DUE_TEXT)
     .nullable();
 
-const LINKS_TEXT = `links is a list of at most ${MAX_LINKS} objects like {"kind":"document","id":"..."}; kind is document, notebook, meeting, chat or thread (a thread also needs chatId).`;
+const LINKS_TEXT = `links is a list of at most ${MAX_LINKS} objects like {"kind":"document","id":"..."}; kind is document, notebook, meeting, chat, thread or task (a thread also needs chatId).`;
 const linkId = worded(LINKS_TEXT).trim().min(1, LINKS_TEXT).max(ID_MAX, LINKS_TEXT);
 const link = z.object({
-    kind: choice(['document', 'notebook', 'meeting', 'chat', 'thread'], LINKS_TEXT),
+    kind: choice(['document', 'notebook', 'meeting', 'chat', 'thread', 'task'], LINKS_TEXT),
     id: linkId,
     chatId: linkId.optional(),
+    relation: choice(['depends_on'], 'relation is depends_on for a task link.').optional(),
 }, { invalid_type_error: LINKS_TEXT }).strict()
-    .refine((l) => l.kind !== 'thread' || !!l.chatId, LINKS_TEXT);
+    .refine((l) => l.kind !== 'thread' || !!l.chatId, LINKS_TEXT)
+    .refine((l) => !l.relation || l.kind === 'task', 'Only a task link can have a dependency relation.');
 const links = z.array(link, { invalid_type_error: LINKS_TEXT }).max(MAX_LINKS, LINKS_TEXT);
 
 const priority = choice(['low', 'normal', 'high', 'urgent'], 'priority is low, normal, high or urgent.');
+const itemType = choice(['epic', 'story', 'user-story', 'task'], 'itemType is epic, story, user-story or task.');
+const parentTaskId = worded('parentTaskId is a task id or null.').trim().min(1, 'parentTaskId is a task id or null.').max(ID_MAX, 'parentTaskId is a task id or null.').nullable();
+const storyPoints = z.number({ invalid_type_error: 'storyPoints is null or a Fibonacci estimate.' }).int().refine(v => [1, 2, 3, 5, 8, 13, 21].includes(v), 'storyPoints is null or a Fibonacci estimate.').nullable();
 
 const LABELS_TEXT = `labels is a list of at most ${MAX_LABELS} names of 1 to ${LABEL_MAX} characters.`;
 const labels = z.array(worded(LABELS_TEXT).trim().min(1, LABELS_TEXT).max(LABEL_MAX, LABELS_TEXT), { invalid_type_error: LABELS_TEXT }).max(MAX_LABELS, LABELS_TEXT);
@@ -72,10 +77,14 @@ const fields = {
     description: description.optional(),
     status: status.optional(),
     priority: priority.optional(),
+    itemType: itemType.optional(),
+    parentTaskId: parentTaskId.optional(),
+    storyPoints: storyPoints.optional(),
     labels: labels.optional(),
     checklist: checklist.optional(),
     assigneeIds: assigneeIds.optional(),
     links: links.optional(),
+    startDate: dueDate.optional(),
     dueDate: dueDate.optional(),
 };
 
@@ -97,4 +106,21 @@ const UpdateTaskBody = bodyOf({
     beforeId: beforeId.optional(),
 }, 'Changing a task');
 
-module.exports = { TITLE_MAX, DESCRIPTION_MAX, MAX_ASSIGNEES, MAX_LINKS, MAX_BATCH, CreateTaskBody, BatchTasksBody, UpdateTaskBody };
+const POKER_QUEUE_TEXT = 'taskIds is a list of 1 to 50 task ids to estimate in order; the first is voted on now, the rest are queued.';
+const PokerStartBody = bodyOf({
+    taskId: sourceId.optional(),
+    taskIds: z.array(sourceId, { invalid_type_error: POKER_QUEUE_TEXT }).min(1, POKER_QUEUE_TEXT).max(50, POKER_QUEUE_TEXT).optional(),
+}, 'Starting planning poker')
+    .refine((b) => b.taskId || (b.taskIds && b.taskIds.length), { message: `Starting planning poker takes taskId or taskIds. ${POKER_QUEUE_TEXT}` });
+const PokerSessionBody = bodyOf({ sessionId: sourceId }, 'Changing a planning poker session');
+const PokerVoteBody = bodyOf({
+    sessionId: sourceId,
+    vote: choice(['1', '2', '3', '5', '8', '13', '21', '?'], 'vote is a Fibonacci card or ?.')
+}, 'Voting in planning poker');
+const PokerFinishBody = bodyOf({
+    sessionId: sourceId,
+    storyPoints: z.number({ invalid_type_error: 'storyPoints is a Fibonacci estimate.' }).int().refine(v => [1, 2, 3, 5, 8, 13, 21].includes(v), 'storyPoints is a Fibonacci estimate.')
+}, 'Finishing planning poker');
+
+module.exports = { TITLE_MAX, DESCRIPTION_MAX, MAX_ASSIGNEES, MAX_LINKS, MAX_BATCH, CreateTaskBody, BatchTasksBody, UpdateTaskBody,
+    PokerStartBody, PokerSessionBody, PokerVoteBody, PokerFinishBody };

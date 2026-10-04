@@ -136,7 +136,7 @@ function storedQuestionName(question) {
  * of one pair of duplicates the server refuses to save.
  *
  * No rename box here, deliberately. The form builder only offers one where it
- * can carry the routine with it (`onRenameField`, which rewrites every ref,
+ * can carry the automation with it (`onRenameField`, which rewrites every ref,
  * template and expression in the same edit); this editor has no such callback,
  * and an editable name that silently breaks bindings is the very bug above
  * wearing a different hat. The name is SHOWN instead, so the author can see
@@ -239,7 +239,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
         if (finalSeat?.userId || finalSeat?.groupId) {
             chain.push({
                 key: newStageKey(chain),
-                name: t('routines.builder.approval_final_stage_name', 'Final sign-off'),
+                name: t('automations.builder.approval_final_stage_name', 'Final sign-off'),
                 description: '',
                 approvers: [finalSeat],
                 rule: 'first',
@@ -429,7 +429,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 )}
                                 {/* The binding, spelled out. Read-only for the reason
                                     approvalQuestionName gives — there is no rename here that
-                                    could carry the routine's references with it — but an
+                                    could carry the automation's references with it — but an
                                     author who cannot SEE the name cannot bind it either,
                                     and used to have to guess at the slug.
 
@@ -614,14 +614,14 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 {!stagesActive && (
                     <div className="rounded-md border border-[var(--border-subtle)] px-2 py-1.5 flex items-start justify-between gap-2">
                         <p className={`${hintTextClass()} min-w-0`}>
-                            {t('routines.builder.approval_stages_intro', 'Need more than two rounds? Ask several groups in turn — each stage has its own approvers, its own rule and its own name.')}
+                            {t('automations.builder.approval_stages_intro', 'Need more than two rounds? Ask several groups in turn — each stage has its own approvers, its own rule and its own name.')}
                         </p>
                         <button
                             type="button"
                             onClick={useStages}
                             className={`${actionButtonClass()} shrink-0`}
                         >
-                            <Workflow size={12} /> {t('routines.builder.approval_use_stages', 'Use approval stages')}
+                            <Workflow size={12} /> {t('automations.builder.approval_use_stages', 'Use approval stages')}
                         </button>
                     </div>
                 )}

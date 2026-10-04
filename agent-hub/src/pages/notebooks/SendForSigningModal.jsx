@@ -97,7 +97,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                     </div>
                     <button
                         onClick={onClose}
-                        aria-label={t('notebooks.close', 'Close')}
+                        aria-label={t('notebooks.close_panel', 'Close')}
                         className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
                     >
                         <X className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />

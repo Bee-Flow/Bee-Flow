@@ -200,7 +200,7 @@
     --kind-kb: #d3b14f;
     --kind-meet: #c29276;
     /* Playbooks (2026-09-13): emerald, one step from --success and from the
-       teal --type-trigger (routines) — every blue slot is taken and purple
+       teal --type-trigger (automations) — every blue slot is taken and purple
        is out; ≥ 6:1 on the dark --bg-card. Design-owner sign-off pending. */
     --kind-playbook: #6ccf8e;
     /* Documents (2026-09-15): printable artefacts — invoices, quotes,
@@ -313,6 +313,8 @@
 
     --success: #10b981;
     --warning: #f59e0b;
+    --stage-uat: #f59e0b;
+    --stage-prd: #10b981;
     --error: #ef4444;
     --pinned: #06b6d4;
 
@@ -423,6 +425,8 @@
 
     --success: #059669;
     --warning: #d97706;
+    --stage-uat: #d97706;
+    --stage-prd: #059669;
     --error: #dc2626;
     --pinned: #0891b2;
 
@@ -496,6 +500,8 @@
 
     --success: #059669;
     --warning: #d97706;
+    --stage-uat: #d97706;
+    --stage-prd: #059669;
     --error: #dc2626;
     --pinned: #0891b2;
 
@@ -563,6 +569,8 @@
 
     --success: #34d399;
     --warning: #fbbf24;
+    --stage-uat: #fbbf24;
+    --stage-prd: #34d399;
     --error: #f87171;
     --pinned: #22d3ee;
 
@@ -609,6 +617,8 @@
 
     --success: #00ff66;
     --warning: #ffaa00;
+    --stage-uat: #ffaa00;
+    --stage-prd: #00ff66;
     --error: #ff5252;
     --pinned: #00e5ff;
 
@@ -687,6 +697,8 @@
 
     --success: #15803d;
     --warning: #b45309;
+    --stage-uat: #b45309;
+    --stage-prd: #15803d;
     --error: #b91c1c;
     --pinned: #0e7490;
 
@@ -735,6 +747,8 @@
 
     --success: #4ade80;
     --warning: #fbbf24;
+    --stage-uat: #fbbf24;
+    --stage-prd: #4ade80;
     --error: #f87171;
     --pinned: #22d3ee;
 
@@ -785,6 +799,8 @@
 
     --success: #166534;
     --warning: #a16207;
+    --stage-uat: #a16207;
+    --stage-prd: #166534;
     --error: #991b1b;
     --pinned: #155e75;
 
@@ -1671,8 +1687,8 @@ body,
     .bf-step-in { animation: none; }
 }
 
-/* ── The build as a film: a card materialising on the routines canvas ────
-   While the AI builds a routine, the canvas keeps rendering the LIVE draft
+/* ── The build as a film: a card materialising on the automations canvas ────
+   While the AI builds an automation, the canvas keeps rendering the LIVE draft
    (summary chip, validation, minimap and layout never lag the truth); what
    lags is visibility. The choreography hook (Builder/flow/
    useBuildChoreography.js) diffs consecutive drafts into presentation flags

@@ -278,6 +278,8 @@ describe('BindingField — the mismatch box is asked the pick\'s REAL kind', () 
         insert('steps.s1.output.rows');
         const box = screen.getByTestId('mismatch-resolver');
         expect(box.textContent).toContain('table');
+        // The choices sit behind the kind-named disclosure (BFSF-482).
+        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
         expect(screen.getByText('As a table')).toBeTruthy();
         // The list menu's own answers belong to a different question.
         expect(screen.queryByText('All of them, one per line')).toBeNull();
@@ -286,7 +288,10 @@ describe('BindingField — the mismatch box is asked the pick\'s REAL kind', () 
     it('a LIST pick still gets the list menu', () => {
         const { insert } = renderScalarSlot();
         insert('steps.s1.output.mails');
-        expect(screen.getByText('All of them, one per line')).toBeTruthy();
+        // Collapsed, the box already says what the field holds: the default.
+        expect(screen.getByTestId('mismatch-selected').textContent).toBe('All of them, one per line');
+        fireEvent.click(screen.getByRole('button', { name: 'List options' }));
+        expect(screen.getByText('Only the first')).toBeTruthy();
         expect(screen.queryByText('As a table')).toBeNull();
     });
 

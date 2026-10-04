@@ -80,7 +80,7 @@ test('the regressions that motivated this test stay fixed', () => {
     for (const read of [
         'afas_query', 'afas_list_connectors', 'nmbrs_list_employees', 'nmbrs_get_employee',
         'n8n_workflow_list', 'n8n_execution_get', 'github_get_file', 'github_list_repos',
-        'drive_get_content', 'outlook_list_recent', 'onedrive_list_files',
+        'drive_get_content', 'outlook_list_recent', 'onedrive_list_files', 'onedrive_list_recent', 'drive_list_recent',
         'gamma_list_themes', 'signrequest_check_status', 'keep_get',
         'groups_read_conversation', 'youtrack_list_projects', 'nextcloud_talk_list_participants',
         'ms_calendar_search_events', 'fireflies_get_summary', 'transcribe_audio',

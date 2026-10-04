@@ -1,7 +1,7 @@
 /**
  * useAiActAssessment — the ladder's own data hook (Compliance Center
  * redesign, Sep 2026). Deliberately NOT the hub's data hook: the ladder is
- * mounted in the routine builder's Settings tab and the agent wizard's
+ * mounted in the automation builder's Settings tab and the agent wizard's
  * Advanced drawer, outside the hub and its providers, so it talks to
  * `data/api.js` directly.
  *

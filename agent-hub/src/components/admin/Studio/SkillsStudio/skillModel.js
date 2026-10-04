@@ -281,10 +281,10 @@ export function draftOf(skill) {
 }
 
 /**
- * Is this routine callable by an agent? "May use" means "offered as a tool",
- * and only an `agent_call`-trigger routine ever is (S1 §5). The row's shape
+ * Is this automation callable by an agent? "May use" means "offered as a tool",
+ * and only an `agent_call`-trigger automation ever is (S1 §5). The row's shape
  * differs per endpoint, so all three spellings are accepted — and an absent
- * trigger is NOT treated as a match: offering a routine the runtime will
+ * trigger is NOT treated as a match: offering an automation the runtime will
  * never dispatch is a promise the product cannot keep.
  *
  * ── THE DEFINITION COMES FIRST, AND THAT ORDER IS THE WHOLE POINT ───
@@ -299,11 +299,11 @@ export function draftOf(skill) {
  * column from the definition precisely because the visual editor only ever
  * sends `definition` (BFSF-318: a schedule set in the node panel left
  * trigger_type at 'manual' and never fired). `POST` still does NOT derive it —
- * it takes `triggerType` from the body with default 'manual' — and a routine
+ * it takes `triggerType` from the body with default 'manual' — and an automation
  * can arrive complete in one POST (duplicate, template, create-from-chat). Such
  * a row keeps trigger_type='manual' until somebody saves it again, and the
- * picker then hid a routine the runtime WOULD call, under the sentence "a
- * routine appears here once its trigger is 'an agent calls it'".
+ * picker then hid an automation the runtime WOULD call, under the sentence "a
+ * automation appears here once its trigger is 'an agent calls it'".
  */
 export function isAgentCallable(automation) {
     const kind = automation?.definition?.trigger?.kind

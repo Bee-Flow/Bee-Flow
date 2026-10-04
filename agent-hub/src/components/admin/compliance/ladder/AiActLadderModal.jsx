@@ -6,7 +6,7 @@
  * in the signals (disclosure shown, marking enabled) and is never answered by
  * hand.
  *
- * Mounted OUTSIDE the hub (routine builder Settings tab, agent wizard
+ * Mounted OUTSIDE the hub (automation builder Settings tab, agent wizard
  * Advanced drawer, and FE-7's per-automation table), so it carries its own
  * data hook (`useAiActAssessment`) and reads through data/api.js directly.
  * Two ways to mount it:
@@ -157,7 +157,7 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
     const annexAnswered = annexAnsweredCount(annexAnswers);
     const annexArticles = annexArticlesFor(annexAnswers);
 
-    // Which domains the routine's own wording touches. An ORDERING signal and
+    // Which domains the automation's own wording touches. An ORDERING signal and
     // a marker beside the question — never a pre-filled answer. The server
     // sends all ten in `annex_iii_questions`, hinted ones first; a hint is the
     // same thing the keyword regex used to be, with the authority taken away.
@@ -439,7 +439,7 @@ function Step({ n, state, title, meta, verdict, children, testId }) {
  * are different things to a regulator and the product used to store them the
  * same way.
  *
- * A `hint` puts the question at the top and says the routine's own wording
+ * A `hint` puts the question at the top and says the automation's own wording
  * mentions it. It never presses a button. Same rule the RoPA follows for the
  * lawful basis: a pre-selected legal position is the product taking one.
  */
@@ -462,7 +462,7 @@ function AnnexQuestions({ questions, answers, hints, onAnswer, t }) {
                                 {ANNEX_III_ARTICLES[q.id]}
                                 {hints.has(q.id) && (
                                     <span data-testid="ladder-annex-hint" className="ml-1.5" style={{ color: 'var(--text-secondary)' }}>
-                                        · {t('compliance.ladder_annex_mentioned', 'this routine’s wording mentions it')}
+                                        · {t('compliance.ladder_annex_mentioned', 'this automation’s wording mentions it')}
                                     </span>
                                 )}
                             </div>

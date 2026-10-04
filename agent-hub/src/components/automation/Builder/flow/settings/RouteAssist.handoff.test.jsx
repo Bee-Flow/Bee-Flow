@@ -19,7 +19,7 @@
  *      a name read-only rather than offering an edit that cannot be saved.
  *   3. IT SAYS IT ADDS A STEP, BEFORE THE CLICK. Everything else in this box
  *      rewrites the outputs of the node already open; this one changes the
- *      shape of the routine, and an author who reads "use these 3 outputs"
+ *      shape of the automation, and an author who reads "use these 3 outputs"
  *      and gets a new node has been surprised by their own click.
  *   4. NOTHING CHANGES UNTIL ACCEPT, AND THEN IN THAT ORDER. The rules name
  *      the new step's id, so the step goes in first; a refused insert writes
@@ -97,7 +97,7 @@ describe('when the offer appears', () => {
     it('not for a problem the offline catalogue raised — that one has a better fix', () => {
         setup();
         // "Dates have to be written in full" is answered by rewriting the
-        // sentence, not by adding a step to the routine.
+        // sentence, not by adding a step to the automation.
         type('anything older than last week');
         expect(screen.getByText(/Dates have to be written in full/i)).toBeTruthy();
         expect(screen.queryByLabelText('Name the possible answers')).toBeNull();
@@ -133,7 +133,7 @@ describe('what it shows before anything happens', () => {
         setup();
         await askAndFail();
         await screen.findByLabelText('Name the possible answers');
-        expect(screen.getByText(/ADDS A STEP to your routine/)).toBeTruthy();
+        expect(screen.getByText(/ADDS A STEP to your automation/)).toBeTruthy();
     });
 
     it('shows nothing to accept until the answers are named', async () => {

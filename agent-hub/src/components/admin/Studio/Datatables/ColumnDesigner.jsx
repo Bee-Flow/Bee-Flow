@@ -154,7 +154,12 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
         } catch (e) {
             const refused = sourceErrorMessage(t, e, table);
             if (refused) { setError(refused); return; }
-            if (e.status === 409 && e.code === 'managed_column') {
+            if (e.managed) {
+                // A Solution stage manages this table (409 managed_part): not a
+                // column conflict, so do not reload and call it someone else's edit.
+                setError(e.message || e.managed.message);
+                setConfirming(null);
+            } else if (e.status === 409 && e.code === 'managed_column') {
                 // Belt and braces: the guard above should have caught it, but
                 // the contract lives on the server and this client may be an
                 // old tab. Show the server's own sentence, which names the

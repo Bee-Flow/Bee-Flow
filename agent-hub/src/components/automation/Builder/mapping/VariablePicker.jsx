@@ -128,7 +128,7 @@ export default function VariablePicker({
                     autoFocus
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={scoped && focusGroup ? t('routines.picker.search_in', 'Search in {step}…', { step: focusGroup.label }) : 'Search variables…'}
+                    placeholder={scoped && focusGroup ? t('automations.picker.search_in', 'Search in {step}…', { step: focusGroup.label }) : 'Search variables…'}
                     className="flex-1 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
                 />
                 <button
@@ -142,9 +142,9 @@ export default function VariablePicker({
             </div>
             {scoped && focusGroup && (
                 <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--border-default)] text-[11px] bg-[var(--bg-secondary)]" data-testid="picker-scope">
-                    <span className="text-[var(--text-secondary)] truncate">{t('routines.picker.fields_of', 'Fields of {step}', { step: focusGroup.label })}</span>
+                    <span className="text-[var(--text-secondary)] truncate">{t('automations.picker.fields_of', 'Fields of {step}', { step: focusGroup.label })}</span>
                     <button type="button" onClick={() => setScoped(false)} className="ml-auto shrink-0 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                        {t('routines.picker.all_steps', 'All steps')}
+                        {t('automations.picker.all_steps', 'All steps')}
                     </button>
                 </div>
             )}
@@ -309,7 +309,7 @@ function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, 
                 </span>
                 {shape && (
                     <span className={listBadgeClass()} title={t(shape.explainKey, shape.explainEn, shape.explainParams)}>
-                        {shape.count != null ? `${t('routines.builder.list_word', 'list')} · ${shape.count}` : t('routines.builder.list_word', 'list')}
+                        {shape.count != null ? `${t('automations.builder.list_word', 'list')} · ${shape.count}` : t('automations.builder.list_word', 'list')}
                     </span>
                 )}
                 <span className="ml-auto text-[10px] text-[var(--text-tertiary)] truncate max-w-[120px] font-mono">

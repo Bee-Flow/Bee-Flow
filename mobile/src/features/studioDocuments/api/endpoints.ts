@@ -74,7 +74,7 @@ export async function updateStudioDocument(
     return readDocument(await api.patch<unknown>(docPath(id), body), previous);
 }
 
-/** Archive. Versions a routine or an app still references stay available. */
+/** Archive. Versions an automation or an app still references stay available. */
 export async function deleteStudioDocument(id: string): Promise<void> {
     await api.delete(docPath(id));
 }

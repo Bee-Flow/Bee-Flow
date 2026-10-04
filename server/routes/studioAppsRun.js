@@ -49,7 +49,7 @@ const { resolveInputs, deriveRunOutcome } = actionExecutor;
  * `_appEffects` is a SIBLING of `output`, never a member of it: `output` is
  * what every `actionResult` binding in every app already reads, and folding
  * the instructions in there would change what those bindings resolve to. It is
- * omitted entirely when the routine left none, so a run that ends without a
+ * omitted entirely when the automation left none, so a run that ends without a
  * return_to_app step answers byte-identically to before.
  */
 async function runBody(run) {
@@ -145,7 +145,7 @@ async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
     return null;
 }
 
-// Step kinds that cost what a /run costs — a full routine, a model call, or a
+// Step kinds that cost what a /run costs — a full automation, a model call, or a
 // write into the owner's storage envelope. They consume the action-run budget
 // on top of the step bucket (see the limiter's rationale in
 // studioAppRateLimits.js).
@@ -395,7 +395,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
         if (!automation) return res.status(404).json({ error: 'Automation not found' });
         if (automation.userId !== app.userId) {
             // Wired before a transfer — the app owner no longer owns it, so
-            // running acts-as-owner would execute someone else's routine.
+            // running acts-as-owner would execute someone else's automation.
             return res.status(403).json({ error: 'Automation does not belong to the app owner' });
         }
 

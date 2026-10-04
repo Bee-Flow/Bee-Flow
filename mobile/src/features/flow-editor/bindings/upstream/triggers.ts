@@ -37,18 +37,36 @@ export function describeTriggerMeta(definition: FlowDefinition | null | undefine
     const fields = Array.isArray(catalog?.triggerMeta) ? catalog.triggerMeta : null;
     if (!fields || fields.length === 0) return null;
     const sample = triggerMetaSample(definition);
+    const extra = Array.isArray(definition?.triggers) ? definition.triggers : [];
+    const kinds = new Set<string>([definition?.trigger?.kind || 'manual', ...extra.map((x) => x?.kind || 'manual')]);
+    const shown = fields.filter((f) => metaFieldApplies(f.key, kinds, definition, extra));
+    if (shown.length === 0) return null;
     return {
         id: '__trigger_meta',
         label: t('mobile.flow.group.trigger_info', 'Trigger info'),
         kind: 'trigger_meta',
         basePath: 'trigger',
         sample,
-        fields: fields.map((f) => ({
+        // Only fields the actual trigger produces, with ITS values: the
+        // catalog's samples come from another trigger kind ("New mail").
+        fields: shown.map((f) => ({
             key: f.key,
             path: f.path || `trigger.${f.key}`,
-            sample: walkRelativePath(f.key, sample) ?? f.sample ?? null,
+            sample: walkRelativePath(f.key, sample) ?? null,
         })),
     };
+}
+
+/** The web's metaFieldApplies: which trigger-info fields exist for these trigger kinds. */
+function metaFieldApplies(key: string, kinds: Set<string>, definition: FlowDefinition | null | undefined, extra: FlowNode[]): boolean {
+    switch (key) {
+        case 'label': return typeof definition?.trigger?.label === 'string' && definition.trigger.label !== '';
+        case 'provider':
+        case 'event': return kinds.has('app_event');
+        case 'schedule.cron': return kinds.has('schedule');
+        case 'schedule.scheduledFor': return extra.some((x) => x?.kind === 'schedule');
+        default: return true;
+    }
 }
 
 /** Declared-params triggers (a flowlet's inputs, a Studio App's inputs). */

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import ConnectionsManager from './ConnectionsManager';
+import { Microsoft365Group } from './Microsoft365Integration';
 import N8nSection from './N8nSection';
 import SimpleApiKeyIntegration from './SimpleApiKeyIntegration';
 import { getIntegrationIcon } from '../../config/integrationIcons';
@@ -9,6 +10,7 @@ import useUserSettingSave from '../../hooks/useUserSettingSave';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
+import OrgMcpConnections from './OrgMcpConnections';
 
 // Named connections + lending UI — re-enabled for reusable HTTP credentials
 // (the http_request step's Authentication settings reference these).
@@ -1036,6 +1038,9 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
                 </div>
             )}
 
+            {/* Microsoft 365: shown when a Microsoft app is in the effective set */}
+            <Microsoft365Group isEnabled={isEnabled} onSaved={() => onSaved('microsoft')} />
+
             {/* Productivity */}
             {productivityItems > 0 && (
                 <div className="space-y-1.5">
@@ -1084,6 +1089,9 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
                     </div>
                 </div>
             )}
+
+            {/* Keys for the MCP servers the organisation added (MCP library) */}
+            <OrgMcpConnections />
 
             {/* Organisation Integrations — merged for consumer accounts */}
             {showOrgIntegrations && (

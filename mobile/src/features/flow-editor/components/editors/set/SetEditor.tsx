@@ -92,7 +92,7 @@ export function SetEditor(editor: StepEditorProps) {
     return (
         <>
             {listMode && !draft.arrayRef ? <Source editor={editor} hint={t('mobile.flow.set.no_source', 'This step has no list to work through yet — pick the step whose results it should edit.')} /> : null}
-            <Band editor={editor} sectionKey="fields" title={listMode ? t('mobile.flow.set.fields_each_row', 'Fields added to each row') : t('routines.mapping.fields', 'Fields')} defaultOpen>
+            <Band editor={editor} sectionKey="fields" title={listMode ? t('mobile.flow.set.fields_each_row', 'Fields added to each row') : t('automations.mapping.fields', 'Fields')} defaultOpen>
                 <Note>
                     {listMode
                         ? t('mobile.flow.set.fields_each_row_hint', 'Every row keeps its own data. The fields below are worked out for each row — reuse a name to overwrite that column.')

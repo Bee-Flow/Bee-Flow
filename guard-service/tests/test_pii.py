@@ -2021,7 +2021,7 @@ class ShapeFilterTests(unittest.TestCase):
 
         Real failure: a Gmail message id is 16 hex characters, 8 of them digits,
         and GLiNER scores it 0.68-0.83 as a Phone Number. Redacting one broke the
-        call it addresses — a routine reading each mail of a search result died on
+        call it addresses — an automation reading each mail of a search result died on
         "Invalid id value" for every iteration.
         """
         for word in (

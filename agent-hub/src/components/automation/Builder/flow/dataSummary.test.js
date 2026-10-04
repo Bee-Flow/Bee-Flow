@@ -171,3 +171,31 @@ describe('summariseEdgeData', () => {
         expect(summariseEdgeData(plain, stub, { from: 'a', to: 'b' })).toMatchObject({ label: '2 records' });
     });
 });
+
+describe('a Code step\'s { result, logs, httpCalls } envelope', () => {
+    const code = { id: 'c', type: 'code' };
+    const edge = { from: 'c', to: 'n' };
+    const run = (result) => ({ status: 'success', output: { result, logs: [], httpCalls: 0 } });
+
+    it('never reports the console lines as the step\'s list', () => {
+        expect(summariseData({ logs: ['a', 'b'] })).toMatchObject({ label: '1 record' });
+        expect(summariseData({ logs: [], httpCalls: 0 })).toMatchObject({ label: '1 record' });
+    });
+
+    it('counts what the code returned on the connection', () => {
+        expect(summariseEdgeData(code, run({ total: 3, name: 'x' }), edge)).toMatchObject({ label: '1 record' });
+        expect(summariseEdgeData(code, run([1, 2, 3]), edge)).toMatchObject({ label: '3 items' });
+        expect(summariseEdgeData(code, run([{ a: 1 }, { a: 2 }]), edge)).toMatchObject({ label: '2 records' });
+        expect(summariseEdgeData(code, run('hello'), edge)).toMatchObject({ kind: 'text' });
+    });
+
+    it('says nothing when the code returned nothing, instead of "0 items"', () => {
+        const nothing = { status: 'success', output: { logs: ['x'], httpCalls: 0 } };
+        expect(summariseEdgeData(code, nothing, edge)).toBeNull();
+    });
+
+    it('a step of unknown type still ignores a lone `logs` array', () => {
+        const other = { id: 'o', type: 'http_request' };
+        expect(summariseEdgeData(other, run({ a: 1 }), edge)).toMatchObject({ label: '1 record' });
+    });
+});

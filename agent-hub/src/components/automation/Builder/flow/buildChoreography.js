@@ -6,7 +6,7 @@ import { REVEAL_STAGGER_MS, REVEAL_STAGGER_MIN_MS, REVEAL_BUDGET_MS, MIN_MOVE_GA
 /**
  * The build as a film — the pure half.
  *
- * While the AI builds a routine the server sends the WHOLE definition after
+ * While the AI builds an automation the server sends the WHOLE definition after
  * every mutating tool call (and again, unchanged, after a refused one). Nothing
  * on the canvas may therefore key on definition identity; every beat keys on a
  * diff of consecutive definitions, computed here. The canvas keeps rendering
@@ -454,7 +454,7 @@ export function isRefusedCall(tc) {
  *
  * `finalized` is whether THIS turn's finalize went through. The stream
  * state's `finalizedId` survives across turns, so the ending line must not
- * read it alone: a turn that edits a routine finalized last week and then
+ * read it alone: a turn that edits an automation finalized last week and then
  * stops would otherwise sign off with "Built · n steps".
  */
 export function chapterOf(toolCalls) {

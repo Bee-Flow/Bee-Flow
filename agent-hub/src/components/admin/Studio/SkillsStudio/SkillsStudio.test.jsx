@@ -529,12 +529,12 @@ describe('"Let AI fill it in", on a skill that is still empty', () => {
 });
 
 describe('a reference pill in a step', () => {
-    it('opens the routine it points at, through the same deep link the usage table uses', async () => {
+    it('opens the automation it points at, through the same deep link the usage table uses', async () => {
         const onNavigate = vi.fn();
         render(<SkillsStudio user={{ id: 'u1', orgRole: 'org_admin' }} initialSkillId="s1" onNavigate={onNavigate} />);
         await screen.findByTestId('skill-detail');
         const pill = await screen.findByRole('button', { name: 'Look up quote status' });
         fireEvent.click(pill);
-        expect(onNavigate).toHaveBeenCalledWith('studio/routines/a1');
+        expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 });

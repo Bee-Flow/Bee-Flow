@@ -266,7 +266,7 @@ describe('AppList — exporting a gallery template', () => {
         vi.mocked(studioAppsApi.exportTemplate).mockResolvedValue({
             envelope: ENVELOPE,
             filename: 'ticket-tracker.beeflow-app.json',
-            warnings: ['2 routine reference(s) removed — whoever installs this connects their own.'],
+            warnings: ['2 automation reference(s) removed — whoever installs this connects their own.'],
         });
 
         const user = userEvent.setup();
@@ -283,7 +283,7 @@ describe('AppList — exporting a gallery template', () => {
         await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
         expect(click).toHaveBeenCalled();
         await waitFor(() => expect(toast.success).toHaveBeenCalledWith(
-            expect.stringContaining('2 routine reference(s) removed'),
+            expect.stringContaining('2 automation reference(s) removed'),
         ));
         // Exporting never creates anything.
         expect(studioAppsApi.createApp).not.toHaveBeenCalled();

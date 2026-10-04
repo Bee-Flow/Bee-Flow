@@ -35,7 +35,7 @@ import toast from '../../../../shared/Toast';
  * stepGraph.test.js pins the pre-order walk itself.
  *
  * What IS shared is the vocabulary: branches read `then` / `else` /
- * `case:<name>`, the same words the routine builder uses.
+ * `case:<name>`, the same words the automation builder uses.
  *
  * `action` is a definition.actions entry; `onChange` emits the next one. Ids on
  * steps are assigned here and stripped on the way out — the schema addresses a
@@ -251,7 +251,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
             onSelect: () => setSelectedId(n.isEntry ? null : n.id),
             onAdd: () => setAdding({ prefix: n.prefix }),
             // The "+" on the node itself — add a step straight after this one,
-            // the same gesture the routine builder offers.
+            // the same gesture the automation builder offers.
             onAddAfter: n.isEntry ? null : () => setAdding({ prefix: n.prefix, after: n.id }),
             onContextMenu: n.isEntry ? undefined : (e) => {
                 e.preventDefault();
@@ -264,8 +264,8 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
 
     /**
      * The step actions StepNodeBase draws on hover. It reads them from this
-     * context in the routine builder too, so providing it here is all it takes
-     * for an app step to behave like a routine step.
+     * context in the automation builder too, so providing it here is all it takes
+     * for an app step to behave like an automation step.
      */
     const nodeRuntime = useMemo(() => ({
         onDeleteNode: disabled ? null : removeStep,
@@ -383,7 +383,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
                 )}
             </aside>
 
-            {/* The routine builder's own right-click menu, unchanged. */}
+            {/* The automation builder's own right-click menu, unchanged. */}
             {ctxMenu ? (
                 <NodeContextMenu
                     x={ctxMenu.x}
@@ -456,7 +456,7 @@ function normalizeToSequence(action) {
  * for its own steps. Not only for looks: it brings the hover actions (duplicate,
  * delete), the "+" that adds a step right after this one, the validation badge
  * and the per-branch output ports, all behaving exactly as they do in the
- * routine builder. Somebody who has wired a routine already knows how to wire
+ * automation builder. Somebody who has wired an automation already knows how to wire
  * an app.
  *
  * Those actions arrive through NodeRuntimeContext, which is how StepNodeBase
@@ -526,12 +526,12 @@ function StepFlowNode({ id, data }) {
                     <Server className="w-3 h-3 text-[var(--text-tertiary)]" aria-label="Runs on the server" />
                 ) : null}
                 // A reference pointing at something deleted is a real error, so
-                // it lights the same validation badge a bad routine step does.
+                // it lights the same validation badge a bad automation step does.
                 issues={summary?.missing ? { errors: ['This no longer exists'], warnings: [] } : null}
                 nodeId={id}
                 onAddAfter={disabled ? null : onAddAfter}
                 // condition/switch/loop get one output port per branch, the way
-                // the routine builder draws its own branching steps.
+                // the automation builder draws its own branching steps.
                 sourceHandles={branches.length
                     ? branches.map((b) => ({ id: b.key, label: b.label, tone: 'neutral' }))
                     : null}
@@ -545,7 +545,7 @@ function StepFlowNode({ id, data }) {
  * The one line under a step's name — what it actually does, in its own words.
  *
  * It used to print the raw id for everything a step points at: a "Go to screen"
- * node read `→ scr_8f21`, "Add a row" read `tbl_9f3a2c`, "Run routine" read a
+ * node read `→ scr_8f21`, "Add a row" read `tbl_9f3a2c`, "Run automation" read a
  * uuid. On a canvas whose whole job is showing what happens, the one line that
  * says WHICH thing was the one line nobody could read. `options` is the same
  * name lookup the settings pickers use; without it (nothing loaded yet) each
@@ -584,7 +584,7 @@ function summarise(step, options = {}) {
             if (step.datasetId) return ref('dataset', step.datasetId, '');
             return plain('Everything on the screen');
         }
-        case 'run_automation': return ref('automation', step.automationId, 'No routine picked yet');
+        case 'run_automation': return ref('automation', step.automationId, 'No automation picked yet');
         case 'send_email': return ref('connector', step.connectorId, 'No mailbox picked yet');
         case 'confirm': return plain(step.message || '');
         default: return plain(step.resultVar ? `→ vars.${step.resultVar}` : '');

@@ -43,12 +43,12 @@ describe('translateWebLink — every server-minted shape, verbatim', () => {
         // and fell through to `return null`, i.e. a tap that did nothing and
         // said nothing. The second is the editor address (already frozen on the
         // web side) and used to land on /automations, which is not close
-        // enough: a page is not a routine.
+        // enough: a page is not an automation.
         ['/app/webpages/wp1', '/webpages/wp1', 'integrations/webpageBuilderTools.js, webpageAutomationTools.js'],
         ['/app/studio/webpages/wp1', '/webpages/wp1', 'core/webpages/sidePanelWebpageContext.js'],
         // Both used to fall into the /automations catch-all below, even though
         // the phone has had both screens all along: a "this skill is missing
-        // something" notification opened the routine list.
+        // something" notification opened the automation list.
         ['/app/studio/skills/sk1', '/skills/sk1', 'projects/completeness.js DEEP_LINK.skill'],
         ['/app/studio/solutions/p1', '/projects/p1', 'routes/studio/attentionChecks.js solutionDeepLink'],
         // The other completeness deep links: knowledge bases, agents and data
@@ -102,7 +102,7 @@ describe('translateWebLink — every server-minted shape, verbatim', () => {
     // The index forms of the two rows above. Neither is minted by the server
     // today — both writers always carry an id — so they are not FROZEN_LEGACY
     // rows; they are here so a bare section link lands on the list rather than
-    // on the routine list one section over.
+    // on the automation list one section over.
     it.each([
         ['/app/studio/skills', '/skills'],
         ['/app/studio/solutions', '/projects'],
@@ -155,12 +155,12 @@ describe('translateWebLink — every server-minted shape, verbatim', () => {
     });
 
     it('lands a segment this build does not know on the hub, and says it is only close', () => {
-        // An unknown section — it used to open the routine list.
+        // An unknown section — it used to open the automation list.
         expect(translateWebLink('/app/studio/some-new-section/x1')).toEqual({ href: '/studio', approximate: true });
         // The web's short chat addresses cannot be resolved here: the nearest list, never a browser tab.
         expect(translateWebLink('/app/a/5b1c2d3e')).toEqual({ href: '/agents', approximate: true });
         expect(translateWebLink('/app/d/5b1c2d3e')).toEqual({ href: '/chats', approximate: true });
-        // The routine list itself is exact.
+        // The automation list itself is exact.
         expect(translateWebLink('/app/studio/automations')).toEqual({ href: '/automations' });
     });
 
@@ -169,7 +169,7 @@ describe('translateWebLink — every server-minted shape, verbatim', () => {
         expect(translateWebLink('/app/studio/apps/app1')?.href).toBe('/apps/app1?draft=1');
         expect(translateWebLink('/app/studio/apps')?.href).toBe('/studio/apps');
         expect(translateWebLink('/app/studio/approvals')?.href).toBe('/approvals');
-        // A Studio form link carries the ROUTINE's id, and so does the phone's Form page.
+        // A Studio form link carries the AUTOMATION's id, and so does the phone's Form page.
         expect(translateWebLink('/app/studio/forms/auto1')?.href).toBe('/forms/auto1');
         expect(translateWebLink('/app/studio/forms/auto1/answers')?.href).toBe('/forms/auto1');
         // The consumer directories, keyed by their own ids: a form's page token
@@ -179,7 +179,7 @@ describe('translateWebLink — every server-minted shape, verbatim', () => {
     });
 
     it('accepts the legacy segments and section ids the web still does', () => {
-        expect(translateWebLink('/app/studio/routines/a1')?.href).toBe('/automations/a1');
+        expect(translateWebLink('/app/studio/automations/a1')?.href).toBe('/automations/a1');
         expect(translateWebLink('/app/studio/ai-tasks/a1?view=runs')?.href).toBe('/automations/a1/runs');
         expect(translateWebLink('/app/studio/meetingNotes/m1')?.href).toBe('/recordings/m1');
     });
@@ -212,12 +212,10 @@ describe('targetForNotification — the linkless fallbacks stay store-correct', 
     };
 
     it('sends a linkless cowork run to its own detail screen, never /tasks', () => {
-        // cowork rows live in cowork_schedules, /tasks reads ai_tasks — the
-        // conflation this table exists to prevent.
         expect(targetForNotification({ ...base, category: 'cowork', task_id: 'cw1' }).href).toBe('/cowork/cw1');
     });
 
-    it('sends a linkless ai_task to the tasks list', () => {
-        expect(targetForNotification({ ...base, category: 'ai_task', task_id: 't1' }).href).toBe('/tasks');
+    it('sends an older linkless ai_task to the Cowork item it became', () => {
+        expect(targetForNotification({ ...base, category: 'ai_task', task_id: 't1' }).href).toBe('/cowork/t1');
     });
 });

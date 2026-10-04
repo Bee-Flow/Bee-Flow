@@ -11,7 +11,7 @@ import { mergeFormValues } from '../runtime/formValues';
  * testknop in de inspector mee".
  *
  * Twee dingen kunnen hier stilletjes stukgaan, en allebei zien er op het scherm
- * uit als een routine die niets doet:
+ * uit als een automatisering die niets doet:
  *
  *   1. de store zelf verwart "dit formulier staat er niet" met "het staat er en
  *      is leeg" — dan verzint de testknop lege waarden in plaats van te melden

@@ -1,7 +1,7 @@
 /**
  * Extract data's field rows — the web's DataExtractionFields rows
  * (actionEditors/dataExtractionFields.jsx) in the web's own words
- * (`routines.ndv.extraction.*`): a lower-snake name that becomes the output
+ * (`automations.ndv.extraction.*`): a lower-snake name that becomes the output
  * key, its type, required, and what to look for. A name typed with spaces
  * becomes one (`Invoice Date` → `invoice_date`) as it is typed; a duplicate is
  * marked and not saved until it has a name of its own (formState drops it).
@@ -59,24 +59,24 @@ function Row({ rows, i, onChange, styles }: { rows: ExtractionField[]; i: number
                     placeholder={NAME_EXAMPLE}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    accessibilityLabel={t('routines.ndv.extraction.field_name', 'Name')}
+                    accessibilityLabel={t('automations.ndv.extraction.field_name', 'Name')}
                     error={duplicate ? t('mobile.flow.extraction.duplicate', 'Another field is already called {name} — this one is not saved until it has its own name.', { name: f.name }) : null}
                     containerStyle={styles.name}
                 />
                 <RowTools i={i} count={rows.length} onMove={(dir) => onChange(moveRow(rows, i, dir))} onRemove={() => onChange(rows.filter((_, k) => k !== i))} styles={styles} />
             </View>
             <SelectField
-                label={t('routines.ndv.extraction.field_type', 'Type')}
+                label={t('automations.ndv.extraction.field_type', 'Type')}
                 value={EXTRACTION_FIELD_TYPES.includes(f.type) ? f.type : 'string'}
                 options={EXTRACTION_FIELD_TYPES.map((type) => ({ value: type, label: type }))}
                 onChange={(type) => update({ type })}
             />
             <TextField
-                label={t('routines.ndv.extraction.field_desc', 'What to look for')}
+                label={t('automations.ndv.extraction.field_desc', 'What to look for')}
                 value={f.description}
                 onChangeText={(description) => update({ description })}
             />
-            <ToggleField value={f.required === true} onChange={(required) => update({ required })} label={t('routines.ndv.extraction.required', 'Required')} />
+            <ToggleField value={f.required === true} onChange={(required) => update({ required })} label={t('automations.ndv.extraction.required', 'Required')} />
         </View>
     );
 }
@@ -96,7 +96,7 @@ export function ExtractionRows({ value, onChange }: { value: unknown; onChange: 
                     size="sm"
                     variant="secondary"
                     iconName="Plus"
-                    label={t('routines.ndv.extraction.add_field', 'Add field')}
+                    label={t('automations.ndv.extraction.add_field', 'Add field')}
                     disabled={full}
                     onPress={() => onChange([...rows, emptyExtractionField()])}
                 />

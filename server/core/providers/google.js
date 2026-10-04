@@ -18,6 +18,7 @@ const BaseProvider = require('./base');
 const crypto = require('crypto');
 const { inlineInternalImages } = require('../documents/imageInline');
 const log = require('../../telemetry/log');
+const { normalizeUsage } = require('./usageNormalizer');
 
 // Models that support thinking/reasoning — Gemini 3.x uses thinkingLevel.
 // Match any 3.x minor version (3, 3.1, 3.5, …) so new releases like
@@ -570,7 +571,10 @@ class GoogleProvider extends BaseProvider {
         return {
             content: textContent || null,
             toolCalls,
-            usage: response.usageMetadata || null,
+            // Normalised like the streaming path (thoughts folded into the
+            // completion, cached count, tool-use prompt tokens, modalities).
+            // Inherited unchanged by GoogleVertexProvider.
+            usage: normalizeUsage(this.name, response.usageMetadata),
             raw: response,
         };
     }
@@ -623,16 +627,11 @@ class GoogleProvider extends BaseProvider {
                 if (chunk.usageMetadata) {
                     const thoughts = chunk.usageMetadata.thoughtsTokenCount || 0;
                     const candidates = chunk.usageMetadata.candidatesTokenCount || 0;
-                    streamUsage = {
-                        prompt_tokens: chunk.usageMetadata.promptTokenCount || 0,
-                        // Gemini reports candidatesTokenCount = visible output only.
-                        // thoughts are billed at output rate but not counted in
-                        // candidates, so add them for cost-accurate completion.
-                        completion_tokens: candidates + thoughts,
-                        total_tokens: chunk.usageMetadata.totalTokenCount || 0,
-                        cached_tokens: chunk.usageMetadata.cachedContentTokenCount || 0,
-                        reasoning_tokens: thoughts,
-                    };
+                    // Same normaliser as the non-streaming chat(). Gemini reports
+                    // candidatesTokenCount = visible output only; thoughts are
+                    // billed at the output rate, so they are folded into
+                    // completion_tokens there.
+                    streamUsage = normalizeUsage(this.name, chunk.usageMetadata);
                     // Log cache hits for monitoring
                     if (chunk.usageMetadata.cachedContentTokenCount > 0) {
                         log.info(`[Google] Cache hit: ${chunk.usageMetadata.cachedContentTokenCount} cached tokens`);

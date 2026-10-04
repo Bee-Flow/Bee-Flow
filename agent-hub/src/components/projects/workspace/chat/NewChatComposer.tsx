@@ -1,137 +1,57 @@
-// The form "New chat" opens at the top of the Chats tab. A team chat is made
-// here (and opened); an AI or agent chat is handed to the app, which opens
-// the chat view in this project and, when asked, shares it with the members.
-
-import { Bot, Sparkles, Users, X } from 'lucide-react';
+import { CheckSquare, MessageSquare, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { useCreateProjectChat, useTeamChatAiPolicy, type TeamChatAiMode } from '../../../../api/queries/projectChats';
+import { useCreateProjectChat } from '../../../../api/queries/projectChats';
+import { useProjectTasksQuery } from '../../../../api/queries/projectTasks';
 import type { Project } from '../../../../api/queries/projects';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import SegmentedControl from '../../../shared/SegmentedControl';
-import { useUsableAgents } from '../homeQueries';
 import { projectErrorText } from '../projectErrorText';
 import type { StartChat } from '../types';
-import { ErrorText, INPUT_CLASS, PrimaryButton, SELECT_CLASS } from '../workspaceUi';
-import AiModeSelector from './AiModeSelector';
+import { ErrorText, INPUT_CLASS, PrimaryButton } from '../workspaceUi';
 import { MAX_MESSAGE_LENGTH } from './ChatComposer';
+import { rememberFirstAnswer } from './firstAnswer';
+import { isImeEnter } from './ime';
 
+// Retained as a source compatibility type; project creation always makes one shared chat.
 export type NewChatMode = 'team' | 'ai' | 'agent';
-
 export interface NewChatComposerProps {
-    mode: NewChatMode;
-    project: Project;
-    onModeChange: (mode: NewChatMode) => void;
-    onClose: () => void;
-    onStartChat: StartChat;
-    onOpenTeamChat: (chatId: string) => void;
+    mode: NewChatMode; project: Project; onModeChange: (mode: NewChatMode) => void;
+    onClose: () => void; onStartChat: StartChat; onOpenTeamChat: (chatId: string) => void;
 }
-
-function useStart(props: NewChatComposerProps) {
+export default function NewChatComposer({ project, onClose, onOpenTeamChat }: NewChatComposerProps) {
     const { t } = useTranslation();
-    const create = useCreateProjectChat(props.project.id);
-    const [error, setError] = useState<string | null>(null);
-    const start = async (form: { message: string; title: string; aiMode: TeamChatAiMode; agentId: string; share: boolean }) => {
-        setError(null);
-        if (props.mode !== 'team') {
-            const started = props.onStartChat({
-                project: props.project, message: form.message.trim(), share: form.share,
-                agentId: props.mode === 'agent' ? form.agentId : null,
-            });
-            // Refused (the app said why): the form, and the message, stay.
-            if (started === true) props.onClose();
-            return;
-        }
-        try {
-            const { chat } = await create.mutateAsync({ title: form.title, aiMode: form.aiMode, message: form.message });
-            props.onOpenTeamChat(chat.id);
-        } catch (e) {
-            setError(projectErrorText(t, e, t('project_chat.create_failed', 'Could not start the team chat.')));
-        }
-    };
-    return { start, error, busy: create.isPending };
-}
-
-function ModeSwitch({ mode, onChange }: { mode: NewChatMode; onChange: (m: NewChatMode) => void }) {
-    const { t } = useTranslation();
-    return (
-        <SegmentedControl
-            size="sm"
-            value={mode}
-            onChange={onChange}
-            ariaLabel={t('project_chat.new_chat_kind', 'Kind of chat')}
-            options={[
-                { value: 'team', label: t('project_chat.new_team', 'Team chat'), icon: <Users className="w-3.5 h-3.5" aria-hidden="true" /> },
-                { value: 'ai', label: t('project_chat.new_ai', 'AI chat'), icon: <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> },
-                { value: 'agent', label: t('project_chat.new_agent', 'Agent chat'), icon: <Bot className="w-3.5 h-3.5" aria-hidden="true" /> },
-            ]}
-        />
-    );
-}
-
-function ShareToggle({ share, onChange }: { share: boolean; onChange: (v: boolean) => void }) {
-    const { t } = useTranslation();
-    return (
-        <label className="inline-flex items-center gap-2 text-[12.5px] text-[var(--text-secondary)] cursor-pointer">
-            <input type="checkbox" checked={share} onChange={e => onChange(e.target.checked)} className="accent-[var(--accent-primary)]" />
-            {t('project_chat.share_on_start', 'Share with project members')}
-        </label>
-    );
-}
-
-export default function NewChatComposer(props: NewChatComposerProps) {
-    const { t } = useTranslation();
-    const { mode, onModeChange, onClose } = props;
     const [message, setMessage] = useState('');
     const [title, setTitle] = useState('');
-    const [aiMode, setAiMode] = useState<TeamChatAiMode>('mention');
-    const [agentId, setAgentId] = useState('');
-    const [share, setShare] = useState(false);
-    const agents = useUsableAgents(mode === 'agent');
-    const policy = useTeamChatAiPolicy(props.project.id);
-    const { start, error, busy } = useStart(props);
-    const inputRef = useRef<HTMLTextAreaElement>(null);
-    useEffect(() => { inputRef.current?.focus(); }, [mode]);
-
-    const ready = mode === 'team' || (!!message.trim() && (mode !== 'agent' || !!agentId));
-    const submit = () => { if (ready && !busy) start({ message, title, aiMode, agentId, share }); };
-    const placeholder = mode === 'team'
-        ? t('project_chat.new_team_placeholder', 'First message to the team (optional)')
-        : t('project_chat.new_ai_placeholder', 'What do you want to ask?');
-
-    return (
-        <section className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3.5 py-3 space-y-3" data-testid="new-chat-composer"
-            aria-label={t('project_chat.new_chat', 'New chat')}>
-            <div className="flex items-center justify-between gap-2">
-                <ModeSwitch mode={mode} onChange={onModeChange} />
-                <button type="button" onClick={onClose} aria-label={t('project_chat.close', 'Close')}
-                    className="grid place-items-center w-7 h-7 rounded-md text-[var(--text-tertiary)] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)]">
-                    <X className="w-4 h-4" aria-hidden="true" />
-                </button>
-            </div>
-            {mode === 'team' && (
-                <input value={title} onChange={e => setTitle(e.target.value)} maxLength={200} className={INPUT_CLASS}
-                    aria-label={t('project_chat.new_team_title', 'Name (optional)')} placeholder={t('project_chat.new_team_title', 'Name (optional)')} />
-            )}
-            {mode === 'agent' && (
-                <select value={agentId} onChange={e => setAgentId(e.target.value)} className={`${SELECT_CLASS} w-full`}
-                    aria-label={t('project_chat.pick_agent', 'Agent')}>
-                    <option value="">{agents.isPending ? t('project_chat.agents_loading', 'Loading agents…') : t('project_chat.pick_agent_prompt', 'Choose an agent')}</option>
-                    {(agents.data || []).map(a => <option key={a.id} value={a.id}>{a.name || a.id}</option>)}
-                </select>
-            )}
-            <textarea ref={inputRef} value={message} onChange={e => setMessage(e.target.value)} maxLength={MAX_MESSAGE_LENGTH} rows={3}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
-                aria-label={t('project_chat.new_message_label', 'First message')} placeholder={placeholder} className={`${INPUT_CLASS} resize-y`} />
-            <div className="flex items-center gap-3 flex-wrap">
-                {mode === 'team'
-                    ? <AiModeSelector value={aiMode} onChange={setAiMode} policy={policy} />
-                    : <ShareToggle share={share} onChange={setShare} />}
-                <span className="flex-1" />
-                <PrimaryButton onClick={submit} disabled={!ready} busy={busy} data-testid="new-chat-submit">
-                    {mode === 'team' ? t('project_chat.start_team', 'Start team chat') : t('project_chat.start_chat', 'Start chat')}
-                </PrimaryButton>
-            </div>
-            <ErrorText>{error}</ErrorText>
-        </section>
-    );
+    const [taskSearch, setTaskSearch] = useState('');
+    const [taggedTasks, setTaggedTasks] = useState<string[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const create = useCreateProjectChat(project.id);
+    const tasks = useProjectTasksQuery(project.id).data?.tasks || [];
+    const tagMatches = taskSearch.trim() && taggedTasks.length < 10 ? tasks.filter(task => !task.unreadable && !taggedTasks.includes(task.id) && task.title.toLocaleLowerCase().includes(taskSearch.trim().toLocaleLowerCase())).slice(0, 6) : [];
+    const inputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => { inputRef.current?.focus(); }, []);
+    const submit = async () => {
+        if (create.isPending) return;
+        if (taggedTasks.length > 0 && !message.trim()) { setError(t('project_chat.task_tag_needs_message', 'Add a first message to share the tagged tasks.')); return; }
+        setError(null);
+        try {
+            const { chat, ai } = await create.mutateAsync({ title, message, aiMode: 'mention', refs: taggedTasks.map(id => ({ kind: 'task' as const, id })) });
+            rememberFirstAnswer(chat.id, ai, message);
+            onOpenTeamChat(chat.id);
+        } catch (e) { setError(projectErrorText(t, e)); }
+    };
+    return <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] p-5 space-y-4 shadow-sm" data-testid="new-chat-composer" aria-label={t('project_chat.new_chat', 'New chat')}>
+        <div className="flex items-center gap-2"><MessageSquare className="w-5 h-5" /><h3 className="flex-1 m-0 text-base font-semibold">{t('project_chat.start_together', 'Start a conversation')}</h3><button type="button" onClick={onClose} aria-label={t('project_chat.close', 'Close')} className="p-2 rounded-lg hover:bg-[var(--item-hover-bg)]"><X className="w-4 h-4" /></button></div>
+        <input ref={inputRef} value={title} onChange={e => setTitle(e.target.value)} maxLength={200} className={INPUT_CLASS} aria-label={t('project_chat.new_team_title', 'Name (optional)')} placeholder={t('project_chat.new_team_title', 'Name (optional)')} />
+        <textarea value={message} onChange={e => setMessage(e.target.value)} maxLength={MAX_MESSAGE_LENGTH} rows={3}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) { e.preventDefault(); void submit(); } }}
+            aria-label={t('project_chat.new_message_label', 'First message')} placeholder={t('project_chat.project_prompt', 'Share an update, discuss an idea, or mention @AI for help…')} className={`${INPUT_CLASS} resize-y`} />
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3 space-y-2">
+            <label htmlFor="new-chat-task-tag" className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)]"><CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />Tag project tasks</label>
+            {taggedTasks.length > 0 && <div className="flex flex-wrap gap-1.5">{taggedTasks.map(id => <span key={id} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs bg-[color-mix(in_srgb,var(--kind-web)_13%,var(--bg-card))] text-[var(--kind-web)]"><span className="max-w-48 truncate">{tasks.find(task => task.id === id)?.title || 'Task'}</span><button type="button" onClick={() => setTaggedTasks(current => current.filter(taskId => taskId !== id))} aria-label="Remove task tag"><X className="w-3 h-3" aria-hidden="true" /></button></span>)}</div>}
+            <input id="new-chat-task-tag" type="search" value={taskSearch} onChange={event => setTaskSearch(event.target.value)} disabled={taggedTasks.length >= 10} className={INPUT_CLASS} placeholder={taggedTasks.length >= 10 ? 'Maximum 10 task tags' : 'Search tasks to tag in the first message'} />
+            {tagMatches.length > 0 && <div className="max-h-36 overflow-y-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1">{tagMatches.map(task => <button key={task.id} type="button" onClick={() => { setTaggedTasks(current => [...current, task.id]); setTaskSearch(''); }} className="w-full truncate rounded-md px-2 py-1.5 text-left text-xs hover:bg-[var(--item-hover-bg)]">{task.title}</button>)}</div>}
+        </div>
+        <div className="flex items-center gap-3"><p className="flex-1 text-xs text-[var(--text-secondary)] m-0">{t('project_chat.shared_ai_hint', 'Everyone in this project can read along. Mention @AI when you want its help.')}</p><PrimaryButton onClick={submit} busy={create.isPending} disabled={taggedTasks.length > 0 && !message.trim()} data-testid="new-chat-submit">{t('project_chat.start_chat', 'Start chat')}</PrimaryButton></div>
+        <ErrorText>{error}</ErrorText>
+    </section>;
 }

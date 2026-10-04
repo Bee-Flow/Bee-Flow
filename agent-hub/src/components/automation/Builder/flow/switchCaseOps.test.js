@@ -5,7 +5,7 @@ import { reconcileSwitchEdges, uniqueCaseName, mergeStepPatchIntoDefinition } fr
 /**
  * Node-audit C1 — renaming/deleting a switch case orphaned its `case:<name>`
  * edges, and `switch.case_edge_unknown` is a blocking validation error, so
- * every subsequent save of the whole routine 400'd. The reconcile keeps the
+ * every subsequent save of the whole automation 400'd. The reconcile keeps the
  * case list and the edge labels in one atomic definition update.
  */
 const def = () => ({

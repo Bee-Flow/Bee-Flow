@@ -3,7 +3,7 @@
  * One fixture, every door: an org with two of its own data types, and NO
  * guard installed (words and patterns need none). The same values must come
  * out as the admin's placeholders whichever way the text arrives: the chat
- * DLP scan, a routine step, a composed prompt, an attachment, a tool result.
+ * DLP scan, an automation step, a composed prompt, an attachment, a tool result.
  * Plus the layers around them: the tokenizer and restore, the neutraliser,
  * the allowlist, the ledger's row format, and the human labels.
  *
@@ -78,7 +78,7 @@ test('chat DLP: found without a guard; fail_open redacts, fail_closed blocks', a
     assert.equal(closed.reason, 'guard_not_installed', 'no guard is still a scan failure for the policy');
 });
 
-test('routines: the same placeholders in a step\'s input', async () => {
+test('automations: the same placeholders in a step\'s input', async () => {
     const safety = require('../../automationRunner/safety');
     const { createTokenVault } = require('../../automationRunner/tokenVault');
     const ctx = { tokenVault: createTokenVault({}) };

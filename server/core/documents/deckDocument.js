@@ -29,9 +29,9 @@
  * is the honest reading of "put this text on the slide".
  *
  * ONE RENDER PATH for three surfaces: the editor's viewer (`html`), the
- * download (`pptx`/`pdf`), a routine's fill_document and an app's
+ * download (`pptx`/`pdf`), an automation's fill_document and an app's
  * fill_document all go through renderDeckDocument → presentationRenderer, so
- * what the person previews is what the routine mails out.
+ * what the person previews is what the automation mails out.
  */
 
 'use strict';
@@ -128,7 +128,7 @@ function deckDocumentUrl(id) {
 }
 
 /**
- * Keep a deck that was just built (by the chat, by a routine) in the library
+ * Keep a deck that was just built (by the chat, by an automation) in the library
  * as a presentation document, so it can be opened in Bee Flow, edited and
  * rebuilt later. Best effort: the file the caller made already exists, and a
  * library hiccup must not turn "here is your deck" into an error.

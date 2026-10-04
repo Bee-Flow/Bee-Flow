@@ -9,7 +9,7 @@
  * All sources, text and citations are invented.
  */
 
-import { COMMON_ROUTES, daysAgo } from './common';
+import { COMMON_ROUTES, DEMO_USER, daysAgo } from './common';
 
 const NOTEBOOK_ID = 'nb_demo_tender';
 
@@ -163,6 +163,21 @@ const notFound = () => new Response(JSON.stringify({ error: 'Not found' }), { st
 
 export const ROUTES = {
     ...COMMON_ROUTES,
+
+    // A notebook opens in Studio → Documents: the library around it reads
+    // its list (the notebook as a document of type 'notebook'), the folders
+    // and who is signed in, also while the notebook is open.
+    'GET /auth/user': () => ({ user: DEMO_USER }),
+    'GET /api/studio-documents/folders': () => ({ folders: [] }),
+    'GET /api/studio-documents': ({ state }) => ({
+        documents: state.notebooks.map((n) => ({
+            id: n.id, userId: DEMO_USER.id, name: n.name, docType: 'notebook', kind: 'document', visibility: 'private',
+            folderId: null, categories: [], sourceCount: (n.sources || []).length, updatedAt: n.updatedAt, createdAt: n.createdAt,
+        })),
+        total: state.notebooks.length,
+        people: {},
+        notebooks: true,
+    }),
 
     // Honours `search` and `sort=name` minimally; pinned floats first, same
     // as the real endpoint's `pinned_at DESC NULLS LAST`.

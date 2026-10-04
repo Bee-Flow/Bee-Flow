@@ -10,7 +10,7 @@ vi.mock('../../../utils/helpers', async (importOriginal) => ({
 import UsedByButtonsCapsule from './UsedByButtonsCapsule';
 
 /**
- * "Gebruikt door 1 knop" — de capsule boven de routine-editor.
+ * "Gebruikt door 1 knop" — de capsule boven de automation-editor.
  *
  * Elke assertie hier gaat over één regel: DRIE UITSLAGEN DIE NIET MOGEN
  * SAMENVALLEN.
@@ -20,7 +20,7 @@ import UsedByButtonsCapsule from './UsedByButtonsCapsule';
  *   leeg             → "nergens gebruikt", en alleen na een geslaagde lees
  *
  * Die middelste is de hele reden dat dit bestand bestaat. Een storing die als
- * "niemand gebruikt dit" leest, is precies de zin waarop iemand een routine
+ * "niemand gebruikt dit" leest, is precies de zin waarop iemand een automatisering
  * weggooit die een knop in productie aanzet — dezelfde val die W5 bij de
  * 409-poort dichtzette.
  *
@@ -40,8 +40,8 @@ function row(over = {}) {
         consumerKind: 'app',
         consumerId: APP,
         consumerTitle: 'Expenses',
-        // De eigenaar van de ROUTINE (kolom `owner_user_id`), niet van de app —
-        // de route filtert daarop tegen een routine die van eigenaar wisselde.
+        // De eigenaar van de AUTOMATISERING (kolom `owner_user_id`), niet van de app —
+        // de route filtert daarop tegen een automatisering die van eigenaar wisselde.
         automationOwner: 'u_owner',
         // Wie de APP mag openen zegt de SERVER; de client leidt het niet af.
         canOpen: true,
@@ -68,8 +68,8 @@ describe('de drie uitslagen', () => {
     });
 
     it('toont niets bij een mislukte lees, een lege lijst of een body zonder lijst', async () => {
-        // Only a routine that buttons actually run gets the strip (owner,
-        // 2026-09-28: "No app button runs this routine yet" was noise under
+        // Only an automation that buttons actually run gets the strip (owner,
+        // 2026-09-28: "No app button runs this automation yet" was noise under
         // every header). The delete path keeps its own 409 check.
         for (const answer of [fail(500), ok({ error: 'nope' }), ok({ usage: [] }), ok({ usage: [], complete: false })]) {
             cleanup();
@@ -156,7 +156,7 @@ describe('de lijst', () => {
 });
 
 describe('de vraag zelf', () => {
-    it('vraagt de index om precies deze routine', async () => {
+    it('vraagt de index om precies deze automation', async () => {
         authFetch.mockResolvedValue(ok({ usage: [row()] }));
         render(<UsedByButtonsCapsule automationId={AID} />);
         await screen.findByText('Used by 1 button');
@@ -164,8 +164,8 @@ describe('de vraag zelf', () => {
         expect(authFetch.mock.calls[0][0]).toContain(`/api/automation/${AID}/usage`);
     });
 
-    it('toont het antwoord van de VORIGE routine niet bij een wissel', async () => {
-        // Een getal dat over de verkeerde routine gaat is erger dan geen getal.
+    it('toont het antwoord van de VORIGE automatisering niet bij een wissel', async () => {
+        // Een getal dat over de verkeerde automatisering gaat is erger dan geen getal.
         authFetch.mockResolvedValueOnce(ok({ usage: [row()] }));
         const { rerender } = render(<UsedByButtonsCapsule automationId={AID} />);
         expect(await screen.findByText('Used by 1 button')).toBeTruthy();
@@ -176,7 +176,7 @@ describe('de vraag zelf', () => {
         expect(screen.queryByTestId('usedby-buttons-capsule')).toBeNull();
     });
 
-    it('vraagt niets zonder routine-id', async () => {
+    it('vraagt niets zonder automation-id', async () => {
         const { container } = render(<UsedByButtonsCapsule automationId={null} />);
         await waitFor(() => expect(authFetch).not.toHaveBeenCalled());
         expect(container.textContent).toBe('');

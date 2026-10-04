@@ -1,7 +1,7 @@
 # Fact sheet — Knowledge (Studio → Knowledge bases)
 
 Audience: **builder** (someone who assembles knowledge bases and wires them into agents,
-chats and routines). Everything below was read out of the code on branch
+chats and automations). Everything below was read out of the code on branch
 `claude/builder-redesign-fase-1-6sun0h`, 2026-09-14. UI strings are quoted from the
 English defaults (`agent-hub/src/i18n/en-defaults.js`); a Dutch install shows the
 translated form of the same key.
@@ -37,7 +37,7 @@ You add **sources** (where content comes from); each source produces **documents
 are cut into **chunks** and embedded so retrieval can find the passage that answers a
 question; the answer comes back with **citations** naming the document (and page / row range /
 date when known). The base is then pointed at an **agent**, a **direct chat**, or an
-**AI step in a routine**.
+**AI step in an automation**.
 
 The list deliberately answers "is this working?", not "how big is it": each row carries who
 uses it and how fresh it is, and the document count is demoted to the meta line.
@@ -145,11 +145,11 @@ Seven buttons in this order:
 6. **Paste text** — "Name" (placeholder "e.g. Frequently asked questions") and "Text";
    over the cap: "That is longer than 500,000 characters — split it into a few sources."
 7. **Let an automation fill it** — spans both columns and opens an *explanation*, not a form:
-   *"A routine adds itself here. Give any routine the “To knowledge base” step, point that
-   step at {name}, and it appears in this list the moment the routine is saved."* plus
+   *"An automation adds itself here. Give any automation the “To knowledge base” step, point that
+   step at {name}, and it appears in this list the moment the automation is saved."* plus
    *"Whatever it writes becomes an answer your agents give, with a citation — so send it
-   finished text, not working notes."*, a list of routines already feeding the base
-   ("passes data through · last run {when}" / "no run yet") and the button **Open Routines**.
+   finished text, not working notes."*, a list of automations already feeding the base
+   ("passes data through · last run {when}" / "no run yet") and the button **Open Automations**.
 - Without `manage_knowledge` every button is disabled with "You need "manage knowledge" to add
   a source."
 
@@ -174,7 +174,7 @@ tab.
 #### Settings tab (`SettingsTab.jsx`)
 - **Name**; **What is in it** (textarea, placeholder *"A sentence an agent can read to decide
   whether to look here."*). Both commit on blur.
-- **Where it can be used** — three toggles: **Agents**, **Chat**, **Routines**; hint *"This
+- **Where it can be used** — three toggles: **Agents**, **Chat**, **Automations**; hint *"This
   decides which pickers offer this knowledge base. It does not change who may read what is in
   it — that is below."* A toggled-off surface that still has links shows "still attached to
   {n}". Turning the last one off is refused: "A knowledge base has to be usable somewhere.
@@ -195,7 +195,7 @@ tab.
   partial.
 
 #### Used by tab
-Rows for every agent / skill / routine / app that references the base; things the asker may
+Rows for every agent / skill / automation / app that references the base; things the asker may
 not see are counted but not named. Empty: *"No agent, skill or automation uses this knowledge
 base yet."*
 
@@ -224,7 +224,7 @@ base yet."*
   knowledge base could not be read — so what is in it is unknown."
 - **Chat composer**: a knowledge pill naming the bases the conversation is grounded on (only
   bases whose `usage_contexts` include `direct_chat`; no pill at all when `/api/kb` failed).
-- **Routine builder**: step **"To knowledge base"** (`knowledge_write`) — sections
+- **Automation builder**: step **"To knowledge base"** (`knowledge_write`) — sections
   *Where it goes* / *What to save* (Text, Title, **Source reference**) / *Advanced*
   (near-duplicate strategy: Keep what is there · Merge into one · Replace it · Add it anyway).
 - Legacy agent-designer knowledge panel (`components/knowledge/KBIngestPanel.jsx`) still
@@ -238,14 +238,14 @@ base yet."*
 | Term | Plain-language definition |
 |---|---|
 | **Knowledge base (KB)** | A named collection the AI may quote from. It has an owner, optionally an organisation, an audience, a category, and a set of sources. |
-| **Source** | *Where content comes from*: uploaded files, a pasted snippet, a web page or site, a table, a meeting tag, a routine that writes into the base, (soon) a Nextcloud folder. Eight kinds exist in code: `text`, `upload`, `webpage`, `datatable`, `meeting_tag`, `automation`, `nextcloud_folder`, `legacy`. |
-| **Document** | One item produced by a source: one file, one page, one meeting, one table row (or a block of rows), one routine write. It keeps its id across refreshes, which is what keeps citations alive. |
+| **Source** | *Where content comes from*: uploaded files, a pasted snippet, a web page or site, a table, a meeting tag, an automation that writes into the base, (soon) a Nextcloud folder. Eight kinds exist in code: `text`, `upload`, `webpage`, `datatable`, `meeting_tag`, `automation`, `nextcloud_folder`, `legacy`. |
+| **Document** | One item produced by a source: one file, one page, one meeting, one table row (or a block of rows), one automation write. It keeps its id across refreshes, which is what keeps citations alive. |
 | **Chunk** | A slice of a document (≈800 tokens with 150 tokens of overlap) that gets embedded and searched. Studio deliberately never shows chunk counts. |
 | **Refresh mode** | How a source keeps itself current: manual, on a schedule, on change, after every meeting, or live. Which modes are allowed depends on the kind. |
 | **Refresh (the engine)** | A diff, not a re-ingest: new → ingest, changed → re-ingest under the same id, gone → remove, unchanged → nothing. |
 | **Freshness verdict** | The overview's right-hand cell, three tones only (`TONE.OK` / `IDLE` / `PROBLEM`). Priority: *problem* ("empty, but in use" — empty **and** used by something) beats *promise* ("refreshes on its own") beats *fact* ("updated 2 min ago"). There is **no failure tone**: a refresh that keeps erroring leaves the fact standing still and reports itself on the source row instead. |
 | **Audience (who may see it)** | `is_published` + `shared_groups`: enforced by the server on every read, on every surface. |
-| **Surface / usage context** | `usage_contexts` = which pickers offer the base (Agents / Chat / Routines). It is **not** access control, and unticking one does not detach what is already attached. |
+| **Surface / usage context** | `usage_contexts` = which pickers offer the base (Agents / Chat / Automations). It is **not** access control, and unticking one does not detach what is already attached. |
 | **Citation** | The chip under an answer naming the document, and — when known — the page, row range or meeting date. A chip with no page is normal, not broken. |
 | **Privacy Shield statuses** | `pii_status` is four-valued: `none` (checked, clean), `found`, `redacted` (personal data was replaced *before* storage — irreversible), `unscanned` (could not be checked; shown as "not checked"). |
 | **Duplicate vs overlap** | Identical content inside the same source → status `duplicate`. Near-identical content in *another* source → ingested anyway and annotated "overlaps another source". |
@@ -319,16 +319,16 @@ base yet."*
 7. In the Sources list the row now reads "columns … · N rows" and its Last-updated cell says
    **"always current"**.
 
-### F. Let a routine fill the base
+### F. Let an automation fill the base
 1. Base → **Sources** → **Add a source** → **Let an automation fill it** → read the panel →
-   **Open Routines**.
-2. In the routine builder add the step **To knowledge base**.
+   **Open Automations**.
+2. In the automation builder add the step **To knowledge base**.
 3. *Where it goes*: pick the knowledge base.
 4. *What to save*: **Text** (usually `{{steps.ai_1.output.text}}`), **Title**, and a
    **Source reference** that is stable per subject (e.g. `ticket:{{trigger.output.id}}`) so
    the next run replaces the document instead of adding another.
 5. *Advanced*: pick the near-duplicate strategy if needed.
-6. Save the routine. Go back to the base's **Sources** tab: a source named after the routine
+6. Save the automation. Go back to the base's **Sources** tab: a source named after the automation
    appears immediately (before the first run), and the automation panel lists it with
    "no run yet".
 7. After the first run the row shows "filled by an automation · N documents".
@@ -371,7 +371,7 @@ Source-specific caps:
   document**; **5,000 rows** per pass ungrouped, **50,000** grouped.
 - Meeting tag: at most **500 meetings**; fields `summary`, `decisions`, `questions`,
   `actions`, default `summary` + `decisions`; **transcripts are never included**.
-- Routine write step: **200,000 characters** of text, title **200 characters**.
+- Automation write step: **200,000 characters** of text, title **200 characters**.
 
 Chunking and retrieval (`search-service/app/config.py`,
 `server/core/agentRuntime/knowledgeSearch.js`):
@@ -463,7 +463,7 @@ Chunking and retrieval (`search-service/app/config.py`,
   the answer) live in the agent, not in the base.
 - **Direct chat** — surface `direct_chat`; the composer pill names the grounded bases; access
   is re-evaluated server-side on every message.
-- **Routines** — surface `ai_step` for grounding an AI step, and the **To knowledge base**
+- **Automations** — surface `ai_step` for grounding an AI step, and the **To knowledge base**
   (`knowledge_write`) step for writing. A write step creates/renames an `automation` source at
   save time; removing the step renames the source rather than deleting its documents. A dry run
   writes nothing. Secrets are stripped before anything is written.
@@ -506,7 +506,7 @@ Chunking and retrieval (`search-service/app/config.py`,
    will not bring the original back.
 9. **Reading "used by nothing" as fact while the usage summary has not loaded.** The cell stays
    empty when unknown — an empty cell and the dashed pill mean different things.
-10. **Writing working notes from a routine.** Whatever `knowledge_write` stores is quoted back
+10. **Writing working notes from an automation.** Whatever `knowledge_write` stores is quoted back
     as fact with a citation; and without a **Source reference** every run adds another
     document.
 11. **Deleting a source to "clean up".** Its documents leave the base with it (the originals
@@ -543,7 +543,7 @@ contained names and IBANs — he reads the shield banner and accepts that the ag
 terms, not the colleague. One scan comes back **not checked** (the guard was busy); he presses
 **Refresh now** on that source the next day and the badge is gone. He adds a **Paste text**
 source "Veelgestelde vragen HR" with the ten questions the HR mailbox gets weekly. Audience:
-**Entire organisation**; surfaces: **Agents** + **Chat**, *Routines* off. He verifies with the
+**Entire organisation**; surfaces: **Agents** + **Chat**, *Automations* off. He verifies with the
 test question *"Hoeveel vakantiedagen bouw ik op?"* and checks that the citation points at the
 leave policy and not at an old memo. Teaching points: Privacy Shield statuses, audience vs
 surface, why a base everyone can query must not contain a payroll export.
@@ -551,13 +551,13 @@ surface, why a base everyone can query must not contain a payroll export.
 **Sales — "Offertes & klantafspraken"**
 Ilse (sales) creates **Offertes & klantafspraken**. She adds a **Meeting notes** source on the
 tag `sales` with **Summary** and **Decisions** ticked (transcripts are never included), reads
-the consequence line, and sets the mode to **After every meeting**. She adds a routine
+the consequence line, and sets the mode to **After every meeting**. She adds an automation
 *Weekly deal digest* with a **To knowledge base** step writing the weekly summary with source
 reference `deal:{{trigger.output.id}}` so each deal keeps one document instead of fifty. The
-base's **Sources** list shows the routine as an automation source with "no run yet" before
+base's **Sources** list shows the automation as an automation source with "no run yet" before
 Monday. Audience: group *Sales*. Test question: *"Wat hebben we met Jansen BV afgesproken over
 levertermijn?"*, and the citation chip shows the meeting date. Teaching points: the meeting
-source widens who can read a summary; source references stop document sprawl; a routine source
+source widens who can read a summary; source references stop document sprawl; an automation source
 appears before its first run.
 
 ---

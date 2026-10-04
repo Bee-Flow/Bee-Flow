@@ -10,20 +10,26 @@
  * was embedding, and its CPU fallback hard-coded 'passage' — so every SEARCH
  * QUERY that reached the CPU embedder was embedded as stored text.
  *
- * Run: cd server && node --test --test-force-exit core/embed/dispatch.test.js
+ * Run: cd server && node --test core/embed/dispatch.test.js
  */
 
-const { test } = require('node:test');
+const { test, afterEach } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
 
-const stubPath = path.join(__dirname, '..', '..', 'stores', 'configStore.js');
-require.cache[stubPath] = {
-    id: stubPath, filename: stubPath, loaded: true,
-    exports: { async getConfig() { return undefined; }, async getSecret() { return null; } },
-};
+// Mutable config/target so the Azure tests below can set them per test; the
+// prefix tests leave them empty.
+const config = {};
+const secrets = {};
+let target = null;
+const stub = (p, exports) => { require.cache[p] = { id: p, filename: p, loaded: true, exports }; };
+stub(path.join(__dirname, '..', '..', 'stores', 'configStore.js'), {
+    async getConfig(k) { return config[k]; },
+    async getSecret(k) { return secrets[k] ?? null; },
+});
+stub(path.join(__dirname, 'resolveTarget.js'), { async resolveEmbedTarget() { return target; } });
 
-const { applyModelPrefix } = require('./dispatch');
+const { applyModelPrefix, dispatchEmbedTexts, azureEmbed } = require('./dispatch');
 
 test('EmbeddingGemma gets its documented prefixes, and they differ by role', () => {
     const [q] = applyModelPrefix(['hoeveel kost het'], 'embedding-gemma', 'query');
@@ -73,4 +79,85 @@ test('anything other than "query" is treated as a document', () => {
         const [t] = applyModelPrefix(['x'], 'embedding-gemma', kind);
         assert.strictEqual(t, 'title: none | text: x', `kind=${kind}`);
     }
+});
+
+// ── Azure: the v1 GA surface ──────────────────────────────────────────────────
+// Azure embeddings go to `POST <origin>/openai/v1/embeddings` with the deployment
+// name as `model` in the body and no `api-version`: the same base URL the chat
+// adapter builds (utils/azureUrl.js). The old dated route
+// (`/openai/deployments/<x>/embeddings?api-version=2024-06-01`) must not come back.
+
+const realFetch = global.fetch;
+let calls = [];
+function captureFetch() {
+    calls = [];
+    global.fetch = async (url, init) => {
+        calls.push({ url: String(url), init, body: JSON.parse(init.body) });
+        const n = JSON.parse(init.body).input.length;
+        return new Response(JSON.stringify({ data: Array.from({ length: n }, (_, index) => ({ index, embedding: [index, 1] })) }), { status: 200 });
+    };
+}
+afterEach(() => {
+    global.fetch = realFetch;
+    target = null;
+    for (const k of Object.keys(config)) delete config[k];
+    for (const k of Object.keys(secrets)) delete secrets[k];
+});
+
+test('configured Azure provider: v1 URL, deployment as model, api-key header, no api-version', async () => {
+    captureFetch();
+    target = { providerType: 'azure', providerName: 'Azure', endpoint: 'https://res.openai.azure.com/openai/', apiKey: 'k', modelId: 'prod embed' };
+    const { vectors, source } = await dispatchEmbedTexts(['a', 'b']);
+    assert.strictEqual(source, 'provider');
+    assert.strictEqual(vectors.length, 2);
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0].url, 'https://res.openai.azure.com/openai/v1/embeddings');
+    assert.ok(!calls[0].url.includes('api-version'));
+    assert.ok(!calls[0].url.includes('/deployments/'));
+    assert.deepStrictEqual(calls[0].body, { model: 'prod embed', input: ['a', 'b'] });
+    assert.strictEqual(calls[0].init.headers['api-key'], 'k');
+    assert.strictEqual(calls[0].init.method, 'POST');
+});
+
+test('a pasted dated Azure URL is normalised to v1 too', async () => {
+    captureFetch();
+    target = {
+        providerType: 'azure', apiKey: 'k', modelId: 'emb',
+        endpoint: 'https://res.services.ai.azure.com/openai/deployments/emb/embeddings?api-version=2024-06-01',
+    };
+    await dispatchEmbedTexts(['x']);
+    assert.strictEqual(calls[0].url, 'https://res.services.ai.azure.com/openai/v1/embeddings');
+});
+
+test('legacy azure_openai_embedding_* config: v1 URL and deployment as model', async () => {
+    captureFetch();
+    config.azure_openai_embedding_endpoint = 'https://legacy.openai.azure.com/';
+    config.azure_openai_embedding_model = 'text-embedding-3-small';
+    secrets.azure_openai_embedding_key = 'lk';
+    const { source } = await dispatchEmbedTexts(['q']);
+    assert.strictEqual(source, 'azure');
+    assert.strictEqual(calls[0].url, 'https://legacy.openai.azure.com/openai/v1/embeddings');
+    assert.deepStrictEqual(calls[0].body, { model: 'text-embedding-3-small', input: ['q'] });
+    assert.strictEqual(calls[0].init.headers['api-key'], 'lk');
+});
+
+test('azureEmbed batches by 16 and every batch carries the deployment', async () => {
+    captureFetch();
+    const texts = Array.from({ length: 20 }, (_, i) => `t${i}`);
+    const out = await azureEmbed(texts, 'https://r.openai.azure.com', 'k', 'dep');
+    assert.strictEqual(out.length, 20);
+    assert.strictEqual(calls.length, 2);
+    for (const c of calls) {
+        assert.strictEqual(c.url, 'https://r.openai.azure.com/openai/v1/embeddings');
+        assert.strictEqual(c.body.model, 'dep');
+    }
+});
+
+test('non-Azure providers keep their own /v1/embeddings route and Bearer auth', async () => {
+    captureFetch();
+    target = { providerType: 'openai', endpoint: 'https://api.openai.com', apiKey: 'sk', modelId: 'text-embedding-3-small' };
+    await dispatchEmbedTexts(['x']);
+    assert.strictEqual(calls[0].url, 'https://api.openai.com/v1/embeddings');
+    assert.strictEqual(calls[0].init.headers.Authorization, 'Bearer sk');
+    assert.deepStrictEqual(calls[0].body, { model: 'text-embedding-3-small', input: ['x'] });
 });

@@ -1,10 +1,10 @@
 /**
- * A further page of the routine's public form (form_page) — the web's
+ * A further page of the automation's public form (form_page) — the web's
  * FormPageFields (triggerEditors.jsx): a page that asks the visitor one more
  * thing on the link they are already on, or a closing page that can sum up
- * what the routine did. Its answers are read as `steps.<id>.output.*`, and
+ * what the automation did. Its answers are read as `steps.<id>.output.*`, and
  * its text may use values from earlier steps (the run is there to fill them
- * in). How long the routine waits for a real person is its own section, so
+ * in). How long the automation waits for a real person is its own section, so
  * the Simple view never hides it.
  */
 
@@ -42,7 +42,7 @@ export function FormPageStepEditor(editor: StepEditorProps) {
             <Band editor={editor} sectionKey="config" title={title} defaultOpen>
                 <Note>
                     {ending
-                        ? t('mobile.flow.form_page.ending_intro', 'A closing page is the last thing the visitor sees. It can summarise what the routine did.')
+                        ? t('mobile.flow.form_page.ending_intro', 'A closing page is the last thing the visitor sees. It can summarise what the automation did.')
                         : t('mobile.flow.form_page.input_intro', 'This asks the visitor one more thing, on the same link they are already on.')}
                 </Note>
                 <Button
@@ -76,7 +76,7 @@ export function FormPageStepEditor(editor: StepEditorProps) {
                 <Band editor={editor} sectionKey="waiting" title={t('mobile.flow.form_page.waiting', 'Waiting')} defaultOpen>
                     <SelectField
                         label={t('mobile.flow.form_page.wait', 'Wait for an answer')}
-                        hint={t('mobile.flow.form_page.wait_hint', 'After this the routine gives up and the run fails.')}
+                        hint={t('mobile.flow.form_page.wait_hint', 'After this the automation gives up and the run fails.')}
                         value={String(wait)}
                         options={choices}
                         onChange={(v) => set('waitSeconds', Number(v))}

@@ -4,7 +4,7 @@
  * reconcileUsage is delete-then-insert keyed on automation_id, so a path that
  * skips it does not merely fail to add rows — it leaves the PREVIOUS
  * definition's rows standing. Only `PUT /api/automation/:id` ever called it, so
- * a routine that was created, imported, restored from a version, saved as a
+ * an automation that was created, imported, restored from a version, saved as a
  * reusable Step or built through the MCP builder carried an index describing
  * some other version of itself. Three surfaces read that index, including the
  * guard that refuses a destructive column drop.
@@ -44,7 +44,7 @@ const restore = installResolveStub({
             return 2;
         },
     },
-    // Only reached when the routine has NO organisation — the personal-scope
+    // Only reached when the automation has NO organisation — the personal-scope
     // path. Every caller that already knows the org skips this entirely.
     '../stores/automationStore': {
         getAutomation: async (id) => AUTOMATIONS[id] || null,
@@ -61,7 +61,7 @@ const DEF = {
     edges: [],
 };
 
-test('it collects the steps and hands them to the store with the routine\'s org', async () => {
+test('it collects the steps and hands them to the store with the automation\'s org', async () => {
     calls.length = 0;
     const written = await syncDatatableUsage('a1', 'orgA', DEF);
     assert.strictEqual(written, 1);
@@ -71,8 +71,8 @@ test('it collects the steps and hands them to the store with the routine\'s org'
     assert.deepStrictEqual(calls[0].entries.map(e => e.datatableId), ['tbl_a']);
 });
 
-test('a routine with NO organisation is indexed under its owner, not skipped', async () => {
-    // Such a routine can only ever name that account's personal tables. Left
+test('an automation with NO organisation is indexed under its owner, not skipped', async () => {
+    // Such an automation can only ever name that account's personal tables. Left
     // org-keyed it wrote nothing, so the "used by" panel and the destructive-
     // change guard were blind for every one of them.
     calls.length = 0;
@@ -82,7 +82,7 @@ test('a routine with NO organisation is indexed under its owner, not skipped', a
     assert.deepStrictEqual(calls[0].scope, { kind: 'user', id: 'u-solo' });
 });
 
-test('a routine with neither an organisation nor an owner is not indexed at all', async () => {
+test('an automation with neither an organisation nor an owner is not indexed at all', async () => {
     calls.length = 0;
     AUTOMATIONS = {};
     const realWarn = console.warn;
@@ -128,7 +128,7 @@ test('it never throws — an index is not worth failing a save over', async () =
     }
 });
 
-test('a deleted routine\'s rows are reaped through the store', async () => {
+test('a deleted automation\'s rows are reaped through the store', async () => {
     calls.length = 0;
     assert.strictEqual(await purgeDatatableUsage('a1'), 3);
     assert.deepStrictEqual(calls, [{ fn: 'purgeUsageForAutomation', automationId: 'a1' }]);

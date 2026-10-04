@@ -1,9 +1,9 @@
 /**
- * Keep `automation_schedules` in step with a routine's ADDITIONAL schedule
+ * Keep `automation_schedules` in step with an automation's ADDITIONAL schedule
  * triggers (`definition.triggers[]`, kind 'schedule').
  *
  * Called beside syncAppEventSubscription from the two places a definition
- * becomes live: PUT /:id on an active routine (only when the schedule
+ * becomes live: PUT /:id on an active automation (only when the schedule
  * fingerprint changed — a node nudge must not re-anchor a slot) and
  * POST /:id/activate (always, re-armed). The primary schedule is NOT handled
  * here: it lives on the automations row (triggerColumns.js) and the activate
@@ -35,7 +35,7 @@ function scheduleFingerprint(def) {
 
 /**
  * @param {string} automationId
- * @param {object} def            the routine definition
+ * @param {object} def            the automation definition
  * @param {object} [opts]
  * @param {boolean} [opts.rearm]  recompute every next_run_at (activation)
  * @param {object} [deps]         { automationStore, cron } — injectable for tests

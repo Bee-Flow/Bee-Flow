@@ -1,14 +1,14 @@
 /**
  * The webhook trigger's endpoint, inside the trigger's own editor — the web's
  * TriggerWebhookPanel (BFSF-320): a node that exists to receive a POST says
- * where to POST. Scoped to THIS trigger node, so a routine with several
+ * where to POST. Scoped to THIS trigger node, so an automation with several
  * webhook triggers shows each its own URL.
  *
- * Once the routine exists, a trigger with no URL gets one on first open,
+ * Once the automation exists, a trigger with no URL gets one on first open,
  * exactly once — there is no reason to make someone press "create" before a
  * webhook trigger has an address. The create saves the draft first
  * (ensureDraftSaved), because the server checks the node against the STORED
- * definition. A routine that does not exist yet is created by the explicit
+ * definition. An automation that does not exist yet is created by the explicit
  * "Generate" instead, never by opening an editor.
  */
 
@@ -96,7 +96,7 @@ export function WebhookPanel({ step, ctx }: StepEditorProps) {
             <Note>
                 {t(
                     'mobile.flow.webhook.intro',
-                    'POST to this URL to fire the routine. Requests must be HMAC-signed — “Copy as cURL” gives you a complete working command, but only while the secret is still on screen (right after Create or Rotate).',
+                    'POST to this URL to fire the automation. Requests must be HMAC-signed — “Copy as cURL” gives you a complete working command, but only while the secret is still on screen (right after Create or Rotate).',
                 )}
             </Note>
             {error ? <Banner tone="error">{describeError(error).message}</Banner> : null}

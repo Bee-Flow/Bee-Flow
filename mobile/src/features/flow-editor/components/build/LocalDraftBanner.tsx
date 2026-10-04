@@ -1,5 +1,5 @@
 /**
- * Edits this phone kept while the server did not have them, for a routine
+ * Edits this phone kept while the server did not have them, for an automation
  * that has since been changed elsewhere. Which copy wins is the person's call,
  * not the phone's: keep the phone's edits (applied over the server's copy,
  * one undo away) or discard them.
@@ -22,7 +22,7 @@ export function LocalDraftBanner({ local }: { local: LocalDraft }) {
             <Banner tone="warning">
                 {t(
                     'mobile.flow.local.conflict',
-                    'This phone kept changes that never reached the server, and the routine has been changed elsewhere since. Keep the changes from this phone?',
+                    'This phone kept changes that never reached the server, and the automation has been changed elsewhere since. Keep the changes from this phone?',
                 )}
             </Banner>
             <View style={styles.actions}>

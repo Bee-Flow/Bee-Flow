@@ -4,12 +4,12 @@ title: Forms
 
 # Forms
 
-A form is **the front of a routine**: whoever fills it in starts it. Studio → Forms is
+A form is **the front of an automation**: whoever fills it in starts it. Studio → Forms is
 the *directory* of every form published in the organisation — which ones are actually
-live, whether anything is coming in, and which routine is behind each one.
+live, whether anything is coming in, and which automation is behind each one.
 
 URL: `/app/studio/forms`. A form opens on its own **Form page** at
-`/app/studio/forms/<routine id>[/<tab>]` — addressed by the id of the *routine* behind
+`/app/studio/forms/<automation id>[/<tab>]` — addressed by the id of the *automation* behind
 it, never by the form's public URL token. That token is the form's whole credential, and
 a route carrying it would write it into the address bar, the history and every
 screenshot of this screen. For the same reason Forms is absent from Studio's "recently
@@ -24,33 +24,33 @@ and Datatables, because it is the same server mount (`/api/automation`, and
 This is the deviation worth knowing before anything else: **a form is not an object of
 its own in this product.**
 
-- What a visitor fills in is declared on a routine's **trigger**
+- What a visitor fills in is declared on an automation's **trigger**
   (`trigger.kind === 'form'`).
-- The pages after page one are **`form_page` steps** in that same routine.
+- The pages after page one are **`form_page` steps** in that same automation.
 - The public **address** is a row the server mints whenever such a trigger is saved.
 
-Three places, one routine. The Form page is a *view* on that routine, not a second
+Three places, one automation. The Form page is a *view* on that automation, not a second
 document: its Questions tab edits the trigger's form declaration and saves it through
-the ordinary routine save (one validation pipeline, one version history), and **Open
-the routine** is always one click away for what the page does not do — the pages after
+the ordinary automation save (one validation pipeline, one version history), and **Open
+the automation** is always one click away for what the page does not do — the pages after
 page one, and the steps.
 
 **New form** asks one thing before anything exists: *what happens with the answers?*
 
-- **Collect answers in a table** (the default, recommended) creates the routine with
+- **Collect answers in a table** (the default, recommended) creates the automation with
   `trigger.form.collect: true`. The server creates an answers table on that same save
-  and the Form page opens on Questions — the routine builder is never shown.
-- **Form that starts a routine** is the path that always existed: a form trigger, then
+  and the Form page opens on Questions — the automation builder is never shown.
+- **Form that starts an automation** is the path that always existed: a form trigger, then
   the builder. No table unless you add one as a step.
 
-Nothing is posted until *Create form*, so closing the dialog leaves no untitled routine
+Nothing is posted until *Create form*, so closing the dialog leaves no untitled automation
 behind.
 
 ## What a row shows
 
-- **Title** and description, from the routine.
+- **Title** and description, from the automation.
 - **A status pill with three values, not two**: *Live*, *Not live*, or *Status
-  unknown*. Live means the link works. *Not live* means the routine behind it is paused
+  unknown*. Live means the link works. *Not live* means the automation behind it is paused
   or still a draft, so the link answers "not available". *Status unknown* is its own
   state rather than a guess in either direction — telling someone a live form is off,
   or that a dead link works, are both wrong in a way this screen refuses to be.
@@ -60,9 +60,9 @@ behind.
 - **Answers · n responses** — when the form collects into a table and this account
   has a grade on that table; it opens the Form page on its Answers tab.
 - A **collects answers** chip on forms that write to a table.
-- **Open the routine** — only for forms you built. `/api/automation/:id` is scoped to
+- **Open the automation** — only for forms you built. `/api/automation/:id` is scoped to
   its owner, so for a colleague's form the row says *"Built by a colleague — only they
-  can open the routine behind it"* instead of offering a button that would be refused.
+  can open the automation behind it"* instead of offering a button that would be refused.
 
 ## The address
 
@@ -96,7 +96,7 @@ edited", and it is in no graph, Blueprint or export.
 
 | Where | Who it is for |
 |---|---|
-| `/app/studio/forms` | The person who **builds** forms — is it live, is anything coming in, which routine is behind it |
+| `/app/studio/forms` | The person who **builds** forms — is it live, is anything coming in, which automation is behind it |
 | `/app/forms` | The person who **fills one in** — a tile is the form, and nothing else is on show |
 
 Both rows exist on purpose. On `/app/studio*` the Studio rail replaces the sidebar
@@ -115,21 +115,21 @@ has 0 forms on the strength of a request it could not read.
 Four tabs for the owner — **Questions · Share · Answers · Settings** — and only
 **Answers** for a colleague the answers table is shared with. The header renames the
 form inline, shows the same three-valued status pill as the directory, copies the link
-(or opens it in a new tab) and, for the owner, opens the routine.
+(or opens it in a new tab) and, for the owner, opens the automation.
 
-- **Questions** is the same field editor the routine builder uses, with a sticky
+- **Questions** is the same field editor the automation builder uses, with a sticky
   Save/Discard bar and, above it, **Build it with AI** (below). Leaving with unsaved
   changes asks first — on a tab switch and on the browser's own leave. A multi-page
-  form says how many more pages there are and sends you to the routine to edit them.
+  form says how many more pages there are and sends you to the automation to edit them.
 - **Share** creates or rotates the link, sets *who can fill it in* (people and groups
   of the organisation, or the whole organisation — see *The address*), and, when the
   form collects, wraps the answers table's sharing card: *sharing the table is sharing
   the dashboard*. The two audiences are separate on purpose: who may answer is not
   who may read the answers.
-- **Settings** holds the *Live* toggle (it runs the routine's full validation and shows
+- **Settings** holds the *Live* toggle (it runs the automation's full validation and shows
   the reason when it refuses), the *Collect answers in a table* toggle, a link to the
   table's data-and-retention settings, and the danger zone. Deleting the form deletes
-  the routine; the answers table stays.
+  the automation; the answers table stays.
 
 ## Build it with AI
 
@@ -151,7 +151,7 @@ What the AI may not do is the point:
   changes*. On a form that collects answers this is the whole safety story: a misread
   brief is one Undo, never a retired column.
 - **A kept question keeps its name.** The name is the column in the answers table
-  and the binding in the routine. In a revision the server keeps a returned name only
+  and the binding in the automation. In a revision the server keeps a returned name only
   when it is one the form already has; every new question is named from its label.
   A model cannot rename a column by returning a fresh name for an old question.
 - **Only input types.** Download and notebook fields point at a generated file and
@@ -247,6 +247,6 @@ owner). Refusals: `PUT /:id/schema` → 409
 
 ## Where to next
 
-- [Features → Automations](../features/automations.md) — the routine a form starts.
+- [Features → Automations](../features/automations.md) — the automation a form starts.
 - [Studio → Datatables](datatables.md) — the answers table is one of these.
 - [Studio → Runs & log](runs.md) — what happened after someone submitted.

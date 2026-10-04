@@ -180,6 +180,8 @@ function useInvalidateContent(projectId: string) {
     return () => {
         qc.invalidateQueries({ queryKey: projectKeys.resources(projectId) });
         qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
+        // What the pickers list as "in another project" has changed too.
+        qc.invalidateQueries({ queryKey: ['project-content', 'mine'] });
     };
 }
 

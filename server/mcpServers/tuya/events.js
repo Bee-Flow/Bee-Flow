@@ -12,7 +12,7 @@
  * include_status and compares each device's data points between ticks.
  *
  * Reading device state is a read-only operation — TUYA_READ_ONLY leaves it
- * alone, and TUYA_ALLOW_LOCKS gates commands, not status. A routine triggered
+ * alone, and TUYA_ALLOW_LOCKS gates commands, not status. An automation triggered
  * by a lock's status therefore gains no ability to operate that lock.
  */
 

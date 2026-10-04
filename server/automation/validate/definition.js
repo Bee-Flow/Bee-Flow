@@ -35,13 +35,13 @@ const { validateLayerGraph } = require('./layerGraph');
  * this is what stops a Talk-send-with-no-room or calendar-event-with-no-date
  * from activating green and then failing silently.
  *
- * `availableAgents` (optional) is a Set of agent ids the ROUTINE OWNER may
+ * `availableAgents` (optional) is a Set of agent ids the AUTOMATION OWNER may
  * actually use — published, in their own organisation, shared with them. When
  * provided, an `ai_step.agentId` outside it is flagged. Built by the caller
  * (routes/automation/crud.js), because that is a database question and this
  * pass is pure. See the R2 block in stepRules.js for why every way of being
  * outside that set gets the SAME answer, and for what happens when the agent
- * disappears AFTER the routine was saved.
+ * disappears AFTER the automation was saved.
  *
  * `topicClassifier` (optional) says whether the topic classifier behind
  * "is about" rules is installed: `false` when no classify-service is
@@ -138,7 +138,7 @@ function validateDefinitionStrict(def, { availableTools = null, toolRequiredPara
     // something downstream of a hide. This shape validated completely clean
     // before, so the author's first sign of trouble was an empty output at run
     // time. A WARNING, never an error — the hide may legitimately live in a
-    // Step/flowlet this document only calls, and a routine must stay savable
+    // Step/flowlet this document only calls, and an automation must stay savable
     // and activatable while it is being built.
     {
         const walk = (steps, fn) => {
@@ -165,14 +165,14 @@ function validateDefinitionStrict(def, { availableTools = null, toolRequiredPara
             for (const s of reveals) {
                 pushW({
                     code: 'untokenize.no_hide_step', severity: 'warning', path: 'steps',
-                    message: `Step ${s.id}: nothing in this routine hides personal data, so there are no placeholders to put back.`,
+                    message: `Step ${s.id}: nothing in this automation hides personal data, so there are no placeholders to put back.`,
                     hint: 'Add a Privacy Shield step in "Hide personal data" or "Check and hide" mode before this one — or remove this step if the values were never hidden.',
                 });
             }
         }
     }
 
-    // Handoff 5: the buttons that start this routine from another app. A
+    // Handoff 5: the buttons that start this automation from another app. A
     // root-document concern only; Steps and layers are never started that way.
 
     const graphOpts = { errors, warnings, layers: layersMap, availableTools, toolRequiredParams, deliverableEvents, availableBlocks, knownConnectionIds, availableAgents, topicClassifier };

@@ -12,7 +12,6 @@ import useIntegrationDefaults from './IntegrationsAdminPanel/useIntegrationDefau
 import useIntegrationsAdminState from './IntegrationsAdminPanel/useIntegrationsAdminState';
 import useServiceEmailActions from './IntegrationsAdminPanel/useServiceEmailActions';
 import useTranscriptionSettings from './IntegrationsAdminPanel/useTranscriptionSettings';
-import McpMarketplace from './McpMarketplace';
 import { useTranslation } from '../../hooks/useTranslation';
 
 export default function IntegrationsAdminPanel({ activeSection: activeProp = 'features', onNavigate }) {
@@ -27,6 +26,12 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
             && (!ENTERPRISE_ONLY_SECTIONS.has(s.id) || isEnterprise)
     );
     const active = visibleSections.map(s => s.id).includes(activeProp) ? activeProp : 'features';
+    // The MCP marketplace moved to Settings → Organisation → MCP library
+    // (its "Server-wide" tab for server administrators). An old link or
+    // bookmark to admin/integrations/mcp lands there instead of on Features.
+    React.useEffect(() => {
+        if (activeProp === 'mcp' && onNavigate) onNavigate('settings/organisation/mcp');
+    }, [activeProp, onNavigate]);
     const handleSectionClick = (id) => {
         if (onNavigate) onNavigate(`admin/integrations/${id}`);
     };
@@ -215,18 +220,6 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
                     isDefaultEnabled={isDefaultEnabled}
                     toggleDefault={toggleDefault}
                 />
-            )}
-
-            {/* MCP servers — install + manage. Installed servers become ordinary
-                integrations (id `mcp:<id>`); add them to a plan under
-                Subscriptions → plan → Included integrations, then grant per org/
-                group on Settings → Organisation → Integrations. */}
-            {active === 'mcp' && (
-            <div className="p-6">
-            <div className="max-w-4xl mx-auto">
-                <McpMarketplace setMessage={setMessage} />
-            </div>
-            </div>
             )}
 
             {active === 'email' && (

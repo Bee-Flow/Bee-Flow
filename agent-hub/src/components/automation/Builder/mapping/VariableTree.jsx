@@ -229,6 +229,11 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 onClick={onClick}
                 role="button"
                 tabIndex={0}
+                data-field-path={field.path}
+                // The accessible name is the field's name alone: with none, the
+                // button read its whole row (kind, sample value, "used", grip).
+                // The kind and value stay on screen and in the title.
+                aria-label={human ? (humanizeFieldKey(field.key) || field.key) : field.key}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onInsert?.(field.path, { raw: e.altKey }); } }}
                 className={`group flex items-center gap-2 py-[5px] text-[11px] cursor-grab active:cursor-grabbing select-none hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none${used && human ? ' bg-[color-mix(in_srgb,var(--type-trigger)_7%,transparent)]' : ''}`}
                 style={{ paddingLeft: indent, paddingRight: 8 }}
@@ -258,12 +263,12 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                     </span>
                 )}
                 {used && (human ? (
-                    <span className="shrink-0 px-1.5 rounded-full text-[10px] leading-4 font-semibold bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]" title={t('routines.mapping.in_use_title', 'This step already uses this field')} data-testid="field-used-pill">
-                        {t('routines.mapping.used_pill', 'used')}
+                    <span className="shrink-0 px-1.5 rounded-full text-[10px] leading-4 font-semibold bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]" title={t('automations.mapping.in_use_title', 'This step already uses this field')} data-testid="field-used-pill">
+                        {t('automations.mapping.used_pill', 'used')}
                     </span>
                 ) : (
-                    <span className="shrink-0 text-[9px] text-[var(--text-tertiary)]" title={t('routines.mapping.in_use_title', 'This step already uses this field')}>
-                        {t('routines.mapping.in_use_tag', 'in use')}
+                    <span className="shrink-0 text-[9px] text-[var(--text-tertiary)]" title={t('automations.mapping.in_use_title', 'This step already uses this field')}>
+                        {t('automations.mapping.in_use_tag', 'in use')}
                     </span>
                 ))}
                 {hasChildren && desc.kind === 'group' && (
@@ -272,12 +277,12 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                         onClick={(e) => { e.stopPropagation(); onInsert?.(field.path); }}
                         className="shrink-0 text-[10px] underline text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 focus:opacity-100"
                     >
-                        {t('routines.mapping.use_whole_group', 'use the whole group')}
+                        {t('automations.mapping.use_whole_group', 'use the whole group')}
                     </button>
                 )}
                 <span className="ml-auto shrink-0 text-[10px] text-[var(--text-tertiary)] truncate max-w-[40%] text-right">
                     {desc.kind === 'unknown'
-                        ? <span className="italic" title={t('routines.kind.unknown_hint', 'not seen yet — run the step above')}>{t('routines.kind.unknown_short', 'not seen yet')}</span>
+                        ? <span className="italic" title={t('automations.kind.unknown_hint', 'not seen yet — run the step above')}>{t('automations.kind.unknown_short', 'not seen yet')}</span>
                         : valueLabel(desc, value)}
                 </span>
                 <GripVertical size={11} className="shrink-0 text-[var(--text-tertiary)] opacity-40 group-hover:opacity-100" />

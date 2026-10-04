@@ -1,7 +1,7 @@
 /**
  * The findings chip that floats over the flow — the web's
  * FloatingValidationPill: a dot and a count in the severity's colour (or the
- * one finding's own words), nothing at all when the routine is healthy.
+ * one finding's own words), nothing at all when the automation is healthy.
  * Tapping it opens the list.
  */
 

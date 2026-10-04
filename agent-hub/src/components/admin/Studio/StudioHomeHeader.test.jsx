@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  *      dan "we weten het nog niet";
  *   3. "Bouwen met AI" is er echt: de kop draagt het beschrijf-paneel met
  *      dezelfde gegate secties, en de AI-regel van het "Nieuw"-menu landt
- *      daarop in plaats van op de Routines-terugval;
+ *      daarop in plaats van op de Automations-terugval;
  *   4. de split-knop "Nieuw" staat in de kop en opent het menu uit het
  *      registry;
  *   5. de kop vraagt de aantallen één keer, zonder poller.
@@ -162,8 +162,8 @@ describe('StudioHomeHeader', () => {
         expect(props.user).toBe(ORG_USER);
     });
 
-    it('de AI-regel van het "Nieuw"-menu landt op dat paneel, niet op de Routines-terugval', () => {
-        // Zonder Routines-sectie zou de regel zonder eigen `onAi` GELOCKT zijn
+    it('de AI-regel van het "Nieuw"-menu landt op dat paneel, niet op de Automations-terugval', () => {
+        // Zonder Automations-sectie zou de regel zonder eigen `onAi` GELOCKT zijn
         // (dat is de terugval in NewMenu.jsx). Dat hij hier open staat, niets
         // navigeert en de cursor in het paneel zet, bewijst dat de kop hem een
         // eigen bestemming geeft.

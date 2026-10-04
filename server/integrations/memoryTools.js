@@ -1,12 +1,12 @@
 /**
  * Memory Tools — the user's own long-term memory (stores/memoryStore.js) as two
- * tools a chat agent or a routine step can call.
+ * tools a chat agent or an automation step can call.
  *
  *   memory_search   — the memories most relevant to a query, optionally by type.
  *   memory_remember — store one durable fact / preference / instruction.
  *
  * Why a tool and not a step type: the automation runner already dispatches
- * every tool call through core/tools/toolDispatcher.js, so a routine that
+ * every tool call through core/tools/toolDispatcher.js, so an automation that
  * learned something ("Tom signs client mail with 'Groet, Tom'") can hand it to
  * the same memory the chat assistant reads — and read back what the owner told
  * chat — without a new executor.
@@ -46,7 +46,7 @@ const MEMORY_TOOLS = [
         type: 'function',
         function: {
             name: 'memory_remember',
-            description: 'Store one durable fact about the user in their personal memory so it is available in every later conversation and routine. Only for things worth keeping (a preference, a standing instruction, who someone is) — never transient details, never data about third parties beyond their role.',
+            description: 'Store one durable fact about the user in their personal memory so it is available in every later conversation and automation. Only for things worth keeping (a preference, a standing instruction, who someone is) — never transient details, never data about third parties beyond their role.',
             parameters: {
                 type: 'object',
                 properties: {

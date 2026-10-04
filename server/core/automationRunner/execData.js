@@ -8,6 +8,7 @@ const { resolveValue, resolveInputs } = require('../../automation/bind');
 const { evaluate, parseExpr } = require('../../automation/expr');
 const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
+const { usageLogFields } = require('../providers/usageNormalizer');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 
@@ -26,7 +27,7 @@ const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
  *
  *   Single (no `arrayRef` key): resolve the `fields` binding map into one
  *   flat object. Byte-identical to the original execSet — every saved
- *   routine keeps its exact behaviour.
+ *   automation keeps its exact behaviour.
  *
  *   List (`arrayRef` present; '' = source not picked yet → skip-passthrough):
  *   work through an upstream array. Every row gets `{...row, ...fields}`
@@ -232,7 +233,7 @@ function sortableNumber(v) {
  * Stable sort on one column. Missing/null values sort LAST in both
  * directions; when both sides coerce to finite numbers they compare
  * numerically, otherwise as lowercased strings by code point — NEVER
- * localeCompare, whose ICU/locale variance would make the same routine sort
+ * localeCompare, whose ICU/locale variance would make the same automation sort
  * differently across machines.
  */
 function opSort(cfg, rows) {
@@ -513,18 +514,15 @@ async function execParseJson(step, ctx, runState, mode) {
     const aiOut = await safety.guardAiOutput(output, policy, auditBase, mode, ctx);
     output = safety.restoreForRunState(aiOut.content, ctx);
 
-    // Cost attribution (source='routine') — same shape as execAiStep.
+    // Cost attribution (source='automation') — same shape as execAiStep.
     try {
-        const u = result.usage || {};
-        const promptTokens = u.promptTokens || u.prompt_tokens || u.input_tokens || 0;
-        const completionTokens = u.completionTokens || u.completion_tokens || u.output_tokens || 0;
         usageStore.logUsage({
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
-            agent_type: 'routine', model: modelId, source: 'routine',
-            conversation_id: ctx.automationId, prompt_tokens: promptTokens,
-            completion_tokens: completionTokens,
-            total_tokens: u.totalTokens || u.total_tokens || (promptTokens + completionTokens),
+            agent_type: 'automation', model: modelId, source: 'automation',
+            conversation_id: ctx.automationId,
+            // Normalised by the adapter (cache read/write included).
+            ...usageLogFields(result.usage),
         }).catch(() => {});
     } catch (_) {}
 

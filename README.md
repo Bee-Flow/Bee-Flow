@@ -61,10 +61,10 @@ for themselves where their data goes.
 
 ### Automations you can watch
 
-<img src=".github/readme/routines.png" alt="The automation builder: a routine with its steps, branches and a live run" width="920">
+<img src=".github/readme/automations.png" alt="The automation builder: an automation with its steps, branches and a live run" width="920">
 
-Routines chain triggers, AI steps, logic, people and your apps into one flow, and show every run step by
-step. Steps that act on your behalf can wait for a person to approve them. Start a routine on a schedule,
+Automations chain triggers, AI steps, logic, people and your apps into one flow, and show every run step by
+step. Steps that act on your behalf can wait for a person to approve them. Start an automation on a schedule,
 from an event, a form or a chat.
 
 ### Meeting notes with the decisions in them

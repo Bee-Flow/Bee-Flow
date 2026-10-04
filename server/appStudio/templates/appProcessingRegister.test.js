@@ -626,7 +626,7 @@ test('the single run_automation is unset on purpose, and the screen says so', ()
     // generated rather than designed, so the screen explains the gap.
     const note = nodeById('cmp_rvnote');
     assert.equal(note.type, 'callout');
-    assert.match(note.props.text, /routine/i);
+    assert.match(note.props.text, /automation/i);
     assert.match(note.props.text, /not wired|nothing is wired/i);
 });
 

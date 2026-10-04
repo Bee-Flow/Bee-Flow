@@ -77,6 +77,8 @@ const { mergeBodies } = require('../core/documents/sectionMerge');
 const documentFeed = require('../core/documents/documentFeed');
 const { describePeople } = require('../core/documents/documentPeople');
 const { wordStats } = require('../stores/lib/documentText');
+const notebookLibraryRouter = require('./studioDocuments/notebooks');
+const sheetRouter = require('./studioDocuments/sheet');
 
 // ── What a request may send ──────────────────────────────────────────
 // Every query, and every body except three, is closed. What that closes:
@@ -94,8 +96,8 @@ const { wordStats } = require('../stores/lib/documentText');
 const docText = (message, max) => worded(message).max(max, message);
 const anId = (name) => docText(`${name} is the id of a document.`, 200);
 // Read when a request arrives, not at load: the list is the store's.
-const listTypes = () => [...(documentStore.DOC_TYPES || []), 'designed'];
-const DOC_TYPE_TEXT = 'docType is a document type, like page, invoice, letter or presentation, or designed for every type written in the designer.';
+const listTypes = () => [...(documentStore.DOC_TYPES || []), 'designed', 'notebook'];
+const DOC_TYPE_TEXT = 'docType is a document type, like page, notebook, invoice, letter or presentation, or designed for every type written in the designer.';
 const pageOf = (fallbackText) => ({
     limit: wholeNumber(`limit is a whole number. ${fallbackText}`).optional(),
     offset: wholeNumber('offset is a whole number, 0 or more.').optional(),
@@ -210,7 +212,7 @@ function refuseReadOnly(res, doc) {
 }
 
 function sendStoreError(res, err, fallback) {
-    if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass, issues: err.issues, conflict: err.conflict });
+    if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass || (typeof err.code === 'string' ? err.code : undefined), details: err.details, issues: err.issues, conflict: err.conflict });
     log.error(`[StudioDocuments] ${fallback}:`, err && err.message);
     return res.status(500).json({ error: fallback });
 }
@@ -230,8 +232,8 @@ function orgIdOf(req) {
  * The CSS layer to inject for one document, or ''.
  *
  * The rule itself lives in core/documents/renderFilledDocument.js, which is
- * also what the routine step and the app action render through — so the
- * editor preview, the download here and the PDF a routine mails out can never
+ * also what the automation step and the app action render through — so the
+ * editor preview, the download here and the PDF an automation mails out can never
  * disagree about whether a document is wearing the letterhead.
  */
 function houseStyleCssFor(req, doc) {
@@ -338,7 +340,7 @@ router.put('/house-style', requireAuth, requirePermission('org_admin'), async (r
 // GET /templates reads as a document whose id is "templates".
 
 /**
- * The caller's documents WITH their placeholders — what a routine step's
+ * The caller's documents WITH their placeholders — what an automation step's
  * document picker and an app action's inspector list, and what both AI
  * builders read so they bind the names a template actually has.
  */
@@ -359,10 +361,13 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 200);
         const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
         const { archived, ...filters } = req.query;
-        const { documents, total } = await documentStore.listDocumentsPage(req.session.user.id, { ...filters, archived: archived === '1', limit, offset });
+        // A notebook is a document type, listed for whoever may open notebooks.
+        const notebooks = await notebookLibraryRouter.notebooksVisible(req);
+        const spreadsheets = await sheetRouter.sheetsVisible(req);
+        const { documents, total } = await documentStore.listDocumentsPage(req.session.user.id, { ...filters, archived: archived === '1', limit, offset, includeNotebooks: notebooks });
         // Owner and last editor are shown by name; the reader's organisation only.
         const people = await describePeople(documents.flatMap(d => [d.userId, d.updatedBy]), orgIdOf(req));
-        res.json({ documents, total, people });
+        res.json({ documents, total, people, notebooks, spreadsheets });
     } catch (err) {
         sendStoreError(res, err, 'Failed to list documents');
     }
@@ -499,6 +504,7 @@ router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }),
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         if (!doc) return res.status(404).json({ error:'Document not found' });
+        if (doc.docType === 'spreadsheet') return await sheetRouter.duplicateSheet(req, res, doc);
         const kind = req.body?.kind || 'document';
         const settings = { ...doc.settings, source: { documentId:doc.id,versionId:doc.versionId },
             resolvedHouseStyleCss:await houseStyleCssFor(req,doc) };
@@ -542,9 +548,10 @@ router.get('/:id', requireAuth, async (req, res) => {
         // Archiving is the owner's (or an org admin's, for a team template or
         // section); editing is also open to a project's editors and owner.
         const deletable = doc.userId === userId || (doc.visibility === 'team' && await hasPermission(userId, 'org_admin', req.session));
-        const editable = deletable || doc.projectRole === 'editor' || doc.projectRole === 'owner';
+        const managed = await require('../stores/document/solutionTemplates').managedOf(doc.id);
+        const editable = !managed && (deletable || doc.projectRole === 'editor' || doc.projectRole === 'owner');
         const people = await describePeople([doc.userId, doc.updatedBy], orgIdOf(req));
-        res.json({ document: { ...doc, editable, deletable, contract: getContract(doc) }, people });
+        res.json({ document: { ...doc, editable, deletable: deletable && !managed, managed, contract: getContract(doc) }, people });
     } catch (err) {
         sendStoreError(res, err, 'Failed to load document');
     }
@@ -628,6 +635,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
             }
             return res.status(404).json({ error: 'Document not found' });
         }
+        // A task that linked this document keeps existing; the link goes (in every project).
+        try { await require('../stores/projectTaskStore').dropLinksTo(null, 'document', req.params.id); }
+        catch (err) { log.warn(`[Documents] task links to document ${req.params.id} not dropped: ${err.message}`); }
         res.json({ success: true });
     } catch (err) {
         sendStoreError(res, err, 'Failed to delete document');
@@ -688,7 +698,7 @@ function emptyDeckHtml() {
 
 /**
  * A presentation as a real PowerPoint file. The PDF route below serves the
- * same deck on paper; both go through renderFilledDocument, as a routine's
+ * same deck on paper; both go through renderFilledDocument, as an automation's
  * fill_document does, so the download and the run cannot disagree.
  */
 router.get('/:id/pptx', requireAuth, validate({ query: VersionQuery }), async (req, res) => {
@@ -772,5 +782,7 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
 
 router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
+router.use('/', notebookLibraryRouter);
+router.use('/', sheetRouter);
 
 module.exports = router;

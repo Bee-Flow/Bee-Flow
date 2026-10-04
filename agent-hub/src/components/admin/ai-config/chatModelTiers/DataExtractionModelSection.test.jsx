@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 /**
- * The admin section for the routine Extract data step's model. Pinned:
+ * The admin section for the automation Extract data step's model. Pinned:
  *
  *   1. unset shows the Fast-tier fallback label — an empty picker must never
  *      read as "no extraction";
@@ -11,7 +11,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
  *      saveDataExtractionModel — the same prop contract as the memory section;
  *   3. a saved/failed message renders, and Save is disabled while saving;
  *   4. the copy says what the key decides: every Data extraction step, whatever
- *      tier the routine uses.
+ *      tier the automation uses.
  */
 
 vi.mock('../../../../utils/modelMeta', () => ({
@@ -49,7 +49,7 @@ describe('DataExtractionModelSection', () => {
         renderSection();
         expect(screen.getByRole('heading', { name: 'Data Extraction Model' })).toBeTruthy();
         expect(screen.getByTestId('picker').textContent).toBe('— Use Fast tier model —');
-        expect(screen.getByText(/every Data extraction step in a routine runs on, whatever tier/)).toBeTruthy();
+        expect(screen.getByText(/every Data extraction step in an automation runs on, whatever tier/)).toBeTruthy();
     });
 
     it('a picked model shows by display name (id when there is none) and reaches setDataExtractionModel; Save reaches saveDataExtractionModel', () => {

@@ -65,7 +65,7 @@ export function NewDocumentSheet({ visible, locale, busy, error, onClose, onPick
             <Text variant="caption" tone="tertiary">
                 {t(
                     'mobile.studio_documents.presentations_hint',
-                    'Slides in the house style: an outline you type, downloaded as PowerPoint or PDF. Placeholders make it a template a routine can fill.',
+                    'Slides in the house style: an outline you type, downloaded as PowerPoint or PDF. Placeholders make it a template an automation can fill.',
                 )}
             </Text>
             <View style={styles.group}>

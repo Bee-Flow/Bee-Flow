@@ -49,7 +49,7 @@ async function fetchAutomationCounts(id: string, signal?: AbortSignal): Promise<
 }
 
 /**
- * The header's tab counts. `id` null (a routine with no server row yet)
+ * The header's tab counts. `id` null (an automation with no server row yet)
  * never fetches. `stamp` is whatever changes when the counts can have moved.
  */
 export function useAutomationCounts(id: string | null | undefined, stamp: string) {
@@ -70,7 +70,7 @@ interface AutomationMetaError extends Error {
 /**
  * POST /:id/publish: the working copy becomes the live version. `version` is
  * the one the person saw; the server answers 409 `version_changed` when the
- * routine moved on since, and 409 `ai_act_check_required` when the AI Act
+ * automation moved on since, and 409 `ai_act_check_required` when the AI Act
  * check has to be done first. Returns the updated row.
  */
 export async function publishAutomation(id: string, version?: number | null): Promise<{ automation: Record<string, unknown>; warnings?: unknown[] }> {

@@ -92,8 +92,8 @@ function loopOverLine(node: SceneNode, card: CardModel, t: ReturnType<typeof use
     const max = typeof step.maxIterations === 'number' ? step.maxIterations : 100;
     const batch = Math.max(1, Number(step.batchSize) || 1);
     return batch > 1
-        ? t('routines.canvas.loop_over_summary_batched', 'over {list} · as loop.{item} · ×{batch} · ≤{max}', { list, item, batch, max })
-        : t('routines.canvas.loop_over_summary', 'over {list} · as loop.{item} · ≤{max}', { list, item, max });
+        ? t('automations.canvas.loop_over_summary_batched', 'over {list} · as loop.{item} · ×{batch} · ≤{max}', { list, item, batch, max })
+        : t('automations.canvas.loop_over_summary', 'over {list} · as loop.{item} · ≤{max}', { list, item, max });
 }
 
 function LoopBox({ node, card, styles }: { node: SceneNode; card: CardModel; styles: CanvasStyles }) {
@@ -102,15 +102,15 @@ function LoopBox({ node, card, styles }: { node: SceneNode; card: CardModel; sty
     const item = typeof step.itemVar === 'string' && step.itemVar ? step.itemVar : 'item';
     const count = node.bodyCount;
     const steps = count === 1
-        ? t('routines.canvas.loop_body_step', '{n} step', { n: count })
-        : t('routines.canvas.loop_body_step_plural', '{n} steps', { n: count });
+        ? t('automations.canvas.loop_body_step', '{n} step', { n: count })
+        : t('automations.canvas.loop_body_step_plural', '{n} steps', { n: count });
     return (
         <View style={[styles.fill, styles.container]}>
             <View style={styles.containerHeader}>
                 <Icon name="Repeat" size={14} color={styles.loopGlyph.color} />
                 <View style={styles.headerText}>
                     <Text variant="label" weight="semibold" numberOfLines={1} style={styles.loopWords}>
-                        {`${card.kicker} · ${t('routines.canvas.loop_per_item', 'per {item}', { item })} · ${steps}`}
+                        {`${card.kicker} · ${t('automations.canvas.loop_per_item', 'per {item}', { item })} · ${steps}`}
                     </Text>
                     <Text variant="caption" weight="semibold" numberOfLines={1}>
                         {card.name}
@@ -135,7 +135,7 @@ function EntryPill({ node, styles }: { node: SceneNode; styles: CanvasStyles }) 
                 <Icon name="CornerDownRight" size={14} color={styles.loopGlyph.color} />
                 <View style={styles.headerText}>
                     <Text variant="caption" weight="semibold" numberOfLines={1}>
-                        {batch > 1 ? t('routines.canvas.loop_each_batch', 'Each batch of {n}', { n: batch }) : t('routines.canvas.loop_each_item', 'Each item')}
+                        {batch > 1 ? t('automations.canvas.loop_each_batch', 'Each batch of {n}', { n: batch }) : t('automations.canvas.loop_each_item', 'Each item')}
                     </Text>
                     <Text variant="label" tone="secondary" numberOfLines={1}>
                         {chipLabel(describeDataPath(`loop.${item}`))}

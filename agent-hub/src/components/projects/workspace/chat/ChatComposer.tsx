@@ -2,15 +2,17 @@
 // opens a menu of the people in the project and the AI; "Ask AI" sends and
 // asks the AI to answer even when nobody mentions it.
 
-import { Bot, BookOpen, CornerUpLeft, FileText, Mic, SendHorizontal, Sparkles, X } from 'lucide-react';
-import React, { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Bot, BookOpen, CheckSquare, CornerUpLeft, FileText, Mic, SendHorizontal, Sparkles, X } from 'lucide-react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import TierSlider from '../../../licensing/TierSlider';
+import { readDraft, writeDraft } from './drafts';
+import { isImeEnter, isImeKey } from './ime';
 import type { ChatTier } from './useChatTier';
 import { Avatar, PrimaryButton, SecondaryButton } from '../workspaceUi';
 import {
-    findMentionQuery, insertMention, matchCandidates, resolveMentions, type MentionCandidate, type MentionQuery,
+    findMentionQuery, insertMention, matchCandidates, mentions, resolveMentions, type MentionCandidate, type MentionQuery,
 } from './mentions';
 
 export const MAX_MESSAGE_LENGTH = 20_000;
@@ -29,6 +31,12 @@ export interface ChatComposerProps {
     placeholder?: string;
     onSend: (draft: ComposerDraft) => void;
     onTyping: () => void;
+    /** Keeps the unsent text (and the picked mentions) under this key while the composer is away. */
+    draftKey?: string;
+    /** ArrowUp in an empty composer: edit your latest message. */
+    onEditLastOwn?: () => void;
+    /** Text dropped in from outside (an empty chat's starter chips); `nonce` makes each drop fresh. */
+    prefill?: { text: string; nonce: number } | null;
 }
 
 function useMentionMenu(candidates: MentionCandidate[]) {
@@ -42,6 +50,14 @@ function useMentionMenu(candidates: MentionCandidate[]) {
         open: !!query && matches.length > 0,
         setActive,
         update: (text: string, caret: number) => { setQuery(findMentionQuery(text, caret)); setActive(0); },
+        // The caret moved without the text changing (arrows, Home/End, a click):
+        // the word under it is a different one, or none. Keeps the highlighted row when nothing changed.
+        sync: (text: string, caret: number) => {
+            const next = findMentionQuery(text, caret);
+            if (next?.start === query?.start && next?.query === query?.query) return;
+            setQuery(next);
+            setActive(0);
+        },
         close: () => setQuery(null),
     };
 }
@@ -50,6 +66,7 @@ type MentionMenuState = ReturnType<typeof useMentionMenu>;
 
 /** Arrow keys move, Enter or Tab picks, Escape closes. True when the key was the menu's. */
 function menuKey(e: React.KeyboardEvent, menu: MentionMenuState, pick: (c: MentionCandidate) => void): boolean {
+    if (isImeKey(e)) return false;
     const n = menu.matches.length;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         menu.setActive((menu.active + (e.key === 'ArrowDown' ? 1 : -1) + n) % n);
@@ -66,7 +83,7 @@ function menuKey(e: React.KeyboardEvent, menu: MentionMenuState, pick: (c: Menti
 
 function CandidateIcon({ candidate }: { candidate: MentionCandidate }) {
     if (candidate.kind === 'user') return <Avatar name={candidate.label} size="sm" picture={candidate.picture} />;
-    const Icon = candidate.kind === 'agent' ? Bot : candidate.kind === 'document' ? FileText : candidate.kind === 'notebook' ? BookOpen : candidate.kind === 'meeting' ? Mic : Sparkles;
+    const Icon = candidate.kind === 'agent' ? Bot : candidate.kind === 'document' ? FileText : candidate.kind === 'notebook' ? BookOpen : candidate.kind === 'meeting' ? Mic : candidate.kind === 'task' ? CheckSquare : Sparkles;
     return (
         <span className="inline-grid place-items-center w-6 h-6 rounded-full bg-[var(--item-active-bg)] text-[var(--accent-primary)]" aria-hidden="true">
             <Icon className="w-3.5 h-3.5" />
@@ -89,6 +106,7 @@ function MentionMenu({ id, menu, onPick }: { id: string; menu: MentionMenuState;
                     {c.kind === 'document' && <span className="text-[11px] text-[var(--text-tertiary)]">{t('project_chat.mention_document_hint', 'document')}</span>}
                     {c.kind === 'notebook' && <span className="text-[11px] text-[var(--text-tertiary)]">{t('project_chat.mention_notebook_hint', 'notebook')}</span>}
                     {c.kind === 'meeting' && <span className="text-[11px] text-[var(--text-tertiary)]">{t('project_chat.mention_meeting_hint', 'meeting')}</span>}
+                    {c.kind === 'task' && <span className="text-[11px] text-[var(--text-tertiary)]">{t('project_chat.mention_task_hint', 'task')}</span>}
                 </li>
             ))}
         </ul>
@@ -111,11 +129,27 @@ function ReplyChip({ reply, onCancel }: { reply: { author: string; excerpt: stri
 }
 
 function useComposerState(props: ChatComposerProps) {
-    const [text, setText] = useState('');
-    const picked = useRef<MentionCandidate[]>([]);
+    const { draftKey } = props;
+    const [text, setTextState] = useState(() => readDraft(draftKey)?.text ?? '');
+    const picked = useRef<MentionCandidate[]>(readDraft(draftKey)?.picked ?? []);
+    const setText = (next: string) => {
+        setTextState(next);
+        writeDraft(draftKey, { text: next, picked: picked.current });
+    };
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const nextCaret = useRef<number | null>(null);
     const menu = useMentionMenu(props.candidates);
+    const candidatesRef = useRef(props.candidates);
+    candidatesRef.current = props.candidates;
+
+    // A starter chip drops its text (and the mentions it names, so @ai really asks) into the box.
+    const prefill = props.prefill;
+    useEffect(() => {
+        if (!prefill) return;
+        picked.current = candidatesRef.current.filter(c => mentions(prefill.text, c.token));
+        setText(prefill.text);
+        inputRef.current?.focus();
+    }, [prefill]);
 
     useLayoutEffect(() => {
         const el = inputRef.current;
@@ -152,12 +186,22 @@ function useComposerState(props: ChatComposerProps) {
     };
     const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (menu.open && menuKey(e, menu, pick)) return;
-        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+        if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) {
             e.preventDefault();
             submit(false);
+        } else if (e.key === 'ArrowUp' && !text.trim() && props.onEditLastOwn) {
+            e.preventDefault();
+            props.onEditLastOwn();
+        } else if (e.key === 'Escape' && props.reply) {
+            e.preventDefault();
+            props.onCancelReply();
         }
     };
-    return { text, inputRef, menu, pick, submit, onChange, onKeyDown };
+    const onSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+        const el = e.currentTarget;
+        if (menu.query) menu.sync(el.value, el.selectionStart ?? el.value.length);
+    };
+    return { text, inputRef, menu, pick, submit, onChange, onKeyDown, onSelect };
 }
 
 export default function ChatComposer(props: ChatComposerProps) {
@@ -167,7 +211,7 @@ export default function ChatComposer(props: ChatComposerProps) {
     const empty = !s.text.trim();
     return (
         <div className="flex-shrink-0 px-4 pb-4">
-            <div className="relative rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-[0_2px_10px_rgba(0,0,0,0.06)] focus-within:border-[var(--accent-primary)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent-primary)_22%,transparent)] transition-[border-color,box-shadow]">
+            <div className="relative w-full max-w-4xl mx-auto rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-[0_2px_10px_rgba(0,0,0,0.06)] focus-within:border-[var(--accent-primary)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent-primary)_22%,transparent)] transition-[border-color,box-shadow]">
                 {props.reply && <ReplyChip reply={props.reply} onCancel={props.onCancelReply} />}
                 {s.menu.open && <MentionMenu id={menuId} menu={s.menu} onPick={s.pick} />}
                 <textarea
@@ -175,6 +219,7 @@ export default function ChatComposer(props: ChatComposerProps) {
                     value={s.text}
                     onChange={s.onChange}
                     onKeyDown={s.onKeyDown}
+                    onSelect={s.onSelect}
                     onBlur={() => s.menu.close()}
                     maxLength={MAX_MESSAGE_LENGTH}
                     rows={Math.min(8, Math.max(2, s.text.split('\n').length))}
@@ -182,7 +227,7 @@ export default function ChatComposer(props: ChatComposerProps) {
                     aria-autocomplete="list"
                     aria-controls={s.menu.open ? menuId : undefined}
                     aria-activedescendant={s.menu.open ? `${menuId}-${s.menu.active}` : undefined}
-                    placeholder={props.placeholder || t('project_chat.composer_placeholder', 'Message the team. Type @ to mention someone, the AI, a document, a notebook or a meeting.')}
+                    placeholder={props.placeholder || t('project_chat.composer_placeholder', 'Message the team. Type @ to tag people, tasks, documents and more.')}
                     className="block w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[13.5px] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none"
                 />
                 <div className="flex items-center gap-2 px-2 pb-2">

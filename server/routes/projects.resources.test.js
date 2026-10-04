@@ -1,5 +1,5 @@
 /**
- * Notebooks, apps and routines inside a project.
+ * Notebooks, apps and automations inside a project.
  *
  * Three invariants, and each of them was a real gap before this:
  *
@@ -23,6 +23,7 @@
  */
 
 const test = require('node:test');
+const { describe, before, after } = test;
 const assert = require('node:assert');
 const Module = require('module');
 
@@ -234,6 +235,8 @@ const MOCKS = {
         clearProjectFromAgents: async (projectId) => { record('clearAgents', { projectId }); return 6; },
         countProjectAgents: countOf('agents'),
     },
+    '../stores/skillStore': { countProjectSkills: countOf('skills') },
+    '../stores/document/solutionTemplates': { countSolutionTemplates: countOf('documentTemplates') },
     '../stores/userStore': { getUser: async () => null, getAllGroups: async () => [] },
     '../stores/knowledgeBases': {
         getKB: async (id) => {
@@ -281,7 +284,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
     // knowledge-base section would fall through to a real store, throw at load,
     // be caught by the route's `load()` wrapper and come back as null while
     // every existing assertion stayed green.
-    if (parent && /(routes[\\/]projects|projects[\\/](membership|knowledgeBaseMembership))\.js$/.test(parent.filename)
+    if (parent && /(routes[\\/]projects|projects[\\/](membership|knowledgeBaseMembership)|auth[\\/]orgScope)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -290,6 +293,11 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const router = require('./projects');
 const membership = require('../projects/membership');
+const { makeSwaps } = require('../testUtils/swaps');
+const stageSwaps = makeSwaps();
+stageSwaps.swap(membership.stageGuard, 'managedParts', () => ({ assertManagedWrite: async () => ({ managed: false }) }));
+stageSwaps.swap(membership.stageGuard, 'projectIdIn', async () => null);
+test.after(stageSwaps.restore);
 const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
@@ -952,7 +960,7 @@ test('a notebook still files into a collaborative project', async () => {
 // these run it through the REAL registry (projects/membership.js), so the
 // counts come from the kinds' own countIn functions.
 
-test('a legacy project holding an app and a routine cannot become a workspace until they are out', async () => {
+test('a legacy project holding an app and an automation cannot become a workspace until they are out', async () => {
     resetFx();
     fx.role = 'owner';
     fx.project.kind = null;
@@ -1284,4 +1292,68 @@ test('deleting a project detaches its documents and meeting notes', async () => 
     const names = fx.calls.map(c => c.name);
     assert.ok(names.includes('clearDocuments'));
     assert.ok(names.includes('clearMeetings'));
+});
+
+// ═══ What comes along ════════════════════════════════════════════════
+
+describe('POST /:id/resources/related', () => {
+    const relatedParts = require('../projects/relatedParts');
+    const relatedSwaps = makeSwaps();
+    const parts = {
+        'app:app1': { owner: 'alice', name: 'Intake', payload: { definition: { actions: [{ kind: 'run_automation', automationId: 'a1' }] } } },
+        'automation:a1': { owner: 'alice', name: 'Intake automation', payload: { definition: { steps: [{ id: 's', type: 'datatable', op: 'list', datatableId: 'tbl1' }] } } },
+        'datatable:tbl1': { owner: 'bob', name: 'Bob table' },
+    };
+    const part = (kind, id) => parts[`${kind}:${id}`];
+
+    before(() => {
+        relatedSwaps.swap(relatedParts.seams, 'ownerOf', async (kind, id) => part(kind, id)?.owner ?? null);
+        relatedSwaps.swap(relatedParts.seams, 'projectOf', async () => null);
+        relatedSwaps.swap(relatedParts.seams, 'readPart', async (kind, id) => {
+            const p = part(kind, id);
+            return p ? { name: p.name, payload: p.payload || null } : null;
+        });
+    });
+    after(relatedSwaps.restore);
+
+    const ask = (items, over = {}) => dispatch({ method: 'POST', url: '/p1/resources/related', body: { items }, session: ALICE, ...over });
+
+    test('answers the parts an app needs, each with who needs it and whether it can be filed', async () => {
+        resetFx();
+        const res = await ask([{ kind: 'app', id: 'app1' }]);
+        assert.strictEqual(res.statusCode, 200);
+        assert.deepStrictEqual(res.body.related.map(p => [p.id, p.relation, p.status, p.name]), [
+            ['tbl1', 'reads_table', 'not_yours', null],
+            ['a1', 'runs', 'addable', 'Intake automation'],
+        ]);
+        assert.deepStrictEqual(res.body.related[1].via, [{ kind: 'app', id: 'app1', name: 'Intake', relation: 'runs' }]);
+        assert.strictEqual(res.body.truncated, false);
+        assert.ok(!fx.calls.some(c => /^set\w*Project$/.test(c.name)), 'a lookup files nothing');
+    });
+
+    test('a viewer cannot ask, and a non-member gets a 404', async () => {
+        resetFx();
+        fx.role = 'viewer';
+        assert.strictEqual((await ask([{ kind: 'app', id: 'app1' }])).statusCode, 403);
+        fx.role = null;
+        assert.strictEqual((await ask([{ kind: 'app', id: 'app1' }])).statusCode, 404);
+    });
+
+    test('a kind that cannot be filed here, or does not exist, is a 400 naming it', async () => {
+        resetFx();
+        fx.project.kind = 'solution';
+        const doc = await ask([{ kind: 'document', id: 'doc1' }]);
+        assert.strictEqual(doc.statusCode, 400);
+        assert.strictEqual(doc.body.code, 'KIND_NOT_ALLOWED');
+        const unknown = await ask([{ kind: 'nope', id: 'x' }]);
+        assert.strictEqual(unknown.statusCode, 400);
+        assert.strictEqual(unknown.body.code, 'INVALID_KIND');
+    });
+
+    test('an empty or malformed list is refused by the schema', async () => {
+        resetFx();
+        assert.strictEqual((await ask([])).statusCode, 400);
+        assert.strictEqual((await ask([{ kind: 'app' }])).statusCode, 400);
+        assert.strictEqual((await ask(Array.from({ length: 101 }, (_, i) => ({ kind: 'app', id: `x${i}` })))).statusCode, 400);
+    });
 });

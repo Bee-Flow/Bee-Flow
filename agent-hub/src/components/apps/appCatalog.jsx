@@ -114,7 +114,7 @@ export function filterAvailableApps(apps, {
     agentIntegrations = null,
 } = {}) {
     const {
-        isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig,
+        isGoogleUser, isMicrosoftUser, hasMicrosoftConnection, hasFirefliesKey, hasYouTrackConfig,
         hasGammaKey, hasAfasConfig, hasNmbrsConfig,
     } = integrationStatus;
 
@@ -124,7 +124,10 @@ export function filterAvailableApps(apps, {
         if (app.isStep) return true;
         // Base availability checks
         if (app.requiresGoogle && !isGoogleUser) return false;
-        if (app.requiresMicrosoft && !isMicrosoftUser) return false;
+        // Outlook also works off a Microsoft 365 connection next to another
+        // login (server lifts only the Outlook tools off that credential).
+        if (app.requiresMicrosoft && !isMicrosoftUser
+            && !(hasMicrosoftConnection && (app.id === 'outlook' || app.id === 'outlook-readonly'))) return false;
         if (app.requiresFireflies && !hasFirefliesKey) return false;
         if (app.requiresYouTrack && !hasYouTrackConfig) return false;
         if (app.requiresGamma && !hasGammaKey) return false;

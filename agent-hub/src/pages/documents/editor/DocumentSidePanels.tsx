@@ -54,6 +54,7 @@ export default function DocumentSidePanels(props: DocumentSidePanelsProps) {
                 <VersionHistoryPanel
                     baseUrl={`/api/studio-documents/${encodeURIComponent(doc.id)}`}
                     canEdit={props.canEdit}
+                    managed={doc.managed}
                     onRestored={props.onRestored}
                     onClose={onClose}
                     projectId={doc.projectId || null}

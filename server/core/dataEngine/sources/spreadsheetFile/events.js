@@ -33,7 +33,7 @@
  * kick through when the last success was a moment ago (a pulse).
  *
  * ── ONEDRIVE ────────────────────────────────────────────────────────
- * A Graph drive subscription exists only when the linker has a routine
+ * A Graph drive subscription exists only when the linker has an automation
  * with a OneDrive `file.*` trigger, and its notification names no file
  * (it is about the drive). `onProviderHint` marks every mirror that account
  * linked at that provider stale and kicks it: the probe is one metadata

@@ -26,14 +26,14 @@ const { _plainObject } = require('./configShape');
  * ── THE NAME GATE IS OPT-IN TOO ─────────────────────────────────────
  * It shipped global, and that was a behaviour change nobody asked for: before
  * the grants layer, a name outside the offered stack went to the dispatcher,
- * which resolves it against the caller's agent-callable routines and Steps,
+ * which resolves it against the caller's agent-callable automations and Steps,
  * answers a progressive-disclosure name with a "load that group first" hint,
  * and otherwise tries a component tool. Refusing all of that for EVERY agent
  * changed what a legacy agent does without adding a field anyone could set —
  * the one thing this whole layer promised not to do.
  *
  * So `enforceNames` follows the same fence as the hold-back: an agent with
- * stored grants (or a routine carrying its own confirm) refuses an unoffered
+ * stored grants (or an automation carrying its own confirm) refuses an unoffered
  * name; an agent without one gets `not_offered_unenforced` — a 'run' the
  * caller logs, so the injection case is still visible in the logs, just not
  * silently behaviour-changed. Curating an agent is what closes the stack.

@@ -118,14 +118,14 @@ test('inside a project with includeGeneral off, nothing crosses the boundary', (
     assert.ok(!sql.includes("type IN ('instruction', 'preference')"));
 });
 
-test('expired and routine-coverage rows are excluded from every leg', () => {
+test('expired and automation-coverage rows are excluded from every leg', () => {
     // Both filters live in `scope`, which every leg reads, so a new leg cannot
-    // forget them. `routine_coverage` rows render nothing and used to eat
+    // forget them. `schedule_coverage` rows render nothing and used to eat
     // candidate slots; expired rows used to stay in the prompt until the next
     // 24-hour sweep.
     const { sql, params } = buildCandidateQuery({ userId: 'u1' });
     assert.ok(sql.includes('(expires_at IS NULL OR expires_at > NOW())'));
-    assert.ok(params.includes('routine_coverage'));
+    assert.ok(params.includes('schedule_coverage'));
 });
 
 test('an agent-scoped read without general memory excludes shared rows', () => {

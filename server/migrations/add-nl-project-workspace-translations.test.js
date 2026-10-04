@@ -112,6 +112,7 @@ test('a key declared identical still has the English it was declared for', () =>
         'project_chat.ai_badge': 'AI',
         'project_chat.filter_ai': 'AI',
         'project_chat.filter_team': 'Team',
+        'project_chat.count_summary': '{team} team · {ai} AI',
         'project_chat.pick_agent': 'Agent',
         'project_chat.title': 'Chats',
         'project_content.doc_type_document': 'Document',

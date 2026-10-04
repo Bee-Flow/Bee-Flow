@@ -1,4 +1,4 @@
-/** A new routine's test run is found under its id once it has one. */
+/** A new automation's test run is found under its id once it has one. */
 
 import { IDLE_TEST_RUN } from './runState';
 import { aliasTestRunStore, resetTestRunStores, testRunStoreFor, updateTestRun } from './testRunStore';

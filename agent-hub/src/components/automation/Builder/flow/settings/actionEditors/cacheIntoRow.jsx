@@ -16,7 +16,7 @@ const TABLE_AUDIENCE = {
  * A separate tick from AskOnceRow, not a nested one, because they are separate
  * promises: askOnce reuses an answer inside a run (and, ticked further, out of
  * an encrypted store nobody can read); this one writes the answer into a table
- * the author can open, correct, export and read from another routine. Either
+ * the author can open, correct, export and read from another automation. Either
  * can be on alone.
  *
  * THE HELP TEXT IS THE FEATURE. The difference between the two tiers is not

@@ -225,7 +225,7 @@ export function draftOf(skill: SkillLike): SkillDraft {
 }
 
 /**
- * Only an `agent_call`-trigger routine is ever offered as a tool. The
+ * Only an `agent_call`-trigger automation is ever offered as a tool. The
  * definition comes first: it is what the runtime dispatches on, while
  * `triggerType` is a denormalised column that defaults to 'manual'.
  */

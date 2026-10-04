@@ -23,16 +23,16 @@ import { lazy } from 'react';
 import scopedStorage from '../utils/scopedStorage';
 
 export const DEMO_FEATURES = {
-    routines: {
-        id: 'routines',
-        label: 'Routines & automations',
+    automations: {
+        id: 'automations',
+        label: 'Automations & automations',
         // Shown in the demo chrome so a visitor always knows what they are
         // looking at and that nothing they do is real.
         blurb: 'Build a workflow: drag steps, open a node, change the prompt. Nothing is saved and nothing leaves your browser.',
-        appPath: '/app/studio/routines',
+        appPath: '/app/studio/automations',
         expectText: 'Weekly AI/SaaS spend report',
         Component: lazy(() => import('../components/automation/index')),
-        loadFixtures: () => import('./fixtures/routines'),
+        loadFixtures: () => import('./fixtures/automations'),
         // Props the real Studio shell passes; `embedded` keeps the component
         // inside our frame instead of trying to own the page chrome.
         props: {
@@ -44,7 +44,7 @@ export const DEMO_FEATURES = {
             // "New automation" canvas. Without this the demo lands on a blank
             // grid, which shows the chrome but none of the point — a visitor
             // has to build something before they can see anything.
-            // The id must exist in fixtures/routines.js.
+            // The id must exist in fixtures/automations.js.
             initialTaskId: 'auto_demo_spend_report',
         },
     },
@@ -100,14 +100,14 @@ export const DEMO_FEATURES = {
         id: 'notebooks',
         label: 'Notebooks',
         blurb: 'A notebook built from six documents: the draft, the sources, and a chat that cites them. Sample data only.',
-        appPath: '/app/notebooks',
+        // A notebook is a document type: it opens in Studio → Documents.
+        appPath: '/app/studio/documents/notebook/nb_demo_tender',
         expectText: 'Tender 2026-114',
-        Component: lazy(() => import('../pages/NotebooksPage')),
+        Component: lazy(() => import('../pages/documents/DocumentsPage')),
         loadFixtures: () => import('./fixtures/notebooks'),
         props: {
-            initialNotebookId: 'nb_demo_tender',
-            onBack: null,
-            onNotebookChange: null,
+            initialDocumentId: 'notebook/nb_demo_tender',
+            onDocumentChange: null,
         },
     },
     'meeting-notes': {
@@ -259,8 +259,12 @@ export const DEMO_FEATURES = {
 
 export const DEMO_FEATURE_IDS = Object.keys(DEMO_FEATURES);
 
+/** Demo ids that were renamed: an embed or link made before keeps working. */
+const LEGACY_DEMO_IDS = Object.freeze({ routines: 'automations' });
+
 export function getDemoFeature(id) {
-    return Object.prototype.hasOwnProperty.call(DEMO_FEATURES, id)
-        ? DEMO_FEATURES[id]
+    const key = Object.prototype.hasOwnProperty.call(LEGACY_DEMO_IDS, id) ? LEGACY_DEMO_IDS[id] : id;
+    return Object.prototype.hasOwnProperty.call(DEMO_FEATURES, key)
+        ? DEMO_FEATURES[key]
         : null;
 }

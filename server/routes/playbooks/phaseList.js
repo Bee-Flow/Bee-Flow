@@ -35,11 +35,11 @@ function tierOf(pb) {
 /** A phase's kind — the run page stages by it; older rows carry the key only. */
 function kindOf(p) { return (p && (p.kind || p.key)) || null; }
 function firstOfKind(phases, kind) { return (Array.isArray(phases) ? phases : []).find((p) => kindOf(p) === kind) || null; }
-/** The nearest routine phase BEFORE `key` — the one a fill phase runs. */
-function routineBefore(phases, key) {
+/** The nearest automation phase BEFORE `key` — the one a fill phase runs. */
+function automationBefore(phases, key) {
     const list = Array.isArray(phases) ? phases : [];
     const i = list.findIndex((p) => p && p.key === key);
-    for (let j = (i < 0 ? list.length : i) - 1; j >= 0; j--) if (kindOf(list[j]) === 'routine') return list[j];
+    for (let j = (i < 0 ? list.length : i) - 1; j >= 0; j--) if (kindOf(list[j]) === 'automation') return list[j];
     return null;
 }
 
@@ -105,7 +105,7 @@ module.exports = {
     tierOf,
     kindOf,
     firstOfKind,
-    routineBefore,
+    automationBefore,
     appBefore,
     withClosingPhases,
     summarise,

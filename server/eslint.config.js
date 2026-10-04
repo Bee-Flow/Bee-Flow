@@ -30,11 +30,12 @@ const correctnessRules = {
     'no-console': 'error',
     // A 5xx never echoes err.message: throw, or next(err), and let
     // core/http/terminalErrorHandler.js answer with a correlation id.
+    // The selector matches err.message ANYWHERE under the `error` value (a
+    // descendant, not a child), so a concatenation ('failed: ' + e.message),
+    // a template literal or a fallback (e.message || 'x') is caught too; the
+    // child-only selectors missed `'PDF generation failed: ' + err.message`.
     'no-restricted-syntax': ['error', {
-        selector: "CallExpression[callee.property.name='json'][callee.object.callee.property.name='status'][callee.object.arguments.0.value>=500] > ObjectExpression > Property[key.name='error'] > MemberExpression[property.name='message']",
-        message: 'A 5xx must not echo err.message; throw or next(err) instead (core/http/terminalErrorHandler.js).',
-    }, {
-        selector: "CallExpression[callee.property.name='json'][callee.object.callee.property.name='status'][callee.object.arguments.0.value>=500] > ObjectExpression > Property[key.name='error'] > LogicalExpression > MemberExpression[property.name='message']",
+        selector: "CallExpression[callee.property.name='json'][callee.object.callee.property.name='status'][callee.object.arguments.0.value>=500] > ObjectExpression > Property[key.name='error'] MemberExpression[property.name='message']",
         message: 'A 5xx must not echo err.message; throw or next(err) instead (core/http/terminalErrorHandler.js).',
     }],
     'no-unused-vars': ['error', {

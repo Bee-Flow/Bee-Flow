@@ -58,7 +58,7 @@ test('summariseDefinition stays human-readable (no raw step IDs)', () => {
     assert.ok(!summary.includes('`a_search`'), 'human summary does not leak raw step ids');
 });
 
-// ── note (BFSF-411) — a canvas annotation, not a step the routine runs ────
+// ── note (BFSF-411) — a canvas annotation, not a step the automation runs ────
 {
     const defWithNote = {
         trigger: { id: 'trg', kind: 'manual' },

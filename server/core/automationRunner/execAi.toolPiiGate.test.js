@@ -3,9 +3,9 @@
  * Privacy Shield's tool block lists, the way chat does: a call whose
  * arguments carry a category on the "Outside tools" / "Own server" list is
  * refused, and what the model reads of a result has those categories
- * stripped. The shield is the routine policy's (safety.resolveAutomationPolicy),
- * which is null when the org keeps routines out of the shield ("Also protect
- * routines" off), so that switch holds for the lists too.
+ * stripped. The shield is the automation policy's (safety.resolveAutomationPolicy),
+ * which is null when the org keeps automations out of the shield ("Also protect
+ * automations" off), so that switch holds for the lists too.
  *
  * The step's collaborators are stubbed through testUtils/stubRequire (the
  * pattern of execAi.kb.test.js); the real gate runs with its detector
@@ -52,7 +52,7 @@ const restore = installResolveStub({
     },
     './safety': {
         async resolveAutomationPolicy() { return { action: 'off', shield: fx.shield }; },
-        buildAuditBase() { return { organization_id: 'org1', automation_id: 'auto-1', source: 'routine' }; },
+        buildAuditBase() { return { organization_id: 'org1', automation_id: 'auto-1', source: 'automation' }; },
         async guardAiInput() { return { blocked: false }; },
         async guardAiOutput(content) { return { content }; },
         async guardToolInput(args) { return { value: args }; },
@@ -102,7 +102,7 @@ test('a tool whose arguments carry an own-server category is refused, never disp
     assert.strictEqual(fx.dispatched.length, 0, 'a refused tool must not be dispatched');
     assert.match(fx.toolMessages[0].content, REFUSED_FOR_EMAIL);
     assert.strictEqual(fx.guardrailRows[0].action_taken, 'tool_blocked');
-    assert.strictEqual(fx.guardrailRows[0].automation_id, 'auto-1', 'filed like the routine\'s own rows');
+    assert.strictEqual(fx.guardrailRows[0].automation_id, 'auto-1', 'filed like the automation\'s own rows');
     assert.strictEqual(fx.guardrailRows[0].step_id, 'ai_1:kb_search');
 });
 
@@ -115,7 +115,7 @@ test('an own-server category in a result is stripped before the model reads it',
     assert.ok(fx.guardrailRows.some(r => r.action_taken === 'tool_result_redacted'));
 });
 
-test('routines kept out of the shield (no policy shield): nothing is refused or stripped', async () => {
+test('automations kept out of the shield (no policy shield): nothing is refused or stripped', async () => {
     fx.shield = null;
     fx.toolCall = { name: 'kb_search', args: { query: SYNTH_EMAIL } };
     fx.dispatchResult = { passage: SYNTH_EMAIL };

@@ -10,8 +10,8 @@ const { UNTITLED_AUTOMATION, MAX_TITLE } = require('../../../automation/builderT
 
 /**
  * A title/description a HOST hands the builder for a draft it creates — the
- * playbook's routine stage sends the `Title "…"` its brief carries, so the
- * routine is named from its first persisted byte instead of after the model
+ * playbook's automation stage sends the `Title "…"` its brief carries, so the
+ * automation is named from its first persisted byte instead of after the model
  * gets round to builder_set_metadata (or never does). Only strings, clamped
  * to the title cap; anything else is ignored rather than refused, and the
  * seed is NEVER applied to an existing draft — a name the person or the

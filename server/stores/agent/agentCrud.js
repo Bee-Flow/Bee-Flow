@@ -4,8 +4,9 @@
  */
 
 const { v4: uuidv4 } = require('uuid');
-const { run, getOne, getAll } = require('../../db');
+const { run, getOne, getAll, withTransaction } = require('../../db');
 const { initDB } = require('./initSchema');
+const managedParts = require('../lib/managedParts');
 const { getAgentTools, getAgentToolsWithParams, getAgentToolsBatch, getAgentToolsWithParamsBatch } = require('./agentTools');
 const { buildUpdate } = require('../lib/sqlBuilder');
 const log = require('../../telemetry/log');
@@ -361,6 +362,8 @@ async function getAgentViews(id) {
  * @param {object} [opts]
  * @param {number|null} [opts.expectedRev] CAS token; null = publish whatever is there now.
  * @param {object|null} [opts.config] The (validated) config to publish; defaults to the stored concept.
+ * @param {any} [opts.client] A transaction client ({ query }); the deploy commit passes its own.
+ * @param {{ deploymentId?: string }|null} [opts.managedWrite] The deploy's capability, needed on a managed agent.
  * @returns {Promise<{ok:true,row:object,publishedVersion:number,publishedRev:number,publishedAt:string}
  *                  |{ok:false,conflict:true,currentRev:number}
  *                  |{ok:false,notFound:true}
@@ -368,15 +371,22 @@ async function getAgentViews(id) {
  */
 async function publishAgentVersion(id, opts = {}) {
     await initDB();
-    const { expectedRev = null, config = null } = opts || {};
-    const existing = await getOne('SELECT * FROM agents WHERE id = $1', [id]);
+    const { expectedRev = null, config = null, client = null, managedWrite = null } = opts || {};
+    // On the deploy's client the publish moves inside the commit transaction.
+    const exec = client ? (sql, params) => client.query(sql, params) : run;
+    const readOne = client ? async (sql, params) => (await client.query(sql, params)).rows[0] || null : getOne;
+    const existing = await readOne('SELECT * FROM agents WHERE id = $1', [id]);
     if (!existing) return { ok: false, notFound: true };
     if (existing.owner_id === 'system' || existing.owner_id === 'swarm') return { ok: false, systemAgent: true };
+    // A managed agent's live copy moves only with a deploy (design 5.3).
+    await managedParts.assertManagedWrite({
+        kind: 'agent', projectId: existing.project_id, changedKeys: ['publishedVersion'], managedWrite, client,
+    });
     const rev = expectedRev != null ? expectedRev : (Number(existing.rev) || 1);
     const cfg = config && typeof config === 'object'
         ? config
         : (existing.config ? (typeof existing.config === 'string' ? JSON.parse(existing.config) : existing.config) : {});
-    const { rows, rowCount } = await run(`UPDATE agents
+    const { rows, rowCount } = await exec(`UPDATE agents
         SET published_config = $1::jsonb,
             published_system_prompt = system_prompt,
             published_version = published_version + 1,
@@ -396,7 +406,7 @@ async function publishAgentVersion(id, opts = {}) {
             publishedAt: row.published_at,
         };
     }
-    const cur = await getOne('SELECT rev FROM agents WHERE id = $1', [id]);
+    const cur = await readOne('SELECT rev FROM agents WHERE id = $1', [id]);
     return { ok: false, conflict: true, currentRev: Number(cur?.rev) || rev };
 }
 
@@ -413,6 +423,17 @@ function _existingSharedGroupsJson(existing) {
     if (stored === undefined || stored === null || stored === '') return '[]';
     return typeof stored === 'string' ? stored : JSON.stringify(stored);
 }
+
+// updateAgent's arguments → the columns they write, for the managed-part diff
+// (stores/lib/managedParts.changedKeysOf): the route sends every field, so
+// only a value that differs from the locked row counts as a change.
+const AGENT_UPDATE_COLUMNS = Object.freeze({
+    name: 'name', description: 'description', systemPrompt: 'system_prompt', model: 'model',
+    starterPrompts: 'starter_prompts', avatar: 'avatar', threadsEnabled: 'threads_enabled',
+    copyEnabled: 'copy_enabled', workspaceEnabled: 'workspace_enabled', config: 'config',
+    embedEnabled: 'embed_enabled', organizationId: 'organization_id', sharedGroups: 'shared_groups',
+    categoryId: 'category_id', persona: 'persona',
+});
 
 /**
  * Update an agent. Optimistic-concurrency aware.
@@ -433,6 +454,9 @@ function _existingSharedGroupsJson(existing) {
  *   other short caller leave the column alone instead of erasing a role they
  *   never heard of. Explicit `null` clears it — which is not data loss, it is
  *   the row falling back to free mode over its own `system_prompt`.
+ * @param {{ deploymentId?: string }|null} [opts.managedWrite] A deploy's capability. On an
+ *   agent filed into a Solution stage, only sharing, `embed_enabled` and the
+ *   category may change without it (409 managed_part otherwise).
  * @returns {Promise<{ok:true, rev:number}|{ok:false, conflict:true, currentRev:number}|{ok:false, notFound:true}>}
  */
 async function updateAgent(id, name, description, systemPrompt, ownerId, model = null, starterPrompts = [], avatar = null, threadsEnabled = true, copyEnabled = true, workspaceEnabled = false, config = {}, embedEnabled = false, organizationId = undefined, sharedGroups = undefined, categoryId = undefined, opts = {}) {
@@ -480,8 +504,27 @@ async function updateAgent(id, name, description, systemPrompt, ownerId, model =
         params.push(persona === null ? null : JSON.stringify(persona));
         personaSet = `, persona = $${params.length}::jsonb`;
     }
-    const { rowCount } = await run(`UPDATE agents SET name=$1, description=$2, system_prompt=$3, model=$4, starter_prompts=$5, avatar=$6, threads_enabled=$7, copy_enabled=$8, workspace_enabled=$9, config=$10, embed_enabled=$11, organization_id=$12, shared_groups=$13, category_id=$14${personaSet}, rev = rev + 1, updated_at=NOW()
-        WHERE id=$15 AND owner_id=$16${revGuard}`, params);
+    const updateSql = `UPDATE agents SET name=$1, description=$2, system_prompt=$3, model=$4, starter_prompts=$5, avatar=$6, threads_enabled=$7, copy_enabled=$8, workspace_enabled=$9, config=$10, embed_enabled=$11, organization_id=$12, shared_groups=$13, category_id=$14${personaSet}, rev = rev + 1, updated_at=NOW()
+        WHERE id=$15 AND owner_id=$16${revGuard}`;
+    // A managed agent (filed into a Solution stage) is locked, diffed and
+    // guarded in one transaction; every other agent writes as it always did.
+    const { rowCount } = existing?.project_id && await managedParts.managedInfo(existing.project_id)
+        ? await withTransaction(async (client) => {
+            const locked = (await client.query('SELECT * FROM agents WHERE id = $1 FOR UPDATE', [id])).rows[0];
+            if (!locked) return { rowCount: 0 };
+            await managedParts.assertManagedWrite({
+                kind: 'agent', projectId: locked.project_id, client,
+                changedKeys: managedParts.changedKeysOf(locked, {
+                    name, description: description || '', systemPrompt: systemPrompt || '', model,
+                    starterPrompts, avatar, threadsEnabled: !!threadsEnabled, copyEnabled: !!copyEnabled,
+                    workspaceEnabled: !!workspaceEnabled, config: config || {}, embedEnabled: !!embedEnabled,
+                    organizationId: orgId, sharedGroups: sharedGroupsJson, categoryId: catId, persona,
+                }, AGENT_UPDATE_COLUMNS),
+                managedWrite: opts?.managedWrite || null,
+            });
+            return client.query(updateSql, params);
+        })
+        : await run(updateSql, params);
 
     if (rowCount > 0) {
         // Snapshot the PRE-update state for version history — only AFTER a
@@ -540,8 +583,60 @@ async function snapshotAgent(id, userId = null, { kind = 'pre_refine', changeSum
     return versionStore.createVersion(id, 'agent', loaded.row, userId, changeSummary, { kind });
 }
 
-async function deleteAgent(id, ownerId) {
+/**
+ * Refuses a change to a managed agent's tool grants (design 5.2: `tools` is not
+ * on ALLOWED.agent) before agentTools.setAgentTools / updateAgentToolParams
+ * write. Diff-based, like updateAgent: the builder sends the full list on every
+ * save, so an unchanged list (same component ids, same fixed params) passes.
+ * An agent without a project reads nothing.
+ *
+ * @param {{ id: string, project_id?: string|null }} agent the row the caller just loaded
+ * @param {Array<{ componentId: string, params?: object|null }>|((current: Array<{ componentId: string, params: object|null }>) => Array<{ componentId: string, params?: object|null }>)} next
+ *   the list as it would be stored, or a function of the stored list that returns it
+ * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
+ */
+async function assertAgentToolsWrite(agent, next, { managedWrite = null } = {}) {
+    const projectId = agent && agent.project_id;
+    if (!projectId || !(await managedParts.managedInfo(projectId))) return;
+    const current = await getAgentToolsWithParams(agent.id);
+    const asMap = (list) => Object.fromEntries((list || []).map((t) => [t.componentId, t.params || null]));
+    const wanted = typeof next === 'function' ? next(current) : next;
+    if (managedParts.changedKeysOf({ tools: asMap(current) }, { tools: asMap(wanted) }).length === 0) return;
+    await managedParts.assertManagedWrite({ kind: 'agent', projectId, changedKeys: ['tools'], managedWrite });
+}
+
+/**
+ * What an agent GET adds as `managed` (design 5.3): null, or the stage that
+ * manages it. A failed lookup answers null and is logged; a GET never fails on it.
+ *
+ * @param {{ id: string, project_id?: string|null }|null} agent
+ */
+async function managedPayloadOfAgent(agent) {
+    if (!agent || !agent.project_id) return null;
+    try {
+        return await require('../solutionStageStore').managedPayloadFor({ projectId: agent.project_id, kind: 'agent', entityId: agent.id });
+    } catch (err) {
+        log.warn(`[AgentCrud] managed lookup for ${agent.id} failed: ${err.message}`);
+        return null;
+    }
+}
+
+/**
+ * A managed agent (a Solution stage's) is retired by a deploy, never deleted.
+ *
+ * @param {string} id
+ * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
+ */
+async function assertAgentDeletable(id, { managedWrite = null } = {}) {
+    const row = await getOne('SELECT project_id FROM agents WHERE id = $1', [id]);
+    if (row?.project_id) {
+        await managedParts.assertManagedWrite({ kind: 'agent', projectId: row.project_id, changedKeys: ['delete'], managedWrite });
+    }
+}
+
+async function deleteAgent(id, ownerId, opts = {}) {
     await initDB();
+    await assertAgentDeletable(id, opts);
     // Grab org_id before deleting so we can notify sync
     const agent = await getOne('SELECT organization_id FROM agents WHERE id = $1', [id]);
     const { rowCount } = await run('DELETE FROM agents WHERE id = $1 AND owner_id = $2', [id, ownerId]);
@@ -549,8 +644,9 @@ async function deleteAgent(id, ownerId) {
     return rowCount > 0;
 }
 
-async function forceDeleteAgent(id) {
+async function forceDeleteAgent(id, opts = {}) {
     await initDB();
+    await assertAgentDeletable(id, opts);
     await run('DELETE FROM agent_tools WHERE agent_id = $1', [id]);
     await run('DELETE FROM agent_conversations WHERE agent_id = $1', [id]);
     const { rowCount } = await run('DELETE FROM agents WHERE id = $1', [id]);
@@ -804,8 +900,13 @@ async function scrubSkillFromAllAgents(orgId, skillId) {
  */
 async function transferAgentOwner(agentId, newOwnerId, expectedOrgId) {
     await initDB();
-    const agent = await getOne('SELECT organization_id FROM agents WHERE id = $1', [agentId]);
+    const agent = await getOne('SELECT organization_id, project_id FROM agents WHERE id = $1', [agentId]);
     if (!agent) return false;
+    // A managed agent runs as the stage's run-as user: ownership is never
+    // handed over on a stage, not even by a deploy (no capability is passed).
+    if (agent.project_id) {
+        await managedParts.assertManagedWrite({ kind: 'agent', projectId: agent.project_id, changedKeys: ['ownerId'] });
+    }
     if (expectedOrgId && agent.organization_id && agent.organization_id !== expectedOrgId) {
         return false;
     }
@@ -920,7 +1021,7 @@ async function clearProjectFromAgents(projectId) {
 
 module.exports = {
     createAgent, getAgents, getAgent, updateAgent, deleteAgent, forceDeleteAgent,
-    snapshotAgent,
+    snapshotAgent, assertAgentToolsWrite, managedPayloadOfAgent,
     getForRuntime, getAgentViews, publishAgentVersion, projectRuntime, projectDraft, isSplitActive,
     getPublishedAgents, setAgentPublished, getPublishedAgentsForUser,
     getAllAgents, getSystemAgents, ensurePlaceholderAgent,

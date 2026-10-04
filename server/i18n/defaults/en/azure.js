@@ -62,10 +62,8 @@ module.exports = {
     'azure.api_key': 'API Key',
     'azure.api_key_help_set': 'Key is configured. Enter a new value to replace it.',
     'azure.api_key_help_empty': 'Found in Azure Portal → your OpenAI resource → Keys and Endpoint',
-    'azure.api_version': 'API Version',
-    'azure.api_version_help': 'Azure OpenAI API version string',
     'azure.deployed_models': 'Deployed Model Names',
-    'azure.deployed_models_help': 'Comma-separated list of your Azure-deployed model names (deployment IDs)',
+    'azure.deployed_models_help': 'Comma-separated list of your Azure deployment names. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra)',
     'azure.get_from_portal': 'Get from',
 
     // Azure → Chat Model Tiers Section

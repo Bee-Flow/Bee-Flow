@@ -70,7 +70,7 @@ export default function TriggerWebhookPanel({ automation, stepId }) {
     if (!automation?.id || !provisionable) {
         return (
             <div className="text-[11px] text-[var(--text-tertiary)]">
-                Waiting for the routine to save…
+                Waiting for the automation to save…
             </div>
         );
     }
@@ -95,7 +95,7 @@ export default function TriggerWebhookPanel({ automation, stepId }) {
             </div>
 
             <p className="text-[11px] text-[var(--text-tertiary)]">
-                POST to this URL to fire the routine. Requests must be HMAC-signed —
+                POST to this URL to fire the automation. Requests must be HMAC-signed —
                 “Copy as cURL” gives you a complete working command, but only while the
                 secret is still on screen (right after Create or Rotate).
             </p>

@@ -419,7 +419,7 @@ const CORE_TOOL_NAMES = new Set([
     // runtime can dispatch, which then fails at run time as a bogus
     // "you no longer have permission" error.
     'builder_add_http_request',
-    // The approvals playbook phase is a ROUTINE whose brief says
+    // The approvals playbook phase is a AUTOMATION whose brief says
     // `builder_add_approval` verbatim (composeRecipe.js, invoiceTracker.js) —
     // and builder_propose_trigger's own catalog tells the model to call it.
     // Off-menu here, the small model followed those instructions into

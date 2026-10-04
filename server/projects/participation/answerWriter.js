@@ -25,6 +25,7 @@
 
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { REASON_TEXT } = require('./relevanceGate');
 
 const CONTEXT_CHARS = 24_000;
@@ -178,17 +179,13 @@ function makeAnswerWriter(deps = {}) {
             ], options)), timeoutMs);
             try {
                 const usage = result?.usage || {};
-                const n = assistant().usageNumber;
                 await logUsage({
                     user_id: userId,
                     organization_id: orgId,
                     agent_name: `project-${surface}`,
                     agent_type: 'chat',
                     model: model.modelId,
-                    prompt_tokens: n(usage, 'prompt_tokens', 'promptTokens'),
-                    completion_tokens: n(usage, 'completion_tokens', 'completionTokens'),
-                    total_tokens: n(usage, 'total_tokens', 'totalTokens'),
-                    cached_tokens: n(usage, 'cached_tokens', 'cachedTokens'),
+                    ...usageLogFields(usage),
                     stop_reason: result?.stop_reason || null,
                     source: `project_${surface}_auto`,
                     duration_ms: Date.now() - started,

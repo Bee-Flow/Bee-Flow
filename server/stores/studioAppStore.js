@@ -29,11 +29,38 @@ const { LIMITS, emptyDefinition } = require('../appStudio/componentSpecs');
 const log = require('../telemetry/log');
 const { parseJSONObject: parseJSON } = require('./lib/json');
 const { buildUpdate } = require('./lib/sqlBuilder');
+const { changedKeysOf } = require('./lib/managedParts');
 
 // Publish snapshots kept per app (oldest pruned beyond this).
 const MAX_VERSIONS_PER_APP = 20;
 
 const initDB = makeStoreInit('StudioAppStore', _initDB);
+
+/**
+ * The managed-write guard (stores/lib/managedParts.js): an app filed into a
+ * Solution stage project is changed in Dev and deployed. `io.managedParts` is
+ * a test's own instance; the app uses the module's default, required lazily
+ * because it reaches projectStore.
+ */
+function guardOf(io) {
+    return io.managedParts || require('./lib/managedParts');
+}
+
+/** Run `fn` on one client of `io.db` inside BEGIN/COMMIT (ROLLBACK on a throw). */
+async function inTx(io, fn) {
+    const client = await io.db.getClient();
+    try {
+        await client.query('BEGIN');
+        const out = await fn(client);
+        await client.query('COMMIT');
+        return out;
+    } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+    } finally {
+        client.release();
+    }
+}
 
 async function _initDB() {
 
@@ -417,8 +444,8 @@ const APP_CARD_COLUMNS = {
  * Owner-scoped in the WHERE (IDOR-safe). Returns the updated row, or null
  * when the app doesn't exist or isn't owned by ownerId.
  */
-async function updateStudioApp(id, updates = {}, ownerId) {
-    await initDB();
+async function updateStudioApp(io, id, updates = {}, ownerId, { managedWrite = null } = {}) {
+    await io.ready();
     const built = buildUpdate({
         table: 'studio_apps',
         updates,
@@ -428,10 +455,24 @@ async function updateStudioApp(id, updates = {}, ownerId) {
         returning: '*',
     });
     if (!built) {
-        const r = await getOne(`SELECT * FROM studio_apps WHERE id = $1 AND user_id = $2`, [id, ownerId]);
-        return r ? mapAppRow(r) : null;
+        const cur = await io.db.getOne(`SELECT * FROM studio_apps WHERE id = $1 AND user_id = $2`, [id, ownerId]);
+        return cur ? mapAppRow(cur) : null;
     }
-    const row = await getOne(built.sql, built.params);
+    // The row is locked while the guard decides, so no filing into a stage or
+    // deploy lands between the check and the write.
+    const row = await inTx(io, async (client) => {
+        const cur = (await client.query(
+            `SELECT * FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`, [id, ownerId],
+        )).rows[0];
+        if (!cur) return null;
+        // Only what actually changes counts against the lock: a client that
+        // re-sends the stored name is not editing a managed app.
+        await guardOf(io).assertManagedWrite({
+            kind: 'app', projectId: cur.project_id ?? null, managedWrite, client,
+            changedKeys: changedKeysOf(cur, updates, APP_CARD_COLUMNS),
+        });
+        return (await client.query(built.sql, built.params)).rows[0] || null;
+    });
     return row ? mapAppRow(row) : null;
 }
 
@@ -493,20 +534,23 @@ async function setTemplateProvenance(id, ownerId, { templateId, templateVersion,
  * On success: { ok:true, version } (the new definition_version).
  * Oversize definitions throw with .code='definition_too_large'.
  */
-async function saveDefinition(id, ownerId, definition, { expectedVersion = null } = {}) {
-    await initDB();
+async function saveDefinition(io, id, ownerId, definition, { expectedVersion = null, managedWrite = null } = {}) {
+    await io.ready();
     const payload = serializeDefinition(definition);
-    const client = await getClient();
+    const client = await io.db.getClient();
     try {
         await client.query('BEGIN');
         const cur = await client.query(
-            `SELECT definition, definition_version FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+            `SELECT definition, definition_version, project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
             [id, ownerId]
         );
         if (cur.rows.length === 0) {
             await client.query('ROLLBACK');
             return { ok: false, notFound: true };
         }
+        await guardOf(io).assertManagedWrite({
+            kind: 'app', projectId: cur.rows[0].project_id ?? null, changedKeys: ['definition'], managedWrite, client,
+        });
         const currentVersion = parseInt(cur.rows[0].definition_version) || 1;
         if (expectedVersion != null && currentVersion !== expectedVersion) {
             await client.query('ROLLBACK');
@@ -574,19 +618,27 @@ function readThemePrimary(definition) {
     }
 }
 
-async function setStudioAppPublished(id, isPublished, ownerId, sharedGroups = undefined, organizationId = undefined, publishedDefinition = undefined, publishedVersion = undefined) {
-    await initDB();
-    const client = await getClient();
+async function setStudioAppPublished(io, id, isPublished, ownerId, sharedGroups = undefined, organizationId = undefined, publishedDefinition = undefined, publishedVersion = undefined) {
+    await io.ready();
+    const client = await io.db.getClient();
     try {
         await client.query('BEGIN');
         const cur = await client.query(
-            `SELECT definition, definition_version FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+            `SELECT definition, definition_version, project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
             [id, ownerId]
         );
         if (cur.rows.length === 0) {
             await client.query('ROLLBACK');
             return false;
         }
+        // ALWAYS refused on an app of a Solution stage, capability or not: a
+        // publish here re-freezes the WORKING definition. The audience goes
+        // through setStudioAppAudience, the published copy through a deploy's
+        // publishDefinitionWith.
+        await guardOf(io).assertManagedWrite({
+            kind: 'app', projectId: cur.rows[0].project_id ?? null,
+            changedKeys: ['isPublished', 'publishedDefinition'], managedWrite: null, client,
+        });
 
         // The exact bytes that were validated (when supplied) become the frozen
         // published copy — never a racing concurrent draft.
@@ -635,6 +687,105 @@ async function setStudioAppPublished(id, isPublished, ownerId, sharedGroups = un
     }
 }
 
+/** The audience columns setStudioAppAudience writes; nothing else. */
+const APP_AUDIENCE_COLUMNS = {
+    isPublished: APP_PUBLISH_COLUMNS.isPublished,
+    sharedGroups: APP_PUBLISH_COLUMNS.sharedGroups,
+    organizationId: APP_PUBLISH_COLUMNS.organizationId,
+};
+
+/**
+ * Who an app reaches: `is_published`, `shared_groups` and `organization_id`
+ * only, plus the publish stamps (`published_at` on a publish). It never
+ * touches `published_definition` or `published_version`: on an app of a
+ * Solution stage those belong to the deploy (publishDefinitionWith), and the
+ * audience is the stage's own setting, allowed without a deploy (design 4.3).
+ * `sharedGroups` / `organizationId` left undefined keep the stored value.
+ * Owner-scoped in the WHERE; false when the app is not the owner's.
+ *
+ * @param {any} io  the writers' context (makeStudioAppWriters)
+ * @param {string} id
+ * @param {string} ownerId
+ * @param {{ isPublished?: boolean, sharedGroups?: string[], organizationId?: string|null,
+ *           managedWrite?: { deploymentId?: string }|null }} [audience]
+ */
+async function setStudioAppAudience(io, id, ownerId, { isPublished, sharedGroups, organizationId, managedWrite = null } = {}) {
+    await io.ready();
+    const client = await io.db.getClient();
+    try {
+        await client.query('BEGIN');
+        const cur = await client.query(
+            `SELECT project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+            [id, ownerId]
+        );
+        if (cur.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return false;
+        }
+        const write = { isPublished: !!isPublished, sharedGroups, organizationId };
+        await guardOf(io).assertManagedWrite({
+            kind: 'app', projectId: cur.rows[0].project_id ?? null, managedWrite, client,
+            changedKeys: Object.keys(write).filter((k) => write[k] !== undefined),
+        });
+        const built = buildUpdate({
+            table: 'studio_apps',
+            updates: write,
+            columnMap: APP_AUDIENCE_COLUMNS,
+            extraSet: write.isPublished ? ['updated_at = NOW()', 'published_at = NOW()'] : ['updated_at = NOW()'],
+            where: [{ col: 'id', value: id }, { col: 'user_id', value: ownerId }],
+        });
+        await client.query(built.sql, built.params);
+        await client.query('COMMIT');
+        return true;
+    } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+    } finally {
+        client.release();
+    }
+}
+
+/**
+ * A deploy's commit flip for an app: `definition` (the bound release copy,
+ * already canonical and validated by the deploy) becomes the frozen
+ * `published_definition` at `version`, on the commit transaction's `client`
+ * (no BEGIN here; the caller owns the transaction). `is_published` and
+ * `shared_groups` are untouched: whether the app is published is the stage's
+ * setting, which a deploy never changes. The tile accent follows the
+ * published theme, as on a publish.
+ *
+ * On an app of a Solution stage it needs the deploy's `managedWrite`.
+ * Answers true, or false when there is no such app.
+ *
+ * @param {any} io  the writers' context (makeStudioAppWriters)
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} client
+ * @param {string} id
+ * @param {object} definition
+ * @param {number} version  the definition_version the release copy was written at
+ * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
+ */
+async function publishDefinitionWith(io, client, id, definition, version, { managedWrite = null } = {}) {
+    const payload = serializeDefinition(definition);
+    const cur = await client.query(`SELECT project_id FROM studio_apps WHERE id = $1 FOR UPDATE`, [id]);
+    if (cur.rows.length === 0) return false;
+    await guardOf(io).assertManagedWrite({
+        kind: 'app', projectId: cur.rows[0].project_id ?? null,
+        changedKeys: ['publishedDefinition', 'publishedVersion'], managedWrite, client,
+    });
+    const write = { publishedDefinition: payload, publishedVersion: Number.isInteger(version) ? version : null };
+    const primary = readThemePrimary(payload);
+    if (primary) write.accentColor = primary;
+    const built = buildUpdate({
+        table: 'studio_apps',
+        updates: write,
+        columnMap: APP_PUBLISH_COLUMNS,
+        extraSet: ['updated_at = NOW()'],
+        where: [{ col: 'id', value: id }],
+    });
+    await client.query(built.sql, built.params);
+    return true;
+}
+
 /**
  * Delete an app AND the data it holds.
  *
@@ -650,10 +801,12 @@ async function setStudioAppPublished(id, isPublished, ownerId, sharedGroups = un
  * best-effort per artifact: a RustFS hiccup must not leave an app that cannot
  * be deleted at all, so failures are logged loudly and the deletion proceeds.
  */
-async function deleteStudioApp(id, ownerId) {
-    await initDB();
-    const r = await getOne(`SELECT * FROM studio_apps WHERE id = $1 AND user_id = $2`, [id, ownerId]);
+async function deleteStudioApp(io, id, ownerId, { managedWrite = null } = {}) {
+    await io.ready();
+    const r = await io.db.getOne(`SELECT * FROM studio_apps WHERE id = $1 AND user_id = $2`, [id, ownerId]);
     if (!r) return null;
+    // An app of a Solution stage is retired by a deploy, never deleted by hand.
+    await guardOf(io).assertManagedWrite({ kind: 'app', projectId: r.project_id ?? null, changedKeys: ['delete'], managedWrite });
 
     // 1. The per-app database, through the engine facade (sqlite: local handle
     //    + RustFS blob + metadata; pg: DROP SCHEMA CASCADE).
@@ -666,7 +819,7 @@ async function deleteStudioApp(id, ownerId) {
     // 2. Attachment objects (content-addressed) + their ledger rows.
     try {
         const storageStore = require('./storageStore');
-        const rows = await getAll(
+        const rows = await io.db.getAll(
             `SELECT sha256 FROM studio_app_attachments WHERE app_id = $1 AND owner_user_id = $2`,
             [id, ownerId],
         );
@@ -681,16 +834,27 @@ async function deleteStudioApp(id, ownerId) {
                 }
             }
         }
-        await run(`DELETE FROM studio_app_attachments WHERE app_id = $1`, [id]);
+        await io.db.run(`DELETE FROM studio_app_attachments WHERE app_id = $1`, [id]);
     } catch (e) {
         log.error(`[StudioAppStore] delete ${id}: attachment purge FAILED: ${e.message}`);
     }
 
     // 3. The app's own Postgres rows. studio_app_data_meta / _datasets /
     //    _members / _connector_sync are app-scoped too.
-    await run(`DELETE FROM studio_apps WHERE id = $1 AND user_id = $2`, [id, ownerId]);
+    //    The guard runs again on the locked row: a filing into a stage or a
+    //    deploy that landed during the purge refuses the row delete itself.
+    await inTx(io, async (client) => {
+        const cur = (await client.query(
+            `SELECT project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`, [id, ownerId],
+        )).rows[0];
+        if (!cur) return;
+        await guardOf(io).assertManagedWrite({
+            kind: 'app', projectId: cur.project_id ?? null, changedKeys: ['delete'], managedWrite, client,
+        });
+        await client.query(`DELETE FROM studio_apps WHERE id = $1 AND user_id = $2`, [id, ownerId]);
+    });
     // No FK on studio_app_versions — remove snapshots explicitly.
-    await run(`DELETE FROM studio_app_versions WHERE app_id = $1`, [id]);
+    await io.db.run(`DELETE FROM studio_app_versions WHERE app_id = $1`, [id]);
     // studio_app_dataset_cache is NOT app-scoped — it keys on dataset_id and
     // cascades from studio_app_datasets, which is deleted below. It was in this
     // list anyway, so every single app delete logged
@@ -700,7 +864,7 @@ async function deleteStudioApp(id, ownerId) {
     // something real.
     for (const table of ['studio_app_data_meta', 'studio_app_datasets',
         'studio_app_members', 'studio_app_connector_sync']) {
-        try { await run(`DELETE FROM ${table} WHERE app_id = $1`, [id]); } catch (e) {
+        try { await io.db.run(`DELETE FROM ${table} WHERE app_id = $1`, [id]); } catch (e) {
             // A table this deployment doesn't have yet is not a reason to fail
             // the delete; anything else is worth seeing.
             log.warn(`[StudioAppStore] delete ${id}: cleanup of ${table} skipped: ${e.message}`);
@@ -792,9 +956,9 @@ async function getVersion(appId, versionId, ownerId) {
  * clobbering the restore). Returns the updated app row, or null when the
  * version/app doesn't exist or isn't owned by ownerId.
  */
-async function restoreVersion(appId, versionId, ownerId) {
-    await initDB();
-    const client = await getClient();
+async function restoreVersion(io, appId, versionId, ownerId, { managedWrite = null } = {}) {
+    await io.ready();
+    const client = await io.db.getClient();
     try {
         await client.query('BEGIN');
         const v = await client.query(
@@ -804,6 +968,15 @@ async function restoreVersion(appId, versionId, ownerId) {
         if (v.rows.length === 0) {
             await client.query('ROLLBACK');
             return null;
+        }
+        const app = await client.query(
+            `SELECT project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+            [appId, ownerId]
+        );
+        if (app.rows.length > 0) {
+            await guardOf(io).assertManagedWrite({
+                kind: 'app', projectId: app.rows[0].project_id ?? null, changedKeys: ['definition'], managedWrite, client,
+            });
         }
         const payload = typeof v.rows[0].definition === 'string'
             ? v.rows[0].definition
@@ -876,9 +1049,9 @@ async function canReadStudioAppAsync(app, userId, userGroupIds = [], userOrgIds 
     return !!(await getProjectRole(userId, app.projectId));
 }
 
-// Owner-only, unlike canWriteWebpage. Deliberate: app actions run routines
+// Owner-only, unlike canWriteWebpage. Deliberate: app actions run automations
 // acts-as-author, so shared editors could otherwise point the owner's
-// credentials at arbitrary routines by rewiring the definition.
+// credentials at arbitrary automations by rewiring the definition.
 function canWriteStudioApp(app, userId) {
     if (!app) return false;
     return app.userId === userId;
@@ -989,14 +1162,14 @@ async function getBuilderSession(appId, userId) {
  * mismatches return { ok: false, conflict: true, current }. When omitted,
  * the write is unconditional and the version increments by 1.
  */
-async function setBuilderSession(appId, userId, snapshot, { expectedVersion = null, trimBlock = 1 } = {}) {
-    await initDB();
+async function setBuilderSession(io, appId, userId, snapshot, { expectedVersion = null, trimBlock = 1, managedWrite = null } = {}) {
+    await io.ready();
     const trimmed = trimSnapshot(snapshot, { block: trimBlock }) || {};
-    const client = await getClient();
+    const client = await io.db.getClient();
     try {
         await client.query('BEGIN');
         const cur = await client.query(
-            `SELECT user_id, builder_session FROM studio_apps WHERE id = $1 FOR UPDATE`,
+            `SELECT user_id, builder_session, project_id FROM studio_apps WHERE id = $1 FOR UPDATE`,
             [appId]
         );
         if (cur.rows.length === 0) {
@@ -1007,6 +1180,10 @@ async function setBuilderSession(appId, userId, snapshot, { expectedVersion = nu
             await client.query('ROLLBACK');
             return { ok: false, forbidden: true };
         }
+        // An app of a Solution stage has no AI builder session (changed in Dev, deployed).
+        await guardOf(io).assertManagedWrite({
+            kind: 'app', projectId: cur.rows[0].project_id ?? null, changedKeys: ['builderSession'], managedWrite, client,
+        });
         const currentSnap = (typeof cur.rows[0].builder_session === 'string'
             ? parseJSON(cur.rows[0].builder_session, null)
             : (cur.rows[0].builder_session ?? null)) || {};
@@ -1216,16 +1393,54 @@ async function touchPublicPage(token) {
     } catch (_) { /* advisory only */ }
 }
 
-// ── DE ROUTINE-INDEX HANGT AAN DE SCHRIJVER, NIET AAN DE ROUTE ──────
+// ── The guarded writers, over one database ─────────────────────────
 //
-// `automation_usage` beantwoordt "welke knop draait deze routine", en de
-// routine-editor toont dat als de capsule "Gebruikt door 1 knop". Het is het
-// enige scherm waarop iemand die op het punt staat een routine te verwijderen
+// Every writer the managed-write lock covers takes an `io` context as its first
+// argument: the database, its schema init and the guard. Those functions are
+// module-private under their exported names; the app binds them to db.js below;
+// a pglite test builds its own set with makeStudioAppWriters, so the lock is
+// proven against a real Postgres without replacing a module.
+
+/**
+ * @param {{ run: Function, getOne: Function, getAll: Function, getClient: () => Promise<any> }} db
+ * @param {{ ready?: () => Promise<unknown>, managedParts?: { assertManagedWrite: Function }|null }} [opts]
+ */
+function makeStudioAppWriters(db, { ready = async () => {}, managedParts = null } = {}) {
+    const io = { db, ready, managedParts };
+    return {
+        updateStudioApp: (id, updates, ownerId, opts) => updateStudioApp(io, id, updates, ownerId, opts),
+        saveDefinition: (id, ownerId, definition, opts) => saveDefinition(io, id, ownerId, definition, opts),
+        setStudioAppPublished: (id, isPublished, ownerId, sharedGroups, organizationId, publishedDefinition, publishedVersion) =>
+            setStudioAppPublished(io, id, isPublished, ownerId, sharedGroups, organizationId, publishedDefinition, publishedVersion),
+        setStudioAppAudience: (id, ownerId, audience) => setStudioAppAudience(io, id, ownerId, audience),
+        publishDefinitionWith: (client, id, definition, version, opts) => publishDefinitionWith(io, client, id, definition, version, opts),
+        deleteStudioApp: (id, ownerId, opts) => deleteStudioApp(io, id, ownerId, opts),
+        restoreVersion: (appId, versionId, ownerId, opts) => restoreVersion(io, appId, versionId, ownerId, opts),
+        setBuilderSession: (appId, userId, snapshot, opts) => setBuilderSession(io, appId, userId, snapshot, opts),
+        /** null | {solutionId, stage, stageProjectId}: the stage an app belongs to (cached lookup). */
+        managedInfoOfApp: (app) => guardOf(io).managedInfo(app && app.projectId ? app.projectId : null),
+    };
+}
+
+// The app's set: db.js behind the store's schema init. Wrapped, not bound, so
+// a test that replaces '../db' before requiring this store is still honoured.
+const writers = makeStudioAppWriters({
+    run: (sql, params) => run(sql, params),
+    getOne: (sql, params) => getOne(sql, params),
+    getAll: (sql, params) => getAll(sql, params),
+    getClient: () => getClient(),
+}, { ready: initDB });
+
+// ── DE AUTOMATION-INDEX HANGT AAN DE SCHRIJVER, NIET AAN DE ROUTE ──────
+//
+// `automation_usage` beantwoordt "welke knop draait deze automation", en de
+// automation-editor toont dat als de capsule "Gebruikt door 1 knop". Het is het
+// enige scherm waarop iemand die op het punt staat een automatisering te verwijderen
 // of te deactiveren ziet dat er een app-knop aan hangt.
 //
 // `reconcileAutomationUsage` is delete-then-insert op (consumer_kind,
 // consumer_id), dus een schrijver die de reconcile overslaat laat de rijen van
-// de VORIGE definitie staan: een actie die zijn routine kwijtraakt houdt de
+// de VORIGE definitie staan: een actie die zijn automatisering kwijtraakt houdt de
 // capsule in de lucht, en een die er een krijgt komt er nooit in.
 //
 // Daarom staat hij hier, om de DRIE functies die `studio_apps.definition`
@@ -1242,7 +1457,7 @@ async function touchPublicPage(token) {
 // OOK om `setStudioAppPublished`, en dat is sinds de sluitronde van P4 een
 // bewuste omkering. Die functie bevriest een KOPIE (`published_definition`) en
 // raakt de werkende definitie niet — maar de index gaat over de vraag "wie
-// breekt er als ik deze routine weggooi", en dat is een vraag over PRODUCTIE.
+// breekt er als ik deze automatisering weggooi", en dat is een vraag over PRODUCTIE.
 // Bezoekers draaien de gepubliceerde kopie, dus die telt mee: de reconciler
 // bouwt de UNIE van draft en published (appStudio/automationUsageSync.js), en
 // dan verandert publiceren én DEPUBLICEREN wel degelijk wat er in de index
@@ -1250,7 +1465,7 @@ async function touchPublicPage(token) {
 //
 // Gedebouncet en detached: het is een index, geen bewerking. Een save wacht er
 // niet op en gaat er niet aan kapot.
-function reindexRoutineUsage(appId) {
+function reindexAutomationUsage(appId) {
     if (!appId) return;
     try {
         require('../appStudio/automationUsageSync').reconcileAppAutomationUsageDetached(appId);
@@ -1261,42 +1476,42 @@ function reindexRoutineUsage(appId) {
 
 async function createStudioAppIndexed(args) {
     const app = await createStudioApp(args);
-    reindexRoutineUsage(app && app.id);
+    reindexAutomationUsage(app && app.id);
     return app;
 }
 
 async function saveDefinitionIndexed(id, ownerId, definition, opts) {
-    const out = await saveDefinition(id, ownerId, definition, opts);
+    const out = await writers.saveDefinition(id, ownerId, definition, opts);
     // Alleen na een ECHTE schrijf. Een CAS-conflict of een niet-gevonden app
     // heeft niets veranderd, en dan is een scan alleen maar werk.
-    if (out && out.ok) reindexRoutineUsage(id);
+    if (out && out.ok) reindexAutomationUsage(id);
     return out;
 }
 
-async function restoreVersionIndexed(appId, versionId, ownerId) {
-    const out = await restoreVersion(appId, versionId, ownerId);
-    if (out) reindexRoutineUsage(appId);
+async function restoreVersionIndexed(appId, versionId, ownerId, opts) {
+    const out = await writers.restoreVersion(appId, versionId, ownerId, opts);
+    if (out) reindexAutomationUsage(appId);
     return out;
 }
 
 async function setStudioAppPublishedIndexed(id, ...rest) {
-    const out = await setStudioAppPublished(id, ...rest);
+    const out = await writers.setStudioAppPublished(id, ...rest);
     // Publiceren verandert de GEPUBLICEERDE helft van de unie, depubliceren
     // haalt hem weg. Alleen na een echte schrijf: `false` betekent dat de app
     // niet bestaat of niet van deze eigenaar is, en dan is er niets veranderd.
-    if (out) reindexRoutineUsage(id);
+    if (out) reindexAutomationUsage(id);
     return out;
 }
 
 /**
  * Verwijderen ruimt de index op. Geen FK — `automations` en `automation_usage`
  * horen bij andere stores — dus zonder dit blijft een rij staan die een
- * routine-eigenaar vertelt dat een knop die hij niet kan zien zijn routine
+ * automation-eigenaar vertelt dat een knop die hij niet kan zien zijn automatisering
  * aanzet. Ge-await, anders dan de reconcile: een purge die met de verwijdering
  * meeraced zou de rijen kunnen terugzetten. Gooit nooit (de purge vangt zelf).
  */
-async function deleteStudioAppIndexed(id, ownerId) {
-    const out = await deleteStudioApp(id, ownerId);
+async function deleteStudioAppIndexed(id, ownerId, opts) {
+    const out = await writers.deleteStudioApp(id, ownerId, opts);
     if (out) {
         await require('../appStudio/automationUsageSync').purgeAppAutomationUsage(id);
     }
@@ -1320,11 +1535,20 @@ module.exports = {
     getStudioApp,
     getStudioAppsByUser,
     getAccessibleStudioApps,
-    updateStudioApp,
+    updateStudioApp: writers.updateStudioApp,
     setTemplateStamp,
     setTemplateProvenance,
     saveDefinition: saveDefinitionIndexed,
     setStudioAppPublished: setStudioAppPublishedIndexed,
+    // Solution stages: the audience alone (never the published copy), the
+    // deploy's commit flip, and the stage an app belongs to.
+    setStudioAppAudience: writers.setStudioAppAudience,
+    // No reindex here: it runs inside the deploy's commit, and a detached
+    // reindex would read before the commit lands. The deploy's converge phase
+    // reindexes the app's automation usage after the commit.
+    publishDefinitionWith: writers.publishDefinitionWith,
+    managedInfoOfApp: writers.managedInfoOfApp,
+    makeStudioAppWriters,
     deleteStudioApp: deleteStudioAppIndexed,
     // Nextcloud app-menu publication
     setStudioAppNextcloudMenu,
@@ -1335,7 +1559,7 @@ module.exports = {
     listVersions,
     getVersion,
     // Ook een definitieschrijver, dus ook door de wrapper — een teruggezette
-    // versie kan andere routines noemen dan de versie die eroverheen ging.
+    // versie kan andere automatiseringen noemen dan de versie die eroverheen ging.
     restoreVersion: restoreVersionIndexed,
     // Access
     canReadStudioApp,
@@ -1344,7 +1568,7 @@ module.exports = {
     userHasAnyStudioAppAccess,
     // Builder session
     getBuilderSession,
-    setBuilderSession,
+    setBuilderSession: writers.setBuilderSession,
     clearBuilderSession,
     // Public pages (anonymous entry points)
     createPublicPage,

@@ -247,7 +247,7 @@ export default function SkillDetail({
     };
 
     /**
-     * A reference pill in a step opens the thing it points at — the routine,
+     * A reference pill in a step opens the thing it points at — the automation,
      * the knowledge base, the table — through the SAME deep link the Used-by
      * table builds (`usageHref`), so a step's pill and a usage row cannot
      * disagree about where a thing lives.

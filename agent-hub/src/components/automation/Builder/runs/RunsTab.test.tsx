@@ -146,7 +146,7 @@ describe('RunsTab: the list', () => {
         expect(calls.some(c => c.url.includes('/approvals?'))).toBe(false);
     });
 
-    it('facet counts come from the routine list, not the user-wide facets route', async () => {
+    it('facet counts come from the automation list, not the user-wide facets route', async () => {
         renderTab({});
         await screen.findByRole('tab', { name: /Failed\s*1/ });
         expect(calls.some(c => c.url.includes('/_runs/facets'))).toBe(false);

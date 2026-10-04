@@ -1,7 +1,8 @@
 /**
  * NotebookWorkspace — the universal, editor-agnostic workspace shell for
- * Notebooks + Legal (+ the embedded variant). It owns layout only: a unified
- * header, toggleable left/right drawers, a centered editor column (children), a
+ * Notebooks + Legal (+ the embedded variant). It owns layout only: the shared
+ * Studio object header (StudioSectionHeader, the same row agents, tables and
+ * documents open with), toggleable left/right drawers, a centered editor column (children), a
  * ⌘K command palette, banners and an overlays slot. It never imports a concrete
  * editor — the page passes the editor as `children` — so both engines work.
  *
@@ -10,8 +11,9 @@
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-    ArrowLeft, PanelLeft, MessageSquare, Command as CommandIcon,
+    PanelLeft, MessageSquare, Command as CommandIcon,
 } from 'lucide-react';
+import StudioSectionHeader from '../../components/shared/StudioSectionHeader';
 import useTranslation from '../../hooks/useTranslation';
 import useViewport from '../../hooks/useViewport';
 import useDrawerState from './hooks/useDrawerState';
@@ -20,33 +22,37 @@ import Drawer from './shell/Drawer';
 import CommandPalette from './shell/CommandPalette';
 import buildCommands from './shell/buildCommands';
 
-const LEFT_WIDTH = 248;
+const LEFT_WIDTH = 272;
 
 /* ── A header toggle button with active highlight ─────────────── */
 function HeaderToggle({ icon: Icon, label, active, disabled, onClick }) {
     return (
         <button
+            type="button"
             onClick={onClick}
             disabled={disabled}
-            className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-40"
+            className={`grid place-items-center w-8 h-8 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40 ${
+                active ? 'bg-[var(--bg-tertiary)] text-[var(--accent-primary)]' : 'bg-transparent text-[var(--text-secondary)]'
+            }`}
             title={label}
             aria-label={label}
             aria-pressed={!!active}
-            style={{ background: active ? 'var(--bg-tertiary)' : 'transparent' }}
         >
-            <Icon className="w-4 h-4" style={{ color: active ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
+            <Icon className="w-4 h-4" aria-hidden="true" />
         </button>
     );
 }
 
 export default function NotebookWorkspace({
     variant = 'notebook',
-    icon: Icon,
-    iconColor = 'var(--brand-primary)',
-    title,
-    meta,
+    kind = 'document',          // the Studio kind: tile colour + glyph (kindColors)
+    icon,                       // optional glyph overriding the kind's own
+    title,                      // the object's name (string)
+    onRename,                   // (name) => void; omitted -> the name is plain text
+    renameRequest = 0,          // bump to open the inline rename (command palette)
     onBack,
-    saveStatus = null,          // the save-status node (detail/NotebookSaveStatus)
+    backLabel,
+    statusChip = null,          // node beside the name: chips, presence, save status
     headerActions,
     headerExtras = [],          // [{ id, icon, label, active, disabled, onClick }]
     leftDrawer,                 // { label, icon, node } | null
@@ -112,46 +118,38 @@ export default function NotebookWorkspace({
     }, [commandContext, t, leftDrawer, rightDrawer, toggleLeft, toggleRight]);
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
-            {/* ── Header ── */}
-            <div className="shrink-0 flex items-center gap-3 px-5 py-3 border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                {onBack && (
-                    <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors shrink-0" title={t('notebooks.back', 'Back')} aria-label={t('notebooks.back', 'Back')}>
-                        <ArrowLeft className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                    </button>
+        <div className="h-full flex flex-col bg-[var(--bg-primary)]">
+            {/* ── Header: the shared Studio object header ── */}
+            <StudioSectionHeader
+                kind={kind}
+                icon={icon}
+                title={title}
+                onRename={onRename}
+                renameRequest={renameRequest}
+                statusChip={statusChip}
+                onBack={onBack}
+                backLabel={backLabel || t('notebooks.back_to_documents', 'Documents')}
+                testId="notebook-header"
+                extras={(
+                    <>
+                        <div className="flex items-center gap-0.5 shrink-0" role="toolbar" aria-label={t('notebooks.view_toggles', 'Panels')}>
+                            {leftDrawer && (
+                                <HeaderToggle icon={leftDrawer.icon || PanelLeft} label={leftDrawer.label || t('notebooks.toggle_sources', 'Toggle Sources')} active={leftEffectiveOpen} onClick={toggleLeft} />
+                            )}
+                            {headerExtras.map((x) => (
+                                <HeaderToggle key={x.id} icon={x.icon} label={x.label} active={x.active} disabled={x.disabled} onClick={x.onClick} />
+                            ))}
+                            {rightDrawer && (
+                                <HeaderToggle icon={rightDrawer.icon || MessageSquare} label={rightDrawer.label || t('notebooks.toggle_chat', 'Toggle AI Chat')} active={rightEffectiveOpen} onClick={toggleRight} />
+                            )}
+                            {commandContext && (
+                                <HeaderToggle icon={CommandIcon} label={t('notebooks.command_palette', 'Command palette (⌘K)')} active={paletteOpen} onClick={() => setPaletteOpen(true)} />
+                            )}
+                        </div>
+                        {headerActions}
+                    </>
                 )}
-                {Icon && (
-                    <div className="w-10 h-10 rounded-xl border-[1.5px] flex items-center justify-center shrink-0" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                        <Icon className="w-5 h-5" style={{ color: iconColor }} />
-                    </div>
-                )}
-                <div className="flex-1 min-w-0">
-                    {typeof title === 'string'
-                        ? <h2 className="text-base font-bold truncate" style={{ color: 'var(--text-primary)' }} title={title}>{title}</h2>
-                        : title}
-                    {meta && <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{meta}</p>}
-                </div>
-
-                {saveStatus && <div className="shrink-0 flex items-center">{saveStatus}</div>}
-
-                {/* View toggles */}
-                <div className="flex items-center gap-0.5 shrink-0 pl-2 ml-1 border-l" style={{ borderColor: 'var(--border-subtle)' }}>
-                    {leftDrawer && (
-                        <HeaderToggle icon={leftDrawer.icon || PanelLeft} label={leftDrawer.label || t('notebooks.toggle_sources', 'Toggle Sources')} active={leftEffectiveOpen} onClick={toggleLeft} />
-                    )}
-                    {headerExtras.map((x) => (
-                        <HeaderToggle key={x.id} icon={x.icon} label={x.label} active={x.active} disabled={x.disabled} onClick={x.onClick} />
-                    ))}
-                    {rightDrawer && (
-                        <HeaderToggle icon={rightDrawer.icon || MessageSquare} label={rightDrawer.label || t('notebooks.toggle_chat', 'Toggle AI Chat')} active={rightEffectiveOpen} onClick={toggleRight} />
-                    )}
-                    {commandContext && (
-                        <HeaderToggle icon={CommandIcon} label={t('notebooks.command_palette', 'Command palette (⌘K)')} active={paletteOpen} onClick={() => setPaletteOpen(true)} />
-                    )}
-                </div>
-
-                {headerActions}
-            </div>
+            />
 
             {/* ── Banners ── */}
             {banners}
@@ -164,7 +162,7 @@ export default function NotebookWorkspace({
                     </Drawer>
                 )}
                 {secondaryLeft}
-                <div className="flex-1 min-w-0 flex flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+                <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-[var(--bg-primary)]">
                     {children}
                 </div>
                 {secondaryRight}

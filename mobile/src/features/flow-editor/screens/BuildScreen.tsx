@@ -1,13 +1,13 @@
 /**
- * Build a routine on the phone — the web builder's Build tab (BuildTab.jsx,
+ * Build an automation on the phone — the web builder's Build tab (BuildTab.jsx,
  * BuilderShell.jsx, BuilderHeader.jsx) for a touch screen.
  *
- *   header    the routine's name over "Draft · Saved", Go live / Live
+ *   header    the automation's name over "Draft · Saved", Go live / Live
  *             (switch off, asked), ⋯ (rename, findings, run history,
  *             versions, flowlets, settings, details, diagnose)
  *   toolbar   Steps | Canvas, Undo, Redo, Ask AI, a test run and more ways
  *             to run (Run live, Start from); a failed save's banner under it,
- *             and on a live routine the saved changes that are not live yet
+ *             and on a live automation the saved changes that are not live yet
  *             with Make vN live (PublishBanner)
  *   run line  the last test run: where it is while it goes, where it failed,
  *             its result sheet (components/run)
@@ -21,8 +21,8 @@
  *             step at the section that fixes it
  *   Ask AI    the assistant sheet over the builder stream (components/ai)
  *
- * One draft store holds the routine (useFlowDraft); every edit here is one
- * undoable operation on it, saved by its autosave. A new routine
+ * One draft store holds the automation (useFlowDraft); every edit here is one
+ * undoable operation on it, saved by its autosave. A new automation
  * (`id === NEW_FLOW_ID`) starts from a seed and is created on its first edit,
  * then hands over to its own build route (useHandover) — not while the AI is
  * building into it.
@@ -87,7 +87,7 @@ function EditorHeader({ draft, definition, ...rest }: EditorHeaderProps) {
             {...rest}
             flowKey={draft.key}
             store={draft.store}
-            title={row?.title || t('mobile.flow.untitled', 'Untitled routine')}
+            title={row?.title || t('automations.library.untitled', 'Untitled automation')}
             isActive={!!row?.isActive}
             isDraft={row?.isDraft ?? true}
             triggerKind={definition.trigger?.kind ?? null}
@@ -112,13 +112,13 @@ function BuildEditor({ draft, definition, fromTemplate, onHold }: { draft: FlowD
     const assistant: Assistant = useAssistant(draft);
     useUnsavedLeave(draft.key, draft.store);
     const runs = useTestRuns(draft.key, draft.store);
-    // A new routine's first test run creates it; handing over to its own
+    // A new automation's first test run creates it; handing over to its own
     // route mid-run would drop the run (its state is keyed by this draft).
     const holding = assistant.open || assistant.ai.streaming || runs.running;
     useEffect(() => onHold(holding), [onHold, holding]);
 
     // Before the parent's hand-over (a child's effects run first), so the
-    // routine's own screen finds this run under the new id.
+    // automation's own screen finds this run under the new id.
     useEffect(() => {
         if (automationId) aliasTestRunStore(draft.key, automationId);
     }, [draft.key, automationId]);
@@ -187,11 +187,11 @@ function BuildEditor({ draft, definition, fromTemplate, onHold }: { draft: FlowD
 }
 
 export interface BuildScreenProps {
-    /** The routine's id, or NEW_FLOW_ID. */
+    /** The automation's id, or NEW_FLOW_ID. */
     id: string;
-    /** A new routine's kind: a plain one, or a form. */
+    /** A new automation's kind: a plain one, or a form. */
     kind?: NewFlowKind;
-    /** Open the template gallery first (a new routine "from a template"). */
+    /** Open the template gallery first (a new automation "from a template"). */
     fromTemplate?: boolean;
 }
 

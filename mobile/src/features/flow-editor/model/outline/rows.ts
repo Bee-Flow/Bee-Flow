@@ -1,5 +1,5 @@
 /**
- * The Steps outline: a routine's graph as one vertical list, the phone's
+ * The Steps outline: an automation's graph as one vertical list, the phone's
  * reading of the web canvas (flow/layout.js lays the same graph out left to
  * right).
  *

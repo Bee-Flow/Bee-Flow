@@ -6,7 +6,7 @@ import useExecutions from './useExecutions';
 import useRunStream from './useRunStream';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { dayBucketLabel } from '../RoutinesStudio/historyUtils';
+import { dayBucketLabel } from '../AutomationsStudio/historyUtils';
 
 /**
  * The runs list — status / what ran / what happened / timing / trigger, in
@@ -53,7 +53,7 @@ export default function ExecutionsTable({ scope, automationId, stepId, runScope 
     //
     // AND EMPTIED WHEN THE SCOPE CHANGES, which it was not. The map is fed from
     // whatever rows happen to have been loaded, so a visit to the organisation
-    // scope filled it with colleagues' routine NAMES — and switching back to
+    // scope filled it with colleagues' automation NAMES — and switching back to
     // "my runs" kept them in the dropdown. The rows were scoped correctly the
     // whole time; the picker above them was not, so the scoping lived in the
     // query and leaked in the chrome.
@@ -210,7 +210,7 @@ function EmptyState({ scope, range, onShowAllTime }) {
     }
     const msg = scope === 'step'
         ? 'No runs yet. Test this Step or call it from an automation to see its runs.'
-        : 'No runs yet. Run the routine to see what happened here, step by step.';
+        : 'No runs yet. Run the automation to see what happened here, step by step.';
     return (
         <div className="py-12 text-center text-sm text-[var(--text-tertiary)] px-6">{msg}</div>
     );

@@ -4,11 +4,11 @@
  * actually hands to the store.
  *
  * The rule under test is one sentence: a persona may only ever point at a
- * routine of the AGENT'S OWNER, and every answer that is not a confirmed yes —
+ * automation of the AGENT'S OWNER, and every answer that is not a confirmed yes —
  * missing, inactive, someone else's, not agent-callable, a lookup that threw —
  * lands on the same no. The one that bites in practice is the org-admin case:
  * an admin may legitimately edit a colleague's agent, and attaching one of
- * THEIR OWN routines to it would mint a grant the agent's owner never made, on
+ * THEIR OWN automations to it would mint a grant the agent's owner never made, on
  * an agent that runs under a different identity.
  *
  * crud.js's heavy top-level deps are stubbed through the Module resolve hook
@@ -138,21 +138,21 @@ const HANDOFF = { who: 'You are support.', does: ['Answer questions'], unknown: 
 
 // ── verifyHandoffAutomation: every non-yes is a no ──────────────────
 
-test('a routine of the agent owner, active and agent-callable, verifies', async () => {
+test('an automation of the agent owner, active and agent-callable, verifies', async () => {
     fx.automations['auto-1'] = CALLABLE();
     const v = await verifyHandoffAutomation(AGENT(), 'auto-1');
     assert.deepStrictEqual(v, { id: 'auto-1', label: 'escalate_to_support', title: 'Escalate to support' });
 });
 
-test('a routine belonging to the EDITOR rather than the agent owner is refused', async () => {
+test('an automation belonging to the EDITOR rather than the agent owner is refused', async () => {
     // The org-admin case: allowed to edit this agent, not allowed to lend it
-    // one of their own routines. The agent runs as its owner.
+    // one of their own automations. The agent runs as its owner.
     fx.userId = 'org-admin';
     fx.automations['auto-1'] = CALLABLE({ userId: 'org-admin' });
     assert.strictEqual(await verifyHandoffAutomation(AGENT({ owner_id: 'owner' }), 'auto-1'), null);
 });
 
-test('missing, inactive and non-agent-callable routines are all refused', async () => {
+test('missing, inactive and non-agent-callable automations are all refused', async () => {
     assert.strictEqual(await verifyHandoffAutomation(AGENT(), 'auto-1'), null, 'missing');
     fx.automations['auto-1'] = CALLABLE({ isActive: false });
     assert.strictEqual(await verifyHandoffAutomation(AGENT(), 'auto-1'), null, 'inactive');
@@ -221,12 +221,12 @@ test('a VERIFIED hand-off writes the grant and names the real action in the prom
 test('an UNVERIFIED hand-off writes no grant, drops the id, and promises nothing', async () => {
     fx.automations['auto-1'] = CALLABLE({ userId: 'somebody-else' });
     const r = await resolvePersonaWrite(AGENT(), HANDOFF, { enabledIntegrations: [] });
-    assert.strictEqual(r.config.tools, undefined, 'no grant for a routine we could not confirm');
+    assert.strictEqual(r.config.tools, undefined, 'no grant for an automation we could not confirm');
     assert.strictEqual(r.persona.unknown.automationId, null, 'a stored id that resolves to nothing is a hand-off that never happens');
     assert.strictEqual(r.persona.unknown.mode, 'handoff', 'the MODE is the owner\'s choice and survives — only the unverified half is dropped');
     assert.ok(!/hand it over with/.test(r.systemPrompt));
     assert.match(r.systemPrompt, /say so plainly/);
-    assert.ok(r.warnings.some(w => /auto-1/.test(w)), 'the editor is told why the routine did not stick');
+    assert.ok(r.warnings.some(w => /auto-1/.test(w)), 'the editor is told why the automation did not stick');
 });
 
 test('a request that carries no config gets no config invented for it', async () => {
@@ -362,7 +362,7 @@ test('PUT with persona:null clears the column and keeps the sent prompt', async 
     assert.strictEqual(opts.persona, null);
 });
 
-test('a persona-derived routine grant still goes through the tool clamp', async () => {
+test('a persona-derived automation grant still goes through the tool clamp', async () => {
     // The one path that MINTS a grant server-side must not be the one path that
     // skips the normaliser every other grant passes.
     fx.agents.a1 = AGENT();

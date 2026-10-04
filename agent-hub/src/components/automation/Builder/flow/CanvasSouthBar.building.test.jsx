@@ -123,10 +123,10 @@ describe('CanvasSouthBar — the build banner', () => {
         expect(screen.getByTestId('canvas-build-verb').textContent).toContain('Skipped: still no such step');
     });
 
-    it('says "Reviewing the routine…" in the reviewing phase instead of the past-tense verb', () => {
+    it('says "Reviewing the automation…" in the reviewing phase instead of the past-tense verb', () => {
         const lastCall = callFor({ name: 'builder_summarise', arguments: {}, result: { ok: true } });
         render(<CanvasSouthBar buildCue={cue({ lastCall, phase: 'reviewing' })} />);
-        expect(screen.getByTestId('canvas-build-verb').textContent).toBe(' · Reviewing the routine…');
+        expect(screen.getByTestId('canvas-build-verb').textContent).toBe(' · Reviewing the automation…');
     });
 
     it('shows "Plan done/total · <next to-do>" only when a plan exists, quoting the first undone todo', () => {

@@ -1,5 +1,5 @@
 /**
- * A flowlet edited as if it were the routine: reads are its graph, writes
+ * A flowlet edited as if it were the automation: reads are its graph, writes
  * land in the whole document as one root edit, and the view is stable while
  * nothing changes.
  */
@@ -34,7 +34,7 @@ function stores() {
 
 afterEach(() => jest.useRealTimers());
 
-it('reads the flowlet’s graph, with the routine’s flowlets beside it', () => {
+it('reads the flowlet’s graph, with the automation’s flowlets beside it', () => {
     const { view } = stores();
     const def = view.getState().definition;
     expect(def?.trigger?.kind).toBe('layer_input');
@@ -61,7 +61,7 @@ it('writes an edit into the whole document as one undoable edit', () => {
     base.getState().dispose();
 });
 
-it('puts a flowlet created from inside one on the routine’s own map', () => {
+it('puts a flowlet created from inside one on the automation’s own map', () => {
     jest.useFakeTimers();
     const { base, view } = stores();
     view.getState().applyOp((d) => createLayerInDefinition(d, 'Inner', () => 'ab').definition);

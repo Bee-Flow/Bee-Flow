@@ -30,11 +30,11 @@ const makeStyles = (theme: Theme) =>
         follow: { alignSelf: 'flex-start', marginTop: theme.spacing.xs },
     });
 
-/** The expanded result's way on: the routine it came from, or the Cowork item. */
+/** The expanded result's way on: the automation it came from, or the Cowork item. */
 function FollowButton({ category, onPress }: { category: string; onPress: () => void }) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
-    const label = category === 'cowork' ? t('mobile.notifications.open_cowork', 'Open Cowork item') : t('mobile.notifications.open_routine', 'Open routine');
+    const label = category === 'cowork' ? t('mobile.notifications.open_cowork', 'Open Cowork item') : t('mobile.notifications.open_automation', 'Open automation');
     return (
         <View style={styles.follow}>
             <Button size="sm" variant="secondary" iconName="ArrowRight" label={label} onPress={onPress} testID="notification-follow" />
@@ -43,7 +43,7 @@ function FollowButton({ category, onPress }: { category: string; onPress: () => 
 }
 
 /**
- * A routine whose credentials lapsed writes `routine_reauth:<provider>` at the
+ * An automation whose credentials lapsed writes `automation_reauth:<provider>` at the
  * head of its body. The provider is said by name ("Google Workspace", not
  * "google"), and the way on is the phone's own Integrations screen, where the
  * connector reconnects — not a trip to the web app.
@@ -56,7 +56,7 @@ function ReauthNote({ provider }: { provider: string }) {
     return (
         <>
             <Text variant="caption" tone="warning">
-                {t('mobile.notifications.reauth_body', 'Connect {provider} again to restart this routine.', { provider: name })}
+                {t('mobile.notifications.reauth_body', 'Connect {provider} again to restart this automation.', { provider: name })}
             </Text>
             <View style={styles.follow}>
                 <Button

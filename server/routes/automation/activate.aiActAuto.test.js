@@ -5,7 +5,7 @@
  * fast-model verdict; no module mocking.
  *
  * Proven:
- *   - a routine Bee can assess by itself goes live, and the check is recorded
+ *   - an automation Bee can assess by itself goes live, and the check is recorded
  *     (source 'auto') on the way;
  *   - otherwise 409 `ai_act_check_required` with ONLY the open questions,
  *     each with its suggestion and evidence, and nothing goes live;
@@ -38,7 +38,7 @@ const SURE_NO = {
     highRisk: { answer: 'no', confidence: 'high', domains: [] },
 };
 
-function routine(definition) {
+function automation(definition) {
     const a = {
         id: 'a1', userId: 'u1', organizationId: 'org-1', title: 'Invoices', kind: 'automation', version: 4,
         isActive: false, isDraft: true, definition, liveVersion: null, triggerType: 'manual',
@@ -106,8 +106,8 @@ function run(handler, deps) {
 }
 
 for (const [name, handler] of [['activate', activateAutomation], ['publish', publishAutomation]]) {
-    test(`${name}: Bee answers everything itself, records the check and the routine goes live`, async () => {
-        const w = harness(routine(INTERNAL));
+    test(`${name}: Bee answers everything itself, records the check and the automation goes live`, async () => {
+        const w = harness(automation(INTERNAL));
         const r = await run(handler, w.deps);
         assert.strictEqual(r.status, 200);
         assert.strictEqual(w.attests.length, 1);
@@ -117,7 +117,7 @@ for (const [name, handler] of [['activate', activateAutomation], ['publish', pub
     });
 
     test(`${name}: 409 with only the question Bee could not answer; answered, the same call goes through`, async () => {
-        const w = harness(routine(REPLY));
+        const w = harness(automation(REPLY));
         await assert.rejects(run(handler, w.deps), (e) => {
             assert.ok(e instanceof HttpError);
             assert.strictEqual(e.status, 409);
@@ -133,7 +133,7 @@ for (const [name, handler] of [['activate', activateAutomation], ['publish', pub
         assert.strictEqual(w.attests.length, 0);
 
         // The builder's dialog: PUT /:id/ai-act/answers, then the same call again.
-        await w.auto.check(routine(REPLY), REPLY, { actorId: 'u1', answers: { externalOutput: 'yes' } });
+        await w.auto.check(automation(REPLY), REPLY, { actorId: 'u1', answers: { externalOutput: 'yes' } });
         const r = await run(handler, w.deps);
         assert.strictEqual(r.status, 200);
         assert.strictEqual(w.attests.length, 1, 'no second record on the way through');
@@ -141,7 +141,7 @@ for (const [name, handler] of [['activate', activateAutomation], ['publish', pub
     });
 
     test(`${name}: without the model the two model questions are asked, never guessed`, async () => {
-        const w = harness(routine(INTERNAL), { verdict: { available: false } });
+        const w = harness(automation(INTERNAL), { verdict: { available: false } });
         await assert.rejects(run(handler, w.deps), (e) => {
             assert.strictEqual(e.code, 'ai_act_check_required');
             assert.deepStrictEqual(e.details.questions.map(q => [q.id, q.confidence]), [['sensitiveUse', 'unknown'], ['prohibitedUse', 'unknown']]);

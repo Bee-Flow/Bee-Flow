@@ -12,7 +12,7 @@
 //      row in a table.
 //   3. That without a source reference, every run leaves ANOTHER document.
 //      This is the one mistake that costs the most and shows up the latest: the
-//      routine works, nothing errors, and six months later nobody can explain
+//      automation works, nothing errors, and six months later nobody can explain
 //      why the base has two thousand near-identical entries.
 import { BookOpen } from 'lucide-react';
 import { useMemo } from 'react';
@@ -20,6 +20,7 @@ import TemplateField from '../../mapping/TemplateField';
 import AccordionSection from '../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
 import { FormRow, inputClass } from './formPrimitives';
+import useForEachRequest from '../../mapping/useForEachRequest';
 
 /** Fallback list, so the panel still works if the catalog call failed. */
 const FALLBACK_STRATEGIES = [
@@ -81,6 +82,8 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
 }
 
 function ContentSection({ draft, set, onFocusField, previewSample, errorSections }) {
+    // A separate run per item (under a field's More) sets this step's forEach.
+    const forEach = useForEachRequest(draft, set);
     const repeats = !String(draft.sourceUri || '').trim();
 
     return (
@@ -94,6 +97,8 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                 hint="Click a value in the right panel to insert it — usually the step that wrote the article. An agent will quote this back as fact, so send it finished text, not working notes."
             >
                 <TemplateField
+                    onRequestForEach={forEach.request}
+                    canForEach={forEach.allowed}
                     value={draft.content || ''}
                     onChange={(next) => set('content', next)}
                     rows={4}
@@ -105,6 +110,8 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
 
             <FormRow label="Title" hint="What the document is called where a person browses the base.">
                 <TemplateField
+                    onRequestForEach={forEach.request}
+                    canForEach={forEach.allowed}
                     value={draft.title || ''}
                     onChange={(next) => set('title', next)}
                     rows={1}
@@ -119,6 +126,8 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                 hint="Something stable and unique for this subject — a ticket link, a record id. The next run with the same reference REPLACES this document instead of adding another."
             >
                 <TemplateField
+                    onRequestForEach={forEach.request}
+                    canForEach={forEach.allowed}
                     value={draft.sourceUri || ''}
                     onChange={(next) => set('sourceUri', next)}
                     rows={1}

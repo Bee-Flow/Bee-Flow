@@ -9,7 +9,7 @@
  *
  * Mirrors `MEMORY_TYPES` in `server/routes/memory.js`, which is the source of
  * truth: the API validates against it and the extractor's JSON schema enumerates
- * it. `routine_coverage` is deliberately absent from both — it is internal
+ * it. `schedule_coverage` is deliberately absent from both — it is internal
  * bookkeeping and is filtered out before anything user-facing.
  */
 

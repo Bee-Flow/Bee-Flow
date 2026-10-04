@@ -22,7 +22,7 @@ import RoleCard, { RoleEmpty, RoleNote } from './RoleCard';
  * Een regel hier is dus een INSTRUCTIE aan het model, geen blokkade. Dat mag
  * niet impliciet blijven: de gebruiker die "Nooit korting toezeggen" opschrijft
  * denkt een grens te hebben getrokken, en heeft een verzoek gedaan. Wat wél
- * hard is, is wat de agent nooit gekregen heeft — een app, tabel of routine die
+ * hard is, is wat de agent nooit gekregen heeft — een app, tabel of automatisering die
  * niet in `config.tools` staat wordt niet eens aangeboden, en een grant op
  * `{confirm:'ask'}` houdt de actie tegen tot een mens ja zegt. Daar wijst de
  * regel onder de kaart naartoe.
@@ -192,11 +192,11 @@ export default function BulletsCard({ t, variant, items = [], onAdd, onEdit, onR
             {(items.length > 0 || !readOnly) && (
                 forbids ? (
                     <RoleNote testId="agent-role-does-not-note">
-                        {t('agent_studio.role.does_not_note', 'These lines go into the instructions and the model follows them — nothing here blocks the action. What an agent truly cannot do is what it was never given: take the app, table or routine away under "Can use", or set it to ask first.')}
+                        {t('agent_studio.role.does_not_note', 'These lines go into the instructions and the model follows them — nothing here blocks the action. What an agent truly cannot do is what it was never given: take the app, table or automation away under "Can use", or set it to ask first.')}
                     </RoleNote>
                 ) : (
                     <RoleNote testId="agent-role-does-note">
-                        {t('agent_studio.role.does_note', 'A line here says what the agent should do. It does not hand it the app, table or routine to do it — that happens under "Can use".')}
+                        {t('agent_studio.role.does_note', 'A line here says what the agent should do. It does not hand it the app, table or automation to do it — that happens under "Can use".')}
                     </RoleNote>
                 )
             )}

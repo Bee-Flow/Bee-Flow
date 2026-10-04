@@ -28,7 +28,7 @@ const COLUMN_SAMPLE = {
  * The row id a MIRROR sample shows. A Nextcloud mirror stores its rows under
  * Nextcloud's own row ids (a number); a spreadsheet mirror under the sheet's
  * key value, or `r<row number>` when it has no key column — the `r` is what
- * keeps a routine from ever mistaking one for a count. Null for an ordinary
+ * keeps an automation from ever mistaking one for a count. Null for an ordinary
  * table, whose ids are the platform's own.
  */
 function sourceRowIdSample(table) {

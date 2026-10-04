@@ -94,6 +94,7 @@ export const SETTINGS_ORG_ID_TO_URL = {
     org_users: 'users',
     org_academy: 'academy',
     org_integrations: 'integrations',
+    org_mcp: 'mcp',
     org_github_sync: 'github-sync',
     org_nextcloud_sync: 'nextcloud-sync',
     org_meeting_templates: 'meeting-templates',

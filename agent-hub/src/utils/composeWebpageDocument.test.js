@@ -369,10 +369,10 @@ describe('W4 — een enkel getal uit een tabel', () => {
     });
 });
 
-describe('W4 — een knop die een routine start', () => {
+describe('W4 — een knop die een automatisering start', () => {
     const button = () => tagOf('button');
 
-    it('start de routine en meldt dat hij klaar is', async () => {
+    it('start de automatisering en meldt dat hij klaar is', async () => {
         const calls = [];
         window.beeflowAutomations = {
             run: (id, inputs, opts) => { calls.push([id, inputs, opts]); return Promise.resolve({ runId: 'r1', status: 'success' }); },
@@ -442,7 +442,7 @@ describe('W4 — een knop die een routine start', () => {
         expect(stateOf(first(button()))).toBe('unavailable');
     });
 
-    it('meldt een geweigerde routine als "mag niet", niet als "kapot"', async () => {
+    it('meldt een geweigerde automatisering als "mag niet", niet als "kapot"', async () => {
         window.beeflowAutomations = { run: () => Promise.reject(httpError(403, 'Automation not granted to this webpage')) };
         await mount(`<${button()} run="auto_1">Go</${button()}>`);
         first('button.bf-btn').click();
@@ -451,7 +451,7 @@ describe('W4 — een knop die een routine start', () => {
     });
 });
 
-describe('W4 — een formulier als trigger van een routine', () => {
+describe('W4 — een formulier als trigger van een automation', () => {
     const form = () => tagOf('form');
 
     it('stuurt de velden van de auteur mee en laat die velden staan', async () => {
@@ -476,7 +476,7 @@ describe('W4 — een formulier als trigger van een routine', () => {
         expect(stateOf(first(form()))).toBe('done');
     });
 
-    it('meldt een ontbrekende routine in plaats van een dode knop', async () => {
+    it('meldt een ontbrekende automatisering in plaats van een dode knop', async () => {
         window.beeflowAutomations = { run: () => Promise.resolve({ status: 'success' }) };
         await mount(`<${form()}><input name="a"></${form()}>`);
         const el = first(form());

@@ -2,7 +2,7 @@
  * The three trigger kinds that DECLARE what they are called with instead of
  * firing on their own (triggerEditors.jsx) — LayerInputFields, AgentCallFields
  * and AppTriggerFields — bind every parameter as `trigger.output.<name>`, so
- * a rename is carried through the whole routine (ctx.renameField).
+ * a rename is carried through the whole automation (ctx.renameField).
  */
 
 import type { StepEditorProps } from '../types';

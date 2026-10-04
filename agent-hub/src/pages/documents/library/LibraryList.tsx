@@ -1,9 +1,11 @@
 // One page of the library: rows with their type, owner and last editor,
 // selection for moving and categorising, copy, archive (after a confirmation)
-// or, in the archive, restore. Loading, empty and failed are three different
+// or, in the archive, restore. A notebook row says how many sources it reads,
+// is not copied, and is deleted for good rather than archived (a notebook has
+// no archive), after a confirmation that says so. Loading, empty and failed are three different
 // screens; while the next page or search loads, the current list stays.
 
-import { ArchiveRestore, Copy, FileText, NotebookPen, Presentation, Trash2 } from 'lucide-react';
+import { ArchiveRestore, BookOpen, Copy, FileText, NotebookPen, Presentation, Sheet, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import ConfirmDialog from '../../../components/shared/ConfirmDialog';
 import EmptyState from '../../../components/shared/EmptyState';
@@ -11,6 +13,7 @@ import useRelativeTime from '../../../hooks/useRelativeTime';
 import useTranslation from '../../../hooks/useTranslation';
 import type { LibraryRow, People } from '../documentQueries';
 import { useDocTypeLabel, usePersonLabel } from './labels';
+import { isNotebookRow } from './useLibrary';
 
 export interface LibraryListProps {
     rows: LibraryRow[];
@@ -24,6 +27,7 @@ export interface LibraryListProps {
     onSelect: (ids: string[]) => void;
     onOpen: (row: LibraryRow) => void;
     onDuplicate: (row: LibraryRow) => void;
+    /** Archives a document; deletes a notebook (the row says which it is). */
     onArchive: (row: LibraryRow) => Promise<unknown>;
     onUnarchive: (row: LibraryRow) => void;
     onRetry: () => void;
@@ -31,27 +35,41 @@ export interface LibraryListProps {
     busyId: string | null;
 }
 
-const ACTION = 'p-2 rounded-lg border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50';
+const ACTION = 'p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]';
+
+function rowIcon(docType: string) {
+    if (docType === 'presentation') return Presentation;
+    if (docType === 'page') return NotebookPen;
+    if (docType === 'notebook') return BookOpen;
+    if (docType === 'spreadsheet') return Sheet;
+    return FileText;
+}
 
 function Row({ row, props, onAskArchive }: { row: LibraryRow; props: LibraryListProps; onAskArchive: (row: LibraryRow) => void }) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const typeLabel = useDocTypeLabel();
     const person = usePersonLabel(props.people, props.currentUserId);
-    const Icon = row.docType === 'presentation' ? Presentation : row.docType === 'page' ? NotebookPen : FileText;
+    const Icon = rowIcon(row.docType);
+    const notebook = isNotebookRow(row);
+    const sources = !notebook ? null : row.sourceCount === 1
+        ? t('documents.notebook.source_one', '1 source')
+        : t('documents.notebook.sources', '{count} sources', { count: row.sourceCount || 0 });
     const selected = props.selection.includes(row.id);
     const edited = row.updatedBy && row.updatedBy !== row.userId ? t('documents.library.edited_by', 'edited by {name}', { name: person(row.updatedBy) }) : null;
     return (
-        <li className="flex gap-3 items-center p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid={`library-row-${row.id}`}>
+        <li className="group flex gap-3 items-center px-4 py-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm hover:border-[var(--accent-primary)] transition-colors" data-testid={`library-row-${row.id}`}>
             {!props.archivedView && (
                 <input type="checkbox" checked={selected} aria-label={t('documents.library.select', 'Select {name}', { name: row.name })}
                     onChange={(e) => props.onSelect(e.target.checked ? [...props.selection, row.id] : props.selection.filter((x) => x !== row.id))} />
             )}
-            <Icon size={20} className="shrink-0 text-[var(--kind-doc)]" aria-hidden="true" />
+            <span className="shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center text-[var(--kind-doc)] bg-[color-mix(in_srgb,var(--kind-doc)_14%,transparent)]" aria-hidden="true">
+                <Icon size={18} />
+            </span>
             <button type="button" className="flex-1 min-w-0 text-left disabled:cursor-default" onClick={() => props.onOpen(row)} disabled={props.archivedView}>
-                <span className="block font-medium truncate text-[var(--text-primary)]">{row.name}</span>
-                <span className="block text-xs mt-1 text-[var(--text-tertiary)]">
-                    {[typeLabel(row.docType), person(row.userId), rel(row.updatedAt), edited, row.visibility === 'team' ? t('documents.library.team', 'Team') : null].filter(Boolean).join(' · ')}
+                <span className="block text-sm font-semibold truncate text-[var(--text-primary)]">{row.name}</span>
+                <span className="block text-xs mt-0.5 text-[var(--text-tertiary)]">
+                    {[typeLabel(row.docType), sources, person(row.userId), rel(row.updatedAt), edited, row.visibility === 'team' ? t('documents.library.team', 'Team') : null].filter(Boolean).join(' · ')}
                 </span>
                 {!!row.categories?.length && <span className="block text-xs mt-1 text-[var(--text-secondary)]">{row.categories.join(' · ')}</span>}
             </button>
@@ -61,9 +79,14 @@ function Row({ row, props, onAskArchive }: { row: LibraryRow; props: LibraryList
                 </button>
             ) : (
                 <>
-                    <button type="button" className={ACTION} disabled={props.busyId === row.id} onClick={() => props.onDuplicate(row)} aria-label={t('documents.library.duplicate', 'Make a copy of {name}', { name: row.name })}><Copy size={15} aria-hidden="true" /></button>
+                    {!notebook && (
+                        <button type="button" className={ACTION} disabled={props.busyId === row.id} onClick={() => props.onDuplicate(row)} aria-label={t('documents.library.duplicate', 'Make a copy of {name}', { name: row.name })}><Copy size={15} aria-hidden="true" /></button>
+                    )}
                     {row.userId === props.currentUserId && (
-                        <button type="button" className={ACTION} disabled={props.busyId === row.id} onClick={() => onAskArchive(row)} aria-label={t('documents.library.archive', 'Archive {name}', { name: row.name })}><Trash2 size={15} aria-hidden="true" /></button>
+                        <button type="button" className={ACTION} disabled={props.busyId === row.id} onClick={() => onAskArchive(row)}
+                            aria-label={notebook ? t('documents.notebook.delete', 'Delete {name}', { name: row.name }) : t('documents.library.archive', 'Archive {name}', { name: row.name })}>
+                            <Trash2 size={15} aria-hidden="true" />
+                        </button>
                     )}
                 </>
             )}
@@ -84,7 +107,7 @@ function Body({ props, onAskArchive }: { props: LibraryListProps; onAskArchive: 
     if (props.status === 'loading') {
         return (
             <ul className="space-y-2" role="status" aria-label={t('documents.library.loading', 'Loading documents…')}>
-                {[0, 1, 2].map((i) => <li key={i} className="h-[72px] rounded-xl bg-[var(--bg-tertiary)] animate-pulse" />)}
+                {[0, 1, 2].map((i) => <li key={i} className="h-[62px] rounded-xl bg-[var(--bg-tertiary)] animate-pulse" />)}
             </ul>
         );
     }
@@ -103,14 +126,18 @@ function Body({ props, onAskArchive }: { props: LibraryListProps; onAskArchive: 
 export default function LibraryList(props: LibraryListProps) {
     const { t } = useTranslation();
     const [confirming, setConfirming] = useState<LibraryRow | null>(null);
+    const notebook = !!confirming && isNotebookRow(confirming);
+    const name = confirming?.name || '';
     return (
         <>
             <Body props={props} onAskArchive={setConfirming} />
             <ConfirmDialog
                 open={!!confirming}
-                title={t('documents.library.archive_title', 'Archive this document?')}
-                description={t('documents.library.archive_desc', '"{name}" leaves your library and every project it is filed in. You can restore it from Archived; routines that use a saved version keep working.', { name: confirming?.name || '' })}
-                confirmLabel={t('documents.library.archive_confirm', 'Archive')}
+                title={notebook ? t('documents.notebook.delete_title', 'Delete this notebook?') : t('documents.library.archive_title', 'Archive this document?')}
+                description={notebook
+                    ? t('documents.notebook.delete_desc', '"{name}" is deleted for good, with its sources, its chat and its versions. A notebook cannot be restored.', { name })
+                    : t('documents.library.archive_desc', '"{name}" leaves your library and every project it is filed in. You can restore it from Archived; automations that use a saved version keep working.', { name })}
+                confirmLabel={notebook ? t('documents.notebook.delete_confirm', 'Delete notebook') : t('documents.library.archive_confirm', 'Archive')}
                 cancelLabel={t('documents.cancel', 'Cancel')}
                 destructive
                 onConfirm={async () => { if (confirming) await props.onArchive(confirming).catch(() => undefined); setConfirming(null); }}

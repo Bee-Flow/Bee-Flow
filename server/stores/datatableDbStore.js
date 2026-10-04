@@ -282,12 +282,13 @@ function invalidate(key) {
  * @param {{kind:'org'|'user', id:string}} scope
  * @returns {Promise<boolean>} false when there was no such table to delete.
  */
-async function dropDatatable(datatableId, scope) {
+async function dropDatatable(datatableId, scope, { managedWrite = null } = {}) {
     // Required lazily so the metadata half is not dragged in at load time.
     const datatableStore = require('./datatableStore');
     const { migrationPlan } = require('../core/dataEngine/dataModel/migrationPlan');
     const key = scopeKey(scope);
     return datatableStore.deleteDatatable(datatableId, scope, {
+        managedWrite,
         dropPhysical: (client, { before, next, modelVersion }) => {
             // The dialect is stated, never inherited: the App Studio engine flag
             // is a process global and these rows are always in Postgres.

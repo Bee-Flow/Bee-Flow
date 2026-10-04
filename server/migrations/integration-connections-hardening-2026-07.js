@@ -27,10 +27,15 @@ const OAUTH_PROVIDERS = ['google', 'microsoft', 'nextcloud'];
 
 async function up() {
     // ── 1. Widen the resource_type CHECK ────────────────────────────
+    // This runs on every store init, so the list is the CURRENT one: an
+    // automation-scoped grant has been 'automation' since 2026-10 (it was
+    // 'routine'). Rows of the old spelling are moved first, or the constraint
+    // could not be added over them.
     await exec(`ALTER TABLE connection_grants DROP CONSTRAINT IF EXISTS connection_grants_resource_type_check`);
+    await exec(`UPDATE connection_grants SET resource_type = 'automation' WHERE resource_type = 'routine'`);
     await exec(`
         ALTER TABLE connection_grants ADD CONSTRAINT connection_grants_resource_type_check
-            CHECK (resource_type IS NULL OR resource_type IN ('agent','webpage','skill','routine','studio_app'))
+            CHECK (resource_type IS NULL OR resource_type IN ('agent','webpage','skill','automation','studio_app'))
     `);
 
     // ── 2. Collapse duplicate OAuth rows ────────────────────────────

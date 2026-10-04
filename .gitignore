@@ -91,6 +91,9 @@ data/
 # The IP location databases (DB-IP Lite, ~140 MB, `npm run geo:fetch`). Already
 # covered by the unanchored `data/` above; named so nobody un-ignores it by accident.
 server/data/geo/
+# Learning Center video pack (`npm run learn-media:fetch`, LEARN_MEDIA_DIR).
+# Media never goes in git; covered by `data/` above, named for the same reason.
+server/data/learn-media/
 
 # ── Backups & Archives ──────────────────────────────────────────
 backups/

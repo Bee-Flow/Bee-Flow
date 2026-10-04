@@ -71,7 +71,7 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
                 empty={(
                     <EmptyState
                         title={t('compliance.fw_pa_empty_title', 'No assessments yet')}
-                        description={t('compliance.fw_pa_empty_desc', 'Run the AI Act ladder on an agent or routine — the outcome lands here with its expiry.')}
+                        description={t('compliance.fw_pa_empty_desc', 'Run the AI Act ladder on an agent or automation — the outcome lands here with its expiry.')}
                     />
                 )}
                 renderCard={(r) => {
@@ -97,7 +97,7 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
                             <button
                                 type="button"
                                 className="shrink-0 min-h-[44px] px-2.5 rounded-md border border-[var(--border-default)] text-[11px] font-medium"
-                                onClick={() => onOpenLadder?.(r.target_kind, r.target_id)}
+                                onClick={() => onOpenLadder?.(r.target_kind, r.target_id, r.title)}
                                 data-testid={`${testId}-open`}
                             >
                                 {expired ? t('compliance.fw_pa_reassess', 'Reassess') : t('compliance.fw_pa_open', 'Open')}
@@ -129,7 +129,7 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
                                 <button
                                     type="button"
                                     className="px-2 py-0.5 rounded-md border border-[var(--border-default)] text-[11px] font-medium"
-                                    onClick={() => onOpenLadder?.(r.target_kind, r.target_id)}
+                                    onClick={() => onOpenLadder?.(r.target_kind, r.target_id, r.title)}
                                     data-testid={`${testId}-open`}
                                 >
                                     {expired ? t('compliance.fw_pa_reassess', 'Reassess') : t('compliance.fw_pa_open', 'Open')}

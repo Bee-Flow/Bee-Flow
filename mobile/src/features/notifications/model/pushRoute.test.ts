@@ -15,7 +15,7 @@ describe('routeForPushLink', () => {
 
     it('carries the id through on a path with one', () => {
         // automation/approvalHooks.js — the most phone-shaped notification
-        // in the product: a routine stopped on a yes-or-no.
+        // in the product: an automation stopped on a yes-or-no.
         expect(routeForPushLink('/app/studio/approvals/apr-42')).toBe('/approvals/apr-42');
     });
 

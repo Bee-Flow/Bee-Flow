@@ -110,7 +110,7 @@ test('the hot counter path is one arithmetic UPDATE with no row lock', () => {
     assert.match(fn, /row_count = GREATEST\(0, row_count \+ \$4\)/);
     assert.match(fn, /data_version = data_version \+ 1/);
     assert.doesNotMatch(fn, /FOR UPDATE/,
-        'App Studio bumps its equivalents with SELECT … FOR UPDATE on every record write; at routine write volume, with one row per org, that serialises the whole organisation');
+        'App Studio bumps its equivalents with SELECT … FOR UPDATE on every record write; at automation write volume, with one row per org, that serialises the whole organisation');
     assert.doesNotMatch(fn, /SELECT/, 'no read-modify-write on the hot path');
 });
 
@@ -183,7 +183,7 @@ test('usage reconcile is delete-then-insert for ONE automation, and skips a dele
 
 test('reconcileUsage returns rows WRITTEN, not rows offered', () => {
     // The guarded INSERT above writes nothing when the caller's organizationId
-    // is wrong — which it was for every routine saved from a session-derived
+    // is wrong — which it was for every automation saved from a session-derived
     // org. Returning entries.length made that no-op indistinguishable from
     // success, and the "used by" panel stayed empty on a green save.
     const fn = SRC.slice(SRC.indexOf('async function reconcileUsage'), SRC.indexOf('async function listUsage'));
@@ -238,7 +238,7 @@ test('the dependents index is generalised by a COLUMN — no rename, no PK chang
     assert.strictEqual(keyed.length, 2, 'reconcile and purge');
     assert.doesNotMatch(SRC, /DELETE FROM automation_datatable_usage WHERE automation_id = \$1`/,
         'a delete on the id alone reaches other kinds\' rows');
-    // The old entry points are thin wrappers, so no routine save path changed.
+    // The old entry points are thin wrappers, so no automation save path changed.
     assert.match(SRC, /return reconcileUsageFor\('automation', automationId, scope, entries\)/);
     assert.match(SRC, /return purgeUsageFor\('automation', automationId\)/);
 });
@@ -259,13 +259,13 @@ test('listUsage joins per kind and never on the id alone', () => {
     assert.match(SRC, /to_regclass\('webpages'\)/);
     assert.match(SRC, /to_regclass\('knowledge_bases'\)/);
     // The step position comes from the definition that rode the JOIN — one
-    // walk per routine, no lookup per row.
+    // walk per automation, no lookup per row.
     assert.match(fn, /a\.definition_json AS automation_definition/);
     assert.match(fn, /a\.last_run_at AS automation_last_run_at/);
     assert.doesNotMatch(fn, /automationStore/);
 });
 
-test('a deleted routine\'s usage rows have a reaper — the FK cannot be one', () => {
+test('a deleted automation\'s usage rows have a reaper — the FK cannot be one', () => {
     // automation_datatable_usage has ON DELETE CASCADE from `datatables` and
     // nothing from `automations`, so listUsage's LEFT JOIN kept returning rows
     // with a null title: "something you cannot see writes to your table".

@@ -53,7 +53,7 @@ const ANSWERS: Record<string, unknown> = {
             {
                 code: 'app.unwired',
                 severity: 'warning',
-                message: 'Intake has a button with no routine.',
+                message: 'Intake has a button with no automation.',
                 deepLink: '/app/studio/apps/app1',
                 targetRef: { kind: 'app', id: 'app1' },
             },
@@ -128,7 +128,7 @@ describe('ProjectDetailScreen', () => {
 
     it('lists what the checks found, with the way to it', async () => {
         await renderScreen('control');
-        expect(await screen.findByText('Intake has a button with no routine.')).toBeTruthy();
+        expect(await screen.findByText('Intake has a button with no automation.')).toBeTruthy();
         expect(screen.getByTestId('solution-finding-open')).toBeTruthy();
         expect(screen.getByText('None of these stop you publishing — they are things to tidy when you get to them.')).toBeTruthy();
     });
@@ -199,7 +199,7 @@ describe('ProjectDetailScreen', () => {
     it('shows the overview counts and the recent activity', async () => {
         await renderScreen('overview');
         expect(await screen.findByText('Someone created the project')).toBeTruthy();
-        expect(screen.getByLabelText('Routines: 1')).toBeTruthy();
+        expect(screen.getByLabelText('Automations: 1')).toBeTruthy();
         expect(screen.getByLabelText('Webpages: —')).toBeTruthy();
     });
 });

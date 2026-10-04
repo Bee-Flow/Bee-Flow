@@ -193,7 +193,7 @@ function runSelect(sql, params, rows) {
     const matched = rows.filter(row => evalClause(wm[1], { params, i: 0, row }));
     // count_rows compiles to an aggregate over the SAME access-filtered WHERE.
     // Answering it from `matched` is what makes "a count never reports rows the
-    // routine may not read" a real assertion rather than a stub's opinion.
+    // automation may not read" a real assertion rather than a stub's opinion.
     const cm = sql.match(/^SELECT\s+COUNT\(\*\)\s+AS\s+"([^"]+)"/i);
     if (cm) return [{ [cm[1]]: matched.length }];
     // The ORDER BY is honoured, because the keyset cursor is only correct
@@ -338,7 +338,7 @@ test('a PERSONAL table is reachable by its own account and by nobody else', asyn
 test('an identity outage fails as such, never as an authorisation refusal', async () => {
     // orgRole and the group list decide an ORG grade. Unread, they degrade to
     // "not an admin, in no group" — so the step used to report
-    // `datatable_forbidden` on a routine that worked yesterday, and nothing
+    // `datatable_forbidden` on an automation that worked yesterday, and nothing
     // anywhere said a lookup had failed.
     reset();
     await assert.rejects(
@@ -374,7 +374,7 @@ test('a table from another organisation is not found', async () => {
 test('a revoked grant stops the step, loudly, on the next run', async () => {
     reset();
     state.table = { ...TABLE, owner_user_id: 'someone-else', ownerUserId: 'someone-else' };
-    state.grants = [];   // the grant this routine used to hold is gone
+    state.grants = [];   // the grant this automation used to hold is gone
     await assert.rejects(
         () => execDatatable({ id: 's1', type: 'datatable', op: 'find_rows', datatableId: 'tbl_aaaaaa' }, CTX, RUN, 'live'),
         (e) => e.errorClass === 'datatable_forbidden',
@@ -586,7 +586,7 @@ test('save_row run twice leaves ONE row', async () => {
     assert.strictEqual(second.output.created, false);
     assert.strictEqual(second.output.id, first.output.id);
     assert.ok(!state.execCalls.some(c => c.kind === 'exec' && /INSERT/.test(c.sql)),
-        'a nightly routine keyed on an e-mail address grew one duplicate per run');
+        'a nightly automation keyed on an e-mail address grew one duplicate per run');
 });
 
 test('on an own-scoped table the probe only matches the caller\'s OWN row', async () => {
@@ -836,7 +836,7 @@ const manyRows = (n) => Array.from({ length: n }, (_, i) => ({
 test('find_rows reports `returned` — the page, not the match — and keeps `count` as an alias', async () => {
     // `count` was rows.length CLAMPED BY THE PAGE SIZE, so a condition on
     // `count > 100` after a default page of 50 could never fire. The name now
-    // says what it is; the old one survives one release so existing routines
+    // says what it is; the old one survives one release so existing automations
     // keep working.
     reset();
     state.queryRows = manyRows(80);

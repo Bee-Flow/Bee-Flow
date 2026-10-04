@@ -56,6 +56,8 @@ async function reconcileMirrorSchema(scope, datatable, nextFields, { retyped = [
         t.name = datatable.name;
         return datatableStore.saveModel(scope, next, {
             client,
+            // A stage's source mirror syncs and relinks without a deploy.
+            mirrorReconcile: true,
             applyPhysical: async (c, { before: locked, next: after, modelVersion }) => {
                 // The retyped fields' OLD ids leave `before` so the planner
                 // emits their ADD; their DROP goes first, by hand.

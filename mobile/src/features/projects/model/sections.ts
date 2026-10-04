@@ -38,12 +38,14 @@ export interface SectionDef {
 const enc = encodeURIComponent;
 
 export const SECTIONS: readonly SectionDef[] = [
-    { key: 'notebooks', kind: 'notebook', tile: 'meeting', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/notebooks/${enc(id)}` },
+    { key: 'notebooks', kind: 'notebook', tile: 'meeting', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/studio/documents/notebook/${enc(id)}` },
     { key: 'apps', kind: 'app', tile: 'app', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/apps/${enc(id)}` },
     { key: 'automations', kind: 'automation', tile: 'automation', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/studio/automations/${enc(id)}` },
     { key: 'webpages', kind: 'webpage', tile: 'webpage', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/studio/webpages/${enc(id)}` },
     { key: 'datatables', kind: 'datatable', tile: 'datatable', movable: true, ownerFields: ['ownerUserId'], webPath: (id) => `/app/studio/datatables/${enc(id)}` },
     { key: 'agents', kind: 'agent', tile: 'agent', movable: true, ownerFields: ['ownerId'], webPath: (id) => `/app/studio/agents/${enc(id)}` },
+    { key: 'skills', kind: 'skill', tile: 'skill', movable: true, ownerFields: ['ownerId'], webPath: (id) => `/app/studio/skills/${enc(id)}` },
+    { key: 'documentTemplates', kind: 'document_template', tile: 'document', movable: true, ownerFields: ['userId'], webPath: (id) => `/app/studio/documents/${enc(id)}` },
     { key: 'knowledgeBases', kind: 'knowledge_base', tile: 'kb', movable: true, ownerFields: null, webPath: (id) => `/app/studio/knowledge/${enc(id)}` },
     { key: 'approvals', kind: 'approval', tile: null, movable: false, ownerFields: null, webPath: (id) => `/app/studio/approvals/${enc(id)}` },
 ];
@@ -59,13 +61,17 @@ export function sectionLabel(key: SectionKey, t: TranslateFn): string {
         case 'apps':
             return t('projects.apps', 'Apps');
         case 'automations':
-            return t('projects.routines', 'Routines');
+            return t('projects.automations', 'Automations');
         case 'webpages':
             return t('projects.webpages', 'Webpages');
         case 'datatables':
             return t('datatables.heading', 'Tables');
         case 'agents':
             return t('agent_studio.title', 'Agents');
+        case 'skills':
+            return t('skills.title', 'Skills');
+        case 'documentTemplates':
+            return t('documents.library.templates', 'Templates');
         case 'knowledgeBases':
             return t('knowledge.title', 'Knowledge bases');
         default:
@@ -79,7 +85,7 @@ export type BandKey = 'people' | 'work' | 'knowledge';
 export const BANDS: readonly { key: BandKey; sections: readonly SectionKey[] }[] = [
     { key: 'people', sections: ['apps', 'webpages'] },
     { key: 'work', sections: ['automations', 'approvals'] },
-    { key: 'knowledge', sections: ['datatables', 'agents', 'knowledgeBases', 'notebooks'] },
+    { key: 'knowledge', sections: ['datatables', 'agents', 'skills', 'documentTemplates', 'knowledgeBases', 'notebooks'] },
 ];
 
 export function bandLabel(key: BandKey, t: TranslateFn): string {

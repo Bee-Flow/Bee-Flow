@@ -12,7 +12,7 @@ const FIELDS = [{ key: 'datum', name: 'Datum', type: 'date' }, { key: 'leveranci
 beforeEach(() => vi.resetAllMocks());
 afterEach(() => cleanup());
 
-describe('RowsPreview — the values the routine extracted', () => {
+describe('RowsPreview — the values the automation extracted', () => {
     it('reads the first rows of the table and shows them under the column titles, with the count and a door to the table', async () => {
         datatablesApi.listRows.mockResolvedValue({ rows: [
             { id: 'r1', datum: '2026-07-01', leverancier: 'Acme BV', totaal: 1554.25, betaald: false },

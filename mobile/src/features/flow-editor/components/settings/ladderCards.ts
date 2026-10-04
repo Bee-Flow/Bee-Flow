@@ -20,7 +20,7 @@ export interface SubCardWords {
     detail: string;
 }
 
-/** Art. 50(1): a routine that talks to people says it is AI. */
+/** Art. 50(1): an automation that talks to people says it is AI. */
 export function disclosureCard(signals: AiActSignals | null, t: TranslateFn): SubCardWords {
     const icon: IconName = 'MessageSquare';
     if (signals?.customerFacing !== true) {

@@ -82,7 +82,7 @@ describe('describeField', () => {
         const t = (key, en, params) => { seen.push(key); return `NL:${en}`; };
         const d = describeField({ key: 'x', path: 'p', sample: 'hi' }, null, t);
         expect(d.word).toBe('NL:text');
-        expect(seen).toContain('routines.kind.text');
+        expect(seen).toContain('automations.kind.text');
     });
 });
 

@@ -342,7 +342,7 @@ function loopVarsReadBy(value, out = [], depth = 0) {
  * A step that reads `loop.<var>` must be the step that iterates as <var>.
  * Measured 2026-09-12: a nextcloud_tables_create_row bound every column to
  * loop.e.output.<field> with NO forEach — the builder accepted it, the
- * validator passed it, and the routine finalised; at run time every cell
+ * validator passed it, and the automation finalised; at run time every cell
  * would have been empty. The var is only bound inside the step's own
  * forEach (the add tools build top-level steps — a loop body's steps are
  * built by builder_add_loop and never pass through here), so a mismatch is

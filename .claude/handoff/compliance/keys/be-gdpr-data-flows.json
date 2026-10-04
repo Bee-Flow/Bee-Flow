@@ -1,13 +1,13 @@
 {
   "_note": "be-gdpr-data-flows. Keys for GDPR-Art30-personal-data-flows (server/compliance/checks/gdpr/art30-1-d-personal-data-flows.js), the after-the-fact mirror of the shared personal-data-flow analyser in server/core/privacy/dataFlow.js. Pending for the integrator to merge into server/i18n/defaults/en.js + nl.js — deliberately NOT written into the dictionaries here, because another workstream owns those files. registry.test.js accepts a key that a pending keys file declares.",
   "en": {
-    "compliance.checks.gdpr_art30_flows.title": "Where each routine's personal data goes",
-    "compliance.checks.gdpr_art30_flows.desc": "Art. 30(1)(d) asks which recipients personal data has been or will be disclosed to. Per live routine, this reads the steps that leave the workspace, the columns of the tables it touches, and the egress log of what actually left in the last 30 days — and reports a routine that can send personal data with no Privacy Shield step in front of the step that sends it.",
+    "compliance.checks.gdpr_art30_flows.title": "Where each automation's personal data goes",
+    "compliance.checks.gdpr_art30_flows.desc": "Art. 30(1)(d) asks which recipients personal data has been or will be disclosed to. Per live automation, this reads the steps that leave the workspace, the columns of the tables it touches, and the egress log of what actually left in the last 30 days — and reports an automation that can send personal data with no Privacy Shield step in front of the step that sends it.",
     "compliance.checks.gdpr_art30_flows.fix": "Put a Guard or Tokenize step before the step that sends, or narrow what it sends to the fields the recipient needs — and record the recipient in the processing register."
   },
   "nl": {
-    "compliance.checks.gdpr_art30_flows.title": "Waar de persoonsgegevens van elke routine heen gaan",
-    "compliance.checks.gdpr_art30_flows.desc": "Art. 30(1)(d) vraagt aan welke ontvangers persoonsgegevens zijn of worden verstrekt. Per actieve routine leest deze controle de stappen die de werkruimte verlaten, de kolommen van de tabellen die hij aanraakt en het uitgaand logboek van wat er de afgelopen 30 dagen daadwerkelijk is vertrokken — en meldt een routine die persoonsgegevens kan versturen zonder Privacy Shield-stap vóór de stap die verstuurt.",
+    "compliance.checks.gdpr_art30_flows.title": "Waar de persoonsgegevens van elke automatisering heen gaan",
+    "compliance.checks.gdpr_art30_flows.desc": "Art. 30(1)(d) vraagt aan welke ontvangers persoonsgegevens zijn of worden verstrekt. Per actieve automatisering leest deze controle de stappen die de werkruimte verlaten, de kolommen van de tabellen die hij aanraakt en het uitgaand logboek van wat er de afgelopen 30 dagen daadwerkelijk is vertrokken — en meldt een automatisering die persoonsgegevens kan versturen zonder Privacy Shield-stap vóór de stap die verstuurt.",
     "compliance.checks.gdpr_art30_flows.fix": "Zet een Guard- of Tokenize-stap vóór de stap die verstuurt, of beperk wat hij verstuurt tot de velden die de ontvanger nodig heeft — en leg de ontvanger vast in het verwerkingsregister."
   }
 }

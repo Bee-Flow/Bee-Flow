@@ -7,7 +7,7 @@ import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
 import { toast } from '../../../shared/Toast';
 import Toggle from '../../../shared/Toggle';
 import AppsPicker from '../pickers/AppsPicker';
-import { RoutinesPicker } from '../pickers/RoutinePickers';
+import { SchedulesPicker } from '../pickers/SchedulePickers';
 import SkillPicker from '../pickers/SkillPicker';
 
 /**
@@ -29,9 +29,9 @@ export default function BuilderConfigPanel({
     uploadDocCount, setKnowledgeOpen,
     strictKnowledge, onStrictKnowledgeChange,
     attachedSkillIds, skillPickerOpen, setSkillPickerOpen,
-    routinesAllowed, agentRoutines, routinesPickerOpen, setRoutinesPickerOpen,
+    schedulesAllowed, agentSchedules, schedulesPickerOpen, setSchedulesPickerOpen,
     advancedOpen, setAdvancedOpen, memoryEnabled, embedEnabled,
-    refreshAgentRoutines, setRoutineModal, setRoutineDeleteTarget,
+    refreshAgentSchedules, setScheduleModal, setScheduleDeleteTarget,
     allSkills, setAllSkills, automations, skillSearch, setSkillSearch, toggleSkill,
     setAttachedSkillIds, patchConfig,
     availableIntegrations, enabledIntegrations, toggleIntegration,
@@ -76,14 +76,14 @@ export default function BuilderConfigPanel({
                     onClick={() => setSkillPickerOpen(v => !v)}
                     active={skillPickerOpen}
                 />
-                {agent?.id && routinesAllowed && (
+                {agent?.id && schedulesAllowed && (
                     <ActionPill
                         icon={<Clock size={14} />}
-                        label={t('routines.title', 'Routines')}
-                        count={agentRoutines.filter(r => r.isActive).length}
-                        onClick={() => setRoutinesPickerOpen(v => !v)}
-                        active={routinesPickerOpen}
-                        popoverTrigger="routines"
+                        label={t('agent_schedules.title', 'Schedules')}
+                        count={agentSchedules.filter(r => r.isActive).length}
+                        onClick={() => setSchedulesPickerOpen(v => !v)}
+                        active={schedulesPickerOpen}
+                        popoverTrigger="schedules"
                     />
                 )}
                 <button
@@ -98,24 +98,24 @@ export default function BuilderConfigPanel({
                     <Settings2 size={14} />
                 </button>
 
-                {routinesPickerOpen && agent?.id && routinesAllowed && (
-                    <RoutinesPicker
+                {schedulesPickerOpen && agent?.id && schedulesAllowed && (
+                    <SchedulesPicker
                         t={t}
                         agent={agent}
-                        routines={agentRoutines}
-                        onClose={() => setRoutinesPickerOpen(false)}
-                        onCreate={() => { setRoutinesPickerOpen(false); setRoutineModal({ mode: 'create' }); }}
-                        onEdit={(r) => { setRoutinesPickerOpen(false); setRoutineModal({ mode: 'edit', routine: r }); }}
+                        schedules={agentSchedules}
+                        onClose={() => setSchedulesPickerOpen(false)}
+                        onCreate={() => { setSchedulesPickerOpen(false); setScheduleModal({ mode: 'create' }); }}
+                        onEdit={(r) => { setSchedulesPickerOpen(false); setScheduleModal({ mode: 'edit', schedule: r }); }}
                         onToggle={async (r) => {
                             try {
-                                await authFetch(`${API_BASE}/api/ai-tasks/${r.id}/toggle`, { method: 'POST' });
-                                await refreshAgentRoutines();
+                                await authFetch(`${API_BASE}/api/cowork/${r.id}/toggle`, { method: 'POST' });
+                                await refreshAgentSchedules();
                             } catch (_) { /* non-fatal */ }
                         }}
                         onRunNow={async (r) => {
                             try {
-                                await authFetch(`${API_BASE}/api/ai-tasks/${r.id}/run-now`, { method: 'POST' });
-                                await refreshAgentRoutines();
+                                await authFetch(`${API_BASE}/api/cowork/${r.id}/run-now`, { method: 'POST' });
+                                await refreshAgentSchedules();
                             } catch (_) { /* non-fatal */ }
                         }}
                         onDelete={(r) => {
@@ -123,7 +123,7 @@ export default function BuilderConfigPanel({
                             // focus management and i18n match the rest of the
                             // studio. window.confirm can also be disabled by
                             // some browsers.
-                            setRoutineDeleteTarget(r);
+                            setScheduleDeleteTarget(r);
                         }}
                     />
                 )}

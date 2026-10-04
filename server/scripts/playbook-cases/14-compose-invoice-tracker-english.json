@@ -14,7 +14,7 @@
   "compose": {
    "kinds": [
     "table",
-    "routine",
+    "automation",
     "fill",
     "design",
     "app"

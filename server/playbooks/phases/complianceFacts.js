@@ -35,12 +35,12 @@
  * Its sibling, `core/privacy/dataFlow.js`, answers the question that follows
  * from this one — where the personal data these columns hold then TRAVELS —
  * and it needs nothing from this module, which is why there is nothing about
- * it here. The routine's steps are already in hand by the time the review runs
+ * it here. The automation's steps are already in hand by the time the review runs
  * (routes/playbooks/complianceReview.js projects them as `{ type, tool }`), so
  * the flow is a pure reading and `compliancePhase.gatherFacts` does it itself.
  * The half of that analysis that DOES take IO — reading the egress ledger for
- * what a routine has really sent — deliberately lives on the other caller, the
- * after-the-fact check in compliance/checks/gdpr/, because a routine a
+ * what an automation has really sent — deliberately lives on the other caller, the
+ * after-the-fact check in compliance/checks/gdpr/, because an automation a
  * playbook finished building two minutes ago has sent nothing yet. Putting the
  * same query here as well would be a second copy of it, which is the thing
  * these two modules were split apart to stop.

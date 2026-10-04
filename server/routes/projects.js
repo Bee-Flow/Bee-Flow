@@ -42,12 +42,15 @@ const router = express.Router();
 const projectStore = require('../stores/projectStore');
 const membership = require('../projects/membership');
 const { buildProjectGraph } = require('../projects/graph');
+const { findRelatedParts } = require('../projects/relatedParts');
+const { buildGraphForProject: buildGraphFor } = require('../projects/graphForProject');
 const userStore = require('../stores/userStore');
 const { resolveUserGroups } = require('../auth');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { validate } = require('../core/http/validate');
 const { HttpError, notFound } = require('../core/http/errors');
 const S = require('./projects/schemas');
+const { orgScope } = require('../auth/orgScope');
 
 // Single shared budget across all membership mutations (invite / role change /
 // removal / unshare). Keeps a runaway client or accidental spam loop from
@@ -208,6 +211,8 @@ function memberAvatar(projectId, userId, user) {
 /** The display name a member list shows for a user row (the same rule as the documents' people). */
 const { displayNameOf } = require('../core/documents/documentPeople');
 
+const { projectOrgOf, belongsToProjectOrg } = require('../projects/projectOrg');
+
 /**
  * Names for the owner and the member rows of one project.
  *
@@ -224,7 +229,7 @@ const { displayNameOf } = require('../core/documents/documentPeople');
  * @returns {Promise<{ people: Record<string, {name?: string}>, groups: Record<string, {name?: string}> }>}
  */
 async function describeMembers(project, shares) {
-    const org = project.organizationId || '';
+    const org = await projectOrgOf(project);
     const userIds = new Set([project.ownerId]);
     const groupIds = new Set();
     for (const share of shares) {
@@ -238,7 +243,7 @@ async function describeMembers(project, shares) {
         try { user = await userStore.getUser(id); } catch (err) {
             log.warn('[Projects] member lookup failed:', err.message);
         }
-        if (!user || (user.organizationId || '') !== org) return;
+        if (!user || !await belongsToProjectOrg(id, org).catch(() => false)) return;
         const name = displayNameOf(user);
         const entry = name ? { name } : {};
         const picture = memberAvatar(project.id, id, user);
@@ -301,7 +306,9 @@ router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
         const lenError = validateLengths({ name, description, customInstructions });
         if (lenError) return res.status(400).json({ error: lenError });
 
-        const organizationId = req.session?.user?.organizationId || '';
+        // The organisation the account acts in: the one on the session, else the one the account resolves to
+        // (a member whose organisation comes from a group has none on the session), else none.
+        const organizationId = req.session?.user?.organizationId || (await orgScope(req)).orgId || '';
 
         if (knowledgeBaseIds !== undefined) {
             const kbCheck = await validateKnowledgeBaseIds(req, knowledgeBaseIds, organizationId);
@@ -368,9 +375,17 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
+        const groups = await getUserGroups(req);
+        // The stage rows this person reaches (the entry point of a stage-only
+        // operator). Asked BEFORE the Solutions: a failure here only blanks this
+        // one list, never the overview.
+        let operatedFailed = false;
+        const stageRows = projectStore.listUserProjects(userId, groups, { kind: 'solution', onlyStages: true })
+            .catch((err) => { operatedFailed = true; log.warn('[Projects] Summary: could not list the stages you operate:', err.message); return []; });
+
         // Solutions only, plus the legacy rows nobody has classified yet: a
         // collaborative project is not a Solution and gets no card here.
-        const all = await projectStore.listUserProjects(userId, await getUserGroups(req), { kind: 'solution' });
+        const all = await projectStore.listUserProjects(userId, groups, { kind: 'solution' });
 
         const wanted = String(req.query.ids || '').split(',').map(s => s.trim()).filter(Boolean);
         const picked = wanted.length ? all.filter(p => wanted.includes(p.id)) : all;
@@ -385,8 +400,9 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
             since = new Date(Math.min(Math.max(asked.getTime(), now.getTime() - MAX_SUMMARY_SINCE_MS), now.getTime()));
         }
 
-        const { summarizeProjects } = require('../projects/summary');
+        const { summarizeProjects, stagesForSolutions, operatedStagesOf } = require('../projects/summary');
         const result = await summarizeProjects(projects, {
+            stagesFor: stagesForSolutions,
             viewer: { userId, organizationId: req.session?.user?.organizationId || null },
             now,
             since,
@@ -400,12 +416,20 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
             },
         });
 
-        res.json({ ...result, hasMore: picked.length > projects.length });
+        // Stage rows whose Dev Solution this person cannot see: `all`, not the
+        // narrowed `?ids=` list, is what they can see.
+        const operatedStages = operatedStagesOf(await stageRows, new Set(all.map(p => p.id)));
+        res.json({
+            ...result,
+            operatedStages,
+            unavailable: operatedFailed ? [...result.unavailable, 'operatedStages'] : result.unavailable,
+            hasMore: picked.length > projects.length,
+        });
     } catch (err) {
         log.error('[Projects] Summary error:', err.message);
         res.status(500).json({
             error: 'Request failed',
-            projects: [], unavailable: ['all'], hasMore: false,
+            projects: [], operatedStages: [], unavailable: ['all'], hasMore: false,
         });
     }
 });
@@ -515,6 +539,11 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
 
         res.json(updated);
     } catch (err) {
+        // A refusal the store raised on purpose (409 `managed_part` for the
+        // knowledge bases of a Solution stage) reaches the caller with its own
+        // status and code through the terminal error handler.
+        const status = Number(err?.status);
+        if (Number.isInteger(status) && status >= 400 && status < 500) throw err;
         log.error('[Projects] Update error:', err.message);
         // Raw err.message can carry SQL text, column names and constraint names.
         // The console.error above keeps the detail for operators.
@@ -595,7 +624,7 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         // Compare normalised values instead: '' is a real bucket, and only an
         // equally org-less counterpart matches it.
         const project = await projectStore.getProject(req.params.id);
-        const projectOrg = project?.organizationId || '';
+        const projectOrg = await projectOrgOf(project);
         if (sharedWithType === 'group') {
             const targetGroup = await userStore.getGroup(sharedWithId);
             if (!targetGroup || targetGroup.id !== sharedWithId) return res.status(400).json({ error: 'Unknown group' });
@@ -605,7 +634,7 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         } else if (sharedWithType === 'user') {
             const targetUser = await userStore.getUser(sharedWithId);
             if (!targetUser) return res.status(400).json({ error: 'Unknown user' });
-            if ((targetUser.organizationId || '') !== projectOrg) {
+            if (!await belongsToProjectOrg(targetUser.id, projectOrg)) {
                 return res.status(400).json({ error: 'User does not belong to this project\'s organisation' });
             }
         }
@@ -666,7 +695,9 @@ router.get('/:id/members', requireRole('viewer'), async (req, res) => {
     } catch (err) {
         log.warn('[Projects] member colours unavailable:', err.message);
     }
-    res.json({ ownerId: project.ownerId, members: shares, people, groups });
+    // The organisation the project belongs to ('' for none): only its own people and groups can be invited,
+    // so the invite picker offers no others (a platform admin's directory lists every organisation).
+    res.json({ ownerId: project.ownerId, organizationId: await projectOrgOf(project), members: shares, people, groups });
 });
 
 // PUT /:id/members/:memberId — change role (owner only)
@@ -740,13 +771,15 @@ router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) 
 // of this project, only the raster types, and served as the bytes it holds: nothing else is ever read from it.
 const AVATAR_DATA_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/;
 router.get('/:id/avatars/:userId', requireRole('viewer'), async (req, res) => {
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the response is decoded image bytes under a fixed image/* type with nosniff and a sandbox CSP; no request input is echoed
     const project = await projectStore.getProject(req.params.id);
     if (!project) throw notFound();
     const shares = await projectStore.getProjectShares(project.id);
     const isMember = project.ownerId === req.params.userId
         || shares.some((s) => s.sharedWithType === 'user' && s.sharedWithId === req.params.userId);
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos, ajinabraham.njsscan.xss.xss_node.express_xss -- AVATAR_DATA_URL is anchored with one character-class repeat (linear); the bytes go out as an image, see above
     const user = isMember ? await userStore.getUser(req.params.userId) : null;
-    const match = user && (user.organizationId || '') === (project.organizationId || '') && typeof user.avatar === 'string'
+    const match = user && typeof user.avatar === 'string' && await belongsToProjectOrg(user.id, await projectOrgOf(project))
         ? AVATAR_DATA_URL.exec(user.avatar) : null;
     if (!match) throw notFound();
     res.set({
@@ -819,7 +852,7 @@ router.post('/:id/typing', requireRole('viewer'), typingLimiter, validate({ body
     }
 });
 
-// ── Project resources: notebooks, apps, routines, webpages, approvals ──
+// ── Project resources: notebooks, apps, automations, webpages, approvals ──
 //
 // One project, one place to see everything in it. Each resource keeps working
 // standalone (project_id NULL); membership is additive, never a move that takes
@@ -926,11 +959,37 @@ router.put('/:id/resources', requireRole('editor'), validate({ body: S.ResourceB
 });
 
 /**
+ * POST /:id/resources/related — what else comes along when these are added.
+ *
+ * Body: { items: [{ kind, id }] }, the parts about to be filed. Answers the
+ * transitive set of parts they USE (projects/relatedParts.js), each with who
+ * needs it and whether it can be filed here. A POST because the list can be
+ * long; it changes nothing. Editor, like the PUT it prepares: the answer names
+ * parts of the caller only, but it is only worth asking by someone who can add.
+ */
+router.post('/:id/resources/related', requireRole('editor'), validate({ body: S.RelatedBody }), async (req, res) => {
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) throw notFound();
+    for (const { kind } of req.body.items) {
+        const entry = membership.getKind(kind);
+        if (!entry || typeof entry.setProject !== 'function') {
+            const movable = membership.movableKinds().map(k => k.kind).join(', ');
+            throw new HttpError(400, 'INVALID_KIND', `kind must be one of: ${movable}`);
+        }
+        if (!kindAllowedIn(kind, project.kind)) {
+            throw new HttpError(400, 'KIND_NOT_ALLOWED', `A ${project.kind === 'solution' ? 'Studio Solution' : 'project'} does not hold items of kind "${kind.replace(/_/g, ' ')}".`);
+        }
+    }
+    res.json(await findRelatedParts({ project, userId: getUserId(req), req, items: req.body.items }));
+});
+
+/**
  * GET /:id/graph — how the pieces of this Solution are wired to each other.
  *
  * Viewer+, because it says nothing the Content tab does not already list — it
  * only draws the lines between those entries. The reading is done by
- * buildGraphForProject() just below, which GET /:id/completeness shares.
+ * buildGraphForProject() just below (projects/graphForProject.js), which
+ * GET /:id/completeness shares.
  *
  * Three loading decisions worth stating:
  *
@@ -941,10 +1000,10 @@ router.put('/:id/resources', requireRole('editor'), validate({ body: S.ResourceB
  *     and the wiring lives in the definition. N is a project's worth of apps.
  *  3. TWO PASSES, so "outside this project" can be told apart from "gone".
  *     The first pass names the references it could not place; only those ids
- *     are looked up, and the second pass says which exist. Reporting a routine
+ *     are looked up, and the second pass says which exist. Reporting an automation
  *     as deleted when the truth is "I did not check" is the worse error, and
  *     the graph refuses to do it — see PROBLEM.UNRESOLVED.
- *  4. THE SECOND PASS IS FOR ROUTINES ONLY, and deliberately so. A datatable
+ *  4. THE SECOND PASS IS FOR AUTOMATIONS ONLY, and deliberately so. A datatable
  *     is scope-addressed: answering "does this id exist anywhere" would mean
  *     naming a tenant to look in, and guessing one is worse than not knowing.
  *     A knowledge base could be looked up, and is not: the only thing the
@@ -960,141 +1019,23 @@ router.put('/:id/resources', requireRole('editor'), validate({ body: S.ResourceB
  *     agent's instructions or its tool grants.
  */
 /**
- * Read everything a Solution's graph is drawn from, and SAY what could not be
- * read.
- *
- * The old shape of this loader returned `[]` for a store it could not reach,
- * which is indistinguishable from "this Solution has no agents". The Content
- * listing one route up already had the honest convention — `null` =
- * unavailable, `[]` = none (see GET /:id/resources) — and this is the same rule
- * applied here: a kind that could not be read is NAMED in `unavailable`, the
- * graph is drawn from what IS there, and `complete` says whether the picture is
- * whole. It matters beyond the Flow tab: the "Te controleren" aggregator reads
- * this, and a publish button that unlocks because half the Solution silently
- * failed to load is the failure this convention exists to prevent.
- *
- * Three reads can fail INSIDE a kind, and each is counted rather than dropped:
- *   - an app's full definition (the listing gives meta only) — a missing one
- *     used to delete the app from the graph entirely: node, edges AND problems;
- *   - an agent's config, which is where its wiring lives, same story;
- *   - a knowledge base's sources, which is where "every meeting tagged X" is.
- *
- * The existence pass is ALL-OR-NOTHING for the same reason graph.js refuses to
- * guess: with `knownAutomationIds` supplied, an id that is not in the set is
- * reported as MISSING — "the routine no longer exists", an error. One failed
- * lookup would produce that sentence about a routine nobody checked. So a pass
- * that cannot complete is abandoned, every unplaced routine stays UNRESOLVED
- * ("not in this project"), and the gap is named instead.
- *
- * @returns {Promise<{nodes,edges,externals,problems,projectId,unavailable:string[],complete:boolean}>}
+ * The loader itself lives in projects/graphForProject.js (the publish gate in
+ * ./projects/packaging.js asks the same question, and a router is not where
+ * that belongs). This wrapper hands it the stores THIS module resolves, so the
+ * graph, completeness and summary routes keep reading exactly the store
+ * handles their route tests replace.
  */
-async function buildGraphForProject(projectId) {
-    const automationStore = require('../stores/automationStore');
-    const studioAppStore = require('../stores/studioAppStore');
-    const webpageStore = require('../stores/webpageStore');
-    const datatableStore = require('../stores/datatableStore');
-    const agentStore = require('../stores/agentStore');
-    const kbMembership = require('../projects/knowledgeBaseMembership');
-
-    // Machine-readable section keys, so the client can name them in the
-    // reader's own language instead of rendering a server-side English label.
-    const unavailable = [];
-    const miss = (section) => { if (!unavailable.includes(section)) unavailable.push(section); };
-
-    // Each member kind loads INDEPENDENTLY and an unreachable store costs its
-    // own lines, not the whole picture — the same rule the Content tab follows.
-    // A graph drawn from four of six kinds is still true about those four;
-    // refusing to draw anything would say nothing at all. What it must NOT do
-    // is let those two kinds read as empty.
-    const some = async (section, fn) => {
-        try { return await fn(); } catch (err) {
-            log.warn(`[Projects] graph: could not load ${section}:`, err.message);
-            miss(section);
-            return null;
-        }
-    };
-
-    const [automations, appMetas, webpages, datatables, agentMetas, knowledgeBases] = await Promise.all([
-        some('automations', () => automationStore.getAutomationsForProject(projectId, { kinds: ['automation', 'block', 'layer'] })),
-        some('apps', () => studioAppStore.listProjectApps(projectId)),
-        some('webpages', () => webpageStore.listProjectWebpages(projectId)),
-        some('datatables', () => datatableStore.listDatatablesForProject(projectId)),
-        some('agents', () => agentStore.listProjectAgents(projectId)),
-        some('knowledgeBases', () => kbMembership.listProjectKnowledgeBases(projectId)),
-    ]);
-
-    const appReads = await Promise.all(
-        (appMetas || []).map(m => studioAppStore.getStudioApp(m.id).catch(() => null)),
-    );
-    // An app whose definition would not load is NOT an app without wiring: it
-    // is an app nobody could look at. Dropping it silently removed its broken
-    // edges along with it.
-    if (appReads.some(a => !a)) miss('apps');
-    const apps = appReads.filter(Boolean);
-
-    // See note 5 above: the config is what carries the wiring, and it stays
-    // on this side of the wire.
-    const agentReads = await Promise.all(
-        (agentMetas || []).map(m => agentStore.getAgent(m.id).catch(() => null)),
-    );
-    if (agentReads.some(a => !a)) miss('agents');
-    const agents = agentReads.filter(Boolean).map(a => ({ id: a.id, name: a.name, ownerId: a.owner_id, config: a.config }));
-
-    // "Every meeting tagged X" is a knowledge SOURCE, so it is read here
-    // and passed in — projects/graph.js does no I/O of its own.
-    const kbSources = require('../stores/kbSources');
-    const meetingSources = [];
-    for (const kb of (knowledgeBases || [])) {
-        let sources;
-        try { sources = await kbSources.listByKb(kb.id); } catch (err) {
-            log.warn('[Projects] graph: could not load knowledge sources:', err.message);
-            miss('knowledgeSources');
-            continue;
-        }
-        for (const src of (sources || [])) {
-            if (src?.kind !== 'meeting_tag') continue;
-            const tag = src.config?.tag;
-            if (typeof tag === 'string' && tag.trim()) {
-                meetingSources.push({ knowledgeBaseId: kb.id, tag: tag.trim() });
-            }
-        }
-    }
-
-    const input = {
-        project: { id: projectId },
-        automations: automations || [], apps, webpages: webpages || [],
-        datatables: datatables || [], agents, knowledgeBases: knowledgeBases || [], meetingSources,
-    };
-    let graph = buildProjectGraph(input);
-
-    const unplacedRoutines = graph.externals.filter(e => e.kind === 'automation');
-    if (unplacedRoutines.length) {
-        const known = new Set();
-        let checkedAll = true;
-        for (const ext of unplacedRoutines) {
-            try {
-                if (await automationStore.getAutomation(ext.id)) known.add(ext.id);
-            } catch (err) {
-                log.warn('[Projects] graph: could not check routine existence:', err.message);
-                checkedAll = false;
-                break;
-            }
-        }
-        // Only a COMPLETE pass may promote UNRESOLVED to MISSING — see the
-        // header. A partial one is thrown away rather than used to tell someone
-        // their routine was deleted.
-        if (checkedAll) graph = buildProjectGraph({ ...input, knownAutomationIds: known });
-        else miss('routineExistence');
-    }
-
-    // The members travel back with the graph so GET /:id/completeness can run
-    // the validators over the SAME rows this walk was drawn from — a second
-    // read would let the two screens disagree about what is in the Solution.
-    return {
-        graph: { ...graph, unavailable, complete: unavailable.length === 0 },
-        members: { apps, automations: automations || [], knowledgeBases: knowledgeBases || [] },
-        unavailable,
-    };
+function buildGraphForProject(projectId) {
+    return buildGraphFor(projectId, {
+        automationStore: require('../stores/automationStore'),
+        studioAppStore: require('../stores/studioAppStore'),
+        webpageStore: require('../stores/webpageStore'),
+        datatableStore: require('../stores/datatableStore'),
+        agentStore: require('../stores/agentStore'),
+        kbMembership: require('../projects/knowledgeBaseMembership'),
+        kbSources: require('../stores/kbSources'),
+        buildProjectGraph,
+    });
 }
 
 router.get('/:id/graph', requireRole('viewer'), async (req, res) => {
@@ -1160,6 +1101,21 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
             return res.status(400).json({ error: `At most ${MAX_CONVERSATION_BATCH} conversations per request` });
         }
 
+        // A chat shared into a project is sealed under THAT project's key and its shared scope requires a project:
+        // moving it would leave it unreadable in the new one, and detaching it would violate that constraint.
+        // Checked for the whole batch before anything is applied, so a refusal leaves nothing half done.
+        // Stopping the sharing (DELETE /conversations/:convId) is the way out.
+        for (const conv of [...(assign || []).map(c => ({ ...c, into: true })), ...(unassign || [])]) {
+            const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
+            const filing = await projectStore.getOwnConversationFiling(conv.id, userId, table);
+            if (filing?.shared && !(conv.into && filing.projectId === req.params.id)) {
+                return res.status(409).json({
+                    error: 'A chat shared with a project cannot be moved or detached. Stop sharing it first.',
+                    code: 'CONVERSATION_SHARED', conversationId: conv.id,
+                });
+            }
+        }
+
         // Filing chats INTO a Solution is refused. Taking them out is not:
         // a legacy project classified as a Solution may still hold some.
         if (Array.isArray(assign) && assign.length > 0) {
@@ -1215,8 +1171,11 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
 // `/:id/<word>…`, so none of them can shadow the one-segment routes above.
 router.use('/', require('./projects/chats'));
 router.use('/', require('./projects/tasks'));
+router.use('/', require('./projects/sprints'));
 router.use('/', require('./projects/memberColors'));
 router.use('/', require('./projects/workspace'));
+router.use('/', require('./projects/discovery'));
+router.use('/', require('./projects/board'));
 router.use('/', require('./projects/content'));
 // Real-time co-editing of notebooks and project pages (the HTTP half of the
 // sync; the other half rides on GET /:id/stream above).
@@ -1227,10 +1186,18 @@ router.use('/', require('./projects/collab'));
 router.use('/', require('./projects/changes'));
 router.use('/', require('./projects/comments'));
 router.use('/', require('./projects/complianceHints'));
+// The Dev / UAT / PRD pipeline of a Solution (routes/projects/stages): stages,
+// releases, bindings, variables, deployments. A factory router over this
+// router's project store; every route carries its own licence gate and its own
+// role resolution (projects/stages/stageAuth.js), and nothing is loaded before
+// a request needs it. The drain-exempt half (on/off, pause, detach) is
+// routes/solutionStages.js, mounted in index.js without the projects licence.
+router.use('/', require('./projects/stages').makeStagesRouter({ projectStore }));
 
 module.exports = router;
 // The loader behind GET /:id/graph, GET /:id/completeness and GET /summary.
-// Exported (not moved) so routes/studio/attention.js can ask the SAME question
+// The loader itself is projects/graphForProject.js; this wrapper stays
+// exported so routes/studio/attention.js can ask the SAME question
 // about a Solution that this file's own routes ask — including its `unavailable`
 // list, which is what keeps "could not read half of it" from reading as "clean".
 // It authorises nothing on its own: every caller resolves the project role, or

@@ -15,7 +15,7 @@ vi.mock('./automationTitles', () => ({
     useAutomationTitles: () => ({}),
 }));
 
-// RoutinePicker zelf blijft ECHT — de opdracht is dat "+ Add an automation" de
+// AutomationPicker zelf blijft ECHT — de opdracht is dat "+ Add an automation" de
 // BESTAANDE kiezer opent en er geen tweede bij komt, en dat kun je alleen zien
 // door hem te laten renderen. Alleen zijn datalaag is een stub.
 const listAutomations = vi.fn(async () => ({ automations: [{ id: 'aut_new', title: 'Weekly digest', isActive: true }] }));
@@ -119,7 +119,7 @@ describe('een event zonder actie verdwijnt niet', () => {
 });
 
 describe('de statuskolom telt niet wat ze niet heeft', () => {
-    const wiredToRoutine = () => definitionWith(
+    const wiredToAutomation = () => definitionWith(
         [{ id: 'nd_b', type: 'button', onClick: 'act_run' }],
         { act_run: { kind: 'run_automation', automationId: 'aut_7' } },
     );
@@ -129,7 +129,7 @@ describe('de statuskolom telt niet wat ze niet heeft', () => {
             runs: ok({ facets: { automationId: { aut_7: 38 } } }),
             approvals: ok({ facets: { status: {} } }),
         });
-        const { client } = renderTab({ definition: wiredToRoutine() });
+        const { client } = renderTab({ definition: wiredToAutomation() });
         await settled(client, ['studio-app-logic-runs', 'app_1']);
         expect(await screen.findByText('38 runs by you in the last 24 hours')).toBeInTheDocument();
         expect(screen.queryByText(/today/i)).not.toBeInTheDocument();
@@ -140,14 +140,14 @@ describe('de statuskolom telt niet wat ze niet heeft', () => {
             runs: ok({ facets: { automationId: { aut_7: 1 } } }),
             approvals: ok({ facets: { status: {} } }),
         });
-        const { client } = renderTab({ definition: wiredToRoutine() });
+        const { client } = renderTab({ definition: wiredToAutomation() });
         await settled(client, ['studio-app-logic-runs', 'app_1']);
         expect(await screen.findByText('1 run by you in the last 24 hours')).toBeInTheDocument();
     });
 
     it('schrijft "Not available" — geen 0 — als de runs niet gelezen konden worden', async () => {
         routeFetch({ runs: denied(500), approvals: ok({ facets: { status: {} } }) });
-        const { client } = renderTab({ definition: wiredToRoutine() });
+        const { client } = renderTab({ definition: wiredToAutomation() });
         await settled(client, ['studio-app-logic-runs', 'app_1']);
         const cell = await waitFor(() => {
             const el = document.querySelector('[data-logic-status="unknown"]');
@@ -184,7 +184,7 @@ describe('de statuskolom telt niet wat ze niet heeft', () => {
     });
 
     it('vraagt de org-brede runs-endpoint nooit aan', async () => {
-        const { client } = renderTab({ definition: wiredToRoutine() });
+        const { client } = renderTab({ definition: wiredToAutomation() });
         await settled(client, ['studio-app-logic-runs', 'app_1']);
         for (const [url] of authFetch.mock.calls) {
             expect(String(url)).not.toContain('/_runs/org');
@@ -207,16 +207,16 @@ describe('runCountOf / pendingCountOf — null en 0 zijn verschillende antwoorde
 });
 
 describe('"+ Add an automation" opent de bestaande kiezer', () => {
-    it('rendert RoutinePicker en commit de gekozen routine als losse actie', async () => {
+    it('rendert AutomationPicker en commit de gekozen automatisering als losse actie', async () => {
         const user = userEvent.setup();
         const onCommit = vi.fn();
         renderTab({ definition: definitionWith([]), onCommit });
 
         await user.click(screen.getByRole('button', { name: 'Add an automation' }));
 
-        // De echte RoutinePicker: eigen zoekveld, eigen lijst, eigen titel.
-        expect(await screen.findByRole('dialog', { name: /Choose a routine/i })).toBeInTheDocument();
-        expect(screen.getByLabelText('Search routines')).toBeInTheDocument();
+        // De echte AutomationPicker: eigen zoekveld, eigen lijst, eigen titel.
+        expect(await screen.findByRole('dialog', { name: /Choose an automation/i })).toBeInTheDocument();
+        expect(screen.getByLabelText('Search automations')).toBeInTheDocument();
         expect(listAutomations).toHaveBeenCalled();
 
         await user.click(await screen.findByText('Weekly digest'));
@@ -237,7 +237,7 @@ describe('"+ Add an automation" opent de bestaande kiezer', () => {
     });
 });
 
-describe('Routines van deze app — afgeleid, en alleen als beide dingen kloppen', () => {
+describe('Automations van deze app — afgeleid, en alleen als beide dingen kloppen', () => {
     beforeEach(() => {
         AUTOMATION_ROWS.current = {
             aut_night: {
@@ -255,9 +255,9 @@ describe('Routines van deze app — afgeleid, en alleen als beide dingen kloppen
         { id: 'nd_grid', type: 'data_grid', props: { source: { kind: 'records', tableId: 'tbl_a' } } },
     ]);
 
-    it('toont de routine uit dezelfde oplossing die de gebonden tabel raakt', async () => {
+    it('toont de automatisering uit dezelfde oplossing die de gebonden tabel raakt', async () => {
         renderTab({ definition: boundDef() });
-        const section = document.querySelector('[data-logic-routines]');
+        const section = document.querySelector('[data-logic-automations]');
         expect(section).toBeTruthy();
         expect(within(section).getByText('Nightly reminder')).toBeInTheDocument();
         expect(within(section).getByText('On a schedule')).toBeInTheDocument();
@@ -266,24 +266,24 @@ describe('Routines van deze app — afgeleid, en alleen als beide dingen kloppen
 
     it('toont niets voor een app die in geen oplossing staat', async () => {
         renderTab({ app: { id: 'app_1', projectId: null }, definition: boundDef() });
-        expect(document.querySelector('[data-logic-routines]')).toBeNull();
+        expect(document.querySelector('[data-logic-automations]')).toBeNull();
     });
 
-    it('zegt in de kop dat het JOUW routines zijn — de lijst is kijkergescoopt', async () => {
+    it('zegt in de kop dat het JOUW automatiseringen zijn — de lijst is kijkergescoopt', async () => {
         // De rijen komen van GET /api/automation → getAutomationsForUser
-        // (`WHERE user_id = $1`). De nachtelijke routine van een collega, in
+        // (`WHERE user_id = $1`). De nachtelijke automatisering van een collega, in
         // dezelfde oplossing en op dezelfde tabel, staat er niet in — en een lege
         // sectie is niet te onderscheiden van "die zijn er niet". Versmallen mag;
-        // er "Routines in this solution" boven zetten niet.
+        // er "Automations in this solution" boven zetten niet.
         renderTab({ definition: boundDef() });
-        const section = document.querySelector('[data-logic-routines]');
-        expect(within(section).getByText('Your routines in this solution')).toBeInTheDocument();
-        expect(within(section).getByText(/Routines owned by someone else are not listed/))
+        const section = document.querySelector('[data-logic-automations]');
+        expect(within(section).getByText('Your automations in this solution')).toBeInTheDocument();
+        expect(within(section).getByText(/Automations owned by someone else are not listed/))
             .toBeInTheDocument();
     });
 
-    it('ontdubbelt: een routine die al aan een knop hangt komt er niet nóg eens bij', async () => {
-        // Zonder `wiredAutomationIds` zou dezelfde routine twee keer op het
+    it('ontdubbelt: een automatisering die al aan een knop hangt komt er niet nóg eens bij', async () => {
+        // Zonder `wiredAutomationIds` zou dezelfde automation twee keer op het
         // scherm staan — één keer bij de knop, één keer in deze sectie.
         const def = definitionWith([
             { id: 'nd_grid', type: 'data_grid', props: { source: { kind: 'records', tableId: 'tbl_a' } } },
@@ -292,7 +292,7 @@ describe('Routines van deze app — afgeleid, en alleen als beide dingen kloppen
         def.actions = { ...def.actions, act_run: { kind: 'run_automation', automationId: 'aut_night' } };
         renderTab({ definition: def });
         expect(screen.getAllByText(/Nightly reminder/)).toHaveLength(1);
-        expect(document.querySelector('[data-logic-routines]')).toBeNull();
+        expect(document.querySelector('[data-logic-automations]')).toBeNull();
     });
 });
 
@@ -308,7 +308,7 @@ describe('de ↗-kolom', () => {
         expect(onReveal).toHaveBeenCalledWith({ screenId: 'scr_1', nodeId: 'nd_b' });
     });
 
-    it('linkt een routine zonder component naar de Automations-builder', async () => {
+    it('linkt een automatisering zonder component naar de Automations-builder', async () => {
         AUTOMATION_ROWS.current = {
             aut_night: {
                 id: 'aut_night', title: 'Nightly reminder', projectId: 'prj_1',
@@ -320,7 +320,7 @@ describe('de ↗-kolom', () => {
                 { id: 'nd_grid', type: 'data_grid', props: { source: { kind: 'records', tableId: 'tbl_a' } } },
             ]),
         });
-        const section = document.querySelector('[data-logic-routines]');
+        const section = document.querySelector('[data-logic-automations]');
         expect(within(section).getByRole('link', { name: 'Open' }))
             .toHaveAttribute('href', '/app/studio/automations/aut_night');
     });

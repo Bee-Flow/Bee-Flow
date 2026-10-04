@@ -28,11 +28,13 @@ const {
     stepInputsSynthetic,
 } = require('./shared');
 const log = require('../../telemetry/log');
+const { createUsageAccumulator, usageLogFields } = require('../providers/usageNormalizer');
 
 // ── Step executors ──────────────────────────────────────
 
 async function execIntegrationAction(step, ctx, runState, mode) {
-    let inputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: true });
+    // Tool arguments are data, not prose: a list in a `{{…}}` stays JSON.
+    let inputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' });
     const sideEffect = isSideEffect(step.tool);
 
     // ── Safety: scan resolved inputs (toolInput scope) before anything leaves ──
@@ -99,19 +101,19 @@ async function execIntegrationAction(step, ctx, runState, mode) {
     if (!ctx.allowedToolNames) {
         try {
             const { getIntegrationTools } = require('../integrations/integrationTools');
-            // Connection lending (gated): when this routine is run on behalf of a
-            // non-owner (ctx.resourceOwnerUserId set by routine-sharing) the
+            // Connection lending (gated): when this automation is run on behalf of a
+            // non-owner (ctx.resourceOwnerUserId set by automation-sharing) the
             // owner's LENT providers' tools must be in the allowed set too, else
             // the permission gate below would reject a validly-borrowed tool.
             // Inert unless the flag is on AND an owner is provided.
             const lendPolicy = (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
-                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'routine', resourceId: ctx.automationId || null }
+                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'automation', resourceId: ctx.automationId || null }
                 : null;
             const r = await getIntegrationTools({
                 userId: ctx.userId,
                 session: ctx.session,
                 isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
-                routineStep: true,
+                automationStep: true,
                 connectionPolicy: lendPolicy,
             });
             ctx.allowedToolNames = new Set((r.tools || []).map(t => t?.function?.name).filter(Boolean));
@@ -140,7 +142,7 @@ async function execIntegrationAction(step, ctx, runState, mode) {
 
     const { executeTool } = require('../tools/toolDispatcher');
 
-    // Connection lending (GATED, default off): a routine run on behalf of a
+    // Connection lending (GATED, default off): an automation run on behalf of a
     // non-owner may borrow the owner's named connection for this step. Inert
     // unless INTEGRATION_CONNECTION_LENDING_ENABLED is set AND a resource owner
     // distinct from the runner is provided — so today's behavior is unchanged.
@@ -155,7 +157,7 @@ async function execIntegrationAction(step, ctx, runState, mode) {
                 toolName: step.tool, runningUserId: ctx.userId,
                 runningUserOrgId: ctx.__runCtx.orgId, runningUserGroups: ctx.__runCtx.groups,
                 ownerUserId: ctx.resourceOwnerUserId,
-                resourceType: 'routine', resourceId: ctx.automationId || null,
+                resourceType: 'automation', resourceId: ctx.automationId || null,
             });
             if (ov) { stepUserId = ov.integrationUserId; stepOrgId = ov.integrationOrgId; lentConnection = ov; }
         }
@@ -321,8 +323,8 @@ async function execIntegrationAction(step, ctx, runState, mode) {
                         session: ctx.session,
                         orgId: stepOrgId,
                         userGroupIds: ctx.userGroupIds || [],
-                        // The routine this step belongs to — what lets a
-                        // self-scoped tool (routine_*) act on its own routine
+                        // The automation this step belongs to — what lets a
+                        // self-scoped tool (automation_*) act on its own automation
                         // and nothing else.
                         automationId: ctx.automationId || null,
                         userOrgIds: ctx.userOrgIds || [],
@@ -441,9 +443,9 @@ async function execIntegrationAction(step, ctx, runState, mode) {
     // This holds in a DRY RUN too, with one exception. The exception is what
     // the carve-out here was originally for: an error about the ENVIRONMENT (no
     // credentials, app not connected, endpoint unreachable) still falls back to
-    // a sample, so the builder can plan a routine for an app this workspace has
+    // a sample, so the builder can plan an automation for an app this workspace has
     // not connected yet. An error about THIS STEP does not: "path is required"
-    // reported as success is how a routine with `loop.f.path` refs and no
+    // reported as success is how an automation with `loop.f.path` refs and no
     // forEach at all passed its dry run and got finalised (2026-09-12).
     if (isToolErrorResult(result)) {
         if (mode === 'dry_run' && isEnvironmentToolError(result.error)) {
@@ -592,14 +594,14 @@ const AI_STEP_KB_TOP_K = 6;      // mirrors appStudio/aiRuntime.groundWithKB's d
 const MAX_AI_STEP_KB_IDS = 10;   // mirrors appStudio/aiRuntime.MAX_KB_IDS
 
 /**
- * Narrow a step's knowledgeBaseIds down to the ones the ROUTINE OWNER
+ * Narrow a step's knowledgeBaseIds down to the ones the AUTOMATION OWNER
  * (ctx.userId, in ctx.orgId) may actually read.
  *
  * The decision itself lives in `core/kb/kbVisibility`, which is where every
  * other retrieval surface now asks it. Sharing the function is the point: this
- * one used to pass `isOrgAdmin` through, so a routine owned by an org admin
+ * one used to pass `isOrgAdmin` through, so an automation owned by an org admin
  * ground itself on any base in the organisation — including a colleague's
- * unfinished draft — and the run log said the routine had read it. The admin
+ * unfinished draft — and the run log said the automation had read it. The admin
  * bypass belongs to a management screen, not to a retrieval.
  *
  * A foreign or stale id is DROPPED with a warning, never thrown: one bad id in
@@ -626,7 +628,7 @@ async function resolveAllowedKnowledgeBaseIds(kbIds, ctx) {
 /**
  * Personal memory grounding for an ai_step (`step.useMemory === true`).
  *
- * Searches the ROUTINE OWNER's user_memories (ctx.userId — an automation has no
+ * Searches the AUTOMATION OWNER's user_memories (ctx.userId — an automation has no
  * app-level owner) with the step's interpolated prompt and returns the same
  * "## Active Memory" block chat agents receive, scrubbed of literal PII by the
  * read-time guard. Everything is best-effort: no memories, a store error, or a
@@ -667,7 +669,7 @@ async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null) {
     // De lijst komt van de aanroeper: op een agent-stap is dat de UNIE van de
     // banken van de stap en die van de agent (aiStepAgent.knowledgeBaseIdsForStep),
     // en die hele unie gaat door dezelfde per-vrager-filter hieronder — anders
-    // leest een routine-eigenaar via de agent van een collega mee in banken die
+    // leest een automation-eigenaar via de agent van een collega mee in banken die
     // hij zelf niet mag zien. Zonder lijst blijft het de stap zijn eigen banken.
     const ids = Array.isArray(kbIds) ? kbIds : (Array.isArray(step.knowledgeBaseIds) ? step.knowledgeBaseIds : []);
     if (!ids.length) return { context: '', chunks: [] };
@@ -692,7 +694,7 @@ async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null) {
  * `session`: `mergeSkillIds` houdt attached vooraan en kapt daarna af op de
  * cap, dus de skill die de auteur op DEZE stap koos is leidend — in volgorde
  * én in de cap — zonder dat de gedeelde functie iets hoeft te weten van
- * routines.
+ * automations.
  *
  * `orgId` is de tenantgrens van `getSkillsByIds`: zonder org geeft
  * `buildSkillInjection` stil niets terug, en dat "stil" is precies het soort
@@ -714,11 +716,11 @@ async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null
             attachedSkillIds,
             sessionSkillIds,
             orgId: ctx.orgId,
-            // De VRAGER is de routine-eigenaar: een persoonlijke skill van de
+            // De VRAGER is de automation-eigenaar: een persoonlijke skill van de
             // agent-eigenaar valt daarmee vanzelf weg (stores/skillStore.js).
             userId: ctx.userId,
             agentId: binding ? binding.agentId : null,
-            // De "laatst gebruikt"-rij hoort bij deze routine, niet bij een chat.
+            // De "laatst gebruikt"-rij hoort bij deze automatisering, niet bij een chat.
             conversationId: ctx.automationId || null,
             // Handoff 5: the rows execAi already loaded (aiStepSkills), in
             // run order, so the leading skill also comes first in the prompt.
@@ -727,16 +729,16 @@ async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null
         return {
             systemPromptAddendum: injection.systemPromptAddendum || '',
             tools: Array.isArray(injection.tools) ? injection.tools : [],
-            // Draagt `activate_skill` hier een ROUTINE-START? Een skill met een
+            // Draagt `activate_skill` hier een AUTOMATION-START? Een skill met een
             // `automationId` heeft geen tekstbody: `executeActivateSkill` draait
             // `executeAutomation(..., mode: 'live')`. Dat is dezelfde handeling
             // waar `startAutomations` over gaat, dus die schakelaar beslist
             // erover — anders krijgt een stap met alle drie de permissies UIT
-            // toch een tool waarmee het model een routine live start.
+            // toch een tool waarmee het model een automatisering live start.
             startsAutomations: Array.isArray(injection.automationSkillIds)
                 ? injection.automationSkillIds.length > 0
                 // Een oudere (of gestubde) injectie zegt het niet. Onbekend
-                // versmalt: dan telt de tool als routine-starter.
+                // versmalt: dan telt de tool als automation-starter.
                 : true,
         };
     } catch (e) {
@@ -851,7 +853,7 @@ async function execAiStep(step, ctx, runState, mode) {
     const adapter = getAdapter(cfg.providerType, cfg.url);
     if (!adapter || typeof adapter.chat !== 'function') throw new Error('Provider adapter does not support chat');
 
-    const resolvedInputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: false });
+    const resolvedInputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: false, listAs: 'json' });
 
     // Fill {{...}} references in the prompt at run time. The prompt is the
     // builder's own instruction text, so unlike a notification body we keep
@@ -864,7 +866,7 @@ async function execAiStep(step, ctx, runState, mode) {
     // below, so existing automations that rely on that keep working.
     const promptScope = { ...runState, secrets: {}, ...resolvedInputs };
     const promptText = require('../../automation/bind')
-        .interpolateTemplate(step.prompt || '', promptScope, { leaveUnresolved: true });
+        .interpolateTemplate(step.prompt || '', promptScope, { leaveUnresolved: true, listAs: 'json' });
 
     // If the builder didn't declare an outputSchema, derive one from how
     // downstream steps actually reference this ai_step's output. The
@@ -908,7 +910,7 @@ async function execAiStep(step, ctx, runState, mode) {
     const kbIdsForStep = [...new Set([...knowledgeBaseIdsForStep(step, agentBinding), ...skillGrants.kbIds])];
     const kbGround = await groundAiStepWithKB(step, ctx, promptText, mode, kbIdsForStep);
     const kbBlock = kbGround.context ? `\n\nReference material:\n${kbGround.context}` : '';
-    // Personal memory grounding (step.useMemory) — the routine OWNER's
+    // Personal memory grounding (step.useMemory) — the automation OWNER's
     // user_memories, keyed off ctx.userId like the KB search above. Rides in
     // the same slot as the KB block so the safety tail still closes the prompt.
     const memoryBlock = await groundAiStepWithMemory(step, ctx, promptText);
@@ -975,7 +977,7 @@ async function execAiStep(step, ctx, runState, mode) {
         toolsWithheld = gate.withheld;
         toolsWithheldReasons = gate.reasons || {};
         if (toolsWithheld.length) {
-            log.warn(`[AutomationRunner] ai_step ${step.id}: withheld ${toolsWithheld.length} tool(s) that need a person's approval — a routine runs unattended (${toolsWithheld.slice(0, 8).join(', ')}). Put an approval step after this one if the routine has to do this anyway.`);
+            log.warn(`[AutomationRunner] ai_step ${step.id}: withheld ${toolsWithheld.length} tool(s) that need a person's approval — an automation runs unattended (${toolsWithheld.slice(0, 8).join(', ')}). Put an approval step after this one if the automation has to do this anyway.`);
         }
         if (gate.degraded) {
             log.warn(`[AutomationRunner] ai_step ${step.id}: tool attribution is degraded — this step is served NO registry tools (unknown narrows)`);
@@ -1002,7 +1004,7 @@ async function execAiStep(step, ctx, runState, mode) {
             const offered = allowList
                 ? toolsCatalog.filter(t => allowList.has(t?.function?.name))
                 : toolsCatalog;
-            // Handoff 5: a routine runs unattended on this path too, so a
+            // Handoff 5: an automation runs unattended on this path too, so a
             // tool a person would have to confirm is withheld exactly as on
             // the agent path (aiStepAgent.withholdConfirmTools, no agent
             // config: the policy's own floor, e.g. sending always asks).
@@ -1026,7 +1028,7 @@ async function execAiStep(step, ctx, runState, mode) {
         const base = Array.isArray(tools) ? tools : [];
         const known = new Set(base.map(t => t?.function?.name).filter(Boolean));
         let extra = skillGround.tools.filter(t => t?.function?.name && !known.has(t.function.name));
-        // Handoff 5: a skill that RUNS A ROUTINE starts it live the moment the
+        // Handoff 5: a skill that RUNS A AUTOMATION starts it live the moment the
         // model loads it, so without an agent it hangs on the same switch as
         // with one (startAutomations; absent means off).
         if (skillGround.startsAutomations === true && !stepPermissions.startAutomations) {
@@ -1067,14 +1069,11 @@ async function execAiStep(step, ctx, runState, mode) {
     }
 
     // Usage/termination bookkeeping so automation LLM spend is visible & billable.
-    const usageAccum = { prompt: 0, completion: 0, total: 0 };
-    const accrueUsage = (resp) => {
-        const u = resp && resp.usage ? resp.usage : null;
-        if (!u) return;
-        usageAccum.prompt += u.promptTokens || u.prompt_tokens || u.input_tokens || 0;
-        usageAccum.completion += u.completionTokens || u.completion_tokens || u.output_tokens || 0;
-        usageAccum.total += u.totalTokens || u.total_tokens || (usageAccum.prompt + usageAccum.completion ? 0 : 0);
-    };
+    // One accumulator over every round (providers/usageNormalizer.js): tokens,
+    // cache read/write with the 5m/1h split, tier and tool counts. Adapters
+    // return normalised usage; a raw provider block is read too.
+    const usageAcc = createUsageAccumulator();
+    const accrueUsage = (resp) => usageAcc.add(resp && resp.usage ? resp.usage : null);
 
     // Tool-calling loop. When tools are off (the default) this collapses to
     // a single chat call exactly as before. When tools are on, the model can
@@ -1088,8 +1087,8 @@ async function execAiStep(step, ctx, runState, mode) {
         // The Privacy Shield tool block lists ("Outside tools" / "Own
         // server") on what a tool would receive and on what the model reads
         // back, as in chat (BFSF-354). policy.shield is null when the org
-        // keeps routines out of the shield, so that switch holds here too.
-        // A guardrail event is filed like the routine's own, per tool call.
+        // keeps automations out of the shield, so that switch holds here too.
+        // A guardrail event is filed like the automation's own, per tool call.
         const shieldGate = require('../privacy/toolPiiGate').toolLoopGate({
             shield: policy.shield, tag: 'AutomationRunner',
             audit: (fields, toolName) => require('../../stores/guardrailEventStore').logGuardrailEvent({
@@ -1169,14 +1168,14 @@ async function execAiStep(step, ctx, runState, mode) {
                                 value: await executeTool(tc.function.name, callArgs, {
                                     userId: ctx.userId, session: ctx.session, orgId: ctx.orgId,
                                     userGroupIds: ctx.userGroupIds || [],
-                        // The routine this step belongs to — what lets a
-                        // self-scoped tool (routine_*) act on its own routine
+                        // The automation this step belongs to — what lets a
+                        // self-scoped tool (automation_*) act on its own automation
                         // and nothing else.
                         automationId: ctx.automationId || null,
                                     userOrgIds: ctx.userOrgIds || [],
                                     runScope: ctx.runId ? { runId: ctx.runId, rootRunId: ctx.rootRunId || ctx.runId } : null,
                                     autoSend: mode === 'live',
-                                    // Who starts a routine from here (handoff
+                                    // Who starts an automation from here (handoff
                                     // 5 caller trace). Its own key: `agentId`
                                     // would switch on agent-scoped tools.
                                     callerAgentId: agentBinding ? agentBinding.agentId : null,
@@ -1280,7 +1279,7 @@ async function execAiStep(step, ctx, runState, mode) {
             // What used to happen here was nothing: `output` stayed the raw
             // string, the step reported SUCCESS, and every downstream
             // `steps.<id>.output.<field>` silently resolved to undefined. A
-            // routine could render an empty document, mail an empty summary or
+            // automation could render an empty document, mail an empty summary or
             // write empty rows, with a green run behind it and no line anywhere
             // saying why. That is the worst failure this file can produce, so it
             // fails loudly instead.
@@ -1316,22 +1315,21 @@ async function execAiStep(step, ctx, runState, mode) {
     const aiOut = await safety.guardAiOutput(output, policy, auditBase, mode, ctx);
     output = safety.restoreForRunState(aiOut.content, ctx);
 
-    // ── Usage + termination logging (source='routine') — automation LLM spend
+    // ── Usage + termination logging (source='automation') — automation LLM spend
     // was previously invisible in ai_usage_log / ai_task_termination_log.
     try {
         usageStore.logUsage({
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
-            agent_type: 'routine', model: modelId, source: 'routine',
-            conversation_id: ctx.automationId, prompt_tokens: usageAccum.prompt,
-            completion_tokens: usageAccum.completion,
-            total_tokens: usageAccum.total || (usageAccum.prompt + usageAccum.completion),
+            agent_type: 'automation', model: modelId, source: 'automation',
+            conversation_id: ctx.automationId,
+            ...usageLogFields(usageAcc.total()),
         }).catch(() => {});
     } catch (_) {}
     if (hitIterationCap) {
         try {
             terminationStore.logTermination({
-                termination_type: 'max_iterations', source: 'routine', model: modelId,
+                termination_type: 'max_iterations', source: 'automation', model: modelId,
                 user_id: ctx.userId, organization_id: ctx.orgId || null,
                 agent_id: ctx.automationId, conversation_id: ctx.automationId,
                 iteration_count: MAX_AI_STEP_TOOL_ITERATIONS,

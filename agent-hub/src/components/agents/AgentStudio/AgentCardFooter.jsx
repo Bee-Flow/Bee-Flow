@@ -10,7 +10,7 @@ import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
  * Eén regel onder de kaart, in drie vormen:
  *
  *   ⚠ Answers from memory — connect a knowledge base
- *   312 conversations · also in 2 routines, 1 app
+ *   312 conversations · also in 2 automations, 1 app
  *   Only you · 4 conversations
  *
  * "Test" staat er bewust NIET bij. Dit product heeft een eersteklas testbegrip
@@ -53,7 +53,7 @@ import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
  * bestaan — en de volgende lezer had die in de woordenboeken gezet.)
  *
  * Dit zijn niet de sleutels van die dialoog: `agent_usage.kind_*` zijn
- * KOPJES ("Routines"), die geen enkelvoud kennen en er in een geteld zinsdeel
+ * KOPJES ("Automations"), die geen enkelvoud kennen en er in een geteld zinsdeel
  * ook geen kunnen krijgen zonder daar iets anders te gaan betekenen. Voor het
  * zinsdeel "could not check: …" zijn ze wél precies goed, en dáár worden ze
  * hieronder hergebruikt.
@@ -66,7 +66,7 @@ function usedByPhrase(t, kind, n) {
         case 'task': return nOf(t, 'agent_studio.card.n_task', n, '{count} scheduled task', '{count} scheduled tasks');
         case 'cowork': return nOf(t, 'agent_studio.card.n_cowork', n, '{count} Cowork schedule', '{count} Cowork schedules');
         case 'support': return nOf(t, 'agent_studio.card.n_support', n, '{count} support inbox', '{count} support inboxes');
-        case 'automation': return nOf(t, 'agent_studio.card.n_automation', n, '{count} routine', '{count} routines');
+        case 'automation': return nOf(t, 'agent_studio.card.n_automation', n, '{count} automation', '{count} automations');
         case 'app': return nOf(t, 'agent_studio.card.n_app', n, '{count} app', '{count} apps');
         case 'webpage': return nOf(t, 'agent_studio.card.n_webpage', n, '{count} webpage', '{count} webpages');
         default: return `${n} ${kind}`;
@@ -79,7 +79,7 @@ function kindHeading(t, kind) {
         case 'task': return t('agent_usage.kind_task', 'Scheduled tasks');
         case 'cowork': return t('agent_usage.kind_cowork', 'Cowork schedules');
         case 'support': return t('agent_usage.kind_support', 'Support inboxes');
-        case 'automation': return t('agent_usage.kind_automation', 'Routines');
+        case 'automation': return t('agent_usage.kind_automation', 'Automations');
         case 'app': return t('agent_usage.kind_app', 'Apps');
         case 'webpage': return t('agent_usage.kind_webpage', 'Webpages');
         default: return kind;

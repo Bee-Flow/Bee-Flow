@@ -90,7 +90,7 @@ async function createSchema() {
         // sources (manual/live) never carry a next_refresh_at at all.
         `CREATE INDEX IF NOT EXISTS idx_kb_sources_due ON kb_sources(next_refresh_at) WHERE next_refresh_at IS NOT NULL`,
         // `listByAutomation` filters on `config @> {automationId}` and runs on EVERY
-        // routine save, from five different paths. GIN over the config, narrowed to
+        // automation save, from five different paths. GIN over the config, narrowed to
         // the one kind that carries an automationId so the index stays small.
         `CREATE INDEX IF NOT EXISTS idx_kb_sources_automation ON kb_sources USING GIN (config jsonb_path_ops) WHERE kind = 'automation'`,
     ]);
@@ -298,11 +298,11 @@ const KbSourcesStore = {
     },
 
     /**
-     * Every `automation` source a routine owns, across knowledge bases.
+     * Every `automation` source an automation owns, across knowledge bases.
      *
      * The reverse of `findOne(kbId, 'automation', {automationId})`: that
-     * answers "does THIS base have a source for this routine", and cannot
-     * answer "which bases does this routine still claim to feed" — which is
+     * answers "does THIS base have a source for this automation", and cannot
+     * answer "which bases does this automation still claim to feed" — which is
      * what `core/kb/kbSourceSync` needs to find the ones a definition dropped.
      */
     listByAutomation: async (automationId) => {

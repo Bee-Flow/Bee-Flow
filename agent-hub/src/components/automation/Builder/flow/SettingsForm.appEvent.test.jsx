@@ -32,7 +32,14 @@ const supportDef = {
         { id: 'ticket.resolved', label: 'Ticket resolved', deliverability: 'ok' },
     ],
 };
-const CATALOG = { triggers: [{ kind: 'app_event', providers: [gmailDef, nextcloudDef, supportDef] }] };
+const sheetsDef = {
+    id: 'google-sheets', label: 'Google Sheets', defaultEvent: 'spreadsheet.changed',
+    events: [
+        { id: 'spreadsheet.changed', label: 'Spreadsheet edited', deliverability: 'ok' },
+        { id: 'spreadsheet.new', label: 'New spreadsheet', deliverability: 'ok' },
+    ],
+};
+const CATALOG = { triggers: [{ kind: 'app_event', providers: [gmailDef, nextcloudDef, supportDef, sheetsDef] }] };
 
 function renderForm(step, { onPatch = vi.fn(), catalog = CATALOG } = {}) {
     const utils = render(
@@ -72,7 +79,7 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
     it('lists exactly the catalog providers — no hardcoded extras', () => {
         renderForm(trigger({ provider: 'gmail', event: 'mail.new', filter: null }));
         openPicker();
-        expect(pickerApps()).toEqual(['Gmail', 'Nextcloud', 'Support Inbox']);
+        expect(pickerApps()).toEqual(['Gmail', 'Nextcloud', 'Support Inbox', 'Google Sheets']);
     });
 
     it('the picker shows what an app can trigger on before you commit to it', () => {
@@ -172,14 +179,28 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         expect(screen.queryByText(/filter/i)).toBeNull();
     });
 
-    it('support.ticket.resolved renders the support filter; unchecking genuine contact stores false', () => {
-        const { onPatch } = renderForm(trigger({ provider: 'support', event: 'ticket.resolved', filter: null }));
-        expect(screen.getByText(/Support Inbox ticket.resolved filter/)).toBeTruthy();
-        const genuine = screen.getByRole('checkbox');
-        expect(genuine.checked).toBe(true); // default on
-        fireEvent.click(genuine);
+    it('google-sheets.spreadsheet.changed renders spreadsheet/sheet/range controls (BFSF-480)', () => {
+        const { onPatch } = renderForm(trigger({ provider: 'google-sheets', event: 'spreadsheet.changed', filter: null }));
+        expect(screen.getByText(/Google Sheets filter/)).toBeTruthy();
+        fireEvent.change(screen.getByPlaceholderText('1AbCDeFgHiJkLmNoPqRsTuV'), { target: { value: 'sheet-1' } });
+        fireEvent.change(screen.getByPlaceholderText('Budget'), { target: { value: 'Invoices' } });
+        fireEvent.change(screen.getByPlaceholderText('A1:D100'), { target: { value: 'A1:D100' } });
         fireEvent.click(screen.getByText('Save'));
         expect(onPatch).toHaveBeenCalledTimes(1);
-        expect(onPatch.mock.calls[0][0].appEvent.filter).toEqual({ requireGenuineContact: false });
+        expect(onPatch.mock.calls[0][0].appEvent.filter).toEqual({ spreadsheetId: 'sheet-1', sheet: 'Invoices', range: 'A1:D100' });
+    });
+
+    it('the sheets filter clears a key when its box is emptied, and stays out of spreadsheet.new', () => {
+        const { onPatch } = renderForm(trigger({
+            provider: 'google-sheets', event: 'spreadsheet.changed',
+            filter: { spreadsheetId: 'sheet-1', sheet: 'Invoices' },
+        }));
+        fireEvent.change(screen.getByPlaceholderText('Budget'), { target: { value: '' } });
+        fireEvent.click(screen.getByText('Save'));
+        expect(onPatch.mock.calls[0][0].appEvent.filter).toEqual({ spreadsheetId: 'sheet-1' });
+
+        cleanup();
+        renderForm(trigger({ provider: 'google-sheets', event: 'spreadsheet.new', filter: null }));
+        expect(screen.queryByText(/Google Sheets filter/)).toBeNull();
     });
 });

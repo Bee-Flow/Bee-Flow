@@ -9,7 +9,7 @@
  *   config.enabled_apps_user_<id>          = absent
  *
  * Reading only the legacy column yielded [], which makes
- * routineAuth.buildUserAuth take its `required.length === 0` shortcut and return
+ * automationAuth.buildUserAuth take its `required.length === 0` shortcut and return
  * a TRUTHY object with a null accessToken — so the caller adopted a token-less
  * session and the Google client reported a connected account as not connected.
  *

@@ -1,12 +1,12 @@
 /**
  * "May use" — everything a skill may reach while it is active (the web's
- * CanUseCard): apps (`enabledIntegrations`), routines an agent can call
+ * CanUseCard): apps (`enabledIntegrations`), automations an agent can call
  * (`allowedAutomationIds`) and knowledge bases (`knowledgeBaseIds`), plus,
- * under "All options", the dynamic-activation switch and the legacy routine
+ * under "All options", the dynamic-activation switch and the legacy automation
  * note. Grants are re-checked at dispatch; this is where the author SEES them.
  *
  * A list that could not be read is named rather than shown as empty, and a
- * pill whose name is unknown keeps its "Routine {id}" fallback so it does not
+ * pill whose name is unknown keeps its "Automation {id}" fallback so it does not
  * look deleted.
  */
 
@@ -34,7 +34,7 @@ type Grants = Pick<SkillDraft, 'enabledIntegrations' | 'allowedAutomationIds' | 
 function gapNames(t: TranslateFn, appsFailed: boolean, picker: PickerData): string[] {
     const names: string[] = [];
     if (appsFailed) names.push(t('skills_studio.canuse.gap.apps', 'apps'));
-    if (picker.unavailable.includes('routines')) names.push(t('skills_studio.canuse.gap.routines', 'routines'));
+    if (picker.unavailable.includes('automations')) names.push(t('skills_studio.canuse.gap.automations', 'automations'));
     if (picker.unavailable.includes('kbs')) names.push(t('skills_studio.canuse.gap.kbs', 'knowledge bases'));
     return names;
 }
@@ -50,7 +50,7 @@ interface GrantRow {
     href: string | null;
 }
 
-/** Every grant as a pill, in the web's order: apps, routines, knowledge bases. */
+/** Every grant as a pill, in the web's order: apps, automations, knowledge bases. */
 function grantPills(t: TranslateFn, draft: Grants, picker: PickerData): GrantRow[] {
     const nameOf = (rows: readonly { id: string; name: string }[], id: string, key: string, en: string) =>
         rows.find((r) => r.id === id)?.name || t(key, en, { id });
@@ -62,12 +62,12 @@ function grantPills(t: TranslateFn, draft: Grants, picker: PickerData): GrantRow
         label: INTEGRATION_CATALOG.find((a) => a.id === id)?.label || id,
         href: null,
     }));
-    const routines: GrantRow[] = draft.allowedAutomationIds.map((id) => ({
+    const automations: GrantRow[] = draft.allowedAutomationIds.map((id) => ({
         field: 'allowedAutomationIds',
         id,
         kind: 'automation',
         icon: 'Workflow',
-        label: nameOf(picker.routines, id, 'skills_studio.canuse.unknown_routine', 'Routine {id}'),
+        label: nameOf(picker.automations, id, 'skills_studio.canuse.unknown_automation', 'Automation {id}'),
         href: `/automations/${encodeURIComponent(id)}`,
     }));
     const kbs: GrantRow[] = draft.knowledgeBaseIds.map((id) => ({
@@ -78,7 +78,7 @@ function grantPills(t: TranslateFn, draft: Grants, picker: PickerData): GrantRow
         label: nameOf(picker.kbs, id, 'skills_studio.canuse.unknown_kb', 'Knowledge base {id}'),
         href: `/knowledge/${encodeURIComponent(id)}`,
     }));
-    return [...apps, ...routines, ...kbs];
+    return [...apps, ...automations, ...kbs];
 }
 
 interface LinkMenu {
@@ -91,7 +91,7 @@ interface LinkMenu {
 function linkItems(t: TranslateFn, { draft, picker, onBrowse, onChange }: LinkMenu) {
     const items: ActionMenuItem[] = [{ id: 'apps', label: t('skills_studio.canuse.browse_apps', 'Browse apps…'), icon: 'AppWindow', onPress: onBrowse }];
     if (!picker.loaded) return [...items, { id: 'loading', label: t('skills_studio.canuse.loading', 'Loading…'), disabled: true, onPress: onBrowse }];
-    for (const r of picker.routines) {
+    for (const r of picker.automations) {
         if (draft.allowedAutomationIds.includes(r.id)) continue;
         items.push({ id: `a:${r.id}`, label: r.name, icon: 'Workflow', onPress: () => onChange({ allowedAutomationIds: [...draft.allowedAutomationIds, r.id] }) });
     }
@@ -102,7 +102,7 @@ function linkItems(t: TranslateFn, { draft, picker, onBrowse, onChange }: LinkMe
     if (items.length === 1 && picker.unavailable.length === 0) {
         items.push({
             id: 'none',
-            label: t('skills_studio.canuse.nothing', 'Nothing else to link. A routine appears here once its trigger is “an agent calls it”.'),
+            label: t('skills_studio.canuse.nothing', 'Nothing else to link. An automation appears here once its trigger is “an agent calls it”.'),
             disabled: true,
             onPress: onBrowse,
         });
@@ -168,7 +168,7 @@ export function CanUseCard({
             />
             {legacyAutomationId ? (
                 <Text variant="caption" tone="secondary">
-                    {t('skills_studio.options.legacy_automation', 'This skill runs routine {id} instead of its own steps. Steps, rules and examples are ignored while that is set.', { id: legacyAutomationId })}
+                    {t('skills_studio.options.legacy_automation', 'This skill runs automation {id} instead of its own steps. Steps, rules and examples are ignored while that is set.', { id: legacyAutomationId })}
                 </Text>
             ) : null}
             <ActionMenu visible={menu} onClose={() => setMenu(false)} title={t('skills_studio.canuse.link', 'link')}

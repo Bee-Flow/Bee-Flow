@@ -26,7 +26,7 @@ import {
  *
  * Three destinations, all of them things the person already owns:
  *
- *   Start an automation  a routine whose trigger is `manual` or `agent_call`,
+ *   Start an automation  an automation whose trigger is `manual` or `agent_call`,
  *                        run with the action as its trigger payload
  *   Row in a table       one row in one of their datatables, columns mapped
  *                        by hand

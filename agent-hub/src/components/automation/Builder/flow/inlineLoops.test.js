@@ -119,7 +119,7 @@ describe('composeInlineGraph — loop body', () => {
 
     it('needs no flowlets in the document', () => {
         // The old early return bailed out whenever `layers` was absent, which
-        // would have made loops unexpandable in the great majority of routines.
+        // would have made loops unexpandable in the great majority of automations.
         const def = loopDef();
         expect(def.layers).toBeUndefined();
         expect(compose(def).sidecar.size).toBe(1);

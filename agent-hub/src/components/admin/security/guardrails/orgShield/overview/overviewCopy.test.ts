@@ -75,7 +75,7 @@ describe('step cards', () => {
     it('marks the values a review item is about in warning ink', () => {
         const p = posture(
             row('transparency', { on: true }, 'note', 'processing'),
-            row('routines', { on: true }, 'ok', 'processing'),
+            row('automations', { on: true }, 'ok', 'processing'),
             row('knowledge', { on: false }, 'ok', 'processing'),
         );
         expect(factsForStep(p, 3, ctx()).map(f => [f.value, f.warn])).toEqual([
@@ -115,7 +115,7 @@ describe('review copy', () => {
     });
 
     it('has nothing to say about a row that is never reviewed', () => {
-        expect(reviewCopy(row('routines', { on: true }), t)).toBeNull();
+        expect(reviewCopy(row('automations', { on: true }), t)).toBeNull();
     });
 });
 

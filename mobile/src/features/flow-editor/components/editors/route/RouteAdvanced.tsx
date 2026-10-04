@@ -64,7 +64,7 @@ export function RouteAdvanced({ route, setRoute, disabled = false }: { route: Ro
             {several ? (
                 <SelectField
                     label={t('mobile.flow.route.several_match', 'When several outputs match')}
-                    hint={t('mobile.flow.route.several_match_hint', 'Routines built before this existed keep sending each record down the first match only, until you change it here.')}
+                    hint={t('mobile.flow.route.several_match_hint', 'Automations built before this existed keep sending each record down the first match only, until you change it here.')}
                     value={route.matchMode === 'all' ? 'all' : 'first'}
                     options={[
                         { value: 'all', label: t('mobile.flow.route.send_all', 'Send it to every matching output') },

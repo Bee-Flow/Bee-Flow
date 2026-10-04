@@ -1,4 +1,4 @@
-// Routines library: the ONLY place that knows the wire contract of the
+// Automations library: the ONLY place that knows the wire contract of the
 // automation trash (GET /_trash, POST /:id/restore) and the server-side
 // duplicate (POST /:id/duplicate).
 //
@@ -11,8 +11,8 @@ import { queryClient } from '../../queryClient';
 
 const BASE = `${API_BASE}/api/automation`;
 
-/** One routine waiting in the trash. */
-export interface TrashedRoutine {
+/** One automation waiting in the trash. */
+export interface TrashedAutomation {
     id: string;
     title: string;
     deletedAt: string | null;
@@ -21,7 +21,7 @@ export interface TrashedRoutine {
 }
 
 export interface AutomationTrash {
-    automations: TrashedRoutine[];
+    automations: TrashedAutomation[];
     retentionDays: number;
 }
 
@@ -53,7 +53,7 @@ const text = (v: unknown): string | null => (typeof v === 'string' && v ? v : nu
 export function parseTrash(body: unknown): AutomationTrash {
     const raw = body && typeof body === 'object' ? body as Record<string, unknown> : {};
     const rows = Array.isArray(raw.automations) ? raw.automations : [];
-    const automations: TrashedRoutine[] = [];
+    const automations: TrashedAutomation[] = [];
     for (const r of rows) {
         if (!r || typeof r !== 'object') continue;
         const row = r as Record<string, unknown>;
@@ -78,7 +78,7 @@ export async function fetchAutomationTrash(signal?: AbortSignal): Promise<Automa
 
 export async function restoreAutomation(id: string): Promise<{ id: string }> {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/restore`, { method: 'POST' });
-    if (!res.ok) throw await failure(res, 'Could not restore that routine.');
+    if (!res.ok) throw await failure(res, 'Could not restore that automation.');
     const body = await res.json().catch(() => null);
     return { id: text(body?.automation?.id) || id };
 }
@@ -89,7 +89,7 @@ export async function restoreAutomation(id: string): Promise<{ id: string }> {
  */
 export async function duplicateAutomationOnServer(id: string): Promise<string | null> {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/duplicate`, { method: 'POST' });
-    if (!res.ok) throw await failure(res, 'Could not duplicate that routine.');
+    if (!res.ok) throw await failure(res, 'Could not duplicate that automation.');
     const body = await res.json().catch(() => null);
     return text(body?.automation?.id) || text(body?.id);
 }
@@ -118,7 +118,7 @@ export function useRestoreAutomationMutation({ onRestored }: { onRestored?: (id:
 }
 
 /**
- * Called after a delete moved a routine into the trash, from code outside a
+ * Called after a delete moved an automation into the trash, from code outside a
  * component (the library hook), so it reaches the shared client directly.
  */
 export function invalidateAutomationTrash(): void {

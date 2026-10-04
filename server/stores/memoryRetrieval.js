@@ -47,7 +47,7 @@ const { rrfFuse, finalScore } = require('./memoryScoring');
 const LEG_LIMIT = 60;
 
 /** Internal bookkeeping rows, never rendered — see memoryStore. */
-const ROUTINE_COVERAGE_TYPE = 'routine_coverage';
+const SCHEDULE_COVERAGE_TYPE = 'schedule_coverage';
 
 /**
  * Build the one-round-trip candidate query.
@@ -83,7 +83,7 @@ function buildCandidateQuery({
     const conditions = [
         `status = 'active'`,
         `(expires_at IS NULL OR expires_at > NOW())`,
-        `type <> ${bind(ROUTINE_COVERAGE_TYPE)}`,
+        `type <> ${bind(SCHEDULE_COVERAGE_TYPE)}`,
     ];
 
     const agentClause = (!includeGeneral && agentId)

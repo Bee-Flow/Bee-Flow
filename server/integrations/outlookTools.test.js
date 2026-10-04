@@ -32,6 +32,7 @@ const restore = installResolveStub({
 });
 
 const {
+    executeOutlookTool,
     executeOutlookSend,
     executeOutlookSaveDraft,
     buildOutlookMessage,
@@ -108,4 +109,82 @@ test('buildOutlookMessage: splits lists, trims, and omits empty fields', () => {
 test('the prefix test matches this module and nothing broader', () => {
     assert.strictEqual(isOutlookTool('outlook_compose'), true);
     assert.strictEqual(isOutlookTool('gmail_compose'), false);
+});
+
+// ═══ outlook_compose: draft in a chat, send in an unattended run ════
+
+const COMPOSE = { to: 'boss@company.com', cc: 'team@company.com', subject: 'Q3', body: 'Numbers attached.' };
+
+test('outlook_compose without autoSend returns a draft and sends nothing', async () => {
+    calls.length = 0;
+    const result = await executeOutlookTool('outlook_compose', COMPOSE, SESSION);
+
+    assert.strictEqual(result._action, 'email_draft');
+    assert.strictEqual(result.draft._provider, 'microsoft');
+    assert.strictEqual(result.draft.to, 'boss@company.com');
+    assert.ok(!calls.some(c => c.method === 'POST'), 'no Graph write without approval');
+});
+
+test('outlook_compose with autoSend sends via sendMail and returns the sent shape', async () => {
+    calls.length = 0;
+    const result = await executeOutlookTool('outlook_compose', COMPOSE, SESSION, { autoSend: true });
+
+    assert.strictEqual(result.sent, true);
+    assert.strictEqual(result._action, undefined, 'no draft card in an unattended run');
+    assert.strictEqual(result.to, 'boss@company.com');
+    assert.strictEqual(result.subject, 'Q3');
+    const send = calls.find(c => c.path === '/me/sendMail');
+    assert.ok(send, 'sendMail was called');
+    assert.strictEqual(send.method, 'POST');
+    assert.deepStrictEqual(addresses(send.body.message.toRecipients), ['boss@company.com']);
+    assert.deepStrictEqual(addresses(send.body.message.ccRecipients), ['team@company.com']);
+});
+
+test('outlook_compose with autoSend on a reply uses the reply endpoint', async () => {
+    calls.length = 0;
+    const result = await executeOutlookTool('outlook_compose', { ...COMPOSE, replyToMessageId: 'MSG9' }, SESSION, { autoSend: true });
+
+    assert.strictEqual(result.sent, true);
+    assert.strictEqual(result.replyToMessageId, 'MSG9');
+    assert.strictEqual(result.conversationId, 'C1', 'reply context is still looked up');
+    assert.ok(calls.some(c => c.path === '/me/messages/MSG9/reply' && c.method === 'POST'));
+    assert.ok(!calls.some(c => c.path === '/me/sendMail'));
+});
+
+// ═══ Model-supplied ids never reach a Graph path unchecked ══════════
+
+const TRAVERSAL = 'a/../../users/x@corp.com/messages/MSG1';
+
+test('outlook_compose with autoSend refuses a path-like replyToMessageId without calling Graph', async () => {
+    calls.length = 0;
+    await assert.rejects(
+        executeOutlookTool('outlook_compose', { ...COMPOSE, replyToMessageId: TRAVERSAL }, SESSION, { autoSend: true }),
+        /not an Outlook message id/,
+    );
+    assert.strictEqual(calls.length, 0, 'no Graph call at all');
+});
+
+test('outlook_compose as a draft refuses a path-like replyToMessageId too', async () => {
+    calls.length = 0;
+    await assert.rejects(
+        executeOutlookTool('outlook_compose', { ...COMPOSE, replyToMessageId: TRAVERSAL }, SESSION),
+        /not an Outlook message id/,
+    );
+    assert.strictEqual(calls.length, 0);
+});
+
+test('executeOutlookSend refuses a path-like replyToMessageId', async () => {
+    calls.length = 0;
+    await assert.rejects(
+        executeOutlookSend({ ...DRAFT, replyToMessageId: TRAVERSAL }, SESSION),
+        /not an Outlook message id/,
+    );
+    assert.strictEqual(calls.length, 0);
+});
+
+test('outlook_read and outlook_list_recent refuse path-like ids', async () => {
+    calls.length = 0;
+    await assert.rejects(executeOutlookTool('outlook_read', { messageId: TRAVERSAL }, SESSION), /not an Outlook message id/);
+    await assert.rejects(executeOutlookTool('outlook_list_recent', { folder: '../../users/x/mailFolders/inbox' }, SESSION), /folder is a mail folder name/);
+    assert.strictEqual(calls.length, 0);
 });

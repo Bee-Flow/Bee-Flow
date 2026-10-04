@@ -1,19 +1,19 @@
 /**
  * The build screen's header — the web BuilderHeader for a phone, in one row:
- * Back, the routine's name (tap to rename) with its state and the autosave
+ * Back, the automation's name (tap to rename) with its state and the autosave
  * under it ("Draft · Saved", "Live · v3 · Saved"), the one status action,
  * and ⋯. Saved changes that are not live yet, and Make vN live, are
  * PublishBanner's: the name keeps this row's room.
  *
  *   status action  Draft or Paused: "Go live", which validates the saved flow
  *                  at the strict stage first. Live: "Live", which asks before
- *                  switching the routine off. Neither while the AI builds or a
+ *                  switching the automation off. Neither while the AI builds or a
  *                  test runs, nor on a flow with no trigger or no steps (the
  *                  web's canActivate) — going live then would check a
  *                  half-built or empty flow.
  *   ⋯              everything else the web header offers: rename, findings,
  *                  run history, versions, flowlets, settings, details, and
- *                  for an app-event trigger Diagnose. Shown before the routine
+ *                  for an app-event trigger Diagnose. Shown before the automation
  *                  exists too; what needs its id waits, disabled, until then.
  *
  * Ask AI, Steps | Canvas, undo, redo and the test runs are the toolbar's
@@ -37,7 +37,7 @@ import { saveWords } from './saveWords';
 export interface BuildHeaderProps {
     flowKey: string;
     store: DraftStore;
-    /** Null until a new routine has been created. */
+    /** Null until a new automation has been created. */
     automationId: string | null;
     title: string;
     isActive: boolean;
@@ -51,18 +51,18 @@ export interface BuildHeaderProps {
     canActivate: boolean;
     /** The AI is building or a test is running: not the moment to go live. */
     busy: boolean;
-    /** How many findings the routine has, for the ⋯ entry. */
+    /** How many findings the automation has, for the ⋯ entry. */
     findings: number;
     onRename: () => void;
     /** Show the findings (and, after a refused Go live, what refused it). */
     onFindings: () => void;
-    /** Open the routine's flowlets. */
+    /** Open the automation's flowlets. */
     onFlowlets: () => void;
 }
 
 function stateWord(isActive: boolean, isDraft: boolean, t: TranslateFn): string {
     if (isActive) return t('mobile.flow.status_live', 'Live');
-    return isDraft ? t('mobile.flow.status_draft', 'Draft') : t('routines.paused', 'Paused');
+    return isDraft ? t('mobile.flow.status_draft', 'Draft') : t('automations.paused', 'Paused');
 }
 
 function useSubline(store: DraftStore, isActive: boolean, isDraft: boolean, live: LiveState | null): { text: string; error: boolean } {
@@ -71,17 +71,17 @@ function useSubline(store: DraftStore, isActive: boolean, isDraft: boolean, live
     const saveError = useDraftState(store, (s) => s.saveError);
     const save = saveWords({ status, saveError }, t);
     const state = liveVersionWord(live, t) ?? stateWord(isActive, isDraft, t);
-    return { text: save.text ? `${state} · ${save.error ? t('routines.header.save_failed', 'Not saved') : save.text}` : state, error: save.error };
+    return { text: save.text ? `${state} · ${save.error ? t('automations.header.save_failed', 'Not saved') : save.text}` : state, error: save.error };
 }
 
 /**
  * What Go live does, said when the server has the live split: a paused
- * routine switches its LIVE version back on (changes saved since stay
+ * automation switches its LIVE version back on (changes saved since stay
  * pending), a never-live one goes live with this version. The web's titles.
  */
 function goLiveHint(live: LiveState | null | undefined, t: TranslateFn): string | undefined {
-    if (live?.kind === 'paused') return t('routines.header.activate_paused_title', 'Switches the live version back on');
-    if (live?.kind === 'never') return t('routines.header.activate_first_title', 'Goes live with this version and starts listening for its trigger');
+    if (live?.kind === 'paused') return t('automations.header.activate_paused_title', 'Switches the live version back on');
+    if (live?.kind === 'never') return t('automations.header.activate_first_title', 'Goes live with this version and starts listening for its trigger');
     return undefined;
 }
 
@@ -98,7 +98,7 @@ function useStatusAction({ flowKey, isActive, live, canActivate, busy, onFinding
     });
     const switchOff = async () => {
         const ok = await confirm({
-            title: t('mobile.flow.switch_off.title', 'Switch this routine off?'),
+            title: t('mobile.flow.switch_off.title', 'Switch this automation off?'),
             message: t('mobile.flow.switch_off.message', 'It stops running on its trigger until you switch it on again.'),
             confirmLabel: t('mobile.flow.deactivate', 'Switch off'),
         });
@@ -111,7 +111,7 @@ function useStatusAction({ flowKey, isActive, live, canActivate, busy, onFinding
                 variant="success"
                 iconName="CircleCheck"
                 label={t('mobile.flow.status_live', 'Live')}
-                accessibilityHint={t('mobile.flow.switch_off.hint', 'Asks before switching the routine off')}
+                accessibilityHint={t('mobile.flow.switch_off.hint', 'Asks before switching the automation off')}
                 loading={activate.isPending}
                 onPress={() => void switchOff()}
                 testID="build-status-action"
@@ -150,15 +150,15 @@ export function BuildHeader(props: BuildHeaderProps) {
     const open = (to: (id: string) => string) => () => {
         if (automationId) router.push(to(automationId));
     };
-    const waitHint = needsId ? t('mobile.flow.after_first_save', 'Available once the routine is saved') : undefined;
+    const waitHint = needsId ? t('mobile.flow.after_first_save', 'Available once the automation is saved') : undefined;
     const items: ActionMenuItem[] = [
         { id: 'rename', label: t('mobile.flow.rename', 'Rename'), icon: 'Pencil', onPress: onRename },
         ...(findings > 0
             ? [{ id: 'findings', label: t('mobile.flow.findings_count', 'Findings ({count})', { count: findings }), icon: 'TriangleAlert' as const, onPress: onFindings }]
             : []),
-        { id: 'runs', label: t('routine_editor.run_history', 'Run history'), icon: 'Activity', disabled: needsId, accessibilityHint: waitHint, onPress: open((id) => `/automations/${id}/runs`) },
-        { id: 'versions', label: t('routine_editor.version_history', 'Version history'), icon: 'History', disabled: needsId, accessibilityHint: waitHint, onPress: open((id) => `/automations/${id}/versions`) },
-        { id: 'flowlets', label: t('routines.canvas.flowlets', 'Flowlets'), icon: 'Layers', onPress: onFlowlets },
+        { id: 'runs', label: t('automation_editor.run_history', 'Run history'), icon: 'Activity', disabled: needsId, accessibilityHint: waitHint, onPress: open((id) => `/automations/${id}/runs`) },
+        { id: 'versions', label: t('automation_editor.version_history', 'Version history'), icon: 'History', disabled: needsId, accessibilityHint: waitHint, onPress: open((id) => `/automations/${id}/versions`) },
+        { id: 'flowlets', label: t('automations.canvas.flowlets', 'Flowlets'), icon: 'Layers', onPress: onFlowlets },
         { id: 'settings', label: t('mobile.flow.settings.title', 'Settings'), icon: 'Settings', disabled: needsId, accessibilityHint: waitHint, onPress: open((id) => `/automations/${id}/settings`) },
         {
             id: 'details',
@@ -173,7 +173,7 @@ export function BuildHeader(props: BuildHeaderProps) {
                 id: 'diagnose',
                 label: t('mobile.flow.diagnose.action', 'Diagnose the trigger'),
                 icon: 'Stethoscope' as const,
-                accessibilityHint: t('routines.header.diagnose_title', 'Probe the trigger pipeline (subscription, credentials, Gmail, filter)'),
+                accessibilityHint: t('automations.header.diagnose_title', 'Probe the trigger pipeline (subscription, credentials, Gmail, filter)'),
                 onPress: () => {
                     setDiagnosing(true);
                     diagnose.mutate();
@@ -190,7 +190,7 @@ export function BuildHeader(props: BuildHeaderProps) {
                 subtitle={subline.text}
                 subtitleTone={subline.error ? 'error' : 'tertiary'}
                 onTitlePress={onRename}
-                titleHint={t('mobile.flow.rename_hint', 'Renames this routine')}
+                titleHint={t('mobile.flow.rename_hint', 'Renames this automation')}
                 primary={action}
                 extras={<IconButton icon={<Icon name="Ellipsis" size={20} />} accessibilityLabel={t('mobile.flow.more', 'More')} onPress={() => setMore(true)} testID="build-more" />}
             />

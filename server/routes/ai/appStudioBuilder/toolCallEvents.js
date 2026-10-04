@@ -31,8 +31,8 @@ const TOOL_LABELS = {
     app_get_draft: 'Read draft',
     app_find_nodes: 'Search draft',
     app_inspect_catalog: 'Read catalog',
-    app_list_automations: 'List routines',
-    app_inspect_automation: 'Inspect routine',
+    app_list_automations: 'List automations',
+    app_inspect_automation: 'Inspect automation',
     app_upsert_table: 'Create table',
     app_link_datatable: 'Link table',
     app_set_plan: 'Plan',
@@ -148,7 +148,7 @@ function summariseToolResult(name, args, result) {
             return cap(args?.actionId === null ? `Cleared ${args?.event} on ${args?.nodeId}` : `${args?.event} → ${result?.actionId}`);
         case 'app_get_draft': return 'Read the current draft';
         case 'app_find_nodes': return cap(`${result?.hitCount ?? 0} match(es)${result?.truncated ? ' (truncated)' : ''}`);
-        case 'app_list_automations': return cap(`${Array.isArray(result?.automations) ? result.automations.length : 0} routine(s) available`);
+        case 'app_list_automations': return cap(`${Array.isArray(result?.automations) ? result.automations.length : 0} automation(s) available`);
         case 'app_inspect_automation': return cap(`Inspected ${result?.automation?.title || args?.automationId}`);
         case 'app_upsert_table': return cap(`Table "${result?.key}" (${result?.tableId}) — ${Array.isArray(result?.fields) ? result.fields.length : 0} field(s), ${result?.migration || 'saved'}`);
         case 'app_link_datatable': {

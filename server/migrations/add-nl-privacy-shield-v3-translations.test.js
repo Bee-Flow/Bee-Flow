@@ -20,7 +20,7 @@ const owned = (k) => OWNED_PREFIXES.some(p => k.startsWith(p));
 /**
  * The same in both languages: setting and level names the NL catalogue keeps
  * English ("How strict", "Low", "High", "tools open" beside "check on"),
- * "Type", "Tool", "Routines", a bare percentage and the placeholder example.
+ * "Type", "Tool", "Automations", a bare percentage and the placeholder example.
  */
 const SAME_AS_ENGLISH = new Set([
     'shield_activity.d_type',
@@ -30,7 +30,7 @@ const SAME_AS_ENGLISH = new Set([
     'shield_look.strict_high',
     'shield_look.strict_low',
     'shield_look.strict_title',
-    'shield_overview.row_routines',
+    'shield_overview.row_automations',
     'shield_shell.summary_tools_open',
 ]);
 

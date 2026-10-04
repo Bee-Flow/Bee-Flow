@@ -622,6 +622,39 @@ const NL_TRANSLATIONS = {
 
     // ── Compliance: data-subject discovery ───────────────────────────
     'compliance.dsr_discovery_team_chat_messages': 'Teamchatberichten die de betrokkene schreef',
+
+    // ── Project home and chat: counts, tasks and pins ────────────────
+    'project_chat.close_search': 'Zoeken sluiten',
+    'project_chat.copied': 'Bericht gekopieerd',
+    'project_chat.copy': 'Kopiëren',
+    'project_chat.copy_failed': 'Het bericht kon niet worden gekopieerd.',
+    'project_chat.mention_task_hint': 'taak',
+    'project_chat.ref_task': 'Taak',
+    'project_chat.search_in_chat': 'Zoeken in deze chat',
+    'project_chat.search_load_older': 'Laad eerdere berichten om verder te zoeken',
+    'project_chat.search_loaded_note': 'Zoekt alleen in de berichten die hier geladen zijn: deze chat is end-to-end versleuteld.',
+    'project_chat.search_match_of': '{current} van {total}',
+    'project_chat.search_next': 'Volgende treffer',
+    'project_chat.search_no_matches': 'Geen treffers',
+    'project_chat.search_placeholder': 'De berichten in deze chat doorzoeken',
+    'project_chat.search_prev': 'Vorige treffer',
+    'project_chat.starter_hello': 'Zeg hallo tegen het team',
+    'project_chat.starter_hello_text': 'Hallo team!',
+    'project_chat.starter_next': 'Vraag @ai om de volgende stappen',
+    'project_chat.starter_next_text': '@ai Wat moeten we hierna oppakken?',
+    'project_chat.starter_summary': 'Vraag @ai om een samenvatting',
+    'project_chat.starter_summary_text': '@ai Kun je samenvatten hoe dit project ervoor staat?',
+    'project_chat.task_tag_needs_message': 'Voeg een eerste bericht toe om de getagde taken te delen.',
+    'project_chat.unread_divider': 'Nieuw sinds je laatste bezoek',
+    'project_home.more_tasks': 'Nog {n} in Taken',
+    'project_home.overview.groups': '{n} groepen',
+    'project_home.overview.groups_one': '1 groep',
+    'project_home.overview.people': '{n} personen',
+    'project_home.overview.people_one': '1 persoon',
+    'project_home.pin_none': 'Er is nog niets vastgezet.',
+    'project_home.quick.hint': 'Document, meeting, bestanden…',
+    'project_home.task_due': 'Deadline {date}',
+    'project_home.task_overdue': 'Te laat · {date}',
 };
 
 /**
@@ -651,6 +684,7 @@ const SAME_AS_ENGLISH = [
     'project_chat.ai_badge',
     'project_chat.filter_ai',
     'project_chat.filter_team',
+    'project_chat.count_summary',
     'project_chat.pick_agent',
     'project_chat.title',
     'project_content.doc_type_document',

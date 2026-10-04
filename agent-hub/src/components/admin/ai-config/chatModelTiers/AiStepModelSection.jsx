@@ -2,7 +2,7 @@
 // Mirrors MemoryExtractionModelSection: same layout, same prop contract, one
 // config key (`ai_step_model`) behind /api/ai/config/ai-step-model.
 //
-// Why it exists: a routine's ai_step inherits the Auto/Fast tier the builder
+// Why it exists: an automation's ai_step inherits the Auto/Fast tier the builder
 // writes for it. On a single-slot self-hosted server that is the model the
 // builder itself runs on, so a dry run with a few AI steps evicts the
 // builder's prompt cache and queues full prompt evaluations before the next
@@ -23,7 +23,7 @@ export default function AiStepModelSection({
                     <div>
                         <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>AI Step Model (temporary override)</h3>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            Model every routine AI step runs on when the step asks for Auto or Fast, the tiers the builder writes by default. Temporary switch: on a self-hosted single-slot server it keeps a dry run from evicting the builder's prompt cache on the big model. Steps that explicitly pick Thinking or another tier keep their own model. Unset = the step's own tier, as before.
+                            Model every automation AI step runs on when the step asks for Auto or Fast, the tiers the builder writes by default. Temporary switch: on a self-hosted single-slot server it keeps a dry run from evicting the builder's prompt cache on the big model. Steps that explicitly pick Thinking or another tier keep their own model. Unset = the step's own tier, as before.
                         </p>
                     </div>
                 </div>

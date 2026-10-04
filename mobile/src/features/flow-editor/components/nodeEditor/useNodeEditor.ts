@@ -1,11 +1,11 @@
 /**
- * Everything the node editor shows about one step, from the open routine's
+ * Everything the node editor shows about one step, from the open automation's
  * draft: the step's form (useStepForm), what flows into it (the upstream
  * groups, with real output from this screen's last test and every pin laid
  * over the samples), its findings, where it sits in the run order, and the
  * "Test step" run. The web's useNodeDetailData + NodeDetailView plumbing.
  *
- * The routine's last test run is shared with the build screen
+ * The automation's last test run is shared with the build screen
  * (components/run/testRunStore): a dry run started there gives this step
  * real upstream output and its own row, and a Test here colours the card.
  */

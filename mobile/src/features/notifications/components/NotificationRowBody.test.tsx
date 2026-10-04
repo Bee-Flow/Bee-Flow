@@ -1,5 +1,5 @@
 /**
- * A lapsed routine credential names its provider as the product it is and
+ * A lapsed automation credential names its provider as the product it is and
  * leads to the phone's own Integrations screen. It used to print the slug
  * ("Reconnect google from Settings → Connections on the web app").
  */
@@ -33,17 +33,17 @@ beforeEach(() => mockPush.mockClear());
 
 describe('NotificationRowBody', () => {
     it('names the connector and opens the phone’s Integrations screen', async () => {
-        await render('routine_reauth:google\n\nYour Google access has expired or been revoked.');
-        expect(screen.getByText('Connect Google Workspace again to restart this routine.')).toBeTruthy();
+        await render('automation_reauth:google\n\nYour Google access has expired or been revoked.');
+        expect(screen.getByText('Connect Google Workspace again to restart this automation.')).toBeTruthy();
         expect(screen.queryByText(/\bgoogle\b/)).toBeNull();
-        expect(screen.queryByText(/routine_?reauth/)).toBeNull();
+        expect(screen.queryByText(/automation_?reauth/)).toBeNull();
         await fireEvent.press(screen.getByTestId('notification-reauth'));
         expect(mockPush).toHaveBeenCalledWith('/integrations');
     });
 
     it('humanises a provider that is not one of the phone’s connectors', async () => {
-        await render('routine_reauth:nextcloud\n\nYour Nextcloud access has expired or been revoked.');
-        expect(screen.getByText('Connect Nextcloud again to restart this routine.')).toBeTruthy();
+        await render('automation_reauth:nextcloud\n\nYour Nextcloud access has expired or been revoked.');
+        expect(screen.getByText('Connect Nextcloud again to restart this automation.')).toBeTruthy();
     });
 
     it('says nothing about reconnecting on an ordinary notification', async () => {

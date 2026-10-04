@@ -11,16 +11,16 @@ import { createFormAutomation } from '../studioApps';
 /**
  * "New form" — a name and ONE choice: what happens with the answers.
  *
- * The choice is made here, before the routine exists, because it decides
+ * The choice is made here, before the automation exists, because it decides
  * where the person lands next. "Collect answers in a table" (the default)
- * creates the routine WITH `trigger.form.collect: true` — the server makes
+ * creates the automation WITH `trigger.form.collect: true` — the server makes
  * the answers table on that same POST — and opens the Form page, where the
- * questions are edited without ever seeing the routine builder. "Form that
- * starts a routine" is the path that always existed: a form trigger, then
+ * questions are edited without ever seeing the automation builder. "Form that
+ * starts an automation" is the path that always existed: a form trigger, then
  * the builder.
  *
  * Nothing is posted until "Create form": a person who opens this by accident
- * and closes it leaves no untitled routine behind.
+ * and closes it leaves no untitled automation behind.
  *
  * The optional BRIEF ("Describe it") is not sent with the create: the form is
  * made first, then the brief is parked under that form's id
@@ -52,7 +52,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }) {
             // back and done here.
             const id = await createFormAutomation({ onNavigate: null, t, user }, { title, collect: mode === 'collect' });
             if (!id) throw new Error('no id');
-            // The brief only has a reader on the Form page — the routine
+            // The brief only has a reader on the Form page — the automation
             // builder does not draft questions — so it is parked only there.
             if (mode === 'collect' && brief.trim()) parkSeed(`form:${id}`, brief);
             if (onNavigate) onNavigate(mode === 'collect' ? `studio/forms/${id}/questions` : `studio/automations/${id}`);
@@ -133,10 +133,10 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }) {
                         <ChoiceCard
                             name="new-form-mode"
                             kind="automation"
-                            checked={mode === 'routine'}
-                            onChange={() => setMode('routine')}
-                            title={t('forms.new.routine_title', 'Form that starts a routine')}
-                            blurb={t('forms.new.routine_blurb', 'Every submission starts the steps you build in the routine builder — send an e-mail, file a ticket, ask an agent. No table unless you add one.')}
+                            checked={mode === 'automation'}
+                            onChange={() => setMode('automation')}
+                            title={t('forms.new.automation_title', 'Form that starts an automation')}
+                            blurb={t('forms.new.automation_blurb', 'Every submission starts the steps you build in the automation builder — send an e-mail, file a ticket, ask an agent. No table unless you add one.')}
                         />
                     </div>
                 </fieldset>

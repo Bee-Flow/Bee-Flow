@@ -6,7 +6,7 @@
  *   1. een agent die je NIET kunt kiezen staat er wél, mét de reden. Stil
  *      weglaten is de fout die deze module bestaat om te voorkomen;
  *   2. de reden is uitleg en nooit een tweede oordeel. `canUse` komt uit
- *      `mayRoutineUseAgent` — dezelfde functie als de save-check — en de
+ *      `mayAutomationUseAgent` — dezelfde functie als de save-check — en de
  *      laatste test hieronder draait beide over dezelfde tabel gevallen zodat
  *      een reden die zou gaan verbreden een rode test is en geen stille grant.
  *
@@ -19,7 +19,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { agentPickerRows, explainRefusal, AGENT_PICKER_REASONS } = require('./agentPickerRows');
-const { mayRoutineUseAgent } = require('./agentCatalog');
+const { mayAutomationUseAgent } = require('./agentCatalog');
 
 const VIEWER = { userId: 'u1', orgId: 'org1', groups: ['g1'] };
 
@@ -80,7 +80,7 @@ test('gedeeld met een groep waar de vrager WEL in zit', () => {
 
 test('een onleesbare groepenlijst is geen groepenlijst — onbekend versmalt', () => {
     // `shared_groups` hoort een array te zijn; komt er iets anders binnen, dan
-    // leest `mayRoutineUseAgent` dat als "met niemand in het bijzonder gedeeld"
+    // leest `mayAutomationUseAgent` dat als "met niemand in het bijzonder gedeeld"
     // en blijft de org-regel de poort. Vastgelegd omdat de rij uit de database
     // komt en een JSON-parse daar kan mislukken.
     const row = rowFor({ shared_groups: 'g1' });
@@ -120,7 +120,7 @@ test('rommel in de lijst wordt overgeslagen, niet als agent geteld', () => {
 });
 
 test('de reden is uitleg, nooit een tweede oordeel', () => {
-    // Dezelfde tabel door beide kanten. `canUse` MOET uit `mayRoutineUseAgent`
+    // Dezelfde tabel door beide kanten. `canUse` MOET uit `mayAutomationUseAgent`
     // komen en de reden mag daar niets aan veranderen: een rij is kiesbaar dan
     // en slechts dan als er geen reden op staat.
     const cases = [
@@ -141,9 +141,9 @@ test('de reden is uitleg, nooit een tweede oordeel', () => {
         for (const over of cases) {
             const a = agent(over);
             const row = agentPickerRows([a], viewer)[0];
-            const verdict = mayRoutineUseAgent(a, viewer) === true;
+            const verdict = mayAutomationUseAgent(a, viewer) === true;
             assert.strictEqual(row.canUse, verdict,
-                `canUse liep uit de pas met mayRoutineUseAgent voor ${JSON.stringify(over)} / ${JSON.stringify(viewer)}`);
+                `canUse liep uit de pas met mayAutomationUseAgent voor ${JSON.stringify(over)} / ${JSON.stringify(viewer)}`);
             assert.strictEqual(row.reason === null, verdict,
                 `een reden hoort te ontbreken als en alleen als de agent kiesbaar is (${JSON.stringify(over)})`);
             if (row.reason !== null) {
@@ -163,7 +163,7 @@ test('explainRefusal valt terug op "unavailable" en nooit op "dan mag het wel"',
 test('gedeeld zonder gepubliceerde VERSIE draagt dezelfde raad: publiceer hem', () => {
     // De publiceer-schakelaar staat aan, maar er is nooit een versie
     // gepubliceerd — `getForRuntime` serveert dan het levende klad van de
-    // eigenaar, en daar mag de onbewaakte routine van een ander niet op draaien
+    // eigenaar, en daar mag de onbewaakte automatisering van een ander niet op draaien
     // (automation/agentCatalog.js: servesPublishedConfig). De rij blijft
     // ZICHTBAAR, want weglaten stuurt iemand op zoek naar een bug in plaats van
     // naar de publiceerknop.

@@ -4,7 +4,7 @@ import { Toaster, toast } from './Toast';
 
 /**
  * The behaviour that matters here is what happens when the SAME message keeps
- * arriving. The routines builder re-saves a debounced draft roughly every
+ * arriving. The automations builder re-saves a debounced draft roughly every
  * 500ms, and a definition the server rejects fails every single time — at a
  * 6-second error duration that used to stack a dozen identical toasts over the
  * canvas (BFSF-348).

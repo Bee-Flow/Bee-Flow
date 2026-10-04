@@ -4,6 +4,7 @@
  */
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { RunStepRecord } from '../../../../api/queries/automation/runs';
+import { stepPayload } from '../flow/stepPayload';
 
 export type IoKind = 'number' | 'list' | 'record' | 'text' | 'flag' | 'empty';
 
@@ -64,13 +65,21 @@ export function ioFields(t: TranslateFn, value: unknown): IoField[] {
         .slice(0, MAX_FIELDS);
 }
 
-/** The list worth a table: the output itself, or its longest list field. */
-export function mainList(value: unknown): { key: string; rows: unknown[] } | null {
-    if (Array.isArray(value)) return { key: '', rows: value };
-    if (!value || typeof value !== 'object') return null;
+/**
+ * The list worth a table: the output itself, or its longest list field.
+ *
+ * With the step type known, only what the step PASSES ON is looked at (a Code
+ * step's `result`, not its `logs`). Without it, the console lines of a Code
+ * step are still skipped: they are never the payload.
+ */
+export function mainList(value: unknown, stepType?: string | null): { key: string; rows: unknown[] } | null {
+    const payload = stepType ? stepPayload(stepType, value) : value;
+    if (Array.isArray(payload)) return { key: '', rows: payload };
+    if (!payload || typeof payload !== 'object') return null;
     let best: { key: string; rows: unknown[] } | null = null;
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-        if (Array.isArray(v) && (!best || v.length > best.rows.length)) best = { key: k, rows: v };
+    for (const [k, v] of Object.entries(payload as Record<string, unknown>)) {
+        if (k === 'logs' || !Array.isArray(v)) continue;
+        if (!best || v.length > best.rows.length) best = { key: k, rows: v };
     }
     return best;
 }
@@ -78,14 +87,14 @@ export function mainList(value: unknown): { key: string; rows: unknown[] } | nul
 /** The step's result in a few words: "23 files", "3 fields", the error. */
 export function stepResult(t: TranslateFn, step: RunStepRecord): string {
     if (step.error) return String(step.error).replace(/\s+/g, ' ').slice(0, 120);
-    const list = mainList(step.output);
+    const list = mainList(step.output, step.stepType);
     if (list) {
         return list.key
             ? t('runs.io.result_named', '{n} {what}', { n: list.rows.length, what: humanKey(list.key).toLowerCase() })
             : t('runs.io.result_items', '{n} items', { n: list.rows.length });
     }
     if (step.output == null) return '';
-    return previewValue(t, step.output);
+    return previewValue(t, stepPayload(step.stepType, step.output));
 }
 
 /** One record per top-level step, the latest attempt, in first-seen order. */

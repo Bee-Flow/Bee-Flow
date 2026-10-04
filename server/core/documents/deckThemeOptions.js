@@ -8,7 +8,7 @@
  * or dark, how does a table read, where does the logo sit — and it needs
  * them as choices a person can make and see, not as CSS the model invents.
  * So the deck has its own small vocabulary here, stored under `deck` in the
- * house style and overridable per call (a chat argument, a routine node's
+ * house style and overridable per call (a chat argument, an automation node's
  * "Look" section, an App Studio step) for the deck in somebody else's brand.
  *
  * TWO INVARIANTS THIS MODULE OWNS:
@@ -424,7 +424,7 @@ function normaliseDeckStyle(input = {}) {
 /**
  * Per-call overrides: only the keys that were actually given, each validated
  * the same way the stored style is. An invalid value is dropped, never an
- * error — a wrong colour in a routine binding must not fail the run.
+ * error — a wrong colour in an automation binding must not fail the run.
  */
 function normaliseDeckOverrides(input) {
     if (!input || typeof input !== 'object') return {};

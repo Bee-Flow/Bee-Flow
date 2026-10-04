@@ -9,7 +9,7 @@
  *     derivation failure quietly became an empty list, the guard would
  *     disappear exactly when it is least able to say so, and a meeting three
  *     things depend on would be gone;
- *   - somebody else's routine may be COUNTED but not NAMED, or a shared
+ *   - somebody else's automation may be COUNTED but not NAMED, or a shared
  *     meeting becomes a way to enumerate an organisation;
  *   - a meeting outside the caller's reach answers 404, the same as every
  *     other route on that id, so this one cannot be used to probe for ids.

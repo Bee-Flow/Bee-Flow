@@ -498,7 +498,7 @@ test('the organisation that did the work must not score worse than the one that 
 // ══════════════════════════════════════════════════════════════════════════
 // runForSubject — the review one thing gets when it changes
 //
-// A routine switched on at 09:05 used to be judged by the 06:00 sweep, which
+// An automation switched on at 09:05 used to be judged by the 06:00 sweep, which
 // could not have seen it. runForSubject is how activation gets a verdict the
 // same minute instead of hours later, so what these pin is: only the checks
 // that actually hold the subject run, nothing is written for the ones that do
@@ -541,8 +541,8 @@ test('a check that does not hold the subject keeps its own verdict — runOne wo
     // persists `not_applicable` / "Subject not found." with NO subject — which
     // lands in that check's GLOBAL slot (scope_type 'global', scope_id NULL).
     // getLatestPerCheck takes the newest row per slot, so asking every check
-    // about one routine through runOne would replace each unrelated check's
-    // real finding with a shrug. One routine going live would have emptied the
+    // about one automation through runOne would replace each unrelated check's
+    // real finding with a shrug. One automation going live would have emptied the
     // dashboard. This test holds the two side by side so nobody ever
     // "simplifies" runForSubject into a loop over runOne.
     fakeRegistry.register(subjectCheck('GDPR-Art35-dpia', 'GDPR', [{ id: 'agent-9', label: 'An agent' }]));
@@ -564,7 +564,7 @@ test('a check that does not hold the subject keeps its own verdict — runOne wo
 });
 
 test('runForSubject accepts every spelling of the same subject and unions them', async () => {
-    // Two real checks hold a routine under two different ids: Art. 50 by its
+    // Two real checks hold an automation under two different ids: Art. 50 by its
     // bare id, the Machinery check as "<source>:<id>". Asking with one
     // spelling would review half of what applies and look like it worked.
     fakeRegistry.register(subjectCheck('AIA-Art50-marking', 'AIA', [{ id: 'auto-1', label: 'r' }]));
@@ -579,7 +579,7 @@ test('runForSubject writes no score snapshot — a trend point is a full sweep o
     fakeRegistry.register(subjectCheck('AIA-Art50-marking', 'AIA', [{ id: 'auto-1', label: 'r' }]));
     await runner.runForSubject('org1', ['auto-1']);
     assert.deepStrictEqual(store.snapshots, [],
-        'one routine cannot produce a trend point: every framework it did not look at would be recorded as NULL');
+        'one automation cannot produce a trend point: every framework it did not look at would be recorded as NULL');
 });
 
 test('runForSubject never runs a check whose framework is switched off', async () => {
@@ -593,7 +593,7 @@ test('runForSubject never runs a check whose framework is switched off', async (
     assert.deepStrictEqual(store.results, [], 'a locked framework gets no rows from a toggle either');
 });
 
-test('one check that cannot list its population does not stop the others judging the routine', async () => {
+test('one check that cannot list its population does not stop the others judging the automation', async () => {
     fakeRegistry.register(subjectCheck('GDPR-Art30-datatables', 'GDPR', null, {
         listSubjects: async () => { throw new Error('datatable store is down'); },
     }));
@@ -696,7 +696,7 @@ test('the evidence chain gets the subject id, never its label or extras', async 
 // ── retirement needs a COMPLETE list ─────────────────────────────────────
 //
 // A check that lists only a window of its population (the 200 most recently
-// updated pages, the 500 newest routines) used to have every subject outside
+// updated pages, the 500 newest automations) used to have every subject outside
 // the window written down as "No longer exists." each sweep — failing pages
 // vanished from the check table, and a false line entered an evidence chain
 // that can never be corrected.

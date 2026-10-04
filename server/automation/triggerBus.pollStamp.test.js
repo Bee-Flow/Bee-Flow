@@ -77,8 +77,8 @@ mock(path.join(SERVER, 'stores/automationStore'), {
     getSubscriptionsForProvider: async () => [],
 });
 mock(path.join(SERVER, 'stores/userStore'), { getUser: async () => ({ provider: 'local' }) });
-mock(path.join(SERVER, 'auth/routineAuth'), {
-    buildUserAuth: async (userId) => ({ accessToken: `tok-${userId}`, refreshToken: null, oauthProvider: 'google', routineProviders: {} }),
+mock(path.join(SERVER, 'auth/automationAuth'), {
+    buildUserAuth: async (userId) => ({ accessToken: `tok-${userId}`, refreshToken: null, oauthProvider: 'google', automationProviders: {} }),
 });
 // The gmail poller resolves its client before any try/catch, so this is where
 // a dead OAuth token surfaces in production.

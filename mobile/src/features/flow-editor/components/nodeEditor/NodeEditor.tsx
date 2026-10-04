@@ -80,11 +80,11 @@ export function NodeEditor({ flow, stepId, section = null, flowlet = null, onPag
                     value={tab}
                     onChange={setTab}
                     testID="step-tabs"
-                    accessibilityLabel={t('routines.ndv.drawer_columns', 'Drawer columns')}
+                    accessibilityLabel={t('automations.ndv.drawer_columns', 'Drawer columns')}
                     items={[
                         { id: 'input', label: t('mobile.flow.ndv.input', 'Input'), count: model.groups.length || null },
-                        { id: 'settings', label: t('routines.ndv.settings', 'Settings'), count: issueCount || null },
-                        { id: 'output', label: t('routines.ndv.output', 'Output') },
+                        { id: 'settings', label: t('automations.ndv.settings', 'Settings'), count: issueCount || null },
+                        { id: 'output', label: t('automations.ndv.output', 'Output') },
                     ]}
                 />
             </View>

@@ -9,7 +9,7 @@
  * pruneVersions: the current and first revision, a copy's or a section's
  * source revision, the open autosave session, named, pinned, created and
  * restore versions). This job adds the one thing the store cannot see: the
- * revisions other features PIN. A routine step or a Studio app action that
+ * revisions other features PIN. An automation step or a Studio app action that
  * fills a document carries the `documentVersionId` it was built against, in
  * its definition (and in the saved versions of that definition, which a
  * rollback brings back). Those ids are collected once per pass, from every
@@ -82,7 +82,7 @@ function _setDeps(d) {
 }
 
 /**
- * Every document revision a routine or an app pins, from every definition.
+ * Every document revision an automation or an app pins, from every definition.
  * A table this install does not have pins nothing.
  * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} client
  * @returns {Promise<Set<string>>}

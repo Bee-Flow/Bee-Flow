@@ -1,5 +1,5 @@
 /**
- * The addresses a routine can be reached at from outside
+ * The addresses an automation can be reached at from outside
  * (routes/automation/webhooksAndRunOps.js): webhook URLs and public form
  * links. Owner only. Each belongs to one trigger node; `triggerStepId`
  * omitted means the primary trigger, and naming a trigger of the wrong kind

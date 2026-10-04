@@ -45,6 +45,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { usageLogFields } = require('../core/providers/usageNormalizer');
 const router = express.Router();
 
 const publicShareToken = require('../auth/publicShareToken');
@@ -140,7 +141,8 @@ function clampBody(body, grants) {
     return { tierName };
 }
 
-function logPublicUsage(ctx, webpageId, modelId, promptTokens, completionTokens, t0) {
+/** `usage`: the adapter's normalised usage (providers/usageNormalizer.js) or null. */
+function logPublicUsage(ctx, webpageId, modelId, usage, t0) {
     usageStore.logUsage({
         user_id: ctx.authorUserId,
         organization_id: ctx.authorOrgId,
@@ -148,9 +150,7 @@ function logPublicUsage(ctx, webpageId, modelId, promptTokens, completionTokens,
         agent_name: `Webpage (public): ${ctx.webpage.name || 'Untitled'}`,
         agent_type: 'webpage_bridge',
         model: modelId,
-        prompt_tokens: promptTokens || 0,
-        completion_tokens: completionTokens || 0,
-        total_tokens: (promptTokens || 0) + (completionTokens || 0),
+        ...usageLogFields(usage),
         duration_ms: Date.now() - t0,
         source: PUBLIC_USAGE_SOURCE,
         conversation_id: webpageId,
@@ -216,7 +216,7 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
         result = await llmClient.chat(modelId, messages, baseOptions);
     }
 
-    logPublicUsage(ctx, webpageId, modelId, result?.usage?.prompt_tokens, result?.usage?.completion_tokens, t0);
+    logPublicUsage(ctx, webpageId, modelId, result?.usage, t0);
 
     if (structured !== null) res.json({ json: structured });
     else res.json({ text: result.content || '' });
@@ -261,16 +261,18 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
 
         const t0 = Date.now();
         let promptTokens = 0, completionTokens = 0;
+        let streamUsage = null;
         await llmClient.stream(modelId, messages, { maxTokens, temperature: tierDefaults.temperature }, (type, data) => {
             if (type === 'text') send('content', { text: data.text });
             else if (type === 'done') {
                 promptTokens = data?.prompt_tokens || 0;
                 completionTokens = data?.completion_tokens || 0;
+                streamUsage = data;
             }
             else if (type === 'error') send('error', { error: data?.error || 'stream error' });
         });
 
-        logPublicUsage(ctx, webpageId, modelId, promptTokens, completionTokens, t0);
+        logPublicUsage(ctx, webpageId, modelId, streamUsage, t0);
         send('done', { prompt_tokens: promptTokens, completion_tokens: completionTokens });
         stopHeartbeat();
         res.end();

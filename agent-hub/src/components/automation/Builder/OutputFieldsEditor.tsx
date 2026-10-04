@@ -134,15 +134,15 @@ function OutputRecordBlock({ rec, index, canAddFields, t, onRows, onRemove }: Ou
                 onClick={() => onRows([...rec.rows, { id: nextRowId(), key: '', kind: 'text', value: '', text: '' }])}
                 className="self-start inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
             >
-                {/* Borrowed key, on purpose: routines.ndv.extraction.add_field
+                {/* Borrowed key, on purpose: automations.ndv.extraction.add_field
                     is this same drawer saying this same two words over the data
-                    extraction field list. Minting `routines.ndv.out_add_field`
+                    extraction field list. Minting `automations.ndv.out_add_field`
                     would mean appending to both dictionaries plus a Dutch seed
                     migration, and those belong to one stage at a time
                     (I18N-CONVENTIES.md § serieel) — a second writer's rebase
                     drops the first one's keys. Same sentence, same drawer, one
                     entry. */}
-                <Plus size={11} /> {t('routines.ndv.extraction.add_field', 'Add field')}
+                <Plus size={11} /> {t('automations.ndv.extraction.add_field', 'Add field')}
             </button>
             )}
         </div>
@@ -224,8 +224,8 @@ function OutputFieldValue({ row, t, onPatch }: Omit<OutputFieldRowProps, 'onRemo
     // Named after the FIELD, so a screen reader in a twelve-row sheet says
     // "subject value" instead of "Value" twelve times.
     const label = row.key
-        ? t('routines.builder.value_of', '{field} value', { field: row.key })
-        : t('routines.builder.value_word', 'Value');
+        ? t('automations.builder.value_of', '{field} value', { field: row.key })
+        : t('automations.builder.value_word', 'Value');
     if (row.kind === 'nested') {
         // Shown, not offered: the author sees the value that is really in
         // there, and edits it in the raw editor below. Flattening a group into
@@ -266,7 +266,7 @@ function OutputFieldValue({ row, t, onPatch }: Omit<OutputFieldRowProps, 'onRemo
             <textarea
                 className={`${OUT_ROW_INPUT} flex-1 resize-y leading-relaxed`}
                 aria-label={label}
-                placeholder={t('routines.builder.type_a_value', 'Type a value…')}
+                placeholder={t('automations.builder.type_a_value', 'Type a value…')}
                 value={row.text}
                 spellCheck={false}
                 rows={Math.min(8, row.text.split('\n').length + 1)}
@@ -278,7 +278,7 @@ function OutputFieldValue({ row, t, onPatch }: Omit<OutputFieldRowProps, 'onRemo
         <input
             className={`${OUT_ROW_INPUT} flex-1`}
             aria-label={label}
-            placeholder={t('routines.builder.type_a_value', 'Type a value…')}
+            placeholder={t('automations.builder.type_a_value', 'Type a value…')}
             value={row.text}
             spellCheck={false}
             onChange={onText}

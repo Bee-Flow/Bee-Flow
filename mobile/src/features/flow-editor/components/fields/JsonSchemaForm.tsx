@@ -90,8 +90,8 @@ function MoreToggle({ count, open, onToggle }: { count: number; open: boolean; o
                 iconName={open ? 'ChevronUp' : 'ChevronDown'}
                 label={
                     open
-                        ? t('routines.builder.show_fewer_options', 'Show fewer options')
-                        : t('routines.builder.show_all_options_n', 'Show all options ({count})', { count })
+                        ? t('automations.builder.show_fewer_options', 'Show fewer options')
+                        : t('automations.builder.show_all_options_n', 'Show all options ({count})', { count })
                 }
                 onPress={onToggle}
             />
@@ -105,7 +105,7 @@ function AutoMapButton({ onPress }: { onPress?: () => void }) {
     if (!onPress) return null;
     return (
         <View style={styles.row}>
-            <Button size="sm" variant="secondary" iconName="Sparkles" label={t('routines.ndv.tables_row.automap', 'Auto-map')} onPress={onPress} />
+            <Button size="sm" variant="secondary" iconName="Sparkles" label={t('automations.ndv.tables_row.automap', 'Auto-map')} onPress={onPress} />
         </View>
     );
 }

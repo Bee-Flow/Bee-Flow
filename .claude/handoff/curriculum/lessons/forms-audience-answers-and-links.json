@@ -14,7 +14,7 @@
       "id": "draft-first",
       "icon": "🚦",
       "title": "Built is not the same as live",
-      "bodyMd": "Van Dijk Groep's purchasing team has just built **Leveranciersintake** — the questions every new supplier must answer. The questions are saved. The link exists. And nobody can use it.\n\nA form is the front door of a **routine**, and a brand-new routine is a **draft**. In Studio → Forms the row is marked **Not live**, with the hint *\"The routine behind it is paused or still a draft, so the link answers 'not available'.\"*\n\nOne switch changes that: **\"Form is live\"**, on the form's **Settings** tab. Turn it on and the hint becomes *\"Colleagues in your organisation can fill this in after signing in.\"*"
+      "bodyMd": "Van Dijk Groep's purchasing team has just built **Leveranciersintake** — the questions every new supplier must answer. The questions are saved. The link exists. And nobody can use it.\n\nA form is the front door of a **automation**, and a brand-new automation is a **draft**. In Studio → Forms the row is marked **Not live**, with the hint *\"The automation behind it is paused or still a draft, so the link answers 'not available'.\"*\n\nOne switch changes that: **\"Form is live\"**, on the form's **Settings** tab. Turn it on and the hint becomes *\"Colleagues in your organisation can fill this in after signing in.\"*"
     },
     {
       "type": "slide",
@@ -90,7 +90,7 @@
           "id": "c",
           "label": "The manage_automations permission, which is what every form route checks before it lets you share anything.",
           "correct": false,
-          "feedback": "That permission exists, but the forms routes check ownership, not it. Whoever built the routine may edit its form, and nobody else may — admin or not."
+          "feedback": "That permission exists, but the forms routes check ownership, not it. Whoever built the automation may edit its form, and nobody else may — admin or not."
         },
         {
           "id": "d",
@@ -99,7 +99,7 @@
           "feedback": "That door only decides who may submit. Someone in the audience still sees no answers, and the controller does not have to be in it to read them."
         }
       ],
-      "explanation": "This lesson asks little of you: the automations feature, plus being the owner of the form. The moment you touch the answers table you are in the datatables lessons' territory — that is why they ask for the Manage datatables permission as well, and why inviting a colleague onto a table is an Enterprise feature. Removing someone's access is never gated, and rows a routine writes keep flowing whatever the plan does."
+      "explanation": "This lesson asks little of you: the automations feature, plus being the owner of the form. The moment you touch the answers table you are in the datatables lessons' territory — that is why they ask for the Manage datatables permission as well, and why inviting a colleague onto a table is an Enterprise feature. Removing someone's access is never gated, and rows an automation writes keep flowing whatever the plan does."
     },
     {
       "type": "sim",
@@ -114,7 +114,7 @@
             "id": "notlive",
             "left": "Nobody can open the form — not even the two account managers you just added to the audience.",
             "right": "Settings tab: \"Form is live\"",
-            "note": "An audience cannot rescue a dead address. While the routine is a draft or paused, the link answers \"not available\" for everyone."
+            "note": "An audience cannot rescue a dead address. While the automation is a draft or paused, the link answers \"not available\" for everyone."
           },
           {
             "id": "audience",
@@ -147,7 +147,7 @@
     {
       "type": "quiz",
       "id": "q-collect",
-      "question": "Leveranciersintake ran for three weeks as a routine-only form. Purchasing now switches \"Collect answers in a table\" on. What lands in the new table?",
+      "question": "Leveranciersintake ran for three weeks as an automation-only form. Purchasing now switches \"Collect answers in a table\" on. What lands in the new table?",
       "multi": false,
       "choices": [
         {
@@ -174,7 +174,7 @@
           "feedback": "The 30-day default is only the dashboard's viewing window. It has nothing to do with which rows exist."
         }
       ],
-      "explanation": "The toggle's own words: \"Earlier submissions are not imported; collecting starts with the next one.\" If you need the older ones, they are in the routine's run history, not in the table."
+      "explanation": "The toggle's own words: \"Earlier submissions are not imported; collecting starts with the next one.\" If you need the older ones, they are in the automation's run history, not in the table."
     },
     {
       "type": "sim",
@@ -249,7 +249,7 @@
         },
         {
           "id": "b",
-          "label": "They stay in the answers table under Datatables; the routine behind the form is what gets deleted.",
+          "label": "They stay in the answers table under Datatables; the automation behind the form is what gets deleted.",
           "correct": true
         },
         {
@@ -265,14 +265,14 @@
           "feedback": "Rows are only swept when a retention window is set on the table, and retention is off until you set it."
         }
       ],
-      "explanation": "The confirmation spells it out: \"Deleting the form deletes the routine behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed.\" Supplier contact details are personal data, so deciding what happens to that table is part of deleting the form, not an afterthought."
+      "explanation": "The confirmation spells it out: \"Deleting the form deletes the automation behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed.\" Supplier contact details are personal data, so deciding what happens to that table is part of deleting the form, not an afterthought."
     },
     {
       "type": "slide",
       "id": "journeys",
       "icon": "📑",
       "title": "One address, however many pages",
-      "bodyMd": "A long intake does not need a long page. Split Leveranciersintake across several pages and it is still one journey on one address: the account manager answers page one, the routine works, the next questions appear in the same place. They never move, and the whole journey lands in history as a single run, not one row per page.\n\nThat is also why a **Download button** field can only sit on a later page. On page one the routine has not run yet, so there is nothing for it to hand over."
+      "bodyMd": "A long intake does not need a long page. Split Leveranciersintake across several pages and it is still one journey on one address: the account manager answers page one, the automation works, the next questions appear in the same place. They never move, and the whole journey lands in history as a single run, not one row per page.\n\nThat is also why a **Download button** field can only sit on a later page. On page one the automation has not run yet, so there is nothing for it to hand over."
     },
     {
       "type": "slide",
@@ -286,14 +286,14 @@
     "title": "Publishing a form: live, audience, answers, link",
     "summary": "How a Bee Flow form goes on the air, who may open it, where the answers land, and what rotating or deleting it really does.",
     "facts": [
-      "A new routine is a draft, so its form row shows \"Not live\" until \"Form is live\" is switched on; the page is also restricted with nobody on it (\"Only you — not shared yet\"), and everyone else gets a \"not found\".",
+      "A new automation is a draft, so its form row shows \"Not live\" until \"Form is live\" is switched on; the page is also restricted with nobody on it (\"Only you — not shared yet\"), and everyone else gets a \"not found\".",
       "A Form is signed-in and organisation-only: both audience options state that no one outside the organisation can ever fill it in. An App Studio app screen published at a /p/ address is the other object — that one opens without an account.",
       "The form itself asks only for the automations feature plus ownership; the answers table follows the datatable rules, where changing an organisation table needs the Manage datatables permission and inviting a person or group is an Enterprise feature.",
       "\"Who can fill it in\" is the audience; \"Who can see the answers\" is reading access on the answers table, given under \"People and teams\" with \"can read rows\"; a colleague who has only that sees the Answers tab alone.",
       "Switching \"Collect answers in a table\" on does not import earlier submissions: collecting starts with the next one.",
       "The answers table has two fixed columns, Run and Completed, plus one per question; a removed question keeps its column under \"No longer on the form\".",
       "\"New link\" on the Share tab mints a new token, kills the old address immediately, and carries the audience over to the new link.",
-      "Deleting a form deletes the routine behind it but not the answers table, which stays under Datatables until you remove it there."
+      "Deleting a form deletes the automation behind it but not the answers table, which stays under Datatables until you remove it there."
     ]
   },
   "actionChecks": [

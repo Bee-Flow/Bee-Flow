@@ -588,13 +588,13 @@ test('a chunk with no prompt_progress object emits no progress event (only an ob
 test('a batch cut right after a complete entry is handed up as tool_use with _repaired', async (t) => {
     t.mock.method(console, 'warn', () => {});
     const events = await streamToolCalls([
-        { choices: [{ delta: { tool_calls: [{ index: 0, id: 'c1', function: { name: 'builder_set_plan', arguments: '{"items":[{"id":"p1","label":"Tabel"},{"id":"p2","label":"Routine"}' } }] } }] },
+        { choices: [{ delta: { tool_calls: [{ index: 0, id: 'c1', function: { name: 'builder_set_plan', arguments: '{"items":[{"id":"p1","label":"Tabel"},{"id":"p2","label":"Automation"}' } }] } }] },
         { choices: [{ delta: {}, finish_reason: 'length' }] },
     ]);
     const uses = events.filter(e => e.type === 'tool_use');
     assert.strictEqual(uses.length, 1);
     assert.strictEqual(uses[0].data.name, 'builder_set_plan');
-    assert.deepStrictEqual(uses[0].data.input, { items: [{ id: 'p1', label: 'Tabel' }, { id: 'p2', label: 'Routine' }] });
+    assert.deepStrictEqual(uses[0].data.input, { items: [{ id: 'p1', label: 'Tabel' }, { id: 'p2', label: 'Automation' }] });
     assert.strictEqual(uses[0].data._repaired, true);
     assert.strictEqual(events.filter(e => e.type === 'tool_use_invalid').length, 0);
 });

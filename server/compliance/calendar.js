@@ -7,7 +7,7 @@
  *              framework is still relevant (shown locked, never hidden).
  *   affects  — what in THIS org the date touches, for the milestones that
  *              carry an `affects_kind`:
- *                'marking'  → routines with a document step downstream of an
+ *                'marking'  → automations with a document step downstream of an
  *                             AI step (automation/automationGraph via
  *                             aiAct/signals.listGeneratingAutomations) and the
  *                             org's published agents (AI Act Art. 50 marking);
@@ -75,7 +75,7 @@ async function countPublishedWebpages(orgId, d) {
     } catch { return null; }
 }
 
-// Live public forms: form pages of the org's active, non-draft routines
+// Live public forms: form pages of the org's active, non-draft automations
 // (same org join as stores/automationStore/forms.js listFormPagesForUser).
 async function countPublicForms(orgId, d) {
     try {
@@ -93,7 +93,7 @@ async function countPublicForms(orgId, d) {
 
 /**
  * The per-org "affects" counts for one affects_kind, uncached — the frameworks
- * page reuses it for the candidate cards ("Affects you: 3 routines · 4 agents").
+ * page reuses it for the candidate cards ("Affects you: 3 automations · 4 agents").
  * @returns {Promise<{automations, agents, webpages, forms}|null>}
  */
 async function affectsCounts(kind, orgId, opts = {}) {

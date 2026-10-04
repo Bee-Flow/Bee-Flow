@@ -14,7 +14,7 @@ update this page as it settles.
 
 Bee Flow ships in three tiers. The **Community** tier is fully functional
 with no licence key — every product feature (chat, automations, voice,
-meeting notes, vector knowledge bases, web crawl, skills, agent routines,
+meeting notes, vector knowledge bases, web crawl, skills, scheduled agent runs,
 multi-user, the Nextcloud connector and every integration) is enabled out of
 the box, with no caps on users, agents, messages or knowledge sources.
 
@@ -34,7 +34,7 @@ The full feature × tier matrix lives in [Licensing → Tiers](../licensing/tier
 
 Community installs get the whole product:
 
-- **Workflows** — Automations, agent routines, the Component Designer, the Skills marketplace.
+- **Workflows** — Automations, scheduled agent runs, the Component Designer, the Skills marketplace.
 - **Conversation** — Push-to-talk voice, voice call, meeting-notes transcription.
 - **Knowledge** — Knowledge Bases and Webpage creation.
 - **Integrations** — Every Nextcloud-bridge feature, all 30+ tool integrations, OAuth-write Nextcloud access.

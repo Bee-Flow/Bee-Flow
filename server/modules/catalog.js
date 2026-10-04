@@ -71,7 +71,7 @@ const MODULES = [
     {
         id: 'automation',
         name: 'Automations',
-        description: 'No-code automation builder, scheduled agent routines and the step runner.',
+        description: 'No-code automation builder, scheduled agent runs (Cowork) and the step runner.',
         category: 'Orchestration',
         capabilityIds: ['automations', 'agent_routines', 'automation_sharing'],
         defaultImported: true,

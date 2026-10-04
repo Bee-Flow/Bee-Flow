@@ -70,7 +70,7 @@ function registerAgentStepRoutes(router) {
      * (aiStepAgent.agentToolsForStep) and returns names.
      *
      * ── THE SUBTRACTION IS SHOWN, NEVER SILENT ──────────────────────────
-     * `withheld` is the whole point. A routine runs unattended, so a tool that
+     * `withheld` is the whole point. An automation runs unattended, so a tool that
      * would draw a confirmation card in chat cannot run here — and an author who
      * is not told that believes their agent does in this step exactly what it does
      * in a conversation. Each name carries WHY, and the WHY is the one the gate
@@ -110,13 +110,13 @@ function registerAgentStepRoutes(router) {
         const { resolveDatatablePrincipal } = require('../../auth/datatableAccess');
         const principal = await resolveDatatablePrincipal(req);
         // See the picker above: a lookup outage must not be drawn as "this
-        // agent cannot be used by this routine", which sends the author to a
+        // agent cannot be used by this automation", which sends the author to a
         // publish button that changes nothing.
         if (principal.identityError) {
             return res.status(503).json({ error: `identity unavailable (${principal.identityError})` });
         }
         // The same ctx shape the runner builds (core/automationRunner/execution.js),
-        // asked of the person editing — who is the routine owner in every path
+        // asked of the person editing — who is the automation owner in every path
         // that reaches this editor. The agent can only narrow what THEY may do.
         // `userHomeOrgId` is the field the run's own gate measures against, so
         // it is the one carried here too.

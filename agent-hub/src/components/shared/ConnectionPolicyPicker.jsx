@@ -3,7 +3,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 
 /**
  * ConnectionPolicyPicker — per-integration "Bring-your-own (default) vs Lend my
- * connection" control for a shared resource (agent / webpage / skill / routine).
+ * connection" control for a shared resource (agent / webpage / skill / automation).
  *
  * "Lend" creates a connection_grants row bound to this resource (granteeType
  * 'org' — same-org users who can access the resource borrow the owner's

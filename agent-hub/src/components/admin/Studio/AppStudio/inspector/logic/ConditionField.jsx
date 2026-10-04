@@ -4,7 +4,7 @@ import StudioScopeProvider, { buildStudioScope } from './StudioScopeProvider';
 import ConditionBuilder from '../../../../../automation/Builder/mapping/ConditionBuilder';
 
 /**
- * ConditionField — the routines clickable ConditionBuilder, mounted inside a
+ * ConditionField — the automations clickable ConditionBuilder, mounted inside a
  * Studio variable-source so its BindingFields resolve App Studio scope
  * (currentUser · item · form.* · actions.* · datasets.*). The serialise/parse
  * model (conditionModel.js) is reused VERBATIM — this only supplies the
@@ -14,7 +14,7 @@ import ConditionBuilder from '../../../../../automation/Builder/mapping/Conditio
  * clickable model can't represent keeps the user in the builder's own raw mode.
  */
 /**
- * The shared builder ships routines-shaped examples (`steps.step1.output.total`)
+ * The shared builder ships automations-shaped examples (`steps.step1.output.total`)
  * — a scope root App Studio does not have and validate.js rejects, so an author
  * following the placeholder wrote an expression that could never resolve.
  */

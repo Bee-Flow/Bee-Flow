@@ -77,7 +77,7 @@ function PlanStrip({ todos, verb }) {
     if (!plan) return null;
     return (
         <span className="text-[var(--text-tertiary)] tabular-nums" data-testid="canvas-build-plan">
-            {' · '}{t('routines.canvas.plan_progress', 'Plan {done}/{total}', { done: plan.done, total: plan.total })}
+            {' · '}{t('automations.canvas.plan_progress', 'Plan {done}/{total}', { done: plan.done, total: plan.total })}
             {plan.next && <span className="text-[var(--text-secondary)]" data-testid="canvas-build-plan-next"> · {plan.next}</span>}
         </span>
     );
@@ -145,10 +145,10 @@ function BuildBanner({ building, buildCue, farewell, endedAt, skipped, now, foll
         // Nothing red on the cards for a refused call: the model simply tries
         // again. The banner says so, in the colour this product uses for
         // "look here", and only for a moment.
-        verb = t('routines.canvas.build_skipped', 'Skipped: {reason}', { reason: shortReason(skipped.error) });
+        verb = t('automations.canvas.build_skipped', 'Skipped: {reason}', { reason: shortReason(skipped.error) });
         verbTone = 'var(--warning)';
     } else if (building && buildCue?.phase === 'reviewing') {
-        verb = t('routines.canvas.build_reviewing', 'Reviewing the routine…');
+        verb = t('automations.canvas.build_reviewing', 'Reviewing the automation…');
     } else if (building && lastCall?.title) {
         // The exact words of the activity row in the chat column, so the two
         // surfaces never disagree about what just happened.
@@ -171,7 +171,7 @@ function BuildBanner({ building, buildCue, farewell, endedAt, skipped, now, foll
             <span className="whitespace-nowrap">
                 {building ? (
                     <>
-                        <b>{t('routines.canvas.build_live', 'Building')}</b>
+                        <b>{t('automations.canvas.build_live', 'Building')}</b>
                         {elapsed && (
                             <span className="text-[var(--text-tertiary)] tabular-nums" data-testid="canvas-build-elapsed"> · {elapsed}</span>
                         )}
@@ -183,8 +183,8 @@ function BuildBanner({ building, buildCue, farewell, endedAt, skipped, now, foll
                 ) : (
                     <span data-testid="canvas-build-farewell">
                         {farewell?.finalizedId
-                            ? t('routines.canvas.build_done', 'Built · {n} steps · {t}', { n: farewell.stepCount, t: elapsed || '0s' })
-                            : t('routines.canvas.build_stopped', 'Stopped — draft saved')}
+                            ? t('automations.canvas.build_done', 'Built · {n} steps · {t}', { n: farewell.stepCount, t: elapsed || '0s' })
+                            : t('automations.canvas.build_stopped', 'Stopped — draft saved')}
                     </span>
                 )}
             </span>
@@ -202,7 +202,7 @@ function BuildBanner({ building, buildCue, farewell, endedAt, skipped, now, foll
                     data-testid="canvas-build-follow"
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border-default)] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                 >
-                    <Crosshair size={12} /> {t('routines.canvas.build_follow', 'Follow the build')}
+                    <Crosshair size={12} /> {t('automations.canvas.build_follow', 'Follow the build')}
                 </button>
             )}
         </div>
@@ -297,10 +297,10 @@ export default function CanvasSouthBar({
                     <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: tone, boxShadow: `0 0 0 3px color-mix(in srgb, ${tone} 30%, transparent)` }} />
                 </span>
                 <span className="whitespace-nowrap">
-                    <b>{failed ? t('routines.canvas.run_failed', 'Run failed at') : t('routines.canvas.run_live', 'Live run')}</b>
+                    <b>{failed ? t('automations.canvas.run_failed', 'Run failed at') : t('automations.canvas.run_live', 'Live run')}</b>
                     {runFocus.label && <span className="text-[var(--text-secondary)]"> · {runFocus.label}</span>}
                     {runFocus.awaitingForm && (
-                        <span className="text-[var(--text-secondary)]"> · {t('routines.canvas.run_waiting_form', 'waiting for the form')}</span>
+                        <span className="text-[var(--text-secondary)]"> · {t('automations.canvas.run_waiting_form', 'waiting for the form')}</span>
                     )}
                     {total > 0 && <span className="text-[var(--text-tertiary)] tabular-nums"> · {done}/{total}</span>}
                     {/* How long this has been going. It is the reason someone
@@ -331,14 +331,14 @@ export default function CanvasSouthBar({
                         title="Centre the canvas on this step"
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border-default)] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                     >
-                        <Crosshair size={12} /> {t('routines.canvas.run_show', 'Go to step')}
+                        <Crosshair size={12} /> {t('automations.canvas.run_show', 'Go to step')}
                     </button>
                 )}
                 {/* The one thing that un-parks a run waiting on a form: the
                     page itself. An anchor, not a button — a viewer with the
                     canvas open should be able to middle-click it, and the
                     sandboxed artboard's script-driven "open" would not work
-                    for them anyway. Absent when the routine has no form page
+                    for them anyway. Absent when the automation has no form page
                     provisioned; never a dead control. */}
                 {runFocus.awaitingForm && formUrl && (
                     <a
@@ -349,7 +349,7 @@ export default function CanvasSouthBar({
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition hover:opacity-90"
                         style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
                     >
-                        <ExternalLink size={12} /> {t('routines.canvas.open_form', 'Open the form')}
+                        <ExternalLink size={12} /> {t('automations.canvas.open_form', 'Open the form')}
                     </a>
                 )}
             </div>
@@ -381,13 +381,13 @@ export default function CanvasSouthBar({
             >
                 <span className="font-medium text-[var(--text-primary)]">
                     {selectedCount === 1
-                        ? t('routines.canvas.selected_one', '1 step selected')
-                        : t('routines.canvas.selected_many', '{n} steps selected', { n: selectedCount })}
+                        ? t('automations.canvas.selected_one', '1 step selected')
+                        : t('automations.canvas.selected_many', '{n} steps selected', { n: selectedCount })}
                 </span>
                 <span className="text-[10px] text-[var(--text-tertiary)]">
                     {selectedCount === 1
-                        ? t('routines.canvas.selected_hint_one', 'ctrl-click to add more · R D U P Del act on it')
-                        : t('routines.canvas.selected_hint_many', 'drag to move them together')}
+                        ? t('automations.canvas.selected_hint_one', 'ctrl-click to add more · R D U P Del act on it')
+                        : t('automations.canvas.selected_hint_many', 'drag to move them together')}
                 </span>
                 {onDeleteSelection && (
                     <button
@@ -398,7 +398,7 @@ export default function CanvasSouthBar({
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
                         style={{ color: 'var(--error)' }}
                     >
-                        <Trash2 size={12} /> {t('routines.canvas.delete', 'Delete')}
+                        <Trash2 size={12} /> {t('automations.canvas.delete', 'Delete')}
                     </button>
                 )}
                 {onClearSelection && (
@@ -422,7 +422,7 @@ export default function CanvasSouthBar({
             className="rounded-full bg-[var(--bg-card)] border border-[var(--border-default)] px-2.5 py-1 text-[11px] text-[var(--text-tertiary)] pointer-events-none whitespace-nowrap"
             data-testid="canvas-hint"
         >
-            {t('routines.canvas.gesture_hint', 'Two fingers or Space+drag to pan · pinch or wheel to zoom · drag to select')}
+            {t('automations.canvas.gesture_hint', 'Two fingers or Space+drag to pan · pinch or wheel to zoom · drag to select')}
         </div>
     );
 }

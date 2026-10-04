@@ -8,13 +8,13 @@ const group = (id: string, label: string, basePath = `steps.${id}.output`): Vari
 describe('stepLabelsInScope', () => {
     const definition = { trigger: { id: 'trigger', type: 'manual', label: 'Start' }, steps: [{ id: 'lp', type: 'loop', label: 'Each order' }] } as unknown as FlowDefinition;
 
-    it('names a sibling step inside a loop body, which the routine map does not know', () => {
+    it('names a sibling step inside a loop body, which the automation map does not know', () => {
         const labels = stepLabelsInScope(definition, [group('b1', 'Summarise')]);
         expect(labels.get('b1')).toBe('Summarise');
         expect(labels.get('lp')).toBe('Each order');
     });
 
-    it('keeps the routine’s own name for a top-level step, and ignores the loop item', () => {
+    it('keeps the automation’s own name for a top-level step, and ignores the loop item', () => {
         const labels = stepLabelsInScope(definition, [group('lp', 'Other'), group('item', 'Loop item', 'loop.item')]);
         expect(labels.get('lp')).toBe('Each order');
         expect(labels.has('item')).toBe(false);

@@ -20,14 +20,14 @@ export interface ChatRowContext {
     onShare: (item: ChatListItem, share: boolean) => void;
 }
 
-const CHIP = 'inline-flex items-center gap-1 px-1.5 py-px rounded-full text-[10.5px] font-medium whitespace-nowrap';
+const CHIP = 'inline-flex items-center gap-1 px-1.5 py-px rounded-full text-[10.5px] font-medium whitespace-normal text-right';
 
 function Tile({ item }: { item: ChatListItem }) {
     const team = item.kind === 'team';
     const Icon = team ? Users : (item.type === 'agent' ? Bot : Sparkles);
     const tone = team ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]' : 'bg-[var(--item-active-bg)] text-[var(--accent-primary)]';
     return (
-        <span className={`inline-grid place-items-center w-8 h-8 rounded-lg flex-shrink-0 ${tone}`} aria-hidden="true">
+        <span className={`inline-grid place-items-center w-9 h-9 rounded-lg flex-shrink-0 ${tone}`} aria-hidden="true">
             <Icon className="w-4 h-4" />
         </span>
     );
@@ -64,11 +64,6 @@ function Badges({ item, answering }: { item: ChatListItem; answering: boolean })
             {item.kind === 'team' && (
                 <span className={`${CHIP} border border-[var(--border-default)] text-[var(--text-tertiary)]`}>{aiModeBadge(effectiveMode(item.chat), t)}</span>
             )}
-            {item.kind === 'ai' && !item.shared && (
-                <span className={`${CHIP} border border-[var(--border-default)] text-[var(--text-tertiary)]`}>
-                    <Lock className="w-2.5 h-2.5" aria-hidden="true" />{t('project_chat.private', 'Private')}
-                </span>
-            )}
             {unread && (
                 <span className={`${CHIP} bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] tabular-nums`} data-testid="chat-row-unread"
                     aria-label={t('project_chat.unread', 'Unread messages')}>
@@ -103,21 +98,28 @@ export default function ChatListRow({ item, answering, ctx }: { item: ChatListIt
     const ago = useRelativeTime();
     const title = item.title || (item.kind === 'team' ? t('project_chat.untitled_team_chat', 'Team chat') : t('project_chat.untitled_chat', 'Untitled chat'));
     const bold = item.kind === 'team' && hasUnread(item.chat);
+    const privateChat = item.kind === 'ai' && !item.shared;
     return (
-        <li className="flex items-center gap-2 pr-2 border-b last:border-b-0 border-[var(--border-subtle)] hover:bg-[var(--item-hover-bg)] transition-colors">
+        <li className={`group/row flex items-center gap-1 pr-2 border-b last:border-b-0 border-[var(--border-subtle)] hover:bg-[var(--item-hover-bg)] transition-colors ${bold ? 'border-l-2 border-l-[var(--accent-primary)] bg-[var(--item-active-bg)]/30' : 'border-l-2 border-l-transparent'}`}>
             <button type="button" onClick={() => ctx.onOpen(item)} data-testid={`chat-row-${item.id}`}
-                className="flex items-center gap-3 flex-1 min-w-0 text-left px-3.5 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] rounded-lg">
+                className="flex items-center gap-3 flex-1 min-w-0 text-left px-3 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] rounded-lg">
                 <Tile item={item} />
                 <span className="flex-1 min-w-0">
-                    <span className={`block text-[13px] truncate text-[var(--text-primary)] ${bold ? 'font-semibold' : 'font-medium'}`}>{title}</span>
-                    <span className="block text-[12px] truncate text-[var(--text-tertiary)]">{subline(item, ctx, t)}</span>
+                    <span className="flex items-center gap-1.5 min-w-0">
+                        <span className={`truncate text-[13.5px] text-[var(--text-primary)] ${bold ? 'font-semibold' : 'font-medium'}`}>{title}</span>
+                        {privateChat && <Lock className="w-3 h-3 flex-shrink-0 text-[var(--text-tertiary)]" aria-label={t('project_chat.private', 'Private')} />}
+                    </span>
+                    <span className="block mt-0.5 text-[12.5px] truncate text-[var(--text-tertiary)]">{subline(item, ctx, t)}</span>
                 </span>
-                <span className="flex items-center gap-1.5 flex-shrink-0">
-                    <Badges item={item} answering={answering} />
+                <span className="flex flex-col items-end gap-1 flex-shrink-0 max-w-[40%]">
                     {item.at && <span className="text-[11px] text-[var(--text-tertiary)] whitespace-nowrap">{ago(item.at)}</span>}
+                    <span className="flex flex-wrap justify-end gap-1"><Badges item={item} answering={answering} /></span>
                 </span>
             </button>
-            <ShareAction item={item} ctx={ctx} />
+            {/* Share / Stop sharing: always there for keyboard and touch, quiet until hover where a pointer can hover. */}
+            <span className="flex-shrink-0 transition-opacity [@media(hover:hover)]:opacity-0 group-hover/row:opacity-100 focus-within:opacity-100">
+                <ShareAction item={item} ctx={ctx} />
+            </span>
         </li>
     );
 }

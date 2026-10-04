@@ -45,6 +45,7 @@ import { pageFor } from './data/pages';
 import ComplianceRail from './ComplianceRail';
 import ComplianceHeader from './ComplianceHeader';
 import AiActLadderModal from './ladder/AiActLadderModal';
+import { ladderTarget } from './ladder/ladderTarget';
 import './compliance.css';
 
 export default function ComplianceHub({ activeSection = 'overview', focusCheckId = null, onNavigate, exportsEnabled = true, onBack = null }) {
@@ -101,7 +102,7 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
         // The AI Act ladder is a modal the Frameworks page opens per automation
         // or agent; the hub owns the handle so one implementation serves the
         // page, the automation builder and the agent drawer.
-        onOpenLadder: (kind, target) => setLadder({ kind, target }),
+        onOpenLadder: (kind, target, title) => setLadder({ kind, target: ladderTarget(target, title) }),
     };
     const Page = pageFor(active);
     const page = <Page {...pageProps} />;

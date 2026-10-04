@@ -55,8 +55,8 @@ function CollapsedLoop({ id, step, runStep, issues, onAddAfter, friendlyOver, on
     // text beside the ports), so the i18n guard cannot see them from the call
     // site — the keys are reported by hand.
     const sourceHandles = [
-        { id: 'done', label: t('routines.canvas.loop_port_done', 'Done'), tone: 'then' },
-        { id: 'on_error', label: t('routines.canvas.loop_port_on_error', 'On error'), tone: 'error' },
+        { id: 'done', label: t('automations.canvas.loop_port_done', 'Done'), tone: 'then' },
+        { id: 'on_error', label: t('automations.canvas.loop_port_on_error', 'On error'), tone: 'error' },
     ];
 
     // The `· ×{batch}` tail used to be a ternary INSIDE the string, which puts
@@ -64,9 +64,9 @@ function CollapsedLoop({ id, step, runStep, issues, onAddAfter, friendlyOver, on
     // complete sentences, chosen by key, instead.
     const sub = friendlyOver
         ? (batchSize > 1
-            ? t('routines.canvas.loop_over_batched', 'over: {list} · as loop.{item} · ×{batch}', { list: friendlyOver, item: itemVar, batch: batchSize })
-            : t('routines.canvas.loop_over', 'over: {list} · as loop.{item}', { list: friendlyOver, item: itemVar }))
-        : { muted: t('routines.canvas.loop_no_list', 'no list yet · as loop.{item}', { item: itemVar }) };
+            ? t('automations.canvas.loop_over_batched', 'over: {list} · as loop.{item} · ×{batch}', { list: friendlyOver, item: itemVar, batch: batchSize })
+            : t('automations.canvas.loop_over', 'over: {list} · as loop.{item}', { list: friendlyOver, item: itemVar }))
+        : { muted: t('automations.canvas.loop_no_list', 'no list yet · as loop.{item}', { item: itemVar }) };
 
     const badges = (
         <>
@@ -82,12 +82,12 @@ function CollapsedLoop({ id, step, runStep, issues, onAddAfter, friendlyOver, on
                 translated. Its own key pair, so the whole clause moves at once.
                 The expanded card's count is a different sentence (no "inside")
                 and keeps `loop_body_step*`. */}
-            <NodeChip title={t('routines.canvas.loop_body_title', 'Steps that run per item — expand the node to see them')}>
+            <NodeChip title={t('automations.canvas.loop_body_title', 'Steps that run per item — expand the node to see them')}>
                 ▸ {bodyLen === 1
-                    ? t('routines.canvas.loop_body_inside', '{n} step inside', { n: bodyLen })
-                    : t('routines.canvas.loop_body_inside_plural', '{n} steps inside', { n: bodyLen })}
+                    ? t('automations.canvas.loop_body_inside', '{n} step inside', { n: bodyLen })
+                    : t('automations.canvas.loop_body_inside_plural', '{n} steps inside', { n: bodyLen })}
             </NodeChip>
-            <NodeChip title={t('routines.canvas.loop_max_title', 'Max iterations')}>≤{max}</NodeChip>
+            <NodeChip title={t('automations.canvas.loop_max_title', 'Max iterations')}>≤{max}</NodeChip>
         </>
     );
 
@@ -106,7 +106,7 @@ function CollapsedLoop({ id, step, runStep, issues, onAddAfter, friendlyOver, on
             onAddAfter={onAddAfter}
             sourceHandles={sourceHandles}
             onTileClick={onToggle}
-            tileLabel={t('routines.canvas.loop_expand', 'Expand — show the steps that run per item here on the canvas')}
+            tileLabel={t('automations.canvas.loop_expand', 'Expand — show the steps that run per item here on the canvas')}
         />
     );
 }
@@ -160,11 +160,11 @@ function ExpandedLoop({ id, step, runStep, friendlyOver, onToggle }) {
                         one pass of this container is. */}
                     {nodeTypeLabel('loop', t)}
                     {' · '}
-                    {t('routines.canvas.loop_per_item', 'per {item}', { item: itemVar })}
+                    {t('automations.canvas.loop_per_item', 'per {item}', { item: itemVar })}
                     {' · '}
                     {bodyLen === 1
-                        ? t('routines.canvas.loop_body_step', '{n} step', { n: bodyLen })
-                        : t('routines.canvas.loop_body_step_plural', '{n} steps', { n: bodyLen })}
+                        ? t('automations.canvas.loop_body_step', '{n} step', { n: bodyLen })
+                        : t('automations.canvas.loop_body_step_plural', '{n} steps', { n: bodyLen })}
                 </span>
                 <div className="min-w-0 flex-1">
                     <div className="text-xs font-semibold truncate">{step.label || nodeDefaultLabel('loop', t)}</div>
@@ -174,8 +174,8 @@ function ExpandedLoop({ id, step, runStep, friendlyOver, onToggle }) {
                         say so. */}
                     <div className="text-[10px] text-[var(--text-tertiary)] truncate">
                         {batchSize > 1
-                            ? t('routines.canvas.loop_over_summary_batched', 'over {list} · as loop.{item} · ×{batch} · ≤{max}', { list: friendlyOver || '—', item: itemVar, batch: batchSize, max })
-                            : t('routines.canvas.loop_over_summary', 'over {list} · as loop.{item} · ≤{max}', { list: friendlyOver || '—', item: itemVar, max })}
+                            ? t('automations.canvas.loop_over_summary_batched', 'over {list} · as loop.{item} · ×{batch} · ≤{max}', { list: friendlyOver || '—', item: itemVar, batch: batchSize, max })
+                            : t('automations.canvas.loop_over_summary', 'over {list} · as loop.{item} · ≤{max}', { list: friendlyOver || '—', item: itemVar, max })}
                     </div>
                 </div>
                 {/* Body steps are deliberately not recorded per iteration
@@ -183,16 +183,16 @@ function ExpandedLoop({ id, step, runStep, friendlyOver, onToggle }) {
                     on the run/step key), so the cards inside never light up.
                     Say so once here rather than leaving the user to wonder. */}
                 <span
-                    title={t('routines.canvas.loop_not_recorded_title', "Steps inside a loop aren't recorded one by one — the loop itself carries the run status.")}
+                    title={t('automations.canvas.loop_not_recorded_title', "Steps inside a loop aren't recorded one by one — the loop itself carries the run status.")}
                     className="shrink-0 text-[10px] text-[var(--text-tertiary)] hidden sm:inline"
                 >
-                    {t('routines.canvas.loop_not_recorded', "per-item steps aren't recorded")}
+                    {t('automations.canvas.loop_not_recorded', "per-item steps aren't recorded")}
                 </span>
                 {onToggle && (
                     <button
                         type="button"
                         onClick={onToggle}
-                        title={t('routines.canvas.loop_collapse', 'Collapse — back to a single card')}
+                        title={t('automations.canvas.loop_collapse', 'Collapse — back to a single card')}
                         className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         <ChevronDown size={15} />

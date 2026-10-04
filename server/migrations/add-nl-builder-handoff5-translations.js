@@ -13,6 +13,10 @@
  *
  * The Dutch itself is in data/builder-handoff5-nl.json.
  *
+ * The "Find repeating work" keys (routines.repeating.*) were seeded here
+ * until that page was rebuilt (2026-10); they moved, with the same Dutch, to
+ * add-nl-repeating-work-translations.
+ *
  * SAME_AS_ENGLISH lists the keys whose Dutch is the English word itself
  * (Live, Runs, Talk, JSON, v{version}, ...). They are not seeded: the
  * English default already reads right, and a seeded copy would only hide a
@@ -44,7 +48,7 @@ const DATA = require(path.join(__dirname, 'data', 'builder-handoff5-nl.json'));
  * install that already ran this migration. Pinning the data's hash here makes
  * every data change a change to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = '51be9a2a1c125da5b6dc2c748d61815d09d434520ff487e3d66e1e151c5c0a1b';
+const DATA_SHA256 = '6e34498e26f79649faed4321d875f5d860cd72a4b558e6633c774b3d28ea1a84';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

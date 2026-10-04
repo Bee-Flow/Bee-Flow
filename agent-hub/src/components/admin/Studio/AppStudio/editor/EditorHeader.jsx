@@ -16,6 +16,8 @@ import AnchoredMenu from '../../../../shared/AnchoredMenu';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import IconButton from '../../../../shared/IconButton';
 import { kindTileStyle } from '../../../../shared/kindColors';
+import { managedOf, managedRefusalOf } from '../../../../shared/managedPart';
+import ManagedPartBanner from '../../../../shared/ManagedPartBanner';
 import Modal from '../../../../shared/Modal';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import StatusActionPill from '../../../../shared/StatusActionPill';
@@ -119,6 +121,24 @@ export default function EditorHeader({
 }) {
     const { t } = useTranslation();
     const { definition, version, screenId, mode, streamLock, previewRole, dispatch } = useAppEditor();
+
+    // ---- managed by a Solution stage (design 9) ---------------------------
+    // `managed` rides on the row (studioAppsApi.getApp carries it over from
+    // the GET). A refused write on a tab opened before the stage took the app
+    // over (409 managed_part) turns the same switch. Managed means read-only
+    // for real: the canvas is held in Preview, the AI builder and Restore are
+    // gone, and Publish becomes the audience picker alone.
+    const [refusal, setRefusal] = useState(null);
+    const managedPart = managedOf(app) ?? refusal?.managed ?? null;
+    const isManaged = !!managedPart || refusal != null;
+    const noteRefusal = useCallback((err) => {
+        const info = managedRefusalOf(err);
+        if (info) setRefusal(info);
+        return !!info;
+    }, []);
+    useEffect(() => {
+        if (isManaged && mode === 'edit') dispatch({ type: 'set_mode', mode: 'preview' });
+    }, [isManaged, mode, dispatch]);
     // The shell's chat-pane handles. "Ask the AI builder" must go through
     // focusAiChat — the pane may be collapsed (display:none), and focusing the
     // composer inside it is a silent no-op. Read through a ref so the memoised
@@ -220,6 +240,7 @@ export default function EditorHeader({
             const updated = await studioAppsApi.updateApp(app.id, { name });
             onAppUpdated?.(updated?.app || updated || { ...app, name });
         } catch (err) {
+            noteRefusal(err);
             setNameDraft(app?.name || '');
             toast.error(err?.message || t('app_studio.header.rename_failed', 'Could not rename the app.'));
         }
@@ -283,6 +304,7 @@ export default function EditorHeader({
     }, [versionsOpen, app?.id, t]);
 
     const doRestore = async (versionEntry) => {
+        if (isManaged) return;
         const versionId = versionEntry.id ?? versionEntry.versionId ?? versionEntry.version;
         setRestoringId(versionId);
         try {
@@ -298,6 +320,7 @@ export default function EditorHeader({
             setVersionsOpen(false);
             toast.success(t('app_studio.header.version_restored', 'Version restored.'));
         } catch (err) {
+            noteRefusal(err);
             toast.error(err?.message || t('app_studio.header.restore_failed', 'Restore failed.'));
         } finally {
             setRestoringId(null);
@@ -345,6 +368,8 @@ export default function EditorHeader({
     const openPublishRef = useRef(null);
     const openPublish = async () => {
         if (preparingPublish) return;
+        // A managed app has no draft of its own to freeze: only the audience moves.
+        if (isManaged) { setPublishOpen(true); return; }
         setPreparingPublish(true);
         try {
             const res = await onFlush?.();
@@ -375,7 +400,7 @@ export default function EditorHeader({
     // ---- command palette actions (all setters are declared by now) ---------
     const commandActions = useMemo(() => {
         const acts = [];
-        acts.push({
+        if (!isManaged) acts.push({
             id: 'cmd-mode',
             group: t('app_studio.cmd.group_view', 'View'),
             label: mode === 'edit' ? t('app_studio.cmd.switch_preview', 'Switch to Preview') : t('app_studio.cmd.switch_edit', 'Switch to Edit'),
@@ -390,7 +415,7 @@ export default function EditorHeader({
             });
         }
         acts.push({ id: 'cmd-data', group: t('app_studio.cmd.group_data', 'Data'), label: t('app_studio.cmd.open_tables', 'Open Tables'), run: () => selectView('data', { tab: 'tables' }) });
-        acts.push({ id: 'cmd-ai', group: t('app_studio.cmd.group_ai', 'AI'), label: t('app_studio.cmd.ask_ai', 'Ask the AI builder'), hint: t('app_studio.cmd.hint_chat', 'chat'), run: () => focusAiRef.current?.() });
+        if (!isManaged) acts.push({ id: 'cmd-ai', group: t('app_studio.cmd.group_ai', 'AI'), label: t('app_studio.cmd.ask_ai', 'Ask the AI builder'), hint: t('app_studio.cmd.hint_chat', 'chat'), run: () => focusAiRef.current?.() });
         acts.push({ id: 'cmd-variables', group: t('app_studio.cmd.group_app', 'App'), label: t('app_studio.cmd.open_variables', 'Open Variables'), run: () => selectView('data', { tab: 'variables' }) });
         acts.push({ id: 'cmd-logic', group: t('app_studio.cmd.group_app', 'App'), label: t('app_studio.cmd.open_logic', 'Open Logic'), run: () => selectView('logic') });
         acts.push({ id: 'cmd-roles', group: t('app_studio.cmd.group_app', 'App'), label: t('app_studio.cmd.open_roles', 'Open Roles & access'), run: () => selectView('roles') });
@@ -403,7 +428,7 @@ export default function EditorHeader({
         return acts;
     // Publishing goes through a ref because it closes over `onFlush`, which
     // is not stable; the deps cover everything that changes the LIST of actions.
-    }, [mode, definition, roles, dispatch, selectView, setPreviewRole, t]);
+    }, [mode, definition, roles, dispatch, selectView, setPreviewRole, isManaged, t]);
 
     const closeCommand = useCallback(() => onCommandOpenChange?.(false), [onCommandOpenChange]);
 
@@ -415,12 +440,12 @@ export default function EditorHeader({
     const ownerLabel = t('app_studio.header.view_as_owner', 'Owner');
     const segmentLabel = (text) => <span className="@max-6xl/edhead:sr-only">{text}</span>;
 
-    const publishTitle = publishState === 'behind'
-        ? t('app_studio.header.publish_behind_title', 'The version people use is older than what you see here — publish to make these changes live.')
-        : publishState === 'current'
-            ? t('app_studio.header.publish_current_title', 'Everything on this canvas is live.')
-            : t('app_studio.header.publish_unknown_title', 'Choose who can use this app');
-    const publishLabel = publishState === 'behind'
+    const publishTitle = isManaged || publishState === 'unknown'
+        ? t('app_studio.header.publish_unknown_title', 'Choose who can use this app')
+        : publishState === 'behind'
+            ? t('app_studio.header.publish_behind_title', 'The version people use is older than what you see here — publish to make these changes live.')
+            : t('app_studio.header.publish_current_title', 'Everything on this canvas is live.');
+    const publishLabel = publishState === 'behind' && !isManaged
         ? t('app_studio.header.publish_changes', 'Publish changes')
         : t('app_studio.header.publish', 'Publish');
 
@@ -486,8 +511,8 @@ export default function EditorHeader({
             ) : (
                 <button
                     type="button"
-                    onClick={() => !streamLock && setEditingName(true)}
-                    title={t('app_studio.header.rename', 'Rename app')}
+                    onClick={() => !streamLock && !isManaged && setEditingName(true)}
+                    title={isManaged ? t('managed_part.read_only_hint', 'Read-only: this part is managed by a Solution stage.') : t('app_studio.header.rename', 'Rename app')}
                     className="group inline-flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-sm font-semibold hover:bg-[var(--bg-tertiary)]"
                     style={{ color: 'var(--text-primary)' }}
                 >
@@ -510,7 +535,7 @@ export default function EditorHeader({
                     value={view}
                     onChange={(next) => selectView(next)}
                     options={[
-                        { value: 'edit', label: segmentLabel(t('app_studio.header.view_edit', 'Edit')), icon: <Pencil className="h-3 w-3" aria-hidden="true" />, disabled: streamLock && mode !== 'edit' },
+                        { value: 'edit', label: segmentLabel(t('app_studio.header.view_edit', 'Edit')), icon: <Pencil className="h-3 w-3" aria-hidden="true" />, disabled: isManaged || (streamLock && mode !== 'edit') },
                         { value: 'preview', label: segmentLabel(t('app_studio.header.view_preview', 'Preview')), icon: <Eye className="h-3 w-3" aria-hidden="true" /> },
                         { value: 'data', label: segmentLabel(t('app_studio.header.view_data', 'Data')), icon: <Database className="h-3 w-3" aria-hidden="true" />, disabled: streamLock },
                         { value: 'logic', label: segmentLabel(t('app_studio.header.view_logic', 'Logic')), icon: <Workflow className="h-3 w-3" aria-hidden="true" />, badge: logicCount || null, disabled: streamLock },
@@ -657,6 +682,7 @@ export default function EditorHeader({
                     open={publishOpen}
                     onClose={() => setPublishOpen(false)}
                     app={app}
+                    managed={isManaged}
                     onPublished={onAppUpdated}
                     // The live draft, not app.definition — publish validates what
                     // the canvas holds, so a blocker's path resolves against it.
@@ -674,7 +700,9 @@ export default function EditorHeader({
                 open={versionsOpen}
                 onClose={() => setVersionsOpen(false)}
                 title={t('app_studio.header.version_history', 'Version history')}
-                description={t('app_studio.header.versions_desc', 'Restoring creates a new version — nothing is lost.')}
+                description={isManaged
+                    ? t('managed_part.read_only_hint', 'Read-only: this part is managed by a Solution stage.')
+                    : t('app_studio.header.versions_desc', 'Restoring creates a new version — nothing is lost.')}
                 size="lg"
             >
                 {versions === null ? (
@@ -702,6 +730,7 @@ export default function EditorHeader({
                                             {entry.createdByName ? ` · ${entry.createdByName}` : ''}
                                         </div>
                                     </div>
+                                    {!isManaged && (
                                     <button
                                         type="button"
                                         disabled={restoringId != null}
@@ -714,6 +743,7 @@ export default function EditorHeader({
                                             : <History className="h-3 w-3" aria-hidden="true" />}
                                         {t('app_studio.header.restore', 'Restore')}
                                     </button>
+                                    )}
                                 </li>
                             );
                         })}
@@ -777,6 +807,9 @@ export default function EditorHeader({
             {/* ---- Command palette (⌘K) ---- */}
             <CommandPalette open={!!commandOpen} onClose={closeCommand} actions={commandActions} />
         </header>
+
+        {/* A Solution stage manages this app: read-only, and where to change it. */}
+        {isManaged ? <ManagedPartBanner managed={managedPart} notDeployed={refusal?.reason === 'not_deployed'} /> : null}
 
         {/* View-as-role banner — a subtle strip while previewing a role. */}
         {previewRole ? (

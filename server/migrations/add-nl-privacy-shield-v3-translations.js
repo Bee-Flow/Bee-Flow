@@ -116,7 +116,7 @@ const NL_TRANSLATIONS = {
 
     // ── When we find something + Leaving your org: the flow card and the two checks ───
     'shield_checks.action_heading': 'Als we persoonsgegevens vinden',
-    'shield_checks.automations_desc': 'Routines draaien zelfstandig, zonder dat iemand meekijkt. Hun gegevens en AI-stappen worden op dezelfde manier gecontroleerd als chat.',
+    'shield_checks.automations_desc': 'Automatiseringen draaien zelfstandig, zonder dat iemand meekijkt. Hun gegevens en AI-stappen worden op dezelfde manier gecontroleerd als chat.',
     'shield_checks.dlp_desc': 'Vlak voordat een bericht naar een AI buiten je organisatie gaat, wordt het nog één keer op persoonsgegevens gecontroleerd en afgehandeld zoals jij kiest.',
     'shield_checks.eu_desc_bold': 'alleen modellen',
     'shield_checks.eu_desc_lead': 'Chats gaan alleen naar AI-modellen die in de EU worden gehost (in te stellen onder AI Config → Chat Models). Geldt voor',

@@ -54,7 +54,7 @@ function AgentStepLayout({ s, t, catalog = null, renderTask, onNavigate = null }
                     ) : null}
                     {s.previewForbidden ? (
                         <p className="text-[11px] text-[var(--warning)]">
-                            {t('routine_editor.agent_capsule_forbidden', 'This agent cannot be used by this routine. Pick another one — an agent has to be published and shared with the routine\'s owner.')}
+                            {t('automation_editor.agent_capsule_forbidden', 'This agent cannot be used by this automation. Pick another one — an agent has to be published and shared with the automation\'s owner.')}
                         </p>
                     ) : null}
                     <StepSkillsList

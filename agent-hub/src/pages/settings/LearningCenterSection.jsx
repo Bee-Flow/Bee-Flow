@@ -417,7 +417,7 @@ export default function LearningCenterSection({ user }) {
                             onTab={(id) => goto({ view: id })}
                             actions={(
                                 <>
-                                    <SecondaryButton onClick={() => window.dispatchEvent(new CustomEvent(TOUR_START_EVENT))} title={t('settings.learning_take_tour', 'Replay the welcome tour')}>
+                                    <SecondaryButton onClick={() => window.dispatchEvent(new CustomEvent(TOUR_START_EVENT, { detail: { returnTo: 'settings/learning' } }))} title={t('settings.learning_take_tour', 'Replay the welcome tour')}>
                                         <Footprints style={{ width: 13, height: 13 }} aria-hidden="true" />{t('learn.tour_button', 'Tour')}
                                     </SecondaryButton>
                                     <IconSquareButton ref={menuRef} onClick={() => setMenuOpen((o) => !o)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={t('learn.more', 'More')}>

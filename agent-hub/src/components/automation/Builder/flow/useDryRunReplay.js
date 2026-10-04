@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
  *   - a replay starts on every CHANGE of `seq` observed after mount, when
  *     there are at least two rows, the hook is enabled and the OS did not ask
  *     for less motion. Mounting with rows already there (an old run reloaded
- *     with the routine) replays nothing; StrictMode's second mount pass sees
+ *     with the automation) replays nothing; StrictMode's second mount pass sees
  *     the same seq and starts nothing either.
  *   - rows are revealed in execution order: by startedAt/started_at when every
  *     row carries one, else array order; the trigger's rows first regardless.

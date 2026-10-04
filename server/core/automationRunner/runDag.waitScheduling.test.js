@@ -13,7 +13,7 @@
  *
  * Exactly one node of branch A got ahead of the sleep and the rest of the
  * workflow waited it out — which is what users report as "one Wait pauses the
- * whole routine".
+ * whole automation".
  *
  * Fix: at the dequeue, prefer any runnable node that is NOT an enabled wait;
  * take a wait only when nothing else is runnable. Independent branches drain
@@ -218,7 +218,7 @@ test('lastOutput is never the Wait, even when the Wait dispatched last', async (
     const result = await runDag(def, {}, baseState(), 'live', dispatch, { recordSteps: false });
     assert.strictEqual(ran[ran.length - 1], 'w', 'the wait really is the last dispatch');
     assert.deepStrictEqual(result.lastOutput, { ranId: 'a1' },
-        '{ waitedSeconds } is bookkeeping, not a routine result');
+        '{ waitedSeconds } is bookkeeping, not an automation result');
 });
 
 // ── Why the reorder is gated off for replaying walks ─────────────────────────

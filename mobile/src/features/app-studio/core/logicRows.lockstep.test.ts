@@ -2,7 +2,7 @@
  * Differential lockstep: core/logicRows (+ core/logic/*) against the web's
  * editor/logicRows.js, inspector/actionLabels.js, editor/nodeLogicSummary.js
  * and inspector/styleKnobMeta.js, on every fixture, with and without a
- * translator and a routine-title lookup.
+ * translator and an automation-title lookup.
  */
 
 import * as port from './logicRows';
@@ -86,7 +86,7 @@ describe('the pieces agree', () => {
         }
     });
 
-    it('routine rows and the table walk', () => {
+    it('automation rows and the table walk', () => {
         const automationRows = {
             a: { id: 'a', projectId: 'p1', title: 'Import', definition: { trigger: { kind: 'schedule', filter: { tableId: 'tbl_x' } } } },
             b: { id: 'b', projectId: 'p1', triggerType: 'webhook', definition: { steps: [{ kind: 'loop', steps: [{ kind: 'switch', cases: [null, { steps: [{ datatableKey: 'tbl_y' }] }] }] }] } },
@@ -102,10 +102,10 @@ describe('the pieces agree', () => {
             { app: { projectId: 'p1' }, automationRows, boundTableIds: new Set(['tbl_x']), t: shout },
             { app: { projectId: null }, automationRows, boundTableIds: ['tbl_x'] },
         ];
-        for (const args of cases) expect(port.routineRows(args as never)).toEqual(web.routineRows?.(args));
+        for (const args of cases) expect(port.derivedAutomationRows(args as never)).toEqual(web.derivedAutomationRows?.(args));
         for (const row of Object.values(automationRows)) {
             for (const tables of [new Set(['tbl_x']), new Set(['tbl_y']), new Set(), ['tbl_x']]) {
-                expect(port.routineTouchesTables(row as never, tables)).toBe(web.routineTouchesTables?.(row, tables));
+                expect(port.automationTouchesTables(row as never, tables)).toBe(web.automationTouchesTables?.(row, tables));
             }
         }
     });

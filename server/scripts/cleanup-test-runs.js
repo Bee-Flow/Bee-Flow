@@ -1,7 +1,7 @@
 /**
  * Clean up what the playbook test runs left behind — the harness's AND the
- * person's own: playbooks, the routines and apps they built, the tables they
- * created, and the test forms (routines with a form trigger) with their
+ * person's own: playbooks, the automations and apps they built, the tables they
+ * created, and the test forms (automations with a form trigger) with their
  * "Answers — …" tables.
  *
  * DRY RUN BY DEFAULT: it prints what it WOULD delete and stops. `--apply`
@@ -11,13 +11,13 @@
  * one the UI's trash button performs.
  *
  * What is selected:
- *   1. every playbook of the user, plus its artifacts: the routine it built,
+ *   1. every playbook of the user, plus its artifacts: the automation it built,
  *      the app it built, and the table it CREATED (options.tableMode === 'new';
  *      an existing table it linked is never touched);
- *   2. by name (the runs' own titles and the cases' "PB " prefix): routines,
+ *   2. by name (the runs' own titles and the cases' "PB " prefix): automations,
  *      apps and own tables matching --match (a regex), default
  *      ^(PB |Facturen|Factuur|Invoice|Leveranciers|Contracten|Extraction|Untitled|Naamloze)
- *   3. with --forms: routines whose trigger is a form, plus tables named
+ *   3. with --forms: automations whose trigger is a form, plus tables named
  *      "Answers — …".
  * Never selected: Nextcloud/spreadsheet mirrors (managedKind set), anything
  * in --keep, anything owned by someone else.
@@ -95,7 +95,7 @@ async function main() {
         for (const p of pb.phases || []) {
             const a = p.artifacts || {};
             const kind = p.kind || p.key;
-            if (kind === 'routine' && a.automationId) add('automations', a.automationId, a.automationTitle || a.automationId, `built by playbook "${pb.title}"`);
+            if (kind === 'automation' && a.automationId) add('automations', a.automationId, a.automationTitle || a.automationId, `built by playbook "${pb.title}"`);
             if ((kind === 'app' || kind === 'app_turn') && a.appId) add('apps', a.appId, a.appName || a.appId, `built by playbook "${pb.title}"`);
             if (kind === 'table' && a.datatableId && createdTable) add('datatables', a.datatableId, a.datatableName || a.datatableId, `created by playbook "${pb.title}"`);
         }

@@ -3,7 +3,7 @@
  *
  * Een stapsoort is pas terminaal als ÉLKE lezer dat weet. Kent de ene plek hem
  * wel en de andere niet, dan is dezelfde graaf op de ene plek geldig en op de
- * andere niet, en dat merkt iemand pas als een routine halverwege stopt of een
+ * andere niet, en dat merkt iemand pas als een automatisering halverwege stopt of een
  * editor een rand accepteert die de validator weigert. Dit bestand is de reden
  * dat dat niet stil kan gebeuren: het loopt de lijst
  * (validate/constants.js TERMINAL_STEP_TYPES) af en eist per soort dat elk van

@@ -8,6 +8,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import {
     ColorSwatches, DescriptionField, IconPicker, InstructionsField, NameField,
 } from './ProjectIdentityFields';
+import { projectErrorText } from './projectErrorText';
 import { DEFAULT_PROJECT_COLOR, DEFAULT_PROJECT_ICON, projectTileStyle } from './projectVisuals';
 import { StudioSectionHeader } from './studioParts';
 import { ErrorText, PrimaryButton, SecondaryButton } from './workspaceUi';
@@ -118,7 +119,7 @@ export default function ProjectCreateForm({ onCancel, onCreated }: {
                             <ColorSwatches value={draft.color} onChange={set('color')} disabled={create.isPending} />
                         </div>
                         <InstructionsDisclosure value={draft.customInstructions} onChange={set('customInstructions')} disabled={create.isPending} />
-                        <ErrorText testId="project-create-error">{create.error?.message}</ErrorText>
+                        <ErrorText testId="project-create-error">{create.error ? projectErrorText(t, create.error, t('project_home.create.failed', 'Could not create the project.')) : null}</ErrorText>
                         <div className="flex items-center justify-end gap-2 pt-1">
                             <SecondaryButton onClick={onCancel}>{t('project_home.cancel', 'Cancel')}</SecondaryButton>
                             <PrimaryButton type="submit" busy={create.isPending} data-testid="project-create-submit">

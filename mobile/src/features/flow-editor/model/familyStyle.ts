@@ -87,14 +87,14 @@ export function statusColor(theme: FamilyTheme, status: string | null | undefine
 
 /** The short word on a status badge — only statuses that paint chrome have one. */
 export const STATUS_BADGE: Readonly<Record<string, { key: string; en: string }>> = Object.freeze({
-    running: { key: 'routines.card.badge_running', en: 'running' },
-    success: { key: 'routines.card.badge_done', en: 'done' },
-    error: { key: 'routines.card.badge_failed', en: 'failed' },
-    handled_error: { key: 'routines.card.badge_recovered', en: 'recovered' },
-    awaiting_approval: { key: 'routines.card.badge_waiting', en: 'waiting' },
-    awaiting_confirm: { key: 'routines.card.badge_waiting', en: 'waiting' },
-    awaiting_form: { key: 'routines.card.badge_waiting', en: 'waiting' },
-    pinned: { key: 'routines.card.badge_pinned', en: 'pinned' },
+    running: { key: 'automations.card.badge_running', en: 'running' },
+    success: { key: 'automations.card.badge_done', en: 'done' },
+    error: { key: 'automations.card.badge_failed', en: 'failed' },
+    handled_error: { key: 'automations.card.badge_recovered', en: 'recovered' },
+    awaiting_approval: { key: 'automations.card.badge_waiting', en: 'waiting' },
+    awaiting_confirm: { key: 'automations.card.badge_waiting', en: 'waiting' },
+    awaiting_form: { key: 'automations.card.badge_waiting', en: 'waiting' },
+    pinned: { key: 'automations.card.badge_pinned', en: 'pinned' },
 });
 
 /**

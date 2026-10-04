@@ -9,7 +9,7 @@ import AiActionEditor from './AiActionEditors';
 import AutomationTile, { automationHref } from './AutomationTile';
 import { ContractDrift, MappingRow } from './MappingRows';
 import { INPUT_CLS } from './panels/kit';
-import RoutinePicker from './RoutinePicker';
+import AutomationPicker from './AutomationPicker';
 import SentInputsTable from './SentInputsTable';
 import { TYPE_EVENT_LISTS } from './styleKnobMeta';
 import { SKIP_REASONS } from './testPayload';
@@ -103,7 +103,7 @@ function skipSentence(t, entry) {
         case SKIP_REASONS.FILE:
             return t(
                 'app_studio.inspector.test_skip_file',
-                '{name} — a file cannot be sent from here, so the routine runs without it.',
+                '{name} — a file cannot be sent from here, so the automation runs without it.',
                 { name },
             );
         case SKIP_REASONS.NO_SCREEN:
@@ -118,14 +118,14 @@ function skipSentence(t, entry) {
                 '{name} — the form has no field by that name, so nothing was sent for it.',
                 { name },
             );
-        // De routine vráágt de parameter, maar er is geen regel die zegt waar
+        // De automatisering vráágt de parameter, maar er is geen regel die zegt waar
         // hij vandaan komt. Een andere zin dan "nothing is wired to it": daar
         // is er een regel die leeg of onbegrijpelijk is, hier is er geen regel
         // — en dat is precies wat de driftbalk erboven al aanbiedt op te lossen.
         case SKIP_REASONS.NO_MAPPING:
             return t(
                 'app_studio.inspector.test_skip_no_mapping',
-                '{name} — the routine asks for it but this button has no row for it, so it was left out.',
+                '{name} — the automation asks for it but this button has no row for it, so it was left out.',
                 { name },
             );
         default:
@@ -148,7 +148,7 @@ export default function ActionsSection({ node, definition, onCommit, onTestActio
     const fetchedRef = useRef(false);
 
     // Titles (and agent_call contracts) come from the same list endpoint the
-    // Routines sidebar uses — fetched lazily, only when a Run-routine action is
+    // Automations sidebar uses — fetched lazily, only when a Run-automation action is
     // actually wired to any of this node's events.
     const hasRunAutomation = events.some((ev) => actions[node?.[ev]]?.kind === 'run_automation');
     useEffect(() => {
@@ -203,7 +203,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
         screens, appRef, formFields, formName, targetTrigger, paramMetaByName,
         sharedWith, resultShownBy, choices, structuralSkips, mappingEntries,
         commitAction, onPickKind, onSelectAction, onForkAction, onDeleteAction, requestDelete,
-        onPickRoutine, setMapping, renameMapping, removeMapping, addMapping, setEffect, runTest,
+        onPickAutomation, setMapping, renameMapping, removeMapping, addMapping, setEffect, runTest,
     } = useEventWiring({
         event, node, definition, onCommit, onTestActionResult, automations, setAutomations, titleFor, appId,
     });
@@ -300,7 +300,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
 
                     {action.kind === 'run_automation' && (
                         <>
-                            <FormField label={t('app_studio.inspector.which_routine', 'Which routine')}>
+                            <FormField label={t('app_studio.inspector.which_automation', 'Which automation')}>
                                 <AutomationTile
                                     automationId={action.automationId || null}
                                     row={action.automationId ? automationRows?.[action.automationId] || null : null}
@@ -323,7 +323,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                         showViewerRow={targetTrigger?.kind === 'app_trigger'}
                                     />
                                     {/* Drift stays OUT of the disclosure: what
-                                        the routine asks for now, versus what
+                                        the automation asks for now, versus what
                                         this action sends, is not an advanced
                                         detail — it is the reason a run fails. */}
                                     <ContractDrift
@@ -402,17 +402,17 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                 {formName
                                     ? t(
                                         'app_studio.inspector.test_caption',
-                                        'Runs the routine for real, with the values standing in this form right now, and opens the run in the builder.',
+                                        'Runs the automation for real, with the values standing in this form right now, and opens the run in the builder.',
                                     )
                                     : t(
                                         'app_studio.inspector.test_caption_no_form',
-                                        'Runs the routine for real and opens the run in the builder. This button is not in a form, so there are no screen values to send.',
+                                        'Runs the automation for real and opens the run in the builder. This button is not in a form, so there are no screen values to send.',
                                     )}
                             </p>
                             {/* What can never travel, said BEFORE the click.
                                 Someone who tests with half the input and does
                                 not know it draws the wrong conclusion about
-                                the routine. */}
+                                the automation. */}
                             {structuralSkips.length ? (
                                 <ul className="-mt-1 flex flex-col gap-0.5 text-xs text-amber-600">
                                     {structuralSkips.map((s) => (
@@ -422,7 +422,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                             ) : null}
                             <ConfirmDialog
                                 open={confirmTest}
-                                title={`Run “${titleFor(action.automationId) || 'this routine'}” now?`}
+                                title={`Run “${titleFor(action.automationId) || 'this automation'}” now?`}
                                 description="This is the real run, not a rehearsal — anything it sends or writes actually happens."
                                 confirmLabel="Run it"
                                 onConfirm={runTest}
@@ -452,7 +452,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                         >
                                             {test.runId
                                                 ? t('app_studio.inspector.test_open_run', 'Open this run in the builder')
-                                                : t('app_studio.inspector.test_open_runs', 'Open this routine’s runs in the builder')}
+                                                : t('app_studio.inspector.test_open_runs', 'Open this automation’s runs in the builder')}
                                             <ExternalLink className="w-3 h-3" aria-hidden="true" />
                                         </a>
                                         {/* And what the run did NOT get. Said
@@ -474,10 +474,10 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                 </div>
                             )}
 
-                            <RoutinePicker
+                            <AutomationPicker
                                 open={pickerOpen}
                                 onClose={() => setPickerOpen(false)}
-                                onPick={onPickRoutine}
+                                onPick={onPickAutomation}
                                 formFields={formFields}
                                 appRef={appRef}
                             />

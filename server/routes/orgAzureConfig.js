@@ -128,6 +128,8 @@ const ConfigBody = z.preprocess(
         section('openai', {
             azureEndpoint: endpoint('azureEndpoint'),
             azureApiKey: text('azureApiKey'),
+            // Accepted and ignored: Azure runs on the v1 GA API, which has no
+            // api-version, and installed apps older than that still send it.
             azureApiVersion: text('azureApiVersion'),
             azureModels: text('azureModels'),
         }),
@@ -216,7 +218,6 @@ router.get('/:orgId', requireAuth, platformConfigGate, async (req, res) => {
     // Azure OpenAI — global keys (same as admin dashboard)
     const azureEndpoint = await configStore.getConfig('azure_endpoint') || '';
     const azureApiKey = await configStore.getSecret('azure_api_key');
-    const azureApiVersion = await configStore.getConfig('azure_api_version') || '2025-04-01-preview';
     const azureModels = await configStore.getConfig('azure_models') || '';
 
     // Chat Model Tiers — same config key as GET /ai/config/chat-models
@@ -247,7 +248,6 @@ router.get('/:orgId', requireAuth, platformConfigGate, async (req, res) => {
         azureEndpoint,
         hasAzureApiKey: !!azureApiKey,
         azureApiKeyMasked: maskSecret(azureApiKey),
-        azureApiVersion,
         azureModels,
 
         // Chat Model Tiers
@@ -295,10 +295,9 @@ router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBo
 
     // Save by section — uses the same global keys as POST /ai/config
     if (section === 'openai') {
-        const { azureEndpoint, azureApiKey, azureApiVersion, azureModels } = req.body;
+        const { azureEndpoint, azureApiKey, azureModels } = req.body;
         if (azureEndpoint !== undefined) await configStore.setConfig('azure_endpoint', azureEndpoint || '');
         if (azureApiKey !== undefined) await configStore.setSecret('azure_api_key', azureApiKey || '');
-        if (azureApiVersion !== undefined) await configStore.setConfig('azure_api_version', azureApiVersion || '2025-04-01-preview');
         if (azureModels !== undefined) await configStore.setConfig('azure_models', azureModels || '');
     }
 

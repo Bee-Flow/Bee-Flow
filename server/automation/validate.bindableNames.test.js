@@ -12,8 +12,8 @@
  *
  * These are WARNINGS, not errors, and that is deliberate: the validator sees
  * one definition at a time with no "before" to diff against, so it cannot tell
- * a newly-typed bad id from one a customer routine has carried for months —
- * and an error would make those routines unsaveable.
+ * a newly-typed bad id from one a customer automation has carried for months —
+ * and an error would make those automations unsaveable.
  */
 
 const { test } = require('node:test');
@@ -48,7 +48,7 @@ test('a step id the binding grammar cannot address is flagged — without blocki
     assert.equal(rec.severity, 'warning');
     assert.match(rec.path, /steps\[0\]\.id/);
     assert.match(rec.hint, /my_step/, 'the hint offers a usable id');
-    // Stored routines already carrying such an id must keep saving AND keep
+    // Stored automations already carrying such an id must keep saving AND keep
     // activating — the warning is the whole intervention.
     assert.equal(r.ok, true, JSON.stringify(r.errors));
     assert.equal(validateDefinition(def, { stage: 'draft' }).ok, true);

@@ -27,10 +27,8 @@ const q = async (sql, params) => (await pg.query(sql, params)).rows;
 
 const { up } = require('./automation-handoff5-2026-09');
 
-before(async () => {
-    // The tables as the earlier migrations leave them, trimmed to what this
-    // one touches.
-    await pg.exec(`
+// The tables as the earlier migrations leave them, trimmed to what this one touches.
+const BASE_SCHEMA = `
         CREATE TABLE automations (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
@@ -64,6 +62,11 @@ before(async () => {
             attempts INTEGER NOT NULL DEFAULT 1,
             PRIMARY KEY (run_id, step_id, attempts)
         );
+`;
+
+
+before(async () => {
+    await pg.exec(`${BASE_SCHEMA}
         INSERT INTO automations (id, user_id, kind, title, definition_json, version, is_active, is_draft) VALUES
             ('active',  'u1', 'automation', 'Active',  '{"trigger":{"kind":"manual"},"steps":[{"id":"s1"}]}', 4, TRUE,  FALSE),
             ('paused',  'u1', 'automation', 'Paused',  '{"trigger":{"kind":"manual"},"steps":[]}',            2, FALSE, FALSE),
@@ -149,7 +152,48 @@ test('child rows cascade with the routine (shares, notification events)', async 
     assert.strictEqual(n.n, 0);
 });
 
-test('it is registered in the automationStore migration list, last', () => {
+// automation-extras-2026-06 used to create a §26 gallery table under the same name.
+const LEGACY_TEMPLATES = `
+    CREATE TABLE automation_templates (
+        id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, title TEXT NOT NULL, category TEXT,
+        definition JSONB NOT NULL, org_id TEXT, source TEXT NOT NULL DEFAULT 'official'
+    );
+    CREATE INDEX idx_automation_templates_category ON automation_templates(category) WHERE category IS NOT NULL;
+    CREATE INDEX idx_automation_templates_source ON automation_templates(source);
+    CREATE INDEX idx_automation_templates_org ON automation_templates(org_id) WHERE org_id IS NOT NULL;
+`;
+
+async function withLegacyTemplates(rows) {
+    const db = new PGlite();
+    await db.exec(`${BASE_SCHEMA}\n${LEGACY_TEMPLATES}\n${rows}`);
+    await up({ exec: (sql) => db.exec(sql) });
+    await up({ exec: (sql) => db.exec(sql) }); // every boot replays it
+    return db;
+}
+
+const columnsOf = async (db, table) => (await db.query(
+    `SELECT column_name FROM information_schema.columns WHERE table_name = $1`, [table])).rows.map(r => r.column_name);
+
+test('an empty legacy automation_templates is replaced by the org templates table', async () => {
+    const db = await withLegacyTemplates('');
+    const cols = await columnsOf(db, 'automation_templates');
+    assert.ok(cols.includes('organization_id') && cols.includes('definition_json'));
+    assert.ok(!cols.includes('slug'));
+    assert.deepStrictEqual(await columnsOf(db, 'automation_templates_legacy_2026_06'), []);
+    await db.query(`INSERT INTO automation_templates (id, organization_id, created_by, title, definition_json) VALUES ('t1', 'org', 'u1', 'Invoices', '{}')`);
+    await db.close();
+});
+
+test('a legacy automation_templates with rows is renamed, not dropped', async () => {
+    const db = await withLegacyTemplates(`INSERT INTO automation_templates (id, slug, title, definition) VALUES ('g1', 'g1', 'Old', '{}');`);
+    const [old] = (await db.query(`SELECT title FROM automation_templates_legacy_2026_06 WHERE id = 'g1'`)).rows;
+    assert.strictEqual(old.title, 'Old');
+    assert.ok((await columnsOf(db, 'automation_templates')).includes('organization_id'));
+    await db.close();
+});
+
+test('it is registered in the automationStore migration list', () => {
     const { MIGRATIONS } = require('../stores/automationStore/core');
-    assert.strictEqual(MIGRATIONS[MIGRATIONS.length - 1], 'automation-handoff5-2026-09');
+    // Later migrations are appended after it; only its presence (once) matters.
+    assert.strictEqual(MIGRATIONS.filter(m => m === 'automation-handoff5-2026-09').length, 1);
 });

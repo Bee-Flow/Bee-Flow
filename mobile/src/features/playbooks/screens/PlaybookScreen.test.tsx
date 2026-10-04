@@ -54,7 +54,7 @@ beforeEach(() => {
 
 describe('PlaybookScreen', () => {
     it('starts a ready server phase by itself, once', async () => {
-        await open(pb([ph('table', 'ready'), ph('routine', 'pending')]));
+        await open(pb([ph('table', 'ready'), ph('automation', 'pending')]));
         expect(await screen.findByTestId('playbook-stage-table')).toBeTruthy();
         const runs = post.mock.calls.filter((c) => c[0] === '/api/playbooks/pb_1/phases/table/run');
         expect(runs).toHaveLength(1);
@@ -63,7 +63,7 @@ describe('PlaybookScreen', () => {
     it('continues a landed phase with the brief the person edited', async () => {
         await open(pb([
             ph('table', 'awaiting', { summary: 'Table ready', artifacts: { datatableName: 'Contracts', rowCount: 0, fields: [{ key: 'supplier', name: 'Supplier', type: 'text' }] } }),
-            ph('routine', 'ready', { brief: '# Build the routine' }),
+            ph('automation', 'ready', { brief: '# Build the automation' }),
         ]));
         expect(await screen.findByText('Phase 1 of 2 landed — Table')).toBeTruthy();
         expect(screen.getByText('Supplier')).toBeTruthy();
@@ -72,41 +72,41 @@ describe('PlaybookScreen', () => {
         await fireEvent.press(screen.getByTestId('playbook-continue'));
         expect(patch).toHaveBeenCalledWith(
             '/api/playbooks/pb_1',
-            { expectedVersion: 3, phases: [{ key: 'table', status: 'done' }, { key: 'routine', brief: '# Build it my way' }] },
+            { expectedVersion: 3, phases: [{ key: 'table', status: 'done' }, { key: 'automation', brief: '# Build it my way' }] },
             { retry: false },
         );
     });
 
     it('retries a failed phase', async () => {
-        await open(pb([ph('table', 'done'), ph('routine', 'done'), ph('fill', 'failed', { error: 'artifacts_missing' })]));
+        await open(pb([ph('table', 'done'), ph('automation', 'done'), ph('fill', 'failed', { error: 'artifacts_missing' })]));
         expect(await screen.findByText('The previous phase produced nothing this one can build on.')).toBeTruthy();
         await fireEvent.press(screen.getByTestId('playbook-retry'));
         expect(post.mock.calls.map((c) => c.slice(0, 2))).toContainEqual(['/api/playbooks/pb_1/phases/fill/retry', { expectedVersion: 3 }]);
     });
 
     it('never starts a builder, and marks one done once its automation exists', async () => {
-        await open(pb([ph('table', 'done'), ph('routine', 'running', { artifacts: { automationId: 'a1' } })]));
+        await open(pb([ph('table', 'done'), ph('automation', 'running', { artifacts: { automationId: 'a1' } })]));
         expect(await screen.findByText('This phase is being built on a computer')).toBeTruthy();
         await fireEvent.press(screen.getByTestId('playbook-mark-done'));
         expect(patch).toHaveBeenCalledWith(
             '/api/playbooks/pb_1',
-            { expectedVersion: 3, phases: [{ key: 'routine', status: 'awaiting', artifacts: { automationId: 'a1' } }] },
+            { expectedVersion: 3, phases: [{ key: 'automation', status: 'awaiting', artifacts: { automationId: 'a1' } }] },
             { retry: false },
         );
-        expect(post.mock.calls.filter((c) => String(c[0]).includes('/phases/routine/'))).toEqual([]);
+        expect(post.mock.calls.filter((c) => String(c[0]).includes('/phases/automation/'))).toEqual([]);
     });
 
     it('says a ready builder phase is built on a computer, opens no web page, and skips it here', async () => {
-        await open(pb([ph('table', 'done'), ph('routine', 'ready', { brief: '# Build the routine' })]));
+        await open(pb([ph('table', 'done'), ph('automation', 'ready', { brief: '# Build the automation' })]));
         expect(await screen.findByText(/The AI builder builds this phase on a computer/)).toBeTruthy();
         expect(screen.queryByText('Continue on the web')).toBeNull();
         await fireEvent.press(screen.getByTestId('playbook-builder-skip'));
-        expect(post.mock.calls.map((c) => c.slice(0, 2))).toContainEqual(['/api/playbooks/pb_1/phases/routine/skip', { expectedVersion: 3 }]);
+        expect(post.mock.calls.map((c) => c.slice(0, 2))).toContainEqual(['/api/playbooks/pb_1/phases/automation/skip', { expectedVersion: 3 }]);
         expect(patch.mock.calls.filter((c) => JSON.stringify(c[1]).includes('running'))).toEqual([]);
     });
 
     it('offers no web page in the overflow menu', async () => {
-        await open(pb([ph('table', 'done'), ph('routine', 'ready')]));
+        await open(pb([ph('table', 'done'), ph('automation', 'ready')]));
         await fireEvent.press(screen.getByLabelText('More'));
         expect(await screen.findByText('Delete')).toBeTruthy();
         expect(screen.queryByText('Open on the web')).toBeNull();
@@ -171,7 +171,7 @@ describe('PlaybookScreen', () => {
     });
 
     it('shows what landed when stopped, and resumes', async () => {
-        await open(pb([ph('table', 'done', { artifacts: { datatableName: 'Contracts', rowCount: 4 } }), ph('routine', 'failed', { error: 'interrupted' })], { status: 'stopped' }));
+        await open(pb([ph('table', 'done', { artifacts: { datatableName: 'Contracts', rowCount: 4 } }), ph('automation', 'failed', { error: 'interrupted' })], { status: 'stopped' }));
         expect(await screen.findByText('Stopped — this is what landed')).toBeTruthy();
         expect(screen.getByText('stopped mid-build — resume to retry it')).toBeTruthy();
         await fireEvent.press(screen.getByTestId('playbook-resume'));
@@ -179,7 +179,7 @@ describe('PlaybookScreen', () => {
     });
 
     it('lists the phases and opens what one did', async () => {
-        await open(pb([ph('table', 'done', { summary: 'Made the table', artifacts: { datatableName: 'Contracts', rowCount: 4 } }), ph('routine', 'ready')]));
+        await open(pb([ph('table', 'done', { summary: 'Made the table', artifacts: { datatableName: 'Contracts', rowCount: 4 } }), ph('automation', 'ready')]));
         await fireEvent.press(screen.getByText('Phases'));
         await fireEvent.press(await screen.findByTestId('playbook-phase-table'));
         expect(await screen.findByText('Made the table')).toBeTruthy();

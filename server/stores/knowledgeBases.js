@@ -12,6 +12,7 @@ const { runDdl, CODES } = require('./lib/_ddl');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const managedParts = require('./lib/managedParts');
 
 // `knowledge_bases.id` and `documents.id` are both `UUID PRIMARY KEY DEFAULT
 // gen_random_uuid()` — no insert anywhere supplies an explicit id — so a
@@ -157,7 +158,7 @@ async function _initDB() {
     // deze regel weer aan (zie migrations/add-nl-kb-usage-translations.test.js, die rood
     // wordt zodra een van de zeven weer in een woordenboek opduikt).
     // Give every agent-usable KB the 'ai_step' context BEFORE the link-time
-    // check starts demanding it — otherwise every existing routine fails its
+    // check starts demanding it — otherwise every existing automation fails its
     // next activation on a base nobody changed.
     try { await require('../migrations/add-kb-ai-step-context').up(); } catch (e) { log.error('[KnowledgeBases] migratie add-kb-ai-step-context gefaald:', e.message); }
 
@@ -378,6 +379,57 @@ const DOC_CONTENT_COLUMNS = {
     overlapsDocumentId: 'overlaps_document_id',
     metadata: { col: 'metadata', cast: 'jsonb', transform: v => (v ? JSON.stringify(v) : '{}') },
 };
+
+// ── Knowledge bases in a Solution stage (design 5.2, 5.3) ──────────
+// A base stamped into (or listed on) a UAT / PRD stage project is MANAGED.
+// Its metadata and its deletion change only through a deploy. Its documents
+// stay the stage's own in shell mode; when the Solution carries the base's
+// content ('carry'), documents change only through a deploy too. Publishing
+// and audience (setPublished) are always the stage's own. A deploy passes its
+// capability as `managedWrite` (stores/lib/managedParts.js).
+
+/** The update keys and their columns, for the "what actually changes" diff. */
+const KB_UPDATE_COLUMNS = Object.freeze({
+    categoryId: 'category_id',
+    usageContexts: { col: 'usage_contexts', transform: (v) => (Array.isArray(v) ? v : null) },
+    organizationId: 'organization_id',
+});
+
+/**
+ * Refuse `changedKeys` on a managed base without a deployment's capability.
+ * `carryOnly`: a document write, which only a carried base guards.
+ *
+ * @param {string} kbId
+ * @param {string[]} changedKeys
+ * @param {{ deploymentId?: string }|null|undefined} managedWrite
+ * @param {{ carryOnly?: boolean }} [opts]
+ */
+async function assertKbWrite(kbId, changedKeys, managedWrite, { carryOnly = false } = {}) {
+    if (!kbId || changedKeys.length === 0) return;
+    const info = await managedParts.managedInfoForKb(String(kbId));
+    if (!info) return;
+    if (carryOnly && info.contentMode !== 'carry') return;
+    await managedParts.assertManagedWrite({
+        kind: info.contentMode === 'carry' ? 'knowledge_base_carry' : 'knowledge_base',
+        projectId: info.stageProjectId,
+        changedKeys,
+        managedWrite: managedWrite || null,
+    });
+}
+
+/**
+ * The update keys whose value would change the row: `updateKB` COALESCEs, so
+ * a null leaves a column as it is, except `categoryId: null`, which clears.
+ */
+function kbUpdateChanges(row, fields) {
+    const incoming = {};
+    for (const [k, v] of Object.entries(fields || {})) {
+        if (v === undefined) continue;
+        if (v === null && k !== 'categoryId') continue;
+        incoming[k] = v;
+    }
+    return managedParts.changedKeysOf(row, incoming, KB_UPDATE_COLUMNS);
+}
 
 const KnowledgeBasesStore = {
     DOC_STATUSES,
@@ -686,8 +738,17 @@ const KnowledgeBasesStore = {
      * The route decides WHO may set it (owner only, via assertUserCanUseOrg);
      * this only guarantees the direction.
      */
-    updateKB: async (id, { name, description, categoryId, icon, usageContexts, organizationId }) => {
+    updateKB: async (id, { name, description, categoryId, icon, usageContexts, organizationId }, opts = {}) => {
         await initDB();
+        // A base in a Solution stage: its metadata changes through a deploy
+        // (`opts.managedWrite`), judged on what the write actually changes.
+        if (await managedParts.managedInfoForKb(String(id))) {
+            const row = await KnowledgeBasesStore.getKB(id);
+            if (row) {
+                const changed = kbUpdateChanges(row, { name, description, categoryId, icon, usageContexts, organizationId });
+                await assertKbWrite(id, changed, opts.managedWrite);
+            }
+        }
         const usageJson = Array.isArray(usageContexts) ? JSON.stringify(usageContexts) : null;
         // categoryId: undefined = leave as-is, explicit null = clear back to
         // NULL (BFSF-214) — COALESCE alone can't express the clear, so a
@@ -772,8 +833,31 @@ const KnowledgeBasesStore = {
         return true;
     },
 
-    deleteKB: async (id) => {
+    /**
+     * Refuse `changedKeys` on a base a Solution stage manages (409
+     * managed_part) unless `managedWrite` is a deployment's capability. A
+     * route that does irreversible work before the store write (the DELETE
+     * purges chunks first) asks here before it starts.
+     */
+    assertKbWrite: (id, changedKeys, managedWrite = null, opts = {}) => assertKbWrite(id, changedKeys, managedWrite, opts),
+
+    /**
+     * What a GET says about the Solution stage that manages this base:
+     * null | {solutionId, solutionName, stage, releaseSeq, devRef} (design 5.3).
+     */
+    managedPayload: async (id) => {
+        if (!id) return null;
+        const info = await managedParts.managedInfoForKb(String(id));
+        if (!info) return null;
+        return require('./solutionStageStore').managedPayloadFor({
+            projectId: info.stageProjectId, kind: 'knowledge_base', entityId: String(id),
+        });
+    },
+
+    /** @param {{ managedWrite?: { deploymentId?: string }|null }} [opts] a base in a stage is deleted only by a deploy */
+    deleteKB: async (id, opts = {}) => {
         await initDB();
+        await assertKbWrite(id, ['delete'], opts.managedWrite);
         // Documents cascade-delete; chunks must be deleted via search-service.
         // Also scrub this KB from any project's knowledge_base_ids so projects
         // don't carry dangling references after the KB row is gone.
@@ -820,6 +904,8 @@ const KnowledgeBasesStore = {
     createDocument: async (tenantId, kbId, title, sourceType, sourceUri, contentHash, chunkCount = 0, metadata = null, simhash = null, extra = {}) => {
         await initDB();
         const x = extra || {};
+        // A base whose content a Solution stage carries: documents arrive by deploy (`extra.managedWrite`).
+        await assertKbWrite(kbId, ['documents'], x.managedWrite, { carryOnly: true });
         const status = DOC_STATUSES.includes(x.status) ? x.status : 'processed';
         const piiStatus = PII_STATUSES.includes(x.piiStatus) ? x.piiStatus : 'unscanned';
         const row = await getOne(
@@ -848,6 +934,8 @@ const KnowledgeBasesStore = {
     recordDuplicate: async (tenantId, kbId, title, sourceType, sourceUri, contentHash, canonicalId, metadata = null, extra = {}) => {
         await initDB();
         const x = extra || {};
+        // A duplicate is a documents row too: the same rule as createDocument.
+        await assertKbWrite(kbId, ['documents'], x.managedWrite, { carryOnly: true });
         return getOne(
             `INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata,
                                     status, status_reason, source_id, external_id, created_by, size_bytes, mime)
@@ -911,9 +999,18 @@ const KnowledgeBasesStore = {
      */
     replaceDocumentContent: async (docId, patch = {}) => {
         await initDB();
+        // A carried base in a Solution stage changes document content only
+        // through a deploy (design 5.2: publish/audience only).
+        const { managedWrite = null, ...updates } = patch || {};
+        const owner = UUID_RE.test(String(docId))
+            ? await getOne('SELECT knowledge_base_id FROM documents WHERE id = $1', [docId])
+            : null;
+        if (owner?.knowledge_base_id) {
+            await assertKbWrite(owner.knowledge_base_id, ['documents'], managedWrite, { carryOnly: true });
+        }
         const built = buildUpdate({
             table: 'documents',
-            updates: patch || {},
+            updates,
             columnMap: DOC_CONTENT_COLUMNS,
             extraSet: ['updated_at = now()'],
             where: [{ col: 'id', value: docId }],
@@ -1094,8 +1191,15 @@ const KnowledgeBasesStore = {
         return row ? (row.original_content ?? null) : null;
     },
 
-    deleteDocument: async (id, { deletedBy = null, skipSnapshot = false } = {}) => {
+    deleteDocument: async (id, { deletedBy = null, skipSnapshot = false, managedWrite = null } = {}) => {
         await initDB();
+        // A carried base in a Solution stage loses documents only through a deploy.
+        const owner = UUID_RE.test(String(id))
+            ? await getOne('SELECT knowledge_base_id FROM documents WHERE id = $1', [id])
+            : null;
+        if (owner?.knowledge_base_id) {
+            await assertKbWrite(owner.knowledge_base_id, ['documents'], managedWrite, { carryOnly: true });
+        }
         // Snapshot first so the row can be recovered via listDeletedDocuments.
         // The route handlers used to do this themselves; moving the call here
         // guarantees the snapshot also runs for background callers (reindex
@@ -1154,7 +1258,7 @@ const KnowledgeBasesStore = {
 
     /**
      * Find the most recent document in a KB with a given source_uri. Used by the
-     * support→KB routine to UPDATE (replace chunks) rather than duplicate when a
+     * support→KB automation to UPDATE (replace chunks) rather than duplicate when a
      * ticket is re-resolved. Returns the (projected) row or null.
      */
     findDocumentBySourceUri: async (kbId, sourceUri) => {

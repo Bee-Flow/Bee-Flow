@@ -34,12 +34,12 @@ const AI_ORIGIN = 'section:ai';
 export default function AiPanel({ items, agents, skills, enabled, onAdd, openKey, setOpenKey }: AiPanelProps) {
     const { t } = useTranslation();
     const open = { openKey, setOpenKey };
-    const title = t('routines.ribbon.cat_ai', 'AI');
-    const dragHint = t('routines.ribbon.ai_drag_caption', 'Drag an agent or skill straight onto the canvas');
-    const agentRows = (agents || []).map(a => resultRow(agentResult(a, t('routines.ribbon.agent', 'Agent'))));
-    const skillRows = skills.map(s => resultRow(skillResult(s, t('routines.ribbon.skill', 'Skill'))));
-    const agentsTitle = t('routines.ribbon.agents', 'Agents');
-    const skillsTitle = t('routines.ribbon.skills', 'Skills');
+    const title = t('automations.ribbon.cat_ai', 'AI');
+    const dragHint = t('automations.ribbon.ai_drag_caption', 'Drag an agent or skill straight onto the canvas');
+    const agentRows = (agents || []).map(a => resultRow(agentResult(a, t('automations.ribbon.agent', 'Agent'))));
+    const skillRows = skills.map(s => resultRow(skillResult(s, t('automations.ribbon.skill', 'Skill'))));
+    const agentsTitle = t('automations.ribbon.agents', 'Agents');
+    const skillsTitle = t('automations.ribbon.skills', 'Skills');
 
     const lists: RowPill[] = [
         {
@@ -47,18 +47,18 @@ export default function AiPanel({ items, agents, skills, enabled, onAdd, openKey
             node: (
                 <DropdownPill
                     id="__agents"
-                    label={t('routines.ribbon.use_agent', 'Use an agent')}
+                    label={t('automations.ribbon.use_agent', 'Use an agent')}
                     glyph={<Bot size={14} className="text-[var(--type-ai)]" />}
-                    desc={t('routines.ribbon.use_agent_desc', 'An agent from Studio, with its role, knowledge and skills. One place to maintain.')}
+                    desc={t('automations.ribbon.use_agent_desc', 'An agent from Studio, with its role, knowledge and skills. One place to maintain.')}
                     tipFooter={dragHint}
                     origin={AI_ORIGIN}
                     title={agentsTitle}
                     hint={agentRows.length > 0 ? dragHint : null}
                     sections={[{ key: 'agents', title: agentsTitle, rows: agentRows }]}
-                    filterLabel={(n) => t('routines.ribbon.filter_agents', 'Filter {n} agents…', { n })}
+                    filterLabel={(n) => t('automations.ribbon.filter_agents', 'Filter {n} agents…', { n })}
                     emptyText={agents === null
-                        ? t('routines.ribbon.agents_unreadable', 'The list of agents could not be read. Try again in a moment.')
-                        : t('routines.ribbon.agents_empty', 'No agents yet. Build one under Agents first.')}
+                        ? t('automations.ribbon.agents_unreadable', 'The list of agents could not be read. Try again in a moment.')
+                        : t('automations.ribbon.agents_empty', 'No agents yet. Build one under Agents first.')}
                     onAdd={onAdd}
                     {...open}
                 />
@@ -71,16 +71,16 @@ export default function AiPanel({ items, agents, skills, enabled, onAdd, openKey
             node: (
                 <DropdownPill
                     id="__skills"
-                    label={t('routines.ribbon.apply_skill', 'Apply a skill')}
+                    label={t('automations.ribbon.apply_skill', 'Apply a skill')}
                     glyph={<Zap size={14} className="text-[var(--kind-skill)]" />}
-                    desc={t('routines.ribbon.apply_skill_desc', 'A skill from Studio, applied without an agent.')}
+                    desc={t('automations.ribbon.apply_skill_desc', 'A skill from Studio, applied without an agent.')}
                     tipFooter={dragHint}
                     origin={AI_ORIGIN}
                     title={skillsTitle}
                     hint={skillRows.length > 0 ? dragHint : null}
                     sections={[{ key: 'skills', title: skillsTitle, rows: skillRows }]}
-                    filterLabel={(n) => t('routines.ribbon.filter_skills', 'Filter {n} skills…', { n })}
-                    emptyText={t('routines.ribbon.skills_empty', 'No skills yet.')}
+                    filterLabel={(n) => t('automations.ribbon.filter_skills', 'Filter {n} skills…', { n })}
+                    emptyText={t('automations.ribbon.skills_empty', 'No skills yet.')}
                     onAdd={onAdd}
                     {...open}
                 />

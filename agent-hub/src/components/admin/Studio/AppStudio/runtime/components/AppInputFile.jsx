@@ -16,7 +16,7 @@ import useInputChange from '../useInputChange';
  * and images-only). The field value is an attachment DESCRIPTOR
  *   { kind: 'studio_attachment', fileId, name, mime, size }
  * (an array of them when `multiple`) — the shape record writes tolerate and
- * the app-trigger bridge (run_automation → app_trigger routines) verifies and
+ * the app-trigger bridge (run_automation → app_trigger automations) verifies and
  * expands server-side. Legacy values that are bare URL strings (the old CMS
  * flow) still render. Uploads only fire in run mode.
  */

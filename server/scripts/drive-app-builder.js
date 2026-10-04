@@ -1,6 +1,6 @@
 /**
  * App Studio builder harness — drives a REAL app build end to end, the way
- * drive-builder.js drives a routine build, and judges it against a brief's
+ * drive-builder.js drives an automation build, and judges it against a brief's
  * expectation. The live-run GATE for any App Studio builder change: "tests
  * pass" is not done; the app on the canvas is.
  *
@@ -30,7 +30,7 @@
  *   maxPromptChars: 62000,                            // round 0's round_start.promptChars (the prefix diet):
  *                                                     // measured 49.0–49.7k on the small band with a stub owner
  *                                                     // context (print-model-prompt.js, 2026-09-18); the gap is
- *                                                     // room for 40 routine lines + documents in the OWNER CONTEXT
+ *                                                     // room for 40 automation lines + documents in the OWNER CONTEXT
  *                                                     // note, and still far below the pre-diet ~90k
  * }
  * Exit codes: 0 pass · 1 mismatch (app kept, id printed) · 2 harness error · 3 stream error.

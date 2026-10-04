@@ -5,7 +5,7 @@
  * holds the names, `definition.edges[]` carries `case:<name>` labels — and the
  * case editor only ever wrote the FIRST side. Renaming or deleting a case
  * therefore orphaned its edges, and `switch.case_edge_unknown` is a blocking
- * (integrity) validation error, so every subsequent save of the WHOLE routine
+ * (integrity) validation error, so every subsequent save of the WHOLE automation
  * 400'd until the user hand-repaired the JSON. These transforms keep both
  * sides in one atomic definition update: rename follows the edge, delete drops
  * it ("heal, don't block" — same philosophy as applyDeleteNodes).

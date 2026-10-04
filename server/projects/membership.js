@@ -3,7 +3,7 @@
  *
  * A project row is one of two containers (`projects.kind`): a collaborative
  * WORKSPACE (people working together on chats, documents, notebooks, meeting
- * notes and knowledge) or a Studio SOLUTION (the builder's bundle of routines,
+ * notes and knowledge) or a Studio SOLUTION (the builder's bundle of automations,
  * apps, pages, tables and agents that is exported and installed). A legacy row
  * from before that split has no kind yet and holds everything. Which kinds a
  * container takes is declared per kind below (`containers`).
@@ -68,7 +68,7 @@
  *                 'solution' or both. A legacy project (kind NULL) takes every
  *                 kind until its owner classifies it. The resources listing shows
  *                 only the sections its container takes (`sectionsFor`), and
- *                 filing checks the same list (`isAllowedIn`), so a routine
+ *                 filing checks the same list (`isAllowedIn`), so an automation
  *                 cannot be pushed into a workspace nor a meeting note into a
  *                 Solution that would carry it into an export.
  *
@@ -102,6 +102,21 @@
  * seat/escalation-target already defines — so this can only ever shrink what the
  * caller could already see, never widen it. A project viewer sees the approvals
  * in this project that are theirs to see, not every approval in it.
+ *
+ * ── Solution stages ─────────────────────────────────────────────────────────
+ *
+ * A UAT or PRD stage of a Solution is a project too, and what is filed in it
+ * is MANAGED: a deploy puts it there and takes it out (design 5.2). So every
+ * `setProject` and `clearProject` of the registry passes one gate before its
+ * store is reached (`withStageGuard` below): moving an item INTO a stage, OUT
+ * of one (its current project, read through `projectOf`), or detaching a stage
+ * project's items, is refused with 409 `managed_part` unless `ctx.managedWrite`
+ * is the capability of a deployment active on that stage. A kind whose link is
+ * a column on its own row declares `projectOf(id)` so the source is known; a
+ * knowledge base's link lives on the project being edited (`ctx.projectId`).
+ * It also declares `ownerOf(id)`: a refusal that comes only from the item's
+ * own stage is told to its owner, while anyone else gets the kind's ordinary
+ * `false`, so naming a stranger's item id never reveals which Solution holds it.
  */
 
 // The two containers a project can be, and the combinations a kind declares.
@@ -109,6 +124,128 @@ const CONTAINER_KINDS = Object.freeze(['workspace', 'solution']);
 const ANYWHERE = Object.freeze(['workspace', 'solution']);
 const SOLUTION_ONLY = Object.freeze(['solution']);
 const WORKSPACE_ONLY = Object.freeze(['workspace']);
+
+// ── The stage gate ──────────────────────────────────────────────────────────
+
+/**
+ * The seams of the stage gate, on one shared object so a test can swap them
+ * (testUtils/swaps.js) without a database: the managed-write guard
+ * (stores/lib/managedParts.js) and the reader of an item's current project.
+ */
+const stageGuard = {
+    /** @returns {{ assertManagedWrite: Function }} */
+    managedParts: () => require('../stores/lib/managedParts'),
+    /**
+     * The project an item of `table` is filed in, or null (none, or no such
+     * item). `table` and `column` are literals from the registry below, never input.
+     * @param {string} table
+     * @param {string} id
+     * @param {string} [column]  the filing column, `project_id` unless the kind files through another
+     */
+    async projectIdIn(table, id, column = 'project_id') {
+        if (!id) return null;
+        try {
+            const row = await require('../db').getOne(`SELECT ${column} AS project_id FROM ${table} WHERE id = $1`, [String(id)]);
+            return row?.project_id || null;
+        } catch (err) {
+            // An id the column's type refuses is no item, so it is in no project.
+            if (err?.code === '22P02') return null;
+            throw err;
+        }
+    },
+    /**
+     * Who owns an item of `table` (its `ownerCol`), or null. Both are literals
+     * from the registry below, never input.
+     * @param {string} table
+     * @param {string} ownerCol
+     * @param {string} id
+     */
+    async ownerIdIn(table, ownerCol, id) {
+        if (!id) return null;
+        try {
+            const row = await require('../db').getOne(`SELECT ${ownerCol} AS owner FROM ${table} WHERE id = $1`, [String(id)]);
+            return row?.owner || null;
+        } catch (err) {
+            if (err?.code === '22P02') return null;
+            throw err;
+        }
+    },
+};
+
+/**
+ * Refuse filing into or out of a Solution stage, or detaching a stage's
+ * items, without a deployment's capability: 409 managed_part. Every project
+ * in `projectIds` that is a stage needs the capability of a deployment active
+ * on exactly that stage.
+ *
+ * @param {Array<string|null|undefined>} projectIds
+ * @param {{ deploymentId?: string }|null|undefined} managedWrite
+ */
+async function assertNoStageFiling(projectIds, managedWrite) {
+    const guard = stageGuard.managedParts();
+    for (const projectId of new Set(projectIds.filter((p) => typeof p === 'string' && p))) {
+        await guard.assertManagedWrite({ kind: 'project', projectId, changedKeys: ['projectId'], managedWrite: managedWrite || null });
+    }
+}
+
+/**
+ * A registry entry with its `setProject` and `clearProject` behind the stage
+ * gate. The source of a move is the item's current project (`projectOf`), or
+ * for a kind whose link lives on the project (knowledge bases) the project
+ * being edited; a removal (`projectId = null`) also names that project. A
+ * movable kind that can say neither is refused outright: not knowing where an
+ * item is must never let it out of a stage.
+ */
+function withStageGuard(entry) {
+    const out = { ...entry };
+    if (typeof entry.setProject === 'function') {
+        out.setProject = async (id, userId, projectId, ctx) => {
+            let source = null;
+            if (typeof entry.projectOf === 'function') source = await entry.projectOf(id);
+            else if (!entry.linkOnProject) {
+                throw new Error(`${entry.kind}: cannot tell which project this item is in`);
+            }
+            const from = projectId ? null : (ctx?.projectId || null);
+            const onProject = entry.linkOnProject ? (ctx?.projectId || null) : null;
+            // The target and the project being edited: the route has already
+            // checked the caller's role there, so naming their stage tells
+            // nothing new.
+            const known = [projectId, from, onProject];
+            await assertNoStageFiling(known, ctx?.managedWrite);
+            // The item's own project can be one the caller has no role on. A
+            // stranger naming someone else's item id reads the kind's ordinary
+            // "not found, or not yours" rather than which Solution holds it.
+            if (source && !known.includes(source)) {
+                try {
+                    await assertNoStageFiling([source], ctx?.managedWrite);
+                } catch (err) {
+                    if (err?.code === 'managed_part' && typeof entry.ownerOf === 'function'
+                        && (await entry.ownerOf(id)) !== userId) return false;
+                    throw err;
+                }
+            }
+            return entry.setProject(id, userId, projectId, ctx);
+        };
+    }
+    if (typeof entry.clearProject === 'function') {
+        out.clearProject = async (projectId, ctx) => {
+            await assertNoStageFiling([projectId], ctx?.managedWrite);
+            return entry.clearProject(projectId, ctx);
+        };
+    }
+    return out;
+}
+
+/** `projectOf` for a kind whose link is the `project_id` column of `table` (or `column`). */
+const projectColumnOf = (table, column = 'project_id') => (id) => stageGuard.projectIdIn(table, id, column);
+/** `ownerOf` for a kind whose owner is the `ownerCol` column of `table`. */
+const ownerColumnOf = (table, ownerCol) => (id) => stageGuard.ownerIdIn(table, ownerCol, id);
+
+/** The organisations a person belongs to, own and through groups, for the stores' filing check. */
+async function callerOrgIds(userId) {
+    const { orgIds } = await require('../auth/orgScope').orgScope({ session: { user: { id: userId } } }, { strict: true });
+    return orgIds ? [...orgIds] : [];
+}
 
 /**
  * File an owned content item into a project, or take it out of the project
@@ -127,7 +264,7 @@ const WORKSPACE_ONLY = Object.freeze(['workspace']);
  * @returns {Promise<boolean>}
  */
 async function fileOwnedContent(store, id, userId, projectId, ctx) {
-    if (projectId) return store.attach(id, userId, projectId);
+    if (projectId) return store.attach(id, userId, projectId, await callerOrgIds(userId));
     const from = ctx?.projectId;
     // Without the project being edited there is nothing to scope a removal to,
     // and an unscoped removal by someone other than the owner is exactly what
@@ -166,12 +303,32 @@ const notebooks = () => {
     };
 };
 
-const KINDS = [
+/**
+ * File a document template into a Solution, or take it out of the Solution
+ * being edited. Owner-only to file in. Taking it out is the template's owner's,
+ * or the PROJECT owner's, and always scoped to the project being edited.
+ * Unlike `fileOwnedContent` the filing goes through `solution_project_id`
+ * (design D21), so it never reaches `project_id` and grants no member access.
+ */
+async function fileTemplate(id, userId, projectId, ctx) {
+    const s = require('../stores/document/solutionTemplates');
+    const opts = { managedWrite: ctx?.managedWrite || null };
+    if (projectId) return s.setTemplateSolution(id, userId, projectId, opts);
+    const from = ctx?.projectId;
+    if (!from) return false;
+    if (await s.clearTemplateSolution(id, from, userId, opts)) return true;
+    if (ctx?.req?.projectRole === 'owner') return s.clearTemplateSolution(id, from, null, opts);
+    return false;
+}
+
+const RAW_KINDS = [
     {
         kind: 'notebook',
         section: 'notebooks',
         containers: ANYWHERE,
         detaches: true,
+        projectOf: projectColumnOf('notebooks'),
+        ownerOf: ownerColumnOf('notebooks', 'user_id'),
         list: (projectId) => require('../stores/notebookStore').listProjectNotebooks(projectId),
         countIn: (projectIds) => require('../stores/notebookStore').countProjectNotebooks(projectIds),
         setProject: (id, userId, projectId, ctx) => fileOwnedContent(notebooks(), id, userId, projectId, ctx),
@@ -182,6 +339,8 @@ const KINDS = [
         section: 'documents',
         containers: WORKSPACE_ONLY,
         detaches: true,
+        projectOf: projectColumnOf('studio_documents'),
+        ownerOf: ownerColumnOf('studio_documents', 'user_id'),
         list: (projectId) => require('../stores/documentStore').listProjectDocuments(projectId),
         countIn: (projectIds) => require('../stores/documentStore').countProjectDocuments(projectIds),
         setProject: (id, userId, projectId, ctx) => fileOwnedContent(documents(), id, userId, projectId, ctx),
@@ -192,6 +351,8 @@ const KINDS = [
         section: 'meetings',
         containers: WORKSPACE_ONLY,
         detaches: true,
+        projectOf: projectColumnOf('transcriptions'),
+        ownerOf: ownerColumnOf('transcriptions', 'user_id'),
         list: (projectId) => require('../stores/transcriptionStore').listProjectMeetings(projectId),
         countIn: (projectIds) => require('../stores/transcriptionStore').countProjectMeetings(projectIds),
         setProject: (id, userId, projectId, ctx) => fileOwnedContent(meetings(), id, userId, projectId, ctx),
@@ -202,16 +363,20 @@ const KINDS = [
         section: 'automations',
         containers: SOLUTION_ONLY,
         detaches: true,
+        projectOf: projectColumnOf('automations'),
+        ownerOf: ownerColumnOf('automations', 'user_id'),
         list: (projectId) => require('../stores/automationStore').getAutomationsForProject(projectId),
         countIn: (projectIds) => require('../stores/automationStore').countAutomationsForProject(projectIds),
         // The automation update path has no owner predicate of its own, so the
         // ownership check every other kind gets from its UPDATE ... AND
         // user_id = $n is made explicit here instead.
-        setProject: async (id, userId, projectId) => {
+        setProject: async (id, userId, projectId, ctx) => {
             const store = require('../stores/automationStore');
             const automation = await store.getAutomation(id);
             if (!automation || automation.userId !== userId) return false;
-            await store.updateAutomation(id, { projectId }, userId);
+            // The store refuses filing into or out of a stage on its own, so a
+            // deploy's capability has to reach it as well as the gate above.
+            await store.updateAutomation(id, { projectId }, userId, { managedWrite: ctx?.managedWrite || null });
             return true;
         },
         clearProject: (projectId) => require('../stores/automationStore').clearProjectFromAutomations(projectId),
@@ -221,6 +386,8 @@ const KINDS = [
         section: 'apps',
         containers: SOLUTION_ONLY,
         detaches: true,
+        projectOf: projectColumnOf('studio_apps'),
+        ownerOf: ownerColumnOf('studio_apps', 'user_id'),
         list: (projectId) => require('../stores/studioAppStore').listProjectApps(projectId),
         countIn: (projectIds) => require('../stores/studioAppStore').countProjectApps(projectIds),
         setProject: (id, userId, projectId) =>
@@ -232,6 +399,8 @@ const KINDS = [
         section: 'webpages',
         containers: SOLUTION_ONLY,
         detaches: true,
+        projectOf: projectColumnOf('webpages'),
+        ownerOf: ownerColumnOf('webpages', 'user_id'),
         list: (projectId) => require('../stores/webpageStore').listProjectWebpages(projectId),
         countIn: (projectIds) => require('../stores/webpageStore').countProjectWebpages(projectIds),
         setProject: (id, userId, projectId) =>
@@ -243,6 +412,8 @@ const KINDS = [
         section: 'datatables',
         containers: SOLUTION_ONLY,
         detaches: true,
+        projectOf: projectColumnOf('datatables'),
+        ownerOf: ownerColumnOf('datatables', 'owner_user_id'),
         list: (projectId) => require('../stores/datatableStore').listDatatablesForProject(projectId),
         countIn: (projectIds) => require('../stores/datatableStore').countDatatablesForProject(projectIds),
         // Deliberately NOT through updateDatatableMeta: `projectId` is not one
@@ -258,11 +429,44 @@ const KINDS = [
         section: 'agents',
         containers: SOLUTION_ONLY,
         detaches: true,
+        projectOf: projectColumnOf('agents'),
+        ownerOf: ownerColumnOf('agents', 'owner_id'),
         list: (projectId) => require('../stores/agentStore').listProjectAgents(projectId),
         countIn: (projectIds) => require('../stores/agentStore').countProjectAgents(projectIds),
         setProject: (id, userId, projectId) =>
             require('../stores/agentStore').setAgentProject(id, userId, projectId),
         clearProject: (projectId) => require('../stores/agentStore').clearProjectFromAgents(projectId),
+    },
+    {
+        kind: 'skill',
+        section: 'skills',
+        containers: SOLUTION_ONLY,
+        detaches: true,
+        projectOf: projectColumnOf('skills'),
+        ownerOf: ownerColumnOf('skills', 'user_id'),
+        list: (projectId) => require('../stores/skillStore').listProjectSkills(projectId),
+        countIn: (projectIds) => require('../stores/skillStore').countProjectSkills(projectIds),
+        // The store checks the stage itself as well, so the deploy's capability travels on.
+        setProject: (id, userId, projectId, ctx) =>
+            require('../stores/skillStore').setSkillProject(id, userId, projectId, { managedWrite: ctx?.managedWrite }),
+        clearProject: (projectId, ctx) => require('../stores/skillStore').clearProjectFromSkills(projectId, ctx || undefined),
+    },
+    {
+        // A template of a Solution is filed through its own column
+        // (studio_documents.solution_project_id, design D21), never through the
+        // `document` kind above: that one means collaborative project content and
+        // gives every project editor write access. A filed template keeps its own
+        // team sharing and is not in listProjectDocuments.
+        kind: 'document_template',
+        section: 'documentTemplates',
+        containers: SOLUTION_ONLY,
+        detaches: true,
+        projectOf: projectColumnOf('studio_documents', 'solution_project_id'),
+        ownerOf: ownerColumnOf('studio_documents', 'user_id'),
+        list: (projectId) => require('../stores/document/solutionTemplates').listSolutionTemplates(projectId),
+        countIn: (projectIds) => require('../stores/document/solutionTemplates').countSolutionTemplates(projectIds),
+        setProject: fileTemplate,
+        clearProject: (projectId) => require('../stores/document/solutionTemplates').clearSolutionFromTemplates(projectId),
     },
     {
         kind: 'knowledge_base',
@@ -274,6 +478,8 @@ const KINDS = [
         // the honest pair, and the registry test below is what forces the
         // choice to be made rather than half-made.
         detaches: false,
+        // The stage gate's source and target are both the project being edited.
+        linkOnProject: true,
         list: (projectId) => require('./knowledgeBaseMembership').listProjectKnowledgeBases(projectId),
         // Takes the ctx every setProject is handed: attaching a base is a READ
         // GRANT (project chat searches these ids with no further check), so it
@@ -299,6 +505,9 @@ const KINDS = [
         },
     },
 ];
+
+// Every entry behind the stage gate (see the header), including kinds added later.
+const KINDS = RAW_KINDS.map(withStageGuard);
 
 const BY_KIND = new Map(KINDS.map(k => [k.kind, k]));
 
@@ -365,4 +574,5 @@ function isAllowedIn(kind, containerKind) {
 module.exports = {
     listKinds, getKind, movableKinds, detachableKinds, countableKinds,
     kindsFor, sectionsFor, isAllowedIn, CONTAINER_KINDS,
+    stageGuard, assertNoStageFiling, withStageGuard,
 };

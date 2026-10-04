@@ -1,42 +1,32 @@
-import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Bell, Code, Eye, Filter, Mail, Repeat, Sparkles, WandSparkles } from 'lucide-react';
+import useTranslation from '../../../../hooks/useTranslation';
 
-/**
- * Empty-state welcome for the AI assistant: a friendly intro + tappable
- * suggestion chips that PREFILL the composer (never auto-send). At least one
- * chip is derived from the current trigger so the prompt feels contextual.
- */
-export default function AssistantWelcome({ triggerKind, onPick }) {
+export default function AssistantWelcome({ triggerKind, definition = null, selectedStep = null, onPick }) {
+    const { t } = useTranslation();
+    const steps = definition?.steps || [];
     const chips = [];
-    if (triggerKind === 'schedule') chips.push('Summarise the latest activity and email me a digest');
-    else if (triggerKind === 'app_event') chips.push('Filter these items, then draft a reply for each');
-    else if (triggerKind === 'webhook') chips.push('Validate the incoming payload, then post it to Slack');
-    else chips.push('Search my inbox and summarise the results');
-    chips.push('Loop over the results and label each one');
-    chips.push('Add a notification at the end of the flow');
-    return (
-        <div className="h-full flex flex-col items-center justify-center text-center px-4 gap-3">
-            <span className="w-10 h-10 rounded-xl bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center">
-                <Sparkles size={18} />
-            </span>
-            <div>
-                <div className="text-sm font-medium text-[var(--text-primary)] mb-1">Build with the assistant</div>
-                <div className="text-xs text-[var(--text-tertiary)] max-w-xs">
-                    Describe what you want and it wires the trigger and steps for you.
-                </div>
-            </div>
-            <div className="flex flex-col gap-1.5 w-full max-w-xs">
-                {chips.map((c) => (
-                    <button
-                        key={c}
-                        type="button"
-                        onClick={() => onPick?.(c)}
-                        className="text-left text-xs px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition"
-                    >
-                        {c}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
+    const suggest = (Icon, key, fallback) => chips.push({ Icon, text: t(`automations.assistant.suggest.${key}`, fallback) });
+    if (selectedStep?.type === 'code') suggest(Code, 'code', 'Write the code for the selected step');
+    if (selectedStep?.type === 'ai_step') suggest(Sparkles, 'prompt', 'Improve the instruction for this AI step');
+    if (selectedStep && steps.length) suggest(WandSparkles, 'mapping', 'Check the field mappings of this step');
+    if (steps.length) {
+        suggest(Repeat, 'loop', 'Process each item with AI');
+        suggest(Filter, 'filter', 'Only let through the items that match my conditions');
+        suggest(Bell, 'notify', 'Send me a message when the flow finishes');
+    } else if (triggerKind === 'schedule') suggest(Mail, 'digest', 'Summarise the latest activity and email me a digest');
+    else if (triggerKind === 'app_event') suggest(Filter, 'event', 'Filter these items, then draft a reply for each');
+    else if (triggerKind === 'webhook') suggest(WandSparkles, 'webhook', 'Validate the incoming data and send me a notification');
+    else {
+        suggest(Mail, 'invoices', 'Read invoices from my inbox and save them in a table');
+        suggest(Sparkles, 'summary', 'Summarise a document with AI');
+        suggest(Bell, 'approval', 'Ask someone to approve a request');
+    }
+    return <div className="flex flex-col gap-5 py-5 text-left">
+        <div><h2 className="text-sm font-semibold text-[var(--text-primary)]">{t('automations.assistant.welcome', 'What should this automation do?')}</h2>
+            <p className="text-xs leading-5 mt-1 text-[var(--text-secondary)]">{t('automations.assistant.welcome_hint', 'Describe it in ordinary language. Choose how much the assistant may do below.')}</p></div>
+        {(steps.length > 0 || selectedStep) && <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]"><Eye size={13} /><span>{t('automations.assistant.watching', 'Looking at:')}</span><span>{steps.length} {t('automations.assistant.steps_short', 'steps')}</span>{selectedStep && <span className="text-[var(--text-secondary)]">· {selectedStep.label || selectedStep.type}</span>}</div>}
+        <div><div className="text-[11px] font-medium text-[var(--text-tertiary)] mb-2">{t('automations.assistant.matches', 'Fits this flow')}</div><div className="flex flex-col gap-2">
+            {chips.slice(0, 4).map(({ Icon, text }) => <button key={text} type="button" onClick={() => onPick?.(text)} className="flex items-center gap-2.5 text-left text-xs p-2.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--type-ai)] transition"><Icon size={14} className="shrink-0 text-[var(--text-tertiary)]" /><span>{text}</span></button>)}
+        </div></div>
+    </div>;
 }

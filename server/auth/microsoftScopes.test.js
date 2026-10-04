@@ -57,7 +57,7 @@ test('no file re-declares the Microsoft scope string', () => {
     // make and observe.
     const serverDir = path.join(__dirname, '..');
     const suspects = [
-        'auth/routineAuth.js',
+        'auth/automationAuth.js',
         'integrations/msGraphClient.js',
         'auth/oauth/providerLoginRoutes.js',
         'auth/oauth/providerCallbackRoutes.js',

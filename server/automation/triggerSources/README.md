@@ -2,7 +2,7 @@
 
 An `app_event` trigger exists because some integration says it does. There is no
 central list to edit: drop a declaration next to your integration and the
-provider appears in the routine builder, gated on whether the user actually has
+provider appears in the automation builder, gated on whether the user actually has
 that integration.
 
 **You often don't need a file at all.** Any enabled integration exposing a
@@ -39,7 +39,7 @@ module.exports = { TRIGGER_SOURCES: [{
 
         // What downstream steps can bind to (trigger.output.*). Every field
         // needs a sample — that is what the variable picker shows before the
-        // routine has ever run.
+        // automation has ever run.
         fields: ['sku', 'state', 'changedKeys', 'previous', 'current', 'changedAt'],
         sample: { sku: 'W-1', state: 'running', /* … */ },
 
@@ -75,7 +75,7 @@ use this (`mcpServers/tuya/events.js`).
 ## What you get for free
 
 Polling and de-duplication, a cursor with a 32 KB budget, first-run anchoring
-(activating a routine never fires once per pre-existing item), a per-pass call
+(activating an automation never fires once per pre-existing item), a per-pass call
 cache keyed by user, per-event minimum intervals, the generic filter matcher
 plus the `any`/`none`/`expr`/`age` DSL, failure escalation, and the builder's
 provider/event dropdowns and variable picker.
@@ -123,7 +123,7 @@ the most plausible id field, every other scalar as a change field), and the raw
 item travels as `trigger.output.item` because nothing declared its fields; the
 builder's run-data overlay fills the picker in after one test run.
 
-Listing costs nothing: no polling happens until a routine using one is activated,
+Listing costs nothing: no polling happens until an automation using one is activated,
 and derived sources poll at most every 15 minutes.
 
 ## Rules the validator enforces

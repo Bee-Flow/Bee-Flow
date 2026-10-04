@@ -214,3 +214,39 @@ test('an image always carries a detail — it is required on Responses', async (
     assert.deepStrictEqual(images.map(i => i.detail), ['auto', 'auto', 'high']);
     assert.ok(images.every(i => typeof i.image_url === 'string' && i.image_url));
 });
+
+test('an object content never reaches Responses input as an object', () => {
+    // Direct chat does not run sanitizeMessages, so an old history row whose
+    // content was revived by JSON.parse would 400 every later turn.
+    const provider = new OpenAIProvider();
+    const input = provider.toResponsesInput([
+        { role: 'system', content: 'be helpful' },
+        { role: 'user', content: { question: 'status?' } },
+        { role: 'assistant', content: { answer: 'ok' } },
+        { role: 'assistant', content: null, tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'automation_1', arguments: '{}' } }] },
+        { role: 'tool', tool_call_id: 'call_1', content: { sent: true } },
+    ]);
+    const user = input.find(i => i.role === 'user');
+    assert.deepStrictEqual(user.content, [{ type: 'input_text', text: '{"question":"status?"}' }]);
+    const assistant = input.find(i => i.role === 'assistant');
+    assert.strictEqual(assistant.content, '{"answer":"ok"}');
+    const output = input.find(i => i.type === 'function_call_output');
+    assert.strictEqual(output.output, '{"sent":true}');
+    for (const item of input) {
+        if (!('content' in item)) continue;
+        assert.ok(typeof item.content === 'string' || Array.isArray(item.content),
+            `content of the '${item.role}' item is ${typeof item.content}`);
+    }
+});
+
+test('null, string and block contents keep their Responses shape', () => {
+    const provider = new OpenAIProvider();
+    const input = provider.toResponsesInput([
+        { role: 'user', content: [{ type: 'text', text: 'kijk' }] },
+        { role: 'assistant', content: null },
+        { role: 'assistant', content: 'klaar' },
+    ]);
+    assert.deepStrictEqual(input[0].content, [{ type: 'input_text', text: 'kijk' }]);
+    assert.strictEqual(input[1].content, '');
+    assert.strictEqual(input[2].content, 'klaar');
+});

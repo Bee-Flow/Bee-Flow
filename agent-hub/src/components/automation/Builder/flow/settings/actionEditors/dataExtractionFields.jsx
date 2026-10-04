@@ -1,7 +1,7 @@
 // The data_extraction editor: which text to read, the field rows that ARE the
 // step's output shape, and any extra guidance for the extraction model.
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import BindingField from '../../../mapping/BindingField';
 import AccordionSection from '../../AccordionSection';
@@ -26,14 +26,11 @@ import {
 function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set() }) {
     const { t } = useTranslation();
     const fields = Array.isArray(draft.fields) ? draft.fields : [];
-    // A list dropped on the source ("one invoice per file") lands here from
-    // BindingField's chooser: write the forEach and open Advanced once, so the
-    // change is visible where it can be undone — the IntegrationActionFields
-    // pattern.
-    const [foreachJustSet, setForeachJustSet] = useState(false);
+    // "Run once per item" from a field lands here. Advanced stays closed: the
+    // field itself says the step now runs per item, with Undo, and Advanced
+    // shows "set" on its band.
     const requestForEach = React.useCallback((fe) => {
         set('forEach', fe ? { itemVar: 'item', maxIterations: 100, ...(draft.forEach || {}), ...fe } : null);
-        setForeachJustSet(!!fe);
     }, [draft.forEach, set]);
 
     const updateField = (i, patch) => {
@@ -56,15 +53,15 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
     // `fields_duplicate` is an integrity error); say so on the row itself.
     const firstIndexOfName = (name) => fields.findIndex(f => (f?.name || '') === name);
 
-    const modelNote = t('routines.ndv.extraction.model_note', 'Runs on the extraction model set by your administrator');
-    const fieldNameLabel = t('routines.ndv.extraction.field_name', 'Name');
-    const fieldTypeLabel = t('routines.ndv.extraction.field_type', 'Type');
-    const fieldDescLabel = t('routines.ndv.extraction.field_desc', 'What to look for');
-    const requiredLabel = t('routines.ndv.extraction.required', 'Required');
+    const modelNote = t('automations.ndv.extraction.model_note', 'Runs on the extraction model set by your administrator');
+    const fieldNameLabel = t('automations.ndv.extraction.field_name', 'Name');
+    const fieldTypeLabel = t('automations.ndv.extraction.field_type', 'Type');
+    const fieldDescLabel = t('automations.ndv.extraction.field_desc', 'What to look for');
+    const requiredLabel = t('automations.ndv.extraction.required', 'Required');
 
     return (
         <>
-            <AccordionSection stepType="data_extraction" sectionKey="source" title={t('routines.ndv.extraction.source', 'Text to read')} defaultOpen forceOpen={errorSections.has('source')}>
+            <AccordionSection stepType="data_extraction" sectionKey="source" title={t('automations.ndv.extraction.source', 'Text to read')} defaultOpen forceOpen={errorSections.has('source')}>
                 {/* A sentence, not a labelled FormRow: the band already says
                     "Text to read", and the same words twice was the FieldsSection
                     lesson. */}
@@ -80,7 +77,9 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
                     previewSample={previewSample}
                     expectShape="scalar"
                     expectKind="text"
-                    onRequestForEach={requestForEach}
+                    // Not while the step already runs per item: a second list would orphan
+                    // every field that reads the current one.
+                    onRequestForEach={draft.forEach?.overRef ? null : requestForEach}
                 />
                 {/* The one thing about the model an author needs to know, and
                     the one thing they cannot change here. The config key sits
@@ -94,7 +93,7 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
                 </p>
             </AccordionSection>
 
-            <AccordionSection stepType="data_extraction" sectionKey="fields" title={t('routines.ndv.extraction.fields', 'Fields to extract')} defaultOpen forceOpen={errorSections.has('fields')}>
+            <AccordionSection stepType="data_extraction" sectionKey="fields" title={t('automations.ndv.extraction.fields', 'Fields to extract')} defaultOpen forceOpen={errorSections.has('fields')}>
                 <p className={`${hintTextClass()} mb-2`}>
                     One row per value to pull out. The name becomes the output key the next steps bind to; the description tells the model what to look for. A field it cannot find comes back empty.
                 </p>
@@ -184,12 +183,12 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
                     title={fields.length >= MAX_EXTRACTION_FIELDS ? `At most ${MAX_EXTRACTION_FIELDS} fields per step` : undefined}
                     className="mt-2 flex items-center gap-1 text-xs text-[var(--accent)] hover:opacity-80 transition disabled:opacity-40"
                 >
-                    <Plus size={12} /> {t('routines.ndv.extraction.add_field', 'Add field')}
+                    <Plus size={12} /> {t('automations.ndv.extraction.add_field', 'Add field')}
                 </button>
             </AccordionSection>
 
             <AccordionSection
-                stepType="data_extraction" sectionKey="instructions" title={t('routines.ndv.extraction.instructions', 'Extra instructions')}
+                stepType="data_extraction" sectionKey="instructions" title={t('automations.ndv.extraction.instructions', 'Extra instructions')}
                 defaultOpen={!!draft.instructions} forceOpen={errorSections.has('instructions')} hasContent={!!draft.instructions}
             >
                 <p className={`${hintTextClass()} mb-2`}>
@@ -201,12 +200,12 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
                     value={draft.instructions || ''}
                     onChange={(e) => set('instructions', e.target.value)}
                     placeholder="Amounts are in euros. Dates are written day first."
-                    aria-label={t('routines.ndv.extraction.instructions', 'Extra instructions')}
+                    aria-label={t('automations.ndv.extraction.instructions', 'Extra instructions')}
                     className={textareaClass()}
                 />
             </AccordionSection>
 
-            <AccordionSection stepType="data_extraction" sectionKey="advanced" title="Advanced" defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('advanced') || foreachJustSet} hasContent={!!draft.forEach || retryIsSet(draft)}>
+            <AccordionSection stepType="data_extraction" sectionKey="advanced" title="Advanced" defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('advanced')} hasContent={!!draft.forEach || retryIsSet(draft)}>
                 <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>

@@ -9,7 +9,7 @@ const PREVIEW_ROWS = 8;
 const ROW_STAGGER_MS = 120;
 
 /**
- * The table's values, so the person SEES what the routine extracted: the
+ * The table's values, so the person SEES what the automation extracted: the
  * first rows of the datatable in a compact grid, one row arriving after
  * another. Reads `GET /api/datatables/:id/rows` (the same page the Datatables
  * section shows); `refreshKey` re-reads (the fill's row count changing).

@@ -140,12 +140,12 @@ test('the trigger: a new schedule is trigger_changed with the cron readable', ()
     assert.deepStrictEqual(describeChange(changes).entries, [{ code: 'trigger_changed', params: { step: 'On a schedule' } }]);
 });
 
-test('routine settings and the description sit outside the steps', () => {
+test('automation settings and the description sit outside the steps', () => {
     const next = clone(BASE);
     next.runPolicy = { retry: { max: 2, then: 'stop_notify' } };
     next.description = 'Reads invoices.';
     const changes = fieldDiff(BASE, next);
-    assert.ok(changes.every((c) => c.stepId === null && c.stepLabel === 'Routine'));
+    assert.ok(changes.every((c) => c.stepId === null && c.stepLabel === 'Automation'));
     assert.deepStrictEqual(changes.map((c) => c.path).sort(), ['description', 'runPolicy.retry.max', 'runPolicy.retry.then']);
     const d = describeChange(changes);
     assert.deepStrictEqual(d.entries, [

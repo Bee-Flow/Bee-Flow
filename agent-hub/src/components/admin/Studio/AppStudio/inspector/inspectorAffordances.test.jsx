@@ -58,10 +58,10 @@ describe('describeAction', () => {
         expect(describeAction('act_seq', DEF.actions.act_seq, DEF)).toBe('A flow of 2 steps');
     });
 
-    it('uses the routine title when the caller can resolve one', () => {
-        expect(describeAction('act_run', DEF.actions.act_run, DEF)).toBe('Run routine');
+    it('uses the automation title when the caller can resolve one', () => {
+        expect(describeAction('act_run', DEF.actions.act_run, DEF)).toBe('Run automation');
         expect(describeAction('act_run', DEF.actions.act_run, DEF, () => 'Nightly sync'))
-            .toBe('Run routine — Nightly sync');
+            .toBe('Run automation — Nightly sync');
     });
 
     // The row-action and item-action selects listed these ids raw, so the user

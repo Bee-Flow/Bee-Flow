@@ -21,7 +21,7 @@ const log = require('../../telemetry/log');
  *                  rules, static skills. No clocks, no retrieval, no
  *                  per-message text.
  *   - `volatile` → a later, uncached system block. Timestamps, retrieved
- *                  memories, routine coverage, notebook selection, side-panel
+ *                  memories, schedule coverage, notebook selection, side-panel
  *                  page content — anything that legitimately changes per turn.
  *
  * A single `Now:` line in the stable half is enough to drive the hit rate to
@@ -66,27 +66,27 @@ async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memory
         volatilePrompt += '\n\n' + memoryContext;
     }
 
-    // ─── Routine schedule addendum ───────────────────────────────
-    // An agent driven by a routine otherwise has no idea the repeat it is
+    // ─── Schedule addendum ────────────────────────────────────────
+    // An agent driven by a schedule otherwise has no idea the repeat it is
     // being asked about already exists, so it closes runs with advice to go
     // create a recurring automation — every single run, for something the user
-    // set up themselves. Stable per routine, so it belongs in the cached half.
-    if (messageMetadata?.routineSchedule) {
+    // set up themselves. Stable per schedule, so it belongs in the cached half.
+    if (messageMetadata?.scheduleText) {
         systemPrompt += `\n\n[SCHEDULE]
-${messageMetadata.routineSchedule}
+${messageMetadata.scheduleText}
 Deliver only the result. Never close with notes about how often this runs, never say you cannot repeat or reschedule yourself, and never suggest creating a recurring automation or reminder — the user already did.`;
     }
 
-    // ─── Routine coverage addendum (R3) ──────────────────────────
-    // When this turn is being driven by an agent routine, list the topics the
-    // routine has covered in the past so the model can avoid repeating them
+    // ─── Schedule coverage addendum (R3) ──────────────────────────
+    // When this turn is being driven by an agent schedule, list the topics the
+    // schedule has covered in the past so the model can avoid repeating them
     // unless there's a real update. Only fires when memory is enabled on the
     // agent — opt-in by design.
-    const routineId = messageMetadata?.routineId;
-    if (routineId && agent?.config?.memoryEnabled === true) {
+    const scheduleId = messageMetadata?.scheduleId;
+    if (scheduleId && agent?.config?.memoryEnabled === true) {
         try {
             const memoryStore = require('../../stores/memoryStore');
-            const covered = await memoryStore.getRoutineCoverage(routineId, { limit: 30 });
+            const covered = await memoryStore.getScheduleCoverage(scheduleId, { limit: 30 });
             if (covered && covered.length > 0) {
                 const items = covered.map(c => {
                     const when = c.last_confirmed_at ? new Date(c.last_confirmed_at).toISOString().slice(0, 10) : 'previously';
@@ -94,13 +94,13 @@ Deliver only the result. Never close with notes about how often this runs, never
                     return `- ${label} (last covered ${when})`;
                 }).join('\n');
                 // Carries per-run dates and grows between runs — volatile half.
-                volatilePrompt += `\n\n[ROUTINE COVERAGE — items already surfaced in past runs of this routine]
+                volatilePrompt += `\n\n[SCHEDULE COVERAGE — items already surfaced in past runs of this schedule]
 ${items}
 
 Skip these unless there is a material update since the date shown. If you do include one, lead with what changed.`;
             }
         } catch (err) {
-            log.warn(`[contextBuilder] routine coverage lookup failed: ${err.message}`);
+            log.warn(`[contextBuilder] schedule coverage lookup failed: ${err.message}`);
         }
     }
 
@@ -126,17 +126,17 @@ Skip these unless there is a material update since the date shown. If you do inc
     //   - notebookspaceContent: the panel is currently open. `undefined` =
     //     closed; `""` = "open but blank".
     // ─── House style awareness ───────────────────────────────────
-    // Org-level Word/DOCX template that gets applied at Notebook export time.
-    // We tell the model the style is active so it can match tone/structure; the
-    // model should NOT try to set fonts or colors in Markdown — styling is
-    // applied automatically when the user exports to .docx.
+    // Org-level Word/DOCX template that gets applied to every .docx Bee Flow
+    // builds (create_word_document, the Notebook's Word export). We tell the
+    // model the style is active so it can match tone/structure; the model
+    // should NOT try to set fonts or colors in Markdown.
     if (messageMetadata?.orgId) {
         try {
             const houseStyle = await houseStyleStore.getDefaultForOrg(messageMetadata.orgId);
             if (houseStyle) {
                 const tone = houseStyle.styleMeta?.toneDescription;
                 systemPrompt += `\n\n[HOUSE STYLE ACTIVE]
-Org Word/DOCX kantoorstijl "${houseStyle.name}" wordt automatisch toegepast bij export naar .docx${houseStyle.description ? ` — ${houseStyle.description}` : ''}.${tone ? ` Tone of voice: ${tone}.` : ''} Schrijf documenten in het Notebook in Markdown — opmaak (lettertype, koppen, marges, header/footer) wordt bij export geregeld; geen inline styling nodig.`;
+Org Word/DOCX kantoorstijl "${houseStyle.name}" wordt automatisch toegepast op elk .docx: create_word_document en de Word-export van het Notebook${houseStyle.description ? ` — ${houseStyle.description}` : ''}.${tone ? ` Tone of voice: ${tone}.` : ''} Schrijf de inhoud in Markdown — opmaak (lettertype, koppen, marges, header/footer) komt uit de kantoorstijl; geen inline styling nodig.`;
             }
         } catch (e) {
             log.warn('[contextBuilder] house style lookup failed:', e.message);

@@ -267,11 +267,10 @@ export function UpdateBanner({ availability, onOpen }) {
     }
 
     return (
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg text-sm"
-             data-testid="solution-update-available"
-             style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-            <ArrowUpCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
-            <span className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-start gap-x-3 gap-y-2 px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] border-l-[3px] border-l-[var(--warning)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)]"
+             data-testid="solution-update-available">
+            <ArrowUpCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--warning)]" aria-hidden="true" />
+            <span className="flex-1 min-w-[12rem]">
                 {t('solutions.update_available', 'Version {version} of the Blueprint this Solution came from is available. You have version {installed}.',
                     { version: availability.latestVersion, installed: availability.installedVersion })}
             </span>
@@ -283,8 +282,7 @@ export function UpdateBanner({ availability, onOpen }) {
                 <button
                     onClick={onOpen}
                     data-testid="solution-update-open"
-                    className="flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="flex-shrink-0 px-3 min-h-[44px] sm:min-h-8 rounded-[var(--radius-sm)] text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                 >
                     {t('solutions.update_see_plan', 'See what would change')}
                 </button>
@@ -300,12 +298,11 @@ function PlanGroup({ rows, title, note, testId }) {
     if (!rows || rows.length === 0) return null;
     return (
         <div data-testid={testId}>
-            <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-            {note && <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{note}</p>}
+            <h3 className="text-sm font-medium text-[var(--text-primary)]">{title}</h3>
+            {note && <p className="text-xs mt-0.5 text-[var(--text-tertiary)]">{note}</p>}
             <ul className="mt-1.5 space-y-1">
                 {rows.map((row, i) => (
-                    <li key={`${row.ref}-${i}`} className="px-3 py-1.5 rounded-lg text-sm"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                    <li key={`${row.ref}-${i}`} className="px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-sm text-[var(--text-secondary)] break-words">
                         {row.name}
                     </li>
                 ))}
@@ -360,20 +357,20 @@ function ReportBody({ report }) {
     const { t } = useTranslation();
     return (
         <div className="space-y-3" data-testid="upgrade-report">
-            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-sm text-[var(--text-primary)]">
                 {t('solutions.upgrade_done', 'Updated. {replaced} replaced, {added} added.',
                     { replaced: report.replaced, added: report.added })}
             </p>
             {report.failed.length > 0 && (
                 <Strip tone="var(--error)" icon={AlertTriangle} testId="upgrade-report-failed">
                     {t('solutions.upgrade_failed_some', 'Some of it did not go through:')}
-                    <span className="block text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="block text-xs mt-1 text-[var(--text-tertiary)]">
                         {report.failed.map(f => f.why).filter(Boolean).join(' · ')}
                     </span>
                 </Strip>
             )}
             {report.warnings.map((w, i) => (
-                <p key={i} className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{w}</p>
+                <p key={i} className="text-xs text-[var(--text-tertiary)]">{w}</p>
             ))}
         </div>
     );
@@ -385,7 +382,7 @@ function DialogBody({ plan, ready, empty, result }) {
     return (
         <div className="space-y-4">
             {plan.status === 'loading' && (
-                <div className="flex items-center justify-center py-10" style={{ color: 'var(--text-tertiary)' }}>
+                <div className="flex items-center justify-center py-10 text-[var(--text-tertiary)]">
                     <Loader2 className="w-5 h-5 animate-spin" />
                 </div>
             )}
@@ -424,8 +421,7 @@ function DialogFooter({ done, canConfirm, applying, onClose, onConfirm }) {
     const { t } = useTranslation();
     return (
         <div className="flex justify-end gap-2">
-            <button onClick={onClose} className="px-3 h-8 rounded-lg text-[13px] border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+            <button onClick={onClose} className="px-3 min-h-[44px] sm:min-h-8 rounded-[var(--radius-sm)] text-[13px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]">
                 {done ? t('solutions.upgrade_close', 'Close') : t('solutions.upgrade_cancel', 'Cancel')}
             </button>
             {canConfirm && (

@@ -8,7 +8,7 @@
  * ↔ one unlabelled port), and an edge whose label no longer names a real port
  * is dead — `switch.case_edge_unknown` is a BLOCKING validation error, so a
  * shape change that didn't heal its edges would lock every later save of the
- * whole routine (the same failure mode as the case-rename bug, C1).
+ * whole automation (the same failure mode as the case-rename bug, C1).
  *
  * The fix is to re-point edges by SLOT (rule index, or the catch-all) rather
  * than by label: slots survive the shape change even though labels don't.

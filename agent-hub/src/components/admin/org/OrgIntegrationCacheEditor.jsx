@@ -1,7 +1,7 @@
 /**
  * Organisation setting — may integration answers be kept BETWEEN runs?
  *
- * The separation this screen has to make legible: a routine can already reuse
+ * The separation this screen has to make legible: an automation can already reuse
  * an answer WITHIN one run (the step's own "ask this app only once" tick), and
  * that stores nothing anywhere. This setting is about the other thing —
  * keeping the answer in the database so a LATER run can use it — and that is a
@@ -41,7 +41,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
     // WHICH outbound answers the consent covers. One decision, one config row,
     // two ticks — because an admin who said yes to "what a connected app
     // answers" did not thereby say yes to arbitrary outbound web-service calls
-    // a routine author writes by hand.
+    // an automation author writes by hand.
     const [scopeIntegration, setScopeIntegration] = useState(true);
     const [scopeHttp, setScopeHttp] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -165,7 +165,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
             label: t('admin.integration_cache.off', 'Ask every run (recommended)'),
             description: t(
                 'admin.integration_cache.off_desc',
-                'Nothing an app answers is stored. A routine can still avoid asking the same thing twice inside one run — that reuse never leaves the run.',
+                'Nothing an app answers is stored. An automation can still avoid asking the same thing twice inside one run — that reuse never leaves the run.',
             ),
             Icon: DatabaseZap,
         },
@@ -190,7 +190,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
                 <p className="mt-1 text-sm opacity-75">
                     {t(
                         'admin.integration_cache.intro',
-                        'Routines often ask the same question over and over — of a connected app, or of a web service they call directly. This decides whether the answer may be stored so a later run can use it, which means storing what the other side sent back.',
+                        'Automations often ask the same question over and over — of a connected app, or of a web service they call directly. This decides whether the answer may be stored so a later run can use it, which means storing what the other side sent back.',
                     )}
                 </p>
             </header>
@@ -222,7 +222,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
                     <p className="text-xs opacity-70">
                         {t(
                             'admin.integration_cache.scopes_note',
-                            'These are two different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address a routine author types in, so it is off until you say otherwise.',
+                            'These are two different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address an automation author types in, so it is off until you say otherwise.',
                         )}
                     </p>
                     <label className="flex items-start gap-2 text-sm">
@@ -236,7 +236,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
                         <span>
                             {t('admin.integration_cache.scope_integration', 'Answers from connected apps')}
                             <span className="block text-xs opacity-70">
-                                {t('admin.integration_cache.scope_integration_desc', 'Look-ups a routine makes through an app action — a calendar, a mailbox, a ticket system.')}
+                                {t('admin.integration_cache.scope_integration_desc', 'Look-ups an automation makes through an app action — a calendar, a mailbox, a ticket system.')}
                             </span>
                         </span>
                     </label>
@@ -251,7 +251,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
                         <span>
                             {t('admin.integration_cache.scope_http', 'Answers from web service calls')}
                             <span className="block text-xs opacity-70">
-                                {t('admin.integration_cache.scope_http_desc', 'Replies to a "Call a web service" step, which can point at any address the routine author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.')}
+                                {t('admin.integration_cache.scope_http_desc', 'Replies to a "Call a web service" step, which can point at any address the automation author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.')}
                             </span>
                         </span>
                     </label>

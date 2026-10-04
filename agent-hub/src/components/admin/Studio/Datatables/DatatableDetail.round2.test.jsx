@@ -36,7 +36,7 @@ const FIELDS = [
     { id: 'f4', key: 'status', name: 'Status', type: 'select', options: ['Nieuw', 'Goedgekeurd', 'Afgewezen'] },
 ];
 const TABLE = {
-    id: 'tbl_1', name: 'PB vaag', key: 'pb_vaag', description: 'Facturen die de Playbook-routine uit PDF-facturen haalt',
+    id: 'tbl_1', name: 'PB vaag', key: 'pb_vaag', description: 'Facturen die de Playbook-automation uit PDF-facturen haalt',
     rowCount: 2, isPublished: false, sharedGroups: [], writeMode: 'grants', scopeKind: 'org', grade: 'owner', ownerUserId: 'u1',
     retentionDays: null, retentionField: null, updatedAt: new Date(Date.now() - 38 * 60 * 1000).toISOString(),
 };
@@ -68,7 +68,7 @@ describe('the shell (2a/2c)', () => {
         const tabs = within(header).getAllByRole('radio').map(r => r.textContent);
         expect(tabs.join('|')).toMatch(/Columns.*Rows.*Data & retention.*Sharing.*Used by/);
         const lede = await screen.findByTestId('table-lede');
-        expect(lede.textContent).toContain('Facturen die de Playbook-routine');
+        expect(lede.textContent).toContain('Facturen die de Playbook-automation');
         await waitFor(() => expect(screen.getByTestId('table-meta').textContent).toBe('4 columns · 2 rows'));
         expect(lede.parentElement.style.maxWidth).toBe('960px');
         // no red line under the tab

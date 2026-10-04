@@ -42,7 +42,7 @@ export function chipWords(kind: string, t: TranslateFn): string {
         case 'pii_clean':
             return t('mobile.flow.lane.clean', 'clean');
         case 'on_error':
-            return t('routines.canvas.loop_port_on_error', 'On error');
+            return t('automations.canvas.loop_port_on_error', 'On error');
         case 'unrouted':
             return t('mobile.flow.canvas.never_runs', 'never runs');
         default:

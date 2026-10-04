@@ -3,12 +3,12 @@
  * Render a stored Studio Document, filled with a run's values, to a PDF.
  *
  * THE ONE PLACE three surfaces meet. The Documents editor downloads a PDF
- * (routes/studioDocuments.js), a routine step renders one per run
+ * (routes/studioDocuments.js), an automation step renders one per run
  * (core/automationRunner/execFillDocument.js) and an app action renders one
  * per click (appStudio/actionExecutor/documentStep.js). Each of those keeps
  * the bytes somewhere different — a response, the run's file ledger, the app's
  * attachment store — but what makes the bytes must be identical, or the
- * invoice a customer receives from a routine is not the invoice the person
+ * invoice a customer receives from an automation is not the invoice the person
  * proof-read in the editor.
  *
  * The pipeline, in order, and each step is somebody else's module:
@@ -80,7 +80,7 @@ async function renderFilledDocument({ document: doc, values = {}, orgId = null, 
     }
     // A presentation renders through the deck engine: a .pptx unless the
     // caller asks for the PDF. Same fill, same marking, same result shape
-    // (plus `slideCount`), so a routine's fill_document step does not care
+    // (plus `slideCount`), so an automation's fill_document step does not care
     // which kind of document it was handed.
     if (doc.docType === 'presentation') {
         const { renderDeckDocument } = require('./deckDocument');

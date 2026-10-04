@@ -89,7 +89,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
     // connect / reconnect prompts instead of a dead settings section.
     let credential = null;
     try {
-        const credStore = require('../stores/routineCredentialStore');
+        const credStore = require('../stores/automationCredentialStore');
         credential = await credStore.getCredential(req.session.user.id, 'google');
     } catch (_) { /* treat as no stored credential */ }
     const connection = gmeetNotes.deriveConnectionStatus({ session: req.session, credential });

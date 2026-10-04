@@ -49,22 +49,49 @@ stub('../../auth/projectAccess', {
     },
 });
 
-const fx = { rows: [], throws: false, calls: [] };
+const fx = { rows: [], throws: false, calls: [], release: null, gallery: new Map() };
 
-const project = { kind: 'solution' };
-stub('../../stores/projectStore', { getProject: async () => ({ id: 'p1', organizationId: 'org_a', kind: project.kind }) });
+const project = { kind: 'solution', stage: null, installedFromBlueprintId: null, installedVersion: null };
+stub('../../stores/projectStore', {
+    getProject: async () => ({
+        id: 'p1', organizationId: 'org_a', kind: project.kind, stage: project.stage,
+        installedFromBlueprintId: project.installedFromBlueprintId, installedVersion: project.installedVersion,
+    }),
+});
 stub('../../stores/blueprintStore', {
     listReleases: async (projectId, opts) => {
         fx.calls.push({ name: 'listReleases', projectId, opts });
         if (fx.throws) throw new Error('de geschiedenis is niet te lezen');
         return fx.rows;
     },
+    getRelease: async (projectId, releaseId) => {
+        fx.calls.push({ name: 'getRelease', projectId, releaseId });
+        return fx.release && fx.release.id === releaseId ? fx.release : null;
+    },
+    getBlueprintById: async (id, opts) => {
+        fx.calls.push({ name: 'getBlueprintById', id, opts });
+        return fx.gallery.get(id) || null;
+    },
+    canRead: () => true,
     listBlueprintsFor: async () => [],
     countInstallsFor: async () => ({ here: 0, elsewhere: 0 }),
 });
 stub('../../projects/packaging/capture', { captureSolution: async () => ({ ok: false, errors: ['n.v.t.'] }) });
+stub('../../stores/userStore', {
+    getOrganization: async (id) => (id ? { id, name: 'Acme' } : null),
+});
+
+// The upgrade engine: the REAL `isNewer` (the route's not_newer rule is that
+// function), and recording doubles for planning and applying.
+const realUpgrade = require('../../projects/packaging/upgrade');
+stub('../../projects/packaging/upgrade', {
+    ...realUpgrade,
+    planUpgrade: async (args) => { fx.calls.push({ name: 'planUpgrade', args }); return { ok: true, plan: { replace: [], skip: [], add: [] }, toVersion: 2 }; },
+    applyUpgrade: async (args) => { fx.calls.push({ name: 'applyUpgrade', args }); return { ok: true, toVersion: 2, report: { warnings: [] } }; },
+});
 
 const router = require('./packaging');
+const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
 
 let server;
 let base;
@@ -75,6 +102,7 @@ test.before(async () => {
     app.use(express.json());
     app.use((req, res, next) => { req.session = session ? { user: session } : {}; next(); });
     app.use('/api/projects', router);
+    app.use(terminalErrorHandler);
     await new Promise(resolve => { server = app.listen(0, resolve); });
     base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -99,6 +127,11 @@ async function releases(projectId, user) {
 function reset() {
     gate.role = 'owner';
     project.kind = 'solution';
+    project.stage = null;
+    project.installedFromBlueprintId = null;
+    project.installedVersion = null;
+    fx.release = null;
+    fx.gallery = new Map();
     fx.throws = false;
     fx.rows = [{
         id: 'rel_1',
@@ -210,4 +243,233 @@ test('a legacy (unclassified) project still has its history', async () => {
     const res = await releases('p1');
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.json.releases.length, 1);
+});
+
+// ── A Solution stage has no history of its own here ────────────────────────
+
+test('a Solution stage (UAT/Production) answers 404, and the store is not read', async () => {
+    reset();
+    project.stage = 'uat';
+    const res = await releases('p1');
+    assert.strictEqual(res.status, 404);
+    assert.deepStrictEqual(fx.calls, []);
+});
+
+// ── GET /:id/package/releases/:releaseId ───────────────────────────────────
+
+function get(path) {
+    session = { id: 'alice', organizationId: 'org_a' };
+    fx.calls.length = 0;
+    return new Promise((resolve, reject) => {
+        http.get(`${base}${path}`, (r) => {
+            let body = '';
+            r.on('data', c => { body += c; });
+            r.on('end', () => {
+                let json = null;
+                try { json = JSON.parse(body); } catch { /* not JSON */ }
+                resolve({ status: r.statusCode, headers: r.headers, body, json });
+            });
+        }).on('error', reject);
+    });
+}
+
+const galleryRelease = (over = {}) => ({
+    id: 'rel_7', projectId: 'p1', blueprintId: 'bp_secret', version: 4, channel: 'gallery',
+    notes: { entities: [] }, publishedAt: '2026-09-05T09:00:00Z', publishedBy: 'u_alice',
+    manifest: { format: 'beeflow.blueprint', solution: { key: 'sol_p1', version: 4, name: 'Onboarding Desk' } },
+    ...over,
+});
+
+test('one release comes back with its manifest, through an allow-list, scoped on the URL project', async () => {
+    reset();
+    fx.release = galleryRelease();
+    const res = await get('/api/projects/p1/package/releases/rel_7');
+    assert.strictEqual(res.status, 200, res.body);
+    assert.deepStrictEqual(Object.keys(res.json.release).sort(), ['id', 'manifest', 'notes', 'publishedAt', 'version']);
+    assert.strictEqual(res.json.release.manifest.solution.key, 'sol_p1');
+    assert.ok(!res.body.includes('u_alice') && !res.body.includes('bp_secret'));
+    assert.deepStrictEqual(fx.calls.find(c => c.name === 'getRelease'), { name: 'getRelease', projectId: 'p1', releaseId: 'rel_7' });
+});
+
+test('?download=1 hands the manifest over as a Blueprint file', async () => {
+    reset();
+    fx.release = galleryRelease();
+    const res = await get('/api/projects/p1/package/releases/rel_7?download=1');
+    assert.strictEqual(res.status, 200);
+    assert.match(res.headers['content-disposition'], /attachment; filename="onboarding-desk-v4\.blueprint\.json"/);
+    // The stored manifest, plus the provenance block the export route stamps:
+    // without `source.blueprintId` an install from this file is tied to no
+    // gallery row, and its later upgrades skip the different_solution check.
+    assert.deepStrictEqual(res.json, {
+        ...fx.release.manifest,
+        source: { blueprintId: 'bp_secret', orgId: 'org_a', orgName: 'Acme', version: 4 },
+    });
+});
+
+test('a pipeline release answers 404, also as a download: it never leaves the instance', async () => {
+    reset();
+    fx.release = galleryRelease({ channel: 'pipeline', blueprintId: null });
+    for (const q of ['', '?download=1']) {
+        const res = await get(`/api/projects/p1/package/releases/rel_7${q}`);
+        assert.strictEqual(res.status, 404, q);
+        assert.ok(!res.body.includes('sol_p1'), 'no manifest of a pipeline release leaves the server');
+    }
+});
+
+test('an unknown release answers 404; a non-owner never reaches the store', async () => {
+    reset();
+    assert.strictEqual((await get('/api/projects/p1/package/releases/rel_nope')).status, 404);
+    reset();
+    gate.role = 'editor';
+    fx.release = galleryRelease();
+    const res = await get('/api/projects/p1/package/releases/rel_7');
+    assert.strictEqual(res.status, 403);
+    assert.ok(!fx.calls.some(c => c.name === 'getRelease'));
+});
+
+test('a misspelled query key is refused', async () => {
+    reset();
+    fx.release = galleryRelease();
+    assert.strictEqual((await get('/api/projects/p1/package/releases/rel_7?dowload=1')).status, 400);
+});
+
+// ── Upgrade: same Solution, newer version ──────────────────────────────────
+
+function post(path, body) {
+    session = { id: 'alice', organizationId: 'org_a' };
+    fx.calls.length = 0;
+    const payload = JSON.stringify(body || {});
+    return new Promise((resolve, reject) => {
+        const req = http.request(`${base}${path}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+        }, (r) => {
+            let text = '';
+            r.on('data', c => { text += c; });
+            r.on('end', () => {
+                let json = null;
+                try { json = JSON.parse(text); } catch { /* not JSON */ }
+                resolve({ status: r.statusCode, json });
+            });
+        });
+        req.on('error', reject);
+        req.end(payload);
+    });
+}
+
+// A real gallery manifest, so it passes the same sanitizeManifest the
+// upgrade engine runs before any source or version check.
+const { buildManifest } = require('../../projects/packaging/manifest');
+const manifestFor = (key, version, extra = {}) => buildManifest({ project: { id: 'p1', name: 'Desk' }, key, version, ...extra });
+const engineCalls = () => fx.calls.filter(c => c.name === 'planUpgrade' || c.name === 'applyUpgrade');
+
+for (const route of ['/api/projects/p1/package/upgrade/plan', '/api/projects/p1/package/upgrade']) {
+    test(`${route}: a Blueprint of another Solution is refused 409 different_solution`, async () => {
+        reset();
+        project.installedFromBlueprintId = 'bp_src';
+        project.installedVersion = 1;
+        fx.gallery.set('bp_src', { id: 'bp_src', solutionKey: 'sol_original' });
+        const res = await post(route, { manifest: manifestFor('sol_other', 2) });
+        assert.strictEqual(res.status, 409);
+        assert.strictEqual(res.json.code, 'different_solution');
+        assert.deepStrictEqual(engineCalls(), []);
+        // The source row is read for its key only, never its manifest.
+        assert.deepStrictEqual(fx.calls.find(c => c.name === 'getBlueprintById').opts, { includeManifest: false });
+    });
+
+    test(`${route}: the same or an older version is refused 409 not_newer`, async () => {
+        reset();
+        project.installedFromBlueprintId = 'bp_src';
+        project.installedVersion = 3;
+        fx.gallery.set('bp_src', { id: 'bp_src', solutionKey: 'sol_original' });
+        for (const version of [3, 2]) {
+            const res = await post(route, { manifest: manifestFor('sol_original', version) });
+            assert.strictEqual(res.status, 409, `version ${version}`);
+            assert.strictEqual(res.json.code, 'not_newer');
+            assert.deepStrictEqual(res.json.details, { installedVersion: 3, blueprintVersion: version });
+        }
+        assert.deepStrictEqual(engineCalls(), []);
+    });
+
+    test(`${route}: a newer version of the same Solution goes through, without a warning`, async () => {
+        reset();
+        project.installedFromBlueprintId = 'bp_src';
+        project.installedVersion = 1;
+        fx.gallery.set('bp_src', { id: 'bp_src', solutionKey: 'sol_original' });
+        const res = await post(route, { manifest: manifestFor('sol_original', 2) });
+        assert.strictEqual(res.status, 200, JSON.stringify(res.json));
+        assert.strictEqual(engineCalls().length, 1);
+        assert.ok(!res.json.warnings, 'a verified source carries no warning');
+    });
+
+    test(`${route}: with the source Blueprint gone it proceeds, warning source_unverified`, async () => {
+        reset();
+        project.installedFromBlueprintId = 'bp_deleted';
+        project.installedVersion = 1;
+        const res = await post(route, { manifest: manifestFor('sol_anything', 2) });
+        assert.strictEqual(res.status, 200, JSON.stringify(res.json));
+        assert.deepStrictEqual(res.json.warnings, ['source_unverified']);
+        assert.strictEqual(engineCalls().length, 1);
+    });
+
+    test(`${route}: a pipeline release is refused as a source (400 pipeline_release)`, async () => {
+        reset();
+        const res = await post(route, { manifest: { ...manifestFor('sol_p1', 9), channel: 'pipeline' } });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.json.code, 'pipeline_release');
+        assert.deepStrictEqual(engineCalls(), []);
+    });
+
+    test(`${route}: a manifest a pipeline capture built (solution.slots) is refused 400 pipeline_release`, async () => {
+        reset();
+        const res = await post(route, { manifest: manifestFor('sol_p1', 9, { slots: [] }) });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.json.code, 'pipeline_release');
+        assert.deepStrictEqual(engineCalls(), []);
+    });
+
+    test(`${route}: a file that is no Blueprint is a 400 that says so, not a 409`, async () => {
+        reset();
+        project.installedFromBlueprintId = 'bp_src';
+        project.installedVersion = 1;
+        fx.gallery.set('bp_src', { id: 'bp_src', solutionKey: 'sol_original' });
+        const noSolution = { ...manifestFor('sol_original', 2) };
+        delete noSolution.solution;
+        for (const manifest of [noSolution, { ...manifestFor('sol_original', 2), format: 'something.else' }]) {
+            const res = await post(route, { manifest });
+            assert.strictEqual(res.status, 400, JSON.stringify(res.json));
+            assert.strictEqual(res.json.code, 'invalid_blueprint');
+        }
+        // Without a source row the version check would have said not_newer.
+        reset();
+        project.installedFromBlueprintId = null;
+        const res = await post(route, { manifest: noSolution });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.json.code, 'invalid_blueprint');
+        assert.deepStrictEqual(engineCalls(), []);
+    });
+
+    test(`${route}: a Solution stage answers 404`, async () => {
+        reset();
+        project.stage = 'prd';
+        const res = await post(route, { manifest: manifestFor('sol_p1', 2) });
+        assert.strictEqual(res.status, 404);
+        assert.deepStrictEqual(engineCalls(), []);
+    });
+}
+
+test('install refuses a pipeline release as its source (400 pipeline_release)', async () => {
+    reset();
+    const res = await post('/api/projects/package/install', { manifest: { ...manifestFor('sol_p1', 9), channel: 'pipeline' } });
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.json.code, 'pipeline_release');
+});
+
+test('install refuses a manifest a pipeline capture built (solution.slots / variables)', async () => {
+    for (const extra of [{ slots: [] }, { variables: [] }]) {
+        reset();
+        const res = await post('/api/projects/package/install', { manifest: manifestFor('sol_p1', 9, extra) });
+        assert.strictEqual(res.status, 400, JSON.stringify(extra));
+        assert.strictEqual(res.json.code, 'pipeline_release');
+    }
 });

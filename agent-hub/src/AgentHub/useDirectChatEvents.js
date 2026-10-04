@@ -56,11 +56,11 @@ const useDirectChatEvents = ({
             const { title, content, agentId, conversationId, surface } = detail || {};
             if (!content) return;
             // What the seeded first message calls the thing — a cowork result
-            // announcing itself as "my routine" is the wrong feature's name.
-            const noun = surface === 'cowork' ? 'cowork' : 'routine';
+            // announcing itself as "my automation" is the wrong feature's name.
+            const noun = surface === 'cowork' ? 'cowork' : 'automation';
 
-            // R2: routine result came from an agent — open the agent's chat
-            // (continuing the same conversation the routine ran in when
+            // R2: automation result came from an agent — open the agent's chat
+            // (continuing the same conversation the automation ran in when
             // possible) instead of generic direct chat.
             if (agentId) {
                 try {
@@ -72,8 +72,8 @@ const useDirectChatEvents = ({
                         scopedStorage.setItem('lastUsedMode', 'agent');
                         if (isMobile) setSidebarOpen(false);
 
-                        // Try to attach the routine's persisted conversation so
-                        // the user picks up the same thread the routine wrote
+                        // Try to attach the automation's persisted conversation so
+                        // the user picks up the same thread the automation wrote
                         // to. Falls back to a fresh thread seeded with the
                         // result if the conversation can't be loaded.
                         if (conversationId) {
@@ -92,11 +92,11 @@ const useDirectChatEvents = ({
                         return;
                     }
                 } catch (err) {
-                    console.warn('Failed to open agent for routine result, falling back to direct chat:', err);
+                    console.warn('Failed to open agent for automation result, falling back to direct chat:', err);
                 }
             }
 
-            // Default path: direct chat (no agent on the routine, or lookup failed).
+            // Default path: direct chat (no agent on the automation, or lookup failed).
             setDirectChatMode(true);
             setSelectedAgent(null);
             setCurrentConversation(null);

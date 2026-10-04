@@ -8,7 +8,7 @@
  * A person is `{ userId, kind: 'user' }`. The AI is `{ kind: 'ai' }`, with the
  * agent that wrote when there is one, and with `userId` set to the person it
  * acted for when that is known ("Anna, with AI"); an AI edit nobody asked for
- * in particular (a routine, an auto-joining assistant) has `userId: null`.
+ * in particular (an automation, an auto-joining assistant) has `userId: null`.
  *
  * Only ids. A name is resolved when the list is SHOWN, with the reader's
  * access; a name copied in here would outlive a rename and an erasure.

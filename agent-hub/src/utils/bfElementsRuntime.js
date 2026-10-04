@@ -522,7 +522,7 @@ function emitStat() {
   }`;
 }
 
-/** Het starten van een routine, en het bevestigen zonder modaal venster. */
+/** Het starten van een automatisering, en het bevestigen zonder modaal venster. */
 function emitRunner() {
     return `
   function runAutomation(host, def, attrs, inputs, done) {

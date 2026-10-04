@@ -55,9 +55,9 @@ describe('the description Bee suggests is in the language on screen', () => {
 
     it('a Dutch screen gets a Dutch proposal', async () => {
         catalogue = {
-            'routines.settings.suggest_link': 'Laat Bee een beschrijving voorstellen op basis van de stappen',
-            'routines.settings.suggest_title': 'Voorstel van Bee',
-            'routines.settings.suggest_accept': 'Overnemen',
+            'automations.settings.suggest_link': 'Laat Bee een beschrijving voorstellen op basis van de stappen',
+            'automations.settings.suggest_title': 'Voorstel van Bee',
+            'automations.settings.suggest_accept': 'Overnemen',
         };
         await ask();
         await screen.findByText('A proposal.');

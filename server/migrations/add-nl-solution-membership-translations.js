@@ -25,7 +25,7 @@ const NL_TRANSLATIONS = {
     'projects.recent_activity': 'Recente activiteit',
     // 'Routine' is wat de goedkeuringenkaarten een automation noemen
     // (zie add-nl-approvals-translations.js) — hier hetzelfde woord.
-    'projects.untitled_automation': 'Naamloze routine',
+    'projects.untitled_automation': 'Naamloze automatisering',
     // ── Flow ───────────────────────────────────────────────────
     'projects.flow_health': 'Status',
     'projects.flow_wiring': 'Hoe het samenhangt',
@@ -36,7 +36,7 @@ const NL_TRANSLATIONS = {
     'projects.flow_used_by': 'gebruikt door',
     // ── Blueprint ──────────────────────────────────────────────
     // 'Blueprint' en 'Solution' blijven Engels — productnamen, net als Apps.
-    'projects.blueprint_intro': 'Een Blueprint is deze Solution op schrift — de routines, apps en webpages, én de verbindingen ertussen — zodat je hem ergens anders kunt installeren. Beslissingen, inloggegevens en personen gaan nooit mee.',
+    'projects.blueprint_intro': 'Een Blueprint is deze Solution op schrift — de automatiseringen, apps en webpages, én de verbindingen ertussen — zodat je hem ergens anders kunt installeren. Beslissingen, inloggegevens en personen gaan nooit mee.',
     'projects.blueprint_export': 'Deze Solution inpakken',
     'projects.blueprint_download': 'Downloaden',
     'projects.blueprint_owner_only': 'Alleen de eigenaar van het project kan het inpakken.',
@@ -53,9 +53,9 @@ const NL_TRANSLATIONS = {
     // ── Studio → Solutions ─────────────────────────────────────
     // 'Solutions' en 'Blueprint' blijven Engels — productnamen, net als Apps.
     'studio.tab.solutions': 'Solutions',
-    'studio.tab.solutions_desc': 'Bundel routines, apps en webpages tot één installeerbare Solution',
+    'studio.tab.solutions_desc': 'Bundel automatiseringen, apps en webpages tot één installeerbare Solution',
     'solutions.title': 'Solutions',
-    'solutions.intro': 'Een Solution bundelt routines, apps en webpages die samenwerken — en pakt in als een Blueprint die je ergens anders installeert.',
+    'solutions.intro': 'Een Solution bundelt automatiseringen, apps en webpages die samenwerken — en pakt in als een Blueprint die je ergens anders installeert.',
     'solutions.new': 'Nieuwe Solution',
     'solutions.name_placeholder': 'Geef de Solution een naam…',
     'solutions.create_failed': 'Aanmaken is niet gelukt.',

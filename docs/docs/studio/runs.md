@@ -4,7 +4,7 @@ title: Runs & log
 
 # Runs & log
 
-Every time a routine fired: what started it, what it did, and what went wrong. Opening
+Every time an automation fired: what started it, what it did, and what went wrong. Opening
 a run shows it step by step.
 
 URL: `/app/studio/runs`. A single run is deep-linked with **`?run=<id>`** on that same
@@ -16,7 +16,7 @@ Automations, Datatables and Forms — and `automations` is part of the free Comm
 core.
 
 This is the only Studio section that is **about the past**. It has no *New* action (you
-cannot make a run; you make a routine and it runs) and no colour of its own in the
+cannot make a run; you make an automation and it runs) and no colour of its own in the
 rail, because a run is not one of the things you build. It does carry a count: your own
 runs in the last 24 hours.
 
@@ -34,7 +34,7 @@ chip. It distinguishes three answers that are easy to conflate:
 
 - **Nothing has run in the last 24 hours** — read successfully, nothing there.
 - **Could not read what is running** — explicitly *not* "nothing is running".
-- **This server did not report per-routine activity** — the strip has nothing to show;
+- **This server did not report per-automation activity** — the strip has nothing to show;
   the runs below are unaffected.
 
 ## My runs / Organisation
@@ -81,7 +81,7 @@ both, and in the URL.
 While a run is live its steps stream in and the canvas tints in real time without
 resetting your zoom or scroll.
 
-From the bar: **Retry** on a failed run (it uses the routine as it is *now*),
+From the bar: **Retry** on a failed run (it uses the automation as it is *now*),
 **Stop it** on a running one, and **Approve** / **Reject** on a run waiting for a
 decision. Retry and approve **open the run they start** rather than dropping you back
 on the list to hunt for it. There is also a copy-link action that yields the `?run=`
@@ -89,6 +89,6 @@ address of the run you are looking at.
 
 ## Where to next
 
-- [Features → Automations](../features/automations.md) — the routines that produce
+- [Features → Automations](../features/automations.md) — the automations that produce
   these runs.
 - [Studio → Approvals](approvals.md) — the decisions a paused run is waiting on.

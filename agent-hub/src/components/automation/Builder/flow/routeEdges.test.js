@@ -46,7 +46,7 @@ describe('reconcileRouteEdges', () => {
 
     it('drops the edges of rules that no longer exist instead of leaving them dangling', () => {
         // A dangling `case:<name>` is a BLOCKING validation error, so it would
-        // lock every later save of the whole routine.
+        // lock every later save of the whole automation.
         const prev = { id: 'r1', type: 'switch', cases: [{ name: 'a', expr: '1' }, { name: 'b', expr: '2' }, { name: 'c', expr: '3' }] };
         const def = defWith(prev, [
             { from: 'r1', to: 'yes', label: 'case:a', caseName: 'a' },

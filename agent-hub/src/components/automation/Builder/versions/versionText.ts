@@ -7,37 +7,37 @@ import type { DescriptionEntry, VersionRow } from '../../../../api/queries/autom
 
 type Phrase = (t: TranslateFn, p: Record<string, unknown>) => string;
 
-/** Codes whose change leaves the routine's behaviour untouched. */
+/** Codes whose change leaves the automation's behaviour untouched. */
 const NEUTRAL_CODES = new Set(['steps_reordered', 'layout_changed']);
 
 const PHRASES: Record<string, Phrase> = {
-    created: (t) => t('routines.versions.desc.created', 'Created'),
-    created_from_template: (t, p) => t('routines.versions.desc.createdFromTemplate', 'Created from template "{template}"', p),
-    duplicated_from: (t, p) => t('routines.versions.desc.duplicatedFrom', 'Copied from "{title}"', p),
-    step_added: (t, p) => t('routines.versions.desc.stepAdded', 'Step added: "{step}"', p),
-    step_removed: (t, p) => t('routines.versions.desc.stepRemoved', 'Step removed: "{step}"', p),
-    step_changed: (t, p) => t('routines.versions.desc.stepChanged', 'Changed "{step}"', p),
-    setting_changed: (t, p) => t('routines.versions.desc.settingChanged', '{setting} changed in "{step}"', { ...p, setting: settingName(t, p.settingKey, p.setting) }),
-    step_renamed: (t, p) => t('routines.versions.desc.stepRenamed', 'Step renamed to "{step}"', p),
-    steps_reordered: (t) => t('routines.versions.desc.stepsReordered', 'Steps reordered'),
-    connections_changed: (t) => t('routines.versions.desc.connectionsChanged', 'Connections changed'),
-    trigger_changed: (t) => t('routines.versions.desc.triggerChanged', 'Start changed'),
+    created: (t) => t('automations.versions.desc.created', 'Created'),
+    created_from_template: (t, p) => t('automations.versions.desc.createdFromTemplate', 'Created from template "{template}"', p),
+    duplicated_from: (t, p) => t('automations.versions.desc.duplicatedFrom', 'Copied from "{title}"', p),
+    step_added: (t, p) => t('automations.versions.desc.stepAdded', 'Step added: "{step}"', p),
+    step_removed: (t, p) => t('automations.versions.desc.stepRemoved', 'Step removed: "{step}"', p),
+    step_changed: (t, p) => t('automations.versions.desc.stepChanged', 'Changed "{step}"', p),
+    setting_changed: (t, p) => t('automations.versions.desc.settingChanged', '{setting} changed in "{step}"', { ...p, setting: settingName(t, p.settingKey, p.setting) }),
+    step_renamed: (t, p) => t('automations.versions.desc.stepRenamed', 'Step renamed to "{step}"', p),
+    steps_reordered: (t) => t('automations.versions.desc.stepsReordered', 'Steps reordered'),
+    connections_changed: (t) => t('automations.versions.desc.connectionsChanged', 'Connections changed'),
+    trigger_changed: (t) => t('automations.versions.desc.triggerChanged', 'Start changed'),
     settings_changed: (t, p) => (p.setting
-        ? t('routines.versions.desc.routineSettingChanged', '{setting} changed', { setting: settingName(t, p.settingKey, p.setting) })
-        : t('routines.versions.desc.settingsChanged', 'Settings changed')),
-    description_changed: (t) => t('routines.versions.desc.descriptionChanged', 'Description changed'),
-    restored: (t, p) => t('routines.versions.desc.restored', 'Restored from v{version}', p),
+        ? t('automations.versions.desc.automationSettingChanged', '{setting} changed', { setting: settingName(t, p.settingKey, p.setting) })
+        : t('automations.versions.desc.settingsChanged', 'Settings changed')),
+    description_changed: (t) => t('automations.versions.desc.descriptionChanged', 'Description changed'),
+    restored: (t, p) => t('automations.versions.desc.restored', 'Restored from v{version}', p),
 };
 
 /**
  * A setting's name: the server sends a code and its English label; the code
- * picks the translation (routines.versions.setting.<code>), the label is the
+ * picks the translation (automations.versions.setting.<code>), the label is the
  * fallback.
  */
 export function settingName(t: TranslateFn, code: unknown, label: unknown): string {
     const english = typeof label === 'string' && label ? label : (typeof code === 'string' ? code : '');
     if (typeof code !== 'string' || !/^[A-Za-z][A-Za-z0-9_]*$/.test(code)) return english;
-    return t(`routines.versions.setting.${code}`, english);
+    return t(`automations.versions.setting.${code}`, english);
 }
 
 function phraseFor(entry: DescriptionEntry, t: TranslateFn): string | null {
@@ -50,9 +50,9 @@ export function describeVersion(v: VersionRow, t: TranslateFn): string {
     const phrases = v.descriptionJson.map((e) => phraseFor(e, t)).filter((s): s is string => !!s);
     if (phrases.length === 1) return phrases[0];
     if (phrases.length > 1) {
-        return t('routines.versions.desc.andMore', '{first} and {count} more', { first: phrases[0], count: phrases.length - 1 });
+        return t('automations.versions.desc.andMore', '{first} and {count} more', { first: phrases[0], count: phrases.length - 1 });
     }
-    return v.description ?? v.changeSummary ?? t('routines.versions.desc.fallback', 'Saved changes');
+    return v.description ?? v.changeSummary ?? t('automations.versions.desc.fallback', 'Saved changes');
 }
 
 /** The row title: the milestone name when there is one, else the description. */
@@ -76,7 +76,7 @@ export function shortWhen(iso: string | null, t: TranslateFn, now: Date = new Da
     if (Number.isNaN(d.getTime())) return null;
     if (sameDay(d, now)) {
         const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-        return t('routines.versions.todayAt', 'Today {time}', { time });
+        return t('automations.versions.todayAt', 'Today {time}', { time });
     }
     return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
@@ -89,10 +89,10 @@ export function versionMeta(v: VersionRow, t: TranslateFn, now: Date = new Date(
     if (v.savedByName) parts.push(v.savedByName);
     if (v.runs && v.runs.total > 0) {
         parts.push(v.runs.failed > 0
-            ? t('routines.versions.runsFailed', '{count} runs, {failed} failed', { count: v.runs.total, failed: v.runs.failed })
-            : t('routines.versions.runs', '{count} runs', { count: v.runs.total }));
+            ? t('automations.versions.runsFailed', '{count} runs, {failed} failed', { count: v.runs.total, failed: v.runs.failed })
+            : t('automations.versions.runs', '{count} runs', { count: v.runs.total }));
     } else if (worksTheSame(v)) {
-        parts.push(t('routines.versions.worksTheSame', 'works the same'));
+        parts.push(t('automations.versions.worksTheSame', 'works the same'));
     }
     return parts.join(' · ');
 }
@@ -103,7 +103,7 @@ export interface VersionGroup {
 }
 
 /**
- * Not live yet (newer than the live version, or everything when the routine
+ * Not live yet (newer than the live version, or everything when the automation
  * was never live), Live, Earlier. Rows arrive newest first.
  */
 export function groupVersions(rows: VersionRow[]): VersionGroup[] {

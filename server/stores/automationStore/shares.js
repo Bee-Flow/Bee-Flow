@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * automation_shares — who a routine is shared with, and in which role
+ * automation_shares — who an automation is shared with, and in which role
  * (Studio → Automations handoff 5). The table comes from
  * migrations/automation-handoff5-2026-09.js; the rules about what a role
  * allows live in automation/access.js, not here.
@@ -12,7 +12,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const { AUTOMATION_SELECT } = require('./lifecycle');
+const { AUTOMATION_SELECT, makeStageLookup } = require('./lifecycle');
 
 const ROLE_RANK_SQL = `CASE s.role WHEN 'edit' THEN 3 WHEN 'view' THEN 2 WHEN 'run' THEN 1 ELSE 0 END`;
 const RANK_ROLE = { 3: 'edit', 2: 'view', 1: 'run' };
@@ -35,12 +35,15 @@ function rowToShare(r) {
  *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
  *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }) => Promise<T>) => Promise<T>,
  * }} db
- * @param {{ ready?: () => Promise<void> }} [opts]
+ * @param {{ ready?: () => Promise<void>, managedParts?: { assertManagedWrite: Function }|null }} [opts]
+ *        `managedParts`: the managed-write guard (a test's own instance; the app's default otherwise)
  */
-function makeSharesStore(db, { ready = async () => {} } = {}) {
+function makeSharesStore(db, { ready = async () => {}, managedParts = null } = {}) {
     const { rowToAutomation } = require('./rowMappers');
+    const guard = () => managedParts || require('../lib/managedParts');
+    const stageOf = makeStageLookup();
 
-    /** Every share of one routine, oldest first. */
+    /** Every share of one automation, oldest first. */
     async function listSharesForAutomation(automationId) {
         await ready();
         const r = await db.query(
@@ -51,7 +54,7 @@ function makeSharesStore(db, { ready = async () => {} } = {}) {
     }
 
     /**
-     * Replace the whole share list of one routine in one transaction. The
+     * Replace the whole share list of one automation in one transaction. The
      * route has validated every principal; this writes what it is given.
      * A share that stays the same keeps its row (and its created_at/by).
      *
@@ -85,7 +88,7 @@ function makeSharesStore(db, { ready = async () => {} } = {}) {
     }
 
     /**
-     * The routines shared with one person — directly or through one of their
+     * The automations shared with one person — directly or through one of their
      * groups — in their own organisation, not in the trash, not their own.
      * Each row is an automation plus `myRole` (the strongest matching share)
      * and `owner: { userId, name }`.
@@ -153,14 +156,18 @@ function makeSharesStore(db, { ready = async () => {} } = {}) {
     }
 
     /**
-     * Hand a routine to someone else. One transaction:
+     * Hand an automation to someone else. One transaction:
      *   - automations.user_id becomes the new owner (runs execute as them);
      *   - the new owner's own user share goes (they own it now);
      *   - the previous owner keeps `edit`, so they are not locked out of work
      *     they built. The new owner can take that away like any other share.
      *
-     * Answers null when the routine is gone, trashed, or no longer owned by
+     * Answers null when the automation is gone, trashed, or no longer owned by
      * `fromUserId` (a concurrent transfer won).
+     *
+     * An automation of a Solution stage runs as the stage's run-as user, so its
+     * ownership never moves by hand: 409 managed_part, whatever capability
+     * (ownership is on no allow-list, and no capability is passed).
      *
      * @param {string} automationId
      * @param {{ fromUserId: string, toUserId: string, byUserId?: string|null }} who
@@ -168,6 +175,12 @@ function makeSharesStore(db, { ready = async () => {} } = {}) {
     async function transferAutomationOwner(automationId, { fromUserId, toUserId, byUserId = null }) {
         await ready();
         const moved = await db.tx(async (q) => {
+            const cur = await stageOf(q, automationId, { forUpdate: true });
+            if (cur) {
+                await guard().assertManagedWrite({
+                    kind: 'automation', projectId: cur.project_id ?? null, changedKeys: ['ownerId'], client: q,
+                });
+            }
             const upd = await q.query(
                 `UPDATE automations SET user_id = $2, updated_at = NOW()
                   WHERE id = $1 AND user_id = $3 AND deleted_at IS NULL

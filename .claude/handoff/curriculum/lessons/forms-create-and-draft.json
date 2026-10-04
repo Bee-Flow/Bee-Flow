@@ -2,7 +2,7 @@
   "id": "forms-create-and-draft",
   "icon": "📋",
   "estMinutes": 13,
-  "title": "A form is a routine's front door",
+  "title": "A form is an automation's front door",
   "desc": "Create one, let AI draft the questions, style it, and understand what you are really building.",
   "gate": {
     "feature": "automations"
@@ -13,15 +13,15 @@
       "type": "slide",
       "id": "intro",
       "icon": "🚪",
-      "title": "A form is the front of a routine",
-      "bodyMd": "Purchasing at **Van Dijk Groep** needs the same details on file for every new supplier before the first order. Today they arrive scattered through an e-mail thread, and whoever onboards the supplier retypes them into a sheet.\n\nIn Bee Flow you build that as a **form**. Open **Studio → Forms** and the page tells you what it is: *\"A form is the front of a routine: whoever fills it in starts it.\"* So a form is not a document of its own — the questions live on a routine's trigger, and submitting them starts that routine.\n\nOne boundary before you build, and it is about **this** object. A **Form** — what you create in Studio → Forms, at an `/f/` address — is filled in by signed-in colleagues: its audience is the people and groups you list, or everyone in the organisation, and never anyone outside it. This is the account manager's intake, typed in during the call, not something you send to the supplier.\n\nAn **app screen** in App Studio is a different object with a different rule: a published app can open one screen to people without an account, at a `/p/` address. Same word, two products — ask which one a colleague means before you promise anything."
+      "title": "A form is the front of an automation",
+      "bodyMd": "Purchasing at **Van Dijk Groep** needs the same details on file for every new supplier before the first order. Today they arrive scattered through an e-mail thread, and whoever onboards the supplier retypes them into a sheet.\n\nIn Bee Flow you build that as a **form**. Open **Studio → Forms** and the page tells you what it is: *\"A form is the front of an automation: whoever fills it in starts it.\"* So a form is not a document of its own — the questions live on an automation's trigger, and submitting them starts that automation.\n\nOne boundary before you build, and it is about **this** object. A **Form** — what you create in Studio → Forms, at an `/f/` address — is filled in by signed-in colleagues: its audience is the people and groups you list, or everyone in the organisation, and never anyone outside it. This is the account manager's intake, typed in during the call, not something you send to the supplier.\n\nAn **app screen** in App Studio is a different object with a different rule: a published app can open one screen to people without an account, at a `/p/` address. Same word, two products — ask which one a colleague means before you promise anything."
     },
     {
       "type": "slide",
       "id": "two-doors",
       "icon": "🚦",
       "title": "Two doors out of the New form dialog",
-      "bodyMd": "Click **New form** and you give it a **Name**, then answer one question: **\"What happens with the answers?\"**\n\n- **Collect answers in a table** (badge **Recommended**) — a table is created with one column per question and kept in step with the form. Every answer appears there the moment someone submits.\n- **Form that starts a routine** — every submission runs the steps you build in the routine builder: send an e-mail, file a ticket, ask an agent. No table unless you add one.\n\nThe choice decides where you land. \"Collect\" drops you on the form's **Questions** tab; \"starts a routine\" drops you straight into the routine builder. For the Leveranciersintake, Inkoop wants a live list — so: collect."
+      "bodyMd": "Click **New form** and you give it a **Name**, then answer one question: **\"What happens with the answers?\"**\n\n- **Collect answers in a table** (badge **Recommended**) — a table is created with one column per question and kept in step with the form. Every answer appears there the moment someone submits.\n- **Form that starts an automation** — every submission runs the steps you build in the automation builder: send an e-mail, file a ticket, ask an agent. No table unless you add one.\n\nThe choice decides where you land. \"Collect\" drops you on the form's **Questions** tab; \"starts an automation\" drops you straight into the automation builder. For the Leveranciersintake, Inkoop wants a live list — so: collect."
     },
     {
       "type": "slide",
@@ -51,7 +51,7 @@
           "id": "c",
           "label": "The form is now live and colleagues can open its link.",
           "correct": false,
-          "feedback": "Drafting questions never switches a form on. A freshly created routine is a draft, and going live is a separate toggle under Settings."
+          "feedback": "Drafting questions never switches a form on. A freshly created automation is a draft, and going live is a separate toggle under Settings."
         },
         {
           "id": "d",
@@ -88,8 +88,8 @@
           {
             "id": "p2",
             "left": "A leave request must reach the team lead for approval; nobody needs a spreadsheet.",
-            "right": "Form that starts a routine",
-            "note": "The point is the steps that run, not the storage. Create it in routine mode and you land in the builder."
+            "right": "Form that starts an automation",
+            "note": "The point is the steps that run, not the storage. Create it in automation mode and you land in the builder."
           },
           {
             "id": "p3",
@@ -204,10 +204,10 @@
           "id": "d",
           "label": "A second form is created automatically for the overflow.",
           "correct": false,
-          "feedback": "Bee Flow never creates a form behind your back. Extra pages are form pages you add to the routine yourself."
+          "feedback": "Bee Flow never creates a form behind your back. Extra pages are form pages you add to the automation yourself."
         }
       ],
-      "explanation": "Forty questions per page is a hard limit. The way past it is not a shorter form but a longer journey: later pages are form-page steps in the same routine, and the visitor walks through them on one link.",
+      "explanation": "Forty questions per page is a hard limit. The way past it is not a shorter form but a longer journey: later pages are form-page steps in the same automation, and the visitor walks through them on one link.",
       "icon": "❓"
     },
     {
@@ -226,14 +226,14 @@
       "choices": [
         {
           "id": "a",
-          "label": "He can build the form: Forms asks for the automations feature, and the routine is his because he made it. The answers table is where an org permission comes in.",
+          "label": "He can build the form: Forms asks for the automations feature, and the automation is his because he made it. The answers table is where an org permission comes in.",
           "correct": true
         },
         {
           "id": "b",
           "label": "He needs the manage_automations permission before he may create a form at all.",
           "correct": false,
-          "feedback": "That permission is real, but it opens the organisation-wide run history — it is not what the forms routes check. They decide by ownership: whoever built the routine may edit its form, and nobody else may, admin or not."
+          "feedback": "That permission is real, but it opens the organisation-wide run history — it is not what the forms routes check. They decide by ownership: whoever built the automation may edit its form, and nobody else may, admin or not."
         },
         {
           "id": "c",
@@ -248,7 +248,7 @@
           "feedback": "The table is created by the form, not the other way round. Granting people a grade on the answers table is how you let *others* read the answers afterwards."
         }
       ],
-      "explanation": "Two gatekeepers sit on one form, and they ask for different things. The form: the **automations** feature plus ownership — Studio → Forms lists every form in the organisation, but only its owner can open the routine behind it. The answers table: the ordinary datatable rules, where changing an organisation table is an admin permission (manage_datatables). So this lesson asks less of you than the lessons about the table it fills."
+      "explanation": "Two gatekeepers sit on one form, and they ask for different things. The form: the **automations** feature plus ownership — Studio → Forms lists every form in the organisation, but only its owner can open the automation behind it. The answers table: the ordinary datatable rules, where changing an organisation table is an admin permission (manage_datatables). So this lesson asks less of you than the lessons about the table it fills."
     },
     {
       "type": "action",
@@ -267,33 +267,33 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Create it in the right mode.** \"Collect answers in a table\" builds the table for you; \"Form that starts a routine\" drops you in the builder.\n- **Use the AI draft as a draft.** Describe it or paste the checklist, read what comes back, press Undo if it missed — and know that nothing exists until you press Save.\n- **Save knowing what a save does.** Labels, types, Required, Button text, the thank-you message and **Styling** are yours; on a collecting form every question is a column, and removing one retires it instead of deleting the answers.\n- **Know which object you built.** A Form is for signed-in colleagues at an `/f/` address; the anonymous `/p/` page belongs to App Studio, not here.\n\nTwo things still stand between your form and a filled-in one: it is a draft until **Form is live** is switched on, and it is shared with nobody until you say who may fill it in. That is the next chapter."
+      "bodyMd": "- **Create it in the right mode.** \"Collect answers in a table\" builds the table for you; \"Form that starts an automation\" drops you in the builder.\n- **Use the AI draft as a draft.** Describe it or paste the checklist, read what comes back, press Undo if it missed — and know that nothing exists until you press Save.\n- **Save knowing what a save does.** Labels, types, Required, Button text, the thank-you message and **Styling** are yours; on a collecting form every question is a column, and removing one retires it instead of deleting the answers.\n- **Know which object you built.** A Form is for signed-in colleagues at an `/f/` address; the anonymous `/p/` page belongs to App Studio, not here.\n\nTwo things still stand between your form and a filled-in one: it is a draft until **Form is live** is switched on, and it is shared with nobody until you say who may fill it in. That is the next chapter."
     }
   ],
   "rubrics": {
     "ex-forms-create-brief": {
       "title": "A brief the AI can draft from",
-      "task": "Write the brief for Van Dijk Groep's supplier intake as it would be pasted into \"Describe it (optional)\", plus a sentence choosing between \"Collect answers in a table\" and \"Form that starts a routine\" with a reason, and a sentence on how it should look.",
+      "task": "Write the brief for Van Dijk Groep's supplier intake as it would be pasted into \"Describe it (optional)\", plus a sentence choosing between \"Collect answers in a table\" and \"Form that starts an automation\" with a reason, and a sentence on how it should look.",
       "criteria": [
         "Lists several concrete things to ask for — at least a company or contact identity, an e-mail, and one non-text item such as a file upload, a number or a yes/no.",
         "Is specific enough to draft from: it names the details rather than saying \"the usual supplier information\".",
-        "Names one of the two real modes (\"Collect answers in a table\" or \"Form that starts a routine\") and gives a reason tied to what must happen with the answers.",
+        "Names one of the two real modes (\"Collect answers in a table\" or \"Form that starts an automation\") and gives a reason tied to what must happen with the answers.",
         "Says something about the look using a real control — a preset (Clean, Corporate, Friendly, Night, Match visitor), the accent colour, or one of the knobs Corners, Spacing, Text size, Appearance.",
         "Shows awareness that the draft is reviewed before it is saved, or that question types and Required are set by the author."
       ],
       "passScore": 70,
-      "guidance": "Pass a plainly written brief in English or Dutch that a drafter could turn into questions. Do not pass: a one-line restatement of the task (\"a supplier form\"), a mode choice with no reason, or an answer that invents product behaviour — for example claiming the brief is saved with the form, that the AI publishes or activates the form, that the AI picks the styling, or that the link can be sent to the supplier. A learner who picks the routine mode with a sound reason passes just as well."
+      "guidance": "Pass a plainly written brief in English or Dutch that a drafter could turn into questions. Do not pass: a one-line restatement of the task (\"a supplier form\"), a mode choice with no reason, or an answer that invents product behaviour — for example claiming the brief is saved with the form, that the AI publishes or activates the form, that the AI picks the styling, or that the link can be sent to the supplier. A learner who picks the automation mode with a sound reason passes just as well."
     }
   },
   "practiceTopic": {
     "title": "Creating a form and drafting its questions",
     "summary": "How a form is created in Studio, what the AI draft does and does not touch, and what a save means for the answers table.",
     "facts": [
-      "The New form dialog asks \"What happens with the answers?\" and offers \"Collect answers in a table\" (badge Recommended, landing on the Questions tab) or \"Form that starts a routine\" (landing in the routine builder).",
+      "The New form dialog asks \"What happens with the answers?\" and offers \"Collect answers in a table\" (badge Recommended, landing on the Questions tab) or \"Form that starts an automation\" (landing in the automation builder).",
       "The \"Build it with AI\" card reports \"{count} questions drafted — review them below, then Save.\" and offers an Undo; the draft is not stored anywhere.",
       "Nothing is written until Save: the sticky bar offers Discard changes and Save, and leaving warns \"Unsaved changes\".",
       "Question types are Short text, Long text, Email, Number, Date, Dropdown, Checkbox, File upload, Download button and Open in Notebooks.",
-      "A page holds at most 40 questions; saving a page with more is refused, and the way past it is a later form page in the same routine.",
+      "A page holds at most 40 questions; saving a page with more is refused, and the way past it is a later form page in the same automation.",
       "On a collecting form, renaming a question renames its column, removing one retires the column as \"no longer on the form\", and changing its type adds a new column beside the retired one.",
       "Styling offers the presets Clean, Corporate, Friendly, Night and Match visitor, an Accent colour (twelve swatches plus a custom one) and the knobs Corners, Spacing, Text size and Appearance; a new form starts on Clean.",
       "A Form is filled in by signed-in colleagues only — its audience is the people and groups you list, or everyone in the organisation. The anonymous /p/ page is an App Studio screen, a different object."
@@ -309,7 +309,7 @@
         {
           "method": "GET",
           "path": "/api/automation/forms",
-          "returns": "{ forms: [ { id, automationId, title, live, mine, answers: { collecting, datatableId }, ... } ] } — organisation-scoped; `mine` is true only for the routine's owner"
+          "returns": "{ forms: [ { id, automationId, title, live, mine, answers: { collecting, datatableId }, ... } ] } — organisation-scoped; `mine` is true only for the automation's owner"
         }
       ],
       "criteria": [

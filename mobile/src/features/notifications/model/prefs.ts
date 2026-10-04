@@ -15,7 +15,7 @@
  * the six-value one in ./types.ts, with a comment insisting there was no fourth
  * category to invent. There were three: `ai_task`, `cowork` and `learning` —
  * and between them they are most of what this app ever announces, because a
- * finished routine is the notification people actually get. So the screen
+ * finished automation is the notification people actually get. So the screen
  * offered switches for the three categories nobody receives and none for the
  * three they do.
  *
@@ -86,13 +86,13 @@ export const CATEGORY_LABELS: Record<NotificationCategory, { label: string; desc
         description: 'A task completed and its answer is ready.',
     },
     ai_task: {
-        label: 'Routines',
-        description: 'A scheduled routine ran and has something for you.',
+        label: 'Automations',
+        description: 'A scheduled automation ran and has something for you.',
     },
     cowork: {
         label: 'Cowork results',
         // Its own category: a cowork result should not announce itself under
-        // the routines' name.
+        // the automations' name.
         description: 'A cowork run finished and its result is ready.',
     },
     learning: {

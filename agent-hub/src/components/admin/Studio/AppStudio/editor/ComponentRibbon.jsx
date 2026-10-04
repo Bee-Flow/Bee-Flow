@@ -73,7 +73,7 @@ export const COMPACT_CHIPS = Object.freeze([
  * App Studio editor — the component palette, in two shapes.
  *
  * FULL (the default, `<ComponentRibbon />`): a strip built from the SAME
- * shared ribbon primitives as the routines/automations "Add step" ribbon
+ * shared ribbon primitives as the automations "Add step" ribbon
  * (shared/ribbon/RibbonCluster + CmdButton). Categories are split across
  * CATEGORY TABS (shared/Tabs); a compact search box lives in the tab strip,
  * and while a query is active the tab filter is bypassed so matches surface
@@ -88,7 +88,7 @@ export const COMPACT_CHIPS = Object.freeze([
  * tab is active. Height belongs to the canvas; width is scrollable.
  *
  * The ribbon also COLLAPSES to just its tab strip (chevron at the far right,
- * persisted) — the same affordance the routines ribbon has. Picking a tab or
+ * persisted) — the same affordance the automations ribbon has. Picking a tab or
  * typing a search while collapsed reopens it; drag-and-drop and search stay
  * one click away either way.
  *

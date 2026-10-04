@@ -52,8 +52,8 @@ interface Props {
     usageVersion?: number;
 }
 
-const EXPANDED_KEY = 'routinesRibbonExpanded';
-const CATEGORY_KEY = 'routinesRibbonCategory';
+const EXPANDED_KEY = 'automationsRibbonExpanded';
+const CATEGORY_KEY = 'automationsRibbonCategory';
 
 export default function AddStepRibbon({
     scope = {},
@@ -112,7 +112,7 @@ export default function AddStepRibbon({
         return (
             <div className={`flex items-center gap-1.5 flex-wrap px-3.5 min-h-11 py-1.5 border-b border-[var(--border-default)] bg-[var(--bg-card)] ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] mr-1">
-                    {t('routines.ribbon.start_with_trigger', 'Start with a trigger')}
+                    {t('automations.ribbon.start_with_trigger', 'Start with a trigger')}
                 </span>
                 {TRIGGERS.map(tr => (
                     <InlineButton key={tr.id} icon={tr.icon} label={tr.label} onClick={() => add(tr.payload)} {...stepDragProps(tr.payload)} />
@@ -142,8 +142,8 @@ export default function AddStepRibbon({
                         type="button"
                         onClick={() => setExpanded(o => !o)}
                         aria-expanded={open}
-                        aria-label={open ? t('routines.ribbon.collapse', 'Collapse the ribbon') : t('routines.ribbon.expand', 'Show this category')}
-                        title={open ? t('routines.ribbon.collapse', 'Collapse the ribbon') : t('routines.ribbon.expand', 'Show this category')}
+                        aria-label={open ? t('automations.ribbon.collapse', 'Collapse the ribbon') : t('automations.ribbon.expand', 'Show this category')}
+                        title={open ? t('automations.ribbon.collapse', 'Collapse the ribbon') : t('automations.ribbon.expand', 'Show this category')}
                         className="w-7 h-7 grid place-items-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                     >
                         {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

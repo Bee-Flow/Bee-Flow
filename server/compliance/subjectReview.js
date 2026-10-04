@@ -4,10 +4,10 @@
  *
  * WHY THIS EXISTS. compliance/scheduler.js sweeps every organisation once
  * every six hours, and that is the only thing that ever moves a verdict. So a
- * routine switched on at 09:05 was judged by a sweep that had already run at
+ * automation switched on at 09:05 was judged by a sweep that had already run at
  * 06:00 — a sweep that could not have seen it, because it did not exist yet.
  * For the rest of the day the Compliance Center went on describing a workspace
- * that no longer existed: the new routine generating documents with no
+ * that no longer existed: the new automation generating documents with no
  * AI-marking verdict against it at all, the dashboard still green, and the
  * admin reading that green as an answer. Nobody was told anything was wrong
  * until the sweep caught up, which for an evening activation meant the next
@@ -15,9 +15,9 @@
  * that lands a shift late is not that.
  *
  * WHAT IT DOES. `reviewAutomation(orgId, automationId)` queues a review of
- * exactly that routine and returns immediately. Some milliseconds later
+ * exactly that automation and returns immediately. Some milliseconds later
  * runner.runForSubject() re-runs the per-source checks that actually claim the
- * routine as a subject, writes their rows, and the dashboard tells the truth
+ * automation as a subject, writes their rows, and the dashboard tells the truth
  * about it the same minute it went live.
  *
  * THE THREE THINGS THIS IS CAREFUL ABOUT
@@ -27,8 +27,8 @@
  *      A compliance sweep is not something a user waits for behind a spinner.
  *
  *   2. It COALESCES rather than resets. An armed review is left alone when
- *      another toggle of the same routine arrives — the run that is already
- *      scheduled will read whatever state the routine has settled into by the
+ *      another toggle of the same automation arrives — the run that is already
+ *      scheduled will read whatever state the automation has settled into by the
  *      time it fires, so five flips of one switch are one review, not five.
  *      The window is deliberately NOT restarted on each toggle: a debounce
  *      that restarts can be held off forever by someone drumming the switch,
@@ -36,19 +36,19 @@
  *      the delay (DEBOUNCE_MS after the FIRST toggle) instead of on nothing.
  *
  *   3. It is scoped to one subject, never a sweep. runForSubject touches only
- *      the checks that list this routine, so a toggle costs a handful of
+ *      the checks that list this automation, so a toggle costs a handful of
  *      queries — not a full-workspace run per click, which at six checks over
  *      a few hundred subjects would make the switch a denial-of-service on the
  *      org's own database.
  *
  * AND THE RULE ABOVE ALL OF THEM: nothing in here may fail an activation. The
- * caller has already switched the routine on and told the user so; a
+ * caller has already switched the automation on and told the user so; a
  * compliance check that throws, hangs or finds the framework switched off must
  * end as a log line and nothing else. Every path is wrapped, including the
  * scheduling call itself.
  *
- * No personal data is logged. The ids of a routine and of a check are not
- * personal data; the routine's title, its owner and anything a check found are
+ * No personal data is logged. The ids of an automation and of a check are not
+ * personal data; the automation's title, its owner and anything a check found are
  * not repeated here (BFSF-441).
  */
 
@@ -73,20 +73,20 @@ const _again = new Set();
 // JSON, not a separator character: an organisation id and a subject id are
 // opaque strings, and a key built by gluing them together with a character
 // that turns out to be legal in one of them stops being injective — two
-// routines would then share one debounce slot and one of them would never be
-// reviewed. The kind is part of the key, so a routine and a project that
+// automations would then share one debounce slot and one of them would never be
+// reviewed. The kind is part of the key, so an automation and a project that
 // happen to share an id never share a slot either.
 function _key(kind, orgId, subjectId) {
     return JSON.stringify([String(kind), String(orgId), String(subjectId)]);
 }
 
 /**
- * Every spelling under which a check may hold this routine as a subject.
+ * Every spelling under which a check may hold this automation as a subject.
  *
  * There are two in the tree today and they are not interchangeable:
- * `AIA-Art50-content-marking` lists routines under their bare id, while
+ * `AIA-Art50-content-marking` lists automations under their bare id, while
  * `MACHINERY-Art18-safety-component-assessment` lists everything it detects as
- * `<source>:<id>` and so holds the same routine as `automation:<id>`. Asking
+ * `<source>:<id>` and so holds the same automation as `automation:<id>`. Asking
  * with only one spelling silently reviews only half of what applies to it,
  * which looks exactly like working.
  */
@@ -157,10 +157,10 @@ function _queue(kind, orgId, subjectId, { reason = 'activation' } = {}) {
 }
 
 /**
- * Queue a compliance review of one routine. Returns immediately, always.
+ * Queue a compliance review of one automation. Returns immediately, always.
  *
- * `orgId` is the organisation whose checks can see this routine — the
- * routine's own organisation, falling back to its OWNER's, which is the
+ * `orgId` is the organisation whose checks can see this automation — the
+ * automation's own organisation, falling back to its OWNER's, which is the
  * COALESCE the checks themselves scope by. Without one there is no per-source
  * check that could match it, so there is nothing to do.
  */

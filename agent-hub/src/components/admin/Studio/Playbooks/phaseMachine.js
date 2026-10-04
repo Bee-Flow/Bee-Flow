@@ -7,10 +7,10 @@
  * page's tests can assert them without a network.
  */
 
-export const PHASE_ORDER = Object.freeze(['table', 'routine', 'fill', 'app', 'approvals']); // the built-in recipe's keys
-export const KINDS = Object.freeze(['table', 'routine', 'fill', 'design', 'app', 'app_turn', 'access', 'compliance']); // what a stage can be
+export const PHASE_ORDER = Object.freeze(['table', 'automation', 'fill', 'app', 'approvals']); // the built-in recipe's keys
+export const KINDS = Object.freeze(['table', 'automation', 'fill', 'design', 'app', 'app_turn', 'access', 'compliance']); // what a stage can be
 export const SERVER_RUN = new Set(['table', 'fill', 'design', 'compliance']);    // POST …/phases/<key>/run, then poll
-export const CLIENT_RUN = new Set(['routine', 'app', 'app_turn', 'access']); // a builder (or the person) works here; the page PATCHes
+export const CLIENT_RUN = new Set(['automation', 'app', 'app_turn', 'access']); // a builder (or the person) works here; the page PATCHes
 
 /** A phase's KIND decides its stage; rows from before recipe documents carry the key only. */
 export function kindOf(phase) {

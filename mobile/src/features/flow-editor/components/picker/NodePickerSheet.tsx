@@ -107,7 +107,7 @@ export function NodePickerSheet({
     target: AddTarget | null;
     definition: FlowDefinition | null;
     catalog: PaletteCatalog | null;
-    /** The flowlet being edited, or null for the routine itself. */
+    /** The flowlet being edited, or null for the automation itself. */
     flowlet?: string | null;
     onClose: () => void;
     onPick: (payload: StepPayload, target: AddTarget) => void;
@@ -128,7 +128,7 @@ export function NodePickerSheet({
         setQuery('');
         onPick(payload, target);
     };
-    const title = target?.kind === 'root' && !definition?.trigger?.id ? t('routines.ribbon.start_with_trigger', 'Start with a trigger') : t('routines.ribbon.search_label', 'Add a step');
+    const title = target?.kind === 'root' && !definition?.trigger?.id ? t('automations.ribbon.start_with_trigger', 'Start with a trigger') : t('automations.ribbon.search_label', 'Add a step');
     return (
         <Sheet visible={target !== null} onClose={close} title={title} scroll={false} tall>
             <View style={styles.search}>

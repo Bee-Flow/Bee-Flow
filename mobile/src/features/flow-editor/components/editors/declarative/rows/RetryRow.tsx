@@ -32,7 +32,7 @@ function WaitTotal({ retry, rowCap }: { retry: Retry; rowCap: number }) {
         rowCap > 1
             ? t('mobile.flow.retry.total_rows', 'Each row is tried again on its own, so waiting can add up to {s}s across all {rows} rows', { s: total.seconds, rows: rowCap })
             : t('mobile.flow.retry.total', 'Waiting can add up to {s}s to this run', { s: total.seconds });
-    const tail = total.long ? t('mobile.flow.retry.too_long', ' — long enough to run the routine out of time before the tries run out.') : '.';
+    const tail = total.long ? t('mobile.flow.retry.too_long', ' — long enough to run the automation out of time before the tries run out.') : '.';
     return (
         <Text variant="caption" weight="medium" tone={total.long ? 'warning' : 'secondary'}>
             {line + tail}
@@ -76,7 +76,7 @@ export function RetryRow({ value, forEach, onChange, disabled }: { value: unknow
                     <Text variant="caption" tone="secondary">
                         {t(
                             'mobile.flow.retry.after',
-                            'If the last try fails too, the step fails and the routine stops there — exactly as it does now. Every attempt is kept in the run history, so you can see how often it took more than one.',
+                            'If the last try fails too, the step fails and the automation stops there — exactly as it does now. Every attempt is kept in the run history, so you can see how often it took more than one.',
                         )}
                     </Text>
                     <WaitTotal retry={retry} rowCap={retryRowCap(forEach)} />

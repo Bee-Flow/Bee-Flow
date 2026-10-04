@@ -2,7 +2,7 @@
  * execSet — "Edit data" list mode + table operations.
  *
  * Single mode must stay byte-identical to the original 4-line executor
- * (every saved routine relies on it). List mode is the new contract:
+ * (every saved automation relies on it). List mode is the new contract:
  * `{items, count}` out, per-row `item`/`_index` scope, fields overlay,
  * then whole-table operations in listed order.
  *

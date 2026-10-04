@@ -1,5 +1,5 @@
 /**
- * The Steps tab: the routine as a vertical outline (rows.ts), virtualised.
+ * The Steps tab: the automation as a vertical outline (rows.ts), virtualised.
  * The rows are rebuilt from the definition on every edit — a pure walk over a
  * graph of tens of steps — and each row reads what it draws from the
  * OutlineContext, so the list's renderItem stays outside the render function.

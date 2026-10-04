@@ -47,6 +47,18 @@ const LOOSE_MIGRATIONS = [
     // Verhuist kale prompt-taken naar Cowork; beide runners tikken elke 60s,
     // dus de twee tabellen mogen niet tegelijk levend blijven.
     'prompt-tasks-to-cowork-2026-08',
+    // De agent-gekoppelde taken (de oude "agent routines") volgen: Cowork kan
+    // een item nu als agent draaien, dus ai_tasks wordt niet meer beschreven.
+    'agent-tasks-to-cowork-2026-10',
+    // Het opgeslagen woord "routine" wordt "automation" (logs, grants,
+    // kennisbank-herkomst, playbooks, tool-sleutel). Na de vorige: een oude
+    // ai_tasks-rij herkent hij aan zijn Cowork-twin en labelt hem "cowork".
+    'routine-to-automation-2026-10',
+    // Learning Center-voortgang volgt de lessen die van "routine" naar
+    // "automation" hernoemd zijn (lesson-, oefening-, cursus- en badge-ids).
+    'learning-routine-ids-2026-10',
+    // Websitepagina's: het demo-blok en /demo-links van "routines" naar "automations".
+    'cms-routine-demo-2026-10',
     // Ruimt het schema van de vier gepensioneerde verticals op; laat het
     // consent-ledger staan.
     'drop-retired-features-2026-08',
@@ -100,6 +112,13 @@ const LOOSE_MIGRATIONS = [
     // no-op once every row is decided; throws on failure so the next boot
     // retries.
     'project-kind-backfill-2026-09',
+    'project-org-backfill-2026-09',       // Org-less projects get their owner's organisation (group-derived members made them '')
+    // "Find repeating work" becomes per user: org-scoped feedback rows are
+    // rewritten to user:<id> (built/asked survive), their suggestion_json is
+    // cut to the template-only allow-list, and org-scoped scans are deleted
+    // (they served one person's mail-derived scan to colleagues). Skips a
+    // table that does not exist yet; a no-op once no org: rows are left.
+    'suggestion-user-scope-2026-10',
 ];
 
 /**
@@ -144,6 +163,7 @@ const NL_TRANSLATIONS = [
     'add-nl-builder-values-translations',  // de waarde-editor: lijstkeuze, slotchrome, invoegen (Track R)
     'add-nl-solution-install-wizard-translations', // de installatiewizard: inhoud, koppelen, toegang (Track O)
     'add-nl-solution-overview-translations', // het Solutions-overzicht: tabs, kaarten, wat niet gelezen kon worden (Track O)
+    'add-nl-solution-overview-2-translations', // het Solutions-overzicht, vervolg: zoeken en filteren, lege staat, skills en sjablonen tellen
     'add-nl-topic-rules-translations',     // "is about"-regels in de Condition-node (onderwerp-classifier)
     'add-nl-app-studio-builder-translations', // de App Studio-bouwfilm: activiteitsrijen, bouwbanner, ghost-cel, chatkolom
     'add-nl-playbooks-translations',           // Studio → Playbooks: gefaseerde AI-bouw met pauzes voor akkoord
@@ -160,11 +180,19 @@ const NL_TRANSLATIONS = [
     'add-nl-egress-map-translations',          // Privacy Shield "Where your data went": the rebuilt map, its tooltip, legend and controls
     'add-nl-mfa-setup-mobile-translations',    // Forced 2FA setup on a phone: what 2FA is, tap-to-add, a required_desc without "your administrator"
     'add-nl-builder-handoff5-translations',    // Automation builder, design handoff 5: header, ribbon, Settings, Runs, Versions, step drawer, agents in an AI step
+    'add-nl-repeating-work-translations',      // Find repeating work: source tiles, the scan as a flow, pattern cards, feedback and undo, the launcher's tabs
     'add-nl-code-step-translations',           // Code step: parameters form, automatic checks, large editor with the AI assistant and Try it
     'add-nl-project-workspace-translations',   // Collaborative project workspace: projects list, overview, members, activity, team and AI chats, content tabs, sidebar project chat, Solution access
     'add-nl-collaboration-wave2-editor-versions-translations',     // Collaboration round 2: editing together, versions and compare, comments, since your last visit, AI that joins by itself, notebooks
     'add-nl-collaboration-wave2-documents-compliance-translations', // Collaboration round 2: documents library, pages, designed documents and presentations, compliance checks for projects
+    'add-nl-agent-schedules-translations',     // Agent builder: the schedules panel (Cowork items that run as this agent, formerly scheduled agent runs)
     'add-nl-project-tasks-translations',       // Project tasks: list and board, priority, labels, checklist, tasks from a meeting, comments; team chat threads and tagged items
+    'add-nl-learning-foundations-translations', // Leerstof van de Bee Flow Basis-cursus (BFSF-474): lessen, quizzen, sims, de introtour en de actiechecklijsten
+    'add-nl-notebooks-as-documents-translations', // A notebook as a document type: in the Documents library, and the notebook workspace's header and sources rail
+    'add-nl-spreadsheet-documents-translations', // Spreadsheets in Documents: the type in the library and gallery, the grid editor and its formula errors
+    // Last, after every catalogue: stored translations follow the routine →
+    // automation keys, and shipped Dutch "routine" becomes "automatisering".
+    'rename-routine-i18n-2026-10',
 ];
 
 /**

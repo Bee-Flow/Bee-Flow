@@ -86,14 +86,14 @@ export interface CategoryDef {
 export const SUGGESTED_TAB_ENABLED = false;
 
 export const CATEGORY_DEFS: readonly CategoryDef[] = [
-    { id: 'suggested', labelKey: 'routines.ribbon.cat_suggested', fallback: 'Suggested', Icon: Star, tone: 'text-[var(--text-secondary)]', origin: null },
-    { id: 'ai', labelKey: 'routines.ribbon.cat_ai', fallback: 'AI', Icon: Sparkles, tone: 'text-[var(--type-ai)]', origin: 'section:ai' },
-    { id: 'logic', labelKey: 'routines.ribbon.cat_logic', fallback: 'Logic', Icon: GitFork, tone: 'text-[var(--type-branch)]', origin: 'section:flow_control' },
-    { id: 'people', labelKey: 'routines.ribbon.cat_people', fallback: 'People', Icon: Users, tone: 'text-[var(--type-pause)]', origin: 'section:people' },
-    { id: 'data', labelKey: 'routines.ribbon.cat_data', fallback: 'Data & documents', Icon: Table2, tone: 'text-[var(--type-data)]', origin: 'section:data' },
-    { id: 'nextcloud', labelKey: 'routines.ribbon.cat_nextcloud', fallback: 'Nextcloud apps', Icon: Cloud, tone: NEXTCLOUD_TEXT, origin: `cat:${NEXTCLOUD_CATEGORY}` },
-    { id: 'other_apps', labelKey: 'routines.ribbon.cat_other_apps', fallback: 'Other apps', Icon: Plug, tone: 'text-[var(--text-secondary)]', origin: 'section:integrations' },
-    { id: 'blocks', labelKey: 'routines.ribbon.cat_blocks', fallback: 'My building blocks', Icon: Package, tone: 'text-[var(--text-secondary)]', origin: null },
+    { id: 'suggested', labelKey: 'automations.ribbon.cat_suggested', fallback: 'Suggested', Icon: Star, tone: 'text-[var(--text-secondary)]', origin: null },
+    { id: 'ai', labelKey: 'automations.ribbon.cat_ai', fallback: 'AI', Icon: Sparkles, tone: 'text-[var(--type-ai)]', origin: 'section:ai' },
+    { id: 'logic', labelKey: 'automations.ribbon.cat_logic', fallback: 'Logic', Icon: GitFork, tone: 'text-[var(--type-branch)]', origin: 'section:flow_control' },
+    { id: 'people', labelKey: 'automations.ribbon.cat_people', fallback: 'People', Icon: Users, tone: 'text-[var(--type-pause)]', origin: 'section:people' },
+    { id: 'data', labelKey: 'automations.ribbon.cat_data', fallback: 'Data & documents', Icon: Table2, tone: 'text-[var(--type-data)]', origin: 'section:data' },
+    { id: 'nextcloud', labelKey: 'automations.ribbon.cat_nextcloud', fallback: 'Nextcloud apps', Icon: Cloud, tone: NEXTCLOUD_TEXT, origin: `cat:${NEXTCLOUD_CATEGORY}` },
+    { id: 'other_apps', labelKey: 'automations.ribbon.cat_other_apps', fallback: 'Other apps', Icon: Plug, tone: 'text-[var(--text-secondary)]', origin: 'section:integrations' },
+    { id: 'blocks', labelKey: 'automations.ribbon.cat_blocks', fallback: 'My building blocks', Icon: Package, tone: 'text-[var(--text-secondary)]', origin: null },
 ];
 
 /**
@@ -162,7 +162,7 @@ export function ribbonSections(scope: Record<string, unknown> = {}, t: Translate
     const tr = (key: string, fallback: string) => (t ? t(key, fallback) : fallback);
 
     const appCategories = orderedAppCategories((scope as { catalog?: unknown }).catalog) as AppCategory[];
-    const blockSections = blockSectionsOf(byKey('steps'), tr('routines.ribbon.blocks_steps', 'Steps'));
+    const blockSections = blockSectionsOf(byKey('steps'), tr('automations.ribbon.blocks_steps', 'Steps'));
 
     return {
         ai: byKey('ai')?.items || [],

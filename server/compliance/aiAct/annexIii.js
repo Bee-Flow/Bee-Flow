@@ -2,18 +2,18 @@
  * EU AI Act — Annex III as TEN QUESTIONS, not a keyword regex.
  *
  * What was here before: `ANNEX_III_RE`, one alternation of thirteen words,
- * deciding whether a routine is a high-risk use of AI. That is a legal
+ * deciding whether an automation is a high-risk use of AI. That is a legal
  * qualification made by word recognition, and it was wrong in both
  * directions at once:
  *
- *   FALSE POSITIVE — a routine whose description happens to contain
+ *   FALSE POSITIVE — an automation whose description happens to contain
  *   "verzekering" because it mails a policy number got a medium finding that
  *   said "this may be a high-risk use of AI".
  *
  *   FALSE NEGATIVE — and this is the worse half — the regex covered five of
  *   the ten domains. Biometrics, critical infrastructure, law enforcement,
  *   migration and the administration of justice were not in it at all. A
- *   routine doing facial recognition on visitors produced no signal whatever.
+ *   automation doing facial recognition on visitors produced no signal whatever.
  *
  * Worse still, the ladder in the browser asked about FOUR domains and offered
  * them as one all-or-nothing denial: tick the four chips and the product

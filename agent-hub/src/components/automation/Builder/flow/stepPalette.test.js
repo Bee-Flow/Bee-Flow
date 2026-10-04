@@ -268,7 +268,7 @@ describe('stepPalette — Steps grouped by category', () => {
 
 describe('stepPalette — form pages', () => {
     const catalog = { apps: [] };
-    // A form page needs the routine to start with a form trigger — without one
+    // A form page needs the automation to start with a form trigger — without one
     // the server rejects it outright, so the palette hides it. These cases are
     // about the pages themselves, so they assume the trigger is there.
     const flowItems = (opts = {}) => {
@@ -311,9 +311,9 @@ describe('stepPalette — form pages', () => {
     });
 });
 
-describe('stepPalette — triggers are findable once a routine has one (BFSF-325)', () => {
+describe('stepPalette — triggers are findable once an automation has one (BFSF-325)', () => {
     // The search used to return TRIGGERS only in mode:'trigger', which is the
-    // empty-canvas state — so on any real routine "trigger", "click" and
+    // empty-canvas state — so on any real automation "trigger", "click" and
     // "webhook" all returned nothing and the only way in was a two-entry menu.
     const labels = (q, opts = {}) => buildSearchResults(q, { catalog, ...opts }).map(r => r.label);
 
@@ -364,7 +364,7 @@ describe('stepPalette — triggers are findable once a routine has one (BFSF-325
 
 describe('stepPalette — the form steps need a form trigger', () => {
     // server/automation/validate.js rejects a form page with
-    // `form_page.no_form_trigger` when the routine doesn't start with a form
+    // `form_page.no_form_trigger` when the automation doesn't start with a form
     // trigger — adding it anyway sells the author a guaranteed error.
     //
     // They used to be filtered out entirely, which answered "you can't have
@@ -410,7 +410,7 @@ describe('stepPalette — the form steps need a form trigger', () => {
     /**
      * BFSF-348 remainder. `hasFormTrigger` defaulted to `false`, so a surface
      * that simply didn't pass it — the "Add step here" popover — told the
-     * author a form step was impossible even when the routine started with a
+     * author a form step was impossible even when the automation started with a
      * form trigger. "You can't have this" is a claim; a caller that doesn't
      * know must not make it. Only a definite `false` disables.
      */

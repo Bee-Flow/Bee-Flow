@@ -86,7 +86,7 @@ export const SYNTHETIC_TYPES = {
     ghost_step: 'the dashed "next step" slot ahead of the AI\'s frontier while it builds, placed where the next card will land; never saved',
 };
 
-const K = 'routines.node';
+const K = 'automations.node';
 
 /**
  * @typedef {object} NodeDef
@@ -113,7 +113,7 @@ export const NODE_DEFS = {
     trigger: {
         family: 'trigger',
         typeLabel: 'Trigger', defaultLabel: 'Trigger',
-        help: 'What starts this routine. Every routine has exactly one.',
+        help: 'What starts this automation. Every automation has exactly one.',
         sectionKeys: ['inputs', 'config'],
         simpleSections: ['inputs', 'config'],
         issueSections: {
@@ -286,7 +286,7 @@ export const NODE_DEFS = {
     form_page: {
         family: 'pause',
         typeLabel: 'Form page', defaultLabel: 'Ask for more info',
-        help: 'Pauses the run and shows another page on the routine’s own form link, then continues with the answers.',
+        help: 'Pauses the run and shows another page on the automation’s own form link, then continues with the answers.',
         sectionKeys: ['config', 'waiting'],
         simpleSections: ['config', 'waiting'],
         issueSections: {
@@ -481,8 +481,8 @@ export const NODE_DEFS = {
     datatable: {
         family: 'data',
         typeLabel: 'Datatable', defaultLabel: 'Datatable',
-        label: 'Datatable', desc: 'Keep rows that outlast the run — and share them with other routines',
-        help: 'Reads and writes rows in a table that stays put after the run ends, so this routine can pick up where it left off and other routines can use the same data.',
+        label: 'Datatable', desc: 'Keep rows that outlast the run — and share them with other automations',
+        help: 'Reads and writes rows in a table that stays put after the run ends, so this automation can pick up where it left off and other automations can use the same data.',
         sectionKeys: ['table', 'match', 'values', 'advanced'],
         simpleSections: ['table', 'match', 'values'],
         issueSections: {
@@ -610,7 +610,7 @@ export const NODE_DEFS = {
         help: 'Pauses the run and asks a person to approve or reject it. Approve and the run carries on from the next step; reject and the run stops here.',
         // 'waiting' rather than 'advanced' for the deadline, for the same
         // reason the form page keeps its wait out of Advanced: how long a
-        // routine holds a real person's decision open is a first-class
+        // automation holds a real person's decision open is a first-class
         // choice, and hiding it behind the density filter is how an approval
         // silently expires over a holiday.
         sectionKeys: ['config', 'waiting'],

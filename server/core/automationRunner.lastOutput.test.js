@@ -3,13 +3,13 @@
  *
  * It used to return `automationStore.getRun(run.id)` verbatim — a run ROW, and
  * `lastOutput` is not a column (see rowToRun in stores/automationStore/rowMappers.js).
- * Only runDag produces it. So the three callers that hand a routine's result
+ * Only runDag produces it. So the three callers that hand an automation's result
  * back to an AI agent all read `result?.lastOutput` off that row and always got
  * `null`:
  *   - runStepAsTool (core/automationRunner.js) — a Reusable Step as a chat tool
- *   - automation/agentCallableTools.js — an agent-callable routine
+ *   - automation/agentCallableTools.js — an agent-callable automation
  *   - routes/automation/webhooksAndRunOps.js — POST /:id/agent-invoke
- * The agent ran the routine and was told nothing came back.
+ * The agent ran the automation and was told nothing came back.
  *
  * The store stub below returns a PLAIN ROW with no `lastOutput` key, exactly
  * like the real `rowToRun` — that is what makes this a regression test and not
@@ -75,7 +75,7 @@ stub('../stores/userStore', { getUser: async () => null, getOrganization: async 
 stub('../stores/configStore', { getConfig: async () => null, setConfig: async () => {} });
 stub('../stores/notificationStore', { createNotification: async () => {} });
 
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 process.env.NODE_ENV = 'test';
 
 const runner = require('./automationRunner');
@@ -109,7 +109,7 @@ test('executeAutomation returns the last step output as lastOutput', async () =>
 
     assert.strictEqual(result.status, 'success', `run succeeded (got ${result.status}: ${result.error})`);
     assert.ok(Object.prototype.hasOwnProperty.call(result, 'lastOutput'), 'the key exists at all');
-    assert.notStrictEqual(result.lastOutput, null, 'this was null for every agent-callable routine');
+    assert.notStrictEqual(result.lastOutput, null, 'this was null for every agent-callable automation');
     assert.strictEqual(result.lastOutput.stage, 'two', 'carries the LAST step, not the first');
 });
 
@@ -123,7 +123,7 @@ test('the run row itself is still returned intact alongside it', async () => {
     assert.ok(result.finishedAt, 'terminal fields still populated');
 });
 
-test('a routine with no steps reports lastOutput null rather than undefined', async () => {
+test('an automation with no steps reports lastOutput null rather than undefined', async () => {
     const empty = {
         ...twoStepAutomation(),
         definition: { trigger: { id: 'trig', type: 'trigger' }, steps: [], edges: [] },

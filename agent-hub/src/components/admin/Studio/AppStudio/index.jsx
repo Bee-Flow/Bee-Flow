@@ -12,7 +12,7 @@ import toast from '../../../shared/Toast';
  * No app open → the AppList gallery; an app open (deep link via initialAppId,
  * or a card click) → the fullscreen AppEditorShell. The section reports
  * fullscreen editing to the Studio shell through onEditingChange(bool) so the
- * tab bar hides while the editor is up (same contract as Agents/Routines),
+ * tab bar hides while the editor is up (same contract as Agents/Automations),
  * and mirrors the webpages URL pattern via onNavigate('studio/apps/<id>' |
  * 'studio/apps').
  *

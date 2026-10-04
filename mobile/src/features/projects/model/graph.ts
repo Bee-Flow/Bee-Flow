@@ -1,6 +1,6 @@
 /**
  * Reading the wiring graph of one Solution (server/projects/graph.js) —
- * ports of dependenciesByNode and formTriggeredRoutines
+ * ports of dependenciesByNode and formTriggeredAutomations
  * (projects/SolutionContentTable.jsx) and the grouping of the Flow tab
  * (projects/ProjectFlowTab.jsx).
  *
@@ -34,8 +34,8 @@ export function dependenciesByNode(graph: SolutionGraph | null | undefined): Map
     return out;
 }
 
-/** Which routine nodes a public form starts — from the graph's form nodes only. */
-export function formTriggeredRoutines(graph: SolutionGraph | null | undefined): Set<string> {
+/** Which automation nodes a public form starts — from the graph's form nodes only. */
+export function formTriggeredAutomations(graph: SolutionGraph | null | undefined): Set<string> {
     const ids = new Set<string>();
     for (const node of graph?.nodes ?? []) {
         if (node.type === 'form' && node.triggers) ids.add(node.triggers);
@@ -52,7 +52,7 @@ export interface WiringGroup {
 
 /**
  * The edges grouped by what does the calling, because that is how someone
- * looks for it: "what does this app touch?", not "who touches this routine?".
+ * looks for it: "what does this app touch?", not "who touches this automation?".
  * Order is the graph's own, first appearance first.
  */
 export function wiringGroups(graph: SolutionGraph): WiringGroup[] {

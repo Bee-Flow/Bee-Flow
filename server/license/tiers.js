@@ -19,11 +19,11 @@
  * Microsoft, AI generation, third-party connectors, the Nextcloud module
  * family). Enterprise does NOT add the integrations themselves — it adds the
  * orchestration layer on top (no-code automation builder, scheduled agent
- * routines), the MCP server marketplace (`mcp_marketplace`, an enterprise beta),
+ * automations), the MCP server marketplace (`mcp_marketplace`, an enterprise beta),
  * SSO beyond Nextcloud (`sso_saml` — Google/Microsoft/SAML; Nextcloud OAuth
  * login stays Community via `nextcloud_oauth`) and the rest of the
  * Studio-class capabilities (voice chat,
- * webpages, automations, agent routines, meeting notes, ticket assistant,
+ * webpages, automations, scheduled agent runs, meeting notes, ticket assistant,
  * notebooks, component designer, projects) on top, plus the advanced
  * Privacy Shield modes (tokenize PII, web-search guard), the non-overview
  * Usage & Monitoring tabs, and compliance / SSO / audit / themes / swarm
@@ -95,12 +95,12 @@ const TIER_FEATURES = {
         // OAuth login stays Community via `nextcloud_oauth`; Google/Microsoft/
         // SAML SSO are Enterprise via `sso_saml`.
         'integrations',
-        // n8n-style free builder: the Automation builder + Agent Routines run
+        // n8n-style free builder: the Automation builder + Scheduled agent runs run
         // for free in Community, exactly how n8n Community Edition ships the
         // workflow builder gratis. Building is free; *collaborating* is paid —
         // org-wide automation sharing (`automation_sharing`) and team workspaces
         // (`projects`) stay Enterprise (see the enterprise array below).
-        // Automations/routines are owner-private on every tier today (no
+        // Automations are owner-private on every tier today (no
         // is_published/shared_groups on the automations/ai_tasks tables), so
         // shipping these to Community exposes no cross-user surface.
         // These are also GA beta features (core/betaFeatures.js) that are
@@ -122,13 +122,13 @@ const TIER_FEATURES = {
         // NOTE: `automations` + `agent_routines` are NOT here — they moved to
         // the Community core above (n8n-style free builder). What stays
         // Enterprise is the *collaboration* layer on top: `automation_sharing`
-        // (org-wide sharing of automations/routines — a reserve boundary; no
+        // (org-wide sharing of automations — a reserve boundary; no
         // route consumes it yet) and `projects` (team workspaces — Bee Flow's
         // n8n-"Projects" equivalent).
         'automation_sharing',
         // Approvals — the human decision surface on top of the free builder,
         // and the same collaboration boundary `automation_sharing` draws:
-        // building a routine alone is free, routing it past a COLLEAGUE is
+        // building an automation alone is free, routing it past a COLLEAGUE is
         // paid. Enforced PER ROUTE inside routes/automation/approvals.js (the
         // /api/automation mount is Community, so the gate cannot live at the
         // mount): browsing — the list, its facets and the approver directory —
@@ -150,7 +150,7 @@ const TIER_FEATURES = {
         'support_inbox',
         // App Studio — Enterprise + beta opt-in. Visual app builder: AI
         // assembles structured component-tree apps whose forms/buttons run
-        // the owner's Routines; publishable to org/groups.
+        // the owner's Automations; publishable to org/groups.
         'app_studio',
         // Large datasets — Enterprise, rides on App Studio. Multi-GB structured
         // files (genome VCFs) via multipart upload + ingest-time indexing;
@@ -161,7 +161,7 @@ const TIER_FEATURES = {
         'large_datasets',
         // Blueprint packaging — Enterprise, rides on Projects. Exporting a
         // Solution reads every entity in it, including other members' apps and
-        // routines, so it is owner-only at the route as well as licence-gated.
+        // automations, so it is owner-only at the route as well as licence-gated.
         // Shares the /api/projects mount, so the gate is applied PER-ROUTE
         // in routes/projects/packaging.js, not router-level.
         'blueprint_packaging',

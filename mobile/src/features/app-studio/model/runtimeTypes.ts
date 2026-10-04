@@ -93,7 +93,7 @@ export type ValueBag = Record<string, unknown>;
 
 /**
  * `POST …/actions/:aid/run` and `GET …/actions/runs/:runId`: one contract.
- * A 202 is `{ runId, status: 'pending' }`; an already-running routine answers
+ * A 202 is `{ runId, status: 'pending' }`; an already-running automation answers
  * `{ status: 'skipped', message }`.
  */
 export interface ActionRunResult {

@@ -12,8 +12,8 @@
  * `gmail_attachment` handle — bytes the tool fetches itself, never bytes the
  * model copied into an argument. This module is the one place the handle is
  * turned into bytes, and it is scoped to the RUN: `getGeneratedFileForRuns`
- * only answers for the journey's run ids, so a routine cannot upload a file
- * another routine produced by guessing an id. Outside a run (a chat) there is
+ * only answers for the journey's run ids, so an automation cannot upload a file
+ * another automation produced by guessing an id. Outside a run (a chat) there is
  * no journey, so the handle is refused with a clear message rather than
  * resolved against nothing.
  */
@@ -50,7 +50,7 @@ async function readGeneratedFile(handle, runScope) {
     if (!isGeneratedFileHandle(handle)) return null;
     if (!runScope || !runScope.runId) {
         throw Object.assign(
-            new Error('A generated_file handle can only be used inside a routine run — the file belongs to that run.'),
+            new Error('A generated_file handle can only be used inside an automation run — the file belongs to that run.'),
             { errorClass: 'handle_scope_missing' },
         );
     }

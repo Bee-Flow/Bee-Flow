@@ -42,9 +42,9 @@ describe('partitionInputs', () => {
 
     /**
      * BFSF-358A — a result cap used to land in "advanced". gmail_search's
-     * maxResults was therefore collapsed AND placeholder-less, so a routine
+     * maxResults was therefore collapsed AND placeholder-less, so an automation
      * whose query matched 201 mails silently processed 10 and nothing on
-     * screen said why. A field that decides how much data the routine sees is
+     * screen said why. A field that decides how much data the automation sees is
      * never an advanced detail.
      */
     it('shows a result cap by default, in either spelling', () => {

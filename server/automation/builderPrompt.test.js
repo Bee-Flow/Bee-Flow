@@ -500,7 +500,7 @@ t('the naming rule is in both variants, and the draft-state message opens with t
     const lean = buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true });
     const full = buildFullSystemPrompt({ catalog: CATALOG, codeStepEnabled: false });
     for (const [name, p] of [['lean', lean], ['full', full]]) {
-        assert.ok(/FIRST reply on a new draft names the routine/.test(p), `${name}: first-reply rule`);
+        assert.ok(/FIRST reply on a new draft names the automation/.test(p), `${name}: first-reply rule`);
         assert.ok(/builder_set_metadata\(\{title, description\}\)/.test(p), `${name}: the call`);
         assert.ok(/"Untitled automation" is a defect/.test(p), `${name}: the defect sentence`);
     }

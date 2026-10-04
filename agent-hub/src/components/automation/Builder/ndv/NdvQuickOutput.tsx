@@ -13,14 +13,14 @@ type RunStepProp = Parameters<typeof RunTabContainer>[0]['runStep'];
  * (`running` is --type-ai there, so here too).
  */
 const QUICK_STATUS: Record<string, { key: string; en: string; color: string }> = {
-    success: { key: 'routines.ndv.quick_success', en: 'Success', color: 'text-[var(--text-tertiary)]' },
-    error: { key: 'routines.ndv.quick_failed', en: 'Failed', color: 'text-[var(--error)]' },
-    failed: { key: 'routines.ndv.quick_failed', en: 'Failed', color: 'text-[var(--error)]' },
-    running: { key: 'routines.ndv.quick_running', en: 'Running…', color: 'text-[var(--type-ai)]' },
-    awaiting_approval: { key: 'routines.ndv.pill_waiting', en: 'Waiting for approval', color: 'text-[var(--warning)]' },
-    pinned: { key: 'routines.ndv.pinned', en: 'Pinned', color: 'text-[var(--pinned)]' },
+    success: { key: 'automations.ndv.quick_success', en: 'Success', color: 'text-[var(--text-tertiary)]' },
+    error: { key: 'automations.ndv.quick_failed', en: 'Failed', color: 'text-[var(--error)]' },
+    failed: { key: 'automations.ndv.quick_failed', en: 'Failed', color: 'text-[var(--error)]' },
+    running: { key: 'automations.ndv.quick_running', en: 'Running…', color: 'text-[var(--type-ai)]' },
+    awaiting_approval: { key: 'automations.ndv.pill_waiting', en: 'Waiting for approval', color: 'text-[var(--warning)]' },
+    pinned: { key: 'automations.ndv.pinned', en: 'Pinned', color: 'text-[var(--pinned)]' },
     // Never "Pinned": a value the author typed is not a capture.
-    edited: { key: 'routines.ndv.edited', en: 'Edited', color: 'text-[var(--pinned)]' },
+    edited: { key: 'automations.ndv.edited', en: 'Edited', color: 'text-[var(--pinned)]' },
 };
 
 /**
@@ -68,7 +68,7 @@ export default function NdvQuickOutput({
             <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--text-secondary)]">
                 <button type="button" onClick={onToggle} aria-expanded={open} className="inline-flex items-center gap-1.5 hover:text-[var(--text-primary)] min-w-0">
                     {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                    {t('routines.ndv.output', 'Output')}
+                    {t('automations.ndv.output', 'Output')}
                     {s && <span className={`normal-case font-normal tracking-normal ${s.color}`}>· {t(s.key, s.en)}</span>}
                     {outSummary && (
                         <span className="normal-case font-normal tracking-normal text-[var(--text-tertiary)] truncate">· {outSummary.label}</span>
@@ -88,7 +88,7 @@ export default function NdvQuickOutput({
                                     : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'}`}
                         >
                             {pinned ? <PinOff size={11} /> : <Pin size={11} />}
-                            {pinned ? (edited ? t('routines.ndv.clear', 'Clear') : t('routines.ndv.pinned', 'Pinned')) : t('routines.ndv.pin', 'Pin')}
+                            {pinned ? (edited ? t('automations.ndv.clear', 'Clear') : t('automations.ndv.pinned', 'Pinned')) : t('automations.ndv.pin', 'Pin')}
                         </button>
                     )}
                 </span>

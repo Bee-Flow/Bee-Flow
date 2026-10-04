@@ -5,7 +5,7 @@ import { describeStepResult } from './stepResultChip';
 /**
  * The result chip's phrase for every shape a run row's output can take. The
  * translator is stubbed with the English fallbacks so the strings asserted
- * here are what the dictionary carries under routines.canvas.result.*.
+ * here are what the dictionary carries under automations.canvas.result.*.
  */
 const t = (key, fallback, params) => {
     let out = fallback;

@@ -28,6 +28,7 @@
 
 const llmClient = require('../core/llm/llmClient');
 const usageStore = require('../stores/usageStore');
+const { usageLogFields } = require('../core/providers/usageNormalizer');
 const log = require('../telemetry/log');
 
 // ── Caps (defence-in-depth; the attachment quota is the real byte backstop) ──
@@ -99,12 +100,6 @@ function visionByModelName(modelId) {
     return /gpt-4o|gpt-4\.1|gpt-4\.5|gpt-5|o4|gemini/i.test(modelId);
 }
 
-function num(usage, snake, camel) {
-    if (!usage || typeof usage !== 'object') return 0;
-    const v = usage[snake] ?? usage[camel];
-    return Number.isFinite(v) ? v : 0;
-}
-
 function usageEntry(app, modelId, usage, t0, source) {
     return {
         user_id: app.userId,
@@ -113,11 +108,10 @@ function usageEntry(app, modelId, usage, t0, source) {
         agent_name: `App: ${app.name || 'Untitled app'}`,
         agent_type: 'studio_app',
         model: modelId,
-        prompt_tokens: num(usage, 'prompt_tokens', 'promptTokens'),
-        completion_tokens: num(usage, 'completion_tokens', 'completionTokens'),
-        total_tokens: num(usage, 'total_tokens', 'totalTokens'),
-        cached_tokens: num(usage, 'cached_tokens', 'cachedTokens'),
-        reasoning_tokens: num(usage, 'reasoning_tokens', 'reasoningTokens'),
+        // Tokens, cache read/write (with the 5m/1h split and cache_ttl), reasoning,
+        // tier and tool counts: adapters return the normalised shape
+        // (core/providers/usageNormalizer.js); a raw provider block is read too.
+        ...usageLogFields(usage),
         duration_ms: Date.now() - t0,
         source,
         conversation_id: app.id,
@@ -204,7 +198,9 @@ async function modelSupportsNativeDocuments(modelId) {
     try {
         const { getProviderForModel } = require('../core/aiAgent');
         const { getAdapter } = require('../core/providers');
+        const { NATIVE_PDF_PROVIDER_TYPES } = require('../core/documents/nativePdf');
         const cfg = await getProviderForModel(modelId);
+        if (!NATIVE_PDF_PROVIDER_TYPES.has(String(cfg?.providerType || '').toLowerCase())) return false;
         const adapter = getAdapter(cfg?.providerType, cfg?.url);
         return !!(adapter && typeof adapter.supportsDocuments === 'function' && adapter.supportsDocuments(modelId));
     } catch {
@@ -487,7 +483,10 @@ async function streamChat(app, model, { system, messages }, onEvent) {
     const t0 = Date.now();
     let lastUsage = null;
     await llmClient.stream(model.modelId, full, model.options || {}, (type, data) => {
-        if (type === 'done' && data && data.usage) lastUsage = data.usage;
+        // Adapters put the (normalised) usage FLAT on the 'done' payload; a
+        // nested `usage` is read too. Reading only `data.usage` logged every
+        // streamed app chat with zero tokens.
+        if (type === 'done' && data) lastUsage = data.usage || data;
         onEvent(type, data);
     });
     logUsage(app, model.modelId, lastUsage, t0, 'studio_app_chat');

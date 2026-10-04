@@ -123,7 +123,7 @@ describe('AccordionSection mode (Simple / All options)', () => {
     it('a section revealed by Simple → All options arrives OPEN', () => {
         const ui = (mode) => (
             <FormDensityContext.Provider value={{ density: 'quick', mode }}>
-                <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced">
+                <AccordionSection stepType="ai_step" sectionKey="output" title="Output">
                     <div>secret setting</div>
                 </AccordionSection>
             </FormDensityContext.Provider>
@@ -134,6 +134,35 @@ describe('AccordionSection mode (Simple / All options)', () => {
         // Not merely present — OPEN. Revealing it collapsed would make the
         // toggle look like it did nothing.
         expect(screen.getByText('secret setting')).toBeTruthy();
+    });
+
+    it('Advanced itself never opens by itself: not on that reveal, not with defaultOpen', () => {
+        const ui = (mode) => (
+            <FormDensityContext.Provider value={{ density: 'quick', mode }}>
+                <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced" defaultOpen>
+                    <div>secret setting</div>
+                </AccordionSection>
+            </FormDensityContext.Provider>
+        );
+        const { rerender } = render(ui('simple'));
+        rerender(ui('advanced'));
+        expect(screen.getByRole('button', { name: /Advanced/ })).toBeTruthy();
+        expect(screen.queryByText('secret setting')).toBeNull();
+    });
+
+    it('a section that appears because it now HOLDS something stays closed, with a quiet "set"', () => {
+        // The builder just set a forEach after a connect: hasContent flips.
+        const ui = (hasContent) => (
+            <FormDensityContext.Provider value={{ density: 'quick', mode: 'simple' }}>
+                <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced" hasContent={hasContent}>
+                    <div>secret setting</div>
+                </AccordionSection>
+            </FormDensityContext.Provider>
+        );
+        const { rerender } = render(ui(false));
+        rerender(ui(true));
+        expect(screen.queryByText('secret setting')).toBeNull();
+        expect(screen.getByText('set')).toBeTruthy();
     });
 
     it('All options → Simple hides again without opening anything else', () => {

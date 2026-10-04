@@ -52,7 +52,13 @@ async function runServe() {
     const server = await chromium.launchServer(launchOpts);
 
     // Single, greppable line the worker waits for. Flush before idling.
-    process.stdout.write(`PWT_WS_ENDPOINT=${server.wsEndpoint()}\n`);
+    // With a static PWT_SERVE_WS_PATH nobody scrapes this line, and that path
+    // is the only thing guarding an unauthenticated server: keep it out of
+    // `docker logs` and log shippers.
+    const endpoint = SERVE_WS_PATH
+        ? server.wsEndpoint().replace(SERVE_WS_PATH, '/<PWT_SERVE_WS_PATH>')
+        : server.wsEndpoint();
+    process.stdout.write(`PWT_WS_ENDPOINT=${endpoint}\n`);
 
     const shutdown = async () => {
         try { await server.close(); } catch (_) { /* ignore */ }

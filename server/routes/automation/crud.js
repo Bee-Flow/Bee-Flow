@@ -12,27 +12,18 @@ const router = express.Router();
 // ASYNC, and fresh from `users`, because this used to be
 // `req.session.user.organizationId`: only two of the login shapes frozen by
 // auth/sessionShapes.contract.test.js ever write that, so every returning
-// member looked org-less. A routine created that way was stamped NULL, its
+// member looked org-less. An automation created that way was stamped NULL, its
 // datatable usage index was written against no org (the INSERT's WHERE EXISTS
 // matched nothing) and its folders landed in the shared no-org bucket.
 const { resolveDatatablePrincipal } = require('../../auth/datatableAccess');
 const orgOf = async (req) => (await resolveDatatablePrincipal(req)).orgId;
 
-/**
- * R2 — the agent ids this routine's OWNER may hand an ai_step to, or `null`
- * when the question could not be asked (the rule is then skipped; the run is
- * the gate). One helper for every path in this file, so save and activate can
- * never resolve the identity differently — see automation/agentCatalog.js.
- */
-async function agentsFor(definition, ownerId) {
-    try {
-        const { agentCatalogForOwner } = require('../../automation/agentCatalog');
-        return await agentCatalogForOwner(definition, ownerId);
-    } catch (e) {
-        log.warn('[automation] agent catalog build failed; continuing without the agent check:', e.message);
-        return null;
-    }
-}
+// The helpers save, activate and publish share live in automation/ so the
+// go-live cores (automation/goLive.js) use the same ones — see
+// automation/liveSideEffects.js for what each does and why it is best-effort.
+const liveSideEffects = require('../../automation/liveSideEffects');
+const { agentsFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = liveSideEffects;
+const { deactivateCore } = require('../../automation/goLive');
 const automationStore = require('../../stores/automationStore');
 const { z } = require('zod');
 const { validate } = require('../../core/http/validate');
@@ -43,72 +34,12 @@ const { validateDefinition } = require('../../automation/validate');
 const { topicClassifierFor } = require('../../core/classify/classifierClient');
 
 /**
- * Knowledge-base findings for a definition, at a stage.
- *
- * Fail-OPEN on its own errors: a knowledge-base store that is down must not
- * make every routine unsaveable, and the runtime re-checks each id before it
- * searches anyway. A finding this pass cannot produce is a missing warning,
- * not a missing gate.
+ * Knowledge-base findings for a definition, at a stage, for this request: the
+ * organisation is the caller's (orgOf). Fail-open — see
+ * automation/liveSideEffects.kbFindingsFor.
  */
 async function kbFindingsFor(definition, req, userId, stage) {
-    try {
-        const { kbStepFindings } = require('../../core/kb/automationKbCheck');
-        return await kbStepFindings(definition, { orgId: await orgOf(req), userId, stage });
-    } catch (e) {
-        log.warn('[automation/crud] knowledge-base check unavailable:', e.message);
-        return [];
-    }
-}
-/**
- * Tell compliance that this routine's posture just changed.
- *
- * The Compliance Center used to learn about a routine only from the 6-hourly
- * sweep in compliance/scheduler.js. Switch a routine on at 09:05 and the sweep
- * that had already run at 06:00 was the last word until 12:00 — so for hours
- * the dashboard described a workspace without this routine in it, stayed
- * green, and told nobody that a thing now running unattended had no verdict
- * against it. Activation is the moment that stops being a build-time detail,
- * so activation is where the review is asked for.
- *
- * FIRE-AND-FORGET, DELIBERATELY. This returns before anything compliance-
- * shaped has happened: the org lookup, the queueing and the checks themselves
- * all run after the response. Nobody waits behind a spinner for a compliance
- * sweep, and — the harder rule — nothing in here may turn a successful
- * activation into an error. The routine is on; the user has been told so; a
- * compliance path that throws is a log line and nothing more. Worst case the
- * verdict waits for the scheduled sweep after all, which is exactly where we
- * were before.
- *
- * The queue itself (compliance/subjectReview.js) coalesces and scopes: five
- * flips of one switch are one review of one routine, never five sweeps of the
- * whole workspace.
- *
- * `organizationId` first, then the OWNER's — that is the COALESCE the checks
- * scope their own subject lists by (compliance/aiAct/signals.js), so anything
- * else asks a different organisation's dashboard to refresh. Never the
- * presser's org: see the note in the activate handler about the last time
- * those two were allowed to disagree.
- */
-function wakeComplianceReview(a, reason) {
-    Promise.resolve().then(async () => {
-        // "First, then" literally: a stamped row already answers the question,
-        // so the owner is only read when it does not. Reading him anyway made
-        // every activation of every org-stamped routine do an identity read
-        // for a value it was about to throw away — and it put that read on the
-        // agent gate's "no agent named, nothing looked up" path
-        // (crud.agentGate.test.js), where it did not belong.
-        let orgId = a.organizationId || null;
-        if (!orgId && a.userId) {
-            const userStore = require('../../stores/userStore');
-            const owner = await userStore.getUser(a.userId).catch(() => null);
-            orgId = owner?.organizationId || null;
-        }
-        // No organisation means no per-source check can match this routine at
-        // all (their subject queries are org-scoped), so there is nothing to
-        // wake — not an error, just a personal install.
-        if (!orgId) return;
-        require('../../compliance/subjectReview').reviewAutomation(orgId, a.id, { reason });
-    }).catch(e => log.warn(`[automation/${reason}] compliance review could not be queued for ${a.id}: ${e.message}`));
+    return liveSideEffects.kbFindingsFor(definition, { orgId: async () => await orgOf(req), userId, stage });
 }
 
 const { triggerColumnsFromDefinition } = require('../../automation/triggerColumns');
@@ -119,7 +50,6 @@ require('../../automation/triggerBus');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { buildExport, sanitizeImport, rebindDatatables, rekeyDefinition, stripAppRefs } = require('../../automation/portability');
 const { syncDatatableUsage } = require('../../automation/datatableUsageSync');
-const formAnswers = require('../../automation/formAnswers');
 const { AUDIENCES, audienceAdmits, needsGroups, publicAudience } = require('../../automation/formAudience');
 const { syncKbSources } = require('../../core/kb/kbSourceSync');
 const { syncSchedules, scheduleFingerprint } = require('../../automation/scheduleSync');
@@ -130,8 +60,8 @@ const { activateAutomation, publishAutomation } = require('./activate');
 const { makeTrashHandlers } = require('./trash');
 const { withSanitizedRunPolicy, resolveRunPolicy, runTimeoutMsFor } = require('../../core/automationRunner/runPolicy');
 // Handoff 5, sharing and roles: one answer to "may this caller do that with
-// this routine" (automation/access.js). Owner first and free; org admins with
-// manage_automations and people/groups the routine is shared with after.
+// this automation" (automation/access.js). Owner first and free; org admins with
+// manage_automations and people/groups the automation is shared with after.
 const { makeAutomationAccess, projectForViewer, roleSatisfies, groupsOf } = require('../../automation/access');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 const trashHandlers = makeTrashHandlers({
@@ -142,79 +72,26 @@ const trashHandlers = makeTrashHandlers({
 });
 
 /**
- * Make sure every `form` trigger in a saved definition has its public page.
- *
- * A form trigger's whole purpose is a page anyone can fill in, so the page
- * belongs to the trigger, not to whoever happened to open the builder panel
- * that used to mint it. Provisioning here means "Forms" can list a routine the
- * moment its trigger is saved, and it survives that panel being hidden.
- *
- * The primary trigger is stored with a NULL triggerStepId — the same
- * convention the panel used, and the one loadForm reads. Best-effort: a save
- * must not fail because a link could not be minted.
- */
-async function ensureFormPages(automationId, definition) {
-    const primary = definition?.trigger;
-    const extra = Array.isArray(definition?.triggers) ? definition.triggers : [];
-    const wanted = [
-        ...(primary?.kind === 'form' ? [null] : []),
-        ...extra.filter(t => t?.kind === 'form' && t.id).map(t => t.id),
-    ];
-    for (const triggerStepId of wanted) {
-        try {
-            await automationStore.ensureFormPage(automationId, triggerStepId);
-        } catch (e) {
-            log.warn(`[automation form page] could not provision for ${automationId}: ${e.message}`);
-        }
-    }
-}
-
-/**
- * The answers table a form trigger writes into, kept in step with the form on
- * every save (automation/formAnswers). Best-effort like ensureFormPages: the
- * outcome rides back on the response as `answers`, a failure never fails the
- * save. Returns the usage entry the dependents index needs, so the table's
- * "used by" names the routine and a DELETE of the table warns.
- */
-async function ensureAnswersTable(automation, definition) {
-    try {
-        const out = await formAnswers.ensureAnswersTable(automation, definition);
-        if (!out) return { answers: null, usage: [] };
-        if (!out.table) return { answers: { datatableId: null, created: false, changed: false, error: out.error || null }, usage: [] };
-        return {
-            answers: {
-                datatableId: out.table.id, created: !!out.created, changed: !!out.changed,
-                ...(out.warnings && out.warnings.length ? { warnings: out.warnings } : {}),
-            },
-            usage: [{ datatableId: out.table.id, stepId: 'trigger:form', mode: 'write', columns: [] }],
-        };
-    } catch (e) {
-        log.warn(`[form answers] ${automation?.id}: ${e.message}`);
-        return { answers: { datatableId: null, created: false, changed: false, error: { code: 'provision_failed', message: e.message } }, usage: [] };
-    }
-}
-
-/**
- * P4 — WIENS routine wordt dit, als hij vanuit een app-knop wordt gemaakt?
+ * P4 — WIENS automation wordt dit, als hij vanuit een app-knop wordt gemaakt?
  *
  * Een definitie met `trigger.appRef` komt van "Nieuwe vanuit deze knop" in App
- * Studio. Die routine bestaat om door één app-actie gedraaid te worden, en die
+ * Studio. Die automatisering bestaat om door één app-actie gedraaid te worden, en die
  * actie draait ALS DE EIGENAAR van de app: de brug
  * (appStudio/actionExecutor/automationBridge.js) weigert botweg zodra de
- * routine-eigenaar niet de app-eigenaar is. De eigenaar van de nieuwe routine
+ * automation-eigenaar niet de app-eigenaar is. De eigenaar van de nieuwe automatisering
  * bepaalt dus met wiens rechten hij straks draait — dat is geen detail.
  *
  * De regel en het waarom staan in appStudio/appRefLookup.appRefOwnerVerdict;
  * hier gebeurt alleen het LADEN, en het laden mag niet fail-open zijn: een
  * store die eruit ligt levert `app: null` en dus een weigering, nooit een gok.
  *
- * Zonder appRef verandert er niets: een gewone routine hoort bij wie hem maakt.
+ * Zonder appRef verandert er niets: een gewone automatisering hoort bij wie hem maakt.
  *
  * ── Waarom alleen op CREATE ──────────────────────────────────────────────
  *
  * Dit gaat over de EIGENAAR, en die wordt precies één keer gekozen. Dezelfde
- * poort op PUT zou een routine onbewerkbaar maken zodra de app waarnaar hij
- * wijst van eigenaar wisselt of verdwijnt — de eigenaar kan zijn eigen routine
+ * poort op PUT zou een automatisering onbewerkbaar maken zodra de app waarnaar hij
+ * wijst van eigenaar wisselt of verdwijnt — de eigenaar kan zijn eigen automatisering
  * dan niet eens meer opslaan om die verwijzing weg te halen. En er valt niets
  * mee te winnen: de back-pointer is een LABEL. Wie hem later naar andermans app
  * laat wijzen krijgt daar geen rechten mee — appRefLookup vertelt een
@@ -248,7 +125,7 @@ async function appRefOwnerGate(definition, actorUserId) {
  * (both tenancies, then the same grade resolver the runner uses), so an import
  * can only ever re-link to a table its importer can already see.
  *
- * Best-effort by design: a datatable outage must leave the routine importable
+ * Best-effort by design: a datatable outage must leave the automation importable
  * with its steps unlinked, which is what the file said anyway. Returning []
  * loses nothing except the re-link.
  */
@@ -274,13 +151,13 @@ async function importableDatatables(req) {
 }
 
 /**
- * The routines wired to one app-event provider (M2).
+ * The automations wired to one app-event provider (M2).
  *
  *   GET /api/automation?triggerProvider=meeting-notes[&triggerEvent=meeting.processed]
  *
  * ── THIS LIST IS THE CALLER'S OWN, NOT THE ORGANISATION'S ───────────
  * `getAutomationsForUser` is `WHERE user_id = $1`, so the filter can only
- * ever answer over the caller's routines. That happens to line up with the
+ * ever answer over the caller's automations. That happens to line up with the
  * dispatch reality — `emitMeetingProcessed` always carries the owner's
  * userId and `triggerBus/dispatch.js` skips every subscription belonging to
  * anybody else — but the two are independent facts and a screen built on
@@ -291,8 +168,8 @@ async function importableDatatables(req) {
  * The failure this guards against is a caller asking for a provider id that
  * does not exist — `meeting_notes` with an underscore is the live example:
  * PROVIDER_ID_RE rejects underscores, so that source never registered, and a
- * filter that quietly fell back to the whole list would hand a "routines on
- * this meeting" panel every routine the person owns. Silently returning
+ * filter that quietly fell back to the whole list would hand a "automations on
+ * this meeting" panel every automation the person owns. Silently returning
  * everything on a typo'd narrowing parameter is the wrong direction for a
  * list that decides what a screen claims.
  */
@@ -325,8 +202,8 @@ const ListQuery = z.object({
     message: 'triggerEvent only means something together with triggerProvider.',
 });
 
-const TITLE_TEXT = 'A routine needs a title.';
-const DEFINITION_TEXT = 'A routine needs a definition — the flow itself.';
+const TITLE_TEXT = 'An automation needs a title.';
+const DEFINITION_TEXT = 'An automation needs a definition — the flow itself.';
 const TRIGGER_TYPE_TEXT = 'triggerType is text, like "manual" or "schedule".';
 const CRON_TEXT = 'scheduleCron must be text — a cron expression.';
 const TZ_TEXT = 'scheduleTz must be text — a time zone.';
@@ -348,7 +225,7 @@ const CreateAutomationBody = z.object({
     scheduleCron: worded(CRON_TEXT).trim().nullish().default(null),
     scheduleTz: worded(TZ_TEXT).trim().min(1, TZ_TEXT).default('Europe/Amsterdam'),
     createdFromChatId: worded('createdFromChatId must be text.').trim().min(1).nullish().default(null),
-    // Handoff 5: the gallery template this routine starts from, so v1 reads
+    // Handoff 5: the gallery template this automation starts from, so v1 reads
     // "Created from template ...". Unknown ids are ignored (plain "Created").
     templateId: worded('templateId must be the id of a template.').trim().min(1).max(200).nullish().default(null),
 }).strict();
@@ -356,7 +233,7 @@ const CreateAutomationBody = z.object({
 const FOLDER_TEXT = 'folderId is the id of a folder, or null to move it back to the top level.';
 const ICON_TEXT = 'icon is the name of an icon (letters, digits and dashes, at most 40 characters), or null for the default.';
 const UpdateAutomationBody = z.object({
-    // The routine's own symbol (a lucide icon name). Null resets it.
+    // The automation's own symbol (a lucide icon name). Null resets it.
     icon: worded(ICON_TEXT).trim().max(40, ICON_TEXT).regex(/^[A-Za-z][A-Za-z0-9-]*$/, ICON_TEXT).nullish(),
     title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT).optional(),
     description: worded('A description must be text.').nullish(),
@@ -382,7 +259,7 @@ const AudienceBody = z.object({
 }).strict();
 
 /**
- * The routines shared WITH the caller (handoff 5), each with `myRole` and
+ * The automations shared WITH the caller (handoff 5), each with `myRole` and
  * `owner`. Read fresh from `users` (organisation and groups), like every other
  * access decision. Fail-soft: the caller's own list must not disappear because
  * the shared half could not be read.
@@ -396,7 +273,7 @@ async function sharedWithCaller(req) {
         });
         return (rows || []).map(r => projectForViewer(r, { role: r.myRole, via: 'share' }));
     } catch (e) {
-        log.warn('[automation list] shared routines unavailable:', e.message);
+        log.warn('[automation list] shared automations unavailable:', e.message);
         return [];
     }
 }
@@ -408,9 +285,9 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
     const list = (own || []).map(a => projectForViewer(a, { role: 'owner', via: 'owner' }));
 
     const { triggerProvider, triggerEvent } = req.query;
-    // Unfiltered: the caller's own routines and the ones shared with them,
+    // Unfiltered: the caller's own automations and the ones shared with them,
     // newest first. The provider-filtered list below stays the caller's OWN
-    // (see appEventTriggersOf): an app event only ever fires its owner's routines.
+    // (see appEventTriggersOf): an app event only ever fires its owner's automations.
     if (triggerProvider === undefined) {
         return res.json({ automations: [...list, ...await sharedWithCaller(req)].sort(byUpdatedDesc) });
     }
@@ -437,7 +314,7 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
 });
 
 // Create automation (default isDraft=true; finalise via PUT or activate).
-/** v1's description for a routine started from a gallery template; null when the id is unknown. */
+/** v1's description for an automation started from a gallery template; null when the id is unknown. */
 async function templateVersionMeta(templateId, userId, orgId) {
     try {
         const { getTemplateFor } = require('../../automation/templates');
@@ -457,7 +334,7 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
     const userId = req.session.user.id;
     const { title, description, triggerType, scheduleCron, scheduleTz, createdFromChatId, templateId } = req.body;
     let { definition } = req.body;
-    // WIENS routine wordt dit? Alleen anders dan "van de maker" wanneer de
+    // WIENS automatisering wordt dit? Alleen anders dan "van de maker" wanneer de
     // definitie een app-back-pointer draagt — zie appRefOwnerGate hierboven.
     // Vóór de validatie, want een weigering hier is over eigendom en moet
     // niet als "ongeldige definitie" bij de gebruiker aankomen.
@@ -489,12 +366,12 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
     const organizationId = await orgOf(req);
     const a = await automationStore.createAutomation({
         // organizationId was accepted by the store from the start and never
-        // passed, so the column was NULL for every routine and the runner
+        // passed, so the column was NULL for every automation and the runner
         // re-derived it per run from the owner. A datatable is scoped by
         // organisation and needs it stored, not derived.
         //
         // De eigenaar komt uit de poort, niet rechtstreeks uit de sessie.
-        // Voor een gewone routine is dat dezelfde waarde; voor één die
+        // Voor een gewone automatisering is dat dezelfde waarde; voor één die
         // vanuit een app-knop wordt gemaakt is het de APP-EIGENAAR, en dat
         // de poort die twee gelijk heeft bevonden is precies de reden dat
         // er hier iets gemaakt mag worden. Zo staat de regel in de code in
@@ -506,12 +383,12 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
     });
     await ensureFormPages(a.id, definition);
     const { answers, usage: answersUsage } = await ensureAnswersTable(a, definition);
-    // The builder can create a routine complete with datatable steps in one
+    // The builder can create an automation complete with datatable steps in one
     // POST (duplicate, template, "create from chat"), and until the author
     // happens to save it again nothing indexed those steps.
     await syncDatatableUsage(a.id, organizationId, definition, { label: 'automation create', extraEntries: answersUsage });
     await syncKbSources(a.id, definition, { userId, title: a.title });
-    // A routine can arrive complete in one POST (duplicate, template,
+    // An automation can arrive complete in one POST (duplicate, template,
     // "create from chat"), knowledge-base links and all. Reported, not
     // enforced: the row lands as a draft and activation is the gate.
     const kbWarnings = await kbFindingsFor(definition, req, userId, 'draft');
@@ -584,7 +461,7 @@ router.put('/folders/:folderId', validate({ body: FolderPatch }), async (req, re
 router.delete('/folders/:folderId', async (req, res) => {
     const existing = await automationStore.getFolder(req.params.folderId);
     if (!existing) return res.status(404).json({ error: 'Not found' });
-    // Detaches, never deletes: the folder may hold routines belonging to
+    // Detaches, never deletes: the folder may hold automations belonging to
     // colleagues this user cannot see.
     const { detached } = await automationStore.deleteFolder(req.params.folderId);
     return res.json({ success: true, detached });
@@ -610,7 +487,7 @@ router.get('/forms', async (req, res) => {
     const rows = await automationStore.listFormPagesForOrg(await orgOf(req), req.session.user.id);
     // One entry per form, not per row. The old builder panel looked its
     // page up by trigger and created one when the lookup missed, which on
-    // a multi-trigger routine could mint a SECOND page for the same form —
+    // a multi-trigger automation could mint a SECOND page for the same form —
     // there are such pairs in the wild. Both addresses still work; showing
     // both just gives you the same form twice under one name. The busiest
     // wins, because that is the link people actually have (ties go to the
@@ -638,7 +515,7 @@ router.get('/forms', async (req, res) => {
             automationId: row.automationId,
             triggerStepId: row.triggerStepId,
             // The form's own heading when the author gave it one; the
-            // routine's title is the fallback, which is what the builder
+            // automation's title is the fallback, which is what the builder
             // shows anyway.
             title: trigger.form?.title || row.title || 'Untitled form',
             description: trigger.form?.description || row.description || null,
@@ -648,7 +525,7 @@ router.get('/forms', async (req, res) => {
             submissions: row.submissions,
             lastSeenAt: row.lastSeenAt,
             createdAt: row.createdAt,
-            // Whether this caller can open the routine behind the form:
+            // Whether this caller can open the automation behind the form:
             // the automation endpoints are still per-user.
             mine,
             // Whether this caller may FILL IT IN — the visitor gate's own
@@ -719,7 +596,7 @@ async function readAudienceBody(body, orgId) {
 }
 
 /**
- * The answers tables behind a directory of form routines, with the CALLER's
+ * The answers tables behind a directory of form automations, with the CALLER's
  * grade on each: form owner, org admin, or anyone the table is shared with.
  * One store round trip for the tables, one for the grants — never a probe
  * per row. A table the caller has no grade on stays anonymous (no id).
@@ -785,7 +662,7 @@ router.post('/forms/ai/draft',
  * outside it, exactly like the visitor page). The DEFINITION travels only
  * to the owner — it is what the Questions and Settings tabs save through
  * PUT /:id, and a colleague who may read the answers may not read the
- * routine. Registered before `/:id` like GET /forms.
+ * automation. Registered before `/:id` like GET /forms.
  */
 router.get('/forms/:automationId', async (req, res) => {
     const rows = await automationStore.listFormPagesForOrg(await orgOf(req), req.session.user.id);
@@ -838,7 +715,7 @@ router.get('/forms/:automationId', async (req, res) => {
         pages: formAnswers.inputPagesOf(def).map(p => ({ stepId: p.stepId, label: p.label, mode: 'input', fields: normalizeFields(p.form) })),
         answers: answersFor(row, trigger, answersByAutomation),
         myRole: formAccess.role,
-        ...(mayEdit ? { definition: def, routineTitle: row.title || '' } : {}),
+        ...(mayEdit ? { definition: def, automationTitle: row.title || '' } : {}),
     };
     res.json({ form });
 });
@@ -885,7 +762,7 @@ router.post('/forms/:automationId/answers-table', async (req, res) => {
     const { answers, usage } = await ensureAnswersTable(a, a.definition);
     if (answers?.error?.code === 'quota_exceeded') return res.status(409).json({ error: answers.error.message, code: 'quota_exceeded' });
     // The org comes from orgOf, as at every other call site: the usage
-    // INSERT has a WHERE EXISTS on the org, so a routine from before
+    // INSERT has a WHERE EXISTS on the org, so an automation from before
     // organization_id was stored (NULL) indexed nothing — and said nothing.
     await syncDatatableUsage(a.id, await orgOf(req), a.definition, { label: 'answers table', extraEntries: usage });
     res.json({ answers });
@@ -933,7 +810,7 @@ router.post('/import', importLimiter, async (req, res) => {
     // Re-link datatable steps BEFORE validating: export blanks the id (a
     // datatable id names a table in ONE organisation) and keeps the key, and
     // `datatable.table_missing` blocks at this stage — so until this ran, a
-    // routine with a datatable step could not be imported at all, not even
+    // automation with a datatable step could not be imported at all, not even
     // as a draft to repair by hand. Only the caller's own tables are offered
     // to it, so a re-link cannot cross a scope boundary.
     const { entries: datatableEntries } = rebindDatatables(incoming.definition, await importableDatatables(req));
@@ -942,12 +819,12 @@ router.post('/import', importLimiter, async (req, res) => {
         severity: 'warning',
         path: e.layerKey ? `layers.${e.layerKey}.steps.${e.stepId || ''}` : `steps.${e.stepId || ''}`,
         message: e.message,
-        hint: e.datatableId ? 'A table key travels with an exported routine; the table it names here is yours.' : 'Open the step in the builder and pick a table.',
+        hint: e.datatableId ? 'A table key travels with an exported automation; the table it names here is yours.' : 'Open the step in the builder and pick a table.',
     }));
 
     const v = validateDefinition(incoming.definition);
     // The datatable findings ride along on the failure too: without them a
-    // routine that could not be re-linked is refused with "pick which
+    // automation that could not be re-linked is refused with "pick which
     // datatable to use" and nothing that says which one it wanted.
     if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: [...v.errors, ...datatableFindings] });
 
@@ -979,10 +856,10 @@ router.post('/import', importLimiter, async (req, res) => {
     } catch (e) {
         log.warn('[automation/import] tool catalog build failed; importing without tool warnings:', e.message);
     }
-    // An exported routine carries knowledge-base ids from wherever it was
+    // An exported automation carries knowledge-base ids from wherever it was
     // built. Non-blocking, like every other import finding: the draft lands
     // inactive and activate re-checks — but the author is told now, while
-    // they still remember what the routine was supposed to read.
+    // they still remember what the automation was supposed to read.
     warnings = [...warnings, ...await kbFindingsFor(incoming.definition, req, req.session.user.id, 'draft')];
 
     // Fresh step ids per graph (root + each inline layer) so importing
@@ -992,7 +869,7 @@ router.post('/import', importLimiter, async (req, res) => {
     // En de back-pointer naar een app-knop eraf — DEZELFDE regel als bij
     // export, nu ook op de weg naar binnen. `buildExport` haalde hem weg,
     // dus een echt geëxporteerd bestand heeft er geen; een met de hand
-    // geschreven bestand wel, en dan landde hier een routine met een
+    // geschreven bestand wel, en dan landde hier een automatisering met een
     // verwijzing naar andermans app terwijl de poort op POST / (`appRef`
     // → appRefOwnerVerdict) exact dezelfde definitie met 403
     // `owner_mismatch` weigert. Twee create-paden, één antwoord.
@@ -1003,7 +880,7 @@ router.post('/import', importLimiter, async (req, res) => {
         warnings = [...warnings, {
             code: 'import.app_ref_removed', severity: 'warning', path: 'definition.trigger.appRef',
             message: 'Removed the link back to an app button — it names a screen in the installation this file came from.',
-            hint: 'Open the button in App Studio and pick this routine there to link them again.',
+            hint: 'Open the button in App Studio and pick this automation there to link them again.',
         }];
     }
 
@@ -1029,7 +906,7 @@ router.post('/import', importLimiter, async (req, res) => {
         scheduleTz: incoming.scheduleTz || 'Europe/Amsterdam',
         nextRunAt,
     });
-    // portability blanks datatableId on export, so an imported routine
+    // portability blanks datatableId on export, so an imported automation
     // usually indexes nothing — but one imported into the org it came from
     // keeps its ids, and those steps have to appear in "used by".
     await syncDatatableUsage(a.id, organizationId, definition, { label: 'automation import' });
@@ -1045,6 +922,26 @@ router.post('/import', importLimiter, async (req, res) => {
 // The caller's trash (handoff 5). A literal, so it sits above GET /:id.
 router.get('/_trash', (req, res) => trashHandlers.listTrash(req, res));
 
+/**
+ * `managed: null | {solutionId, solutionName, stage, releaseSeq, devRef}` for
+ * an automation of a Solution stage (design 5.3); the builder shows it read-only
+ * and the client never derives it. The cached stage lookup answers the common
+ * case without a query. A failed read is null: it labels the builder, it
+ * decides nothing (the store refuses a managed write itself, 409 managed_part,
+ * which reaches the terminal handler because these routes do not catch it).
+ */
+async function managedOf(a) {
+    if (!a || !a.projectId) return null;
+    try {
+        if (!await require('../../stores/lib/managedParts').managedInfo(a.projectId)) return null;
+        return await require('../../stores/solutionStageStore')
+            .managedPayloadFor({ projectId: a.projectId, kind: 'automation', entityId: a.id });
+    } catch (e) {
+        log.warn(`[automation] managed lookup failed for ${a.id}: ${e.message}`);
+        return null;
+    }
+}
+
 router.get('/:id', async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -1052,11 +949,11 @@ router.get('/:id', async (req, res) => {
     if (!access) return;
     // A run-only caller gets the triggers and no steps, so no summary either.
     const summary = access.role === 'run' ? null : summariseDefinition(a.definition || {}).summary;
-    res.json({ automation: projectForViewer(a, access), summary });
+    res.json({ automation: projectForViewer(a, access), summary, managed: await managedOf(a) });
 });
 
 /**
- * "Gebruikt door 1 knop" — welke app-knoppen deze routine aanzetten (P4 deel C).
+ * "Gebruikt door 1 knop" — welke app-knoppen deze automatisering aanzetten (P4 deel C).
  *
  * Leest `automation_usage`, geschreven door appStudio/automationUsageSync.js op
  * elke save van een app. Eigenaar-only, precies zoals GET /:id ernaast: de
@@ -1068,11 +965,11 @@ router.get('/:id', async (req, res) => {
  *   1. EEN MISLUKTE LEES IS GEEN LEGE LIJST. Valt de store om, dan antwoordt
  *      deze route een FOUT en nooit `{usage: []}` — anders leest de capsule
  *      "wordt nergens gebruikt" op het moment dat de database hikt, en dat is
- *      precies de zin waarop iemand een routine verwijdert die een knop in
+ *      precies de zin waarop iemand een automatisering verwijdert die een knop in
  *      productie aanzet. De client vertaalt een fout naar "kon niet worden
  *      gecontroleerd".
  *   2. EIGENDOM VERSMALT. De rijen zijn bij het schrijven al gegrendeld op
- *      `automations.user_id`, maar een routine die van eigenaar is gewisseld
+ *      `automations.user_id`, maar een automatisering die van eigenaar is gewisseld
  *      kan rijen met de OUDE eigenaar hebben. Die horen niet bij deze lezer,
  *      dus ze vallen weg — een rij te weinig is hier de veilige kant, want de
  *      naam van andermans app tonen is dat niet.
@@ -1128,6 +1025,9 @@ router.get('/:id/usage', async (req, res) => {
             complete: coverage.complete,
         });
     } catch (e) {
+        // A deliberate refusal the client may see (`expose`) keeps its
+        // status (terminal handler); any other error is the 500 below.
+        if (e?.expose === true && Number(e?.status) >= 400 && Number(e?.status) < 500) throw e;
         // Regel 1: zeggen dat het niet kon, niet doen alsof er niets is.
         log.warn('[automation usage] read failed:', e.message);
         res.status(500).json({ error: 'usage_unavailable' });
@@ -1149,7 +1049,7 @@ router.get('/:id/export', require('../../compliance/dataPortability/stampExport'
 
 router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) => {
     // The person saving (stamped as the version's author) and the OWNER the
-    // routine belongs to and runs as. They differ for an `edit` share; every
+    // automation belongs to and runs as. They differ for an `edit` share; every
     // owner-bound check below (agents, approvers, knowledge bases, the event
     // subscription) asks about the owner, like activation does.
     const userId = req.session.user.id;
@@ -1158,22 +1058,22 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
     const access = await automationAccess.guard(req, res, existing, 'edit');
     if (!access) return;
     const ownerId = existing.userId || userId;
-    // The sidebar folder is the owner's filing, not a setting of the routine.
+    // The sidebar folder is the owner's filing, not a setting of the automation.
     if (req.body.folderId !== undefined && access.role !== 'owner') {
-        return res.status(403).json({ error: 'Only the owner can move this routine to another folder.', code: 'automation_forbidden', need: 'owner' });
+        return res.status(403).json({ error: 'Only the owner can move this automation to another folder.', code: 'automation_forbidden', need: 'owner' });
     }
 
     const updates = {};
     const fields = ['title', 'description', 'definition', 'isDraft', 'triggerType', 'scheduleCron', 'scheduleTz'];
     for (const f of fields) if (req.body[f] !== undefined) updates[f] = req.body[f];
     if (req.body.icon !== undefined) updates.icon = req.body.icon || null;
-    // Handoff 5 — the live split. On a routine that HAS a live version this
+    // Handoff 5 — the live split. On an automation that HAS a live version this
     // save only changes the working copy: runs keep executing the live one
     // until POST /:id/publish, and everything derived from the trigger
     // (trigger_type, schedule_cron/tz, next_run_at, event subscriptions,
     // extra schedules) keeps following the LIVE definition. The store
     // enforces the column half too (lifecycle.stripLiveFollowingFields). On a
-    // never-live routine nothing changes: the working copy is all there is.
+    // never-live automation nothing changes: the working copy is all there is.
     const hasLive = existing.liveVersion != null;
     if (updates.definition !== undefined) {
         const policy = withSanitizedRunPolicy(updates.definition);
@@ -1188,9 +1088,9 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
             updates.runTimeoutMs = runTimeoutMsFor(resolveRunPolicy(def));
         }
     }
-    // Which sidebar folder this routine sits in. `null` puts it back at the
+    // Which sidebar folder this automation sits in. `null` puts it back at the
     // top level, so the value is copied on `!== undefined` rather than on
-    // truthiness — otherwise a routine could be filed but never unfiled.
+    // truthiness — otherwise an automation could be filed but never unfiled.
     if (req.body.folderId !== undefined) {
         updates.folderId = req.body.folderId || null;
     }
@@ -1210,7 +1110,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
     let saveWarnings = [];
     if (updates.definition !== undefined) {
         // Same as the create route: a warning at draft stage, an error at
-        // activate. Without it, rewriting an ALREADY ACTIVE routine was the
+        // activate. Without it, rewriting an ALREADY ACTIVE automation was the
         // one path that could point an ai_step at an agent nobody checked.
         const v = validateDefinition(updates.definition, { stage: 'draft', availableAgents: await agentsFor(updates.definition, ownerId), topicClassifier: await topicClassifierFor(updates.definition) });
         if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: v.errors });
@@ -1239,7 +1139,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
         if (updates.scheduleCron === undefined) updates.scheduleCron = derived.scheduleCron;
         if (updates.scheduleTz === undefined) updates.scheduleTz = derived.scheduleTz;
     }
-    // (On a live routine the columns derived above are still VALIDATED
+    // (On a live automation the columns derived above are still VALIDATED
     // below — a broken schedule is refused at save time — but not written.)
 
     // Cron validation + nextRunAt recompute must run whenever the SCHEDULE
@@ -1270,7 +1170,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
             // trigger type had not changed), so the row kept a stale, now-past
             // next_run_at. claimDueAutomations only looks at
             // trigger_type/next_run_at, and the runner's post-run advance is
-            // gated on scheduleCron — so the routine re-ran, with live side
+            // gated on scheduleCron — so the automation re-ran, with live side
             // effects, every single scheduler tick, forever. Emptying the
             // "custom pattern" field in the trigger inspector was enough
             // (triggerColumnsFromDefinition maps a missing trigger.schedule.cron
@@ -1279,7 +1179,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
                 // ...and refuse the save outright when the user actually
                 // configured a schedule and left it empty: a schedule trigger
                 // with no schedule can never fire, so silently accepting it
-                // just produces a routine that looks armed and is not. A
+                // just produces an automation that looks armed and is not. A
                 // freshly dropped, not-yet-configured schedule node is NOT
                 // this case — it must stay savable (draft-stage saves are
                 // deliberately lenient, BFSF-323).
@@ -1295,7 +1195,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
         delete updates.scheduleTz;
         delete updates.nextRunAt;
     }
-    // `false` when nothing was left to write (a live routine's schedule
+    // `false` when nothing was left to write (a live automation's schedule
     // columns only, stripped above): the row stands as it was.
     const updated = (await automationStore.updateAutomation(req.params.id, updates, userId)) || existing;
 
@@ -1312,12 +1212,12 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
 
     // Keep the datatable dependents index in step with the definition. It
     // is written HERE, on the author's own save, because nobody may scan a
-    // colleague's routines to derive it later — getAutomationsForUser is
+    // colleague's automations to derive it later — getAutomationsForUser is
     // WHERE user_id = $1. Never fail a save over the index.
     if (updates.definition !== undefined) {
         await syncDatatableUsage(req.params.id, await orgOf(req), updates.definition,
             { label: 'automation update', extraEntries: answersUsage });
-        // The Sources list of a knowledge base has to name the routines
+        // The Sources list of a knowledge base has to name the automations
         // that feed it from the moment they are SAVED, not from their
         // first successful run — that gap is exactly when somebody is
         // deciding whether the base can be trusted.
@@ -1342,7 +1242,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
     // Fingerprint gate (A12): only re-sync when the app-event trigger
     // CONFIG actually changed. Every definition save used to
     // delete-and-recreate the subscription — nudging a node position on
-    // an active Gmail routine re-anchored the poller cursor to "now" and
+    // an active Gmail automation re-anchored the poller cursor to "now" and
     // silently dropped every event since the last poll.
     if (updates.definition && !hasLive && (updated?.isActive ?? existing.isActive)) {
         const def = updated?.definition || updates.definition;
@@ -1374,7 +1274,7 @@ router.delete('/:id', (req, res) => trashHandlers.trash(req, res));
 router.post('/:id/restore', (req, res) => trashHandlers.restore(req, res));
 
 // The AI Act gate on activate and publish (handoff 5): only in an organisation
-// with the compliance hub licence. Bee checks the routine first and records
+// with the compliance hub licence. Bee checks the automation first and records
 // what it can answer itself (automation/aiActAuto.js); the gate then refuses
 // only with the questions it could not (automation/aiActCheck.gateRefusal).
 const aiActState = require('../../automation/aiActAuto').defaultAiActAuto().gateState;
@@ -1392,24 +1292,20 @@ router.post('/:id/publish', validate({ body: PublishBody }), (req, res) =>
     publishAutomation(req, res, { agentsFor, kbFindingsFor, wakeComplianceReview, ensureFormPages, access: automationAccess, aiActState }));
 
 router.post('/:id/deactivate', async (req, res) => {
-    const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     const access = await automationAccess.guard(req, res, a, 'edit');
     if (!access) return;
 
-    // Revoke remote subscriptions BEFORE deleting the local rows — with the
-    // OWNER's connection, whose account the subscription was made on.
-    await revokeRemoteSubscriptions(a.id, a.userId || userId);
-    await automationStore.deleteSubscriptionsForAutomation(a.id);
-    const u = await automationStore.updateAutomation(a.id, { isActive: false }, userId);
-    // Switching OFF changes the posture too, and a dashboard that keeps
-    // reporting a live routine's finding against a routine nobody is
-    // running any more is wrong in the direction that wastes an admin's
-    // afternoon. Same fire-and-forget contract as activation — and the
-    // same queue, so on-off-on-off collapses into one review rather than
-    // one per click.
-    wakeComplianceReview(a, 'deactivation');
+    // automation/goLive.deactivateCore: remote subscriptions revoked BEFORE
+    // the local rows are deleted (with the OWNER's connection), the row off,
+    // and compliance woken — switching OFF changes the posture too, and the
+    // same coalescing queue turns on-off-on-off into one review.
+    const { automation: u } = await deactivateCore({
+        automation: a,
+        actorId: req.session.user.id,
+        deps: { store: automationStore, revokeRemoteSubscriptions, wakeComplianceReview },
+    });
     res.json({ automation: projectForViewer(u, access) });
 });
 

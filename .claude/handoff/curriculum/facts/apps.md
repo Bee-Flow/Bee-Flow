@@ -53,7 +53,7 @@ label **"App"** → `studio/apps/new`.
 
 - Toolbar: heading **"Apps"**, primary button **"New app"**.
 - Error strip: the message + **"Retry"**.
-- Empty state: title **"Build your first app"**, body *"Turn a routine into a small internal
+- Empty state: title **"Build your first app"**, body *"Turn an automation into a small internal
   tool — a form, a dashboard, a tracker — without writing code. Describe what you need and the
   AI can build it for you."*, action **"New app"**.
 - Owner card: icon tile, name, description, badges **"Published"**, **"Storage NN%"**
@@ -169,8 +169,8 @@ Trigger phrasings: **"When the screen is opened"**, **"When a new row is added"*
 **"When this app calls it"**, **"When someone runs it by hand"**, **"On a schedule"**,
 **"When a webhook arrives"**, **"When an agent calls it"**, **"When data in the app changes"**,
 **"Nothing starts this yet"**, **"No action yet"**. Second block:
-**"Your routines in this solution"** — *"Routines you own, filed in the same solution and
-working on the tables this app is bound to… Routines owned by someone else are not listed here."*
+**"Your automations in this solution"** — *"Automations you own, filed in the same solution and
+working on the tables this app is bound to… Automations owned by someone else are not listed here."*
 Status pills: **"{count} runs by you in the last 24 hours"**, **"{count} decisions waiting for
 you"**, **"Not available"**.
 
@@ -284,7 +284,7 @@ Validation strip: **"{n} issues to review"**, **"Fix"**, **"Technical detail"**,
 | **Screen** | One page of the app. It has sections; sections hold components. One screen is the **home screen**. |
 | **Section** | The grid row band inside a screen. Components sit in a 12-column grid inside it. |
 | **Component** | A visual building block (`heading`, `form`, `data_grid`, `kanban`, `chart`, `ai_chat`, …). 47 types in six ribbon categories. |
-| **Action** | What a control does when something happens. One `kind` (Run routine, Add a row, Go to screen, Show a message, …) or a `sequence` of steps. |
+| **Action** | What a control does when something happens. One `kind` (Run automation, Add a row, Go to screen, Show a message, …) or a `sequence` of steps. |
 | **Sequence / step** | A multi-step flow. Client steps (navigate, toast, confirm, set_variable, condition, loop, switch…) run in the browser; **data-mutating steps** (create_record, run_automation, send_email, ai_extract, …) are re-resolved and executed on the server. |
 | **Binding** | Where a component gets its data: a table (+ filters/sort), a dataset, a connector, a formula, or a previous action's result. |
 | **Data model** | The app's own tables and fields (`PUT /:id/schema`). Each app gets its own private database. |
@@ -292,7 +292,7 @@ Validation strip: **"{n} issues to review"**, **"Fix"**, **"Technical detail"**,
 | **Role** | An app-local role (`{key,label}`). Resolution order: owner → members row → `roleMapping.byGroup` → `roleMapping.default` → none. |
 | **Access mode** | Per table: `app` (anyone who can open the app), `owner`, `role`, `none`. |
 | **Row rule (RLS)** | A bounded expression over `record.*` and `viewer.*` (e.g. `record.created_by == viewer.id`) compiled to parameterised SQL server-side. Apps can never run raw SQL. |
-| **Connector** | An external read: an integration tool, a routine, or a REST endpoint. Always runs **as the app owner**, behind an SSRF guard; credentials are never pasted into the app. |
+| **Connector** | An external read: an integration tool, an automation, or a REST endpoint. Always runs **as the app owner**, behind an SSRF guard; credentials are never pasted into the app. |
 | **Dataset** | A saved query/upload the app reads from; large (multi-GB) datasets are a separate Enterprise feature. |
 | **Variable** | A named value shared across screens and actions; formulas read it as `vars.<name>`. |
 | **Public page (`publicAccess`)** | A whitelist of screens an anonymous visitor may open at `/p/<token>`. Visitors carry the reserved role `public`, which is **denied by default** on every table. |
@@ -337,20 +337,20 @@ Validation strip: **"{n} issues to review"**, **"Fix"**, **"Technical detail"**,
    **Behaviour** tab set **"When submitted"** → **"Add a row"**, pointing at the table.
 7. Preview, submit a test row, then check it under **Data → Rows**.
 
-### W3 — Wire a button to a routine
+### W3 — Wire a button to an automation
 
 1. Select (or add) a **Button** on the canvas.
 2. Inspector → **Behaviour** → **"When clicked"**. Four cards are offered:
-   **Run routine** · **Go to screen** · **Add a row** · **Show a message**; everything else is
+   **Run automation** · **Go to screen** · **Add a row** · **Show a message**; everything else is
    under **"All options"** (AI · extract from document, AI · generate / summarize,
    AI · search knowledge base, Open a web page, Open a dialog, Close a dialog, Send an e-mail,
    Several steps (a flow)).
-3. Pick **Run routine**. Either **"Choose a routine…"** from your own routines, or
-   **"Make a routine for this app"** — which creates one already carrying a Studio App trigger
+3. Pick **Run automation**. Either **"Choose an automation…"** from your own automations, or
+   **"Make an automation for this app"** — which creates one already carrying a Studio App trigger
    (**"It starts with {n} inputs matching this form."**).
 4. Map the inputs under **"Change what gets sent"** (a `field` mapping takes a form field; a
    `static` mapping is a fixed value).
-5. Use **"Test with what is on screen"** — *"Runs the routine for real, with the values standing
+5. Use **"Test with what is on screen"** — *"Runs the automation for real, with the values standing
    in this form right now, and opens the run in the builder."*
 6. Set the echo line: what the button shows **While it runs**, on **Done** and on **Failed**.
 
@@ -470,7 +470,7 @@ Public page: **60/min per IP**, **240/min per token**, steps **30**, uploads **2
 | Draft save that fails validation | **422** `{ errors, warnings }`. Data-reference problems are demoted to **warnings** on draft saves so a half-wired draft stays saveable. |
 | Definition over 512 KB | **413** `App definition exceeds 524288 bytes`. |
 | Publish with a broken draft | **422** *"Fix the app's validation errors before publishing"*. Modal stays open, lists each `{code, severity, path, message, hint}`, **"Show me"** jumps to the node. **Nothing changes for readers.** |
-| Publish referencing a routine that is missing, inactive or owned by someone else | Blocked at publish (`action.automation_missing/_inactive/_invalid`). Draft saves let it through. |
+| Publish referencing an automation that is missing, inactive or owned by someone else | Blocked at publish (`action.automation_missing/_inactive/_invalid`). Draft saves let it through. |
 | Publish to groups from two different orgs | **400** *"Cannot publish to groups across multiple organisations"*. |
 | Publish with no organisation on the owner | **400** *"Cannot publish: owner has no organisation"*. |
 | Row / DB / attachment quota reached | **409** `{ code: 'quota_exceeded', limit, used }` with a message like *"Table row limit reached (100000)"*. **Deleting rows always works**, so you can recover. |
@@ -516,16 +516,16 @@ Other gates in the same area:
   mints a public page, its visitors are anonymous third parties.
 
 Ownership model: an app has exactly one `userId` owner. **Only the owner edits.** Actions run
-**acts-as-owner** (the routine must belong to the app owner), with the viewer's identity carried
+**acts-as-owner** (the automation must belong to the app owner), with the viewer's identity carried
 in the trigger payload as `_viewerUserId` for audit only — never used to scope the run.
 
 ---
 
 ## 8. How Apps connects to the rest of the product
 
-- **Routines (automations)** — the primary action kind. A button can create a routine already
-  carrying a Studio App trigger and matching inputs. Routines fired from an app must be owned by
-  the app owner and active. Logic view also lists your routines filed in the same Solution.
+- **Automations (automations)** — the primary action kind. A button can create an automation already
+  carrying a Studio App trigger and matching inputs. Automations fired from an app must be owned by
+  the app owner and active. Logic view also lists your automations filed in the same Solution.
 - **Datatables** — a model table can be `source: {kind:'datatable'}`, mirroring an org datatable.
   Effective access is the minimum of viewer grade, owner grade and app-role access.
 - **Approvals** — `request_approval` steps raise approvals into Studio → Approvals
@@ -533,11 +533,11 @@ in the trigger payload as `_viewerUserId` for audit only — never used to scope
 - **Knowledge bases** — the `kb_query` action/step searches a KB.
 - **Solutions (projects)** — an app carries `projectId`; project members are an *additional*
   audience on top of org/group publishing.
-- **Playbooks** — `/api/playbooks` runs phased AI builds that own a routine *and* an app; it
+- **Playbooks** — `/api/playbooks` runs phased AI builds that own an automation *and* an app; it
   requires both modules and the `app_studio` capability plus the `automations` licence.
 - **Nextcloud connector** — a published app with `nextcloudMenu` gets an icon in the org's
   Nextcloud top bar (`GET /api/nextcloud/studio-apps` feeds the connector).
-- **Forms** — a separate Studio section (a form is a *routine*, keyed by the routine id at
+- **Forms** — a separate Studio section (a form is a *automation*, keyed by the automation id at
   `/app/studio/forms/<automationId>`). Do not confuse it with an app's public page.
 - **Usage/telemetry** — action runs are logged to `ai_usage_log` with
   `agent_type = 'studio_app_builder'` for builder turns; run counts feed `GET /usage-counts`.
@@ -561,9 +561,9 @@ in the trigger payload as `_viewerUserId` for audit only — never used to scope
    the app-side columns only describe what the app expects to find there.
 6. **Treating the role preview as a security test.** *View as* hides screens and components; row
    security is enforced by the server only when that person actually opens the app.
-7. **Wiring a colleague's routine.** The routine must belong to the app owner, or publish fails
+7. **Wiring a colleague's automation.** The automation must belong to the app owner, or publish fails
    with `action.automation_missing` / `action.automation_invalid`.
-8. **Publishing a routine that is inactive.** Blocked at publish, allowed on a draft save.
+8. **Publishing an automation that is inactive.** Blocked at publish, allowed on a draft save.
 9. **Rotating a public URL by minting a new one and forgetting to revoke the old.** Up to 3 live
    URLs exist simultaneously; the old link keeps working until you delete it.
 10. **Hitting the action-step caps and blaming the builder.** 60 steps / depth 6 per action.
@@ -611,8 +611,8 @@ of the four preconditions is missing.
 Sales wants quotes tracked instead of living in mailboxes. Start from the built-in
 **"Quote intake"** template (*From template* → **Remix with AI**), then tell the builder:
 *"Add a `Vervolgacties` screen with a list of quotes whose `status` is `verzonden` and whose
-`vervaldatum` is within 7 days, and a button that runs my routine 'Offerte-herinnering'."*
-Wire the button to an existing routine (or **Make a routine for this app**, which seeds the
+`vervaldatum` is within 7 days, and a button that runs my automation 'Offerte-herinnering'."*
+Wire the button to an existing automation (or **Make an automation for this app**, which seeds the
 Studio App trigger with matching inputs), map the quote id and the customer e-mail, then
 **Test with what is on screen**. Publish to **Everyone in your organization** and tick the
 Nextcloud menu so the team reaches it from Nextcloud's top bar. Teaching points: the *Remix*

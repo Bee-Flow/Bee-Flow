@@ -14,7 +14,7 @@
  * WHY NOT templates/exportTemplate.js's buildExportHTML. That wrapper loads
  * mermaid from jsdelivr and carries an inline bootstrap script, which is right
  * for the notebook editor's diagrams and wrong here: it would make the server
- * fetch a CDN script every time a routine produces a document, hang on an
+ * fetch a CDN script every time an automation produces a document, hang on an
  * air-gapped self-host, and put remote script into a render whose whole input
  * is untrusted. The wrapper below has no network dependency at all. Its
  * `sanitizeContentForExport` is reused, because that part is exactly right.
@@ -23,7 +23,7 @@
  * (`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` in the Dockerfile); browserProvider
  * drives a separate pwt-runner container. That container is not part of every
  * deployment — a self-hoster who never set it up would otherwise find that a
- * routine which promises a PDF simply fails. So when no browser can be reached
+ * automation which promises a PDF simply fails. So when no browser can be reached
  * we fall back to pdfkit, which is pure JS and always present. The fallback is
  * plainer (no CSS, no page background, a fixed typeface) and says so in its
  * return value, but the visitor still gets a PDF.
@@ -47,7 +47,7 @@ const log = require('../telemetry/log');
  * output path gets two things: a VISIBLE footer line ("Generated with AI —
  * <org>") and machine-readable METADATA (PDF Info dictionary / DOCX core
  * properties) saying the content is AI-generated, by which provider, when and
- * from which routine. Full C2PA provenance is out of scope; this is the
+ * from which automation. Full C2PA provenance is out of scope; this is the
  * "marked in a machine-readable format and detectable as artificially
  * generated" the article asks of a deployer. The Chromium PDF gets its
  * metadata in a post-processing pass with pdf-lib; when that package cannot be
@@ -96,7 +96,7 @@ function markingFooterHtml(marking) {
     return text ? `<footer class="ai-mark"><p class="ai-mark">${escapeHtml(text)}</p></footer>` : '';
 }
 
-function buildPrintHtml(bodyHtml, { title = '', author = '', date = '', marking = null } = {}) {
+function buildPrintHtml(bodyHtml, { title = '', author = '', date = '', marking = null, extraCss = '' } = {}) {
     const stamp = date || new Date().toISOString().slice(0, 10);
     const heading = title
         ? `<header class="doc-head"><h1 class="doc-title">${escapeHtml(title)}</h1>`
@@ -129,7 +129,7 @@ function buildPrintHtml(bodyHtml, { title = '', author = '', date = '', marking 
   tr, img { break-inside: avoid; page-break-inside: avoid; }
   img { max-width: 100%; height: auto; }
   hr { border: 0; border-top: 1px solid #d8d8d8; margin: 14pt 0; }
-</style></head>
+</style>${extraCss ? `\n<style>${String(extraCss).replace(/<\/style/gi, '')}</style>` : ''}</head>
 <body>${heading}<main>${bodyHtml}</main>${markingFooterHtml(marking)}</body></html>`;
 }
 
@@ -975,11 +975,14 @@ function stripInline(s) {
  * keywords + description. Documented limitation. The visible line is the
  * trailing `<p class="ai-mark">` buildPrintHtml already put in the HTML.
  */
-function docxOptions({ title = '', marking = null } = {}) {
+function docxOptions({ title = '', marking = null, style = null } = {}) {
     const opts = {
         table: { row: { cantSplit: true } },
         footer: true,
         pageNumber: true,
+        // House style (core/documents/docxHouseStyle.js): margin, font,
+        // fontSize, header/footer HTML. The marking keys below always win.
+        ...(style && typeof style === 'object' ? style : {}),
         title: String(title || ''),
     };
     if (marking) {
@@ -991,15 +994,25 @@ function docxOptions({ title = '', marking = null } = {}) {
     return opts;
 }
 
-async function renderDocx(html, { title = '', marking = null } = {}) {
+async function renderDocx(html, { title = '', marking = null, style = null } = {}) {
     let HTMLtoDOCX = require('html-to-docx');
     if (HTMLtoDOCX.default) HTMLtoDOCX = HTMLtoDOCX.default;
-    const out = await HTMLtoDOCX(html, null, docxOptions({ title, marking }));
+    // html-to-docx takes the header and footer HTML as POSITIONAL arguments
+    // (html, header, options, footer); as option keys they are ignored.
+    const { headerHTML = null, footerHTML = null, ...styleOpts } = (style && typeof style === 'object') ? style : {};
+    const out = await HTMLtoDOCX(html, headerHTML, docxOptions({ title, marking, style: styleOpts }), footerHTML);
     return Buffer.from(out);
 }
 
 /**
  * Render `content` to a document.
+ *
+ * `docxStyle` ({ css, opts, inline } from core/documents/docxHouseStyle.js
+ * buildDocxStylingFromHouseStyle) dresses a .docx in the org's Word house
+ * style: `inline` (heading fonts, sizes, colours) goes onto the heading tags,
+ * the opts (margin, font, header, footer) go to html-to-docx. The CSS joins
+ * the print stylesheet, but html-to-docx does not read <style>, so it is not
+ * what styles the .docx. Ignored for a PDF.
  *
  * @returns {Promise<{buffer: Buffer, contentType: string, format: string,
  *                    extension: string, degraded: boolean,
@@ -1018,6 +1031,7 @@ async function renderDocument({
     layout = 'document',
     marking = null,
     theme = null,
+    docxStyle = null,
 } = {}) {
     const fmt = FORMATS.includes(format) ? format : 'pdf';
     const cFmt = CONTENT_FORMATS.includes(contentFormat) ? contentFormat : 'markdown';
@@ -1039,11 +1053,16 @@ async function renderDocument({
     const slides = lay === 'slides' && fmt === 'pdf';
     const html = slides
         ? buildSlidesHtml(body, { title, author, marking: mark, theme })
-        : buildPrintHtml(body, { title, author, marking: mark });
+        : buildPrintHtml(body, { title, author, marking: mark, extraCss: fmt === 'docx' && docxStyle ? docxStyle.css : '' });
 
     if (fmt === 'docx') {
+        // html-to-docx ignores <style> blocks: the house style's heading
+        // fonts, sizes and colours only reach the file as inline attributes.
+        const docxHtml = docxStyle && docxStyle.inline
+            ? require('../core/documents/docxHouseStyle').applyInlineStyles(html, docxStyle.inline)
+            : html;
         return {
-            buffer: await renderDocx(html, { title, marking: mark }),
+            buffer: await renderDocx(docxHtml, { title, marking: mark, style: docxStyle ? docxStyle.opts : null }),
             contentType: CONTENT_TYPES.docx, format: 'docx', extension: 'docx', degraded: false,
             marking: mark ? { visible: true, metadata: true } : null,
         };

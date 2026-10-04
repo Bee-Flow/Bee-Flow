@@ -121,7 +121,7 @@ const run = async () => {
     assert.equal(await executeNextcloudFamilyTool('gmail_list_messages', {}, USER, {}), undefined);
     console.log('✓ non-NC names fall through the family helper');
 
-    // 7. the run scope a routine hands the dispatcher reaches the Files
+    // 7. the run scope an automation hands the dispatcher reaches the Files
     //    family: nextcloud_upload_file resolves a generated_file handle
     //    against THAT journey. The resolver is a double; what is pinned is
     //    that `runScope` survives executeTool → family → executeNextcloudTool.
@@ -161,6 +161,24 @@ const run = async () => {
     assert.equal(result.webUrl, 'https://nc.example.com/f/482');
     assert.equal(result.file.kind, 'presentation', 'the chat card travels with the result');
     console.log('✓ create_presentation + nextcloudPath = the Nextcloud tool behind the scope guard');
+
+    // 9. create_word_document with nextcloudPath: the destination passes the
+    //    same guard as nextcloud_create_document. Outside the selection:
+    //    no Nextcloud traffic and the denial travels with the answer. Inside
+    //    it: the .docx is PUT at the folder + a name from the title.
+    reset();
+    setUserScope({ nextcloud: { mode: 'selected', selected: ['/Shared'] } });
+    result = await executeTool('create_word_document', { title: 'Offerte', markdown: '## A\n\ntekst', nextcloudPath: '/Private' }, { userId: USER, session: CONNECTOR_SESSION });
+    assert.equal(upstreamCalls.length, 0, 'no Nextcloud traffic on a denial');
+    assert.match(`${result?.error || ''} ${result?.nextcloud?.error || ''}`, /outside the folders/, 'the denial is reported');
+    reset();
+    setUserScope({ nextcloud: { mode: 'selected', selected: ['/Shared'] } });
+    result = await executeTool('create_word_document', { title: 'Offerte', markdown: '## A\n\ntekst', nextcloudPath: '/Shared' }, { userId: USER, session: CONNECTOR_SESSION });
+    assert.ok(!result?.error, `unexpected error: ${result?.error}`);
+    assert.ok(upstreamCalls.some((u) => /\/Shared\/Offerte\.docx$/.test(u)), 'the file was written inside the selection');
+    assert.equal(result.file.kind, 'word', 'the chat card travels with the result');
+    assert.equal(result.file.path, '/Shared/Offerte.docx');
+    console.log('✓ create_word_document + nextcloudPath goes through the Files scope guard');
 
     console.log('\nALL DISPATCHER NC-SCOPE TESTS PASSED');
 };

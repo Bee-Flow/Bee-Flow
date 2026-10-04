@@ -203,7 +203,7 @@ describe('StudioMap', () => {
             // GET /api/studio/counts kent geen scope-parameter, en telt
             // `automations` met `WHERE user_id = $1`. Een strip die 'org'
             // doorgeeft verandert dat getal dus niet — alleen de zin eronder,
-            // en die zou dan negen eigen routines tot een organisatiefeit
+            // en die zou dan negen eigen automatiseringen tot een organisatiefeit
             // maken.
             render(<StudioMap counts={{ automations: 9 }} scope="org" />);
             fireEvent.click(screen.getByTestId('studio-map-tile-automation'));

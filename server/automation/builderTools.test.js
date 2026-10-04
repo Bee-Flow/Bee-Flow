@@ -856,7 +856,7 @@ function edge(def, fromId) {
     }
 
     // ── loop.<var> must be bound by the step's own forEach ──
-    // The finalised routine of 2026-09-12: create_row bound every column to
+    // The finalised automation of 2026-09-12: create_row bound every column to
     // loop.e.output.<field> with no forEach, and both builder and validator
     // let it through.
     {

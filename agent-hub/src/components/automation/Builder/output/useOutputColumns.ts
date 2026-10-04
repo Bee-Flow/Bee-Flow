@@ -6,7 +6,7 @@ import { EMPTY_PREFS, discoverColumns, resolveShown, suggestColumns, type Column
 const NARROW_MAX = 4;
 const WIDE_MAX = 7;
 
-const storageKeyFor = (key: string) => `routines.outputColumns.${key}`;
+const storageKeyFor = (key: string) => `automations.outputColumns.${key}`;
 
 function readPrefs(key: string | null): ColumnPrefs {
     if (!key) return EMPTY_PREFS;

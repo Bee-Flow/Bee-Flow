@@ -16,7 +16,7 @@
  * server uses (languageStore.getEffectiveGUIStrings), with a hardcoded EN/NL
  * fallback so a render never fails on a missing dictionary key.
  *
- * Settings + org name are memoised for 60 s per org: a routine that renders
+ * Settings + org name are memoised for 60 s per org: an automation that renders
  * fifty letters in a loop should not read compliance_settings fifty times.
  * `invalidate(orgId)` drops the memo (the settings route calls it when the
  * flag or the footer changes; the CONTENT_MARKING_CHANGED event is the other

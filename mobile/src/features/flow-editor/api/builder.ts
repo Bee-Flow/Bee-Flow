@@ -133,7 +133,7 @@ export function readBuilderSnapshot(raw: unknown): BuilderSnapshot {
 }
 
 /**
- * The persisted conversation for a routine, or null when it has none (the
+ * The persisted conversation for an automation, or null when it has none (the
  * route answers 404 for "no session yet", which is not a failure here).
  */
 export async function getBuilderSession(automationId: string, signal?: AbortSignal): Promise<BuilderSnapshot | null> {
@@ -149,7 +149,7 @@ export async function getBuilderSession(automationId: string, signal?: AbortSign
 
 export interface BuilderTurnInput {
     message: string;
-    /** Null on a routine that does not exist yet: the server creates the draft and says so in `builder_session`. */
+    /** Null on an automation that does not exist yet: the server creates the draft and says so in `builder_session`. */
     automationId: string | null;
     builderSessionId: string | null;
     /** The whole transcript, deliberately unwindowed — the server decides how much reaches the model. */

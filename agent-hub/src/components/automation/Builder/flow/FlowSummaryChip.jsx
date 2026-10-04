@@ -29,11 +29,11 @@ export default function FlowSummaryChip({ definition }) {
     const { t } = useTranslation();
     const s = flowSummary(definition);
     const parts = s.empty
-        ? [t('routines.canvas.summary_empty', 'New routine · no trigger yet')]
+        ? [t('automations.canvas.summary_empty', 'New automation · no trigger yet')]
         : [
-            s.steps === 1 ? t('routines.canvas.summary_step', '{n} step', { n: s.steps }) : t('routines.canvas.summary_steps', '{n} steps', { n: s.steps }),
-            ...(s.branches ? [s.branches === 1 ? t('routines.canvas.summary_branch', '{n} branch', { n: 1 }) : t('routines.canvas.summary_branches', '{n} branches', { n: s.branches })] : []),
-            ...(s.loops ? [s.loops === 1 ? t('routines.canvas.summary_loop', '{n} loop', { n: 1 }) : t('routines.canvas.summary_loops', '{n} loops', { n: s.loops })] : []),
+            s.steps === 1 ? t('automations.canvas.summary_step', '{n} step', { n: s.steps }) : t('automations.canvas.summary_steps', '{n} steps', { n: s.steps }),
+            ...(s.branches ? [s.branches === 1 ? t('automations.canvas.summary_branch', '{n} branch', { n: 1 }) : t('automations.canvas.summary_branches', '{n} branches', { n: s.branches })] : []),
+            ...(s.loops ? [s.loops === 1 ? t('automations.canvas.summary_loop', '{n} loop', { n: 1 }) : t('automations.canvas.summary_loops', '{n} loops', { n: s.loops })] : []),
         ];
     return (
         <div

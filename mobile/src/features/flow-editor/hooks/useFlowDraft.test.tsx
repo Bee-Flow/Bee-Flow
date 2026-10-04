@@ -1,8 +1,8 @@
 /**
  * The draft store's lifecycle on a screen, over a mocked HTTP client: the
- * routine loads into the store, two screens share one store, nothing typed is
+ * automation loads into the store, two screens share one store, nothing typed is
  * lost when the screen closes or the app goes to the background, a new
- * routine is created by its first save and announced, and the actions that
+ * automation is created by its first save and announced, and the actions that
  * read the STORED definition (activate, test a step) save the draft first.
  */
 
@@ -65,7 +65,7 @@ afterEach(() => {
 });
 
 describe('useFlowDraft', () => {
-    it('loads the routine into the store and shares the store between screens', async () => {
+    it('loads the automation into the store and shares the store between screens', async () => {
         const { wrapper } = setup();
         const first = await renderHook(() => useFlowDraft('a1'), { wrapper });
         await waitFor(() => expect(first.result.current.store.getState().ready).toBe(true));
@@ -104,7 +104,7 @@ describe('useFlowDraft', () => {
         await unmount();
     });
 
-    it('creates a new routine on its first save and announces it once', async () => {
+    it('creates a new automation on its first save and announces it once', async () => {
         const { wrapper } = setup();
         post.mockResolvedValue({ automation: row('made', DEF, 1), warnings: [] });
         const onCreated = jest.fn();
@@ -127,7 +127,7 @@ describe('useFlowDraft', () => {
     });
 });
 
-describe('actions that read the stored routine', () => {
+describe('actions that read the stored automation', () => {
     it('activation saves first, and a refusal’s details become the store’s activation findings', async () => {
         const { wrapper } = setup();
         post.mockRejectedValueOnce(

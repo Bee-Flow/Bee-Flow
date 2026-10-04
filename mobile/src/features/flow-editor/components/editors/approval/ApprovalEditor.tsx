@@ -84,7 +84,7 @@ export function ApprovalEditor(editor: StepEditorProps) {
                         setMany={setMany}
                         directory={directory}
                         disabled={disabled}
-                        onUseStages={() => setMany(stagesFrom(draft, t('routines.builder.approval_final_stage_name', 'Final sign-off')))}
+                        onUseStages={() => setMany(stagesFrom(draft, t('automations.builder.approval_final_stage_name', 'Final sign-off')))}
                     />
                 )}
                 <ApprovalClocks draft={draft} setMany={setMany} directory={directory} disabled={disabled} escalation={!chained && !panel} />

@@ -65,6 +65,7 @@ vi.mock('../../components/integrations/github/GitHubSyncPanel', H.stub('github-s
 vi.mock('../../components/integrations/nextcloud/NextcloudSyncPanel', H.stub('nextcloud-sync-panel'));
 vi.mock('../../components/meetings/MeetingNotesAdminPanel', H.stub('meeting-notes-admin-panel'));
 vi.mock('../../components/meetings/GoogleMeetAdminPanel', H.stub('google-meet-admin-panel'));
+vi.mock('../../components/meetings/TeamsAdminPanel', H.stub('teams-admin-panel'));
 vi.mock('../../components/meetings/SummaryTemplatesAdminPanel', H.stub('summary-templates-admin-panel'));
 vi.mock('../../components/integrations/nextcloud/OrgNcIntegrationsPanel', H.stub('org-nc-integrations-panel'));
 vi.mock('../../components/integrations/nextcloud/OrgNcPairingPanel', H.stub('org-nc-pairing-panel'));
@@ -367,9 +368,9 @@ describe('OrganisationSection — the Integrations section', () => {
 describe('OrganisationSection — the Nextcloud Sync section', () => {
     const mountNc = (over = {}) => mount({ user: USER({ permissions: ['org_admin'], ...over }), activeSection: 'nextcloud_sync' });
 
-    it('always stacks sync, meeting notes and Google Meet for an org_admin', () => {
+    it('always stacks sync, meeting notes, Google Meet and Teams for an org_admin', () => {
         mountNc();
-        ['nextcloud-sync-panel', 'meeting-notes-admin-panel', 'google-meet-admin-panel']
+        ['nextcloud-sync-panel', 'meeting-notes-admin-panel', 'google-meet-admin-panel', 'teams-admin-panel']
             .forEach(id => expect(screen.getByTestId(id)).toBeInTheDocument());
     });
 

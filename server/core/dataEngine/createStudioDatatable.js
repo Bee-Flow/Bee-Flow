@@ -2,7 +2,7 @@
  * Create ONE Studio datatable for an owner, programmatically — the same
  * transaction the POST /api/datatables route and projects/packaging/install.js
  * perform (normalizeFields → createDatatable + quota + physical DDL →
- * invalidate), shared by the Playbook table phase and the routine builder's
+ * invalidate), shared by the Playbook table phase and the automation builder's
  * `builder_create_datatable` tool so the two cannot drift.
  *
  * Scope: the owner's default create scope (the organisation when they have

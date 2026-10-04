@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Input, SectionCard, StatusBadge } from './components';
 
-export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureApiKey, setAzureApiKey, hasAzureApiKey, azureApiVersion, setAzureApiVersion, azureModels, setAzureModels, handleSave, saving, saved }) {
+export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureApiKey, setAzureApiKey, hasAzureApiKey, azureModels, setAzureModels, handleSave, saving, saved }) {
     const { t } = useTranslation();
     const modelCount = azureModels ? azureModels.split(',').filter(m => m.trim()).length : 0;
     const isConfigured = !!azureEndpoint && hasAzureApiKey;
@@ -11,7 +11,7 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
         <SectionCard
             title={t('azure.openai_title')}
             description={t('azure.openai_section_desc')}
-            onSave={() => handleSave('openai', { azureEndpoint, azureApiKey: azureApiKey || undefined, azureApiVersion, azureModels })}
+            onSave={() => handleSave('openai', { azureEndpoint, azureApiKey: azureApiKey || undefined, azureModels })}
             saving={saving}
             saved={saved}
         >
@@ -47,13 +47,6 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
                 onChange={setAzureApiKey}
                 placeholder={hasAzureApiKey ? '••••••••••••' : 'Enter Azure OpenAI API key'}
                 helpText={hasAzureApiKey ? t('azure.api_key_help_set') : t('azure.api_key_help_empty')}
-            />
-            <Input
-                label={t('azure.api_version')}
-                value={azureApiVersion}
-                onChange={setAzureApiVersion}
-                placeholder="2024-04-01-preview"
-                helpText={t('azure.api_version_help')}
             />
             <Input
                 label={t('azure.deployed_models')}

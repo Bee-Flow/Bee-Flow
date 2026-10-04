@@ -58,7 +58,7 @@ export function sanitizeStoredFilters(raw) {
  * outlives a permission, and a scope that could be restored from it would
  * quietly re-widen a list after the permission behind it was taken away. The
  * owning screen holds it, and every fetch below re-derives it through
- * effectiveRunScope so a stray 'org' cannot reach a per-routine surface.
+ * effectiveRunScope so a stray 'org' cannot reach a per-automation surface.
  */
 export default function useExecutions({ scope, automationId, stepId, runScope = 'mine', pageSize = 50, enabled = true }) {
     const api = useAutomationApi();
@@ -216,7 +216,7 @@ export default function useExecutions({ scope, automationId, stepId, runScope = 
         if (scopedAutomationId && data.automationId && data.automationId !== scopedAutomationId) return;
 
         // Events carry the LEG that fired them, but the list shows journeys: a
-        // routine continued after a form pause runs in a child the table never
+        // automation continued after a form pause runs in a child the table never
         // lists. Address the head, and never inject a leg as a row of its own —
         // its head is already there and would otherwise be duplicated.
         const rowId = data.rootRunId || data.runId;

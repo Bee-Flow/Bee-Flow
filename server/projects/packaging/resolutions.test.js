@@ -88,7 +88,7 @@ test('a connection row without all three of ref, step and connection is dropped'
             { ref: 'aut_1', stepId: 's1', connectionId: 'conn_1' },
             { ref: 'aut_1', stepId: 's2', layerKey: 'enrich', connectionId: 'conn_2' },
             { ref: 'aut_1', stepId: 's3' },                       // no credential
-            { stepId: 's4', connectionId: 'conn_4' },             // no routine
+            { stepId: 's4', connectionId: 'conn_4' },             // no automation
             { ref: 'aut_1', connectionId: 'conn_5' },             // no step
         ],
     });
@@ -202,7 +202,7 @@ test('a resolution reaches a step inside a flowlet, and only the right one', () 
     assert.deepStrictEqual(definition.layers.enrich.steps[0].auth, { connectionId: 'conn_layer' });
 });
 
-test('a resolution for another routine is not applied to this one', () => {
+test('a resolution for another automation is not applied to this one', () => {
     const definition = def([httpStep('s1')]);
     const out = applyStepResolutions(definition, 'aut_1', normalizeResolutions({
         connections: [{ ref: 'aut_2', stepId: 's1', connectionId: 'conn_1' }],
@@ -257,4 +257,96 @@ test('a definition that is not one survives being handed resolutions', () => {
             { applied: [], ignored: [] },
         );
     }
+});
+
+// ═══ Kept after the install: resolutions ⇄ solution_bindings rows (F3) ═══
+
+const { resolutionsToBindings, bindingsToResolutions, isEmptyResolutions } = require('./resolutions');
+
+test('normalised resolutions round-trip through binding rows', () => {
+    const norm = normalizeResolutions({
+        tables: [{ key: 'invoices', datatableId: 'tbl_1' }],
+        connections: [{ ref: 'aut_1', stepId: 's1', connectionId: 'conn_1' }, { ref: 'aut_1', stepId: 's1', layerKey: 'lk', connectionId: 'conn_2' }],
+        approvers: [{ ref: 'aut_2', stepId: 's9', seat: { groupId: 'g_fin' } }],
+    });
+    const rows = resolutionsToBindings(norm);
+    assert.deepStrictEqual(rows.map(r => [r.slot, r.kind]), [
+        ['table:invoices', 'table'],
+        ['connection:aut_1:/s1', 'connection'],
+        ['connection:aut_1:lk/s1', 'connection'],
+        ['seats:aut_2:/s9', 'approver_seats'],
+    ]);
+    assert.strictEqual(new Set(rows.map(r => r.slot)).size, rows.length, 'a step in a layer is its own slot');
+    assert.deepStrictEqual(bindingsToResolutions(rows), norm);
+});
+
+test('a table the installer asked to CREATE is kept as the table that was made', () => {
+    const norm = normalizeResolutions({ tables: [{ key: 'contacts', create: true }, { key: 'failed', create: true }] });
+    const rows = resolutionsToBindings(norm, { createdForKey: new Map([['contacts', 'tbl_made']]) });
+    assert.deepStrictEqual(rows, [{ slot: 'table:contacts', kind: 'table', value: { datatableId: 'tbl_made' } }],
+        'a create that produced nothing has nothing to bind to');
+    assert.deepStrictEqual(bindingsToResolutions(rows).tables, [{ key: 'contacts', datatableId: 'tbl_made' }]);
+});
+
+test('binding rows are built from the normalised shape only: nothing else reaches the table', () => {
+    const rows = resolutionsToBindings({
+        connections: [{ ref: 'aut_1', stepId: 's1', connectionId: 'conn_1', fixedArgs: { to: 'LEAK-CANARY' } }],
+        approvers: [{ ref: 'aut_1', stepId: 's2', seat: { userId: 'u1', email: 'LEAK-CANARY@example.test' } }],
+        grants: [{ tool: 'gmail_send' }],
+    });
+    assert.ok(!JSON.stringify(rows).includes('LEAK-CANARY'));
+    assert.ok(!JSON.stringify(rows).includes('gmail_send'));
+});
+
+test('reading rows back narrows like a body: corrupt and foreign rows contribute nothing', () => {
+    const out = bindingsToResolutions([
+        null, 'nope', { slot: 'table:x' },                                         // malformed
+        { slot: 'connection:cn_1', kind: 'connection', value: { connectionId: 'c' } }, // a stage's slot
+        { slot: 'notify:aut_1', kind: 'approver_seats', value: {} },               // ditto
+        { slot: 'seats:aut_1:/s2', kind: 'approver_seats', value: { ref: 'aut_1', stepId: 's2', layerKey: null, assignee: { userId: 'u1', groupId: 'g1' } } },
+        { slot: 'seats:aut_9:/s2', kind: 'approver_seats', value: { ref: 'aut_1', stepId: 's2', layerKey: null, assignee: { userId: 'u2' } } }, // slot and address disagree
+        { slot: 'table:', kind: 'table', value: { datatableId: 'tbl_1' } },          // no key
+    ]);
+    assert.deepStrictEqual(out, {
+        tables: [], connections: [],
+        approvers: [{ ref: 'aut_1', stepId: 's2', layerKey: null, seat: { userId: 'u1' } }],
+    });
+    assert.strictEqual(isEmptyResolutions(bindingsToResolutions([])), true);
+    assert.strictEqual(isEmptyResolutions(out), false);
+});
+
+test('the gallery rule is unchanged: a kept choice still only fills a hole', () => {
+    const kept = bindingsToResolutions(resolutionsToBindings(normalizeResolutions({
+        connections: [{ ref: 'aut_1', stepId: 's1', connectionId: 'conn_mine' }],
+    })));
+    const definition = { steps: [{ id: 's1', type: 'http_request', auth: { connectionId: 'conn_named_in_file' } }] };
+    const { applied, ignored } = applyStepResolutions(definition, 'aut_1', kept);
+    assert.deepStrictEqual(applied, []);
+    assert.strictEqual(ignored[0].why, 'already_connected');
+    assert.deepStrictEqual(definition.steps[0].auth, { connectionId: 'conn_named_in_file' });
+});
+
+test('only the rows that APPLIED are kept when the install says which ones did', () => {
+    const norm = normalizeResolutions({
+        tables: [{ key: 'contacts', datatableId: 'tbl_mine' }],
+        connections: [
+            { ref: 'aut_1', stepId: 's1', connectionId: 'conn_a' },
+            { ref: 'aut_1', stepId: 's9', connectionId: 'conn_b' },
+            { ref: 'aut_2', stepId: 's1', layerKey: 'L1', connectionId: 'conn_c' },
+        ],
+        approvers: [
+            { ref: 'aut_1', stepId: 's2', seat: { userId: 'u1' } },
+            { ref: 'aut_1', stepId: 's3', seat: { userId: 'u2' } },
+        ],
+    });
+    const definition = def([httpStep('s1'), approvalStep('s2'), approvalStep('s3', { approval: { assignee: { userId: 'already' } } })]);
+    const { applied } = applyStepResolutions(definition, 'aut_1', norm);
+    const rows = resolutionsToBindings(norm, { applied });
+    // Tables are not narrowed; connections and approvers are, by ref, layer and step.
+    assert.deepStrictEqual(rows.map(r => r.slot), ['table:contacts', 'connection:aut_1:/s1', 'seats:aut_1:/s2']);
+    // A layered address is matched exactly, not by step id alone.
+    const layered = resolutionsToBindings(norm, { applied: [{ kind: 'connection', ref: 'aut_2', stepId: 's1', layerKey: null }] });
+    assert.deepStrictEqual(layered.map(r => r.slot), ['table:contacts']);
+    // Without `applied` every row is kept, as before.
+    assert.strictEqual(resolutionsToBindings(norm).length, 6);
 });

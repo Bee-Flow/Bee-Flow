@@ -26,7 +26,7 @@ const { confirmForTool } = require('./confirmation');
  *   `gatedTools`     — the action: must the runtime HOLD this call back?
  *
  * A tool is gated when its confirmation is something someone actually chose:
- * an explicit per-routine override, or an `ask` on an agent that carries a
+ * an explicit per-automation override, or an `ask` on an agent that carries a
  * stored `tools` map. An agent without that map gets an EMPTY `gatedTools`,
  * so every one of its calls dispatches exactly as it does today — draft cards
  * and all.
@@ -36,7 +36,7 @@ const { confirmForTool } = require('./confirmation');
  * @param {Array}  opts.tools           the assembled tool definitions
  * @param {boolean} [opts.unattended]   nobody is watching this run
  * @param {object} [opts.automationConfirms]  toolName → 'direct'|'ask' for
- *   granted routines (their effect comes from the definition, not the name)
+ *   granted automations (their effect comes from the definition, not the name)
  * @returns {{allowedToolNames: Set<string>, confirmByTool: Map<string,string>,
  *            effectByTool: Map<string,string>, gatedTools: Set<string>,
  *            enforceNames: boolean, unattended: boolean,
@@ -64,12 +64,12 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
         const hasOverride = CONFIRM_MODES.includes(overrideConfirm);
         // Set BEFORE the unattended drop below: the tool that is withheld is
         // precisely the one whose name must not then sail through gate 1 into
-        // the dispatcher's own routine lookup.
+        // the dispatcher's own automation lookup.
         if (hasOverride) sawOverride = true;
         // Een override mag VERSMALLEN, nooit verbreden: de sends-regel is de
-        // bodem. Een routine die verstuurt blijft 'ask', ook als de opgeslagen
+        // bodem. Een automatisering die verstuurt blijft 'ask', ook als de opgeslagen
         // grant 'direct' zegt — anders zet één veld in de kiezer de hele
-        // bevestigingsplicht op verzendende routines uit.
+        // bevestigingsplicht op verzendende automations uit.
         const baseConfirm = confirmForTool(name, toolsConfig);
         const confirm = (hasOverride && !(baseConfirm === 'ask' && overrideConfirm === 'direct'))
             ? overrideConfirm
@@ -77,14 +77,14 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
         const effect = (automationConfirms && (overrideConfirm !== undefined))
             ? (confirm === 'ask' ? 'writes' : 'reads')
             : effectOf(name);
-        // A granted routine carries its own confirm straight from its
+        // A granted automation carries its own confirm straight from its
         // definition, so it is chosen policy even on an agent whose app map is
         // still empty.
         const gated = confirm === 'ask' && (hasStoredGrants || hasOverride);
         // R2's rule: with nobody present there is no one to answer a
         // confirmation, so a tool that would ask is left OUT of the stack
         // rather than run unapproved or park forever. Only GATED tools —
-        // otherwise a mailing routine would lose the very tool `autoSend`
+        // otherwise a mailing automation would lose the very tool `autoSend`
         // exists to let it use.
         if (unattended && gated) { droppedForUnattended.push(name); continue; }
         allowedToolNames.add(name);
@@ -99,7 +99,7 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
         // `decideToolCall`. An agent nobody curated keeps the pre-A1b
         // behaviour for a name outside the stack: it falls through to the
         // dispatcher, which has its own handling for one (an agent-callable
-        // routine of the caller, a progressive-disclosure hint, a component
+        // automation of the caller, a progressive-disclosure hint, a component
         // tool). Refusing it there was a behaviour change nobody opted into.
         enforceNames: hasStoredGrants || sawOverride,
         unattended: !!unattended, droppedForUnattended,
@@ -124,14 +124,14 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
  * approval", then the turn wraps up) where a refusal would tell the model a
  * tool it was just handed does not exist.
  *
- * An explicit per-routine `confirm` is honoured here as well: it comes from
- * the routine's own definition, so it is a choice someone made rather than a
+ * An explicit per-automation `confirm` is honoured here as well: it comes from
+ * the automation's own definition, so it is a choice someone made rather than a
  * legacy default, and it gates on an agent with no app map at all.
  *
  * An agent with NO curated map keeps the empty `gatedTools` it has today.
  * That is not a decision being lost, it is the absence of one: gating there
  * would take the draft cards away from every agent that predates the picker
- * and stop every mailing routine dead — the same reason `buildToolPolicy`
+ * and stop every mailing automation dead — the same reason `buildToolPolicy`
  * hangs the hold-back on `hasCuratedGrants`.
  *
  * Never throws: it is the handler for something that already threw.
@@ -173,7 +173,7 @@ function fallbackToolPolicy({ agentConfig, tools, unattended = false, automation
         if (typeof name !== 'string' || !name) continue;
         allowedToolNames.add(name);
 
-        // A granted routine carries its own confirm straight from its
+        // A granted automation carries its own confirm straight from its
         // definition, so it is chosen policy even on an agent whose app map is
         // empty — the same rule `buildToolPolicy` applies. Mirrored here so the
         // fallback cannot quietly implement half of it.

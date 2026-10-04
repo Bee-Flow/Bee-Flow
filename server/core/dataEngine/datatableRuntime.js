@@ -91,6 +91,18 @@ function refuse(status, code, message) {
 }
 
 /**
+ * A write to a Solution stage's reference table: its rows are the release's
+ * (queryCompiler RowsLockedError, 409 `managed_part`). The error goes through
+ * UNCHANGED, only with the `safe` flag added, so the routes that pass only
+ * `safe` refusals on verbatim (the webpage bridge) answer it as a 409 with its
+ * code instead of a 500.
+ */
+function passLockedRows(e) {
+    if (e instanceof queryCompiler.RowsLockedError) e.safe = true;
+    return e;
+}
+
+/**
  * De kolomlijst van deze aanroep, gevalideerd.
  *
  * Geen array → programmeerfout (luid). Wel een array maar leeg → een echte,
@@ -361,13 +373,17 @@ async function insertRow(resolved, { allowColumns, values } = {}) {
         const r = await mirrorWrites(resolved).insertRow(mirrorCtx(resolved), clean);
         return { id: r.id };
     }
-    const { sql, params, id } = queryCompiler.compileInsert(resolved.meta, clean, {
-        createdBy: resolved.principal?.userId || null,
-        // NULL op een persoonlijke tabel, en dat klopt: die rij hoort bij geen
-        // organisatie. Hier ctx-org invullen zou de rij gedeeld laten lijken.
-        orgId: resolved.table.organizationId,
-        dialect: 'pg',
-    });
+    let compiled;
+    try {
+        compiled = queryCompiler.compileInsert(resolved.meta, clean, {
+            createdBy: resolved.principal?.userId || null,
+            // NULL op een persoonlijke tabel, en dat klopt: die rij hoort bij geen
+            // organisatie. Hier ctx-org invullen zou de rij gedeeld laten lijken.
+            orgId: resolved.table.organizationId,
+            dialect: 'pg',
+        });
+    } catch (e) { throw passLockedRows(e); }
+    const { sql, params, id } = compiled;
     await datatableDbStore.exec(resolved.scopeKey, resolved.scopeKey, sql, params);
     await datatableStore.bumpAfterWrite(resolved.table.id, resolved.scope, 1);
     return { id };
@@ -405,8 +421,11 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
 
     const filter = accessFilter.compileAccessFilter(
         resolved.meta, resolved.grade, { id: resolved.principal?.userId || null }, 'update', PG);
-    const upd = queryCompiler.compileUpdate(resolved.meta, rowId, clean, filter,
-        { expectedUpdatedAt, dialect: 'pg' });
+    let upd;
+    try {
+        upd = queryCompiler.compileUpdate(resolved.meta, rowId, clean, filter,
+            { expectedUpdatedAt, dialect: 'pg' });
+    } catch (e) { throw passLockedRows(e); }
     const out = await datatableDbStore.exec(resolved.scopeKey, resolved.scopeKey, upd.sql, upd.params);
 
     // Altijd teruglezen: bij succes heeft de beller de nieuwe `updated_at` nodig

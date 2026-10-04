@@ -1,5 +1,5 @@
 /**
- * The flow editor's device-side state: the draft store of each open routine,
+ * The flow editor's device-side state: the draft store of each open automation,
  * its save pipeline, and the registry that hands the stores out.
  */
 

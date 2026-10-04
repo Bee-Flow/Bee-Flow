@@ -903,6 +903,12 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false } = {
     }
 }
 
+/** The documents of a base a Solution stage carries change by deploy only (managed_part otherwise). */
+async function assertKbDocumentsWrite(kbId, managedWrite) {
+    if (typeof kbStore.assertKbWrite !== 'function') return;
+    await kbStore.assertKbWrite(kbId, ['documents'], managedWrite, { carryOnly: true });
+}
+
 /**
  * Refresh-in-place: re-chunk + re-embed `content` for an EXISTING documents
  * row. The row — and therefore documents.id, citations and the version
@@ -930,6 +936,8 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
         // way a first ingest does. A refresh is how an already-ingested source
         // GAINS pages it never had.
         pages = null,
+        // A deployment's capability to write into a carried stage knowledge base.
+        managedWrite = null,
     } = options;
     const record = onFailure === 'record';
     const okStatus = requestedStatus === 'redacted' ? 'redacted' : 'processed';
@@ -939,6 +947,8 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
     if (String(existing.knowledge_base_id) !== String(kbId)) {
         throw Object.assign(new Error('Document belongs to another knowledge base'), { code: 'KB_MISMATCH' });
     }
+    // Before any chunk is purged: a carried stage base takes documents by deploy only.
+    await assertKbDocumentsWrite(kbId, managedWrite);
     const docTitle = title || existing.title;
     const sourceUri = existing.source_uri || null;
 
@@ -947,7 +957,7 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
         if (record) {
             await purgeDocumentChunks(kbId, docId, tenantId);
             const doc = await kbStore.replaceDocumentContent(docId, {
-                title: docTitle, chunkCount: 0, status: 'skipped', statusReason: friendlyError(err),
+                title: docTitle, chunkCount: 0, status: 'skipped', statusReason: friendlyError(err), managedWrite,
                 externalId, sourceModifiedAt, sizeBytes, mime, pageCount, sheetCount,
             });
             await kbStore.bumpKBVersion(kbId);
@@ -971,7 +981,7 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
             let errDoc = null;
             try {
                 errDoc = await kbStore.replaceDocumentContent(docId, {
-                    title: docTitle, chunkCount: 0, status: 'error', statusReason: friendlyError(embedErr),
+                    title: docTitle, chunkCount: 0, status: 'error', statusReason: friendlyError(embedErr), managedWrite,
                     externalId, sourceModifiedAt, sizeBytes, mime, pageCount, sheetCount,
                 });
             } catch (_) { /* best-effort */ }
@@ -984,6 +994,7 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
     }
 
     const doc = await kbStore.replaceDocumentContent(docId, {
+        managedWrite,
         title: docTitle,
         contentHash: hash,
         simhash,
@@ -1020,12 +1031,15 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
  *   false — a human deleting a document through the API still gets the
  *   recovery snapshot.
  */
-async function deleteDocumentChunks(kbId, docId, tenantId, { skipSnapshot = false } = {}) {
+async function deleteDocumentChunks(kbId, docId, tenantId, { skipSnapshot = false, managedWrite = null } = {}) {
+    // Refused BEFORE the chunks are purged: the store guard on deleteDocument
+    // alone would run after the embeddings are already gone.
+    await assertKbDocumentsWrite(kbId, managedWrite);
     // strict: dit is de verwijdering, niet een herindexering. Lukt de remote
     // opruiming niet, dan mag de documentrij NIET vallen — anders blijven de
     // embeddings doorzoekbaar zonder dat er nog een rij is om ze aan te wijzen.
     await purgeDocumentChunks(kbId, docId, tenantId, { strict: true });
-    await kbStore.deleteDocument(docId, { skipSnapshot });
+    await kbStore.deleteDocument(docId, { skipSnapshot, managedWrite });
     await kbStore.bumpKBVersion(kbId);
 }
 

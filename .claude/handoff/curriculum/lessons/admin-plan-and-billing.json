@@ -21,7 +21,7 @@
       "id": "where",
       "icon": "📍",
       "title": "Where it is, and who may press it",
-      "bodyMd": "In the settings sidebar, open the **Organisation** group. **License & Usage** is its first row (some cloud accounts see the same screen titled **Subscription & Usage**).\n\nThe heading reads **License & Usage** and the subtitle **\"Your current plan and usage for this billing period\"** — a reminder that every number under it follows the billing period, not the calendar month.\n\nTwo things worth knowing before you look for it:\n\n- The Organisation group is **hidden on phones**. This is a desktop screen.\n- Reading the card is harmless, but subscribing, changing and cancelling are checked again on the server: they need an organisation admin."
+      "bodyMd": "In the settings sidebar, open the **Organisation** group. On Bee Flow Cloud, **License & Usage** is its first row (some cloud accounts see the same screen titled **Subscription & Usage**). On a self-hosted install the row does not exist at all — the end of this lesson explains why.\n\nThe heading reads **License & Usage** and the subtitle **\"Your current plan and usage for this billing period\"** — a reminder that every number under it follows the billing period, not the calendar month.\n\nTwo things worth knowing before you look for it:\n\n- The Organisation group is **hidden on phones**. This is a desktop screen.\n- Reading the card is harmless, but subscribing, changing and cancelling are checked again on the server: they need an organisation admin."
     },
     {
       "type": "slide",
@@ -209,7 +209,7 @@
       "id": "selfhost",
       "icon": "🏠",
       "title": "Self-hosted: the row is gone on purpose",
-      "bodyMd": "If Van Dijk Groep ran Bee Flow on their own server, this lesson would end differently: on a self-hosted install **License & Usage is not in the Organisation list at all**. Licensing is governed from the admin dashboard's **Server licence** panel, and the subscriptions API answers *not available in self-hosted*, so plan cards and the cap gauge simply never appear. That is expected, not a fault.\n\nThere is a middle case as well. Where a **server-wide licence** covers the whole installation, the plan, usage and plan-picker cards are replaced by one read-only note — **\"Tier is managed server-wide\"**, *\"This installation is covered by a server-wide licence, so your organisation does not need a subscription. Usage and billing are managed by the platform operator.\"*\n\nIn both cases the honest answer to \"can we upgrade?\" is: not here, and not by you."
+      "bodyMd": "If Van Dijk Groep ran Bee Flow on their own server, this lesson would end differently: on a self-hosted install **License & Usage is not in the Organisation list at all**, and a link to it lands on the first Organisation section instead. The subscriptions API answers *not available in self-hosted*, so plan cards, the plan picker and the cap gauge never appear. That is expected, not a fault.\n\nInstead, one **server-wide licence** sets the tier for every organisation on the server. Whoever administers the whole installation applies and reads it in the **Admin Dashboard**, on the **Server licence** tab — a tab only those installation-wide administrators see.\n\nSo on a self-hosted install the honest answer to \"can we upgrade?\" is: not on this screen, and not by the organisation admin — it is a question for whoever runs the server."
     },
     {
       "type": "quiz",
@@ -260,10 +260,10 @@
       "icon": "🧾",
       "checkId": "licence-plan-known",
       "title": "Read your own plan card — and press nothing",
-      "instruction": "Open Settings → Organisation → License & Usage. Write down, for yourself, the plan name, the cost cap / month and every Plan limits tile you see, and note which of Change plan, Manage Billing, Subscribe and Cancel subscription your workspace actually offers. Do not press any of them. The checklist below only confirms that your workspace answers with a licence tier — the tiles are yours to read.",
+      "instruction": "On Bee Flow Cloud, open Settings → Organisation → License & Usage. Note the plan name, the cost cap / month and every Plan limits tile, and which of Change plan, Manage Billing, Subscribe and Cancel subscription your workspace offers. Do not press any of them. On a self-hosted install the button lands on another Organisation section, because License & Usage does not exist there: your tier comes from the server-wide licence, so find out who runs the server. Either way, the checklist only confirms that your workspace answers with a licence tier.",
       "launch": {
         "navigateTo": "settings/organisation/license",
-        "label": "Open License & Usage"
+        "label": "Open the Organisation settings"
       }
     },
     {
@@ -271,7 +271,7 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Read the card correctly.** Plan name and billing cycle at the top, cost cap / month at the right, and Plan limits showing only the caps that really exist — a missing tile means unlimited, not blocked.\n- **Change a plan with the date in hand.** An upgrade is immediate with a prorated charge today; a downgrade waits for the end of the billing period and can be released with Keep current plan. A cancellation keeps full access until its date and is reversed with Keep subscription.\n- **Say why a button is missing.** No plan, a free plan, the highest plan, a server-wide licence, or a self-hosted install — each hides a different control, and only the last one takes the whole row away."
+      "bodyMd": "- **Read the card correctly.** Plan name and billing cycle at the top, cost cap / month at the right, and Plan limits showing only the caps that really exist — a missing tile means unlimited, not blocked.\n- **Change a plan with the date in hand.** An upgrade is immediate with a prorated charge today; a downgrade waits for the end of the billing period and can be released with Keep current plan. A cancellation keeps full access until its date and is reversed with Keep subscription.\n- **Say why a button is missing.** No plan, a free plan or the highest plan each hides a different control. On a self-hosted install the whole row is gone: the tier comes from the server-wide licence, and only whoever runs the server can change it."
     }
   ],
   "rubrics": {
@@ -292,12 +292,12 @@
     "title": "Plan, billing and the licence tier",
     "summary": "The License & Usage screen: what the plan sets, what the tier sets, and what each lifecycle button does to the bill and when.",
     "facts": [
-      "License & Usage is the first row of the Organisation group in settings; its subtitle is \"Your current plan and usage for this billing period\", and a consumer cloud account sees the same screen as Subscription & Usage.",
+      "On Bee Flow Cloud, License & Usage is the first row of the Organisation group in settings; its subtitle is \"Your current plan and usage for this billing period\", and a consumer cloud account sees the same screen as Subscription & Usage.",
       "Plan limits shows only concrete caps — Users, Agents and Knowledge Sources; unlimited values draw no tile, the whole card disappears when a plan sets none of the three and has no notes, and the Users tile carries an Add user button.",
       "An upgrade takes effect immediately and its dialog shows Prorated charge today and Then; a downgrade's dialog shows Takes effect, Charge today 0,00 and Then, is scheduled to the end of the billing period, and is released with Keep current plan.",
       "Cancel subscription schedules the end of the current billing period, keeps full access until that date, takes no further payment, and is reversed with Keep subscription.",
       "With no plan the card reads \"No license assigned\" and offers Choose a Plan with a Subscribe button per plan, or \"No plans are available right now.\"",
-      "On a self-hosted install the License & Usage row is removed entirely and the subscriptions API answers not_available_in_self_hosted; where a server-wide licence covers the installation the cards are replaced by the note \"Tier is managed server-wide\"."
+      "On a self-hosted install the License & Usage row is removed entirely and the subscriptions API answers not_available_in_self_hosted; the tier comes from one server-wide licence that installation-wide administrators manage in the Admin Dashboard on the Server licence tab."
     ]
   },
   "actionChecks": [
@@ -305,7 +305,7 @@
       "checkId": "licence-plan-known",
       "existing": false,
       "label": "Read the workspace's licence and plan",
-      "hint": "Settings → Organisation → License & Usage. The check reads your workspace's licence status; it passes once the tier and its feature list come back.",
+      "hint": "On Bee Flow Cloud: Settings → Organisation → License & Usage. On a self-hosted install that row does not exist and the tier comes from the server-wide licence. The check reads your workspace's licence status; it passes once the tier and its feature list come back.",
       "endpoints": [
         {
           "method": "GET",
@@ -317,7 +317,7 @@
         {
           "id": "tier",
           "label": "Your workspace answers with its licence tier",
-          "hint": "Open License & Usage and read the plan card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
+          "hint": "On cloud, open License & Usage and read the plan card; on a self-hosted install there is no such card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
           "rule": "GET /api/license/status → tier is a non-empty string; a read-back, not an achievement (features[] is always non-empty too, so it verifies nothing extra)",
           "endpoint": "/api/license/status",
           "expect": {

@@ -1,7 +1,7 @@
 /**
  * "12m 33s" — the builders' elapsed format. Seconds under a minute, m+s under
  * an hour, h+m above it; never a bare "0s" from an unparsable start. Shared by
- * the routine canvas (runFocus) and the App Studio build banner.
+ * the automation canvas (runFocus) and the App Studio build banner.
  */
 export function formatElapsed(startedAt, now = Date.now()) {
     const start = Date.parse(startedAt || '');

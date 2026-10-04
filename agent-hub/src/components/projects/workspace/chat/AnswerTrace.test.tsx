@@ -11,6 +11,7 @@ vi.mock('../../../../api/client', async (importOriginal) => ({
     default: client,
 }));
 
+import { toast } from '../../../shared/Toast';
 import AnswerTrace from './AnswerTrace';
 
 const TRACE = {
@@ -61,5 +62,20 @@ describe('AnswerTrace', () => {
         await user.click(screen.getByRole('button', { name: /How I got this answer/ }));
         expect(await screen.findByRole('alert')).toHaveTextContent('no longer available');
         await waitFor(() => expect(client.get).toHaveBeenCalledTimes(1));
+    });
+
+    it('does not say "Copied" when the browser has no clipboard (a plain-http origin)', async () => {
+        const user = userEvent.setup();
+        const success = vi.spyOn(toast, 'success').mockImplementation(() => 0);
+        const failure = vi.spyOn(toast, 'error').mockImplementation(() => 0);
+        renderTrace();
+        await user.click(screen.getByRole('button', { name: /How I got this answer/ }));
+        await screen.findByTestId('team-chat-answer-trace-body');
+        Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+        await user.click(screen.getAllByRole('button', { name: /^Copy / })[0]);
+        await waitFor(() => expect(failure).toHaveBeenCalledWith('Could not copy'));
+        expect(success).not.toHaveBeenCalled();
+        success.mockRestore();
+        failure.mockRestore();
     });
 });

@@ -66,7 +66,7 @@ function progressOf(turn) {
  */
 export function enginePill({ engine, t }) {
     if (engine?.local !== true) return null;
-    return t('routines.canvas.engine.local', 'On this machine');
+    return t('automations.canvas.engine.local', 'On this machine');
 }
 
 /** Who: the model's short name (when known) and, for a local model only, the privacy claim. */
@@ -74,25 +74,25 @@ function identitySegments(engine, t) {
     const out = [];
     const model = shortModelName(engine?.modelId);
     if (model) out.push(model);
-    if (engine?.local === true) out.push(t('routines.canvas.engine.offline', 'nothing sent outside'));
+    if (engine?.local === true) out.push(t('automations.canvas.engine.offline', 'nothing sent outside'));
     return out;
 }
 
 /** How far: the live reading figure, and the remembered share when there is one. */
 function readingSegments(progress, t, fmt) {
-    const out = [t('routines.canvas.engine.reading', 'reading {done} of {total} tokens', {
+    const out = [t('automations.canvas.engine.reading', 'reading {done} of {total} tokens', {
         done: fmt(progress.processed),
         total: fmt(progress.total),
     })];
-    if (progress.cache > 0) out.push(t('routines.canvas.engine.remembered', '{n} remembered', { n: fmt(progress.cache) }));
+    if (progress.cache > 0) out.push(t('automations.canvas.engine.remembered', '{n} remembered', { n: fmt(progress.cache) }));
     return out;
 }
 
 /** How fast: the last round's rates, each only when it was measured. */
 function rateSegments(engine, t, fmt) {
     const out = [];
-    if (positive(engine?.readTokPerSec)) out.push(t('routines.canvas.engine.reads', 'reads {n} tok/s', { n: fmt(engine.readTokPerSec) }));
-    if (positive(engine?.writeTokPerSec)) out.push(t('routines.canvas.engine.writes', 'writes {n} tok/s', { n: fmt(engine.writeTokPerSec) }));
+    if (positive(engine?.readTokPerSec)) out.push(t('automations.canvas.engine.reads', 'reads {n} tok/s', { n: fmt(engine.readTokPerSec) }));
+    if (positive(engine?.writeTokPerSec)) out.push(t('automations.canvas.engine.writes', 'writes {n} tok/s', { n: fmt(engine.writeTokPerSec) }));
     return out;
 }
 
@@ -112,7 +112,7 @@ export function engineSegments({ engine, turn, t, formatK: fmt = formatK }) {
     const phase = turn?.phase || null;
     const progress = phase === 'reading' ? progressOf(turn) : null;
     if (progress) return out.concat(readingSegments(progress, t, fmt));
-    if (phase === 'writing') out.push(t('routines.canvas.engine.writing', 'writing…'));
+    if (phase === 'writing') out.push(t('automations.canvas.engine.writing', 'writing…'));
     return out.concat(rateSegments(engine, t, fmt));
 }
 

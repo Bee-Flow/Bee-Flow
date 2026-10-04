@@ -23,7 +23,7 @@ import { ROW_GAP } from './rowBands';
  * Builder redesign (Sep 2026): ROWS are the default shape. `rowLayoutPositions`
  * is the viewport-free variant of the serpentine — a fixed column count, the
  * design's five per row — and it is what layout.js uses for every node that
- * has no position yet, so a NEW routine grows into rows step by step while an
+ * has no position yet, so a NEW automation grows into rows step by step while an
  * existing one keeps its hand-placed positions until Arrange is pressed.
  */
 
@@ -196,7 +196,7 @@ function chooseColumns(ranks, { heightById, dims, colWidth, viewportWidth, viewp
  * reaches the right-hand edge, and the next step carries on from the left of
  * the row below. The alternative — ploughing back the other way, so row two
  * reads right to left — gives shorter connectors and was tried first, but on a
- * numbered routine it puts step 10 to the left of step 6 and the canvas
+ * numbered automation it puts step 10 to the left of step 6 and the canvas
  * becomes unreadable in the one place it was meant to be readable. The long
  * return edge is the price of a canvas you can read in order, and ROW_GAP
  * leaves it a lane to run in.
@@ -234,7 +234,7 @@ function serpentinePositions(nodes, edges, { dims, spacing, viewportWidth, viewp
 /**
  * The viewport-free row layout: dagre for the ranking, then rows of a fixed
  * width. Used by layout.js for every node that has no position yet — so
- * building a routine step by step grows rows, without any caller having to
+ * building an automation step by step grows rows, without any caller having to
  * know how wide the canvas is (seedPositions runs from pure handlers with no
  * viewport at all). A graph shorter than one row comes out exactly as dagre
  * placed it, just re-based to the top-left.

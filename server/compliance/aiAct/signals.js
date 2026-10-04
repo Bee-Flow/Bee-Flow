@@ -92,7 +92,7 @@ function annexIiiHint(text) {
 }
 
 /**
- * Pure: the signals of one routine definition. `meta` adds what the row knows
+ * Pure: the signals of one automation definition. `meta` adds what the row knows
  * and the definition does not: title/description (for the Annex III hint),
  * live form page count and the org's marking flag.
  */
@@ -187,7 +187,7 @@ async function loadAutomation(orgId, automationId) {
         row = await getOne(select(true), params);
     } catch {
         // The form-page table is created lazily by automationStore/forms.js —
-        // an install that never published a form must still resolve its routines.
+        // an install that never published a form must still resolve its automations.
         row = await getOne(select(false), params).catch(() => null);
     }
     return row || null;

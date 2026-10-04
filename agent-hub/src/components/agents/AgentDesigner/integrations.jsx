@@ -9,7 +9,7 @@ import { getIntegrationIcon } from '../../../config/integrationIcons';
  * in `config/integrationCatalog.js` (49). Twee handgeschreven catalogi voor
  * dezelfde vraag, en het verschil was geen detail: **geen enkele
  * Nextcloud-app stond erin**. Een zelfhostende klant kon Nextcloud Files,
- * Talk, Deck of Tables dus wél aan een routine hangen, maar niet aan een
+ * Talk, Deck of Tables dus wél aan een automatisering hangen, maar niet aan een
  * agent — niet omdat dat verboden was, maar omdat de kiezer ze niet kende.
  * Hetzelfde gold voor GitHub, SignRequest, Maps, Withings, Browse Web,
  * Knowledge Base en Webpages.

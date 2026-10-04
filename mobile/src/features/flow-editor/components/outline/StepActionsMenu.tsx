@@ -25,7 +25,7 @@ const WORDS: Record<StepActionId, Words> = {
     addTrigger: {
         icon: 'Plus',
         label: (t) => t('mobile.flow.action.add_trigger', 'Add another trigger'),
-        hint: (t) => t('mobile.flow.action.add_trigger_hint', 'Another way for this routine to start'),
+        hint: (t) => t('mobile.flow.action.add_trigger_hint', 'Another way for this automation to start'),
     },
     openFlowlet: { icon: 'Layers', label: (t) => t('mobile.flow.action.open_flowlet', 'Open flowlet') },
     test: {
@@ -45,7 +45,7 @@ const WORDS: Record<StepActionId, Words> = {
     },
     duplicate: {
         icon: 'Copy',
-        label: (t) => t('routines.ndv.duplicate', 'Duplicate'),
+        label: (t) => t('automations.ndv.duplicate', 'Duplicate'),
         hint: (t) => t('mobile.flow.action.duplicate_hint', 'Copies this step and its settings'),
     },
     moveUp: { icon: 'ArrowUp', label: (t) => t('mobile.flow.action.move_up', 'Move up') },
@@ -62,13 +62,13 @@ const WORDS: Record<StepActionId, Words> = {
     },
     disable: {
         icon: 'Power',
-        label: (t) => t('routines.ndv.disable', 'Disable'),
-        hint: (t) => t('routines.ndv.disable_title', 'Disable this node (skipped during execution)'),
+        label: (t) => t('automations.ndv.disable', 'Disable'),
+        hint: (t) => t('automations.ndv.disable_title', 'Disable this node (skipped during execution)'),
     },
     enable: {
         icon: 'Power',
         label: (t) => t('mobile.flow.action.enable', 'Enable'),
-        hint: (t) => t('routines.ndv.reenable_title', 'Re-enable this node'),
+        hint: (t) => t('automations.ndv.reenable_title', 'Re-enable this node'),
     },
     detach: {
         icon: 'Unlink',

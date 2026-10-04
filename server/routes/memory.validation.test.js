@@ -193,9 +193,9 @@ test('a misspelled projectId is refused instead of listing the person\'s own mem
 
 test('paging: not a number is refused, out of range is clamped, the product\'s own type is listable', async () => {
     refusedAt(await dispatch({ method: 'GET', url: '/?limit=all' }), 'query.limit');
-    const res = await dispatch({ method: 'GET', url: '/?limit=500&offset=0&type=routine_coverage&search=%20kaas%20' });
+    const res = await dispatch({ method: 'GET', url: '/?limit=500&offset=0&type=schedule_coverage&search=%20kaas%20' });
     assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(lastCall('searchUserMemories').args[1], { limit: 200, offset: 0, search: 'kaas', type: 'routine_coverage' });
+    assert.deepStrictEqual(lastCall('searchUserMemories').args[1], { limit: 200, offset: 0, search: 'kaas', type: 'schedule_coverage' });
 });
 
 // ── the rest ────────────────────────────────────────────────────────

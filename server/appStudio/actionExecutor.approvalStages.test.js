@@ -1,11 +1,11 @@
 /**
  * request_approval with a STAGE CHAIN — the app half of sequential approvals.
  *
- * The point of these tests is that an app and a routine reach the SAME row.
+ * The point of these tests is that an app and an automation reach the SAME row.
  * Both desugar through automation/approvalStages.js, both pass every seat
  * through the same org gate, and both stamp the chain, the participant index
  * and the first stage's key. A divergence here is how "the invoice app skipped
- * finance but the routine didn't" happens.
+ * finance but the automation didn't" happens.
  *
  * Run: node --test appStudio/actionExecutor.approvalStages.test.js
  */

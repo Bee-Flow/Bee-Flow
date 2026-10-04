@@ -53,3 +53,12 @@ test('applyNl fills only missing keys, so curated wording survives', () => {
     assert.strictEqual(merged['code_step.assist.keep'], 'Houden');
     assert.strictEqual(added, Object.keys(NL_TRANSLATIONS).length - 1);
 });
+
+test('a reworded line replaces only the old shipped Dutch, never a workspace\'s own', () => {
+    const key = 'code_step.editor.stalled';
+    const shipped = 'De code-editor werd niet helemaal geladen, dus dit is het gewone tekstvak. Hij wordt de eerste keer van internet gehaald, dus een installatie zonder internet of achter een firewall krijgt hem nooit. Er gaat niets verloren: dit vak bewerkt en bewaart precies dezelfde code.';
+    const fromShipped = applyNl({ [key]: shipped }).merged[key];
+    assert.strictEqual(fromShipped, NL_TRANSLATIONS[key]);
+    assert.ok(!/internet/.test(fromShipped));
+    assert.strictEqual(applyNl({ [key]: 'Eigen tekst' }).merged[key], 'Eigen tekst');
+});

@@ -56,7 +56,7 @@ test('using an agent is never gated, only authoring one', () => {
     }
 });
 
-test('running a routine is never gated, only authoring one', () => {
+test('running an automation is never gated, only authoring one', () => {
     for (const p of ['/a1/run', '/a1/dry-run', '/a1/activate', '/a1/deactivate', '/a1/agent-invoke',
         '/runs/r1/approve', '/runs/r1/cancel', '/approvals/ap1/decide', '/webhook/slug',
         '/form/tok', '/form/tok/upload', '/events/gmail', '/_schedule/preview',

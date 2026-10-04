@@ -103,7 +103,7 @@ describe('restoreFromDisk', () => {
         expect(store.getState().definition).toEqual(BASE);
     });
 
-    it('asks when the routine changed elsewhere', async () => {
+    it('asks when the automation changed elsewhere', async () => {
         const { disk, io } = memoryIO();
         const draft = { definition: renamed('Mine'), baseVersion: 2, savedAt: 1 };
         disk.set('a1', draft);

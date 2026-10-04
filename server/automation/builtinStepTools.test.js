@@ -60,7 +60,7 @@ test('aliases a model reaches for resolve to the right tool', () => {
 
 test('real integration tool names are NOT claimed as step types', () => {
     // The whole point of the narrow map: anything it does not recognise stays
-    // allowed, because MCP / custom / routine tools cannot be enumerated here.
+    // allowed, because MCP / custom / automation tools cannot be enumerated here.
     for (const name of ['gmail_search', 'nextcloud_deck_create_card', 'browse_web',
         'workspace_read', 'agent_search', 'some_mcp_tool', 'fetch']) {
         assert.strictEqual(isBuiltinStepType(name), false, `${name} must not be treated as a step type`);

@@ -3,7 +3,7 @@
  *
  *   DIFFERENTIAL  answersRange.js runs beside answersRange.ts; isBlankForm
  *                 (AiDraftPanel.jsx), formLiveness / publicFormPath /
- *                 canOpenRoutine / canOpenForm (FormsStudio.jsx) and
+ *                 canOpenAutomation / canOpenForm (FormsStudio.jsx) and
  *                 fileSize / fileKind / txtFilename / initialValues
  *                 (PublicFormRenderer.jsx) are cut out of their component
  *                 files and run beside the ports on the same inputs;
@@ -19,7 +19,7 @@ import { initialValues } from './contract';
 import type { FillField } from './fillTypes';
 import { fileKind, fileSize, LONG_ENDING_CHARS, POLL_CEILING_MS, POLL_MAX_MS, POLL_MIN_MS, POLL_STEP_MS, SESSION_RE, txtFilename } from './fillValues';
 import { DENSITY_MULT, RADIUS_PX } from './formLook';
-import { canOpenForm, canOpenRoutine, formLiveness, publicFormPath, TABS_OWNER, TABS_VIEWER } from './formPage';
+import { canOpenForm, canOpenAutomation, formLiveness, publicFormPath, TABS_OWNER, TABS_VIEWER } from './formPage';
 import { readWeb, requireWeb, constText, functionText } from '../testing/sources';
 
 type Fn = (...args: unknown[]) => unknown;
@@ -66,7 +66,7 @@ describe('AiDraftPanel.jsx isBlankForm', () => {
 });
 
 describe('FormsStudio.jsx and FormPage.jsx', () => {
-    const web = cut(`${FORMS}/FormsStudio.jsx`, ['formLiveness', 'publicFormPath', 'canOpenRoutine', 'canOpenForm']);
+    const web = cut(`${FORMS}/FormsStudio.jsx`, ['formLiveness', 'publicFormPath', 'canOpenAutomation', 'canOpenForm']);
     const ROWS: unknown[] = [
         null, {}, { live: true }, { live: false }, { live: 'yes' },
         { id: 'abc', url: '/f/abc' }, { id: 'abc', url: '//evil' }, { id: 'abc' }, { url: 'https://x/f/1' },
@@ -76,7 +76,7 @@ describe('FormsStudio.jsx and FormPage.jsx', () => {
     it.each(ROWS.map((r) => [JSON.stringify(r), r]))('reads %s as the web does', (_l, row) => {
         expect(formLiveness(row as never)).toBe(web.formLiveness?.(row));
         expect(publicFormPath(row as never)).toBe(web.publicFormPath?.(row));
-        expect(canOpenRoutine(row as never)).toBe(web.canOpenRoutine?.(row));
+        expect(canOpenAutomation(row as never)).toBe(web.canOpenAutomation?.(row));
         expect(canOpenForm(row as never)).toBe(web.canOpenForm?.(row));
     });
 

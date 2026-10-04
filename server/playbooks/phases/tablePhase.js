@@ -3,7 +3,7 @@
  * datatable with the recipe's schema (the same transaction the packaging
  * installer runs — the create route's body is pinned by tests and cannot be
  * refactored into a function). `existing`: check that the chosen table can
- * carry invoices: the caller holds editor grade (the routine writes rows; a
+ * carry invoices: the caller holds editor grade (the automation writes rows; a
  * mirror of a Nextcloud table or a spreadsheet writes through to its source)
  * and the required roles map
  * onto its columns.
@@ -91,7 +91,7 @@ async function createNew({ playbook, principal, recipe, hasManageDatatables }, d
     const reused = await reusePriorTable(playbook, principal, recipe, deps);
     if (reused) return reused;
     // The one shared creator (core/dataEngine/createStudioDatatable) — the
-    // routine builder's builder_create_datatable makes tables the same way.
+    // automation builder's builder_create_datatable makes tables the same way.
     const { createStudioDatatable } = deps.createStudioDatatable ? { createStudioDatatable: deps.createStudioDatatable } : require('../../core/dataEngine/createStudioDatatable');
     const existing = await deps.datatableStore.listDatatablesForScope(deps.datatableAccess.defaultCreateScope(principal) || { kind: 'user', id: playbook.userId }).catch(() => []);
     const usedKeys = new Set((existing || []).map((t) => t && t.key).filter(Boolean));

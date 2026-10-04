@@ -6,7 +6,7 @@
 
 export const formKeys = {
     all: ['publishing', 'forms'] as const,
-    /** One form's Form page (GET /forms/:automationId), keyed by the ROUTINE. */
+    /** One form's Form page (GET /forms/:automationId), keyed by the AUTOMATION. */
     detail: (automationId: string) => ['publishing', 'forms', 'detail', automationId] as const,
     /** The device's per-user "opened at" map (model/recents.ts). */
     recents: (userId: string) => ['publishing', 'form-recents', userId] as const,

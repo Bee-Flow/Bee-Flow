@@ -602,6 +602,31 @@
         {
           "key": "changedAt",
           "sample": "2026-05-12T10:23:04.881Z"
+        },
+        {
+          "key": "spreadsheetId",
+          "sample": "1AbCDeFgHiJkLmNoPqRsTuV"
+        },
+        {
+          "key": "sheet",
+          "sample": "Invoices"
+        },
+        {
+          "key": "range",
+          "sample": "A1:D100"
+        },
+        {
+          "key": "rowIndex",
+          "sample": 7
+        },
+        {
+          "key": "row",
+          "sample": [
+            "2026-05-12",
+            "Acme BV",
+            "1200.00",
+            "paid"
+          ]
         }
       ],
       "sample": {
@@ -618,7 +643,17 @@
         "current": {
           "modifiedTime": "2026-05-12T10:23:00Z"
         },
-        "changedAt": "2026-05-12T10:23:04.881Z"
+        "changedAt": "2026-05-12T10:23:04.881Z",
+        "spreadsheetId": "1AbCDeFgHiJkLmNoPqRsTuV",
+        "sheet": "Invoices",
+        "range": "A1:D100",
+        "rowIndex": 7,
+        "row": [
+          "2026-05-12",
+          "Acme BV",
+          "1200.00",
+          "paid"
+        ]
       }
     },
     "google-sheets.spreadsheet.new": {
@@ -2505,6 +2540,38 @@
         }
       }
     },
+    "meeting-notes.meeting.processed": {
+      "fields": [
+        {
+          "key": "transcriptionId",
+          "sample": "7c1f9a20-4d3e-4b1a-9c8f-2e6d5a4b3c21"
+        },
+        {
+          "key": "tags",
+          "sample": [
+            "sales",
+            "klant-van-dijk"
+          ]
+        },
+        {
+          "key": "orgId",
+          "sample": "org_9f2c41"
+        },
+        {
+          "key": "reprocessed",
+          "sample": true
+        }
+      ],
+      "sample": {
+        "transcriptionId": "7c1f9a20-4d3e-4b1a-9c8f-2e6d5a4b3c21",
+        "tags": [
+          "sales",
+          "klant-van-dijk"
+        ],
+        "orgId": "org_9f2c41",
+        "reprocessed": true
+      }
+    },
     "msgraph.mail.new": {
       "fields": [
         {
@@ -2891,22 +2958,22 @@
       "fields": [
         {
           "key": "now",
-          "sample": "2026-08-23T06:50:30.708Z"
+          "sample": "2026-10-01T08:14:41.766Z"
         }
       ],
       "sample": {
-        "now": "2026-08-23T06:50:30.709Z"
+        "now": "2026-10-01T08:14:41.766Z"
       }
     },
     "__schedule": {
       "fields": [
         {
           "key": "now",
-          "sample": "2026-08-23T06:50:30.709Z"
+          "sample": "2026-10-01T08:14:41.766Z"
         }
       ],
       "sample": {
-        "now": "2026-08-23T06:50:30.709Z"
+        "now": "2026-10-01T08:14:41.766Z"
       }
     },
     "__webhook": {

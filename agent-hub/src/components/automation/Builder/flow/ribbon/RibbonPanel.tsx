@@ -72,7 +72,7 @@ export default function RibbonPanel({ category, sections, anchor, cards, frequen
                     title={title}
                     testId="ribbon-blocks"
                     enabled={open}
-                    empty={t('routines.ribbon.blocks_empty', 'No building blocks yet. Group steps into a flowlet to reuse them.')}
+                    empty={t('automations.ribbon.blocks_empty', 'No building blocks yet. Group steps into a flowlet to reuse them.')}
                     onAdd={onAdd}
                     {...openProps}
                 />

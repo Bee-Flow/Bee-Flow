@@ -439,7 +439,7 @@ Delete my data (Art. 17) / Export my data (Art. 20) / Restrict processing (Art. 
   guardrail config *and* the guardrail event log. Remediation links jump to Security → Guardrails (in Settings: Organisation → Privacy).
 - **Agents** — published agents are the ROPA's processing activities; high-risk agents drive the DPIA list;
   `AIA-Art50-ai-disclosure` and `AIA-Art13-transparency` inspect agent prompts/config; auto-fix can inject the AI disclosure.
-- **Routines / automations** — `AIA-Art50-content-marking` looks at automations that generate content; the marking footer is a
+- **Automations / automations** — `AIA-Art50-content-marking` looks at automations that generate content; the marking footer is a
   compliance setting (`ai_content_marking_enabled` / `_footer`) whose every flip is stamped and evidenced.
 - **Memory** — the retention window from the setup wizard is enforced for stored memories (the retention job heartbeat is what
   `ISO27001-A.8.10-deletion` checks); DSR discovery counts a subject's memories.

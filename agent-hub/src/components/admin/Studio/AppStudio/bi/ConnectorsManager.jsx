@@ -11,7 +11,7 @@ import { getIntegrationIcon } from '../../../../../config/integrationIcons';
 import ChoiceCards from '../../../../shared/ChoiceCards';
 import Disclosure from '../../../../shared/Disclosure';
 import { useEditorChrome } from '../editor/EditorChromeContext';
-import RoutinePicker from '../inspector/RoutinePicker';
+import AutomationPicker from '../inspector/AutomationPicker';
 
 /**
  * App Studio BI — the owner's external-connectors editor.
@@ -19,7 +19,7 @@ import RoutinePicker from '../inspector/RoutinePicker';
  * A connector is an owner-authored external data source (server contract in
  * server/appStudio/connectors.js + validated by dataModel.js). Three kinds:
  *   integration_tool — dispatch a platform tool with author-pinned fixedArgs
- *   automation       — trigger one of the owner's routines
+ *   automation       — trigger one of the owner's automations
  *   rest             — GET an https-only, allow-listed URL template
  *
  * ── ONE CONNECTOR = ONE ACTION ──────────────────────────────────────
@@ -71,9 +71,9 @@ const KINDS = [
     },
     {
         value: 'automation',
-        tag: 'Routine',
-        label: 'One of my Routines',
-        description: 'Run a routine you already built and show whatever it hands back.',
+        tag: 'Automation',
+        label: 'One of my Automations',
+        description: 'Run an automation you already built and show whatever it hands back.',
         Icon: Workflow,
     },
     {
@@ -118,7 +118,7 @@ export function connectorProblem(connector, action = null) {
     if (!connector) return null;
     if (connector.kind === 'rest' && !connector.url) return 'still needs the web address it reads from';
     if (connector.kind === 'integration_tool' && !connector.tool) return 'still needs an app and an action';
-    if (connector.kind === 'automation' && !connector.automationId) return 'still needs the routine it runs';
+    if (connector.kind === 'automation' && !connector.automationId) return 'still needs the automation it runs';
     if (connector.kind === 'mailbox') {
         if (!connector.provider) return 'still needs to know whether it reads Gmail or Outlook';
         if (connector.mode === 'shared' && !connector.address) return 'still needs the address of the shared mailbox';
@@ -255,7 +255,7 @@ function TextField({ label, value, onChange, disabled, placeholder }) {
  *
  * "An app you already use" no longer creates an empty connector to configure —
  * it opens the picker, where ticking actions creates one connector each. The
- * other two kinds still create a single blank connector, because a routine or a
+ * other two kinds still create a single blank connector, because an automation or a
  * URL is genuinely one thing you then fill in.
  */
 function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
@@ -302,11 +302,11 @@ function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
 }
 
 /**
- * The routine a connector runs, by name. The picker is the same one the
- * inspector uses; the id stays hand-editable one disclosure deeper for routines
+ * The automation a connector runs, by name. The picker is the same one the
+ * inspector uses; the id stays hand-editable one disclosure deeper for automations
  * the list can't reach (another owner's, or one built after this loaded).
  */
-function RoutineField({ connector, onChangeId, disabled }) {
+function AutomationField({ connector, onChangeId, disabled }) {
     const api = useAutomationApi();
     const [open, setOpen] = useState(false);
     const [titles, setTitles] = useState({});
@@ -327,10 +327,10 @@ function RoutineField({ connector, onChangeId, disabled }) {
 
     return (
         <div className="flex flex-col gap-1.5">
-            <span className={LABEL}>Routine</span>
+            <span className={LABEL}>Automation</span>
             <div className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm" style={{ color: automationId ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                    {title || automationId || 'No routine chosen yet'}
+                    {title || automationId || 'No automation chosen yet'}
                 </span>
                 <button
                     type="button"
@@ -339,19 +339,19 @@ function RoutineField({ connector, onChangeId, disabled }) {
                     className="shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 >
-                    {automationId ? 'Choose another' : 'Choose a routine'}
+                    {automationId ? 'Choose another' : 'Choose an automation'}
                 </button>
             </div>
             <Disclosure title="Type the id myself">
                 <TextField
-                    label="Routine id"
+                    label="Automation id"
                     value={connector.automationId}
                     onChange={onChangeId}
                     disabled={disabled}
                     placeholder="auto-123"
                 />
             </Disclosure>
-            <RoutinePicker
+            <AutomationPicker
                 open={open}
                 onClose={() => setOpen(false)}
                 onPick={(automation) => {
@@ -802,7 +802,7 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
             ) : null}
 
             {connector.kind === 'automation' ? (
-                <RoutineField connector={connector} onChangeId={(v) => setOpt('automationId', v)} disabled={disabled} />
+                <AutomationField connector={connector} onChangeId={(v) => setOpt('automationId', v)} disabled={disabled} />
             ) : null}
 
             {connector.kind === 'mailbox' ? (
@@ -908,7 +908,7 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
 
 /**
  * Group the list by app so ticking five Gmail actions reads as "Gmail, five
- * things" rather than five unrelated rows. Routines and REST connectors have no
+ * things" rather than five unrelated rows. Automations and REST connectors have no
  * app, so they fall into their own bucket at the bottom.
  */
 function groupConnectors(list, catalog) {
@@ -916,7 +916,7 @@ function groupConnectors(list, catalog) {
     for (const c of list) {
         const appId = c.kind === 'integration_tool' ? (c.integrationId || catalog.lookup(c.tool)?.app?.id || 'other') : 'other';
         const label = appId === 'other'
-            ? 'Routines & web addresses'
+            ? 'Automations & web addresses'
             : (catalog.lookup(c.tool)?.app?.label || c.integrationId || appId);
         if (!groups.has(appId)) groups.set(appId, { appId, label, items: [] });
         groups.get(appId).items.push(c);
@@ -1056,7 +1056,7 @@ export default function ConnectorsManager({
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                         >
                             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                            Routine or web address
+                            Automation or web address
                         </button>
                     </>
                 )}

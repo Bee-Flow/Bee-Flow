@@ -14,7 +14,7 @@
       "id": "why",
       "icon": "🧭",
       "title": "Most failed builds are failed briefs",
-      "bodyMd": "Pieter runs procurement at Van Dijk Groep, an installation firm of sixty people. He asks for **\"automate my invoices\"** and gets back a routine that reads the wrong mailbox, files nothing, and tells nobody.\n\nThe builder was not stupid. It was guessing.\n\nEverything you have learned so far — triggers, steps, the canvas, the dry-run — is downstream of one sentence: **what did you ask for?** A routine can only be as precise as the description it was built from. That is true whether the builder is the assistant beside the canvas or the colleague sitting next to you.\n\nThis chapter is about that sentence."
+      "bodyMd": "Pieter runs procurement at Van Dijk Groep, an installation firm of sixty people. He asks for **\"automate my invoices\"** and gets back an automation that reads the wrong mailbox, files nothing, and tells nobody.\n\nThe builder was not stupid. It was guessing.\n\nEverything you have learned so far — triggers, steps, the canvas, the dry-run — is downstream of one sentence: **what did you ask for?** An automation can only be as precise as the description it was built from. That is true whether the builder is the assistant beside the canvas or the colleague sitting next to you.\n\nThis chapter is about that sentence."
     },
     {
       "type": "slide",
@@ -42,7 +42,7 @@
             "id": "notrigger",
             "left": "\"Read the open quotes in the offertes table, write a five-bullet briefing, and e-mail it to Jeroen.\"",
             "right": "Missing: when it starts",
-            "note": "Every routine has exactly one trigger. With no moment named the job reads as on-demand work, so the builder wires a manual button — and it never runs on its own."
+            "note": "Every automation has exactly one trigger. With no moment named the job reads as on-demand work, so the builder wires a manual button — and it never runs on its own."
           },
           {
             "id": "norule",
@@ -78,7 +78,7 @@
         },
         {
           "id": "c",
-          "label": "How many steps the routine should end up with.",
+          "label": "How many steps the automation should end up with.",
           "correct": false,
           "feedback": "Step count is an outcome, not an input. A brief that specifies \"six steps\" is describing a diagram instead of a job."
         },
@@ -96,14 +96,14 @@
       "id": "names",
       "icon": "🏷️",
       "title": "Use the real nouns",
-      "bodyMd": "A brief improves fastest when you replace every generic word with the name it has in your workspace.\n\n| Vague | Buildable |\n|---|---|\n| \"our CRM\" | the **offertes** datatable |\n| \"the team\" | Jeroen, sales lead — notification plus e-mail |\n| \"recent quotes\" | rows where status is `open` |\n| \"a summary\" | five bullets, each naming a deal and its value |\n\nThe names are not decoration. You pick the table from a list and the step keeps a link to the one you chose — so a table that has been deleted, or one this routine may not read, fails the step loudly instead of quietly returning nothing.\n\nSame rule for people: an approver must be a colleague or a group in your organisation. Naming somebody outside it is a save error, on purpose."
+      "bodyMd": "A brief improves fastest when you replace every generic word with the name it has in your workspace.\n\n| Vague | Buildable |\n|---|---|\n| \"our CRM\" | the **offertes** datatable |\n| \"the team\" | Jeroen, sales lead — notification plus e-mail |\n| \"recent quotes\" | rows where status is `open` |\n| \"a summary\" | five bullets, each naming a deal and its value |\n\nThe names are not decoration. You pick the table from a list and the step keeps a link to the one you chose — so a table that has been deleted, or one this automation may not read, fails the step loudly instead of quietly returning nothing.\n\nSame rule for people: an approver must be a colleague or a group in your organisation. Naming somebody outside it is a save error, on purpose."
     },
     {
       "type": "slide",
       "id": "edges",
       "icon": "🧨",
       "title": "Say what happens when there is nothing",
-      "bodyMd": "The sentence most briefs are missing is the boring one: **what should happen on a quiet week?**\n\nSpell out the edge:\n\n- *\"Skip the briefing entirely when no quotes are open.\"*\n- *\"If the PDF has no total, stop with an error rather than saving a blank row.\"*\n- *\"Only the first twenty-five rows — never the whole table.\"*\n\nThat last one is not fussiness. A list step refuses more than 10,000 items outright, a Datatable read is capped at 1,000 rows, and an Extract data step takes at most 30 fields. A brief that names its own limits produces a routine that degrades politely instead of failing at three in the morning.\n\nAnd name the destination twice if it matters: on success **and** on failure."
+      "bodyMd": "The sentence most briefs are missing is the boring one: **what should happen on a quiet week?**\n\nSpell out the edge:\n\n- *\"Skip the briefing entirely when no quotes are open.\"*\n- *\"If the PDF has no total, stop with an error rather than saving a blank row.\"*\n- *\"Only the first twenty-five rows — never the whole table.\"*\n\nThat last one is not fussiness. A list step refuses more than 10,000 items outright, a Datatable read is capped at 1,000 rows, and an Extract data step takes at most 30 fields. A brief that names its own limits produces an automation that degrades politely instead of failing at three in the morning.\n\nAnd name the destination twice if it matters: on success **and** on failure."
     },
     {
       "type": "sim",
@@ -188,7 +188,7 @@
               ],
               "feedback": {
                 "approve": "The brief never asks anyone to decide anything — it asks for a briefing to be sent. An approval pauses the run until a person answers, which would leave Monday's briefing sitting in a queue.",
-                "formpage": "A form page pauses the run and shows the next page on the routine's own form link — so it needs a Form trigger. On a scheduled routine the palette shows it disabled for exactly that reason."
+                "formpage": "A form page pauses the run and shows the next page on the automation's own form link — so it needs a Form trigger. On a scheduled automation the palette shows it disabled for exactly that reason."
               }
             }
           }
@@ -200,8 +200,8 @@
       "id": "brief",
       "icon": "🎯",
       "exerciseId": "ex-automation-brief",
-      "title": "Your turn: brief your next routine",
-      "instruction": "Write the brief for a routine you would genuinely use — four or five sentences, plain language, no jargon. Name when it starts, what it reads (by its real name: the app, table, mailbox or form), what it does with what it finds including any rule with a number in it, and where the result lands and who is told. Add the quiet-week sentence if there is one. The AI coach scores it against what a builder would need to build it with no follow-up questions.",
+      "title": "Your turn: brief your next automation",
+      "instruction": "Write the brief for an automation you would genuinely use — four or five sentences, plain language, no jargon. Name when it starts, what it reads (by its real name: the app, table, mailbox or form), what it does with what it finds including any rule with a number in it, and where the result lands and who is told. Add the quiet-week sentence if there is one. The AI coach scores it against what a builder would need to build it with no follow-up questions.",
       "placeholder": "e.g. Every weekday at 08:30, read yesterday's new rows from the meldingen table where status is open, have AI group them by theme and draft a digest with the top three issues, and send it to Marieke as a notification and an e-mail. Skip the digest entirely when there are no new rows.",
       "passScore": 70,
       "maxAttempts": 4
@@ -230,14 +230,14 @@
           "feedback": "Nothing is thrown away. The turn runs to the end, the canvas is yours again, and everything the assistant placed is editable by hand."
         }
       ],
-      "explanation": "While the assistant builds, edits are locked — \"The AI is building this routine — editing is paused until it finishes.\" Wait for the turn to end, then either chat another instruction or open the node and correct it yourself."
+      "explanation": "While the assistant builds, edits are locked — \"The AI is building this automation — editing is paused until it finishes.\" Wait for the turn to end, then either chat another instruction or open the node and correct it yourself."
     },
     {
       "type": "slide",
       "id": "handover",
       "icon": "🪄",
       "title": "Handing the brief over",
-      "bodyMd": "In Studio → **Automations**, press **+** and a fresh draft opens. Its empty canvas says *\"Or describe the routine:\"* next to an **Assistant** button; press it and a chat box opens beside the canvas. Paste your brief there and send it.\n\nThe canvas then narrates itself — **\"Added 4 steps\"**, **\"Reviewing the routine…\"** — and usually runs a dry-run on its own before finishing with something like **\"Built · 9 steps · 1m 12s\"**.\n\nTwo things worth knowing:\n\n- Want a starting point? While the chat is still empty, **\"Build with the assistant\"** offers a few suggested prompts; each one fills the chat box with text you can edit into your own brief. It never sends on its own.\n- A routine the assistant has finished is **still a draft**. A person presses **Activate**, and nothing fires until they do."
+      "bodyMd": "In Studio → **Automations**, press **+** and a fresh draft opens. Its empty canvas says *\"Or describe the automation:\"* next to an **Assistant** button; press it and a chat box opens beside the canvas. Paste your brief there and send it.\n\nThe canvas then narrates itself — **\"Added 4 steps\"**, **\"Reviewing the automation…\"** — and usually runs a dry-run on its own before finishing with something like **\"Built · 9 steps · 1m 12s\"**.\n\nTwo things worth knowing:\n\n- Want a starting point? While the chat is still empty, **\"Build with the assistant\"** offers a few suggested prompts; each one fills the chat box with text you can edit into your own brief. It never sends on its own.\n- An automation the assistant has finished is **still a draft**. A person presses **Activate**, and nothing fires until they do."
     },
     {
       "type": "quiz",
@@ -260,7 +260,7 @@
           "id": "c",
           "label": "The trigger — you should have asked for a schedule rather than an inbound mail.",
           "correct": false,
-          "feedback": "The trigger decides when the routine wakes up, not how it writes. A scheduled version reading the same mailbox would append the second copy just as happily."
+          "feedback": "The trigger decides when the automation wakes up, not how it writes. A scheduled version reading the same mailbox would append the second copy just as happily."
         },
         {
           "id": "d",
@@ -277,9 +277,9 @@
       "icon": "🏗️",
       "checkId": "automation-second",
       "title": "Build from your own brief",
-      "instruction": "Open Automations, press + for a new automation, then press Assistant on the empty canvas and paste the brief you just wrote into the chat box. Let the assistant finish, read what it placed, then press Dry-run. Collapse this lesson while you work — it keeps checking.",
+      "instruction": "Open Automations, press + for a new automation, then press Assistant on the empty canvas and paste the brief you just wrote into the chat box. Let the assistant finish, read what it placed, then press Test in the builder header for a dry-run. Collapse this lesson while you work — it keeps checking.",
       "launch": {
-        "navigateTo": "studio/routines",
+        "navigateTo": "studio/automations",
         "label": "Open Automations"
       }
     },
@@ -288,7 +288,7 @@
       "id": "now",
       "icon": "🏁",
       "title": "What you can do now",
-      "bodyMd": "You have finished **Automate Your Week**. You can now:\n\n- **Write a brief in four parts** — when it starts, what it reads, what it decides, what it produces and for whom — and spot which part a weak brief is missing.\n- **Use the real nouns**: the table, the mailbox, the person, the threshold with a number in it, and the sentence about the quiet week.\n- **Hand it to a builder and check the result** — read what was placed, dry-run it, fix the node yourself, and press Activate when the shape is right.\n\nThe habit worth keeping: write the brief before you open the canvas. If you cannot say the job in four sentences, the routine is not ready to be drawn."
+      "bodyMd": "You have finished **Automate Your Week**. You can now:\n\n- **Write a brief in four parts** — when it starts, what it reads, what it decides, what it produces and for whom — and spot which part a weak brief is missing.\n- **Use the real nouns**: the table, the mailbox, the person, the threshold with a number in it, and the sentence about the quiet week.\n- **Hand it to a builder and check the result** — read what was placed, dry-run it, fix the node yourself, and press Activate when the shape is right.\n\nThe habit worth keeping: write the brief before you open the canvas. If you cannot say the job in four sentences, the automation is not ready to be drawn."
     }
   ],
   "rubrics": {
@@ -297,7 +297,7 @@
       "task": "Describe an automation you would actually use, in plain English: when it should run, what data it reads, what should happen with it including any rule, and where the result lands and who is told.",
       "criteria": [
         "Names a concrete trigger — a clock time, an inbound event, a form submission or a button, not just \"automatically\"",
-        "Names the source specifically: the app, table, mailbox or form the routine reads, ideally by its real name",
+        "Names the source specifically: the app, table, mailbox or form the automation reads, ideally by its real name",
         "Describes the work specifically enough to act on — the steps, a condition with an actual threshold, or what the AI should produce",
         "States where the result lands and who is told, by name or by role"
       ],
@@ -307,12 +307,12 @@
   },
   "practiceTopic": {
     "title": "Briefing an automation",
-    "summary": "How to describe a routine precisely enough that an AI builder or a colleague can build it without asking a single follow-up question.",
+    "summary": "How to describe an automation precisely enough that an AI builder or a colleague can build it without asking a single follow-up question.",
     "facts": [
       "A buildable brief answers four questions: when it starts, what it reads, what it decides, and what it produces and for whom.",
-      "The + in Studio → Automations opens a new draft; its empty canvas reads \"Or describe the routine:\" with an Assistant button that opens the builder's chat beside the canvas, where an empty chat offers a few suggested prompts that fill the chat box.",
-      "While the assistant builds, editing is paused: \"The AI is building this routine — editing is paused until it finishes.\"",
-      "A routine the assistant has finished is still a draft; a person presses Activate before anything fires.",
+      "The + in Studio → Automations opens a new draft; its empty canvas reads \"Or describe the automation:\" with an Assistant button that opens the builder's chat beside the canvas, where an empty chat offers a few suggested prompts that fill the chat box.",
+      "While the assistant builds, editing is paused: \"The AI is building this automation — editing is paused until it finishes.\"",
+      "An automation the assistant has finished is still a draft; a person presses Activate before anything fires.",
       "The Schedule trigger defaults to the Europe/Amsterdam timezone and previews the next run times before you save.",
       "An AI step's model tier sits under Advanced and defaults to auto; Extract data has no model picker and uses the one extraction model an admin configured.",
       "Limits worth naming in a brief: a Datatable read is capped at 1,000 rows, list steps refuse more than 10,000 items, and Extract data takes at most 30 fields.",
@@ -323,31 +323,31 @@
     {
       "checkId": "automation-second",
       "existing": false,
-      "label": "Build a routine from your own brief",
-      "hint": "In Studio → Automations, press +, open the Assistant beside the canvas, paste your brief, let it finish, then press Dry-run.",
+      "label": "Build an automation from your own brief",
+      "hint": "In Studio → Automations, press +, open the Assistant beside the canvas, paste your brief, let it finish, then press Test (a dry-run).",
       "endpoints": [
         {
           "method": "GET",
           "path": "/api/automation/",
-          "returns": "{ automations: [...] } — every routine owned by the caller, with id, title, triggerType, isDraft, isActive, createdAt, updatedAt"
+          "returns": "{ automations: [...] } — every automation owned by the caller, with id, title, triggerType, isDraft, isActive, createdAt, updatedAt"
         },
         {
           "method": "GET",
           "path": "/api/automation/_runs/recent",
-          "returns": "{ runs: [...] } — the caller's runs across all routines, each with automationId, mode ('live' or 'dry_run') and status"
+          "returns": "{ runs: [...] } — the caller's runs across all automations, each with automationId, mode ('live' or 'dry_run') and status"
         }
       ],
       "criteria": [
         {
           "id": "second",
-          "label": "A second routine of your own exists",
+          "label": "A second automation of your own exists",
           "hint": "Chapter 5 built your first one. This step wants a second, built from the brief you just wrote.",
           "rule": "automations list length >= 2"
         },
         {
           "id": "dryran",
           "label": "You dry-ran it",
-          "hint": "Press Dry-run in the builder header — it previews every step and performs no real actions.",
+          "hint": "Press Test in the builder header — a dry-run, which previews every step and performs no real actions.",
           "rule": "runs contains a row with mode == 'dry_run' whose automationId equals the id of the most recently created automation"
         }
       ]

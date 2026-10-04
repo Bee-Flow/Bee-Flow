@@ -27,7 +27,7 @@ const { HttpError } = require('../../core/http/errors');
 const MANUAL = { trigger: { id: 't1', kind: 'manual' }, steps: [{ id: 's1', type: 'wait', seconds: 1 }], edges: [{ from: 't1', to: 's1' }] };
 const NOW = Date.parse('2026-09-28T10:00:00Z');
 
-function routine(overrides = {}) {
+function automation(overrides = {}) {
     const a = {
         id: 'a1', userId: 'u1', organizationId: 'org-1', title: 'R', kind: 'automation', version: 4,
         isActive: false, isDraft: true, definition: MANUAL, liveVersion: null, triggerType: 'manual',
@@ -82,7 +82,7 @@ const assessed = (extra = {}) => ({
 
 for (const [name, handler] of [['activate', activateAutomation], ['publish', publishAutomation]]) {
     test(`${name}: licence and no check → 409 ai_act_check_required, nothing changes`, async () => {
-        const { deps, calls } = harness(routine());
+        const { deps, calls } = harness(automation());
         await assert.rejects(run(handler, deps), (e) => {
             assert.ok(e instanceof HttpError);
             assert.strictEqual(e.status, 409);
@@ -96,44 +96,44 @@ for (const [name, handler] of [['activate', activateAutomation], ['publish', pub
     });
 
     test(`${name}: an expired check refuses, a prohibited outcome refuses with its own code`, async () => {
-        const expired = harness(routine(), { latest: assessed({ expires_at: '2026-09-01T00:00:00Z' }) });
+        const expired = harness(automation(), { latest: assessed({ expires_at: '2026-09-01T00:00:00Z' }) });
         await assert.rejects(run(handler, expired.deps), (e) => e.code === 'ai_act_check_required' && e.details.aiAct.status === 'expired');
-        const prohibited = harness(routine(), { latest: assessed({ outcome: 'prohibited' }) });
+        const prohibited = harness(automation(), { latest: assessed({ outcome: 'prohibited' }) });
         await assert.rejects(run(handler, prohibited.deps), (e) => e.status === 409 && e.code === 'ai_act_prohibited');
     });
 
-    test(`${name}: a valid check lets it through; so does "not applicable" on a routine without AI`, async () => {
-        const valid = harness(routine(), { latest: assessed() });
+    test(`${name}: a valid check lets it through; so does "not applicable" on an automation without AI`, async () => {
+        const valid = harness(automation(), { latest: assessed() });
         assert.strictEqual((await run(handler, valid.deps)).status, 200);
-        const na = harness(routine(), { latest: assessed({ outcome: 'not_applicable', expires_at: null }) });
+        const na = harness(automation(), { latest: assessed({ outcome: 'not_applicable', expires_at: null }) });
         assert.strictEqual((await run(handler, na.deps)).status, 200);
     });
 
-    test(`${name}: a "not applicable" check does not cover a routine that has an AI step now`, async () => {
+    test(`${name}: a "not applicable" check does not cover an automation that has an AI step now`, async () => {
         const def = {
             trigger: { id: 't1', kind: 'manual' },
             steps: [{ id: 'a', type: 'ai_step', prompt: 'Summarise', outputSchema: { type: 'object', properties: { text: { type: 'string' } } } }],
             edges: [{ from: 't1', to: 'a' }],
         };
-        const { deps } = harness(routine({ definition: def, liveDefinition: def }), { latest: assessed({ outcome: 'not_applicable' }) });
+        const { deps } = harness(automation({ definition: def, liveDefinition: def }), { latest: assessed({ outcome: 'not_applicable' }) });
         await assert.rejects(run(handler, deps), (e) => e.code === 'ai_act_check_required' && e.details.aiAct.status === 'outdated');
     });
 
     test(`${name}: without the compliance hub licence there is no gate`, async () => {
-        const { deps } = harness(routine(), { required: false });
+        const { deps } = harness(automation(), { required: false });
         assert.strictEqual((await run(handler, deps)).status, 200);
     });
 
     test(`${name}: a broken definition answers its own 400 before the AI Act gate`, async () => {
         const broken = { trigger: { id: 't1', kind: 'manual' }, steps: [{ id: 's1', type: 'no_such_type' }], edges: [{ from: 't1', to: 's1' }] };
-        const { deps } = harness(routine({ definition: broken, liveDefinition: broken }));
+        const { deps } = harness(automation({ definition: broken, liveDefinition: broken }));
         const r = await run(handler, deps);
         assert.strictEqual(r.status, 400);
         assert.strictEqual(r.body.error, 'Invalid definition');
     });
 }
 
-test('activate on a paused routine with a live version is gated too', async () => {
-    const { deps } = harness(routine({ liveVersion: 2, isDraft: false }));
+test('activate on a paused automation with a live version is gated too', async () => {
+    const { deps } = harness(automation({ liveVersion: 2, isDraft: false }));
     await assert.rejects(run(activateAutomation, deps), (e) => e.code === 'ai_act_check_required');
 });

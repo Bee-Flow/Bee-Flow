@@ -40,7 +40,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
 
     // ── Nextcloud diagnostics ─────────────────────────────────────────
     // READ-ONLY / observational. Reports the state of the trigger so the
-    // user can see why a routine is (or isn't) firing. It does NOT change
+    // user can see why an automation is (or isn't) firing. It does NOT change
     // how Nextcloud connects or how auth is resolved. Mirrors the Gmail
     // check shape so the generic TriggerDiagnosePanel renders it unchanged.
     if (trig?.kind === 'app_event' && provider === 'nextcloud') {
@@ -180,7 +180,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         checks.push({
             name: 'credentials',
             status: 'error',
-            message: 'No Gmail OAuth tokens found in either the routine vault or the active browser session. Sign in to Bee Flow and re-connect Gmail in Integrations.',
+            message: 'No Gmail OAuth tokens found in either the automation vault or the active browser session. Sign in to Bee Flow and re-connect Gmail in Integrations.',
         });
         return finish(false);
     }
@@ -188,7 +188,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         name: 'credentials',
         status: session._source === 'vault' ? 'ok' : 'warn',
         message: session._source === 'vault'
-            ? `Gmail tokens loaded from the routine vault (long-lived, auto-refresh).`
+            ? `Gmail tokens loaded from the automation vault (long-lived, auto-refresh).`
             : `Gmail tokens loaded from your browser session. The trigger will keep firing while you stay signed in; re-connect Gmail in Integrations to upgrade to a long-lived vault entry.`,
         detail: { source: session._source, hasAccessToken: true, hasRefreshToken: !!session.refreshToken, oauthProvider: session.oauthProvider || null },
     });

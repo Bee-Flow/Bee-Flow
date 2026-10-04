@@ -275,3 +275,27 @@ describe('VersionHistoryPanel — naming and restoring', () => {
         expect(api.callsTo('POST', `${BASE}/versions`)).toHaveLength(0);
     });
 });
+
+describe('VersionHistoryPanel: a part a Solution stage manages', () => {
+    const MANAGED = { solutionId: 's1', solutionName: 'Intake', stage: 'prd', releaseSeq: 7, devRef: null };
+
+    it('hides Restore and "Name this version", and says why', async () => {
+        serve();
+        const { user } = renderPanel({ managed: MANAGED });
+        await user.click(await screen.findByTestId('version-row-v2'));
+        await screen.findByTestId('version-detail');
+        expect(screen.queryByTestId('version-restore')).toBeNull();
+        expect(screen.queryByTestId('version-name-current')).toBeNull();
+        expect(screen.getByTestId('version-managed')).toHaveTextContent('Read-only: this part is managed by a Solution stage.');
+    });
+
+    it('an editor of an ordinary part still restores and names', async () => {
+        serve();
+        const { user } = renderPanel({ managed: null });
+        await user.click(await screen.findByTestId('version-row-v2'));
+        await screen.findByTestId('version-detail');
+        expect(screen.getByTestId('version-restore')).toBeInTheDocument();
+        expect(screen.getByTestId('version-name-current')).toBeInTheDocument();
+        expect(screen.queryByTestId('version-managed')).toBeNull();
+    });
+});

@@ -35,7 +35,7 @@
  *                   scans nothing (detectPii() → null → fail open), so every
  *                   consumer must fold this in
  *   euMode          EU model routing is active (modelResolver.isEUModeActive)
- *   coworkEnabled   the same gate for the non-agent Cowork/Routines path,
+ *   coworkEnabled   the same gate for the non-agent Cowork/Automations path,
  *                   which additionally needs an org and the per-org opt-in
  *                   flag (core/entitlements/coworkShieldFlag)
  *

@@ -104,10 +104,10 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
               to add "Bee Flow" to the conversation they mean.
 
   Share has NONE of these. Nextcloud does not expose share.created to webhooks
-  and there is no poller for it, so a routine triggered on it WILL NEVER FIRE.
+  and there is no poller for it, so an automation triggered on it WILL NEVER FIRE.
   Do not propose it. If the user asks
   for "when a file is shared", say plainly that Nextcloud cannot notify us of
-  that yet, and offer a scheduled routine that polls with the matching read
+  that yet, and offer a scheduled automation that polls with the matching read
   tool instead (e.g. a daily schedule + nextcloud_list_shares).
 
   ── Deck (webhook) ──
@@ -201,7 +201,7 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
 
   ── Talk (bot) ──
   Both require the "Bee Flow" bot to be added to the conversation. Say so when
-  proposing one — otherwise the routine activates and stays silent.
+  proposing one — otherwise the automation activates and stays silent.
 
   • talk.message.received — fires on every message in a conversation the bot is in.
     Filters: roomToken, roomNameContains, actorEquals, messageContains,
@@ -218,7 +218,7 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
     Payload: {messageId, roomToken, roomName, actor, actorName, reaction,
              removed, datetime}.
     Use this for reacting to a 👍 as an EVENT, not as an approval gate: to make
-    a routine wait for a person's decision, call builder_add_approval, which
+    an automation wait for a person's decision, call builder_add_approval, which
     pauses the run in place and records who decided and why.
 
   ── Generic (poller) ──
@@ -305,10 +305,10 @@ leading search step just to look up data that's already in the payload.`,
                     appProvider: { type: 'string', description: `Provider id (when kind=app_event): ${APP_EVENT_PROVIDERS}` },
                     appEvent: { type: 'string', description: `Event name (when kind=app_event). Allowed: ${APP_EVENT_EVENTS}.` },
                     filter: { type: 'object', description: 'Optional filter object. Use ONLY the keys listed under the event above — several events have their own matcher (a tag list is an ANY-of, not an equality), and unknown keys are ignored rather than rejected. An omitted or empty filter means "every event of this kind", never "no events".' },
-                    // §28 agent-callable trigger: routine is exposed as a tool the agent / direct chat can invoke.
+                    // §28 agent-callable trigger: automation is exposed as a tool the agent / direct chat can invoke.
                     toolName: { type: 'string', description: 'When kind=agent_call: the tool name agents will see (sanitised to [a-z0-9_]). Defaults to automation_<id>.' },
                     parametersSchema: { type: 'object', description: 'When kind=agent_call: JSON-schema-shaped input declaration for the tool. The runtime exposes this verbatim to the model.' },
-                    // App trigger: the routine is fired by a Studio App action with typed inputs.
+                    // App trigger: the automation is fired by a Studio App action with typed inputs.
                     params: {
                         type: 'array',
                         items: {
@@ -365,18 +365,18 @@ leading search step just to look up data that's already in the payload.`,
                     modelTier: { type: 'string', description: 'MUST be one of the tiers listed under "ai_step modelTier" in the system prompt — those are the only tiers configured for this user; anything else is rejected. Default: auto (classifier picks the tier per prompt complexity).' },
                     allowTools: { type: 'boolean', description: 'Default false. When true the AI step can call the user\'s integration tools (web search, gmail_search, etc.). Use sparingly — most steps should bind upstream integration_action output instead.' },
                     tools: { type: 'array', items: { type: 'string' }, description: 'Optional allowlist of tool names the AI step may call. Empty / omitted = whatever allowTools dictates.' },
-                    useMemory: { type: 'boolean', description: 'Default false. When true the step is grounded in the routine owner\'s personal memory (what they told the chat assistant about themselves, their preferences and their contacts): the memories most relevant to this step\'s prompt are added to the system prompt before the model answers. Use for steps that write in the owner\'s name or decide on their behalf (reply drafts, briefings, prioritising); never for pure data transforms.' },
-                    knowledgeBaseIds: { type: 'array', items: { type: 'string' }, description: 'Optional. Ids of knowledge bases to ground this step in — searched ONCE per run (keyed off the routine owner\'s own knowledge bases, never a per-user picker) and injected into the system prompt as reference material before the model answers. Use for steerable reference content (a brand style guide, a positioning doc, a policy) the step should follow without hardcoding it into the prompt. Never invent an id — only ids the user has actually shown you (e.g. from the Knowledge Bases admin) are valid.' },
-                    agentId: { type: 'string', description: 'Optional. Id of an EXISTING agent that does the thinking for this step: its published role, its knowledge and its tools replace the bare step. The agent must belong to the routine owner\'s own organisation and be published — an id that was deleted, sits in another workspace or was never published all get the SAME refusal (`ai_step.agent_unavailable`), so this is not a way to find out which agents exist elsewhere. Never invent one: only ids the user has actually shown you are valid, and anything else is refused at save and refused again at run time.' },
+                    useMemory: { type: 'boolean', description: 'Default false. When true the step is grounded in the automation owner\'s personal memory (what they told the chat assistant about themselves, their preferences and their contacts): the memories most relevant to this step\'s prompt are added to the system prompt before the model answers. Use for steps that write in the owner\'s name or decide on their behalf (reply drafts, briefings, prioritising); never for pure data transforms.' },
+                    knowledgeBaseIds: { type: 'array', items: { type: 'string' }, description: 'Optional. Ids of knowledge bases to ground this step in — searched ONCE per run (keyed off the automation owner\'s own knowledge bases, never a per-user picker) and injected into the system prompt as reference material before the model answers. Use for steerable reference content (a brand style guide, a positioning doc, a policy) the step should follow without hardcoding it into the prompt. Never invent an id — only ids the user has actually shown you (e.g. from the Knowledge Bases admin) are valid.' },
+                    agentId: { type: 'string', description: 'Optional. Id of an EXISTING agent that does the thinking for this step: its published role, its knowledge and its tools replace the bare step. The agent must belong to the automation owner\'s own organisation and be published — an id that was deleted, sits in another workspace or was never published all get the SAME refusal (`ai_step.agent_unavailable`), so this is not a way to find out which agents exist elsewhere. Never invent one: only ids the user has actually shown you are valid, and anything else is refused at save and refused again at run time.' },
                     skillIds: { type: 'array', items: { type: 'string' }, description: 'Optional. Ids of skills to apply to this step, MOST IMPORTANT FIRST — the first one is the leading skill (its output fields are merged into the step\'s own). At most 5 are used; anything past that is ignored. Works with or without `agentId`. Never invent an id.' },
                     disabledAgentSkillIds: { type: 'array', items: { type: 'string' }, description: 'Optional, only with `agentId`: ids of the AGENT\'s own skills this step does not use. The step\'s own `skillIds` are never affected and stay leading. Omit to use every skill the agent has.' },
                     agentPermissions: {
                         type: 'object',
-                        description: 'Optional, and only meaningful together with `agentId`: what the agent may do INSIDE this step. Exactly three booleans — startAutomations, useKnowledge, useTools — and every one you leave out is FALSE. There is no "unset means everything" here: omit the object and the agent answers from its role alone, with no knowledge bases, no tools and no ability to start other routines. Ask the user before turning any of them on.',
+                        description: 'Optional, and only meaningful together with `agentId`: what the agent may do INSIDE this step. Exactly three booleans — startAutomations, useKnowledge, useTools — and every one you leave out is FALSE. There is no "unset means everything" here: omit the object and the agent answers from its role alone, with no knowledge bases, no tools and no ability to start other automations. Ask the user before turning any of them on.',
                         properties: {
-                            startAutomations: { type: 'boolean', description: 'Default false. May the agent start other routines from this step? Only routines the ROUTINE OWNER can already run AND the agent\'s owner granted it.' },
-                            useKnowledge: { type: 'boolean', description: 'Default false. May the agent search its own knowledge bases here? Each one is still re-checked against the routine owner, so a base they may not read is dropped.' },
-                            useTools: { type: 'boolean', description: 'Default false. May the agent call its integration tools here? Anything that would need a person to confirm it is left out — nobody is watching a routine run — so add an approval step after this one if the work has to be confirmed.' },
+                            startAutomations: { type: 'boolean', description: 'Default false. May the agent start other automations from this step? Only automations the AUTOMATION OWNER can already run AND the agent\'s owner granted it.' },
+                            useKnowledge: { type: 'boolean', description: 'Default false. May the agent search its own knowledge bases here? Each one is still re-checked against the automation owner, so a base they may not read is dropped.' },
+                            useTools: { type: 'boolean', description: 'Default false. May the agent call its integration tools here? Anything that would need a person to confirm it is left out — nobody is watching an automation run — so add an approval step after this one if the work has to be confirmed.' },
                         },
                     },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins. Omit to auto-fill (then first, else second).' },
@@ -546,7 +546,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
         type: 'function',
         function: {
             name: 'builder_add_generate_document',
-            description: `Append a step that renders text into a real PDF or Word (.docx) file and keeps it so the routine can hand it over. Use it whenever the user wants "a PDF", "a Word document", "an offer/report/quote as a file", or something downloadable. \`content\` is a TEMPLATE — bind it to whatever produced the text, e.g. content:"{{steps.ai_1.output.blogtekst}}". Markdown is the default and is rendered properly (headings, bold, links, lists, tables). Output is {fileId,filename,mimeType,size,format}; there is deliberately NO url. TO OFFER IT AS A DOWNLOAD: add a form_page (mode:"ending") whose form.fields contains {type:"download", label:"…", fileId:"{{steps.<this step's id>.output.fileId}}"} — the form builds the session-scoped download link itself. The file is deleted after \`expiresInDays\` (default 7), so it is not a permanent store.`,
+            description: `Append a step that renders text into a real PDF or Word (.docx) file and keeps it so the automation can hand it over. Use it whenever the user wants "a PDF", "a Word document", "an offer/report/quote as a file", or something downloadable. \`content\` is a TEMPLATE — bind it to whatever produced the text, e.g. content:"{{steps.ai_1.output.blogtekst}}". Markdown is the default and is rendered properly (headings, bold, links, lists, tables). Output is {fileId,filename,mimeType,size,format}; there is deliberately NO url. TO OFFER IT AS A DOWNLOAD: add a form_page (mode:"ending") whose form.fields contains {type:"download", label:"…", fileId:"{{steps.<this step's id>.output.fileId}}"} — the form builds the session-scoped download link itself. The file is deleted after \`expiresInDays\` (default 7), so it is not a permanent store.`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -592,7 +592,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                     sectionOverrides: { type: 'object', description: 'Reviewed section ID to automatic/include/exclude choices.' },
                     values: { type: 'object', description: 'Placeholder name → value. Template strings ("{{steps.x.output.total}}"); a list placeholder takes a single whole-array reference and nothing else.' },
                     fileName: { type: 'string', description: 'Filename WITHOUT the .pdf extension. Template string, e.g. "Factuur {{steps.extract.output.nummer}}". Falls back to the document\'s own name.' },
-                    saveCopy: { type: 'boolean', description: 'Default false. true ALSO keeps the filled-in document in Studio → Documents, so a person can correct a line by hand before it goes out. Leave it off for a routine that runs often — it mints a document every run.' },
+                    saveCopy: { type: 'boolean', description: 'Default false. true ALSO keeps the filled-in document in Studio → Documents, so a person can correct a line by hand before it goes out. Leave it off for an automation that runs often — it mints a document every run.' },
                     format: { type: 'string', enum: ['pptx', 'pdf'], description: 'Only for a PRESENTATION document (docType "presentation" in the block): pptx (default) or pdf. A page document is always a PDF.' },
                     expiresInDays: { type: 'number', description: 'How long the file stays fetchable, 1..90 (default 7).' },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins.' },
@@ -667,7 +667,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                     background: { type: 'string', description: 'Optional slide background "#RRGGBB" (template string); text colours adapt for contrast.' },
                     footerText: { type: 'string', description: 'Optional line in every slide footer, e.g. "Vertrouwelijk · {{trigger.date}}". Template string.' },
                     template: { type: 'string', enum: ['none'], description: '"none" = plain slides instead of the house-style template deck. Leave out otherwise.' },
-                    saveCopy: { type: 'boolean', description: 'Default false. true ALSO keeps the deck in Studio → Documents as an editable presentation (opens in Bee Flow). Off for a routine that runs often.' },
+                    saveCopy: { type: 'boolean', description: 'Default false. true ALSO keeps the deck in Studio → Documents as an editable presentation (opens in Bee Flow). Off for an automation that runs often.' },
                     expiresInDays: { type: 'number', description: 'How long the download keeps working, 1..90 (default 7). The file is deleted afterwards.' },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins.' },
                     caseName: { type: 'string', description: 'When afterStepId is a switch: the case name (or "default") this step begins.' },
@@ -681,7 +681,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_data_extraction',
-            description: `Append a step that pulls NAMED, TYPED fields out of a piece of text — an invoice, an e-mail body, the text of a PDF, a web page. PREFER THIS OVER AN ai_step FOR EXTRACTION: an ai_step is for judgement and writing (classify, summarise, draft a reply); this step is for "read these values out of that text". It runs on the ONE extraction model the administrator configured (small, fast, deterministic, thinking off) — NOT on the routine's model tier, so there is no modelTier to pick. \`fields\` IS the output shape, so no outputSchema is needed: the output is exactly one object with exactly the declared names — steps.<id>.output.<name>, or loop.<itemVar>.output.<name> inside a fan-out — and a field the text does not contain is null (a field marked required:true FAILS the step instead, so an unreadable document can be routed to an on_error branch). Numbers are real JSON numbers even when the text says "€ 1.554,25"; dates are "YYYY-MM-DD" strings. \`source\` is ONE binding to the text to read. source, fields and instructions sit at the TOP LEVEL of the args — this step has NO inputs map (that is integration_action vocabulary). Use forEach to extract the same fields from every file: {source:{kind:"ref",path:"loop.f.output.content"}, forEach:{overRef:"steps.<read>.output.results", itemVar:"f"}}. EXAMPLE: {source:{kind:"ref",path:"steps.read.output.content"}, fields:[{name:"factuurnummer",type:"string",description:"Invoice number",required:true},{name:"datum",type:"date",description:"Invoice date"},{name:"totaal_incl_btw",type:"number",description:"Total including VAT"}], instructions:"Amounts are in euros."}.`,
+            description: `Append a step that pulls NAMED, TYPED fields out of a piece of text — an invoice, an e-mail body, the text of a PDF, a web page. PREFER THIS OVER AN ai_step FOR EXTRACTION: an ai_step is for judgement and writing (classify, summarise, draft a reply); this step is for "read these values out of that text". It runs on the ONE extraction model the administrator configured (small, fast, deterministic, thinking off) — NOT on the automation's model tier, so there is no modelTier to pick. \`fields\` IS the output shape, so no outputSchema is needed: the output is exactly one object with exactly the declared names — steps.<id>.output.<name>, or loop.<itemVar>.output.<name> inside a fan-out — and a field the text does not contain is null (a field marked required:true FAILS the step instead, so an unreadable document can be routed to an on_error branch). Numbers are real JSON numbers even when the text says "€ 1.554,25"; dates are "YYYY-MM-DD" strings. \`source\` is ONE binding to the text to read. source, fields and instructions sit at the TOP LEVEL of the args — this step has NO inputs map (that is integration_action vocabulary). Use forEach to extract the same fields from every file: {source:{kind:"ref",path:"loop.f.output.content"}, forEach:{overRef:"steps.<read>.output.results", itemVar:"f"}}. EXAMPLE: {source:{kind:"ref",path:"steps.read.output.content"}, fields:[{name:"factuurnummer",type:"string",description:"Invoice number",required:true},{name:"datum",type:"date",description:"Invoice date"},{name:"totaal_incl_btw",type:"number",description:"Total including VAT"}], instructions:"Amounts are in euros."}.`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -743,14 +743,14 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_note',
-            description: 'Add a free-floating sticky-note annotation to the canvas — a place to explain WHY a branch exists, leave a TODO, or document a decision for whoever opens this routine next. It never runs, is never wired to anything (no afterStepId/branch — a note has no edges at all), and is not part of the flow. Use it instead of a comment nobody else can see.',
+            description: 'Add a free-floating sticky-note annotation to the canvas — a place to explain WHY a branch exists, leave a TODO, or document a decision for whoever opens this automation next. It never runs, is never wired to anything (no afterStepId/branch — a note has no edges at all), and is not part of the flow. Use it instead of a comment nobody else can see.',
             parameters: {
                 type: 'object',
                 properties: {
                     text: { type: 'string', description: 'The note\'s text. Plain text (no bindings, no templates — it never runs).' },
                     position: {
                         type: 'object',
-                        description: 'Where the note sits on the canvas. Omit to let the canvas place it; a human editing the same routine will likely move it anyway.',
+                        description: 'Where the note sits on the canvas. Omit to let the canvas place it; a human editing the same automation will likely move it anyway.',
                         properties: { x: { type: 'number' }, y: { type: 'number' } },
                     },
                     size: {
@@ -933,7 +933,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_approval',
-            description: 'Append a step that PAUSES the run until a person approves or rejects it. `prompt` is what the approver reads and is template-interpolated, so use {{steps.x.output.y}} to quote the actual thing being approved. Optional richness: `details` (markdown, interpolated) for context; `attachments` (bindings to fileIds from generate_document steps) so the approver can download the document being approved; `fields` (form-contract questions — text/textarea/email/number/date/select/checkbox, NEVER file) whose answers land at steps.<id>.output.answers.<name>. `assignee` routes the decision to one person ({userId}) or one org group ({groupId}); without it the routine\'s owner decides. On APPROVE the run continues and later steps can bind steps.<id>.output.approved / .by / .reason / .decidedAt (and .answers.*). On REJECT the run ENDS — never wire a "rejected" branch. For approvals that need SEVERAL people in ORDER (team lead, then finance, then a director), use `stages` — up to 5 named steps, each with its own approvers, its own rule, and an optional `when` condition. Do NOT put an approval inside a loop, a parallel branch or a flowlet, and never set forEach on it.',
+            description: 'Append a step that PAUSES the run until a person approves or rejects it. `prompt` is what the approver reads and is template-interpolated, so use {{steps.x.output.y}} to quote the actual thing being approved. Optional richness: `details` (markdown, interpolated) for context; `attachments` (bindings to fileIds from generate_document steps) so the approver can download the document being approved; `fields` (form-contract questions — text/textarea/email/number/date/select/checkbox, NEVER file) whose answers land at steps.<id>.output.answers.<name>. `assignee` routes the decision to one person ({userId}) or one org group ({groupId}); without it the automation\'s owner decides. On APPROVE the run continues and later steps can bind steps.<id>.output.approved / .by / .reason / .decidedAt (and .answers.*). On REJECT the run ENDS — never wire a "rejected" branch. For approvals that need SEVERAL people in ORDER (team lead, then finance, then a director), use `stages` — up to 5 named steps, each with its own approvers, its own rule, and an optional `when` condition. Do NOT put an approval inside a loop, a parallel branch or a flowlet, and never set forEach on it.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -963,7 +963,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_form_page',
-            description: 'Append a FURTHER page of the routine\'s public form, shown on the same /f/<token> URL the visitor is already on. Requires the trigger to be kind=form. mode="input" PAUSES the run until the visitor answers — bind their answers as steps.<id>.output.<fieldName>. mode="ending" is the closing page: no questions, and its `title`/`description` are template-interpolated against the finished run, so use {{steps.x.output.y}} there to show the visitor what happened. Do NOT put a form page inside a loop, a parallel branch or a flowlet.',
+            description: 'Append a FURTHER page of the automation\'s public form, shown on the same /f/<token> URL the visitor is already on. Requires the trigger to be kind=form. mode="input" PAUSES the run until the visitor answers — bind their answers as steps.<id>.output.<fieldName>. mode="ending" is the closing page: no questions, and its `title`/`description` are template-interpolated against the finished run, so use {{steps.x.output.y}} there to show the visitor what happened. Do NOT put a form page inside a loop, a parallel branch or a flowlet.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -1189,7 +1189,7 @@ arrayRef is a path string (e.g. "steps.search.output.results"), NOT a binding ob
         type: 'function',
         function: {
             name: 'builder_add_datatable',
-            description: `Append a step that reads or writes rows of a DATATABLE — an organisation-scoped table whose rows OUTLIVE the run, so one routine can leave data for a later run of itself or for a different routine. This is how a routine remembers WORKING DATA between runs. (A knowledge-write step also outlives the run, but that stores TEXT for an agent to answer from — not data to read back.)
+            description: `Append a step that reads or writes rows of a DATATABLE — an organisation-scoped table whose rows OUTLIVE the run, so one automation can leave data for a later run of itself or for a different automation. This is how an automation remembers WORKING DATA between runs. (A knowledge-write step also outlives the run, but that stores TEXT for an agent to answer from — not data to read back.)
 
 OPERATIONS (pick one):
   - find_rows:    look rows up. Changes nothing.        Optional: where, match, sort, limit, cursor. Output: { rows, returned, found, hasMore, nextCursor }.
@@ -1199,7 +1199,7 @@ OPERATIONS (pick one):
   - update_rows:  changes every matching row.           Required: values, where (>=1). Output: { updated, truncated }.
   - delete_rows:  removes every matching row.           Required: where (>=1).         Output: { deleted }.
 
-find_rows returns ONE PAGE. \`returned\` is how many rows that page holds — NOT how many rows match; use count_rows for that. To walk a bigger table, feed \`cursor\` from the previous step's \`nextCursor\`. (\`count\` still exists on find_rows as a deprecated alias of \`returned\`; do not use it in new routines.)
+find_rows returns ONE PAGE. \`returned\` is how many rows that page holds — NOT how many rows match; use count_rows for that. To walk a bigger table, feed \`cursor\` from the previous step's \`nextCursor\`. (\`count\` still exists on find_rows as a deprecated alias of \`returned\`; do not use it in new automations.)
 
 delete_rows REFUSES when more than 1000 rows match, rather than deleting the first 1000 and reporting success. update_rows changes the first 1000 and sets \`truncated: true\`.
 
@@ -1209,7 +1209,7 @@ save_row's \`matchColumn\` MUST also appear in \`values\`: it is how the step re
 
 A condition whose value resolves to nothing SKIPS the step — for a read as much as for a write. Bind conditions to something that is always there.
 
-\`datatableId\` must be the id of a table that already exists and that the ROUTINE'S OWNER may write to — never invent an id. If the user needs a table that does not exist yet, create it FIRST with builder_create_datatable {name, fields} and use the id it returns.
+\`datatableId\` must be the id of a table that already exists and that the AUTOMATION'S OWNER may write to — never invent an id. If the user needs a table that does not exist yet, create it FIRST with builder_create_datatable {name, fields} and use the id it returns.
 
 values keys are the column KEYS shown in the Datatables block (e.g. excl_btw for "Excl. btw"); a title is mapped to its key when unambiguous. op aliases (append/insert → add_row, upsert → save_row, list/query → find_rows) are accepted and reported — write the canonical name.
 
@@ -1221,7 +1221,7 @@ EXAMPLE: {op:"save_row",datatableId:"tbl_1a2b3c",matchColumn:"email",values:{ema
                 properties: {
                     op: { type: 'string', enum: ['find_rows', 'count_rows', 'add_row', 'save_row', 'update_rows', 'delete_rows'] },
                     datatableId: { type: 'string', description: 'Id of an EXISTING datatable, from the catalog. Never invent one.' },
-                    datatableKey: { type: 'string', description: 'That same table\'s `key`, copied EXACTLY as the catalog shows it beside the id. Advisory only — nothing reads it at run time; it is what lets an export/import re-link the step, because an exported routine never carries another workspace\'s table id. Leave it out if you do not have the key; never guess one, or an import re-links to the wrong table.' },
+                    datatableKey: { type: 'string', description: 'That same table\'s `key`, copied EXACTLY as the catalog shows it beside the id. Advisory only — nothing reads it at run time; it is what lets an export/import re-link the step, because an exported automation never carries another workspace\'s table id. Leave it out if you do not have the key; never guess one, or an import re-links to the wrong table.' },
                     afterStepId: { type: 'string' },
                     splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
                     where: {
@@ -1263,9 +1263,9 @@ EXAMPLE: {op:"save_row",datatableId:"tbl_1a2b3c",matchColumn:"email",values:{ema
         type: 'function',
         function: {
             name: 'builder_create_datatable',
-            description: `CREATE a new Studio datatable NOW (at design time) — for a routine that must write rows into a table that does not exist yet ("extract the invoices into a new table called invoice"). This is NOT a step: nothing runs later; the table exists the moment this call answers, owned by the routine's owner, and it appears in the Datatables block. Then write into it with builder_add_datatable {op:"add_row", datatableId:<the id this returns>, values:{<columnKey>: binding}}.
+            description: `CREATE a new Studio datatable NOW (at design time) — for an automation that must write rows into a table that does not exist yet ("extract the invoices into a new table called invoice"). This is NOT a step: nothing runs later; the table exists the moment this call answers, owned by the automation's owner, and it appears in the Datatables block. Then write into it with builder_add_datatable {op:"add_row", datatableId:<the id this returns>, values:{<columnKey>: binding}}.
 
-Give the columns the routine will write: name + type (text | number | date | datetime | bool | select with options | multiselect | file); a key is derived from the name when you leave it out ("Excl. btw" → excl_btw). Calling it again with the same name returns the existing table — never a second one. Use builder_add_datatable directly when the Datatables block already lists a fitting table.`,
+Give the columns the automation will write: name + type (text | number | date | datetime | bool | select with options | multiselect | file); a key is derived from the name when you leave it out ("Excl. btw" → excl_btw). Calling it again with the same name returns the existing table — never a second one. Use builder_add_datatable directly when the Datatables block already lists a fitting table.`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -1299,11 +1299,11 @@ Give the columns the routine will write: name + type (text | number | date | dat
 
 Use it for: a resolved support ticket becoming an article; a meeting's decisions becoming searchable; a nightly summary of a system's state. Do NOT use it to stash working data between steps — that is what \`builder_add_datatable\` is for.
 
-\`knowledgeBaseId\` must be a base that already exists and that the ROUTINE'S OWNER may MANAGE — being able to read a base is not permission to add to it. You cannot create one, and you must never invent an id: ask the user for it, or take it from something they showed you. If they need a base that does not exist yet, say so and stop. The save is refused with \`knowledge_write.kb_not_manageable\` if the owner cannot write there, and the same check runs again at run time.
+\`knowledgeBaseId\` must be a base that already exists and that the AUTOMATION'S OWNER may MANAGE — being able to read a base is not permission to add to it. You cannot create one, and you must never invent an id: ask the user for it, or take it from something they showed you. If they need a base that does not exist yet, say so and stop. The save is refused with \`knowledge_write.kb_not_manageable\` if the owner cannot write there, and the same check runs again at run time.
 
 \`content\`, \`title\` and \`sourceUri\` are TEMPLATE STRINGS, not binding objects: write "{{steps.summary.output.text}}" directly, the same way generate_document takes its content.
 
-\`sourceUri\` is what makes the step idempotent. The same sourceUri REPLACES its own document instead of adding a second, so give it something stable and unique per subject — a ticket URL, a record id, "meeting:{{trigger.output.id}}". Without one, a routine that runs nightly leaves a new document every night and nobody can tell why the base grew.
+\`sourceUri\` is what makes the step idempotent. The same sourceUri REPLACES its own document instead of adding a second, so give it something stable and unique per subject — a ticket URL, a record id, "meeting:{{trigger.output.id}}". Without one, an automation that runs nightly leaves a new document every night and nobody can tell why the base grew.
 
 A run where \`content\` resolves to nothing SKIPS rather than storing an empty document. A dry run reports what it WOULD write and stores nothing.
 
@@ -1311,7 +1311,7 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
             parameters: {
                 type: 'object',
                 properties: {
-                    knowledgeBaseId: { type: 'string', description: 'Id of an EXISTING knowledge base the routine owner may MANAGE. There is no catalog of these in the prompt — never invent one: only ids the user has actually shown you (e.g. from the Knowledge admin) are valid, and anything else is refused at save.' },
+                    knowledgeBaseId: { type: 'string', description: 'Id of an EXISTING knowledge base the automation owner may MANAGE. There is no catalog of these in the prompt — never invent one: only ids the user has actually shown you (e.g. from the Knowledge admin) are valid, and anything else is refused at save.' },
                     content: { type: 'string', description: 'The text to store. A {{...}} template — usually the whole output of an earlier step, e.g. "{{steps.summary.output.text}}".' },
                     title: { type: 'string', description: 'What the document is called where a person browses the base. A {{...}} template. Defaults to "Untitled".' },
                     sourceUri: { type: 'string', description: 'A stable, unique reference for THIS subject, so a later run replaces this document instead of adding another — e.g. "ticket:{{loop.ticket.id}}". Strongly recommended on anything that runs more than once.' },
@@ -1345,7 +1345,7 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
         type: 'function',
         function: {
             name: 'builder_add_trigger',
-            description: `Add an ADDITIONAL trigger (entry point) to the routine — beside the primary one set by builder_propose_trigger. NEVER call builder_propose_trigger a second time to get a second trigger: that REPLACES the primary. Kinds: app_event (appProvider + appEvent + optional filter — same catalog as builder_propose_trigger), schedule (cron + tz), webhook. manual / form / agent_call / app_trigger can only be the primary. Returns the new trigger id: wire its first step with afterStepId:"<that id>" (an omitted afterStepId chains after the LAST step, never after a new trigger). Each trigger is its own root; two roots may converge on one step, and that step can branch on trigger.kind / trigger.event / trigger.id. A schedule run has no payload — start it with a datetime step (op:"now"). Test one root with builder_request_dry_run({triggerStepId}). EXAMPLES: {kind:"app_event",appProvider:"google-calendar",appEvent:"event.upcoming",filter:{leadMinutes:30},label:"Meeting prep"} · {kind:"schedule",cron:"0 7 * * 1-5",tz:"Europe/Amsterdam",label:"Morning briefing"}.`,
+            description: `Add an ADDITIONAL trigger (entry point) to the automation — beside the primary one set by builder_propose_trigger. NEVER call builder_propose_trigger a second time to get a second trigger: that REPLACES the primary. Kinds: app_event (appProvider + appEvent + optional filter — same catalog as builder_propose_trigger), schedule (cron + tz), webhook. manual / form / agent_call / app_trigger can only be the primary. Returns the new trigger id: wire its first step with afterStepId:"<that id>" (an omitted afterStepId chains after the LAST step, never after a new trigger). Each trigger is its own root; two roots may converge on one step, and that step can branch on trigger.kind / trigger.event / trigger.id. A schedule run has no payload — start it with a datetime step (op:"now"). Test one root with builder_request_dry_run({triggerStepId}). EXAMPLES: {kind:"app_event",appProvider:"google-calendar",appEvent:"event.upcoming",filter:{leadMinutes:30},label:"Meeting prep"} · {kind:"schedule",cron:"0 7 * * 1-5",tz:"Europe/Amsterdam",label:"Morning briefing"}.`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -1479,11 +1479,11 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
         function: {
             name: 'builder_set_metadata',
             // The same sentence on both schema variants (builderTools/
-            // schemaProjection.js repeats it): a routine nobody named ships
+            // schemaProjection.js repeats it): an automation nobody named ships
             // as "Untitled automation", and "when the ask names a title" was
             // read by every band as "usually not".
-            description: 'Name the routine. REQUIRED once per new draft — in your FIRST reply, bundled with the trigger call: title ≤ 60 chars, in the user\'s language, saying what the routine does ("Facturen uit /Invoices naar tabel Facturen"); description = one sentence. When the request states a title, use it verbatim. Call again to rename.',
-            parameters: { type: 'object', properties: { title: { type: 'string', description: '≤ 60 chars, the user\'s language, what the routine does.' }, description: { type: 'string', description: 'One sentence.' } } },
+            description: 'Name the automation. REQUIRED once per new draft — in your FIRST reply, bundled with the trigger call: title ≤ 60 chars, in the user\'s language, saying what the automation does ("Facturen uit /Invoices naar tabel Facturen"); description = one sentence. When the request states a title, use it verbatim. Call again to rename.',
+            parameters: { type: 'object', properties: { title: { type: 'string', description: '≤ 60 chars, the user\'s language, what the automation does.' }, description: { type: 'string', description: 'One sentence.' } } },
         },
     },
     {
@@ -1513,7 +1513,7 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
         function: {
             name: 'builder_request_dry_run',
             description: 'Execute the draft in dry-run mode. Call this ONCE, when EVERY planned step exists — never mid-build. Side-effect actions are simulated (no real emails sent, no real issues created); read-only and AI steps run for real. Returns ok + note and, per step, its status and a `_hint` of the REAL runtime keys and shape — trust those over any assumption; only a failed step carries its error and input, a forEach reports its failed items, a step that produced nothing says empty:true. If steps errored, fix them ALL with one builder_update_steps call, then dry-run again (both in the SAME reply — calls execute in order). Only after a clean dry-run (ok:true) should you call builder_finalize.',
-            parameters: { type: 'object', properties: { triggerPayload: { type: 'object', description: 'Optional fake trigger payload (used to feed app_event triggers a sample).' }, triggerStepId: { type: 'string', description: 'Which trigger to enter through when the routine has ADDITIONAL triggers (an additional trigger\'s own id). Omit for the primary trigger. Dry-run each root separately.' } } },
+            parameters: { type: 'object', properties: { triggerPayload: { type: 'object', description: 'Optional fake trigger payload (used to feed app_event triggers a sample).' }, triggerStepId: { type: 'string', description: 'Which trigger to enter through when the automation has ADDITIONAL triggers (an additional trigger\'s own id). Omit for the primary trigger. Dry-run each root separately.' } } },
         },
     },
     {

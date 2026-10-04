@@ -53,7 +53,7 @@ export function DocumentBand({ editor, look }: { editor: StepEditorProps; look: 
     const overrides = recordOf(draft.sectionOverrides);
     const empty = look.templates?.length === 0 && !look.templatesFailed && look.term.trim() === '';
     return (
-        <Band editor={editor} sectionKey="document" title={t('routines.versions.setting.documentId', 'Document')} defaultOpen hasContent={id !== ''}>
+        <Band editor={editor} sectionKey="document" title={t('automations.versions.setting.documentId', 'Document')} defaultOpen hasContent={id !== ''}>
             <SearchField value={look.term} onChangeText={look.onTerm} placeholder={t('mobile.flow.fill.search', 'Search all templates…')} />
             <SelectField
                 label={t('mobile.flow.fill.which', 'Which document')}

@@ -8,7 +8,7 @@
  *   describePick()   the value one chosen record contributes to the run
  *
  * ── Why "as the filler" is the whole design ────────────────────────────────
- * The author of a routine declares "ask for a Fireflies transcript". They do
+ * The author of an automation declares "ask for a Fireflies transcript". They do
  * NOT declare which one, and they must not be able to see which ones exist for
  * anybody else. So every call here carries a `caller` — the signed-in person in
  * front of the form — and nothing in it comes from the automation's owner. A
@@ -27,7 +27,7 @@
  * A search that fails is an empty list with a reason the picker can print. A
  * record that cannot be read is a descriptor carrying `textError`, exactly as
  * an unreadable upload is (formUploadText) — the submission still goes through,
- * and a routine can branch on it. Losing a form submission because Fireflies
+ * and an automation can branch on it. Losing a form submission because Fireflies
  * was down would be a far worse failure than an unreadable attachment.
  */
 
@@ -41,8 +41,8 @@ const { MAX_TEXT_CHARS } = pickSources;
 /**
  * Which integration tools may this caller actually run?
  *
- * The same resolver the routine builder and the runner use
- * (`routineStep: true`, so design time equals run time), which means a picker
+ * The same resolver the automation builder and the runner use
+ * (`automationStep: true`, so design time equals run time), which means a picker
  * can never offer an app the person's org, group, entitlement or credentials
  * have not granted them. A failure to resolve is NOT "you have nothing" — it is
  * "we do not know", and the caller below turns that into a refusal rather than
@@ -54,7 +54,7 @@ async function resolveCallerTools(caller) {
         userId: caller.userId,
         session: caller.session,
         isAdmin: !!caller.isAdmin,
-        routineStep: true,
+        automationStep: true,
     });
     const names = new Set();
     for (const t of (r?.tools || [])) if (t?.function?.name) names.add(t.function.name);
@@ -184,7 +184,7 @@ async function readMeetingNote(recordId, caller) {
             text: body,
             // The note's own structure, which it HAS — a Bee Flow note is
             // already summarised, already has its actions and decisions pulled
-            // out. Handing a routine only the flattened text would make it ask
+            // out. Handing an automation only the flattened text would make it ask
             // a model to re-derive what the platform already knows.
             data: pickSources.compact({
                 date: pickSources.isoDate(note.createdAt),
@@ -259,8 +259,8 @@ function boundText(text) {
  * and STRUCTURED FIELDS onto it when the read worked. `data` is what each
  * source knows about its own records (a call's date, duration and speakers; an
  * email's sender and attachments; a note's summary and action items), so a
- * routine can branch or fill a table without sending the body to a model. A failed read leaves `textError` and keeps the title the
- * picker showed, so the routine still knows what the person chose.
+ * automation can branch or fill a table without sending the body to a model. A failed read leaves `textError` and keeps the title the
+ * picker showed, so the automation still knows what the person chose.
  *
  * `withText: false` is the author saying "a reference is enough": no read is
  * made at all, which is both faster and the smaller privacy footprint.

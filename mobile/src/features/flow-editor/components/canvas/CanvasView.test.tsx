@@ -1,9 +1,9 @@
 /**
- * The canvas over a real draft store: it draws the routine once it has room,
+ * The canvas over a real draft store: it draws the automation once it has room,
  * a node opens on a tap and offers its menu on a hold, a line's "+" and a
  * free port's "+" ask for a step in the right place, a drag moves a node,
  * connect mode draws and removes lines, a loop opens in place, Arrange
- * re-lays the routine out — each edit one step of the store's undo.
+ * re-lays the automation out — each edit one step of the store's undo.
  */
 
 import { act, cleanup, fireEvent, screen } from '@testing-library/react-native';
@@ -192,7 +192,7 @@ describe('CanvasView', () => {
         expect(props.onAdd).toHaveBeenLastCalledWith({ kind: 'inline', container: 'loop_1', branch: null, index: 1 });
     });
 
-    it('arranges the routine from the menu, undoably', async () => {
+    it('arranges the automation from the menu, undoably', async () => {
         const store = storeFor(DEF);
         await mount(store);
         await act(async () => fireEvent.press(screen.getByTestId('canvas-more')));
@@ -227,7 +227,7 @@ describe('CanvasView', () => {
         expect(screen.getByTestId('canvas-connect')).toBeDisabled();
     });
 
-    it('starts an empty routine with its trigger', async () => {
+    it('starts an empty automation with its trigger', async () => {
         const onAdd = jest.fn();
         await renderWithProviders(
             <ToastProvider>

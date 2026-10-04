@@ -86,7 +86,23 @@ function buildAuthHeaders(mcp, secretObject) {
 }
 
 /**
- * Normalize listTools() output to [{ name, description, inputSchema }],
+ * The behaviour hints an MCP tool may advertise (spec `ToolAnnotations`),
+ * narrowed to the booleans the MCP library shows an admin when choosing which
+ * tools agents get. Hints are the server's own claim, not a guarantee, so they
+ * only ever inform a human; nothing is allowed or refused on their word.
+ * Returns null when the tool advertises none.
+ */
+function pickToolHints(annotations) {
+    if (!annotations || typeof annotations !== 'object' || Array.isArray(annotations)) return null;
+    const out = {};
+    for (const key of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint']) {
+        if (typeof annotations[key] === 'boolean') out[key] = annotations[key];
+    }
+    return Object.keys(out).length ? out : null;
+}
+
+/**
+ * Normalize listTools() output to [{ name, description, inputSchema, annotations? }],
  * intersect with the definition's toolAllowList (when present), and enforce
  * caps: <= MAX_TOOLS tools, each schema JSON <= MAX_TOOL_SCHEMA_CHARS
  * (oversize tools are dropped, not trimmed). Returns { tools, warnings }.
@@ -121,11 +137,14 @@ function normalizeAndFilterTools(rawTools, toolAllowList = null) {
             continue;
         }
         seen.add(t.name);
-        tools.push({
+        const tool = {
             name: t.name,
             description: typeof t.description === 'string' ? t.description : '',
             inputSchema,
-        });
+        };
+        const hints = pickToolHints(t.annotations);
+        if (hints) tool.annotations = hints;
+        tools.push(tool);
     }
 
     if (allow) {
@@ -402,6 +421,19 @@ async function callTool(integration, rawToolName, args, userId) {
     }
 }
 
+/**
+ * Close every pooled connection of one integration (all users). For when what
+ * a pooled client holds is no longer true: a rotated shared credential keeps
+ * its connection id, so getPooledClient's own staleness check cannot see it,
+ * and a disabled or removed integration must not keep a live session open.
+ */
+async function closeIntegration(integrationId) {
+    const prefix = `${integrationId}:`;
+    for (const key of [...connectionPool.keys()]) {
+        if (key.startsWith(prefix)) await closeConnection(key);
+    }
+}
+
 /** Close every pooled connection (shutdown / tests). */
 async function closeAll() {
     for (const key of [...connectionPool.keys()]) {
@@ -412,9 +444,11 @@ async function closeAll() {
 module.exports = {
     discoverTools,
     callTool,
+    closeIntegration,
     closeAll,
     // Pure helpers, exported for unit tests:
     normalizeAndFilterTools,
+    pickToolHints,
     renderValueTemplate,
     buildAuthHeaders,
     poolKeyFor,

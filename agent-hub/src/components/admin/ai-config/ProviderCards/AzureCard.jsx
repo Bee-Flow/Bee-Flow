@@ -7,14 +7,12 @@ import useProviderConfig from '../../../../hooks/useProviderConfig';
 const AzureConfigCard = ({ onMessage }) => {
     const [endpoint, setEndpoint] = useState('');
     const [apiKey, setApiKey] = useState('');
-    const [apiVersion, setApiVersion] = useState('2025-04-01-preview');
     const [models, setModels] = useState('');
     const [savedModels, setSavedModels] = useState('');
 
     const { config, saving, save, deleteKey, deleteSetting, patchConfig } = useProviderConfig({
         onMessage,
         onLoaded: data => {
-            if (data.azureApiVersion) setApiVersion(data.azureApiVersion);
             if (data.azureModels) {
                 setSavedModels(data.azureModels);
                 setModels(data.azureModels);
@@ -29,7 +27,6 @@ const AzureConfigCard = ({ onMessage }) => {
         const body = {};
         if (endpoint.trim()) body.azureEndpoint = endpoint;
         if (apiKey.trim()) body.azureApiKey = apiKey;
-        body.azureApiVersion = apiVersion;
         body.azureModels = models.trim();
 
         const ok = await save(body, { success: 'Azure AI config saved!', error: 'Failed to save config' });
@@ -87,27 +84,14 @@ const AzureConfigCard = ({ onMessage }) => {
                 />
             </div>
 
-            {/* API Key + API Version row */}
+            {/* API Key. No API version: Bee Flow always uses Azure's v1 GA API. */}
             <div className="flex gap-2">
                 <SecretInput
                     value={apiKey}
                     onChange={setApiKey}
                     placeholder={hasKey ? '••••••••••••••••' : 'Azure API Key'}
                 />
-                <input
-                    type="text"
-                    value={apiVersion}
-                    onChange={e => setApiVersion(e.target.value)}
-                    placeholder="2025-04-01-preview"
-                    className={`w-48 ${PROVIDER_INPUT_CLS.replace('w-full ', '')}`}
-                    style={PROVIDER_INPUT_STYLE}
-                    title="API Version — optional. Leave blank to use the recommended default (2025-04-01-preview)."
-                />
             </div>
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                API version is optional — leave blank for the recommended default (2025-04-01-preview),
-                which enables the Responses API (reasoning summaries) for GPT-5 / o-series deployments.
-            </p>
 
             {/* Models input */}
             <div>
@@ -115,13 +99,14 @@ const AzureConfigCard = ({ onMessage }) => {
                     type="text"
                     value={models}
                     onChange={e => setModels(e.target.value)}
-                    placeholder="Deployment names, e.g. gpt-5.6-terra, gpt-6-astra, gpt-4.1"
+                    placeholder="Deployment names, e.g. gpt-5.6-terra, prod-chat=gpt-6-astra, gpt-4.1"
                     className={PROVIDER_INPUT_CLS}
                     style={PROVIDER_INPUT_STYLE}
                     title="Comma-separated list of your Azure deployment names"
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Comma-separated deployment names from your Azure portal
+                    Comma-separated deployment names from your Azure portal. If a deployment is not named
+                    after its model, write name=model (prod-chat=gpt-6-astra).
                 </p>
             </div>
 

@@ -133,7 +133,7 @@ describe('PublicFormPage', () => {
 
 // ── Multi-page ────────────────────────────────────────────────────────────
 //
-// A routine can pause at a form_page step. The visitor never leaves /f/<token>:
+// An automation can pause at a form_page step. The visitor never leaves /f/<token>:
 // the page polls its session and swaps in whatever comes back.
 
 const SESSION = 'c'.repeat(48);
@@ -250,7 +250,7 @@ describe('PublicFormPage — multi-page', () => {
         expect(posted.csrf).toBe('csrf-2');
     });
 
-    it('the closing page shows the summary the routine rendered', async () => {
+    it('the closing page shows the summary the automation rendered', async () => {
         vi.stubGlobal('fetch', mockFetch({
             ...multiLoad,
             ...acceptFirst,

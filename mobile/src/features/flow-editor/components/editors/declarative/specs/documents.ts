@@ -81,7 +81,7 @@ export const FILL_DOCUMENT: EditorSpec = {
     sections: [
         {
             key: 'values',
-            title: msg('routines.versions.setting.values', 'Values'),
+            title: msg('automations.versions.setting.values', 'Values'),
             defaultOpen: true,
             fields: [
                 {
@@ -119,7 +119,7 @@ export const FILL_DOCUMENT: EditorSpec = {
                     label: msg('mobile.flow.doc.keep_copy', 'Also keep it in Documents'),
                     description: msg(
                         'mobile.flow.fill.keep_copy_hint',
-                        'Keeps the FILLED document in Studio → Documents so you can correct a line by hand before it goes out. Leave it off for a routine that runs often — it makes a document every run.',
+                        'Keeps the FILLED document in Studio → Documents so you can correct a line by hand before it goes out. Leave it off for an automation that runs often — it makes a document every run.',
                     ),
                 },
                 {

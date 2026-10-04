@@ -29,3 +29,4 @@ export {
     topicCallsOf,
     makeTopicHost,
 } from './topics.mjs';
+export { templateText, isScalarList } from './templateText.mjs';

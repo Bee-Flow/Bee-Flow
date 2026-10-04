@@ -27,7 +27,7 @@ describe('identityColorForEdge', () => {
         expect(identityColorForEdge({}, 'pii', null)).toBe(null);
     });
 
-    it("a routine's own PII colour rules override the default group map", () => {
+    it("an automation's own PII colour rules override the default group map", () => {
         const run = { piiSummary: { groups: { Contact: 3 } } };
         const overridden = { ...PII_GROUP_COLORS, Contact: STATUS_COLORS.orange };
         expect(identityColorForEdge({}, 'pii', run, overridden)).toBe(STATUS_COLORS.orange);

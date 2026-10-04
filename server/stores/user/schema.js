@@ -298,6 +298,16 @@ async function _initDB() {
         // use everything its ceiling allows), preserving prior behaviour on upgrade.
         `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "org_available_capabilities" TEXT DEFAULT NULL`,
 
+        // org_beta_everyone = which GROUP-SCOPED betas (betaFeatures.js
+        // `groupScoped`, e.g. meeting_notes) the org hands to ALL members. A
+        // group-scoped beta outside this list reaches only the groups granted it
+        // in the Access matrix. NULL = every group-scoped beta is for everyone,
+        // which is exactly the behaviour before this column existed, so no org
+        // changes on upgrade until its admin makes a choice. Deliberately NOT
+        // org_enabled_beta_features: that column holds stale arrays that would
+        // silently switch betas off for whole organisations if it were read again.
+        `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "org_beta_everyone" TEXT DEFAULT NULL`,
+
         // One-shot backfill: any org that already has a super-admin allow-list
         // gets that list copied into the new "enabled" column so today's
         // behaviour is preserved. Only rows still at the '[]' default are

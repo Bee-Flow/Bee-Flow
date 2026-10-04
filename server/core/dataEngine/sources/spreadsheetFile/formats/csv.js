@@ -23,7 +23,7 @@
  * tab / CR) is the one thing this writer cannot hand a spreadsheet as text —
  * Excel evaluates it when the file is opened, and `=cmd|...` there is code
  * execution on the machine of whoever opens it. The values do not only come
- * from the file's owner typing into their own table: a routine, an App
+ * from the file's owner typing into their own table: an automation, an App
  * Studio action or a public form writes rows too. Only text-shaped columns
  * (cells.formulaShaped): a number column's -5 is a number. The reader
  * strips that one prefix again (`'=` → `=`), so the mirror shows what was

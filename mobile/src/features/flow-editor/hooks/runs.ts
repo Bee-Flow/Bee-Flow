@@ -1,7 +1,7 @@
 /**
  * Runs from the editor. Each saves the draft first — the server runs the
- * STORED definition — and a new routine is created for the purpose. `flowKey`
- * is the routine id, or a new routine's draft key (FlowDraft.key).
+ * STORED definition — and a new automation is created for the purpose. `flowKey`
+ * is the automation id, or a new automation's draft key (FlowDraft.key).
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';

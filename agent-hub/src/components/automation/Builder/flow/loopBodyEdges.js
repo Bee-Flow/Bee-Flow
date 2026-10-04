@@ -65,7 +65,7 @@ export function loopBodyEdges(body, entryId = LOOP_ENTRY_ID) {
  * relative order, so a node that lost its edges (detached, or a body the user
  * has not touched) stays where it was instead of jumping to the front. That
  * matters because a run reads the array, not the drawing: an unstable sort
- * would silently reorder a working routine on an unrelated edit.
+ * would silently reorder a working automation on an unrelated edit.
  *
  * Cycles cannot be authored inside a container (DiagramPane refuses free-hand
  * connections there), but a hand-edited or AI-written definition could still

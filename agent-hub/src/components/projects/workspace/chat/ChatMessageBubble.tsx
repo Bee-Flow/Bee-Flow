@@ -3,17 +3,19 @@
 // deleted states, the hover actions, and — for a message not confirmed yet —
 // "sending" or "not sent" with retry and discard.
 
-import { BookOpen, CheckSquare, CornerUpLeft, FileText, MessageSquareReply, Mic, Pencil, RotateCcw, Trash2, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { BookOpen, CheckSquare, Copy, CornerUpLeft, FileText, MessageSquareReply, Mic, Pencil, RotateCcw, Trash2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { isAutomaticAnswer, type PendingTeamChatMessage, type TeamChatMessage, type TeamChatRef } from '../../../../api/queries/projectChats';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
+import { toast } from '../../../shared/Toast';
 import { projectErrorText } from '../projectErrorText';
 import { ErrorText, GhostButton, PrimaryButton, SecondaryButton } from '../workspaceUi';
 import AnswerTrace from './AnswerTrace';
 import AutoAnswerNote from './AutoAnswerNote';
 import { washOf } from '../memberColors';
 import { AI_TONE, type AiTone } from '../projectVisuals';
+import { isImeEnter } from './ime';
 import { excerptOf, formatMessageTime, type ChatItem, type ThreadSummary } from './messageGroups';
 import { splitMentions } from './mentions';
 
@@ -32,6 +34,8 @@ export interface MessageContext {
     assistantName: (agentId: string | null | undefined) => string;
     mentionTokens: string[];
     findMessage: (id: string) => TeamChatMessage | undefined;
+    /** True when a message replies to the one shown right above it: its quote is then left out. */
+    quotesPrevious?: (messageId: string) => boolean;
     /** Quote-reply; absent where quoting makes no sense (inside a thread). */
     onReply?: (message: TeamChatMessage) => void;
     /** Make a task of this message; absent when the reader cannot make tasks. */
@@ -58,17 +62,42 @@ export interface MessageContext {
     onNotHelpful: (message: TeamChatMessage) => Promise<void>;
     /** Opens the reader's own AI settings (the opt-out), when the page can navigate. */
     onShowAiSettings?: () => void;
+    /** The chat search: matched text is painted, the active match is ringed and scrolled to. */
+    highlight?: { query: string; activeMessageId: string | null };
+    /** Asks one bubble to open its editor (ArrowUp in the empty composer edits your latest message). */
+    editRequest?: { messageId: string; nonce: number } | null;
 }
 
 const ACTION_CLASS = 'grid place-items-center w-7 h-7 rounded-md text-[var(--text-secondary)] '
     + 'hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] transition-colors';
 
-function MentionText({ text, tokens }: { text: string; tokens: string[] }) {
+/** Wrap every (case-insensitive) occurrence of `query` in a <mark>. */
+function marked(text: string, query: string): React.ReactNode {
+    if (!query) return text;
+    const hay = text.toLowerCase();
+    const needle = query.toLowerCase();
+    const out: React.ReactNode[] = [];
+    let from = 0;
+    for (;;) {
+        const at = hay.indexOf(needle, from);
+        if (at < 0) { out.push(text.slice(from)); break; }
+        if (at > from) out.push(text.slice(from, at));
+        out.push(
+            <mark key={out.length} className="rounded-sm px-0.5 text-inherit bg-[color-mix(in_srgb,var(--accent-primary)_30%,transparent)]">
+                {text.slice(at, at + needle.length)}
+            </mark>,
+        );
+        from = at + needle.length;
+    }
+    return out;
+}
+
+function MentionText({ text, tokens, query = '' }: { text: string; tokens: string[]; query?: string }) {
     return (
         <p className="m-0 text-[13.5px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap break-words">
             {splitMentions(text, tokens).map((part, i) => (part.mention
                 ? <span key={i} className="px-1 rounded-md font-semibold text-[var(--text-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_20%,transparent)]">{part.text}</span>
-                : <React.Fragment key={i}>{part.text}</React.Fragment>))}
+                : <React.Fragment key={i}>{marked(part.text, query)}</React.Fragment>))}
         </p>
     );
 }
@@ -97,8 +126,8 @@ function RefChips({ refs, ctx }: { refs: TeamChatRef[]; ctx: MessageContext }) {
     return (
         <div className="mt-1 flex flex-wrap gap-1.5" data-testid="team-chat-refs">
             {refs.map((ref) => {
-                const Icon = ref.kind === 'notebook' ? BookOpen : ref.kind === 'meeting' ? Mic : FileText;
-                const title = ctx.refTitle?.(ref) || (ref.kind === 'notebook' ? t('project_chat.ref_notebook', 'Notebook') : ref.kind === 'meeting' ? t('project_chat.ref_meeting', 'Meeting') : t('project_chat.ref_document', 'Document'));
+                const Icon = ref.kind === 'notebook' ? BookOpen : ref.kind === 'meeting' ? Mic : ref.kind === 'task' ? CheckSquare : FileText;
+                const title = ctx.refTitle?.(ref) || (ref.kind === 'notebook' ? t('project_chat.ref_notebook', 'Notebook') : ref.kind === 'meeting' ? t('project_chat.ref_meeting', 'Meeting') : ref.kind === 'task' ? t('project_chat.ref_task', 'Task') : t('project_chat.ref_document', 'Document'));
                 return (
                     <button key={`${ref.kind}:${ref.id}`} type="button" onClick={() => ctx.onOpenRef?.(ref)} disabled={!ctx.onOpenRef}
                         title={t('project_chat.open_ref', 'Open {name}', { name: title })}
@@ -147,7 +176,7 @@ function EditBox({ initial, onSave, onCancel }: { initial: string; onSave: (next
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={(e) => {
                     if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
-                    else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); save(); }
+                    else if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) { e.preventDefault(); save(); }
                 }}
                 aria-label={t('project_chat.edit_label', 'Edit message')}
                 maxLength={20000}
@@ -171,6 +200,14 @@ function Actions({ message, ctx, onEditStart }: { message: TeamChatMessage; ctx:
     // The server lets an editor delete their own message, and the owner any.
     const canDelete = (mine && ctx.canPost) || ctx.isProjectOwner;
     if (message.deleted || (!ctx.canPost && !canDelete)) return null;
+    const onCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(message.content);
+            toast.success(t('project_chat.copied', 'Message copied'));
+        } catch {
+            toast.error(t('project_chat.copy_failed', 'Could not copy the message.'));
+        }
+    };
     // Hidden by opacity only, never by display: the buttons stay in the tab
     // order, and a keyboard user who tabs onto one brings the bar into view
     // (focus-within), as does a tap on the message. Small screens have no
@@ -195,6 +232,12 @@ function Actions({ message, ctx, onEditStart }: { message: TeamChatMessage; ctx:
                 <button type="button" className={ACTION_CLASS} onClick={() => ctx.onCreateTask!(message)}
                     aria-label={t('project_tasks.from_message', 'Make a task from this message')} title={t('project_tasks.from_message', 'Make a task from this message')}>
                     <CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+            )}
+            {message.content && (
+                <button type="button" className={ACTION_CLASS} onClick={onCopy}
+                    aria-label={t('project_chat.copy', 'Copy')} title={t('project_chat.copy', 'Copy')}>
+                    <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
             )}
             {canEdit && (
@@ -223,13 +266,12 @@ function MessageBody({ message, ctx }: { message: TeamChatMessage; ctx: MessageC
     }
     if (message.authorKind === 'assistant') {
         return (
-            <div className="rounded-2xl rounded-tl-md border border-l-2 px-3.5 py-2.5 text-[13.5px] text-[var(--text-primary)] min-w-0" data-testid="team-chat-assistant-body"
-                style={{ background: (ctx.aiTone || AI_TONE).card, borderColor: (ctx.aiTone || AI_TONE).edge, borderLeftColor: (ctx.aiTone || AI_TONE).bar }}>
+            <div className="py-3 text-[14px] leading-7 text-[var(--text-primary)] min-w-0" data-testid="team-chat-assistant-body">
                 <MarkdownRenderer content={message.content} isLoading={false} />
             </div>
         );
     }
-    return <MentionText text={message.content} tokens={ctx.mentionTokens} />;
+    return <MentionText text={message.content} tokens={ctx.mentionTokens} query={ctx.highlight?.query} />;
 }
 
 /**
@@ -240,14 +282,13 @@ function bubbleFor(message: TeamChatMessage, ctx: MessageContext): { className: 
     if (message.authorKind !== 'user') {
         return { className: 'rounded-lg px-2 py-1 -mx-2 hover:bg-[color-mix(in_srgb,var(--accent-primary)_5%,var(--bg-secondary))] transition-colors' };
     }
-    const tone = ctx.aiTone || AI_TONE;
     const mine = !!ctx.currentUserId && message.authorUserId === ctx.currentUserId;
     // A person's colour is only a wash: the bubble stays quiet, and the text keeps the theme's ink.
     const color = ctx.colorOf?.(message.authorUserId);
     if (mine) {
         return {
             className: 'ml-auto w-fit max-w-[80%] rounded-2xl rounded-tr-md px-3.5 py-2',
-            style: color ? { background: washOf(color, 12), boxShadow: `inset 0 0 0 1px ${washOf(color, 22)}` } : { background: tone.soft, boxShadow: `inset 0 0 0 1px ${tone.ring}` },
+            style: { background: 'var(--user-bubble-bg)', color: 'var(--user-bubble-fg)' },
         };
     }
     return color
@@ -258,16 +299,25 @@ function bubbleFor(message: TeamChatMessage, ctx: MessageContext): { className: 
 function ConfirmedBubble({ message, ctx }: { message: TeamChatMessage; ctx: MessageContext }) {
     const { t } = useTranslation();
     const [editing, setEditing] = useState(false);
+    // An outside request (ArrowUp in the empty composer) opens this bubble's editor.
+    const editNonce = ctx.editRequest && ctx.editRequest.messageId === message.id ? ctx.editRequest.nonce : 0;
+    useEffect(() => { if (editNonce) setEditing(true); }, [editNonce]);
     const shape = bubbleFor(message, ctx);
+    const active = !!ctx.highlight && ctx.highlight.activeMessageId === message.id;
     return (
         // tabIndex -1: a tap focuses the message (never a tab stop), which shows its actions on a touch screen without hover.
-        <div tabIndex={-1} className={`relative group/msg outline-none ${shape.className}`} style={shape.style} data-testid={`team-chat-message-${message.id}`}>
-            {message.replyTo && <ReplyPreview replyTo={message.replyTo} ctx={ctx} />}
+        <div tabIndex={-1} className={`relative group/msg outline-none ${shape.className} ${active ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}
+            style={shape.style} data-testid={`team-chat-message-${message.id}`} data-message-id={message.id}>
+            {message.replyTo && !ctx.quotesPrevious?.(message.id) && <ReplyPreview replyTo={message.replyTo} ctx={ctx} />}
             {editing
                 ? <EditBox initial={message.content} onCancel={() => setEditing(false)}
                     onSave={async (next) => { await ctx.onEdit(message, next); setEditing(false); }} />
                 : <MessageBody message={message} ctx={ctx} />}
             {!message.deleted && !editing && <RefChips refs={message.refs || []} ctx={ctx} />}
+            {!message.deleted && !editing && !!message.aiMeta?.usedSources?.length && <div className="text-xs text-[var(--text-secondary)]">
+                <span>{t('project_chat.context_used', 'Sources provided to AI')}</span>
+                <RefChips refs={message.aiMeta.usedSources.filter(ref => !!ctx.refTitle?.(ref))} ctx={ctx} />
+            </div>}
             {!message.deleted && message.aiMeta && (
                 <AnswerTrace meta={message.aiMeta} projectId={ctx.traceScope?.projectId ?? null} chatId={ctx.traceScope?.chatId ?? null} messageId={message.id} />
             )}

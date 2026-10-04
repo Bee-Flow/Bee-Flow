@@ -5,7 +5,7 @@ module.exports = {
     'agent_usage.kind_task': 'Scheduled tasks',
     'agent_usage.kind_cowork': 'Cowork schedules',
     'agent_usage.kind_support': 'Support inboxes',
-    'agent_usage.kind_automation': 'Routines',
+    'agent_usage.kind_automation': 'Automations',
     'agent_usage.kind_app': 'Apps',
     'agent_usage.kind_webpage': 'Webpages',
     'agent_usage.others_conversations': 'Conversations by other people',

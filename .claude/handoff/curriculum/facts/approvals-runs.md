@@ -33,7 +33,7 @@ Key source files:
 
 ## 1. What the feature is for
 
-A routine (automation) can **pause and ask a person**. The step type is `approval`
+An automation (automation) can **pause and ask a person**. The step type is `approval`
 ("Ask someone to approve" in the builder palette). When the run reaches it, the run row
 goes to status `awaiting_approval`, a durable **approval row** is written, the people who
 must decide get a bell (and optionally an e-mail / Nextcloud Talk card), and the run sits
@@ -44,7 +44,7 @@ the flow builder: the decider is usually not the builder and must never need the
 say yes. It is also the durable record of every decision ever made (who asked, who decided,
 when, why).
 
-**Runs & log** (Studio → Runs & log) is where a *builder* watches: every time a routine
+**Runs & log** (Studio → Runs & log) is where a *builder* watches: every time an automation
 fired, what started it, what it did, what broke, and step-by-step replay on a read-only
 canvas. It is the only Studio section that is about the past — you cannot create a run.
 
@@ -73,14 +73,14 @@ List screen:
 | Page title | `Approvals` |
 | Scope toggle (org admins only) | `My approvals` / `Organisation` |
 | Refresh icon button | aria-label `Refresh` |
-| Search box | placeholder `Search by question or routine…` (debounced 300 ms) |
+| Search box | placeholder `Search by question or automation…` (debounced 300 ms) |
 | Status tabs (with counts appended as ` · N`) | `Waiting`, `Approved`, `Declined`, `Expired`, `Closed` |
 | Empty state on the Waiting tab | `Nothing is waiting for a decision.` |
 | Empty state on other tabs | `Nothing here yet.` |
 | Loading | `Loading…` |
 | Pagination | `Show more` |
 | Row marker when it is yours to decide | `You` (uppercase, amber) |
-| Row meta line | `<routine title> · <when> · decide before <deadline> · by <decider>` |
+| Row meta line | `<automation title> · <when> · decide before <deadline> · by <decider>` |
 | Mobile-only escape hatch | `← Bee Flow` |
 
 Row status words (from `approvalDisplay.js` `approvalStatusChip`), drawn as a coloured dot
@@ -92,7 +92,7 @@ plus the word: `Waiting` (amber), `Approved` (emerald), `Declined` (red), `Expir
 | Element | Real string |
 |---|---|
 | Back link | `All approvals` |
-| Eyebrow | the routine's title, or `Automation` |
+| Eyebrow | the automation's title, or `Automation` |
 | Heading | the rendered question (`prompt`), or `Approval requested` |
 | Who-decides line | `Owner decides` / `Assigned` / `Assigned to a group` / `Panel of {n}` / `Chain of {n} stages` |
 | Deadline line (pending) | `Decide before <date>` or `No deadline` |
@@ -141,7 +141,7 @@ closed.` (410), `Someone else already decided this approval.` (409),
 
 ### 2.4 Studio → Runs & log (`/app/studio/runs`)
 
-Registry entry: `labelFallback: 'Runs & log'`, `descFallback: 'Every time a routine fired,
+Registry entry: `labelFallback: 'Runs & log'`, `descFallback: 'Every time an automation fired,
 and what happened'`, icon `History`, category `bundle` (last row on the rail). The rail
 count next to it is **runs in the last 24 hours, my scope only**.
 
@@ -150,23 +150,23 @@ Header:
 | Element | Real string |
 |---|---|
 | Title | `Runs & log` |
-| Intro | `Every time a routine fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.` |
+| Intro | `Every time an automation fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.` |
 | Scope switch (group aria-label `Whose runs`) | `My runs` / `Organisation` |
 | Org-scope caveat | `The organisation's runs do not update by themselves — refresh to see new ones. Only the person who started a run can open it.` |
 | Scope refusal banner | the server's own sentence + a `Show my runs` link |
 
-**"Now running" strip** (`NowRunningStrip.jsx`), one line per routine, fixed 24-hour window
+**"Now running" strip** (`NowRunningStrip.jsx`), one line per automation, fixed 24-hour window
 that does NOT follow the table's range chip:
 
 | Element | Real string |
 |---|---|
 | Heading | `Now running` + right-aligned `last 24 hours` |
 | Line phrases | `failed — {reason}` / `failed` / `{count} waiting for a person` / `{count} running now` / `done · {count} runs` |
-| Nameless routine | `A routine without a name` |
+| Nameless automation | `An automation without a name` |
 | Empty | `Nothing has run in the last 24 hours.` |
 | Unreadable (read failed) | `Could not read what is running — this is not “nothing is running”.` |
-| Server without the rollup | `This server did not report per-routine activity, so this strip has nothing to show. The runs below are unaffected.` |
-| Overflow | `and {count} more routines` |
+| Server without the rollup | `This server did not report per-automation activity, so this strip has nothing to show. The runs below are unaffected.` |
+| Overflow | `and {count} more automations` |
 
 Strip limit: **6 lines** (`NOW_RUNNING_LIMIT`), sorted by urgency `error → waiting → running → done`.
 Error lines show the error **class**, never the free-text message (that can quote a customer).
@@ -208,7 +208,7 @@ approval), `Open this run`, `Copy a link to this run`, `Open in editor`, `Copy r
 Action failure inline: `Couldn't do that: <message>`.
 
 Empty states: `No runs in this time range.` + `Older runs are still here — widen the time
-range to see them.` + `Show all time`; `No runs yet. Run the routine to see what happened
+range to see them.` + `Show all time`; `No runs yet. Run the automation to see what happened
 here, step by step.`; for a Step: `No runs yet. Test this Step or call it from an automation
 to see its runs.` Load failure: `We couldn't load the runs.` + `Try again`.
 
@@ -221,7 +221,7 @@ relative start, trigger, `· via <entry point>`, a version chip `v<N>`
 `This was a retry of an earlier run`, `N problems handled automatically`, the expiry chip,
 and the error class in parentheses.
 
-Buttons: `Run it again` (title `Uses the routine as it is now`), `Stop it`, `Approve` /
+Buttons: `Run it again` (title `Uses the automation as it is now`), `Stop it`, `Approve` /
 `Reject` for a run-level confirm, `Copy link`, `Open in editor`.
 Action failure: `<action> failed: <message>`.
 
@@ -242,9 +242,9 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
 
 ## 3. Concepts a learner must understand
 
-- **Run** — one execution of one routine. Row in `automation_runs`. Has a status, a start,
-  a duration, a trigger kind, a mode (live or test) and the version of the routine that ran.
-- **Journey / leg** — a routine that pauses (approval or form) resumes in a **child run**.
+- **Run** — one execution of one automation. Row in `automation_runs`. Has a status, a start,
+  a duration, a trigger kind, a mode (live or test) and the version of the automation that ran.
+- **Journey / leg** — an automation that pauses (approval or form) resumes in a **child run**.
   The list shows one row per journey; the status shown is the *newest leg's*. `journeyRunId`
   is the leg that Stop/Approve must actually act on. `rootRunId` groups the legs.
 - **Retry vs continuation** — both carry `parentRunId`. A real retry starts a new journey
@@ -253,7 +253,7 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
   which is why the mode filter is hidden there.
 - **Trigger kind vs entry point** — the kind is how it fired (schedule, form, webhook…);
   the entry point (`rootStepId` → `rootTriggerLabel`) is *which* trigger node a
-  multi-trigger routine came in through.
+  multi-trigger automation came in through.
 - **Approval** — the durable question. Row in `automation_approvals`. Statuses:
   `pending`, `approved`, `rejected`, `expired`, `cancelled`.
 - **Snapshot** — everything the approver sees (`prompt`, `detailsMd`, `fields`,
@@ -283,7 +283,7 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
 - **Facets** — cheap server-side counts that drive the status chips, the sidebar badge and
   the "Now running" strip. They are a claim about the whole window, not about the page.
 - **awaiting_confirm** — a *run-level* first-run gate (legacy; the column now defaults to
-  FALSE). Approve promotes the routine to live; Reject closes just this run and leaves the
+  FALSE). Approve promotes the automation to live; Reject closes just this run and leaves the
   gate on. It is NOT the same thing as an approval step and uses a different endpoint.
 
 ---
@@ -308,7 +308,7 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
 ### W2 — Chase an approval you asked for, then withdraw it
 
 1. Studio → **Approvals**, **Waiting** tab.
-2. Type part of the question or the routine name in **Search by question or routine…**.
+2. Type part of the question or the automation name in **Search by question or automation…**.
 3. Open the row. The line under the heading says who is being asked
    (`Assigned` / `Assigned to a group` / `Panel of 3` / `Chain of 2 stages`) and
    **Decide before <date>**.
@@ -326,8 +326,8 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
 5. In the **Steps** rail, find the red row and the line
    `This is where it stopped. Nothing ran after this point.` Click it — the canvas selects
    the same node and the URL gains `&step=<id>`.
-6. Fix the routine: **Open in editor**.
-7. Come back and press **Run it again** (title: `Uses the routine as it is now`). The new
+6. Fix the automation: **Open in editor**.
+7. Come back and press **Run it again** (title: `Uses the automation as it is now`). The new
    run **opens immediately** — you are not dumped back on the list to hunt for it. Its bar
    shows `This was a retry of an earlier run`.
 
@@ -340,9 +340,9 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
    check, so the latency is one step long.
 5. The row settles on `Stopped` / `Stopped before it finished`.
 
-### W5 — Add an approval step to a routine (the builder side)
+### W5 — Add an approval step to an automation (the builder side)
 
-1. Studio → **Automations**, open the routine, add a step of type **Ask someone to approve**.
+1. Studio → **Automations**, open the automation, add a step of type **Ask someone to approve**.
 2. Section **What to approve**:
    - **Question for the approver** — a template field, e.g.
      `Send the {{steps.quote.output.total}} quote to {{trigger.output.client}}?`
@@ -360,7 +360,7 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
    - **Remind after** — `No reminder` (default) or 1h/4h/1d/2d/3d/7d
    - **Escalate to** — a fallback person/group, with its own delay (defaults to 24h when
      you pick a target)
-4. Save, activate, and fire the routine. The run stops at `awaiting_approval`; the approval
+4. Save, activate, and fire the automation. The run stops at `awaiting_approval`; the approval
    appears in the decider's Approvals inbox and in your Runs list as
    `Waiting for someone to approve it`.
 
@@ -402,7 +402,7 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
 | SSE heartbeat | **25 s**; polling fallback every 5 s | `runs.js`, `ExecutionsFilterBar.jsx` |
 | Reaper tick | every **60 s** (expiry, reminders, escalations, orphan cleanup) | `scheduler/ticks.js` |
 | Run history retention | **90 days** (`AUTOMATION_RUN_RETENTION_DAYS`, 0 = off); 5 000 rows per batch, 20 batches per hourly pass | `jobs/runRetention.js` |
-| Run hard timeout | **5 min** default, per-routine override capped at **60 min** | `core/automationRunner/shared.js` |
+| Run hard timeout | **5 min** default, per-automation override capped at **60 min** | `core/automationRunner/shared.js` |
 | Retry / run synchronous wait | **60 s**, then a `202 accepted, pending` | `webhooksAndRunOps.js` |
 | Approval resume wait | **60 s** guard before answering | `approvalService.js` |
 | Stuck-run reaper | floor 6 min + 1 min buffer, **5 attempts** then `error` | `shared.js` |
@@ -496,8 +496,8 @@ Load failure: `We couldn't load this run.` + `Try again` + `Back to Runs`.
   user's real groups and roles — never `req.session.user.orgRole`. In
   `server/config/orgRoles.json`, **only the `org_admin` role grants `manage_automations`**
   (not `dpo`, `isms_auditor`, `agent_admin`, `agent_editor`, `member`). Its description:
-  *"Org: see every routine's runs in the organisation's run log (Studio → Runs & log). Does
-  not grant access to the routines themselves — those stay private to their owner."*
+  *"Org: see every automation's runs in the organisation's run log (Studio → Runs & log). Does
+  not grant access to the automations themselves — those stay private to their owner."*
   An account with **no organisation** is refused too (403).
 - **Three client-side rules** (`runScope.js`, all unit-tested): unknown scope narrows to
   `mine`; only the global surface may use `org`; a row is openable only when the server
@@ -526,7 +526,7 @@ session (cookie or `X-Session-Token` via `authFetch`).
 | GET | `/api/automation/_runs/recent?limit=&cursor=&status=&trigger=&mode=&automationId=&kind=&since=&until=` | session; **always the caller's own runs** | `{ runs: [...], nextCursor }`. Each row: `id`, `automationId`, `automationTitle`, `automationKind`, `automationIcon`, `automationTriggerType`, `version`, **`userId`** (owner), `triggerKind`, `triggerPayload`, `rootStepId`, `rootTriggerLabel`, `mode`, `status`, `startedAt`, `finishedAt`, `durationMs`, `error`, `errorClass`, `summary`, `handledErrorCount`, `parentRunId`, `rootRunId`, `journeyRunId`, `submittedByUserId`, `awaitingStepId`, `awaitingStepExpiresAt`, `cancelRequested` |
 | GET | `/api/automation/_runs/facets?range=<hours,max 720>&automationId=&kind=&mode=` | session; own runs | `{ facets: { status:{…}, triggerKind:{…}, errorClass:{…}, automations:[{ automationId, title, kind, total, status, lastRunAt, lastErrorAt, lastErrorClass }], automationsTotal }, rangeHours }` |
 | GET | `/api/automation/_runs/active` | session; own runs | `{ active: [{ runId, automationId, status, startedAt }] }` |
-| GET | `/api/automation/:id/runs?…` | session; **403 unless you own the automation** | `{ runs, nextCursor }` — same row shape as `_runs/recent`, fixed to one routine (or one reusable Step) |
+| GET | `/api/automation/:id/runs?…` | session; **403 unless you own the automation** | `{ runs, nextCursor }` — same row shape as `_runs/recent`, fixed to one automation (or one reusable Step) |
 | GET | `/api/automation/runs/:id` | session; **403 unless `run.userId === you`** | `{ run: { …full row, plus journey overrides: journeyRunId, status, finishedAt, summary, error, errorClass, handledErrorCount, awaitingStepId, awaitingStepExpiresAt, durationMs } }` |
 | GET | `/api/automation/runs/:id/steps` | session; owner only | `{ steps: [{ runId, stepId, parentStepId, stepType, attempts, status, startedAt, finishedAt, input, output, error, errorClass, branchIndex, piiSummary }], definition, version }` — the whole journey, and the definition **as it was** at run time |
 | GET | `/api/automation/_runs/org?…` | session; **`manage_automations`** + must be in an org | `{ runs, nextCursor, scope:'org' }`. Allow-listed row: `id`, `journeyRunId`, `automationId`, `automationTitle`, `automationKind`, `automationIcon`, `automationTriggerType`, `rootStepId`, `rootTriggerLabel`, `triggerKind`, `mode`, `status`, `startedAt`, `finishedAt`, `durationMs`, `summary`, `error`, `errorClass`, `handledErrorCount`, **`mine`** (boolean — ownership, not identity; no `userId`) |
@@ -544,7 +544,7 @@ Write endpoints (for completeness, not for verification):
 - "Did they decide an approval?" → `GET /approvals?scope=mine&status=approved` and look for
   a row whose `decidedBy` is the learner's user id (or `GET /approvals/facets?scope=mine`
   and watch `status.approved` move).
-- "Did they run a routine?" → `GET /_runs/recent?limit=5&mode=both` and check `startedAt`
+- "Did they run an automation?" → `GET /_runs/recent?limit=5&mode=both` and check `startedAt`
   and `automationId`; ownership is implicit (the route is user-scoped) but `userId` is on the row.
 - "Did they retry a failed run?" → `GET /_runs/recent?status=success` and look for a row with
   `parentRunId != null && rootRunId === id`.
@@ -553,7 +553,7 @@ Write endpoints (for completeness, not for verification):
 
 ## 9. How it connects to other features
 
-- **Routines / Automations builder** — the `approval` step type is authored there; the
+- **Automations / Automations builder** — the `approval` step type is authored there; the
   builder's own history tab mounts the *same* `ExecutionsPanel` with `scope='automation'`,
   and a paused node in the canvas shows the same decision controls inline (`ApprovalActionBar`).
   `Open in editor` and `Open the run` are the two doors between them.
@@ -563,7 +563,7 @@ Write endpoints (for completeness, not for verification):
   `AppApprovalList` component that reuses the same status chips. App-sourced attachments live
   in the app's ledger and are unlocked by the approval snapshot, not by app membership.
 - **Solutions / Projects** — an approval is stamped with `projectId`/`projectTitle` at INSERT
-  and never cleared, so the record still reads after the project or the routine is deleted.
+  and never cleared, so the record still reads after the project or the automation is deleted.
 - **Notifications** — bells via `notificationStore`; the sidebar badge reads the facets.
   Category `heads_up` for a request, `urgent` for an expiry (`⏰ Approval expired: <title>`).
 - **Nextcloud Talk / Nextcloud notifications** — `approvalDelivery.js` can post an approval
@@ -618,7 +618,7 @@ Write endpoints (for completeness, not for verification):
 11. **Assigning someone outside the organisation.** The assignee/escalation target is
     re-validated against the owner's org at pause time; an outsider falls back to
     *owner-only* with a warning in the log, so nobody is ever asked.
-12. **Assuming "no deadline" is safe.** It is a real, supported choice (`0`), but a routine
+12. **Assuming "no deadline" is safe.** It is a real, supported choice (`0`), but an automation
     that waits forever holds a paused run forever. The default is 7 days for a reason.
 13. **Acting on the journey head instead of the live leg.** In the UI this is handled
     (`journeyRunId`); if you script against the API, address the leg that is actually
@@ -628,7 +628,7 @@ Write endpoints (for completeness, not for verification):
 15. **Expecting a run to live forever.** Terminal runs older than **90 days** are deleted
     (in-flight and paused runs are never touched).
 16. **Confusing `Approve` on an `awaiting_confirm` run with an approval step.** That is the
-    run-level first-run gate: Approve promotes the routine to live, Reject closes only this
+    run-level first-run gate: Approve promotes the automation to live, Reject closes only this
     run and leaves the gate on. Different endpoint, no reason, no questions.
 17. **Not noticing `Rejected` is not `Failed`.** A rejection carries `errorClass:
     ApprovalRejected` and gets its own warm-toned sentence, so it does not teach people to
@@ -643,7 +643,7 @@ Write endpoints (for completeness, not for verification):
 *Situation.* Van Dijk Groep's site managers order materials by e-mail. Finance wants anything
 above €5 000 signed off before the order leaves the building.
 
-*Build.* A routine triggered by a form ("Bestelaanvraag"). Step 1 extracts the supplier,
+*Build.* An automation triggered by a form ("Bestelaanvraag"). Step 1 extracts the supplier,
 the line items and the total. A **Route** step splits on `total > 5000`. On the expensive
 branch, an **Ask someone to approve** step:
 
@@ -668,7 +668,7 @@ number is 4471" is one act, not two.
 *Situation.* A new field engineer starts. HR wants the line manager to confirm the kit list,
 then the director to sign off the budget.
 
-*Build.* A routine triggered by a row in the *Nieuwe medewerkers* datatable. An approval step
+*Build.* An automation triggered by a row in the *Nieuwe medewerkers* datatable. An approval step
 switched to **Use approval stages**:
 
 - Stage 1 `Teamleider` — approvers: the *Uitvoerders* group, rule `First to respond decides`.
@@ -682,12 +682,12 @@ On a cheap kit list, stage 2 shows as `Skipped — its condition was not met, so
 straight past it` — the record still says who *would* have been asked.
 
 *Teachable moment.* HR data is personal data. The approval carries the name in its own
-snapshot (that is fine, it stays inside Bee Flow), but a routine that also files a ticket in
+snapshot (that is fine, it stays inside Bee Flow), but an automation that also files a ticket in
 an external system must send only a reference — see the CLAUDE.md rule.
 
-### S3 — Sales: a weekly quote routine that started failing
+### S3 — Sales: a weekly quote automation that started failing
 
-*Situation.* Every Monday 07:00 a routine builds the quote pipeline report from the CRM and
+*Situation.* Every Monday 07:00 an automation builds the quote pipeline report from the CRM and
 mails it to the sales lead. This Monday nobody got it.
 
 *Use.* The account manager opens Studio → **Runs & log**. The **Now running** strip's top
@@ -703,6 +703,6 @@ She clicks **Open in editor**, reconnects the CRM, returns to the run and presse
 `Finished — 14 offertes verwerkt`.
 
 *Teachable moment for the org admin.* Switching to **Organisation** shows that three other
-people's routines failed with the same class this morning — one expired connection, not three
+people's automations failed with the same class this morning — one expired connection, not three
 bugs. The rows are not clickable, which is the point: he can see *that* they broke, the owners
 can see *what* broke.

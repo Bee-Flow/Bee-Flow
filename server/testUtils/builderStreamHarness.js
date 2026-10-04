@@ -25,7 +25,7 @@
  *   after(() => h.restore());
  *
  *   const run = await h.run({
- *       message: 'Bouw een factuurroutine',
+ *       message: 'Bouw een factuurautomatisering',
  *       rounds: [ { toolCalls: [call('builder_add_steps', { steps: [] })] },
  *                 { text: 'Klaar.' } ],
  *       tools: { builder_add_steps: () => ({ ok: true, added: [] }) },
@@ -194,7 +194,7 @@ function createBuilderStream() {
      * @param {object} [p.config]       configStore answers
      */
     async function run({
-        message = 'Bouw een routine',
+        message = 'Bouw een automation',
         rounds = [{ text: 'Klaar.' }],
         tools = {},
         onTool = null,

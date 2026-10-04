@@ -100,8 +100,14 @@ const readout = () => screen.getByText(/^Finds \d+ of \d+$/).closest('[role="sta
 /** Step 1: the browser check is advisory, but it is live. */
 async function describeStep(user: User) {
     await user.click(screen.getByRole('button', { name: /Write the pattern yourself/ }));
+    expect(screen.getByText(/Letters and digits stand for themselves/)).toBeInTheDocument();
     expect(screen.getByText(/From your examples we would use: \\bKL-\\d\{5\}\\b/)).toBeInTheDocument();
     expect(screen.getByText('Matches 2 of 2 examples')).toBeInTheDocument();
+    // The preview is live: a pattern that does not fit names the misses.
+    const field = screen.getByLabelText('Pattern');
+    await user.type(field, 'KL-X');
+    expect(screen.getByText(/Matches 0 of 2 examples · Not matched: KL-12345, KL-54321/)).toBeInTheDocument();
+    await user.clear(field);
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Describe');
     await user.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Test and tune');
@@ -202,6 +208,22 @@ describe('TypeWizard', () => {
         await tuneStep(user);
         await applyStep(user, form);
         expectCommitted(form);
+    });
+
+    it('walks back through finished steps by clicking them', async () => {
+        const user = userEvent.setup();
+        const { ui } = renderableTab();
+        render(ui);
+        await openNumbersStarter(user);
+        // Future steps are inert: only finished ones are buttons.
+        expect(screen.queryByRole('button', { name: /Test and tune/ })).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Next' }));
+        expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Test and tune');
+        await user.click(screen.getByRole('button', { name: /Describe/ }));
+        expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Describe');
+        // Going back keeps the draft.
+        expect(screen.getByLabelText('Type a real example and press Enter')).toBeInTheDocument();
+        expect(screen.getByText('KL-12345')).toBeInTheDocument();
     });
 
     it('discards the draft on Cancel, after asking', async () => {

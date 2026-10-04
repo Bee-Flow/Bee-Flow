@@ -1,7 +1,7 @@
 import { ArrowLeft, Check, Circle, CircleDashed, Clock, Download, ExternalLink, FileText, SkipForward, User } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import ApprovalDecisionControls from './ApprovalDecisionControls';
-import { approvalStatusChip, formatWhen, stageChainInfo } from './approvalDisplay';
+import { approvalSourceInfo, approvalStatusChip, formatWhen, stageChainInfo } from './approvalDisplay';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
 import useTranslation from '../../../../hooks/useTranslation';
 import { FormRichText } from '../../../forms/PublicFormRenderer';
@@ -53,6 +53,7 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }) {
     }
 
     const { approval, audit, runLink, canDecide, canWithdraw, votes, progress } = data;
+    const sourceInfo = approvalSourceInfo(approval, t);
     const chain = stageChainInfo(approval);
 
     const withdraw = async () => {
@@ -122,11 +123,23 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }) {
 
             {/* The question, given the room a question deserves. What used to
                 be a bordered card inside a bordered card is now just the page:
-                an eyebrow saying which routine asked, the ask itself as the
+                an eyebrow saying which automation asked, the ask itself as the
                 heading, and the facts that qualify it on one quiet line. */}
             <div className="mt-6">
                 <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
-                    {approval.automationTitle || t('approvals.automation', 'Automation')}
+                    {sourceInfo ? (
+                        <a
+                            href={sourceInfo.href}
+                            className="hover:underline"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                window.history.pushState({}, '', sourceInfo.href);
+                                window.dispatchEvent(new PopStateEvent('popstate'));
+                            }}
+                        >
+                            {sourceInfo.label}
+                        </a>
+                    ) : (approval.automationTitle || t('approvals.automation', 'Automation'))}
                 </div>
                 <h1
                     className="mt-1.5 text-[var(--text-primary)] whitespace-pre-wrap break-words"

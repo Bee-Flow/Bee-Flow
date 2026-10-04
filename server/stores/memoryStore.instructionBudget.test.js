@@ -33,7 +33,15 @@ require.cache[dbPath] = {
     exports: { run: async () => {}, getOne: async () => null, getAll: async () => [], exec: async () => {} },
 };
 
-const { selectWithinBudget, formatMemoriesForPrompt } = require('./memoryStore');
+// getEmbedding's provider target (Azure test at the bottom of this file).
+let embedTarget = null;
+const resolveTargetPath = require.resolve('../core/embed/resolveTarget');
+require.cache[resolveTargetPath] = {
+    id: resolveTargetPath, filename: resolveTargetPath, loaded: true,
+    exports: { async resolveEmbedTarget() { return embedTarget; } },
+};
+
+const { selectWithinBudget, formatMemoriesForPrompt, getEmbedding } = require('./memoryStore');
 
 const TOKEN_LIMIT = 800;              // what direct chat passes
 const CHAR_LIMIT = TOKEN_LIMIT * 4;
@@ -146,5 +154,29 @@ test('the precedence rule covers every memory type, not only instructions', () =
         assert.ok(rule >= 0, `${memory.type}: the prompt says memory does not outrank the current agent`);
         assert.match(prompt, /without asking the user to choose/, `${memory.type}: and a conflict is no reason to ask`);
         assert.ok(rule < prompt.indexOf(memory.content), `${memory.type}: the rule precedes the memory it governs`);
+    }
+});
+
+// ── getEmbedding via Azure: v1 GA surface ─────────────────────────────────────
+// Memory embeddings through a configured Azure provider use
+// `POST <origin>/openai/v1/embeddings`, deployment as `model`, no api-version.
+test('Azure target: v1 embeddings URL, deployment in the body, api-key header', async () => {
+    const realFetch = global.fetch;
+    const calls = [];
+    global.fetch = async (url, init) => {
+        calls.push({ url: String(url), init, body: JSON.parse(init.body) });
+        return new Response(JSON.stringify({ data: [{ index: 0, embedding: [0.1, 0.2] }] }), { status: 200 });
+    };
+    try {
+        embedTarget = { providerType: 'azure', endpoint: 'https://res.openai.azure.com/openai/v1/', apiKey: 'k', modelId: 'emb-deploy' };
+        const vec = await getEmbedding('hallo');
+        assert.deepStrictEqual(vec, [0.1, 0.2]);
+        assert.strictEqual(calls.length, 1);
+        assert.strictEqual(calls[0].url, 'https://res.openai.azure.com/openai/v1/embeddings');
+        assert.ok(!calls[0].url.includes('api-version'));
+        assert.deepStrictEqual(calls[0].body, { model: 'emb-deploy', input: ['hallo'] });
+        assert.strictEqual(calls[0].init.headers['api-key'], 'k');
+    } finally {
+        global.fetch = realFetch;
     }
 });

@@ -47,7 +47,7 @@ it('mounts the routes where the phone calls them', () => {
 it('still builds every field the Form page reads', () => {
     const detail = handler(crud, "router.get('/forms/:automationId'");
     expect(
-        missing(detail, ['id', 'url', 'automationId', 'title', 'description', 'live', 'isActive', 'isDraft', 'submissions', 'mine', 'canOpen', 'audience', 'questions', 'pages', 'answers', 'definition', 'routineTitle', 'collect', 'fields', 'theme', 'submitLabel', 'successMessage']),
+        missing(detail, ['id', 'url', 'automationId', 'title', 'description', 'live', 'isActive', 'isDraft', 'submissions', 'mine', 'canOpen', 'audience', 'questions', 'pages', 'answers', 'definition', 'automationTitle', 'collect', 'fields', 'theme', 'submitLabel', 'successMessage']),
     ).toEqual([]);
     const list = handler(crud, "router.get('/forms'");
     expect(missing(list, ['canOpen', 'audience', 'answers'])).toEqual([]);

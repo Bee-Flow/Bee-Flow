@@ -33,16 +33,18 @@
  * ── One answer at a time ────────────────────────────────────────────────────
  *
  * `requestReply` claims the chat's turn in conversation_turn_locks (type
- * `project_chat`), the same lock shared threads use. A second request while an
- * answer is being written gets `busy`; the member's message itself is already
- * saved, so nothing is lost. The claim, the subscription-limit check and the
+ * `project_chat`), the same lock shared threads use. An automatic answer that
+ * finds it held gets `busy` and yields. An explicit ask (Ask AI, @ai, `always`)
+ * is `queued` anyway and waits for the turn, polling for up to the longest answer
+ * that could hold it, so it is never lost: an automatic answer still running is
+ * dropped as stale by the member's post, and the ask is then answered. The claim, the subscription-limit check and the
  * model lookup happen before the route answers, so the poster learns at once
  * whether the AI is coming (`queued`) or why not (`skipped` + reason). The
  * answer itself is written in the background and announced on the live feed:
  * transient `chat.ai.started` / `chat.ai.finished {chatId, status}` and the
  * durable `chat.message.created` for the answer. The lock is released on every
- * path, and its lifetime outlasts the model timeout, so a crashed process frees
- * the chat on its own.
+ * path, and its lifetime outlasts the answer (for an explicit one the tool loop,
+ * timeout x3), so a crashed process frees the chat on its own.
  *
  * ── What the model sees ─────────────────────────────────────────────────────
  *
@@ -50,7 +52,7 @@
  *     author's display name (never an e-mail address);
  *   - the project's name and custom instructions;
  *   - the chat's agent as a persona, ONLY when the asking member may use that
- *     agent (the rule a routine applies to its owner: owner, or published and
+ *     agent (the rule an automation applies to its owner: owner, or published and
  *     shared with them — core/automationRunner/aiStepAgent.resolveStepAgent);
  *   - passages from the project's knowledge bases that the ASKING member may
  *     read (testAs.visibleKbIdsFor, context 'project_kb', plus the project's
@@ -75,11 +77,13 @@
 
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { usageLogFields } = require('../core/providers/usageNormalizer');
+const { listProjectAudience, listChatAgents, isChatAgentAllowed } = require('./chatAudience');
 const { makeChatShield } = require('./chatShield');
-const { loadTaggedItems, taggedItemsBlock } = require('./chatTaggedItems');
+const { loadTaggedItems, taggedItemsBlock, TAGGED_TOTAL_CHARS, TAGGED_ITEM_CHARS } = require('./chatTaggedItems');
 const { resolveChatModel } = require('./chatModel');
 const { answerRecord } = require('./chatTrace');
-const { answerWithTools, TOOLS_PROMPT, TOOL_MAX_TOKENS } = require('./chatToolRun');
+const { answerWithTools, toolsPrompt, TOOL_MAX_TOKENS } = require('./chatToolRun');
 
 const CONTEXT_MESSAGES = 30;
 const PER_MESSAGE_CHARS = 4000;
@@ -88,12 +92,14 @@ const ANSWER_CHARS = 40000;
 const DEFAULT_TIMEOUT_MS = 90_000;
 // The lock must outlive the call it guards, or a slow answer loses its turn.
 const LOCK_MARGIN_MS = 30_000;
+/** An explicit answer may run the tool loop, which is allowed this many model timeouts. */
+const TOOL_TIMEOUT_FACTOR = 3;
+/** How often an explicit ask that found the turn held looks again. */
+const DEFAULT_LOCK_POLL_MS = 1000;
 const ASSISTANT_NAME = 'AI assistant';
 /** An automatic answer is short: about 120 words, with room for Markdown. */
 const AUTO_MAX_TOKENS = 700;
 const SKIP_SENTINEL = '[[SKIP]]';
-/** Past this many people the audience is not expanded: unknown narrows. */
-const AUDIENCE_CAP = 200;
 const AUTO_TRIGGERS = Object.freeze(['auto_quiet', 'auto_unanswered']);
 const EXPLICIT_TRIGGERS = Object.freeze(['ask', 'mention', 'always']);
 
@@ -115,6 +121,14 @@ function mentionsAssistant(content, agentName = null) {
     return new RegExp(`(^|[^\\w@])@${escapeRegExp(name)}(?![\\w-])`, 'i').test(text);
 }
 
+// In Auto, an unambiguous direct address is an explicit request too. Do this
+// before the delayed relevance gate and PII masking can mistake "AI" for a name.
+function addressesAssistant(content) {
+    const text = String(content || '').trim();
+    return /^(?:(?:hoi|hey|hi|hello|hallo|beste)\s+)?(?:ai|assistant|assistent)\s*(?:[,!:]|\b(?:(?:kun|kan|wil|zou)\s+(?:je|jij|u)|(?:can|could|would)\s+you|please|help)\b)/iu.test(text)
+        || (/\b(?:je|jij|you)\b/iu.test(text) && /\b(?:ai|assistant|assistent)\s*[?？]$/iu.test(text));
+}
+
 /**
  * Does this post get an answer now, and why (`kind` is stored on the answer
  * as its `ai_trigger`)? In `auto` mode a post that does not ask is
@@ -128,6 +142,7 @@ function decideAiTrigger({ aiMode, content, askAi = false, agentName = null }) {
     if (aiMode === 'always') return { trigger: true, kind: 'always' };
     if (askAi === true) return { trigger: true, kind: 'ask' };
     if (mentionsAssistant(content, agentName)) return { trigger: true, kind: 'mention' };
+    if (aiMode === 'auto' && addressesAssistant(content)) return { trigger: true, kind: 'ask' };
     if (aiMode === 'auto') return { trigger: false, reason: 'auto_pending' };
     return { trigger: false, reason: 'not_mentioned' };
 }
@@ -148,7 +163,7 @@ function displayNameOf(user) {
  * Owner: always. Anyone else: only a published agent of their organisation
  * that is shared with them (or with everyone there) and that serves a
  * published version — the rule core/automationRunner/aiStepAgent applies to a
- * routine's owner, reused rather than restated.
+ * automation's owner, reused rather than restated.
  *
  * @param {{ agentId: string, userId: string }} p
  * @param {{ getUser?: Function, resolveUserGroups?: Function, agentStore?: object }} [deps]
@@ -181,95 +196,6 @@ async function resolveUsableAgent({ agentId, userId }, deps = {}) {
         if (err?.errorClass === 'agent_unavailable') return null;
         throw err;
     }
-}
-
-/**
- * The people a chat answer is visible to: the project owner, the members it
- * is shared with, and the members of the groups it is shared with. Null when
- * that cannot be known exactly (a lookup failed, or more than AUDIENCE_CAP
- * people): the caller then narrows to what everyone can read for certain.
- *
- * @param {{ id: string, ownerId?: string|null }} project
- * @param {{ getProjectShares?: Function, groupMemberIds?: Function }} [deps]
- * @returns {Promise<string[]|null>}
- */
-async function listProjectAudience(project, deps = {}) {
-    const getProjectShares = deps.getProjectShares || ((id) => require('../stores/projectStore').getProjectShares(id));
-    const groupMemberIds = deps.groupMemberIds
-        || ((groupId, cap) => require('../core/automationRunner/approvalLifecycle').groupMemberIds(groupId, cap));
-    try {
-        const ownerId = project?.ownerId || null;
-        const ids = new Set(ownerId ? [ownerId] : []);
-        for (const share of (await getProjectShares(project.id)) || []) {
-            if (share.sharedWithType === 'user' && share.sharedWithId) ids.add(share.sharedWithId);
-            else if (share.sharedWithType === 'group' && share.sharedWithId) {
-                const members = await groupMemberIds(share.sharedWithId, AUDIENCE_CAP + 1);
-                if (!members || members.total > AUDIENCE_CAP) return null;
-                for (const id of members.ids) ids.add(id);
-            }
-            if (ids.size > AUDIENCE_CAP) return null;
-        }
-        return ids.size > 0 ? [...ids] : null;
-    } catch (err) {
-        log.warn(`[ProjectChat] project audience of ${project && project.id} unknown: ${err && err.message}`);
-        return null;
-    }
-}
-
-/**
- * The agents a project chat may answer as: ones EVERY member of the project
- * may use, never a system agent. A chat answer is read by the whole project,
- * so an agent one member owns as a draft, or shares with a group the others
- * are not in, is not a choice. An audience we cannot list (too large, or a
- * lookup failed) narrows to agents published organisation-wide.
- *
- * @param {object} project
- * @param {{ userId: string }} p  the member choosing
- * @param {object} [deps]
- * @returns {Promise<Array<{ id: string, name: string, icon?: string }>>}
- */
-async function listChatAgents(project, { userId }, deps = {}) {
-    const agentStore = deps.agentStore || require('../stores/agentStore');
-    const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
-    const resolveUserGroups = deps.resolveUserGroups || ((id) => require('../auth/audience').resolveUserGroups(id));
-    const audienceOf = deps.listAudience || ((proj) => listProjectAudience(proj));
-    const { mayRoutineUseAgent } = require('../automation/agentCatalog');
-    const SYSTEM_OWNERS = ['system', 'swarm'];
-
-    const identityOf = async (id) => {
-        const user = await getUser(id);
-        return { userId: id, orgId: user?.organizationId || null, groups: (await resolveUserGroups(id)) || [] };
-    };
-    const me = await identityOf(userId);
-    const [own, published] = await Promise.all([
-        agentStore.getAgents(userId),
-        agentStore.getPublishedAgentsForUser(me.groups, me.orgId),
-    ]);
-    const byId = new Map();
-    for (const a of [...(own || []), ...(published || [])]) {
-        if (a && a.id && !SYSTEM_OWNERS.includes(a.owner_id)) byId.set(a.id, a);
-    }
-
-    const audience = await audienceOf(project);
-    let members = null;
-    if (audience) {
-        try { members = await Promise.all(audience.map(identityOf)); } catch (err) {
-            log.warn(`[ProjectChat] members of ${project.id} unreadable for the agent list: ${err && err.message}`);
-        }
-    }
-    const usable = [...byId.values()].filter((agent) => (members
-        ? members.every((m) => mayRoutineUseAgent(agent, m))
-        : agent.is_published && !(Array.isArray(agent.shared_groups) && agent.shared_groups.length)
-            && mayRoutineUseAgent(agent, me)));
-    return usable
-        .map((a) => ({ id: a.id, name: a.name || a.id, icon: a.icon }))
-        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
-}
-
-/** Is this agent one the whole project may chat with? */
-async function isChatAgentAllowed(project, { agentId, userId }, deps = {}) {
-    const list = await (deps.listChatAgents || listChatAgents)(project, { userId }, deps);
-    return list.some((a) => a.id === agentId);
 }
 
 /**
@@ -427,6 +353,8 @@ const num = (u, ...keys) => {
  * @param {Function} [deps.recordReply]      (decision) => row: an explicit answer, for the automatic cooldown
  * @param {Function} [deps.reasonText]       (reasonCode) => the reason in words, for the automatic prompt
  * @param {number}   [deps.timeoutMs]
+ * @param {number}   [deps.lockPollMs]       how often an explicit ask waits-and-retries for a held turn
+ * @param {number}   [deps.lockWaitMs]       how long it waits at most (default: the longest answer that could hold the turn)
  * @param {Function} [deps.newId]
  */
 function makeChatAssistant(deps = {}) {
@@ -458,6 +386,8 @@ function makeChatAssistant(deps = {}) {
         return REASON_TEXT[reasonCode] || 'the conversation seemed to need you';
     });
     const timeoutMs = Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
+    const lockPollMs = Number.isFinite(deps.lockPollMs) && deps.lockPollMs > 0 ? deps.lockPollMs : DEFAULT_LOCK_POLL_MS;
+    const lockWaitMs = Number.isFinite(deps.lockWaitMs) && deps.lockWaitMs > 0 ? deps.lockWaitMs : timeoutMs * TOOL_TIMEOUT_FACTOR + LOCK_MARGIN_MS;
     const newId = deps.newId || (() => crypto.randomUUID());
 
     /** Live-feed status, best-effort: a missed beat is a later refetch. */
@@ -515,10 +445,11 @@ function makeChatAssistant(deps = {}) {
                 })
                 : null;
 
-            const { messages: recent } = await store().listMessages(chat.id, { limit: CONTEXT_MESSAGES });
-            // A thread is its own conversation: its root and replies. The main
-            // conversation leaves the thread replies out.
+            // A thread is its own conversation: its root and replies, loaded by
+            // root so an old thread keeps its root. The main conversation leaves
+            // the thread replies out.
             const threadId = trigger.threadId || null;
+            const { messages: recent } = await store().listMessages(chat.id, { limit: CONTEXT_MESSAGES, threadId });
             const messages = recent.filter((m) => (threadId ? m.id === threadId || m.threadId === threadId : !m.threadId));
             const visible = [];
             for (const m of messages) {
@@ -556,9 +487,17 @@ function makeChatAssistant(deps = {}) {
 
             // Automatic answers reach everyone and were never asked for: they
             // read the conversation only, not what a member tagged.
-            const tagged = !auto && Array.isArray(trigger.refs) && trigger.refs.length
-                ? taggedItemsBlock(await loadTagged(trigger.refs, { userId }))
-                : '';
+            const loadedItems = !auto && Array.isArray(trigger.refs) && trigger.refs.length
+                ? await loadTagged(trigger.refs, { userId, project }) : [];
+            const tagged = taggedItemsBlock(loadedItems);
+            let sourceBudget = TAGGED_TOTAL_CHARS;
+            const usedSources = [];
+            for (const item of loadedItems) {
+                if (sourceBudget <= 0) break;
+                const cap = Math.min(TAGGED_ITEM_CHARS, sourceBudget);
+                sourceBudget -= item.text.length > cap ? cap + 2 : item.text.length;
+                if (item.id) usedSources.push({ kind: item.kind, id: item.id });
+            }
             const outbound = await shield.protect({
                 shield: shieldConfig,
                 orgId,
@@ -576,7 +515,7 @@ function makeChatAssistant(deps = {}) {
                 knowledge,
                 tokenAddendum: shield.tokenAddendum(outbound.tokenMap),
                 auto: auto ? { reasonText: reasonText(reasonCode) } : null,
-            }) + (definitions.length ? `\n\n${TOOLS_PROMPT}` : '');
+            }) + (definitions.length ? `\n\n${toolsPrompt(definitions)}` : '');
 
             const options = { ...(model.options || {}), timeoutMs };
             if (auto) options.maxTokens = Math.min(Number(options.maxTokens) || AUTO_MAX_TOKENS, AUTO_MAX_TOKENS);
@@ -588,14 +527,30 @@ function makeChatAssistant(deps = {}) {
                 { role: 'user', content: outbound.text },
             ];
             let made = [];
+            // withTimeout cannot stop the tool loop: once the answer is given up
+            // on, a late tool call must not make anything nobody will be told about.
+            let givenUp = false;
+            const tools = projectTools();
+            const guardedTools = {
+                ...tools,
+                forAnswer: (/** @type {any} */ a) => {
+                    const run = tools.forAnswer(a);
+                    return {
+                        get created() { return run.created; },
+                        execute: async (/** @type {string} */ name, /** @type {any} */ args) => (givenUp
+                            ? JSON.stringify({ ok: false, error: 'This answer was given up on; nothing more can be made.' })
+                            : run.execute(name, args)),
+                    };
+                },
+            };
             const result = await withTimeout(definitions.length
                 ? answerWithTools({
-                    tools: projectTools(), definitions, runToolLoop, shield, shieldConfig, project, userId, orgId, session,
+                    tools: guardedTools, definitions, runToolLoop, shield, shieldConfig, project, userId, orgId, session,
                     modelId: model.modelId, messages: messagesOut, options, tokenMap: outbound.tokenMap,
                     auditBase: { conversation_id: chat.id, model: model.modelId, agent_id: persona?.agentId || null },
                 }).then((r) => { made = r.created; return r.result; })
                 : Promise.resolve(llmChat(model.modelId, messagesOut, options)),
-            timeoutMs * (definitions.length ? 3 : 1));
+            timeoutMs * (definitions.length ? TOOL_TIMEOUT_FACTOR : 1)).catch((err) => { givenUp = true; throw err; });
             try {
                 const usage = result?.usage || {};
                 await logUsage({
@@ -605,12 +560,7 @@ function makeChatAssistant(deps = {}) {
                     agent_name: 'project-chat',
                     agent_type: 'chat',
                     model: model.modelId,
-                    prompt_tokens: num(usage, 'prompt_tokens', 'promptTokens'),
-                    completion_tokens: num(usage, 'completion_tokens', 'completionTokens'),
-                    total_tokens: num(usage, 'total_tokens', 'totalTokens'),
-                    cached_tokens: num(usage, 'cached_tokens', 'cachedTokens'),
-                    cache_creation_tokens: num(usage, 'cache_creation_input_tokens', 'cache_creation_tokens'),
-                    reasoning_tokens: num(usage, 'reasoning_tokens', 'reasoningTokens'),
+                    ...usageLogFields(usage),
                     stop_reason: result?.stop_reason || null,
                     source: auto ? 'project_chat_auto' : 'project_chat',
                     duration_ms: Date.now() - started,
@@ -634,6 +584,7 @@ function makeChatAssistant(deps = {}) {
 
             const messageId = newId();
             const { aiMeta, aiTrace } = answerRecord({ model, outbound, triggerText, rawAnswer, box, chatId: chat.id, messageId });
+            if (usedSources.length) aiMeta.usedSources = usedSources;
             const saved = await store().appendMessage({
                 id: messageId,
                 projectId: project.id,
@@ -686,6 +637,9 @@ function makeChatAssistant(deps = {}) {
     /**
      * Ask the assistant to answer `trigger` in `chat`.
      *
+     * An explicit ask that finds the turn held is `queued` too: `done` waits for the turn
+     * (and is `busy` only when it never came); an automatic answer is `busy` at once.
+     *
      * @param {object} p
      * @param {object} p.project       the project row (id, name, organizationId, customInstructions, knowledgeBaseIds)
      * @param {object} p.chat          the chat row (id, agentId)
@@ -725,32 +679,72 @@ function makeChatAssistant(deps = {}) {
         }
         if (!model || !model.modelId) return { status: 'skipped', reason: 'no_model' };
 
-        const runId = newId();
+        // Correlate the transient lock with its thread without retaining message text.
+        const runId = `pc:${encodeURIComponent(trigger.threadId || '')}:${newId()}`;
+        // An explicit answer may run the tool loop, so its lock outlasts that, not one model call.
+        const ttlMs = timeoutMs * (auto ? 1 : TOOL_TIMEOUT_FACTOR) + LOCK_MARGIN_MS;
+        const claimTurn = () => locks().acquireTurn({
+            conversationId: chat.id,
+            conversationType: 'project_chat',
+            projectId: project.id,
+            userId,
+            runId,
+            ttlMs,
+        });
         let claim;
         try {
-            claim = await locks().acquireTurn({
-                conversationId: chat.id,
-                conversationType: 'project_chat',
-                projectId: project.id,
-                userId,
-                runId,
-                ttlMs: timeoutMs + LOCK_MARGIN_MS,
-            });
+            claim = await claimTurn();
         } catch (err) {
             log.warn(`[ProjectChat] turn claim failed for chat ${chat.id}: ${err && err.message}`);
             return { status: 'skipped', reason: 'unavailable' };
         }
-        if (!claim || !claim.acquired) return { status: 'busy' };
-
-        if (!auto) await announce(project.id, 'chat.ai.started', userId, chat.id, 'running');
-        const done = writeAnswer({
+        const write = () => writeAnswer({
             project, chat, trigger, triggerText, userId, orgId, session, model, runId,
             aiTrigger: kind, reasonCode: auto ? reasonCode : null, gateLastSeq: auto ? gateLastSeq : null,
         });
-        return { status: 'queued', done };
+        if (!claim || !claim.acquired) {
+            // An automatic answer nobody asked for just yields. Somebody who asked
+            // outright waits for the turn (bounded by the longest answer): the running
+            // answer finishes, or is dropped as stale, and then this one is written.
+            if (auto) return { status: 'busy' };
+            const done = (async () => {
+                if (!(await waitForTurn(claimTurn))) return { status: 'busy' };
+                await announce(project.id, 'chat.ai.started', userId, chat.id, 'running');
+                return write();
+            })();
+            return { status: 'queued', done };
+        }
+
+        if (!auto) await announce(project.id, 'chat.ai.started', userId, chat.id, 'running');
+        return { status: 'queued', done: write() };
     }
 
-    return { requestReply };
+    /** Poll for a held turn until it is ours or the longest answer that could hold it has passed. */
+    async function waitForTurn(/** @type {() => Promise<any>} */ claimTurn) {
+        const deadline = Date.now() + lockWaitMs;
+        while (Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, lockPollMs));
+            try {
+                const claim = await claimTurn();
+                if (claim && claim.acquired) return true;
+            } catch (err) {
+                log.warn(`[ProjectChat] waiting for the turn failed: ${err && err.message}`);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    async function getStatus(chatId) {
+        const turn = await locks().getTurn(chatId);
+        if (!turn) return { status: 'idle', threadId: null };
+        let threadId = null;
+        if (turn.runId?.startsWith('pc:')) {
+            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch { /* older lock */ }
+        }
+        return { status: 'running', threadId, startedAt: turn.acquiredAt };
+    }
+    return { requestReply, getStatus };
 }
 
 module.exports = {

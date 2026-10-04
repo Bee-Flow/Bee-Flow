@@ -1,7 +1,7 @@
 /**
  * "Welke agent gaf dit antwoord?" — de regel boven een testchat-antwoord.
  *
- * Een testchat draait op het CONCEPT (A4). Een routine draait op de
+ * Een testchat draait op het CONCEPT (A4). Een automatisering draait op de
  * GEPUBLICEERDE config (R2). Dat verschil is met opzet gemaakt — je test wat
  * je aan het maken bent — maar het is precies het soort verschil dat, als het
  * niet op het scherm staat, iemand laat denken dat hij net heeft gecontroleerd

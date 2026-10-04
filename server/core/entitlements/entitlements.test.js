@@ -150,6 +150,7 @@ function baseMocks() {
     userStore.getOrgEnabledBetaFeatures = async () => [];
     userStore.getOrgGrantedCapabilities = async () => ['notebooks'];
     userStore.getOrgAvailableCapabilities = async () => null; // null ⇒ unrestricted (full ceiling)
+    userStore.getOrgBetaEveryone = async () => null;          // null ⇒ group-scoped betas go to everyone
     userStore.getSingleOrgId = async () => null;              // default: not single-tenant
     userStore.getOrganization = async () => ({ enabledIntegrations: null });
     planEnt.getOrgCaps = async () => ({ integrations: null, betaFeatures: null });
@@ -453,6 +454,50 @@ before(async () => {
         license.getTierForUser = async () => 'enterprise';
         userStore.getUser = async () => ({ id: 'c1', organizationId: null, groups: [], role: 'user' });
     }, { userId: 'c1', orgId: null, session: { isAuthenticated: true, user: { id: 'c1' } } });
+
+    // GROUP-SCOPED betas (meeting_notes): org_beta_everyone decides whether the
+    // menu hands it to all members; a group grant reaches the rest.
+    const selfHostedEnterprise = () => {
+        license.serverLicenseGovernsOrgs = () => true;
+        license.getBestTierForOrgs = async () => 'enterprise';
+    };
+    // NULL list (never chosen) ⇒ unchanged: everyone in the org has it.
+    await resolve('gsSelfNull', selfHostedEnterprise, AS_USER);
+    await resolve('gsCloudNull', null, AS_USER);
+    // Explicit list without it, user's group grants something else ⇒ not theirs.
+    await resolve('gsSelfOutsider', () => {
+        selfHostedEnterprise();
+        userStore.getOrgBetaEveryone = async () => [];
+    }, AS_USER);
+    await resolve('gsCloudOutsider', () => {
+        userStore.getOrgBetaEveryone = async () => [];
+    }, AS_USER);
+    // Explicit list without it, user's group is granted it ⇒ theirs.
+    await resolve('gsSelfMember', () => {
+        selfHostedEnterprise();
+        userStore.getOrgBetaEveryone = async () => [];
+        userStore.getAllGroups = async () => ([{ id: 'g1', organizationId: 'o1', granted_capabilities: ['meeting_notes'] }]);
+    }, AS_USER);
+    await resolve('gsCloudMember', () => {
+        userStore.getOrgBetaEveryone = async () => [];
+        userStore.getAllGroups = async () => ([{ id: 'g1', organizationId: 'o1', granted_capabilities: ['meeting_notes'] }]);
+    }, AS_USER);
+    // Explicit list WITH it ⇒ everyone again.
+    await resolve('gsSelfEveryone', () => {
+        selfHostedEnterprise();
+        userStore.getOrgBetaEveryone = async () => ['meeting_notes'];
+    }, AS_USER);
+    // Cloud plan without meeting_notes ⇒ a group grant still cannot exceed it.
+    await resolve('gsCloudPlanless', () => {
+        betaFeatures.getEffectiveOrgBetaAllowList = async () => ['webpages'];
+        userStore.getOrgBetaEveryone = async () => [];
+        userStore.getAllGroups = async () => ([{ id: 'g1', organizationId: 'o1', granted_capabilities: ['meeting_notes'] }]);
+    }, AS_USER);
+    // The list cannot be read ⇒ fail closed to groups only.
+    await resolve('gsReadFails', () => {
+        selfHostedEnterprise();
+        userStore.getOrgBetaEveryone = async () => { throw new Error('db down'); };
+    }, AS_USER);
 
     // degraded: tier lookup throws → degraded snapshot
     await resolve('degraded', () => {
@@ -849,6 +894,50 @@ describe('E17b genuine consumer (no org anywhere) unchanged', () => {
     it('consumer path intact (E17b)', () => {
         const snap = S.e17b;
         assert.strictEqual(snap.orgEnabled.core.length >= 0, true, 'consumer path intact (E17b)');
+    });
+});
+
+describe('group-scoped betas (meeting_notes) follow org_beta_everyone', () => {
+    it('meeting_notes is flagged group-scoped in the registry', () => {
+        assert.strictEqual(registry.getCapability('meeting_notes').groupScoped, true);
+        assert.strictEqual(registry.getCapability('webpages').groupScoped, false);
+    });
+    it('a NULL list keeps the old behaviour: every member has it (self-hosted)', () => {
+        assert.ok(S.gsSelfNull.effective.beta.includes('meeting_notes'));
+        assert.ok(S.gsSelfNull.orgEnabled.beta.includes('meeting_notes'), 'and the matrix shows it under All members');
+    });
+    it('a NULL list keeps the old behaviour: every member has it (cloud)', () => {
+        assert.ok(S.gsCloudNull.effective.beta.includes('meeting_notes'));
+    });
+    it('an explicit list without it: a member outside the granted groups lacks it (self-hosted)', () => {
+        assert.ok(!S.gsSelfOutsider.effective.beta.includes('meeting_notes'));
+        assert.ok(!S.gsSelfOutsider.orgEnabled.beta.includes('meeting_notes'));
+        assert.ok(S.gsSelfOutsider.ceiling.beta.includes('meeting_notes'), 'still sellable/in the ceiling');
+        assert.strictEqual(S.gsSelfOutsider.reasons.meeting_notes, 'not_granted');
+    });
+    it('an explicit list without it: a member outside the granted groups lacks it (cloud)', () => {
+        assert.ok(!S.gsCloudOutsider.effective.beta.includes('meeting_notes'));
+    });
+    it('a non-group-scoped beta is untouched by the list', () => {
+        assert.ok(S.gsSelfOutsider.effective.beta.includes('webpages'));
+        assert.ok(S.gsCloudOutsider.effective.beta.includes('webpages'));
+    });
+    it('a member of a granted group has it (self-hosted)', () => {
+        assert.ok(S.gsSelfMember.effective.beta.includes('meeting_notes'));
+        assert.ok(S.gsSelfMember.groupEffective.beta.includes('meeting_notes'));
+    });
+    it('a member of a granted group has it (cloud)', () => {
+        assert.ok(S.gsCloudMember.effective.beta.includes('meeting_notes'));
+    });
+    it('a list that includes it hands it to everyone', () => {
+        assert.ok(S.gsSelfEveryone.effective.beta.includes('meeting_notes'));
+    });
+    it('on cloud a group grant cannot exceed the subscription', () => {
+        assert.ok(!S.gsCloudPlanless.effective.beta.includes('meeting_notes'));
+    });
+    it('an unreadable list fails closed (groups only)', () => {
+        assert.ok(!S.gsReadFails.effective.beta.includes('meeting_notes'));
+        assert.ok(S.gsReadFails.effective.beta.includes('webpages'), 'other betas are unaffected');
     });
 });
 

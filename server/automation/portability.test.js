@@ -419,7 +419,7 @@ function makeRow(overrides = {}) {
 // A form page's visitor-facing strings live under `form` as bare strings, so
 // neither TEMPLATE_STRING_FIELDS (top-level keys only) nor the binding-wrapper
 // deep walk reaches them. Without an explicit rule an imported or duplicated
-// routine renders {{steps.<oldId>…}} as blank — silently, on the visitor's
+// automation renders {{steps.<oldId>…}} as blank — silently, on the visitor's
 // screen. Its own graph because a form page requires a form trigger.
 {
     const def = {
@@ -659,7 +659,7 @@ function makeRow(overrides = {}) {
     assert.strictEqual(warnings.length, 0, 'nothing about the note is warned about: ' + warnings.join(' | '));
 
     // rekeyDefinition renames the note's OWN id (so a second import of the
-    // same file, or a duplicated routine, never collides on it) and rewrites
+    // same file, or a duplicated automation, never collides on it) and rewrites
     // the real step's template that referenced it — while the note's own
     // free TEXT, which merely CONTAINS the substring "steps.note_1", is left
     // completely alone: it is prose, not a binding.

@@ -98,7 +98,7 @@ function RemoveButton({ label, onPress, styles }: { label: string; onPress: () =
     return (
         <IconButton
             icon={<Icon name="Trash2" size={16} color={styles.glyph.color} />}
-            accessibilityLabel={t('routines.ndv.tables_row.remove_key', 'Remove {key}', { key: label })}
+            accessibilityLabel={t('automations.ndv.tables_row.remove_key', 'Remove {key}', { key: label })}
             onPress={onPress}
         />
     );
@@ -205,7 +205,7 @@ export function RowsEditor({ value, onChange, keepEmpty = false, keys, label, hi
             ))}
             {disabled ? null : (
                 <View style={styles.add}>
-                    <Button size="sm" variant="secondary" iconName="Plus" label={t('routines.ndv.extraction.add_field', 'Add field')} onPress={add} />
+                    <Button size="sm" variant="secondary" iconName="Plus" label={t('automations.ndv.extraction.add_field', 'Add field')} onPress={add} />
                 </View>
             )}
         </FieldRow>

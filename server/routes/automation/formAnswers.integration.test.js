@@ -6,7 +6,7 @@
  * datatables handlers invoked off the route stack; the form-answers engine
  * driven as the crud and formPublic routes drive it).
  *
- * The story: a form routine with `collect: true` gets a table whose columns
+ * The story: a form automation with `collect: true` gets a table whose columns
  * are its questions; a submission is a row with the submitter as created_by;
  * a relabel renames a column and moves no data; a retype adds a column and
  * retires the old one; a removed question is retired, its answers intact;
@@ -98,7 +98,7 @@ mock(path.join(SERVER, 'core/entitlements/entitlements'), { requireCapability: p
 mock(path.join(SERVER, 'utils/perUserRateLimit'), { perUserRateLimit: pass });
 mock(path.join(SERVER, 'jobs/kbSourceRefresh'), { onDatatableChanged: () => {} });
 mock(path.join(SERVER, 'core/webpages/webpageShareReconciler'), { onDatatableChanged: () => {} });
-// The form-answers routes look the routine up to name the form; the answers
+// The form-answers routes look the automation up to name the form; the answers
 // engine itself never touches the automation store.
 const AUTOMATIONS = new Map();
 mock(path.join(SERVER, 'stores/automationStore'), {
@@ -146,7 +146,7 @@ function definition(fields, { collect = true, pages = [] } = {}) {
         steps: pages.map(p => ({ id: p.id, type: 'form_page', mode: 'input', form: { fields: p.fields } })),
     };
 }
-const automation = { id: 'auto_feedback', userId: OWNER, organizationId: ORG, title: 'Feedback routine', definition: null };
+const automation = { id: 'auto_feedback', userId: OWNER, organizationId: ORG, title: 'Feedback automation', definition: null };
 function setDefinition(def) { automation.definition = def; AUTOMATIONS.set(automation.id, { ...automation, isActive: true }); return def; }
 
 let tableId = null;
@@ -156,12 +156,12 @@ let fieldIds = {};
 before(async () => {
     await pg.exec("SET TIME ZONE 'UTC'");
     await datatableStore.initDB();
-    // the dependents index LEFT JOINs the routines table when a column goes
+    // the dependents index LEFT JOINs the automations table when a column goes
     await pg.exec(`CREATE TABLE IF NOT EXISTS automations (id TEXT PRIMARY KEY, user_id TEXT, title TEXT, definition_json JSONB, last_run_at TIMESTAMPTZ)`);
 });
 after(async () => { await pg.close(); });
 
-test('a form routine with collect:true gets a table whose columns are its questions', async () => {
+test('a form automation with collect:true gets a table whose columns are its questions', async () => {
     const def = setDefinition(definition([
         Q('email', 'email', 'Your e-mail', { required: true }),
         Q('source', 'select', 'How did you hear about us?', { options: ['search', 'colleague', 'newsletter'] }),
@@ -417,9 +417,9 @@ test('a retired column can be dropped by the owner, never a live one, never by a
     assert.strictEqual((await realRows(tableKey)).length, 5, 'the rows are not');
 });
 
-test('the write path never fails a submission: a table the routine may not write is reported, not thrown', async () => {
+test('the write path never fails a submission: a table the automation may not write is reported, not thrown', async () => {
     const other = { ...automation, id: 'auto_other', userId: STRANGER, organizationId: ORG };
-    // point the stranger's routine at the owner's table by id: the resolver refuses
+    // point the stranger's automation at the owner's table by id: the resolver refuses
     const r = await formAnswers.write.recordPageAnswers({ automation: other, datatableId: tableId, rowId: firstRowId, pageStepId: 'page2', values: { rating: '1' } });
     assert.strictEqual(r, false);
     const row = (await realRows(tableKey)).find(x => x.id === firstRowId);

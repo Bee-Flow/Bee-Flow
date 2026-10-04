@@ -1,6 +1,6 @@
 /**
- * One store per open routine: shared between the screens that hold it, found
- * again under a new routine's id once it has one, flushed when the last
+ * One store per open automation: shared between the screens that hold it, found
+ * again under a new automation's id once it has one, flushed when the last
  * screen lets go and disposed after the grace period — and `ensureDraftSaved`,
  * which every "read the stored definition" action goes through.
  */
@@ -55,7 +55,7 @@ afterEach(() => {
     jest.useRealTimers();
 });
 
-it('answers the same store for the same key, and a fresh key per new routine', () => {
+it('answers the same store for the same key, and a fresh key per new automation', () => {
     const a = openStore('a1');
     expect(draftStoreFor('a1', () => {
         throw new Error('must not create a second store');
@@ -63,7 +63,7 @@ it('answers the same store for the same key, and a fresh key per new routine', (
     expect(newDraftKey()).not.toBe(newDraftKey());
 });
 
-it('finds a new routine’s store under its id once aliased', () => {
+it('finds a new automation’s store under its id once aliased', () => {
     const key = newDraftKey();
     const store = openStore(key, deps(), null);
     aliasDraftStore(key, 'made');
@@ -155,7 +155,7 @@ describe('ensureDraftSaved', () => {
         await expect(ensureDraftSaved('a9')).resolves.toBe('a9');
     });
 
-    it('creates a new routine and answers its id', async () => {
+    it('creates a new automation and answers its id', async () => {
         const key = newDraftKey();
         const d = deps();
         openStore(key, d, null);

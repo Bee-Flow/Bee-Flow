@@ -1,4 +1,4 @@
-// The four AI modes, what the organisation allows, and how a notice and an
+// The three AI modes on offer, what the organisation allows, and how a notice and an
 // Auto chat read in the chat list.
 
 import { render, screen } from '@testing-library/react';
@@ -13,26 +13,33 @@ import { joinReasonText } from './AutoAnswerNote';
 
 const t: TranslateFn = (_key, fallback, params) => String(fallback ?? '').replace(/\{(\w+)\}/g, (_m, k: string) => String(params?.[k] ?? ''));
 
-it('offers off, mention, auto and always, and reports the pick', async () => {
+it('offers off, mention and always (no auto), and reports the pick', async () => {
     const onChange = vi.fn();
     render(<AiModeSelector value="mention" onChange={onChange} />);
-    expect(screen.getAllByRole('radio').map(r => r.textContent)).toEqual(['Off', 'On mention', 'Auto', 'Always']);
-    await userEvent.setup().click(screen.getByRole('radio', { name: 'Auto' }));
-    expect(onChange).toHaveBeenCalledWith('auto');
+    expect(screen.getAllByRole('radio').map(r => r.textContent)).toEqual(['Off', 'On mention', 'Always']);
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Always' }));
+    expect(onChange).toHaveBeenCalledWith('always');
 });
 
 it('a mode the organisation does not allow is shown but cannot be picked, unless the chat already has it', async () => {
     const onChange = vi.fn();
     const policy = { autoAllowed: false, alwaysAllowed: false };
     const { rerender } = render(<AiModeSelector value="mention" onChange={onChange} policy={policy} />);
-    expect(screen.getByRole('radio', { name: 'Auto' })).toBeDisabled();
     expect(screen.getByRole('radio', { name: 'Always' })).toBeDisabled();
-    await userEvent.setup().click(screen.getByRole('radio', { name: 'Auto' }));
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Always' }));
     expect(onChange).not.toHaveBeenCalled();
-    rerender(<AiModeSelector value="auto" onChange={onChange} policy={policy} />);
-    expect(screen.getByRole('radio', { name: 'Auto' })).toBeEnabled();
+    rerender(<AiModeSelector value="always" onChange={onChange} policy={policy} />);
+    expect(screen.getByRole('radio', { name: 'Always' })).toBeEnabled();
     const allowed = (mode: TeamChatAiMode) => modeAllowed(mode, 'off', null);
     expect(['off', 'mention', 'auto', 'always'].every(m => allowed(m as TeamChatAiMode))).toBe(true);
+});
+
+it('a chat still on auto can move to another mode', async () => {
+    const onChange = vi.fn();
+    render(<AiModeSelector value="auto" onChange={onChange} />);
+    expect(screen.queryByRole('radio', { name: 'Auto' })).toBeNull();
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'On mention' }));
+    expect(onChange).toHaveBeenCalledWith('mention');
 });
 
 it('reads the mode as a badge, and a read-only selector shows only that', () => {

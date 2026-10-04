@@ -34,17 +34,17 @@ export const KINDS = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 
  * producers are `expectedKindFor` and datatableDisplay's `columnTypeKind`.
  */
 export const KIND_WORD = Object.freeze({
-    text: { key: 'routines.kind.text', en: 'text' },
-    email: { key: 'routines.kind.email', en: 'email address' },
-    number: { key: 'routines.kind.number', en: 'number' },
-    yesno: { key: 'routines.kind.yesno', en: 'yes/no' },
-    date: { key: 'routines.kind.date', en: 'date' },
-    choice: { key: 'routines.kind.choice', en: 'one of a list' },
-    list: { key: 'routines.kind.list', en: 'list' },
-    group: { key: 'routines.kind.group', en: 'group' },
-    table: { key: 'routines.kind.table', en: 'table' },
-    file: { key: 'routines.kind.file', en: 'file' },
-    unknown: { key: 'routines.kind.unknown', en: 'not seen yet' },
+    text: { key: 'automations.kind.text', en: 'text' },
+    email: { key: 'automations.kind.email', en: 'email address' },
+    number: { key: 'automations.kind.number', en: 'number' },
+    yesno: { key: 'automations.kind.yesno', en: 'yes/no' },
+    date: { key: 'automations.kind.date', en: 'date' },
+    choice: { key: 'automations.kind.choice', en: 'one of a list' },
+    list: { key: 'automations.kind.list', en: 'list' },
+    group: { key: 'automations.kind.group', en: 'group' },
+    table: { key: 'automations.kind.table', en: 'table' },
+    file: { key: 'automations.kind.file', en: 'file' },
+    unknown: { key: 'automations.kind.unknown', en: 'not seen yet' },
 });
 
 /** What the kind is underneath — for tooltips and for the schema bridge. */
@@ -140,26 +140,26 @@ export function describeField(field, sampleRoot = null, t = null) {
         const count = shape?.count ?? (Array.isArray(value) ? value.length : null);
         if (kind === 'table') {
             const cols = Array.isArray(value) && value.length ? Object.keys(value.find(r => r && typeof r === 'object') || {}).length : null;
-            const rowsText = count === 1 ? tr('routines.kind.row', '{n} row', { n: 1 }) : tr('routines.kind.rows', '{n} rows', { n: count ?? '?' });
-            const colsText = cols === 1 ? tr('routines.kind.column', '{n} column', { n: 1 }) : tr('routines.kind.columns', '{n} columns', { n: cols ?? '?' });
+            const rowsText = count === 1 ? tr('automations.kind.row', '{n} row', { n: 1 }) : tr('automations.kind.rows', '{n} rows', { n: count ?? '?' });
+            const colsText = cols === 1 ? tr('automations.kind.column', '{n} column', { n: 1 }) : tr('automations.kind.columns', '{n} columns', { n: cols ?? '?' });
             return { kind, word, value, count, of: 'records', detail: `· ${rowsText} · ${colsText}` };
         }
         const first = Array.isArray(value) ? value.find(x => x !== null && x !== undefined) : undefined;
         const elemKind = first === undefined ? null : kindOfValue(first);
         const elemWord = elemKind ? tr(KIND_WORD[elemKind].key, KIND_WORD[elemKind].en) : null;
-        if (count === 0) return { kind, word, value, count, of: null, detail: tr('routines.kind.list_empty', '· empty') };
+        if (count === 0) return { kind, word, value, count, of: null, detail: tr('automations.kind.list_empty', '· empty') };
         return {
             kind, word, value, count, of: elemKind,
             detail: count == null
-                ? (elemWord ? tr('routines.kind.list_of_kind', 'of {kind}', { kind: elemWord }) : null)
+                ? (elemWord ? tr('automations.kind.list_of_kind', 'of {kind}', { kind: elemWord }) : null)
                 : (elemWord
-                    ? tr('routines.kind.list_of_n_kind', 'of {n} · {kind}', { n: count, kind: elemWord })
-                    : tr('routines.kind.list_of_n', 'of {n}', { n: count })),
+                    ? tr('automations.kind.list_of_n_kind', 'of {n} · {kind}', { n: count, kind: elemWord })
+                    : tr('automations.kind.list_of_n', 'of {n}', { n: count })),
         };
     }
     if (kind === 'group') {
         const n = Object.keys(value).length;
-        return { kind, word, value, count: n, of: null, detail: tr('routines.kind.group_fields', '· {n} fields', { n }) };
+        return { kind, word, value, count: n, of: null, detail: tr('automations.kind.group_fields', '· {n} fields', { n }) };
     }
     if (kind === 'file') {
         const name = value.name || value.filename || '';
@@ -172,8 +172,8 @@ export function describeField(field, sampleRoot = null, t = null) {
         const paragraphs = value.split(/\n\s*\n/).filter(x => x.trim()).length;
         const words = value.trim().split(/\s+/).length;
         const detail = paragraphs > 1
-            ? tr('routines.kind.paragraphs', '· {n} paragraphs', { n: paragraphs })
-            : tr('routines.kind.words', '· {n} words', { n: words });
+            ? tr('automations.kind.paragraphs', '· {n} paragraphs', { n: paragraphs })
+            : tr('automations.kind.words', '· {n} words', { n: words });
         return { kind, word, value, count: null, of: null, detail };
     }
     return { kind, word, value, count: null, of: null, detail: null };

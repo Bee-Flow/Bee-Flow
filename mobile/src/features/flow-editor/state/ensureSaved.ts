@@ -17,7 +17,7 @@ export class UnsavedDraftError extends Error {
         super(
             translate(
                 'mobile.flow.unsaved_changes',
-                'Your latest changes are not saved yet, so this would use an older version of the routine.',
+                'Your latest changes are not saved yet, so this would use an older version of the automation.',
             ),
         );
         this.name = 'UnsavedDraftError';
@@ -25,8 +25,8 @@ export class UnsavedDraftError extends Error {
 }
 
 /**
- * Flush the open draft for `flowKey` (a routine id, or a new routine's draft
- * key), creating the row if it does not exist yet, and answer the routine's
+ * Flush the open draft for `flowKey` (an automation id, or a new automation's draft
+ * key), creating the row if it does not exist yet, and answer the automation's
  * id. With no editor open for it, the key IS the id and there is nothing to
  * flush. Throws UnsavedDraftError when the save fails.
  */
@@ -39,7 +39,7 @@ export async function ensureDraftSaved(flowKey: string): Promise<string> {
     return id;
 }
 
-/** The routine id behind a key, without saving anything; null for a routine not created yet. Not reactive: see useFlowId. */
+/** The automation id behind a key, without saving anything; null for an automation not created yet. Not reactive: see useFlowId. */
 export function automationIdFor(flowKey: string): string | null {
     const store = peekDraftStore(flowKey);
     return store ? store.getState().automationId : flowKey;

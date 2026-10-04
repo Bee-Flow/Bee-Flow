@@ -45,6 +45,9 @@ check('workspace_write → internal', classifyToolClass('workspace_write') === '
 check('regex_generate → internal', classifyToolClass('regex_generate') === 'internal');
 check('kb_search → internal (isLocal)', classifyToolClass('kb_search') === 'internal');
 check('unknown_tool → internal', classifyToolClass('some_unknown_tool') === 'internal');
+check('create_word_document → internal (kept in Bee Flow storage)', classifyToolClass('create_word_document', { title: 'x' }) === 'internal');
+check('create_word_document + nextcloudPath → external (writes into Nextcloud)', classifyToolClass('create_word_document', { nextcloudPath: '/Documents' }) === 'external');
+check('create_presentation + nextcloudPath → external', classifyToolClass('create_presentation', { nextcloudPath: '/Decks' }) === 'external');
 check('empty name → internal', classifyToolClass('') === 'internal');
 
 console.log('isBlockedForTool:');
@@ -55,6 +58,8 @@ const extEmail = { external: { blockCategories: ['Email'] }, internal: { blockCa
     check('  reports only the matched category', JSON.stringify(r.blockedCategories) === JSON.stringify(['Email']));
     check('  reports toolClass=external', r.toolClass === 'external');
 }
+check('create_word_document + nextcloudPath blocked by the external list', isBlockedForTool('create_word_document', ['Email'], extEmail, { nextcloudPath: '/Documents' }).blocked === true);
+check('create_word_document kept locally not covered by the external list', isBlockedForTool('create_word_document', ['Email'], extEmail, {}).blocked === false);
 check('external tool, category not in list → not blocked', isBlockedForTool('gmail_send', ['Person'], extEmail).blocked === false);
 {
     // The gap this closes: a custom integration was 'internal', so an org

@@ -25,7 +25,7 @@ describe('a card’s words', () => {
         expect(stepSummary(node({ type: 'wait', seconds: 7200 }), ctx)).toBe('2 hours');
     });
 
-    it('says what starts the routine', () => {
+    it('says what starts the automation', () => {
         expect(stepSummary(node({ type: 'trigger', kind: 'manual' }), ctx)).toBe('Runs on the Run button');
         expect(stepSummary(node({ type: 'trigger', kind: 'schedule' }), ctx)).toEqual({ muted: 'no schedule yet' });
         expect(stepSummary(node({ type: 'trigger', kind: 'app_event', appEvent: { provider: 'gmail', event: 'mail.new' } }), ctx)).toBe('New email (Gmail)');
