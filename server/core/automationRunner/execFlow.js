@@ -215,8 +215,10 @@ function buildLinearEdges(steps, rootId = LOOP_ROOT_ID) {
  * enclosing executeAutomation scope, so container steps nested in a
  * forEach still recurse correctly.
  */
-// Read-only fetches a per-item step may run five at a time (see execForEachStep).
-const PARALLEL_READ_TOOLS = new Set(['gmail_read', 'gmail_read_attachment']);
+// Read-only fetches a per-item step may run a few at a time (see
+// execForEachStep). Attachments get fewer: each one is also parsed / OCR'd in
+// this process, and five large PDFs at once is a memory spike for nothing.
+const PARALLEL_READ_TOOLS = new Map([['gmail_read', 5], ['gmail_read_attachment', 3]]);
 
 async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel = null) {
     const fe = step.forEach || {};
@@ -274,7 +276,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // one at a time that took minutes. askOnce stays serial so duplicate IDs
     // can reuse the first result from the run memo.
     const concurrency = mode === 'live' && step.type === 'integration_action'
-        && PARALLEL_READ_TOOLS.has(step.tool) && !step.askOnce ? 5 : 1;
+        && PARALLEL_READ_TOOLS.has(step.tool) && !step.askOnce ? PARALLEL_READ_TOOLS.get(step.tool) : 1;
     const runItem = async (i) => {
         // Honour cancellation between items — a long fan-out (hundreds of
         // API calls) must stop promptly, not only at the next step boundary.

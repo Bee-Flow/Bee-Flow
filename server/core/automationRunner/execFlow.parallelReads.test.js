@@ -1,6 +1,6 @@
 /**
- * Read-only Gmail fetches in a "run once per item" step run five at a time,
- * in item order; anything else stays one at a time.
+ * Read-only Gmail fetches in a "run once per item" step run a few at a time
+ * (reads five, attachments three), in item order; anything else stays one at a time.
  *
  * Run: cd server && node --test core/automationRunner/execFlow.parallelReads.test.js
  */
@@ -27,11 +27,17 @@ function measuringLeaf() {
     return { seen, leaf };
 }
 
-test('attachments are fetched five at a time, and the results keep their order', async () => {
+test('attachments are fetched three at a time (each is also parsed here), and the results keep their order', async () => {
     const { seen, leaf } = measuringLeaf();
     const out = await execForEachStep(step('gmail_read_attachment'), {}, STATE, 'live', leaf);
-    assert.strictEqual(seen.max, 5);
+    assert.strictEqual(seen.max, 3);
     assert.deepStrictEqual(out.output.results.map(r => r.output.n), STATE.steps.a1.output.items);
+});
+
+test('mail reads stay at five at a time', async () => {
+    const { seen, leaf } = measuringLeaf();
+    await execForEachStep(step('gmail_read'), {}, STATE, 'live', leaf);
+    assert.strictEqual(seen.max, 5);
 });
 
 test('a tool that may have side effects stays one at a time', async () => {

@@ -145,8 +145,9 @@ test('parallel Gmail cancellation drains in-flight reads and starts no next batc
 
 test('other actions, dry runs and askOnce Gmail reads remain sequential', async () => {
     for (const [tool, mode, askOnce] of [
-        ['gmail_read_attachment', 'live', false],
         ['gmail_compose', 'live', false],
+        ['gmail_read_attachment', 'dry_run', false],
+        ['gmail_read_attachment', 'live', true],
         ['gmail_read', 'dry_run', false],
         ['gmail_read', 'live', true],
     ]) {
