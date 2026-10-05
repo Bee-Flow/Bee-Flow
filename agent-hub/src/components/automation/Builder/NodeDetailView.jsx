@@ -39,6 +39,12 @@ import { walkPath } from '../../../utils/bindingHelpers';
  * them mid-edit cannot lose anything. The header, the column heads, the save
  * machine and the output editor live in ./ndv/; this file composes them.
  */
+// The quick drawer grows with the screen: a fixed 300px left room for the
+// name and the action card only, and the first setting fell below the fold on
+// a laptop. Never shorter than before, never taller than half the canvas area.
+const QUICK_H = 'clamp(300px, 42vh, 520px)';
+const QUICK_H_STACKED = 'clamp(420px, 55vh, 680px)';
+
 export default function NodeDetailView({
     step, runStep, runSteps = [], definition, rootDefinition = null, blocksCatalog = [], onSaveStep,
     // (base, from, to) => number|undefined. The shell's edit (BuildTab.onRenameBinding).
@@ -200,7 +206,7 @@ export default function NodeDetailView({
             ref={drawerRef}
             // Capped so the canvas keeps a readable strip above it on a laptop.
             className="@container/ndv relative flex flex-col flex-shrink-0 border-t border-[var(--border-default)] overflow-hidden max-h-[min(calc(100%-260px),60%)]"
-            style={{ height: quick ? (quickStacked ? 420 : 300) : drawerH, boxShadow: '0 -8px 24px rgba(0,0,0,.06)' }}
+            style={{ height: quick ? (quickStacked ? QUICK_H_STACKED : QUICK_H) : drawerH, boxShadow: '0 -8px 24px rgba(0,0,0,.06)' }}
         >
             {!quick && (
                 <div

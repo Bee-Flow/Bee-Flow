@@ -9,7 +9,7 @@ describe('readableText', () => {
     it('names every {{reference}} in a text the way its pill does', () => {
         expect(readableText('Summarise {{steps.act_4d4307a.output.body}}', LABELS)).toBe('Summarise ‹gmail search ▸ Body›');
         expect(readableText('Hi {{ trigger.output.first_name }}, your {{loop.row.total}} is due ({{item.id}})', LABELS)).toBe(
-            'Hi ‹Trigger ▸ First name›, your ‹Loop item · row ▸ Total› is due (‹Current row ▸ Id›)',
+            'Hi ‹Trigger ▸ First name›, your ‹Each row ▸ Total› is due (‹Current row ▸ Id›)',
         );
         expect(readableText('{{steps.act_4d4307a.output}}', LABELS)).toBe('‹gmail search›');
         expect(readableText('{{steps.act_4d4307a.output.results[*].from_email}}', LABELS)).toBe('‹gmail search ▸ From email›');

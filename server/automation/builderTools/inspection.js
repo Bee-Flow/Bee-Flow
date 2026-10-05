@@ -48,6 +48,8 @@ function renderInputsFromSchema(inSchema) {
  */
 function inspectGateError(tool, rawInputs, draftWrap) {
     if (!tool || typeof tool !== 'string' || !draftWrap) return null;
+    // Off where inspections cannot be remembered between calls (MCP, mcpBuilder.js).
+    if (draftWrap._inspectGate === false) return null;
     const schemas = draftWrap._inputSchemasByTool;
     if (!schemas) return null;
     const schema = schemas[tool];

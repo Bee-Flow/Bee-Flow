@@ -100,6 +100,10 @@ const LOOSE_MIGRATIONS = [
     // wissing mogelijk). Eerst memory_sources, dan user_memories; 0 rijen na
     // de eerste run. Slaat over zolang de tabel nog niet bestaat.
     'memory-guest-purge-2026-08',
+    // BFSF-387: appends "reply language is not a preference" to the seeded
+    // extractor prompt (alwaysUpdate: false, so the .md never reaches an
+    // existing install). Append-only, operator edits stay; no-op once present.
+    'memory-extractor-language-2026-10',
     // BFSF-272 follow-up: merges case-insensitive duplicate agent categories
     // into the oldest row per (org, LOWER(name)), re-points their agents with
     // a rev bump, and builds idx_agent_categories_org_lname in the same

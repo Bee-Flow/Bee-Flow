@@ -90,7 +90,7 @@ const OWN_WORDS: Record<string, string> = {
     'mobile.flow.approval.question_hint': 'the web says "Use {{ }} to pull in values"; the phone says Insert data',
     'mobile.flow.ai.iteration_hint': 'the web says "then reference {{loop.item…}}"; the phone names the picker group',
     'mobile.flow.datatable.iteration_hint': 'same',
-    'mobile.flow.loop.available_as': 'the web shows loop.{name} in a code mark; the phone the words its pill reads',
+    'mobile.flow.loop.available_as_each': 'the web shows loop.{name} in a code mark; the phone the words its pill reads',
     'mobile.flow.loop.batch_size_hint': 'the web says "bind an ARRAY … to loop.<name>"; the phone says what the steps inside get',
     'mobile.flow.loop.list_path_prompt': 'the web’s placeholder is a path (steps.s1.output.results); the phone points at Insert data',
     'mobile.flow.condition.field_prompt': 'the web’s placeholder is a path (steps.step1.output.total); the phone points at Insert data',

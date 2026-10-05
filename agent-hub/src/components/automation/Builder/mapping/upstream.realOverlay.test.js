@@ -163,3 +163,19 @@ describe('overlayGroupWithReal', () => {
         expect(overlayGroupWithReal(group, undefined)).toBe(group);
     });
 });
+
+describe('a Code step with real output', () => {
+    const group = { id: 'c1', label: 'Test data', kind: 'code', basePath: 'steps.c1.output', sample: { result: null }, fields: [{ key: 'result', path: 'steps.c1.output.result', sample: null }] };
+
+    it('offers the fields of what the code returned, not the envelope, also after a dry run', () => {
+        const out = { result: { subject: 'Hi', tags: ['a'], lines: [{ sku: 'A1' }] }, logs: [], httpCalls: 0, _dryRun: true, wouldHaveCalled: [] };
+        const g = overlayGroupWithReal(group, out);
+        expect(g.fields.map(f => f.path)).toEqual(['steps.c1.output.result.subject', 'steps.c1.output.result.tags', 'steps.c1.output.result.lines']);
+        expect(g.fields[2].children.map(c => c.path)).toEqual(['steps.c1.output.result.lines[*].sku']);
+    });
+
+    it('keeps one `result` field when the code returned a list or a value', () => {
+        expect(overlayGroupWithReal(group, { result: [1, 2], logs: [], httpCalls: 0 }).fields).toEqual([{ key: 'result', path: 'steps.c1.output.result', sample: [1, 2] }]);
+        expect(overlayGroupWithReal(group, { result: 'ok', logs: [] }).fields[0].sample).toBe('ok');
+    });
+});

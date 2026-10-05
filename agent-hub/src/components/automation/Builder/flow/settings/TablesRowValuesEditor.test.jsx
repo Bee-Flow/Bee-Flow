@@ -128,7 +128,7 @@ describe('TablesRowValuesEditor', () => {
         const { onChange } = renderEditor({ value });
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
         // The ref renders as a chip naming the step, not the raw path.
-        expect(within(rowTitled('Totaal')).getByText('Loop item · e')).toBeTruthy();
+        expect(within(rowTitled('Totaal')).getByText('Each e')).toBeTruthy();
         fireEvent.click(within(rowTitled('Totaal')).getByLabelText('Remove this value'));
         expect(onChange).toHaveBeenCalledWith({ Bedrijf: { kind: 'literal', value: 'Acme' } });
     });
@@ -143,7 +143,7 @@ describe('TablesRowValuesEditor', () => {
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
         // `excl_btw` only differs from "Excl. btw" in spelling → it lands on
         // that row, exactly as the tool resolves it at run time.
-        expect(within(rowTitled('Excl. btw')).getByText('Loop item · e')).toBeTruthy();
+        expect(within(rowTitled('Excl. btw')).getByText('Each e')).toBeTruthy();
         // `vat` reaches no column → shown, named, removable.
         const stray = screen.getByTestId('tables-row-stray');
         expect(within(stray).getByText('vat')).toBeTruthy();

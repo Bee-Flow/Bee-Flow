@@ -39,6 +39,21 @@ function resolveCodeStepGate() {
     return { enabled: false, reason: 'runtime' };
 }
 
+/**
+ * What a person reads for an action, next to the app's name: `nextcloud_mail_list_mailboxes`
+ * under "Nextcloud Mail" is "List mailboxes", `gmail_search` under "Gmail" is "Search". The
+ * leading words the app's name already says are dropped (at least one word stays), the rest
+ * is sentence case. It used to be the tool id with spaces ("nextcloud mail list mailboxes").
+ */
+function actionLabel(name, appLabels) {
+    const words = String(name).split('_').filter(Boolean);
+    const said = new Set(appLabels.filter(Boolean).flatMap(l => String(l).toLowerCase().split(/[^a-z0-9]+/)).filter(Boolean));
+    let i = 0;
+    while (i < words.length - 1 && said.has(words[i].toLowerCase())) i += 1;
+    const rest = words.slice(i).join(' ');
+    return rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+
 // Catalog — auto-introspect existing TOOLS arrays.
 router.get('/catalog', async (req, res) => {
     const userId = req.session.user.id;
@@ -91,7 +106,7 @@ router.get('/catalog', async (req, res) => {
             const os = getOutputSchema(name);
             return {
                 name,
-                label: name.replace(/_/g, ' '),
+                label: actionLabel(name, [resolved?.label, entry.label]),
                 description: t.function?.description || '',
                 inputSchema: t.function?.parameters || null,
                 outputSchema: os,

@@ -64,7 +64,7 @@ const MOCKS = {
     '../../../core/agentRuntime/phaseEvents': { emitPhase: noop, emitPhaseEnd: noop, withPhase: async (s, p, fn) => fn() },
     './systemPrompt': { DEFAULT_SYSTEM_PROMPT: 'You are a helpful assistant.' },
     './shared': { encryptionOpts: () => ({}) },
-    '../../../core/llm/promptStyle': { buildWritingStyleAddendum: () => '' },
+    '../../../core/llm/promptStyle': { buildWritingStyleAddendum: () => '', buildResponseLanguageRule: () => '' },
     '../../../auth/projectAccess': {
         resolveRequestedProject: async (userId, projectId) => (fx.project && fx.project.projectId === projectId ? fx.project : null),
     },

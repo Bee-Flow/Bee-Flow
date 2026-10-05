@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import type { RunRowData, RunStepRecord } from '../../../../api/queries/automation/runs';
 import { useRun, useRunSteps } from '../../../../api/queries/automation/runs';
-import { buildRunStepLabelMap, runStepLabel } from '../flow/displayHelpers';
+import { buildRunStepLabelMap, buildRunStepMap, runStepLabel } from '../flow/displayHelpers';
 import { latestSteps } from './runIo';
 import RunDetailHeader from './RunDetailHeader';
 import RunTimeline from './RunTimeline';
@@ -37,6 +37,7 @@ export default function RunDetail({
     const steps = useMemo(() => stepsQuery.data?.steps || [], [stepsQuery.data]);
     const definition = stepsQuery.data?.definition ?? null;
     const labelById = useMemo(() => buildRunStepLabelMap(definition), [definition]);
+    const stepById = useMemo(() => buildRunStepMap(definition), [definition]);
     const rows = useMemo(() => latestSteps(steps), [steps]);
     const step = focusStep(rows, selectedStepId);
 
@@ -52,7 +53,12 @@ export default function RunDetail({
                     onSelectStep={onSelectStep}
                     onViewCanvas={onViewCanvas}
                 />
-                <RunIo step={step} label={step ? String(runStepLabel(labelById, step.stepId)) : ''} />
+                <RunIo
+                    step={step}
+                    label={step ? String(runStepLabel(labelById, step.stepId)) : ''}
+                    stepDef={step ? stepById.get(step.stepId) ?? null : null}
+                    labelById={labelById}
+                />
             </div>
         </div>
     );

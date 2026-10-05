@@ -270,6 +270,68 @@ export function kindAtPath(path, sampleRoot) {
 }
 
 /**
+ * A TABLE dropped on a slot that wants one number, date, yes/no or e-mail
+ * address: which column did the author mean? A Markdown table is only right in
+ * a text, so for any other slot this names the column to use instead
+ * (`rows[*].<col>`), and the column rules below take it from there (one run
+ * per row). The slot's own name decides first — `accountId` takes `id`,
+ * `email` takes `email` — then a lone column of the wanted kind. null when it
+ * is not clear: the table stays what it was.
+ */
+export function columnForSlot(path, sampleRoot, { slot = null, expectedKind = 'text' } = {}) {
+    if (!path || !expectedKind || expectedKind === 'text' || expectedKind === 'unknown') return null;
+    const rows = walkPath(String(path), sampleRoot);
+    const first = Array.isArray(rows) ? rows.find(r => r && typeof r === 'object' && !Array.isArray(r)) : null;
+    if (!first) return null;
+    const cols = Object.keys(first);
+    const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const want = norm(slot);
+    const pickPath = (c) => joinKeyPath(`${path}[*]`, c);
+    if (want) {
+        const exact = cols.find(c => norm(c) === want);
+        if (exact) return pickPath(exact);
+        // accountId → id, recipientEmail → email: the longest column the slot ends with.
+        const tail = cols.filter(c => norm(c) && want.endsWith(norm(c))).sort((a, b) => norm(b).length - norm(a).length)[0];
+        if (tail) return pickPath(tail);
+    }
+    const ofKind = cols.filter(c => kindOfValue(first[c]) === expectedKind);
+    return ofKind.length === 1 ? pickPath(ofKind[0]) : null;
+}
+
+/**
+ * A GROUP (one record) dropped on a slot that wants one value: which field of
+ * it did the author mean? The slot's name decides first (`email` takes
+ * `email`, `customerName` takes `name`); a slot that is itself a name or title
+ * takes the record's headline (name / title / subject); a non-text slot takes a
+ * lone field of the wanted kind. null when it is not clear: the group then goes
+ * in as its readable summary, which is right for a body or a description.
+ */
+const HEADLINE_KEYS = ['name', 'title', 'subject', 'displayName', 'label', 'filename', 'fileName'];
+export function fieldForSlot(path, sampleRoot, { slot = null, expectedKind = 'text' } = {}) {
+    if (!path) return null;
+    const rec = walkPath(String(path), sampleRoot);
+    if (!rec || typeof rec !== 'object' || Array.isArray(rec)) return null;
+    const keys = Object.keys(rec).filter(k => rec[k] == null || typeof rec[k] !== 'object');
+    if (!keys.length) return null;
+    const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const want = norm(slot);
+    const pick = (k) => joinKeyPath(String(path), k);
+    if (want) {
+        const exact = keys.find(k => norm(k) === want);
+        if (exact) return pick(exact);
+        const tail = keys.filter(k => norm(k).length > 1 && want.endsWith(norm(k))).sort((a, b) => norm(b).length - norm(a).length)[0];
+        if (tail) return pick(tail);
+        if (/(title|name|subject|label|heading)$/.test(want)) {
+            const head = HEADLINE_KEYS.find(h => keys.includes(h) && typeof rec[h] === 'string');
+            if (head) return pick(head);
+        }
+    }
+    if (!expectedKind || expectedKind === 'text' || expectedKind === 'unknown') return null;
+    const ofKind = keys.filter(k => kindOfValue(rec[k]) === expectedKind);
+    return ofKind.length === 1 ? pick(ofKind[0]) : null;
+}
+
+/**
  * Which remedy to apply WITHOUT asking: the author drags, the builder picks
  * what they almost always meant, and the other answers wait under "More".
  *

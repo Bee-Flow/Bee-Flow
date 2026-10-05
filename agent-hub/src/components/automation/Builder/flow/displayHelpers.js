@@ -157,7 +157,7 @@ export function humanizeExpression(expr, stepLabelById = null) {
         .replace(
             /\bloop\.([A-Za-z0-9_]+)(?:\.([A-Za-z0-9_.[\]]+))?/g,
             (_, itemVar, path) => {
-                const head = itemVar ? `‹Loop item · ${itemVar}›` : '‹Loop item›';
+                const head = itemVar ? `‹Each ${itemVar}›` : '‹Each item›';
                 return path ? `${head}.${path}` : head;
             },
         )
@@ -271,7 +271,21 @@ const MAX_LAYER_DEPTH = 8;
  */
 export function buildRunStepLabelMap(def) {
     const m = buildStepLabelMap(def);
-    const layers = def?.layers || {};
+    for (const [id, s] of buildRunStepMap(def)) if (!m.has(id)) m.set(id, s.label || s.id);
+    return m;
+}
+
+/**
+ * Every step of a run's definition by the id the runner records it under:
+ * top-level steps and the trigger by their own id, flowlet steps as
+ * `<callId>/<innerId>` (one more segment per nested call). The run viewer
+ * reads a step's SETTINGS from this (BFSF-456), the labels come from it too.
+ */
+export function buildRunStepMap(def) {
+    const m = new Map();
+    if (!def) return m;
+    for (const s of [def.trigger, ...(def.steps || [])]) if (s?.id) m.set(s.id, s);
+    const layers = def.layers || {};
     const walk = (steps, prefix, stack) => {
         if (stack.length >= MAX_LAYER_DEPTH) return;
         for (const s of steps || []) {
@@ -280,12 +294,12 @@ export function buildRunStepLabelMap(def) {
             if (!layer) continue;
             const inner = `${prefix}${s.id}/`;
             for (const x of [layer.trigger, ...(layer.steps || [])]) {
-                if (x?.id) m.set(`${inner}${x.id}`, x.label || x.id);
+                if (x?.id) m.set(`${inner}${x.id}`, x);
             }
             walk(layer.steps, inner, [...stack, s.layerKey]);
         }
     };
-    walk(def?.steps, '', []);
+    walk(def.steps, '', []);
     return m;
 }
 

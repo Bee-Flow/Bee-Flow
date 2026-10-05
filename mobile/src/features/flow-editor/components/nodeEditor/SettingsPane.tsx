@@ -1,7 +1,7 @@
 /**
  * The Settings tab — the web's SettingsForm frame around the per-type editor:
  * what is wrong with the step first, then what the step does (NodePurpose),
- * how much of the form to show (Simple / All options), its name, symbol and
+ * how much of the form to show (Simple / Advanced), its name, symbol and
  * Disable switch (StepBasics), and the editor the registry picks for its type. Every change saves on its own.
  */
 
@@ -56,7 +56,7 @@ export function SettingsPane({
                     accessibilityLabel={t('automations.builder.mode_toggle_label', 'How much of this step to show')}
                     options={[
                         { value: 'simple', label: t('automations.builder.mode_simple', 'Simple') },
-                        { value: 'advanced', label: t('automations.builder.mode_all_options', 'All options') },
+                        { value: 'advanced', label: t('automations.builder.mode_advanced', 'Advanced') },
                     ]}
                 />
             </View>

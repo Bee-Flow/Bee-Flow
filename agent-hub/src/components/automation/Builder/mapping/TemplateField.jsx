@@ -162,7 +162,7 @@ export default function TemplateField({
     };
 
     const control = (
-        <div className={inline ? 'flex-1 min-w-0' : ''}>
+        <div className={inline || !label ? 'flex-1 min-w-0' : ''}>
             <RefTokenInput
                 ref={inputRef}
                 value={text}
@@ -175,7 +175,9 @@ export default function TemplateField({
                 onDragOver={onDragOver}
                 onDrop={onDrop}
                 placeholder={placeholder}
-                ariaLabel={ariaLabel}
+                // Named after its row ("Body") when it has no label of its own:
+                // a contenteditable without a name is a nameless box to a screen reader.
+                ariaLabel={ariaLabel || label || rowLabel || undefined}
                 stepLabelById={stepLabelById}
                 stepTypeById={stepTypeById}
                 onPillClick={onPillClick}
@@ -197,6 +199,13 @@ export default function TemplateField({
         <div className="space-y-1">
             {inline ? (
                 <div className="flex items-stretch gap-1">
+                    {control}
+                    {insertButton}
+                </div>
+            ) : !label ? (
+                // The row above already names the field: the button goes beside
+                // it instead of on a line of its own.
+                <div className="flex items-start gap-1">
                     {control}
                     {insertButton}
                 </div>

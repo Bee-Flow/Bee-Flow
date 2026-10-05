@@ -79,7 +79,6 @@ describe('SettingsForm — guard', () => {
         // click has to start from that whole list — starting from empty would
         // turn one tick into "scan for only this", the opposite of the gesture.
         const { onPatch } = renderForm(guardStep());
-        fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
         // By id, not by label — the label is translated, the id is what
         // reaches the detector.
         await waitFor(() => expect(document.querySelector('[data-pii-category="Email"]')).toBeTruthy());
@@ -150,7 +149,6 @@ describe('SettingsForm — guard', () => {
 
     it('a tokenize step never saves the guard-only onFound block', async () => {
         const { onPatch } = renderForm({ ...guardStep(), type: 'tokenize' });
-        fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
         await waitFor(() => expect(document.querySelector('[data-pii-category="Email"]')).toBeTruthy());
         fireEvent.click(document.querySelector('[data-pii-category="Email"]'));
         fireEvent.click(screen.getByText('Save'));

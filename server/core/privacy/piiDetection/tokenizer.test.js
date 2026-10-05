@@ -139,13 +139,15 @@ test('a tab-separated contact row keeps every cell, with the split name cells to
 
 test('a contact row: an undetected "Surname, First name" display name gets the split cells\' token', () => {
     const text = 'Van Leeuwen, Ruben\nRuben\nvan\nLeeuwen\nZwolle';
-    // The detector found the split cells, as one span over three lines. That
-    // span swallowing its cells is BFSF-299 and not asserted on here.
+    // The detector found the split cells, as one span over three lines. Since
+    // BFSF-299 that span is cut per cell: each name cell gets its own token,
+    // the bare "van" cell identifies nobody and stays, and no line is merged.
     const { tokenizedText, tokenMap } = tokenizeText(text, [span(text, 'Ruben\nvan\nLeeuwen')]);
 
     assert.ok(!/Ruben|Leeuwen/.test(tokenizedText), `plain name left: ${tokenizedText}`);
-    assert.strictEqual(Object.keys(tokenMap).length, 1, JSON.stringify(tokenMap));
-    assert.ok(tokenizedText.startsWith('Van [person_1], [person_1]\n'), tokenizedText);
+    assert.deepStrictEqual(Object.values(tokenMap).sort(), ['Leeuwen', 'Ruben'], JSON.stringify(tokenMap));
+    assert.strictEqual(count(tokenizedText, '\n'), count(text, '\n'), 'no cell may be merged away');
+    assert.strictEqual(tokenizedText.split('\n')[2], 'van');
 });
 
 test('a surname in an organisation name that was not detected as one is replaced too', () => {

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Eye, FunctionSquare, List, Plus, Repeat, Tag, Workflow, X, Zap } from 'lucide-react';
+import { Eye, FunctionSquare, List, Plus, Repeat, Tag, Workflow, X, Zap } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
 import BindingField from './BindingField';
@@ -8,7 +8,7 @@ import { EmptySlotNote, FieldLabelRow } from './fieldChrome';
 import { useFormRowLabel } from './FormRowLabelContext';
 import ListPickChooser from './ListPickChooser';
 import { pathListShape } from './listShape';
-import { detectMismatch, kindAtPath, quietDefaultId, remediesFor } from './mismatch';
+import { columnForSlot, detectMismatch, fieldForSlot, kindAtPath, quietDefaultId, remediesFor } from './mismatch';
 import MismatchResolver from './MismatchResolver';
 import { pillTint, PILL_TINT_CLASS } from './refEditorDom';
 import RefTokenInput from './RefTokenInput';
@@ -21,7 +21,8 @@ import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { bindingFromInput, formatPathForInsert } from '../../../../utils/bindingHelpers';
-import { controlSurfaceClass, denseInputClass, listBadgeClass, AMBER_NOTE, INLINE_LINK } from '../flow/settings/formStyles';
+import { controlSurfaceClass, denseInputClass, listBadgeClass, AMBER_NOTE, FOCUS_RING, INLINE_LINK } from '../flow/settings/formStyles';
+import { useFormMode } from '../flow/settings/formDensity';
 
 /**
  * VISUAL value editor — the plain-language alternative to BindingField.
@@ -99,7 +100,10 @@ export default function ValueBuilder({
     // "More": how a picked list/table/group is used, the transform menu and
     // the formula escape (the field's own advanced options). Closed by default — a drop already chose the
     // sensible answer (quietDefaultId), so most authors never need it.
-    const [advancedOpen, setAdvancedOpen] = useState(false);
+    // "Adjust it", Formula and the other answers for a list/table pick are
+    // Advanced: shown inline in the Advanced mode (also outside the step
+    // form, where there is no mode), never in Simple. No per-field toggle.
+    const advancedOpen = useFormMode() !== 'simple';
 
     // One placeholder string for every branch below (the raw escape gets it
     // too), so switching editors never changes what the empty box says.
@@ -152,12 +156,24 @@ export default function ValueBuilder({
     //           chip, with its separator control; it writes nothing until
     //           the author answers.
     const proposePick = (path, anchorEl, opts = {}) => {
-        const clean = String(path || '').trim();
+        let clean = String(path || '').trim();
         if (!clean) return;
         const index = pickTarget.current;
         pickTarget.current = -1;
         if (opts.raw || expectShape !== 'scalar') { insertPath(clean, index, opts.at); return; }
-        const actualKind = kindAtPath(clean, sampleRoot);
+        let actualKind = kindAtPath(clean, sampleRoot);
+        // A whole table on a number / date / yes-no / e-mail slot means one of
+        // its columns (accountId ← Id); as a Markdown table it would fail the run.
+        if (actualKind === 'table') {
+            const col = columnForSlot(clean, sampleRoot, { slot: label, expectedKind: expectKind });
+            if (col) { clean = col; actualKind = kindAtPath(col, sampleRoot); }
+        }
+        // A whole record on a title / an e-mail slot means one of its fields
+        // (title ← name); the readable summary stays for a body or description.
+        if (actualKind === 'group') {
+            const field = fieldForSlot(clean, sampleRoot, { slot: label, expectedKind: expectKind });
+            if (field) { clean = field; actualKind = kindAtPath(field, sampleRoot); }
+        }
         // A scalar slot with no declared kind still wants ONE value; 'text' is
         // the widest scalar, so it asks the same question the shape-level rule
         // used to ask and never a narrower one.
@@ -411,7 +427,7 @@ export default function ValueBuilder({
     const viewParts = parts.length ? parts : [{ type: 'text', text: '' }];
 
     return (
-        <div className="space-y-1" onDragOver={onBindingDragOver} onDrop={onDrop}>
+        <div className="space-y-2" onDragOver={onBindingDragOver} onDrop={onDrop}>
             {chrome}
             {inline ? (
                 <RefTokenInput
@@ -459,12 +475,12 @@ export default function ValueBuilder({
                 />
             )))}
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-4 flex-wrap pt-0.5">
                 {!jsonOnly && (
                     <button
                         type="button"
                         onClick={(e) => openPicker(e.currentTarget, -1)}
-                        className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline"
+                        className={`flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
                     >
                         {/* The first pick is the headline action; once something
                             is bound, picking again APPENDS — so it reads as an add. */}
@@ -477,30 +493,19 @@ export default function ValueBuilder({
                     <button
                         type="button"
                         onClick={() => setComposing(true)}
-                        className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        className={`flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
                     >
                         <Plus size={11} /> {t('automations.builder.add_text', 'Add text')}
                     </button>
                 )}
-                {(allowRaw || showTransform || resolver) && (
-                    <button
-                        type="button"
-                        onClick={() => setAdvancedOpen(o => !o)}
-                        aria-expanded={advancedOpen}
-                        aria-label={t('automations.builder.value_more_aria', 'More ways to use this value')}
-                        className="ml-auto flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                    >
-                        {advancedOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                        {t('automations.builder.value_more', 'More')}
-                    </button>
-                )}
+                {emptyNote}
                 {allowRaw && advancedOpen && (
                     <button
                         type="button"
                         onClick={() => setRawOpen(true)}
                         title={t('automations.builder.write_as_formula', 'Write this value as a formula')}
                         aria-label={t('automations.builder.write_as_formula', 'Write this value as a formula')}
-                        className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                        className={`ml-auto flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
                     >
                         {/* The visible word, not just the tooltip: this button
                             had its title and aria-label translated while the
@@ -566,14 +571,15 @@ export default function ValueBuilder({
 
             {foreachNote && (
                 <div className={`${AMBER_NOTE} flex items-center gap-2`}>
-                    {t('automations.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
+                    {foreachNote.runs === 1
+                        ? t('automations.builder.foreach_set_note_one', 'This step now runs once per row — 1 run.')
+                        : t('automations.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
                     <button type="button" onClick={undoForeach} className="underline hover:no-underline">
                         {t('automations.builder.undo', 'Undo')}
                     </button>
                 </div>
             )}
 
-            {emptyNote}
             {example != null && <ExampleLine value={example} />}
             {pickerNode}
         </div>
@@ -733,14 +739,16 @@ function DataPart({ path, stepLabelById, stepTypeById = null, onChange, onRemove
     const Icon = SOURCE_ICON[source] || Workflow;
     const stepId = /^steps\.([^.[]+)/.exec(String(path || ''))?.[1] || null;
     const tint = pillTint({ source: source === 'item' ? 'loop' : source, stepId }, stepTypeById);
+    // The pill IS the "change" control (a real button, so the keyboard reaches
+    // it): a separate "change" link beside it only crowded the row.
+    const Pill = onChange ? 'button' : 'span';
     return (
-        <div className="flex items-center gap-1">
-            <span
-                title={jsonPath ? `parseJson(${path}, "${jsonPath}")` : path}
-                onClick={onChange || undefined}
-                role={onChange ? 'button' : undefined}
+        <div className="flex items-center gap-2">
+            <Pill
+                {...(onChange ? { type: 'button', onClick: onChange } : {})}
+                title={onChange ? t('automations.builder.change_word', 'change') : (jsonPath ? `parseJson(${path}, "${jsonPath}")` : path)}
                 style={{ '--pill-tint': tint }}
-                className={`inline-flex items-center gap-1 min-w-0 rounded px-2 py-1 text-[11px] border ${
+                className={`inline-flex items-center gap-1 min-w-0 rounded-md px-2.5 py-1.5 text-[11px] border ${onChange ? `cursor-pointer hover:brightness-95 ${FOCUS_RING}` : ''} ${
                     missing
                         ? 'border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
                         : PILL_TINT_CLASS
@@ -763,16 +771,7 @@ function DataPart({ path, stepLabelById, stepTypeById = null, onChange, onRemove
                         {t('automations.builder.from_the_json', '· from the JSON')}{jsonPath ? `: ${jsonPath}` : ''}
                     </span>
                 )}
-            </span>
-            {onChange && (
-                <button
-                    type="button"
-                    onClick={onChange}
-                    className="shrink-0 text-[10px] text-[var(--text-secondary)] underline hover:text-[var(--text-primary)]"
-                >
-                    {t('automations.builder.change_word', 'change')}
-                </button>
-            )}
+            </Pill>
             <button
                 type="button"
                 onClick={onRemove}

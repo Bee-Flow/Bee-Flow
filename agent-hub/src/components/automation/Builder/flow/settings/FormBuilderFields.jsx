@@ -10,6 +10,9 @@ import { loadPickSources, pickSourcesSync } from '../pickSourceCatalog';
 // it (see fieldDesigner.jsx).
 import { BindingNameField } from './fieldDesigner';
 import { walkPath, previewValue } from '../../../../../utils/bindingHelpers';
+import { normaliseOptions } from '../../../../forms/formOptions';
+
+export { normaliseOptions };
 
 /**
  * The shared editor for ONE hosted form page — used by the form trigger (page
@@ -196,13 +199,6 @@ const joinOptions = (options) => (options || [])
 
 /** The reverse: the text the author typed as the array we persist. */
 const splitOptions = (text) => text.split('\n').map(s => s.trim()).filter(Boolean);
-
-export function normaliseOptions(options) {
-    if (!Array.isArray(options)) return [];
-    return options
-        .map(o => (typeof o === 'string' ? { value: o, label: o } : (o && typeof o === 'object' && o.value ? { value: o.value, label: o.label || o.value } : null)))
-        .filter(Boolean);
-}
 
 export default function FormBuilderFields({
     form,

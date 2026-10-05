@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { inputClass } from './formPrimitives';
 
 /**
@@ -6,6 +7,7 @@ import { inputClass } from './formPrimitives';
  * sentence that used to be dead text is the control now.
  */
 export default function JsonConfigSection({ draft, onApply }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     return (
         <>
@@ -17,7 +19,9 @@ export default function JsonConfigSection({ draft, onApply }) {
                     onClick={() => setOpen(o => !o)}
                     className="underline decoration-dotted underline-offset-2 hover:text-[var(--text-secondary)]"
                 >
-                    {open ? 'Close the JSON view.' : 'Advanced options are available in the JSON view.'}
+                    {/* Two words, not a sentence next to "Advanced" that read as a second
+                        place for the same options. */}
+                    {open ? t('automations.builder.json_view_close', 'Close the JSON view') : t('automations.builder.json_view_open', 'Edit as JSON')}
                 </button>
             </div>
             {open && (

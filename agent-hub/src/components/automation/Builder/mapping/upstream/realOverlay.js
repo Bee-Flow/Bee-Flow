@@ -8,6 +8,7 @@
  */
 import { deepOverlay } from '../realOutputs';
 import { seg } from './sampleFields';
+import { payloadKeyOf, stepPayload } from '../../flow/stepPayload';
 
 /**
  * sampleToFields for REAL data: same shape, plus `[*]` children for arrays of
@@ -55,6 +56,19 @@ export function overlayGroupWithReal(group, realOutput) {
     const merged = deepOverlay(group.sample, realOutput);
     if (merged == null || typeof merged !== 'object' || Array.isArray(merged)) {
         const fields = (group.fields || []).map(f => (f.path === group.basePath ? { ...f, sample: merged } : f));
+        return { ...group, sample: merged, fields, hasRealData: true };
+    }
+    // A step that wraps its data in an envelope (a Code step's `result` next to
+    // `logs` / `httpCalls`, plus `_dryRun` / `wouldHaveCalled` on a dry run):
+    // offer the fields of the data itself, not the envelope. A record lists its
+    // own fields (paths keep `.result`); a list or a value stays one `result` field.
+    const payloadKey = payloadKeyOf(group.kind);
+    if (payloadKey) {
+        const payload = stepPayload(group.kind, merged);
+        const payloadPath = `${group.basePath}${seg(payloadKey)}`;
+        const fields = payload && typeof payload === 'object' && !Array.isArray(payload)
+            ? sampleToFieldsReal(payload, payloadPath)
+            : [{ key: payloadKey, path: payloadPath, sample: payload }];
         return { ...group, sample: merged, fields, hasRealData: true };
     }
     const fields = sampleToFieldsReal(merged, group.basePath);

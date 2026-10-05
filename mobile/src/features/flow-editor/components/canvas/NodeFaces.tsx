@@ -9,7 +9,7 @@
  *              says what one pass is ("LOOP · PER ITEM · 3 STEPS") and over
  *              what; its body is drawn inside it by the canvas;
  *   entry      "Each item", where the body begins: a pill, not a card, naming
- *              the item as the steps inside read it ("Loop item · row");
+ *              the item as the steps inside read it ("Each row");
  *   note       a sticky note in its colour.
  *
  * Faces only draw; the node around them (CanvasNode) takes the touches.

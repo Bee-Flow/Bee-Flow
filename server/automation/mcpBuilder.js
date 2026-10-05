@@ -230,6 +230,24 @@ async function loadDraft(automationId, userId) {
     // be fillable now.
     try { draftWrap._documents = await require('./builderDocumentCatalog').buildDocumentCatalogForUser(userId); }
     catch (_) { draftWrap._documents = null; }
+    // The tools this user can run and their input schemas, from the same catalog
+    // the chat route uses: without them builder_inspect_tool answered `inputs: null`
+    // for every tool and input names went unchecked. Unknown → permissive (null).
+    try {
+        const { buildCatalogForUser } = require('./builderCatalog');
+        const catalog = await buildCatalogForUser(userId, await offlineSession(userId));
+        draftWrap._inputSchemasByTool = {};
+        for (const app of (catalog?.apps || [])) {
+            for (const act of (app.actions || [])) {
+                if (act && act.name && act.inputSchema) draftWrap._inputSchemasByTool[act.name] = act.inputSchema;
+            }
+        }
+        draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
+    } catch (_) { /* permissive, as before */ }
+    // The chat's "inspect before you bind" gate remembers inspections for one SSE
+    // turn. Every MCP call is its own turn, so an inspect could never count and a
+    // partial add would be refused forever: the gate stays off here.
+    draftWrap._inspectGate = false;
     return { draftWrap };
 }
 

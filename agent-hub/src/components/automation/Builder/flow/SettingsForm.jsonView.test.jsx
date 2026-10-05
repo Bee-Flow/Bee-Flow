@@ -32,7 +32,7 @@ describe('SettingsForm — JSON view of the step config (BFSF-481)', () => {
     it('the advanced-options text is a working toggle that opens a JSON editor of the draft', () => {
         renderForm(waitStep());
         const toggle = screen.getByTestId('settings-json-toggle');
-        expect(toggle.textContent).toContain('Advanced options are available in the JSON view');
+        expect(toggle.textContent).toBe('Edit as JSON');
         fireEvent.click(toggle);
         const box = screen.getByLabelText('Step config as JSON');
         expect(JSON.parse(box.value)).toMatchObject({ label: 'Hold on', seconds: 60 });

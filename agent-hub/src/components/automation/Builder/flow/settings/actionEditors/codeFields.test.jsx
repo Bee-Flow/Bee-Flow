@@ -409,9 +409,7 @@ describe('what was already here keeps working', () => {
         renderUI(<CodeFields draft={draftOf({ forEach: { overRef: 'trigger.output.rows', itemVar: 'item' } })} set={vi.fn()} />);
         await screen.findByTestId('monaco-stub');
 
-        // Advanced stays closed even when it holds the forEach; one click opens it.
-        expect(screen.queryByRole('checkbox', { name: /run once per item/i })).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: /^Advanced/ }));
+        // Advanced settings show in the Advanced mode (no context = full view).
         expect(screen.getByRole('checkbox', { name: /run once per item/i })).toBeChecked();
     });
 });

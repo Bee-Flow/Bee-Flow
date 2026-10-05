@@ -191,10 +191,20 @@ describe('InputDataPanel — every word on it comes from the dictionary', () => 
             'automations.mapping.table': 'Tabel',
         };
         render(<InputDataPanel
-            groups={[{ id: 'raw', label: 'Raw step', kind: 'code', basePath: 'steps.raw.output', sample: [1, 2], fields: [] }]}
+            groups={[{ id: 'raw', label: 'Raw step', kind: 'code', basePath: 'steps.raw.output', sample: [1, 2], fields: [], hasRealData: true }]}
             previewSample={null}
             onPick={vi.fn()}
         />);
         expect(screen.getByText('Geen velden met een naam — open Tabel om uit de ruwe uitvoer te mappen.')).toBeTruthy();
+    });
+
+    it('a step that never ran says how to get its fields, not "open Table"', () => {
+        render(<InputDataPanel
+            groups={[{ id: 'a1', label: 'List mailboxes', kind: 'integration_action', basePath: 'steps.a1.output', sample: null, fields: [] }]}
+            previewSample={null}
+            onPick={vi.fn()}
+        />);
+        expect(screen.getByText('Not run yet: test this step to see what it passes on.')).toBeTruthy();
+        expect(screen.queryByText(/No named fields/)).toBeNull();
     });
 });

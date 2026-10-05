@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import type { RunStepRecord } from '../../../../api/queries/automation/runs';
 import OutputView from '../OutputView';
 import type { IoField, IoKind } from './runIo';
-import { humanKey, ioFields, mainList } from './runIo';
+import { configFields, humanKey, ioFields, mainList } from './runIo';
 
 const KIND_ICON: Record<IoKind, typeof Hash> = {
     number: Hash, list: Table2, record: Braces, text: Type, flag: ToggleLeft, empty: Circle,
@@ -39,8 +39,15 @@ const LISTS = 'grid grid-cols-1 content-start shrink-0 border-b border-[var(--bo
 const SECOND_LIST = 'border-t border-[var(--border-default)] @[600px]/runio:border-t-0 @[600px]/runio:border-l @[1100px]/runio:border-l-0 @[1100px]/runio:border-t';
 
 /** Got in / Passed on for one step, and its output as a table. */
-export default function RunIo({ step, label }: { step: RunStepRecord | null; label: string }) {
+export default function RunIo({ step, label, stepDef = null, labelById = null }: {
+    step: RunStepRecord | null;
+    label: string;
+    /** The step as this run's version defined it (BFSF-456): what it was set up to do. */
+    stepDef?: Record<string, unknown> | null;
+    labelById?: Map<string, string> | null;
+}) {
     const { t } = useTranslation();
+    const settings = useMemo(() => configFields(t, stepDef, labelById), [t, stepDef, labelById]);
     const inFields = useMemo(() => ioFields(t, step?.input), [t, step]);
     const outFields = useMemo(() => ioFields(t, step?.output), [t, step]);
     const list = useMemo(() => mainList(step?.output, step?.stepType), [step]);
@@ -57,6 +64,9 @@ export default function RunIo({ step, label }: { step: RunStepRecord | null; lab
                 <div className={LISTS}>
                     <FieldList title={t('runs.tab.got_in', 'Got in')} fields={inFields} empty={t('runs.io.nothing', 'Nothing')} />
                     <FieldList title={t('runs.tab.passed_on', 'Passed on')} fields={outFields} empty={t('runs.io.nothing', 'Nothing')} className={SECOND_LIST} />
+                    {settings.length > 0 && (
+                        <FieldList title={t('runs.tab.settings', 'Settings in this run')} fields={settings} empty="" className={SECOND_LIST} />
+                    )}
                 </div>
                 <div className="px-4 py-3 flex flex-col gap-2 flex-1 min-h-[320px] min-w-0 @[1100px]/runio:min-h-0">
                     <div className="flex items-center gap-2">

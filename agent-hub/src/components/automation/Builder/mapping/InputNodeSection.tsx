@@ -28,7 +28,7 @@ const FAMILY_ICON: Record<string, LucideIcon> = {
 const FieldRow = FieldRowJs as unknown as ComponentType<Record<string, unknown>>;
 
 interface Field { key: string; path: string; sample?: unknown; children?: Field[] }
-export interface InputGroup { id: string; label: string; kind?: string; basePath: string; sample?: unknown; fields?: Field[] }
+export interface InputGroup { id: string; label: string; kind?: string; basePath: string; sample?: unknown; fields?: Field[]; hasRealData?: boolean }
 
 export default function InputNodeSection({
     group, family, number, used, usedPaths, previewSample, onPick, defaultOpen, onOpenTable,
@@ -149,7 +149,9 @@ export default function InputNodeSection({
                                 {techOpen || searching ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                                 {t('automations.mapping.technical_details', 'Technical details')}
                                 <span className="ml-auto truncate">
-                                    {t('automations.mapping.technical_meta', '{n} fields · {names}', { n: plan.technical.length, names: technicalPreview(plan.technical) })}
+                                    {plan.technical.length === 1
+                                        ? t('automations.mapping.technical_meta_one', '1 field · {names}', { names: technicalPreview(plan.technical) })
+                                        : t('automations.mapping.technical_meta', '{n} fields · {names}', { n: plan.technical.length, names: technicalPreview(plan.technical) })}
                                 </span>
                             </button>
                             {(techOpen || searching) && plan.technical.map(row)}
@@ -157,8 +159,11 @@ export default function InputNodeSection({
                     )}
                     {fields.length === 0 && (
                         <div className="px-4 py-1 text-[11px] text-[var(--text-tertiary)] italic">
-                            {/* One key for the whole sentence, so any language can reorder it. */}
-                            {t('automations.mapping.no_named_fields', 'No named fields — open {table} to map from the raw output.', { table: t('automations.mapping.table', 'Table') })}
+                            {/* One key for the whole sentence, so any language can reorder it. A step
+                                that never ran has no fields YET: say how to get them, not "open Table". */}
+                            {!group.hasRealData
+                                ? t('automations.mapping.not_run_fields', 'Not run yet: test this step to see what it passes on.')
+                                : t('automations.mapping.no_named_fields', 'No named fields — open {table} to map from the raw output.', { table: t('automations.mapping.table', 'Table') })}
                         </div>
                     )}
                 </div>

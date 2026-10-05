@@ -95,3 +95,9 @@ test('strict-knowledge mode still prepends its constraint to the cached half', a
     const { stable } = await build({ isStrictKnowledge: true });
     assert.match(stable, /^⚠️ CRITICAL OPERATIONAL CONSTRAINT/);
 });
+
+test('agent chat carries the reply-language rule in the cached half, whatever the agent prompt says (BFSF-387)', async () => {
+    const { stable } = await build({ memoryContext: '[MEMORY]\n- language: Dutch' });
+    assert.match(stable, /## Reply language/);
+    assert.match(stable, /Active Memory never overrides the language of the user's latest message/);
+});

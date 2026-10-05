@@ -80,7 +80,6 @@ describe('ValueBuilder', () => {
     it('“Adjust it” writes the formula for the user', () => {
         const { onChange } = renderBuilder({ kind: 'ref', path: 'steps.act_4d4307a.output.total' });
         // Behind "Advanced": a plain drag never needs it.
-        fireEvent.click(screen.getByRole('button', { name: 'More ways to use this value' }));
         fireEvent.change(screen.getByLabelText('Adjust the value'), { target: { value: 'round' } });
         expect(onChange).toHaveBeenCalledWith({
             kind: 'expr', value: 'round(steps.act_4d4307a.output.total)',
@@ -88,7 +87,6 @@ describe('ValueBuilder', () => {
         // …and reads back as that same adjustment, not as an opaque formula.
         cleanup();
         renderBuilder({ kind: 'expr', value: 'round(steps.act_4d4307a.output.total)' });
-        fireEvent.click(screen.getByRole('button', { name: 'More ways to use this value' }));
         expect(screen.getByLabelText('Adjust the value').value).toBe('round');
     });
 

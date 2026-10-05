@@ -25,11 +25,10 @@ import scopedStorage from '../../../../utils/scopedStorage';
  * has already configured it (`hasContent`): hiding a thing that is switched
  * on reads as data loss.
  *
- * ADVANCED (`sectionKey === 'advanced'`) never opens by itself: not because it
- * holds settings (`defaultOpen`), not because the builder just set a forEach
- * on the step, not on a reveal. Only the author's own click, or a validation
- * error inside it (`forceOpen`, so the error stays reachable). When it holds
- * settings it says so with a quiet "set" on its closed band.
+ * ADVANCED (`sectionKey === 'advanced'`) is not a collapsible block any more:
+ * the header's Simple / Advanced switch is the one control. In Simple its
+ * block is left out entirely (a validation error inside it still shows it);
+ * in Advanced its settings are shown inline, without a band or toggle.
  */
 export default function AccordionSection({
     stepType,
@@ -71,7 +70,11 @@ export default function AccordionSection({
     const ctx = useFormDensity();
     const mode = resolveMode(ctx);
     const { onHiddenSection, onShownSection } = ctx;
-    const hidden = mode === 'simple' && hiddenInSimple(stepType, sectionKey) && !forceOpen && !hasContent;
+    // Advanced is the MODE now, not a second button: in Simple its block is
+    // left out (unless an error sits in it), in Advanced it is simply there.
+    const hidden = isAdvanced
+        ? mode === 'simple' && !forceOpen
+        : mode === 'simple' && hiddenInSimple(stepType, sectionKey) && !forceOpen && !hasContent;
 
     // Report both directions so the host's "Show all options (N)" count can
     // go down as well as up. A visible section's report is a harmless no-op
@@ -96,6 +99,20 @@ export default function AccordionSection({
     }, [hidden, forceOpen, mode, isAdvanced]);
 
     if (hidden) return null;
+    // No band, no toggle: the Simple / Advanced switch in the header already
+    // decided that these settings are wanted. Errors still show their count.
+    if (isAdvanced) {
+        return (
+            <div className="pt-2 space-y-2" data-section-key={sectionKey}>
+                {errorCount > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30 tabular-nums">
+                        {errorCount}
+                    </span>
+                )}
+                {children}
+            </div>
+        );
+    }
 
     const onToggle = (next) => {
         setOpen(next);

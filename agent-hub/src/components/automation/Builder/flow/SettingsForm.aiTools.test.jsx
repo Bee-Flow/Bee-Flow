@@ -45,7 +45,8 @@ function renderForm(step, { onPatch = vi.fn() } = {}) {
     return { onPatch, ...utils };
 }
 
-const openAdvanced = () => fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
+// Advanced is a mode now (the header's switch), not a button: its settings show in the full view.
+const openAdvanced = () => {};
 
 describe('SettingsForm — AI step tool picker', () => {
     beforeEach(() => {

@@ -55,7 +55,7 @@ export function humanizeExpression(expr: unknown, stepLabelById: Map<string, str
             return path ? `‹${label}›.${path}` : `‹${label}›`;
         })
         .replace(/\bloop\.([A-Za-z0-9_]+)(?:\.([A-Za-z0-9_.[\]]+))?/g, (_m, itemVar: string, path?: string) => {
-            const head = itemVar ? `‹Loop item · ${itemVar}›` : '‹Loop item›';
+            const head = itemVar ? `‹Each ${itemVar}›` : '‹Each item›';
             return path ? `${head}.${path}` : head;
         })
         .replace(/\btrigger(?:\.([A-Za-z0-9_.[\]]+))?/g, (_m, path?: string) => (path ? `‹Trigger›.${path}` : '‹Trigger›'));
