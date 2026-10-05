@@ -175,6 +175,7 @@ async function discover() {
     _userCursor = (start + count) % users.length;
     for (let i = 0; i < count; i++) {
         const userId = users[(start + i) % users.length];
+        // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- scheduling jitter between users, not a secret
         if (i > 0) await sleep(Math.floor(Math.random() * USER_JITTER_MS));
         try { await discoverUser(userId); }
         catch (e) { log.error(`[TeamsAutoImport] discovery failed for user ${userId}: ${e.message}`); }

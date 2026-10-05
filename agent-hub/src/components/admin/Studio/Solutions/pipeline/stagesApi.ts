@@ -157,6 +157,7 @@ const isObject = (v: unknown): v is Json => v !== null && typeof v === 'object' 
 export function newRequestKey(): string {
     const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
     if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a client-side request key for de-duplication, not a secret or a token
     return `rk_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
 }
 

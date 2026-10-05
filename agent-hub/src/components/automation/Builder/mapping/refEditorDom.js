@@ -293,6 +293,7 @@ export function insertAtCaret(host, nodes, opts = {}) {
     let padAfter = false;
     if (opts.spaced) {
         const before = neighbourChar(range, host, -1);
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- WORD / SPACE_BEFORE are constant single-character classes tested on ONE character: linear
         const next = neighbourChar(range, host, 1);
         if (before && SPACE_BEFORE.test(before)) nodes = [doc.createTextNode(' '), ...nodes];
         padAfter = Boolean(next && WORD.test(next));

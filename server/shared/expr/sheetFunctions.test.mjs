@@ -147,3 +147,22 @@ describe('date functions', () => {
         assert.ok(serial > 46297 && serial < 46299);
     });
 });
+
+describe('COUNTIF wildcards', () => {
+    const cells = { A1: 'apple', A2: 'Apricot', A3: 'banana', A4: 'grape', A5: 'a.b', A6: 'axb' };
+    test('* matches any run, ? one character, case-insensitive', () => {
+        assert.equal(val('=COUNTIF(A1:A6, "a*")', cells), 4);
+        assert.equal(val('=COUNTIF(A1:A6, "*an*")', cells), 1);
+        assert.equal(val('=COUNTIF(A1:A6, "gr?pe")', cells), 1);
+        assert.equal(val('=COUNTIF(A1:A6, "APPLE")', cells), 1);
+    });
+    test('regex characters in the criterion are literal', () => {
+        assert.equal(val('=COUNTIF(A1:A6, "a.b")', cells), 1);
+    });
+    test('a pathological criterion on a long cell answers at once (no regex backtracking)', () => {
+        const long = { A1: 'a'.repeat(5000) + 'b' };
+        const started = Date.now();
+        assert.equal(val(`=COUNTIF(A1:A1, "${'*a'.repeat(25)}*c")`, long), 0);
+        assert.ok(Date.now() - started < 1000, `took ${Date.now() - started} ms`);
+    });
+});

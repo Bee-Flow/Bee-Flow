@@ -189,6 +189,7 @@ const tokenRe = (path: string) => new RegExp(`\\{\\{\\s*${path.replace(/[.*+?^${
 
 /** Does `text` still hold `{{path}}`? */
 export function hasToken(text: string, path: string): boolean {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the path is escaped before it goes into the pattern; no nested repeat: linear
     return tokenRe(path).test(String(text || ''));
 }
 

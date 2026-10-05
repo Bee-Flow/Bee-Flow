@@ -59,6 +59,7 @@ function codedError(message, code, status = null) {
 }
 
 function assertId(value, what) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- MEETING_ID_RE is a constant anchored class with a bounded {1,1024} repeat: linear
     if (typeof value !== 'string' || !MEETING_ID_RE.test(value)) {
         throw codedError(`Not a valid Teams ${what} id`, 'failed');
     }

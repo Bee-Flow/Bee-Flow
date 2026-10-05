@@ -144,6 +144,7 @@ export function getAutocompleteToken(el, mode, roots = AUTOCOMPLETE_ROOTS) {
  * `length` is how many typed characters the accepted suggestion should swallow.
  */
 export function getAutocompleteTokenFromPrefix(before, mode, roots = AUTOCOMPLETE_ROOTS) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a constant character class with one * on a slice after the last {{: linear
     const text = typeof before === 'string' ? before : '';
     if (mode === 'fixed') {
         const open = text.lastIndexOf('{{');

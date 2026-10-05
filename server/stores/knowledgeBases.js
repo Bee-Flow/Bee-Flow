@@ -1002,6 +1002,7 @@ const KnowledgeBasesStore = {
         // A carried base in a Solution stage changes document content only
         // through a deploy (design 5.2: publish/audience only).
         const { managedWrite = null, ...updates } = patch || {};
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- UUID_RE is a constant anchored pattern with fixed-length groups: linear
         const owner = UUID_RE.test(String(docId))
             ? await getOne('SELECT knowledge_base_id FROM documents WHERE id = $1', [docId])
             : null;
@@ -1194,6 +1195,7 @@ const KnowledgeBasesStore = {
     deleteDocument: async (id, { deletedBy = null, skipSnapshot = false, managedWrite = null } = {}) => {
         await initDB();
         // A carried base in a Solution stage loses documents only through a deploy.
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- UUID_RE is a constant anchored pattern with fixed-length groups: linear
         const owner = UUID_RE.test(String(id))
             ? await getOne('SELECT knowledge_base_id FROM documents WHERE id = $1', [id])
             : null;
