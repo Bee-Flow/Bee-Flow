@@ -323,6 +323,7 @@ export type Outcome = 'deploy_uat' | 'deploy_prd' | 'promote' | 'request_approva
 export function outcomeOf(plan: Plan | null, stage: StageKey, kind: DeploymentKind): Outcome {
     if (plan?.gates?.approval === 'required' && stage === 'prd') return 'request_approval';
     if (kind === 'rollback') return 'rollback';
+    // nosemgrep: ajinabraham.njsscan.generic.logic_bypass.node_logic_bypass -- a UI label choice (redeploy vs apply settings), not an access decision; the server decides what may run
     if (kind === 'redeploy') return plan?.release && plan.from && plan.release.id === plan.from.releaseId ? 'apply_settings' : 'redeploy';
     return stage === 'uat' ? 'deploy_uat' : 'promote';
 }

@@ -77,6 +77,7 @@ async function sha256File(file) {
 
 /** Copy or download the source to `file`. Only https (or http on loopback, for tests). */
 export async function obtainTarball(source, file, { fetchImpl = globalThis.fetch } = {}) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a constant anchored prefix test, no repeat: linear
     if (/^https?:\/\//i.test(source)) {
         const url = new URL(source);
         const loopback = ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);

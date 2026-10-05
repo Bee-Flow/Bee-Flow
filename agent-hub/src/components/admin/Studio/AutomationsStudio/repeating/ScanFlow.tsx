@@ -63,6 +63,7 @@ export function skipReason(reason: string | null, t: TranslateFn): string {
         case 'auth': return t('automations.repeating.skipAuth', 'needs to be connected again');
         case 'not_connected': return t('automations.repeating.skipNotConnected', 'not connected');
         case 'error': return t('automations.repeating.skipError', 'could not be read');
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a constant anchored character class, no nested repeat: linear
         default: return /^[a-z_]+$/.test(reason) ? t('automations.repeating.skipError', 'could not be read') : reason;
     }
 }

@@ -66,6 +66,7 @@ export default function VariablesDeclarations({ solutionId, canEdit }: Variables
     const nameText = useCallback((p: NameProblem | 'choices_missing') => ({
         empty: t('stage_settings.decl_name_empty', 'Give the variable a name.'),
         invalid: t('stage_settings.decl_name_invalid', 'Start with a lowercase letter; then lowercase letters, digits and underscores.'),
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key and message ABOUT secrets, not a secret
         secret: t('stage_settings.decl_name_secret', 'This name looks like a secret. Store secrets in a connection, not in a variable.'),
         duplicate: t('stage_settings.decl_name_duplicate', 'Another variable has this name.'),
         choices_missing: t('stage_settings.decl_choices_missing', 'A choice needs its options.'),
@@ -78,6 +79,7 @@ export default function VariablesDeclarations({ solutionId, canEdit }: Variables
         if (res.ok) { const next = res.data.map(rowOf); setRows(next); setSaved(JSON.stringify(next)); return; }
         const err = settingsError(res);
         setRefused(err.kind === 'variable' && err.code === 'variable_secret_name'
+            // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key and message ABOUT secrets, not a secret
             ? t('stage_settings.decl_name_secret', 'This name looks like a secret. Store secrets in a connection, not in a variable.')
             : err.kind === 'licence' ? t('stage_settings.decl_licence', 'Your plan does not include release pipelines.')
                 : t('stage_settings.decl_failed', 'The variables were not saved. Nothing changed.'));

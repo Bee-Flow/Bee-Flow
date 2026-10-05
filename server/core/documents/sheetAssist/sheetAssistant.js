@@ -333,6 +333,7 @@ function makeSheetAssistant(deps = {}) {
                 const categoriesRange = args?.categoriesRange ? String(args.categoriesRange) : undefined;
                 if (categoriesRange && !parseRange(categoriesRange)) return 'Error: categoriesRange must be a range like "A2:A10".';
                 const chart = {
+                    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a chart id inside one sheet, not a secret
                     id: `chart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                     type, dataRange, anchor, categoriesRange,
                     title: args?.title ? String(args.title) : undefined,

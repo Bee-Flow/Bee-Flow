@@ -190,6 +190,7 @@ function filenameStem(name) {
  */
 function templateIdOf(template) {
     const norm = String(template ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- a short content fingerprint for de-duplicating templates, not a security hash
     return crypto.createHash('sha1').update(norm).digest('hex').slice(0, 12);
 }
 

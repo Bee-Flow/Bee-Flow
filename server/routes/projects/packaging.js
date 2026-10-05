@@ -530,6 +530,7 @@ router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owne
  * from it can be tied back to its gallery row.
  */
 router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjectRole('owner'), validate({ query: S.ReleaseQuery }), requireSolutionProject, async (req, res) => {
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the response is a JSON attachment (application/json), never HTML
     const release = await require('../../stores/blueprintStore').getRelease(req.params.id, req.params.releaseId);
     if (!release || release.channel === 'pipeline') throw new HttpError(404, 'not_found', 'Not found');
 
@@ -550,6 +551,8 @@ router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjec
             version: release.version,
         });
         res.attachment(`${name}-v${release.version}.blueprint.json`);
+        res.type('application/json');
+        // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- a JSON file sent as an attachment with an application/json type; nothing is rendered as HTML
         return res.send(JSON.stringify(file, null, 2));
     }
     res.json({
