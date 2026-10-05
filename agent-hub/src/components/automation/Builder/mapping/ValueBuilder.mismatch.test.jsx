@@ -6,6 +6,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ValueBuilder from './ValueBuilder';
 import { VariablePickerProvider } from './VariablePickerContext';
+import { FormDensityContext } from '../flow/settings/formDensity';
 
 // vitest runs from the agent-hub root; resolving from cwd avoids import.meta
 // URL schemes that differ between the .js and .jsx transforms.
@@ -55,11 +56,12 @@ const LABELS = new Map([['s1', 'gmail search']]);
  * That is the real entry point for click-to-insert and for drag-and-drop, so
  * the test exercises the pipeline rather than a private function.
  */
-function renderEditor(props = {}) {
+function renderEditor({ mode = null, ...props } = {}) {
     const onChange = vi.fn();
     const onRequestForEach = vi.fn();
     const handle = { current: null };
     render(
+        <FormDensityContext.Provider value={{ density: 'full', mode, onHiddenSection: null, onShownSection: null }}>
         <VariablePickerProvider groups={GROUPS} previewSample={SAMPLE} stepLabelById={LABELS}>
             <ValueBuilder
                 value={{ kind: 'literal', value: '' }}
@@ -72,7 +74,8 @@ function renderEditor(props = {}) {
                 onRequestForEach={onRequestForEach}
                 {...props}
             />
-        </VariablePickerProvider>,
+        </VariablePickerProvider>
+        </FormDensityContext.Provider>,
     );
     // Focusing publishes the handle (the editor is a textbox in inline mode).
     const box = screen.getAllByRole('textbox')[0];
@@ -91,8 +94,8 @@ function renderEditor(props = {}) {
 describe('a pick that does not fit one-to-one is answered without a question', () => {
     beforeEach(cleanup);
 
-    it('a list into a text slot goes in comma separated, and nothing asks', () => {
-        const { onChange, insertQuiet } = renderEditor();
+    it('a list into a text slot goes in comma separated, and nothing asks (Simple)', () => {
+        const { onChange, insertQuiet } = renderEditor({ mode: 'simple' });
         insertQuiet('steps.s1.output.addresses');
         expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
         expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'expr', value: 'join(steps.s1.output.addresses, ", ")' });
@@ -115,11 +118,11 @@ describe('a pick that does not fit one-to-one is answered without a question', (
         expect(onRequestForEach).toHaveBeenLastCalledWith(null);
     });
 
-    it('the other answers are one click away, under More', () => {
-        const { insertQuiet } = renderEditor();
+    it('the other answers show under the field in Advanced, and not at all in Simple', () => {
+        const { insertQuiet } = renderEditor({ mode: 'advanced' });
         insertQuiet('steps.s1.output.addresses');
-        fireEvent.click(screen.getByRole('button', { name: 'More ways to use this value' }));
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'More ways to use this value' })).toBeNull();
     });
 });
 
@@ -210,21 +213,21 @@ describe('a GROUP into a slot that wants one value — a question that used to b
         // Before this round `pathListShape` returned null for an object, so
         // the editor asked nothing and wrote the raw group — which reaches the
         // provider as "[object Object]".
-        const { insert } = renderEditor();
+        const { insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.sender');
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
         expect(screen.getByText(/Pick a field inside it/)).toBeTruthy();
     });
 
     it('writes mismatch.js\'s own default at once, so the field is never left holding the object', () => {
-        const { onChange, insert } = renderEditor();
+        const { onChange, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.sender');
         expect(onChange).toHaveBeenCalledTimes(1);
         expect(onChange.mock.calls[0][0]).toEqual({ kind: 'expr', value: 'groupSummary(steps.s1.output.sender)' });
     });
 
     it('offers the group\'s own fields, and binds the one the author picks', () => {
-        const { onChange, insert } = renderEditor();
+        const { onChange, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.sender');
         fireEvent.click(screen.getByRole('button', { name: 'Field options' }));
         fireEvent.click(screen.getByRole('button', { name: 'Email' }));
@@ -232,7 +235,7 @@ describe('a GROUP into a slot that wants one value — a question that used to b
     });
 
     it('marks the chosen remedy, so the box says what the field holds', () => {
-        const { insert } = renderEditor();
+        const { insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.sender');
         fireEvent.click(screen.getByRole('button', { name: 'Field options' }));
         fireEvent.click(screen.getByRole('button', { name: 'Name' }));
@@ -240,12 +243,48 @@ describe('a GROUP into a slot that wants one value — a question that used to b
     });
 
     it('closing the box leaves the binding it already wrote', () => {
-        const { onChange, insert } = renderEditor();
+        const { onChange, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.sender');
         const calls = onChange.mock.calls.length;
         fireEvent.click(screen.getByLabelText('Cancel'));
         expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
         expect(onChange.mock.calls.length).toBe(calls);
+    });
+});
+
+describe('a whole GROUP on a title or an e-mail slot: its matching field', () => {
+    beforeEach(cleanup);
+
+    it('a title takes the record\'s name, no question asked', () => {
+        const { onChange, insert } = renderEditor({ label: 'Subject' });
+        insert('steps.s1.output.sender');
+        expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'ref', path: 'steps.s1.output.sender.name' });
+        expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
+    });
+
+    it('an e-mail slot takes the e-mail field', () => {
+        const { onChange, insert } = renderEditor({ label: 'to', expectKind: 'email' });
+        insert('steps.s1.output.sender');
+        expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'ref', path: 'steps.s1.output.sender.email' });
+    });
+});
+
+describe('a whole TABLE on a slot that wants one e-mail, number or date: its matching column', () => {
+    beforeEach(cleanup);
+
+    it('takes the column the slot is named after, and runs once per row', () => {
+        // "Mail accounts ▸ Accounts" dropped on accountId: a Markdown table in a
+        // number slot fails the run; the author meant each account's id.
+        const { onChange, onRequestForEach, insert } = renderEditor({ expectKind: 'email', label: 'from_email' });
+        insert('steps.s1.output.results');
+        expect(onRequestForEach).toHaveBeenCalledWith(expect.objectContaining({ overRef: 'steps.s1.output.results' }));
+        expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'ref', path: 'loop.result.from_email' });
+    });
+
+    it('keeps the table when no column fits the slot', () => {
+        const { onChange, insert } = renderEditor({ expectKind: 'number', label: 'amount' });
+        insert('steps.s1.output.results');
+        expect(onChange.mock.calls[0][0]).toEqual({ kind: 'expr', value: 'asTable(steps.s1.output.results)' });
     });
 });
 

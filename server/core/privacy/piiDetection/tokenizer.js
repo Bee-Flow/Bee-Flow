@@ -9,6 +9,7 @@ const { resolveSpanOverlaps } = require('../../dlp/spanOverlap');
 const { isCustomTypeId } = require('../customTypes/ids');
 const { tokenKeyFor } = require('../customTypes/registry');
 const { sweepNameOccurrences } = require('./nameSweep');
+const { splitAtCellBreaks } = require('./cellSplit');
 
 /**
  * Tokenize PII in text — replace each detected entity with a reversible token.
@@ -54,7 +55,9 @@ const { sweepNameOccurrences } = require('./nameSweep');
 // distinctive part of a longer name, so "van der" must not fold into
 // "Theodorus van der Brug".
 const _ALIAS_PARTICLES = new Set([
-    'van', 'de', 'der', 'den', 'het', 'ten', 'ter', 'te', 'op', 'aan', 'aan', 'in',
+    'van', 'de', 'der', 'den', 'het', 'ten', 'ter', 'te', 'op', 'aan', 'in',
+    // The 't / 's of "van 't Hof" and "'s-Gravenhage", as in the guard's list.
+    't', 's',
     'the', 'of', 'and', 'en', 'bv', 'nv', 'ltd', 'inc', 'llc', 'gmbh', 'plc', 'ag', 'sa',
 ]);
 
@@ -203,7 +206,11 @@ function tokenizeText(text, entities, existingTokenMap = null, options = {}) {
     // calling in; the other four callers did not. Resolve here, at the single
     // mint site, so every caller is covered and the guarantee cannot be
     // forgotten again.
-    const resolved = resolveSpanOverlaps(entities, text);
+    // …and no span may cross a line or table cell (BFSF-299): one token over
+    // three cells shifted every later column of the row. Cut after the overlap
+    // pass, so the pieces of disjoint spans stay disjoint, and before the name
+    // sweep and the alias index, so both see one cell per value.
+    const resolved = splitAtCellBreaks(resolveSpanOverlaps(entities, text), text, { particles: _ALIAS_PARTICLES });
 
     // A person found once is replaced everywhere (BFSF-269/300): the detector
     // misses some mentions of a name it found elsewhere, and alias coalescing

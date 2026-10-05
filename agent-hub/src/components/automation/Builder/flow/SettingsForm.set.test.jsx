@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
@@ -111,7 +110,6 @@ describe('SettingsForm — Edit data (set)', () => {
         expect(screen.queryByText('Working through')).toBeNull();
         expect(screen.queryByText('Table tools')).toBeNull();
         // forEach still offered under Advanced for single mode.
-        fireEvent.click(screen.getByText('Advanced'));
         expect(screen.getByText('Run once per item')).toBeTruthy();
     });
 
@@ -119,8 +117,6 @@ describe('SettingsForm — Edit data (set)', () => {
         renderForm(LIST_STEP);
         // Not in the way of the actual work: the source lives with the other
         // overrides, one line, named — never as a raw path.
-        expect(screen.queryByText('Working through')).toBeNull();
-        fireEvent.click(screen.getByText('Advanced'));
         expect(screen.getByText('Working through')).toBeTruthy();
         expect(screen.getByText('gmail search')).toBeTruthy();
         expect(screen.getByText('Results')).toBeTruthy();
@@ -132,7 +128,6 @@ describe('SettingsForm — Edit data (set)', () => {
     it('list mode hides forEach and shows the Table tools section instead', () => {
         renderForm(LIST_STEP);
         expect(screen.getByText('Table tools')).toBeTruthy();
-        fireEvent.click(screen.getByText('Advanced'));
         expect(screen.queryByText('Run once per item')).toBeNull();
     });
 
@@ -170,7 +165,6 @@ describe('SettingsForm — Edit data (set)', () => {
     it('“Adjust it” turns a picked value into a formula without anyone typing one', async () => {
         const { onPatch } = renderForm(LIST_STEP);
         // The field's own options sit under "More": a plain drag never needs them.
-        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         fireEvent.change(screen.getByLabelText('Adjust the value'), { target: { value: 'lower' } });
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
@@ -188,7 +182,6 @@ describe('SettingsForm — Edit data (set)', () => {
         // select) and never the raw binding box's mode toggle.
         renderForm(LIST_STEP);
         expect(screen.getAllByText(/Use data from a step|Add data/).length).toBeGreaterThan(0);
-        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         expect(screen.getByLabelText('Adjust the value')).toBeTruthy();
         expect(screen.queryByRole('group', { name: 'Value mode' })).toBeNull();
 
@@ -200,7 +193,6 @@ describe('SettingsForm — Edit data (set)', () => {
 
     it('the raw formula editor is offered in the full view only', () => {
         renderForm(LIST_STEP);
-        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         expect(screen.getAllByLabelText('Write this value as a formula').length).toBe(1);
     });
 
@@ -263,7 +255,6 @@ describe('SettingsForm — Edit data (set)', () => {
 
     it('the Advanced "Works on" select flips modes; leaving list mode warns about table tools', async () => {
         const { onPatch } = renderForm(LIST_STEP);
-        fireEvent.click(screen.getByText('Advanced'));
         expect(screen.getByText(/also removes the table tools/)).toBeTruthy();
         fireEvent.change(screen.getByDisplayValue('Each row of a list'), { target: { value: 'single' } });
         save();
@@ -276,7 +267,6 @@ describe('SettingsForm — Edit data (set)', () => {
     it('a legacy forEach in list mode shows the supersession note and is cleared on save', async () => {
         const step = { ...LIST_STEP, forEach: { overRef: 'steps.g.output.results', itemVar: 'item' } };
         const { onPatch } = renderForm(step);
-        fireEvent.click(screen.getByText('Advanced'));
         expect(screen.getByText(/List mode replaces/)).toBeTruthy();
         // Make the form dirty (Save is a no-op on an untouched draft), then
         // check the save carries the explicit forEach clear along.
@@ -358,27 +348,19 @@ describe('SettingsForm — Edit data with a source list that is not found (BFSF-
     it('an upstream step that never ran: its design sample is no evidence, so it stays under Advanced', async () => {
         // The preview root holds a design sample for every upstream step,
         // run or not; a path that sample lacks is not a lost list.
-        const user = userEvent.setup();
         renderForm({ ...LIST_STEP, arrayRef: 'steps.g.output.messages' });
-        expect(screen.queryByText('Working through')).toBeNull();
-        expect(screen.queryByText(WARNING)).toBeNull();
-        await user.click(screen.getByText('Advanced'));
         expect(screen.getByText('Working through')).toBeTruthy();
         expect(screen.queryByText(WARNING)).toBeNull();
     });
 
     it('no upstream data and no run: nothing to judge, so it stays under Advanced', async () => {
-        const user = userEvent.setup();
         renderForm({ ...LIST_STEP, arrayRef: 'steps.g.output.messages' }, { previewSample: null });
-        expect(screen.queryByText('Working through')).toBeNull();
-        expect(screen.queryByText(WARNING)).toBeNull();
-        await user.click(screen.getByText('Advanced'));
         expect(screen.getByText('Working through')).toBeTruthy();
         expect(screen.queryByText(WARNING)).toBeNull();
     });
 
-    it('a healthy source with a successful run stays under Advanced', () => {
-        renderForm(LIST_STEP, { runStep: { stepId: 's1', status: 'success', output: { items: [], count: 0 } } });
+    it('a healthy source with a successful run stays under Advanced: not in Simple', () => {
+        renderForm(LIST_STEP, { density: 'quick', runStep: { stepId: 's1', status: 'success', output: { items: [], count: 0 } } });
         expect(screen.queryByText('Working through')).toBeNull();
     });
 
@@ -390,9 +372,7 @@ describe('SettingsForm — Edit data with a source list that is not found (BFSF-
     });
 
     it('is shown once: not again under Advanced', async () => {
-        const user = userEvent.setup();
         renderForm(LIST_STEP, { runStep: SKIPPED_RUN });
-        await user.click(screen.getByText('Advanced'));
         expect(screen.getAllByText('Working through').length).toBe(1);
     });
 });

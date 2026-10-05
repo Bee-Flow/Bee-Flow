@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import themeVars from '../admin/Studio/AppStudio/runtime/themeVars';
 import { Field, INPUT_CLASS, inputStyle } from '../admin/Studio/AppStudio/runtime/uiBits';
+import { normaliseOptions } from './formOptions';
 
 /**
  * Renders one form-trigger form. Used by the PUBLIC hosted page and by the
@@ -735,7 +736,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
             ) : field.type === 'select' ? (
                 <select {...common} value={value || ''} onChange={(e) => onChange(e.target.value)}>
                     <option value="">{field.placeholder || 'Choose…'}</option>
-                    {(field.options || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {normaliseOptions(field.options).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
             ) : field.type === 'file' ? (
                 <FileField field={field} value={value} disabled={disabled} onChange={onChange} onUpload={onUpload} onError={onError} />

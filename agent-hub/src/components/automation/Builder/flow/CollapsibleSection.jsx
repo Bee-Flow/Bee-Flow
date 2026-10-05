@@ -107,6 +107,28 @@ export default function CollapsibleSection({
         );
     }
 
+    // "static": a heading, not a toggle. The block it names is always there
+    // (a step's inputs are what the step is for; folding them away only hid
+    // the work).
+    if (kind === 'static') {
+        return (
+            <div data-variant="static">
+                <div className={bandClass()}>
+                    <h3 className={`flex-1 min-w-0 px-2 py-1.5 ${sectionHeaderClass()}`}>
+                        <span className="truncate">{title}</span>
+                    </h3>
+                    {(badgePill || meta) && (
+                        <div className="shrink-0 flex items-center gap-1.5">
+                            {badgePill}
+                            {meta}
+                        </div>
+                    )}
+                </div>
+                <div className={railClass()}>{children}</div>
+            </div>
+        );
+    }
+
     if (kind === 'disclosure') {
         return (
             <div data-variant="disclosure">

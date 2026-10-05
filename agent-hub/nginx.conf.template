@@ -272,6 +272,13 @@ server {
         add_header Cache-Control "no-store, no-cache, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
     }
+    # The embedded build (Vite --base = NC's proxy path) asks for it under
+    # /embed/; there is one file, at the root. Without this the /embed/
+    # fallback answered with index.html: a 404-ish HTML page with a MIME error
+    # in the Nextcloud console (BFSF-483).
+    location = /embed/beeflow-runtime.js {
+        rewrite ^ /beeflow-runtime.js last;
+    }
 
     # Learning Center video pack, served by the backend from LEARN_MEDIA_DIR
     # (server/learning/learnMedia.js). Without this block the path falls into

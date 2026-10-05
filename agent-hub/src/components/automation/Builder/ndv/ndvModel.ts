@@ -171,7 +171,9 @@ export function incomingSummary(
     t: TranslateFn,
 ): string {
     if (!groups.length) return t('automations.ndv.col_in_nothing', 'Nothing yet, this step comes first');
-    const nearest = groups[groups.length - 1];
+    // "Trigger info" is appended after the steps but is not a source step.
+    const steps = groups.filter(g => (g as { kind?: string }).kind !== 'trigger_meta');
+    const nearest = steps[steps.length - 1] ?? groups[groups.length - 1];
     let data = previewSample ? walk(nearest.basePath, previewSample) : undefined;
     if (data === undefined) data = nearest.sample;
     const rec = Array.isArray(data) ? data[0] : data;

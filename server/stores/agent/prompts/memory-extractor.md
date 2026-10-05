@@ -52,3 +52,10 @@ as this system is concerned, and `role` and `job_title` are two different facts.
 
 Never use a pronoun or a description as a subject. Two people's roles must not
 share a subject, or the second one recorded will replace the first.
+
+## Reply language is not a preference
+
+Do not save the language the user happens to write in, or a one-off request such as
+"answer in Dutch" or "in English please", as a preference: the assistant already
+replies in the language of each message. Save a `language` preference only when the
+user says it must ALWAYS apply, whatever language they write in.

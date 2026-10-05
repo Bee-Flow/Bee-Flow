@@ -32,14 +32,14 @@ describe('SettingsForm — accordion sections', () => {
         try { localStorage.clear(); } catch { /* ignore */ }
     });
 
-    it('keeps the AI prompt flat and collapses the empty Inputs section by default', () => {
+    it('keeps the AI prompt flat, and Inputs is a heading that never folds away', () => {
         renderForm({ id: 's1', type: 'ai_step', label: 'My AI', prompt: 'Do X', inputs: {}, outputFields: [] });
         // Prompt is always visible (flat, not in an accordion).
         expect(screen.getByPlaceholderText(/Summarise this email/)).toBeTruthy();
-        // Section headers exist…
-        expect(screen.getByRole('button', { name: 'Inputs' })).toBeTruthy();
-        // …but the empty Inputs body is collapsed.
-        expect(screen.queryByText(/No inputs yet/)).toBeNull();
+        // Inputs is a heading, not a toggle, and its body is always there.
+        expect(screen.getByRole('heading', { name: 'Inputs' })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Inputs' })).toBeNull();
+        expect(screen.getByText(/No inputs yet/)).toBeTruthy();
     });
 
     it('force-opens the section that contains a validation error', () => {
@@ -56,25 +56,25 @@ describe('SettingsForm — accordion sections', () => {
     const sectionHeader = (title) =>
         screen.getAllByRole('button').find(b => b.hasAttribute('aria-expanded') && b.textContent.trim() === title);
 
-    it('opens a populated Inputs section by default for integration_action', () => {
+    it('shows a populated Inputs section for integration_action', () => {
         renderForm({ id: 'i1', type: 'integration_action', label: 'Send', tool: 'gmail_send', inputs: { to: { kind: 'literal', value: 'a@b.com' } } });
         // The operation is a card above the sections since round 4, not a Basics section.
         expect(screen.getByTestId('action-card')).toBeTruthy();
-        expect(sectionHeader('Inputs')).toBeTruthy();
-        // The populated field row is visible (section open by default).
+        expect(screen.getByRole('heading', { name: 'Inputs' })).toBeTruthy();
+        // The populated field row is visible: Inputs never folds away.
         expect(screen.getByDisplayValue('to')).toBeTruthy();
     });
 
     it('persists a collapsed section across remounts', () => {
-        const step = { id: 'i1', type: 'integration_action', label: 'Send', tool: 'gmail_send', inputs: { to: { kind: 'literal', value: 'a@b.com' } } };
+        const step = { id: 'h1', type: 'http_request', label: 'Call', method: 'GET', url: '' };
         renderForm(step);
-        expect(screen.getByDisplayValue('to')).toBeTruthy();
-        fireEvent.click(sectionHeader('Inputs'));
-        expect(scopedStorage.getItem('collapse.inspector.integration_action.inputs')).toBe('0');
+        expect(screen.getByText('Method')).toBeTruthy();
+        fireEvent.click(sectionHeader('Request'));
+        expect(scopedStorage.getItem('collapse.inspector.http_request.request')).toBe('0');
         cleanup();
         renderForm(step);
-        // Re-mounted: the persisted collapsed state hides the field row.
-        expect(screen.queryByDisplayValue('to')).toBeNull();
+        // Re-mounted: the persisted collapsed state hides the section's fields.
+        expect(screen.queryByText('Method')).toBeNull();
     });
 
     it('still autosaves edits (section state is decoupled from the draft)', async () => {
@@ -86,9 +86,8 @@ describe('SettingsForm — accordion sections', () => {
 
     it('AI step exposes a "Run once per item" loop toggle under Advanced', () => {
         renderForm({ id: 's1', type: 'ai_step', label: 'My AI', prompt: 'Do X', inputs: {}, outputFields: [] });
-        // The loop control lives inside the AI step's Advanced section.
-        expect(screen.queryByText('Run once per item')).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
+        // The loop control lives in the AI step's Advanced settings: shown in
+        // the Advanced mode (the full view's default), without a click.
         expect(screen.getByText('Run once per item')).toBeTruthy();
     });
 });

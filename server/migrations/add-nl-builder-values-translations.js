@@ -173,6 +173,12 @@ const NL_TRANSLATIONS = {
     'automations.builder.choice_foreach_detail': 'De stap draait {n}× — één keer per rij. Dit veld krijgt de waarde van die rij.',
     'automations.builder.foreach_blocked_nested': 'Elke rij bevat hier zelf nog een lijst — kies liever één waarde binnen de rij.',
     'automations.builder.foreach_set_note': 'Deze stap draait nu één keer per rij — {n} runs.',
+    'automations.builder.foreach_set_note_one': 'Deze stap draait nu één keer per rij — 1 run.',
+    'automations.builder.json_view_open': 'Bewerken als JSON',
+    'automations.builder.json_view_close': 'JSON-weergave sluiten',
+    'automations.builder.mode_advanced': 'Geavanceerd',
+    'automations.builder.show_advanced': 'Geavanceerde opties tonen',
+    'automations.builder.show_advanced_n': 'Geavanceerde opties tonen ({count})',
 
     'automations.builder.separated_by': 'Gescheiden door',
     'automations.builder.sep_comma_space': 'een komma en een spatie',

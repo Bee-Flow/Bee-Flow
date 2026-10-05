@@ -91,7 +91,7 @@ function MoreToggle({ count, open, onToggle }: { count: number; open: boolean; o
                 label={
                     open
                         ? t('automations.builder.show_fewer_options', 'Show fewer options')
-                        : t('automations.builder.show_all_options_n', 'Show all options ({count})', { count })
+                        : t('automations.builder.show_advanced_n', 'Show advanced options ({count})', { count })
                 }
                 onPress={onToggle}
             />

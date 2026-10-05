@@ -77,7 +77,7 @@ function LoopOver(editor: StepEditorProps) {
                 autoCorrect={false}
                 editable={!ctx.disabled}
             />
-            <Note>{t('mobile.flow.loop.available_as', 'Each item is available to the steps inside as Loop item · {name} — pick it with Insert data.', { name: itemVar })}</Note>
+            <Note>{t('mobile.flow.loop.available_as_each', 'The steps inside read each item as “Each {name}”; pick it with Insert data.', { name: itemVar })}</Note>
             <Button size="sm" variant="ghost" iconName={advanced ? 'ChevronDown' : 'ChevronRight'} label={t('mobile.flow.section.advanced', 'Advanced')} onPress={() => setAdvanced((v) => !v)} />
             {advanced ? (
                 <BindingInput

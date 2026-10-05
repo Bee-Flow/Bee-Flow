@@ -96,6 +96,8 @@ const NL_TRANSLATIONS = {
     'automations.mapping.open_table': 'Open {label} als tabel',
     'automations.mapping.open_table_title': 'Open {label} als tabel — koppel een hele kolom of één cel',
     'automations.mapping.no_named_fields': 'Geen benoemde velden — open {table} om vanuit de ruwe uitvoer te koppelen.',
+    'automations.mapping.not_run_fields': 'Nog niet uitgevoerd: test deze stap om te zien wat hij doorgeeft.',
+    'automations.mapping.technical_meta_one': '1 veld · {names}',
     'automations.mapping.table': 'Tabel',
     'automations.mapping.fields': 'Velden',
     'automations.mapping.no_data_yet': 'Nog geen gegevens — draai de stap ervoor om ze vast te leggen.',

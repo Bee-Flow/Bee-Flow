@@ -35,6 +35,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** The envelope key that holds this step type's real output (`result` for code), or null. */
+export function payloadKeyOf(stepType: string | null | undefined): string | null {
+    const shape = stepType ? PAYLOAD_SHAPES[stepType] : undefined;
+    return shape ? shape.payloadKey : null;
+}
+
 /** Is `key` a diagnostic of this step type's output envelope (not data)? */
 export function isDiagnosticOutputKey(stepType: string | null | undefined, key: string): boolean {
     const shape = stepType ? PAYLOAD_SHAPES[stepType] : undefined;

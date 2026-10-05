@@ -101,8 +101,9 @@
        (docker-entrypoint.d/19-beeflow-runtime-config.sh). Classic script, not a
        module, so it has finished before main.jsx evaluates. Absent in dev and in
        any non-container build — the 404 is harmless and the reader treats a
-       missing file as "no runtime opinion". -->
-  <script src="/beeflow-runtime.js"></script>
+       missing file as "no runtime opinion". Relative to the build's base, so the
+       Nextcloud embed asks its own proxy for it, not Nextcloud's root. -->
+  <script src="%BASE_URL%beeflow-runtime.js"></script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

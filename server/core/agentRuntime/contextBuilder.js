@@ -107,8 +107,11 @@ Skip these unless there is a material update since the date shown. If you do inc
     // ─── Writing style (BFSF-261) ────────────────────────────────
     // Unconditional so per-agent custom prompts get it too. Static text, so it
     // belongs in the cached half.
-    const { buildWritingStyleAddendum } = require('../llm/promptStyle');
+    const { buildWritingStyleAddendum, buildResponseLanguageRule } = require('../llm/promptStyle');
     systemPrompt += buildWritingStyleAddendum();
+    // Agent chat had no reply-language rule at all (BFSF-387); a persona's fixed
+    // language is part of the agent's own instructions and keeps winning.
+    systemPrompt += buildResponseLanguageRule();
 
     // ─── Date/time context ───────────────────────────────────────
     // This is THE line that must never touch the cached half. It used to be

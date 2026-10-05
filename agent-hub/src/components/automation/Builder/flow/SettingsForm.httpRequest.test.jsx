@@ -105,7 +105,7 @@ describe('SettingsForm — HttpRequestFields', () => {
         expect(screen.getByText('Method')).toBeTruthy();
         // The security toggle lives in the (collapsed) Options accordion — expand it.
         fireEvent.click(screen.getByText('Options'));
-        const toggle = screen.getByRole('checkbox');
+        const toggle = screen.getByRole('checkbox', { name: /Block requests to private/ });
         expect(toggle.checked).toBe(true); // blockPrivateTargets default on
     });
 
@@ -120,7 +120,7 @@ describe('SettingsForm — HttpRequestFields', () => {
     it('toggling the security checkbox off is reflected in the control', () => {
         renderForm({ ...getStep(), id: 'h1' });
         fireEvent.click(screen.getByText('Options'));
-        const toggle = screen.getByRole('checkbox');
+        const toggle = screen.getByRole('checkbox', { name: /Block requests to private/ });
         fireEvent.click(toggle);
         expect(toggle.checked).toBe(false);
     });

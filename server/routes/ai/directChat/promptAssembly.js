@@ -34,10 +34,11 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
         // no date — `Today is …` used to sit here, ahead of the tool hint, and
         // rewrote the whole prefix at midnight. It now rides the volatile
         // block next to the `Now:` line.
-        const { buildWritingStyleAddendum } = require('../../../core/llm/promptStyle');
+        const { buildWritingStyleAddendum, buildResponseLanguageRule } = require('../../../core/llm/promptStyle');
         const basePrompt = (requestSystemPrompt ? requestSystemPrompt + '\n\n' : '')
             + systemPromptText
-            + buildWritingStyleAddendum();
+            + buildWritingStyleAddendum()
+            + buildResponseLanguageRule();
 
         // Per-turn system context. Kept out of the first system block so the
         // 1h cache breakpoint the Claude adapter places there stays valid for

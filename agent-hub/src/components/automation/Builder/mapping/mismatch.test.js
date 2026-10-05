@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectMismatch, remediesFor, mismatchSentence, kindAtPath, NEWLINE } from './mismatch';
+import { columnForSlot, detectMismatch, fieldForSlot, remediesFor, mismatchSentence, kindAtPath, NEWLINE } from './mismatch';
 
 /**
  * "It doesn't fit, so ask" (artboard 2a). The remedies must emit only what the
@@ -95,5 +95,36 @@ describe('kindAtPath', () => {
         expect(kindAtPath('steps.a.output.balance', ROOT)).toBe('group');
         expect(kindAtPath('steps.a.output.nope', ROOT)).toBe('unknown');
         expect(kindAtPath('x', null)).toBe('unknown');
+    });
+});
+
+describe('columnForSlot', () => {
+    const root = { steps: { a: { output: { accounts: [{ id: 1, email: 'x@y.nl', displayName: 'X', provisioned: false }] } } } };
+    const P = 'steps.a.output.accounts';
+    it('takes the column the slot is named after, also as its tail (accountId → id)', () => {
+        expect(columnForSlot(P, root, { slot: 'accountId', expectedKind: 'number' })).toBe(`${P}[*].id`);
+        expect(columnForSlot(P, root, { slot: 'email', expectedKind: 'email' })).toBe(`${P}[*].email`);
+        expect(columnForSlot(P, root, { slot: 'recipientEmail', expectedKind: 'email' })).toBe(`${P}[*].email`);
+    });
+    it('else a lone column of the wanted kind; never for a text slot', () => {
+        expect(columnForSlot(P, root, { slot: 'count', expectedKind: 'number' })).toBe(`${P}[*].id`);
+        expect(columnForSlot(P, root, { slot: 'flag', expectedKind: 'yesno' })).toBe(`${P}[*].provisioned`);
+        expect(columnForSlot(P, root, { slot: 'title', expectedKind: 'text' })).toBeNull();
+    });
+});
+
+describe('fieldForSlot', () => {
+    const root = { steps: { a: { output: { customer: { name: 'Acme BV', email: 'info@acme.example', address: { city: 'Utrecht' } } } } } };
+    const P = 'steps.a.output.customer';
+    it('takes the field the slot is named after, also as its tail', () => {
+        expect(fieldForSlot(P, root, { slot: 'email', expectedKind: 'email' })).toBe(`${P}.email`);
+        expect(fieldForSlot(P, root, { slot: 'customerName', expectedKind: 'text' })).toBe(`${P}.name`);
+    });
+    it('a title slot takes the record\'s headline; a body keeps the summary (null)', () => {
+        expect(fieldForSlot(P, root, { slot: 'title', expectedKind: 'text' })).toBe(`${P}.name`);
+        expect(fieldForSlot(P, root, { slot: 'content', expectedKind: 'text' })).toBeNull();
+    });
+    it('a non-text slot takes a lone field of its kind', () => {
+        expect(fieldForSlot(P, root, { slot: 'to', expectedKind: 'email' })).toBe(`${P}.email`);
     });
 });

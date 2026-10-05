@@ -74,7 +74,9 @@ export function bandClass() {
 // The body of a section: a hairline rail showing where the group ends. The
 // band says where a group starts; the rail says what belongs to it.
 export function railClass() {
-    return 'pt-2 ml-1 pl-2.5 border-l border-[var(--border-subtle)] space-y-2';
+    // No line beside the group: the section title above already says what
+    // belongs together, and the extra hairline read as a stray border.
+    return 'pt-2 space-y-2';
 }
 
 // --accent defaults to a neutral grey (#9ca3af) and measures ~2.3:1 on a light

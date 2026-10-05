@@ -257,9 +257,12 @@ export default function ToolInputForm({
             />
         );
 
+        // Only worth a line when there is something left to fill: with every
+        // input bound it was a lone button above a finished form.
+        const anyEmpty = [...essentialKeys, ...advancedKeys].some(k => isEmptyBinding((inputs || {})[k]));
         return (
-            <div className="space-y-3">
-                {WandButton && <div className="flex justify-end">{WandButton}</div>}
+            <div className="space-y-5">
+                {WandButton && anyEmpty && <div className="flex justify-end">{WandButton}</div>}
                 {essentialKeys.map(renderField)}
                 {advancedKeys.length > 0 && (
                     <MoreOptions

@@ -2,13 +2,15 @@
  * The form page editor's pure half, held to the web's
  * (agent-hub `Builder/flow/settings/FormBuilderFields.jsx`, a component file
  * neither Metro nor this Jest can load): the answer types, the theme knobs and
- * colours are the web's lists; `slugifyFieldName` and `normaliseOptions` are
- * cut out of the web's source and run beside the port; and the page edits
+ * colours are the web's lists; `slugifyFieldName` is cut out of the web's
+ * source and `normaliseOptions` is run from `components/forms/formOptions.ts`,
+ * both beside the port; and the page edits
  * behave as the web's `addField` / `addFileField` / `moveField` do.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 import type { FormField } from '@/features/flow-editor/model';
 
@@ -25,7 +27,17 @@ const block = (start: string, end: string) => {
     return src.slice(at, src.indexOf(end, at) + end.length);
 };
 const fn = (name: string) => block(`export function ${name}(`, '\n}\n').replace('export function', 'function');
-const web = new Function(`${fn('slugifyFieldName')}\n${fn('normaliseOptions')}\nreturn { slugifyFieldName, normaliseOptions };`)();
+// normaliseOptions moved to the form renderer's own module (agent-hub
+// `components/forms/formOptions.ts`, shared by the editor preview and every
+// form page, BFSF-483): run that file itself, its types stripped.
+const optionsSrc = fs.readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/forms/formOptions.ts'), 'utf8');
+const optionsJs = ts.transpileModule(optionsSrc, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2019 } }).outputText;
+const optionsModule: { exports: { normaliseOptions?: (o: unknown) => unknown } } = { exports: {} };
+new Function('module', 'exports', optionsJs)(optionsModule, optionsModule.exports);
+const web = {
+    ...new Function(`${fn('slugifyFieldName')}\nreturn { slugifyFieldName };`)(),
+    normaliseOptions: optionsModule.exports.normaliseOptions as (o: unknown) => unknown,
+};
 
 describe('the form page against FormBuilderFields.jsx', () => {
     it('offers the web’s answer types, in its order and words', () => {

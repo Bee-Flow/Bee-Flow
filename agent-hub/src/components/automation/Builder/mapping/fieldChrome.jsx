@@ -68,25 +68,25 @@ export function EmptySlotNote({ expectKind, empty, required = true, onPick = nul
     }, [groups, previewSample, expectKind]);
 
     if (!required || !empty || !expectKind || expectKind === 'unknown') return null;
-    const expectWord = expectWordFor(expectKind, t);
+    // One quiet line, no box: the label row above already says what the slot
+    // expects, and the footer counts what is still empty. This only says THIS
+    // one is, and how many upstream fields would fit.
     return (
-        <div
-            className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed text-[10px]"
-            style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
+        <span
+            className="inline-flex items-center gap-1.5 text-[10px] text-[var(--error)]"
             data-testid="binding-empty-required"
         >
             <span>{t('automations.builder.still_empty', 'still empty')}</span>
-            <span className="text-[var(--text-secondary)]">· {t('automations.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}</span>
-            {onPick && (
+            {onPick && fitCount > 0 && (
                 <button
                     type="button"
                     onClick={onPick}
-                    className="ml-auto underline hover:no-underline text-[var(--text-primary)]"
+                    className="underline hover:no-underline text-[var(--text-secondary)]"
                 >
                     {t('automations.builder.pick_n_fit', 'pick ▸ {n} fit', { n: fitCount })}
                 </button>
             )}
-        </div>
+        </span>
     );
 }
 

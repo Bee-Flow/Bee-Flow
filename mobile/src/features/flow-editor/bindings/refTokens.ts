@@ -129,8 +129,8 @@ export type StepLabelMap = Pick<Map<string, string>, 'has' | 'get'> | null | und
  */
 function loopChipName(itemVar: string | undefined): string {
     return itemVar
-        ? t('mobile.flow.ref.loop_item_named', 'Loop item · {name}', { name: itemVar })
-        : t('mobile.flow.ref.loop_item', 'Loop item');
+        ? t('mobile.flow.ref.each_item_named', 'Each {name}', { name: itemVar })
+        : t('automations.canvas.loop_each_item', 'Each item');
 }
 
 function stepChip(id: string, fieldPath: string | undefined, labels: StepLabelMap): ChipLabel {

@@ -293,6 +293,8 @@ jobs:
               - 'agent-hub/src/components/automation/Builder/{applyAddNode,notificationDefaults}.js'
               - 'agent-hub/src/components/automation/Builder/{flow,mapping,utils}/**'
               - 'agent-hub/src/components/agents/AgentWizard/state/refineMerge.js'
+              # the form editor's options, run by form.lockstep.test.ts (BFSF-483)
+              - 'agent-hub/src/components/forms/formOptions.ts'
               - 'agent-hub/src/shared/expr/**'
               - 'agent-hub/src/utils/{bindingHelpers,scopedStorage}.*'
               - 'agent-hub/src/api/client.*'

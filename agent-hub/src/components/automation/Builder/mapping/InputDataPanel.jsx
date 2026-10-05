@@ -79,6 +79,15 @@ export default function InputDataPanel({
         () => ordered.find(g => g.id === nearestId)?.kind === 'trigger',
         [ordered, nearestId],
     );
+    // When that step has nothing to offer yet (it never ran), the nearest step
+    // that DOES have fields opens too: otherwise the column opens on an empty
+    // block and every value to drag is folded away.
+    const fallbackOpenId = useMemo(() => {
+        const nearest = ordered.find(g => g.id === nearestId);
+        if (!nearest || (nearest.fields || []).length) return null;
+        return ordered.find(g => g.id !== nearestId && !String(g?.basePath || '').startsWith('loop.')
+            && g.kind !== 'trigger_meta' && (g.fields || []).length)?.id ?? null;
+    }, [ordered, nearestId]);
     const shown = useMemo(() => filterGroups(ordered, query), [ordered, query]);
 
     const tableGroup = tableFor ? groups.find(g => g.id === tableFor) : null;
@@ -183,9 +192,10 @@ export default function InputDataPanel({
                         previewSample={previewSample}
                         onPick={onPick}
                         iteration={String(g.basePath || '').startsWith('loop.') ? loopIteration : null}
-                        // Only the nearest step (and the loop item) start open;
-                        // the rest are one click away. A search opens every match.
-                        defaultOpen={!!query || g.id === nearestId
+                        // Only the nearest step (and the loop item, and the nearest
+                        // one with fields when that step has none) start open; the
+                        // rest are one click away. A search opens every match.
+                        defaultOpen={!!query || g.id === nearestId || g.id === fallbackOpenId
                             || String(g.basePath || '').startsWith('loop.')
                             || (g.kind === 'trigger_meta' && nearestIsTrigger)}
                         searching={!!query}

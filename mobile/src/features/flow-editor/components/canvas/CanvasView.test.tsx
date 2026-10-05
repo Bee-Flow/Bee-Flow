@@ -158,9 +158,9 @@ describe('CanvasView', () => {
         expect(screen.getByText('3 steps inside')).toBeTruthy();
         await act(async () => fireEvent.press(screen.getByLabelText(/^Expand/)));
         expect(screen.getByTestId('canvas-node-loop_1/b_cond')).toBeTruthy();
-        expect(screen.getByText('Each item')).toBeTruthy();
-        // The item as the steps inside read it on their pills, not as `loop.item`.
-        expect(screen.getByText('Loop item · item')).toBeTruthy();
+        // The loop's own heading, and the item as the steps inside read it on
+        // their pills (not as `loop.item`): the same words, on purpose.
+        expect(screen.getAllByText('Each item')).toHaveLength(2);
         expect(screen.getByText('over ‹Trigger ▸ Items› · as loop.item · ≤100')).toBeTruthy();
         await act(async () => fireEvent.press(screen.getByLabelText(/^Collapse/)));
         expect(screen.queryByTestId('canvas-node-loop_1/b_cond')).toBeNull();

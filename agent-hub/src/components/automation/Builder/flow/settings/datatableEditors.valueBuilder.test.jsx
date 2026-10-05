@@ -72,11 +72,10 @@ describe('the datatable step writes values through the visual editor', () => {
         expect(screen.getByLabelText('Tags')).toBeTruthy();
     });
 
-    it('answers a list in a TEXT column without asking, and keeps the other answers under More', () => {
+    it('answers a list in a TEXT column without asking, and shows the other answers under the field', () => {
         const { insertInto } = renderFields(writeDraft());
         insertInto('Name', 'steps.s1.output.addresses');
-        expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
-        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
+        // Answered at once; the other answers show under the field (Advanced).
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
     });
 
@@ -102,8 +101,7 @@ describe('the datatable filter asks per OPERATOR, not per slot', () => {
     it('treats a list on "is" as a mismatch — that comparison takes one value — and answers it quietly', () => {
         const { insertInto } = renderFields(whereDraft('eq'));
         insertInto('Value', 'steps.s1.output.addresses');
-        expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
-        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
+        // Answered at once; the other answers show under the field (Advanced).
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
     });
 

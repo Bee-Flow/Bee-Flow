@@ -96,8 +96,8 @@ describe('the data a card names', () => {
 
     it('shows a reference in a prompt or a message by name, never as {{…}}', () => {
         expect(card('ai_1')?.sub).toBe('Summarise ‹Gmail Search ▸ Body›');
-        expect(card('loop_1/b_ai')?.sub).toBe('Reply to ‹Loop item · mail ▸ Subject›');
-        expect(card('loop_1/b_note')).toMatchObject({ name: 'Draft for ‹Loop item · mail ▸ From›', sub: '‹Draft a reply ▸ Text›' });
+        expect(card('loop_1/b_ai')?.sub).toBe('Reply to ‹Each mail ▸ Subject›');
+        expect(card('loop_1/b_note')).toMatchObject({ name: 'Draft for ‹Each mail ▸ From›', sub: '‹Draft a reply ▸ Text›' });
     });
 
     it('names the list a loop or a list step works through', () => {

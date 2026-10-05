@@ -153,3 +153,24 @@ test('automations_get_guide ships the "This turn" note the guide refers to — w
         triggerBus.loadSession = savedSession;
     }
 });
+
+test('builder_inspect_tool over MCP names the input params of the tools the user has', async () => {
+    // It answered `inputs: null` for every tool: the MCP draftWrap carried no catalog.
+    const automationStore = require('../stores/automationStore');
+    const builderCatalog = require('./builderCatalog');
+    const orig = { get: automationStore.getAutomation, cat: builderCatalog.buildCatalogForUser };
+    automationStore.getAutomation = async () => ({ id: 'a1', userId: 'u1', title: 'T', definition: {} });
+    builderCatalog.buildCatalogForUser = async () => ({
+        apps: [{ id: 'nc', actions: [{ name: 'nextcloud_mail_list_mailboxes', inputSchema: { type: 'object', properties: { accountId: { type: 'number' }, x: { type: 'string' } }, required: ['accountId'] } }] }],
+        toolNames: new Set(['nextcloud_mail_list_mailboxes']),
+    });
+    try {
+        const { result } = await mcpBuilder.callTool('builder_inspect_tool', { automationId: 'a1', tools: ['nextcloud_mail_list_mailboxes'] }, { userId: 'u1' });
+        const r = result.results.nextcloud_mail_list_mailboxes;
+        assert.deepEqual(Object.keys(r.inputs), ['accountId', 'x']);
+        assert.deepEqual(r.requiredInputs, ['accountId']);
+    } finally {
+        automationStore.getAutomation = orig.get;
+        builderCatalog.buildCatalogForUser = orig.cat;
+    }
+});

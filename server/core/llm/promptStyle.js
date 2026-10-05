@@ -27,4 +27,22 @@ function buildWritingStyleAddendum() {
     return WRITING_STYLE_ADDENDUM;
 }
 
-module.exports = { buildWritingStyleAddendum, WRITING_STYLE_ADDENDUM };
+/**
+ * The reply-language rule (BFSF-387), appended by both prompt builders right
+ * after the style addendum, so an admin's custom direct-chat prompt or an
+ * agent's own prompt can no longer drop it (agent chat never had one). A fixed
+ * persona language is "the agent's own instructions" and still wins. Active
+ * Memory rides a later, volatile block, often right next to the user's
+ * message, so a remembered "language: Dutch" used to beat the old rule; the
+ * last sentence takes that away. Byte-stable for the same caching reason.
+ */
+const RESPONSE_LANGUAGE_RULE = `
+
+## Reply language
+Reply in the language of the user's latest message. Switch only when the user asks for another language in this conversation, or when your own instructions fix a reply language. A language remembered in Active Memory never overrides the language of the user's latest message.`;
+
+function buildResponseLanguageRule() {
+    return RESPONSE_LANGUAGE_RULE;
+}
+
+module.exports = { buildWritingStyleAddendum, WRITING_STYLE_ADDENDUM, buildResponseLanguageRule, RESPONSE_LANGUAGE_RULE };

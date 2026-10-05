@@ -46,7 +46,7 @@ function JsonDisclosure({ open, onToggle }: { open: boolean; onToggle: () => voi
         >
             <Icon name={open ? 'ChevronDown' : 'ChevronRight'} size={16} color={styles.glyph.color} />
             <Text variant="caption" tone="secondary" weight="medium">
-                {t('mobile.flow.ndv.edit_as_json', 'Edit as JSON')}
+                {t('automations.builder.json_view_open', 'Edit as JSON')}
             </Text>
         </Pressable>
     );

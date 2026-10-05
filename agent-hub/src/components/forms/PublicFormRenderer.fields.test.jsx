@@ -76,6 +76,17 @@ describe('PublicFormRenderer — how each declared type renders', () => {
         expect(select.value).toBe('');
     });
 
+    it('shows and picks options stored the way the form builder saves them, as plain strings (BFSF-483)', () => {
+        // "Test this form" hands over the raw declaration: ['Sales', 'Support'].
+        // Read as objects they rendered as empty, valueless rows.
+        renderForm([{ name: 'topic', type: 'select', label: 'Topic', options: ['Sales', 'Support'] }]);
+        const select = screen.getByLabelText('Topic');
+        const options = [...select.querySelectorAll('option')];
+        expect(options.map(o => [o.value, o.textContent])).toEqual([['', 'Choose…'], ['Sales', 'Sales'], ['Support', 'Support']]);
+        fireEvent.change(select, { target: { value: 'Support' } });
+        expect(select.value).toBe('Support');
+    });
+
     it('lets a dropdown\'s placeholder stand in for that empty choice', () => {
         renderForm([{ name: 'topic', type: 'select', label: 'Topic', placeholder: 'Pick a subject', options: [] }]);
         expect(screen.getByLabelText('Topic').querySelector('option').textContent).toBe('Pick a subject');

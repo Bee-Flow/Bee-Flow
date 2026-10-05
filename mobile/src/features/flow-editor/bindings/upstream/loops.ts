@@ -165,6 +165,9 @@ export function suggestItemVar(key: unknown): string {
     const s = String(key || '').trim();
     if (!s) return 'item';
     if (/ies$/.test(s)) return s.slice(0, -3) + 'y';
-    if (/(s|es)$/.test(s) && s.length > 2) return s.replace(/(es|s)$/, '');
+    // "-es" is a plural ending only after s/x/z/ch/sh: "lines" → "line", not "lin".
+    if (/(ss|x|z|ch|sh)es$/.test(s)) return s.slice(0, -2);
+    if (/(ss|us|is)$/.test(s)) return s;
+    if (/s$/.test(s) && s.length > 2) return s.slice(0, -1);
     return s;
 }

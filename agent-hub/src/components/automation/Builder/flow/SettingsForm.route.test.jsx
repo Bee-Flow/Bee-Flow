@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import scopedStorage from '../../../../utils/scopedStorage';
+import { FormDensityContext } from './settings/formDensity';
 
 /**
  * The unified Filter form: If / Switch / Filter are ONE editor, the runtime
@@ -20,21 +21,24 @@ const GMAIL_GROUP = {
 };
 const SAMPLE_ROOT = { steps: { g: { output: { results: [{ subject: 'Nextcloud ISV contract', from_email: 'a@b.nl' }] } } } };
 
-function renderForm(step, { onPatch = vi.fn(), groups = [GMAIL_GROUP], previewSample = SAMPLE_ROOT, wiredCaseNames = null } = {}) {
+function renderForm(step, { onPatch = vi.fn(), groups = [GMAIL_GROUP], previewSample = SAMPLE_ROOT, wiredCaseNames = null, density = undefined } = {}) {
     render(
+        <FormDensityContext.Provider value={{ density: density || 'full', onHiddenSection: null }}>
         <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={new Map()}>
             <SettingsForm
                 step={step} modelTiers={{}} stepIssues={noIssues} saving={false} saveError={null}
                 onPatch={onPatch} catalog={null} groups={groups} previewSample={previewSample}
                 wiredCaseNames={wiredCaseNames}
             />
-        </VariablePickerProvider>,
+        </VariablePickerProvider>
+        </FormDensityContext.Provider>,
     );
     return { onPatch };
 }
 
 const save = () => fireEvent.click(screen.getByText('Save'));
-const openAdvanced = () => fireEvent.click(screen.getByText('Advanced'));
+// Advanced is a mode now (the header's switch), not a button: its settings show in the full view.
+const openAdvanced = () => {};
 
 describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
     beforeEach(() => {
@@ -55,13 +59,14 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
     });
 
     it('never shows a raw path or a compiled expression in the main form', () => {
-        renderForm(FILTER_STEP);
+        renderForm(FILTER_STEP, { density: 'quick' });
         // The field reads as a name, not `item.subject`.
         expect(screen.getByText('Subject')).toBeTruthy();
         expect(screen.queryByText('item.subject')).toBeNull();
         expect(screen.queryByText('contains(item.subject, "isv")')).toBeNull();
-        // …but it IS available for the curious, under Advanced.
-        openAdvanced();
+        // …but it IS available for the curious, in the Advanced mode.
+        cleanup();
+        renderForm(FILTER_STEP);
         expect(screen.getByText('contains(item.subject, "isv")')).toBeTruthy();
     });
 
@@ -70,7 +75,7 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         expect(screen.getByText('Working through')).toBeTruthy();
         expect(screen.getByText('gmail search')).toBeTruthy();
         expect(screen.getByText('Results')).toBeTruthy();
-        expect(screen.getByText(/1 item/)).toBeTruthy();
+        expect(screen.getAllByText(/1 item/).length).toBeGreaterThan(0);
         // The raw picker is one click away, not on screen by default.
         expect(screen.queryByDisplayValue('steps.g.output.results')).toBeNull();
         fireEvent.click(screen.getByText('change'));

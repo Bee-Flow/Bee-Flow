@@ -165,6 +165,6 @@ describe('describeDataPath', () => {
 
     it('names variables and the loop item', () => {
         expect(describeDataPath('vars.customer_id')).toMatchObject({ name: 'Variable', suffix: 'Customer id' });
-        expect(describeDataPath('loop.row.subject')).toMatchObject({ name: 'Loop item · row', suffix: 'Subject' });
+        expect(describeDataPath('loop.row.subject')).toMatchObject({ name: 'Each row', suffix: 'Subject' });
     });
 });

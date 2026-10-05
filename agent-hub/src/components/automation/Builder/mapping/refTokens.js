@@ -141,7 +141,7 @@ export function hasRefTokens(text, mode) {
 /**
  * Resolve the display label for a ref token.
  *   { name, suffix, missing }
- * `name` is the human step label (or 'Trigger' / 'Loop item'); `suffix` is
+ * `name` is the human step label (or 'Trigger' / 'Each <item>'); `suffix` is
  * the field path shown after the name. `missing` is true only for a steps
  * ref whose id is no longer in the definition (deleted step) — rendered as
  * a muted chip, never an error.
@@ -157,7 +157,8 @@ export function resolveChipLabel(token, stepLabelById = null) {
         return { name: 'Trigger', suffix: token.fieldPath || '', missing: false };
     }
     if (token.source === 'loop') {
-        const name = token.itemVar ? `Loop item · ${token.itemVar}` : 'Loop item';
+        // "Each line ▸ Sku": says what the step runs over, not how (no "loop").
+        const name = token.itemVar ? `Each ${token.itemVar}` : 'Each item';
         return { name, suffix: token.fieldPath || '', missing: false };
     }
     return { name: token.path || '', suffix: '', missing: false };
