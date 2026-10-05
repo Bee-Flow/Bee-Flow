@@ -128,11 +128,13 @@ export default function AccordionSection({
         </span>
     ) : null;
 
+    // Inputs are what the step is FOR: a plain heading, never folded away.
+    const isInputs = sectionKey === 'inputs';
     return (
         <CollapsibleSection
-            variant={isAdvanced ? 'quiet' : 'section'}
+            variant={isInputs ? 'static' : (isAdvanced ? 'quiet' : 'section')}
             title={title}
-            open={open}
+            open={isInputs || open}
             onToggle={onToggle}
             // In Simple, say WHY a normally-hidden section is still here.
             badge={badge ?? (hasContent && ((mode === 'simple' && hiddenInSimple(stepType, sectionKey)) || (isAdvanced && !open)) ? 'set' : null)}
