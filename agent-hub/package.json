@@ -122,7 +122,7 @@
     "topojson-client": "^3.1.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
-    "vite": "^7.2.4",
+    "vite": "^8.3.2",
     "vitest": "^5.0.2",
     "world-atlas": "^2.0.2"
   }
