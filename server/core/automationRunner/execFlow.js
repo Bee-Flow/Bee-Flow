@@ -215,6 +215,9 @@ function buildLinearEdges(steps, rootId = LOOP_ROOT_ID) {
  * enclosing executeAutomation scope, so container steps nested in a
  * forEach still recurse correctly.
  */
+// Read-only fetches a per-item step may run five at a time (see execForEachStep).
+const PARALLEL_READ_TOOLS = new Set(['gmail_read', 'gmail_read_attachment']);
+
 async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel = null) {
     const fe = step.forEach || {};
     const list = require('../../automation/bind').walkPath(fe.overRef, runState);
@@ -264,11 +267,14 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // nosemgrep: ajinabraham.njsscan.eval.eval_node.eval_nodejs -- the only timer below is setTimeout(fn, ms) with a function and a numeric delay; nothing is evaluated
     const retry = (step.retry && step.retry.max > 0) ? step.retry : null;
     const maxAttempts = retry ? retry.max + 1 : 1;
-    // Only Gmail message reads opt into bounded parallelism. Other actions
-    // may depend on order or have side effects. askOnce stays serial so
-    // duplicate IDs can reuse the first result from the run memo.
+    // Only read-only Gmail fetches opt into bounded parallelism (results keep
+    // their item order). Other actions may depend on order or have side
+    // effects. Attachments are the slow case: each one is downloaded AND run
+    // through text extraction / OCR, a mail often carries a dozen (logos), and
+    // one at a time that took minutes. askOnce stays serial so duplicate IDs
+    // can reuse the first result from the run memo.
     const concurrency = mode === 'live' && step.type === 'integration_action'
-        && step.tool === 'gmail_read' && !step.askOnce ? 5 : 1;
+        && PARALLEL_READ_TOOLS.has(step.tool) && !step.askOnce ? 5 : 1;
     const runItem = async (i) => {
         // Honour cancellation between items — a long fan-out (hundreds of
         // API calls) must stop promptly, not only at the next step boundary.
