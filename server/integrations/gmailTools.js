@@ -326,6 +326,77 @@ async function createGmailClient(session) {
 }
 
 /**
+ * gmail_search: one messages.list (paged), then each hit's metadata ten at a
+ * time. Takes the client, so a test can hand it a fake one.
+ * @param {any} gmail - Gmail client (createGmailClient)
+ * @param {{ query?: string, maxResults?: number|string }} args
+ */
+async function searchMessages(gmail, args) {
+    const { query } = args;
+    // Default 10 keeps interactive/agent use brief; the ceiling is raised
+    // to 500 so automations can fan out over many matching emails. A
+    // single messages.list page caps at 500, so we page through with
+    // nextPageToken to honour large `maxResults` values.
+    const want = Math.min(Math.max(parseInt(args.maxResults) || 10, 1), 500);
+
+    const messageIds = [];
+    let pageToken;
+    let totalEstimate = 0;
+    do {
+        const page = await gmail.users.messages.list({
+            userId: 'me',
+            q: query,
+            maxResults: Math.min(want - messageIds.length, 500),
+            pageToken,
+        });
+        totalEstimate = page.data.resultSizeEstimate ?? totalEstimate;
+        for (const m of (page.data.messages || [])) messageIds.push(m);
+        pageToken = page.data.nextPageToken;
+    } while (pageToken && messageIds.length < want);
+
+    if (messageIds.length === 0) {
+        return { results: [], total: totalEstimate, query, message: `No emails found for query: "${query}"` };
+    }
+
+    // Per-message metadata, ten at a time: each get costs 20 of the
+    // account's 6,000 quota units a minute (gmailQuota.js paces them), and
+    // `fields` asks for only what summarizeSearchMessage reads (Gmail's
+    // performance guide: partial responses).
+    const CONCURRENCY = 10;
+    const messages = [];
+    let unreadable = 0;
+    for (let i = 0; i < messageIds.length; i += CONCURRENCY) {
+        const batch = await Promise.all(
+            messageIds.slice(i, i + CONCURRENCY).map(async (msg) => {
+                try {
+                    const detail = await gmail.users.messages.get({
+                        userId: 'me',
+                        id: msg.id,
+                        format: 'metadata',
+                        metadataHeaders: SEARCH_METADATA_HEADERS,
+                        fields: SEARCH_FIELDS,
+                    });
+                    return summarizeSearchMessage(detail.data);
+                } catch {
+                    unreadable += 1;
+                    return null;
+                }
+            })
+        );
+        for (const m of batch) if (m) messages.push(m);
+    }
+
+    return {
+        results: messages,
+        total: totalEstimate || messages.length,
+        query,
+        // Say it when a message could not be read, instead of a shorter
+        // list nobody can tell from a complete one.
+        ...(unreadable ? { unreadable } : {}),
+    };
+}
+
+/**
  * Execute a Gmail tool call.
  * @param {string} toolName - 'gmail_search' / 'gmail_read' / 'gmail_compose' / etc.
  * @param {object} args - Tool arguments
@@ -342,69 +413,7 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
     const gmail = await createGmailClient(session);
 
     if (toolName === 'gmail_search') {
-        const { query } = args;
-        // Default 10 keeps interactive/agent use brief; the ceiling is raised
-        // to 500 so automations can fan out over many matching emails. A
-        // single messages.list page caps at 500, so we page through with
-        // nextPageToken to honour large `maxResults` values.
-        const want = Math.min(Math.max(parseInt(args.maxResults) || 10, 1), 500);
-
-        const messageIds = [];
-        let pageToken;
-        let totalEstimate = 0;
-        do {
-            const page = await gmail.users.messages.list({
-                userId: 'me',
-                q: query,
-                maxResults: Math.min(want - messageIds.length, 500),
-                pageToken,
-            });
-            totalEstimate = page.data.resultSizeEstimate ?? totalEstimate;
-            for (const m of (page.data.messages || [])) messageIds.push(m);
-            pageToken = page.data.nextPageToken;
-        } while (pageToken && messageIds.length < want);
-
-        if (messageIds.length === 0) {
-            return { results: [], total: totalEstimate, query, message: `No emails found for query: "${query}"` };
-        }
-
-        // Per-message metadata, ten at a time: each get costs 20 of the
-        // account's 6,000 quota units a minute (gmailQuota.js paces them), and
-        // `fields` asks for only what summarizeSearchMessage reads (Gmail's
-        // performance guide: partial responses).
-        const CONCURRENCY = 10;
-        const messages = [];
-        let unreadable = 0;
-        for (let i = 0; i < messageIds.length; i += CONCURRENCY) {
-            const batch = await Promise.all(
-                messageIds.slice(i, i + CONCURRENCY).map(async (msg) => {
-                    try {
-                        const detail = await gmail.users.messages.get({
-                            userId: 'me',
-                            id: msg.id,
-                            format: 'metadata',
-                            metadataHeaders: SEARCH_METADATA_HEADERS,
-                            fields: SEARCH_FIELDS,
-                        });
-                        return summarizeSearchMessage(detail.data);
-                    } catch {
-                        unreadable += 1;
-                        return null;
-                    }
-                })
-            );
-            for (const m of batch) if (m) messages.push(m);
-        }
-
-        return {
-            results: messages,
-            total: totalEstimate || messages.length,
-            query,
-            // Say it when a message could not be read, instead of a shorter
-            // list nobody can tell from a complete one.
-            ...(unreadable ? { unreadable } : {}),
-        };
-
+        return searchMessages(gmail, args);
     } else if (toolName === 'gmail_read') {
         const { messageId } = args;
         if (!messageId) throw new Error('messageId is required');
@@ -843,6 +852,7 @@ module.exports = {
     executeGmailTool,
     isGmailTool,
     createGmailClient,
+    searchMessages,
     extractAttachments,
     fetchAttachmentBuffer,
     // exposed for tests

@@ -7,7 +7,6 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('node:path');
 
 const seen = { active: 0, max: 0, args: [] };
 const fake = {
@@ -24,13 +23,10 @@ const fake = {
         },
     } },
 };
-const clientPath = path.join(__dirname, 'googleClient.js');
-require.cache[require.resolve(clientPath)] = { id: clientPath, filename: clientPath, loaded: true, exports: { createGoogleApiClient: async () => fake } };
-
-const { executeGmailTool } = require('./gmailTools');
+const { searchMessages } = require('./gmailTools');
 
 test('search: ten at a time, partial responses, and an unreadable message is counted', async () => {
-    const out = await executeGmailTool('gmail_search', { query: 'factuur', maxResults: 25 }, { refreshToken: 'rt-test' });
+    const out = await searchMessages(fake, { query: 'factuur', maxResults: 25 });
     assert.equal(out.results.length, 24);
     assert.equal(out.unreadable, 1);
     assert.ok(seen.max <= 10, `at most ten at a time (saw ${seen.max})`);
