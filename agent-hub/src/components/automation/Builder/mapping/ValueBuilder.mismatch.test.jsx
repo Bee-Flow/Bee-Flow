@@ -291,16 +291,23 @@ describe('a whole TABLE on a slot that wants one e-mail, number or date: its mat
 describe('a TABLE into a slot that wants one value — the table menu, not the list menu', () => {
     beforeEach(cleanup);
 
+    it('a slot named after one of its columns takes that column, once per row', () => {
+        const { onChange, onRequestForEach, insert } = renderEditor({ label: 'Subject' });
+        insert('steps.s1.output.results');
+        expect(onRequestForEach).toHaveBeenCalledWith(expect.objectContaining({ overRef: 'steps.s1.output.results' }));
+        expect(onChange.mock.calls.at(-1)[0].path).toMatch(/^loop\.[A-Za-z_]+\.subject$/);
+    });
+
     it('defaults to "as a table" rather than joining rows of objects', () => {
         // join() over records is what produced "[object Object]"; the table
         // branch exists precisely so that is not the default answer.
-        const { onChange, insert } = renderEditor();
+        const { onChange, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.results');
         expect(onChange.mock.calls[0][0]).toEqual({ kind: 'expr', value: 'asTable(steps.s1.output.results)' });
     });
 
     it('asks the TABLE question, and does not offer the list answers up front', () => {
-        const { insert } = renderEditor();
+        const { insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.results');
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
         // The applied default reads as a chip while collapsed…
@@ -313,7 +320,7 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
     });
 
     it('counts ROWS, not items, when the author asks how many', () => {
-        const { onChange, insert } = renderEditor();
+        const { onChange, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.results');
         fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
         fireEvent.click(screen.getByRole('button', { name: 'Only how many rows (2)' }));
@@ -321,7 +328,7 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
     });
 
     it('offers a run per row, and hands the forEach up to the step', () => {
-        const { onChange, onRequestForEach, insert } = renderEditor();
+        const { onChange, onRequestForEach, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.results');
         fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
         fireEvent.click(screen.getByRole('button', { name: 'A separate run for each row' }));
@@ -330,7 +337,7 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
     });
 
     it('offers no per-row run when the step cannot fan out', () => {
-        const { insert } = renderEditor({ onRequestForEach: null });
+        const { insert } = renderEditor({ label: 'Body', onRequestForEach: null });
         insert('steps.s1.output.results');
         fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
         expect(screen.queryByRole('button', { name: 'A separate run for each row' })).toBeNull();

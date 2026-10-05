@@ -103,3 +103,29 @@ export function rebindToNewItem(
     }
     return { inputs: out, orphans };
 }
+
+/**
+ * Auto-map's version of the drag: for the still-empty `keys` of a step that
+ * runs per item, a column of a list inside that item named like the key
+ * (`attachmentId` → `attachments[*].attachmentId`). First key, first list
+ * wins; null when there is none.
+ */
+export function findNestedColumn(
+    keys: string[],
+    itemSample: Record<string, unknown> | null | undefined,
+    itemVar: string,
+): { key: string; path: string; element: Record<string, unknown> } | null {
+    if (!itemSample || typeof itemSample !== 'object') return null;
+    for (const key of keys) {
+        for (const [listKey, v] of Object.entries(itemSample)) {
+            if (!Array.isArray(v)) continue;
+            const element = v.find(x => x && typeof x === 'object' && !Array.isArray(x)) as Record<string, unknown> | undefined;
+            if (!element) continue;
+            const col = Object.keys(element).find(k => norm(k) === norm(key));
+            if (col && /^[A-Za-z_][A-Za-z0-9_]*$/.test(listKey) && /^[A-Za-z_][A-Za-z0-9_]*$/.test(col)) {
+                return { key, path: `loop.${itemVar}.${listKey}[*].${col}`, element };
+            }
+        }
+    }
+    return null;
+}

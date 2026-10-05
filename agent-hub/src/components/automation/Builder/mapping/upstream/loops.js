@@ -8,6 +8,7 @@
  * not the other is indistinguishable from a broken binding.
  */
 import { walkPath } from '../../../../../utils/bindingHelpers';
+import { sampleToFieldsReal } from './realOverlay';
 import { sampleToFields } from './sampleFields';
 
 export function describeLoop(node, toolToOutput, definition, sampleRoot = null) {
@@ -67,7 +68,10 @@ export function describeForEachItem(step, definition, toolToOutput, sampleRoot =
         kind: 'loop',
         basePath: `loop.${itemVar}`,
         sample,
-        fields: sampleToFields(sample, `loop.${itemVar}`),
+        // A list of records inside the item (a mail's attachments) offers its
+        // columns (`attachments[*].attachmentId`): dragging one moves the step
+        // to that list (deepenForEach.ts). Without them there was nothing to drag.
+        fields: sampleToFieldsReal(sample, `loop.${itemVar}`),
     };
 }
 

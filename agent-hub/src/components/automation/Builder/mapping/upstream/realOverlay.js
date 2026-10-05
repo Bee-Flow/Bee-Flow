@@ -17,7 +17,7 @@ import { payloadKeyOf, stepPayload } from '../../flow/stepPayload';
  * by collectArrayPaths/nearestArrayRef. Design-time samples keep the plain
  * builder — placeholder arrays are `[]` and would only add noise.
  */
-function sampleToFieldsReal(sample, basePath) {
+export function sampleToFieldsReal(sample, basePath) {
     if (sample == null || typeof sample !== 'object') return [];
     const out = [];
     for (const [k, v] of Object.entries(sample)) {

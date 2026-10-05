@@ -15,7 +15,8 @@ import { runStepProblem } from '../runProblem';
 import { isTablesRowTool, withoutValuesInput } from '../tablesRowValues';
 import TablesRowValuesEditor from '../TablesRowValuesEditor';
 import { AskOnceRow, askOnceAvailability } from './askOnceRow';
-import { deepenedForEach, rebindToNewItem } from '../../../mapping/deepenForEach';
+import { deepenedForEach, findNestedColumn, nestedListPick, rebindToNewItem } from '../../../mapping/deepenForEach';
+import { isEmptyBinding } from '../../../mapping/partitionInputs';
 
 /**
  * Where the last run's error points (round 4, artboard 4a; see ../runProblem).
@@ -47,7 +48,27 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
     const inputSchema = action?.inputSchema || null;
     const onAutoMap = () => {
         const patch = autoMapInputs(inputSchema, draft.inputs || {}, groups || []);
-        if (Object.keys(patch).length) set('inputs', { ...(draft.inputs || {}), ...patch });
+        let next = { ...(draft.inputs || {}), ...patch };
+        // A step that runs per item: a required input still empty may live in a
+        // list inside that item (a mail's attachments). Same move as dragging
+        // that column: the step runs per attachment, the other fields follow.
+        const fe = draft.forEach;
+        if (fe?.overRef) {
+            const itemVar = fe.itemVar || 'item';
+            const item = (groups || []).find(g => g.basePath === `loop.${itemVar}`)?.sample;
+            const required = new Set(inputSchema?.required || []);
+            const empty = Object.keys(inputSchema?.properties || {})
+                .filter(k => isEmptyBinding(next[k]))
+                .sort((a, b) => (required.has(b) ? 1 : 0) - (required.has(a) ? 1 : 0));
+            const hit = findNestedColumn(empty, item, itemVar);
+            const plan = hit ? nestedListPick(hit.path, itemVar) : null;
+            if (plan) {
+                next[hit.key] = { kind: 'ref', path: `loop.${plan.itemVar}${plan.fieldTail}` };
+                next = rebindToNewItem(next, plan, hit.element).inputs;
+                set('forEach', deepenedForEach(fe, plan));
+            }
+        }
+        if (Object.keys(patch).length || next !== draft.inputs) set('inputs', next);
     };
     // "Run once per item" from a field lands here. Advanced stays closed: the
     // field itself says the step now runs per item, with Undo, and Advanced

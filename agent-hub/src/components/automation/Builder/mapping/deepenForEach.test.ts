@@ -77,3 +77,24 @@ describe('rebindToNewItem', () => {
         expect((inputs.title as { value: string }).value).toBe('Re: {{loop.result.subject}} ({{loop.attachment.mimeType}})');
     });
 });
+
+describe('the drag path: what "Comes in" offers and where a table drop lands', () => {
+    it('the current item offers the columns of a list inside it', async () => {
+        // JS modules: their JSDoc types are looser than what they take.
+        const describeForEachItem = (await import('./upstream/loops')).describeForEachItem as unknown as (...a: unknown[]) => { fields: Array<{ key: string; children?: Array<{ path: string }> }> };
+        const g = describeForEachItem(
+            { id: 'att', forEach: { overRef: 'steps.s3.output.results[*].output', itemVar: 'result' } },
+            { steps: [] }, new Map(), RUN,
+        );
+        const att = g.fields.find(f => f.key === 'attachments');
+        expect((att?.children || []).map(c => c.path)).toContain('loop.result.attachments[*].attachmentId');
+    });
+
+    it('a whole table on a text slot named after a column takes that column', async () => {
+        const columnForSlot = (await import('./mismatch')).columnForSlot as unknown as (p: string, r: unknown, o: { slot: string; expectedKind: string }) => string | null;
+        const root = { loop: { result: RUN.steps.s3.output.results[0].output } };
+        expect(columnForSlot('loop.result.attachments', root, { slot: 'attachmentId', expectedKind: 'text' }))
+            .toBe('loop.result.attachments[*].attachmentId');
+        expect(columnForSlot('loop.result.attachments', root, { slot: 'body', expectedKind: 'text' })).toBeNull();
+    });
+});

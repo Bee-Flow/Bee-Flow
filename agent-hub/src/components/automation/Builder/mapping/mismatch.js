@@ -270,8 +270,8 @@ export function kindAtPath(path, sampleRoot) {
 }
 
 /**
- * A TABLE dropped on a slot that wants one number, date, yes/no or e-mail
- * address: which column did the author mean? A Markdown table is only right in
+ * A TABLE dropped on a slot that wants one value: which column did the
+ * author mean? (attachmentId takes the `attachmentId` column, also in a text slot.) A Markdown table is only right in
  * a text, so for any other slot this names the column to use instead
  * (`rows[*].<col>`), and the column rules below take it from there (one run
  * per row). The slot's own name decides first — `accountId` takes `id`,
@@ -279,7 +279,7 @@ export function kindAtPath(path, sampleRoot) {
  * is not clear: the table stays what it was.
  */
 export function columnForSlot(path, sampleRoot, { slot = null, expectedKind = 'text' } = {}) {
-    if (!path || !expectedKind || expectedKind === 'text' || expectedKind === 'unknown') return null;
+    if (!path) return null;
     const rows = walkPath(String(path), sampleRoot);
     const first = Array.isArray(rows) ? rows.find(r => r && typeof r === 'object' && !Array.isArray(r)) : null;
     if (!first) return null;
@@ -294,6 +294,9 @@ export function columnForSlot(path, sampleRoot, { slot = null, expectedKind = 't
         const tail = cols.filter(c => norm(c) && want.endsWith(norm(c))).sort((a, b) => norm(b).length - norm(a).length)[0];
         if (tail) return pickPath(tail);
     }
+    // Without a name to go on, only a typed slot picks by kind: in a text slot
+    // the table itself (as a table) is the better answer.
+    if (!expectedKind || expectedKind === 'text' || expectedKind === 'unknown') return null;
     const ofKind = cols.filter(c => kindOfValue(first[c]) === expectedKind);
     return ofKind.length === 1 ? pickPath(ofKind[0]) : null;
 }
