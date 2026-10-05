@@ -542,6 +542,7 @@ router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjec
         // `installed_from_blueprint_id`, and every later upgrade of it skips
         // the different_solution check (source_unverified). The Blueprint id
         // travels only in the FILE; the JSON answer below keeps it out.
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- builds a JSON attachment (application/json), never HTML
         const project = await require('../../stores/projectStore').getProject(req.params.id);
         const { withSource } = require('../../projects/packaging/manifest');
         const file = withSource(release.manifest ?? null, {

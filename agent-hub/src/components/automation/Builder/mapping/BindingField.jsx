@@ -239,13 +239,19 @@ export default function BindingField({
         });
     };
 
-    const onFocus = () => { setFocused(true); broadcast(); };
+    // The deferred blur below, kept so a refocus or an unmount can cancel it:
+    // a timer that outlives the field sets state on nothing (and, in a test,
+    // after the DOM is gone — "window is not defined").
+    const blurTimer = useRef(null);
+    useEffect(() => () => clearTimeout(blurTimer.current), []);
+    const onFocus = () => { clearTimeout(blurTimer.current); setFocused(true); broadcast(); };
     const onBlurDelayed = () => {
         // Don't drop the focused-field handle immediately — clicks on the
         // VariableTree blur the input first. Parent's own click handlers
         // will null it out when needed. Defer the focused flag flip so
         // VariableTree click-to-insert still lands (preview is cosmetic).
-        setTimeout(() => setFocused(false), 150);
+        clearTimeout(blurTimer.current);
+        blurTimer.current = setTimeout(() => setFocused(false), 150);
     };
 
     // Drag-drop a path from the VariableTree onto the field. Alt held during
