@@ -288,6 +288,9 @@ function extractAttachments(payload, ctx = {}) {
  */
 const SEARCH_METADATA_HEADERS = ['From', 'To', 'Subject', 'Date', 'List-Unsubscribe', 'Precedence'];
 
+/** The partial response a search fetches per message: what summarizeSearchMessage reads, nothing else. */
+const SEARCH_FIELDS = 'id,snippet,payload/headers';
+
 /**
  * The search summary of one message from a metadata GET. The raw
  * List-Unsubscribe value (URLs, addresses) is not passed on: only whether it
@@ -316,7 +319,10 @@ function summarizeSearchMessage(data) {
  */
 async function createGmailClient(session) {
     const { createGoogleApiClient } = require('./googleClient');
-    return createGoogleApiClient(session, { api: 'gmail', version: 'v1', notConnectedError: 'Not connected to Gmail — user must log in with Google' });
+    const gmail = await createGoogleApiClient(session, { api: 'gmail', version: 'v1', notConnectedError: 'Not connected to Gmail — user must log in with Google' });
+    // Every call spends the account's Gmail quota on our side first, so a
+    // fan-out waits briefly instead of hitting 429 and gaxios' retries.
+    return require('./gmailQuota').withQuota(gmail, session);
 }
 
 /**
@@ -362,11 +368,13 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
             return { results: [], total: totalEstimate, query, message: `No emails found for query: "${query}"` };
         }
 
-        // Fetch per-message metadata with bounded concurrency. Firing one GET
-        // per message all at once (up to 500) would trip Gmail's rate limit;
-        // chunks of 20 stay fast without flooding the API.
-        const CONCURRENCY = 20;
+        // Per-message metadata, ten at a time: each get costs 20 of the
+        // account's 6,000 quota units a minute (gmailQuota.js paces them), and
+        // `fields` asks for only what summarizeSearchMessage reads (Gmail's
+        // performance guide: partial responses).
+        const CONCURRENCY = 10;
         const messages = [];
+        let unreadable = 0;
         for (let i = 0; i < messageIds.length; i += CONCURRENCY) {
             const batch = await Promise.all(
                 messageIds.slice(i, i + CONCURRENCY).map(async (msg) => {
@@ -376,9 +384,11 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
                             id: msg.id,
                             format: 'metadata',
                             metadataHeaders: SEARCH_METADATA_HEADERS,
+                            fields: SEARCH_FIELDS,
                         });
                         return summarizeSearchMessage(detail.data);
                     } catch {
+                        unreadable += 1;
                         return null;
                     }
                 })
@@ -390,6 +400,9 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
             results: messages,
             total: totalEstimate || messages.length,
             query,
+            // Say it when a message could not be read, instead of a shorter
+            // list nobody can tell from a complete one.
+            ...(unreadable ? { unreadable } : {}),
         };
 
     } else if (toolName === 'gmail_read') {
