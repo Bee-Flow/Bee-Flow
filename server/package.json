@@ -81,7 +81,7 @@
     "imapflow": "^1.6.1",
     "ioredis": "^5.10.0",
     "isolated-vm": "^6.2.0",
-    "jsdom": "^28.1.0",
+    "jsdom": "^30.1.1",
     "jszip": "^3.10.2",
     "lib0": "0.2.119",
     "mailparser": "^3.9.28",
