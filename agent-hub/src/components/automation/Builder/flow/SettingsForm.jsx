@@ -198,7 +198,9 @@ export default function SettingsForm({
         if (!userHasEdits) setDraft(carryPendingRows(incoming, draftRef.current));
     }, [step]);
 
-    const set = (k, v) => setDraft(d => ({ ...d, [k]: v }));
+    // A function value is an updater on the current value (and the whole
+    // draft), for edits that must land after another one in the same event.
+    const set = (k, v) => setDraft(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k], d) : v }));
     const setNested = (parent, k, v) => setDraft(d => ({ ...d, [parent]: { ...(d[parent] || {}), [k]: v } }));
 
     const flushNow = () => {

@@ -20071,6 +20071,8 @@ const EN_DEFAULTS = {
     "automations.builder.use_as_is": "use it as it is",
     "automations.builder.foreach_set_note": "This step now runs once per row — {n} runs.",
     "automations.builder.foreach_set_note_one": "This step now runs once per row — 1 run.",
+    "automations.builder.foreach_deepened_note": "This step now runs once per {item}, across every one it read before.",
+    "automations.builder.foreach_deepened_orphans": "Check {fields}: it has no match in the new item.",
     "automations.builder.json_view_open": "Edit as JSON",
     "automations.builder.json_view_close": "Close the JSON view",
     "automations.builder.undo": "Undo",

@@ -29,7 +29,7 @@ const FREQUENT_KINDS = new Set(['text', 'email', 'number', 'date', 'choice']);
  */
 export default function ToolParamField({
     fieldKey, prop, required, value, onChange, visual, allowRaw, onFocusField, previewSample,
-    autoMapped, onRequestForEach, suggestion = null, tool = null, problem = null,
+    autoMapped, onRequestForEach, deepenForEach = null, suggestion = null, tool = null, problem = null,
 }: {
     fieldKey: string;
     prop: SchemaProp | undefined;
@@ -42,6 +42,7 @@ export default function ToolParamField({
     previewSample?: unknown;
     autoMapped: boolean;
     onRequestForEach?: unknown;
+    deepenForEach?: unknown;
     suggestion?: ParamSuggestion | null;
     tool?: string | null;
     problem?: string | null;
@@ -84,6 +85,7 @@ export default function ToolParamField({
                 expectShape={shapeOf(prop)}
                 expectKind={expectKind}
                 onRequestForEach={onRequestForEach}
+                deepenForEach={deepenForEach}
             />
         );
     }

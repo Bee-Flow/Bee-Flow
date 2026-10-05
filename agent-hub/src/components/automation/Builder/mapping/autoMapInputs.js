@@ -10,6 +10,7 @@
  */
 
 import { isEmptyBinding } from './partitionInputs';
+import { matchSchema } from './schemaMatch';
 import { buildSampleRoot } from './realOutputs';
 import {
     computeUpstreamGroups,
@@ -70,14 +71,14 @@ function flattenCandidates(groups) {
             // ITERATION, so auto-mapping it into a scalar param would be
             // wrong. It stays pickable by hand (BFSF-369).
             if (f.perIteration) { fi++; continue; }
-            out.push({ key: f.key, path: f.path, type: sampleType(f.sample), groupIndex: gi, fieldIndex: fi++ });
+            out.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel: g.label, groupIndex: gi, fieldIndex: fi++ });
             for (const c of (f.children || [])) {
                 // Element children (`items[*].<key>`) carry a SCALAR sample but
                 // resolve to an ARRAY at runtime ([*] flatten-maps) — auto-mapping
                 // one into a scalar tool param would be wrong. Skip them here;
                 // they stay pickable by hand in the tree/picker.
                 if (/\[\*\]/.test(c.path)) continue;
-                out.push({ key: c.key, path: c.path, type: sampleType(c.sample), groupIndex: gi, fieldIndex: fi++ });
+                out.push({ key: c.key, path: c.path, type: sampleType(c.sample), sample: c.sample, groupLabel: g.label, groupIndex: gi, fieldIndex: fi++ });
             }
         }
     });
@@ -220,8 +221,8 @@ function tryIterationMapping(schema, existingInputs, groups, definition, catalog
     const itemVar = suggestItemVar(lastSegmentKey(overRef));
     const candidates = [];
     for (const f of sampleToFields(elementSample, `loop.${itemVar}`)) {
-        candidates.push({ key: f.key, path: f.path, type: sampleType(f.sample) });
-        for (const c of (f.children || [])) candidates.push({ key: c.key, path: c.path, type: sampleType(c.sample) });
+        candidates.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel: itemVar, groupIndex: 0 });
+        for (const c of (f.children || [])) candidates.push({ key: c.key, path: c.path, type: sampleType(c.sample), sample: c.sample, groupLabel: itemVar, groupIndex: 0 });
     }
     if (!candidates.length) return null;
     const idField = candidates.find(c => c.key === 'id');
@@ -249,6 +250,13 @@ function tryIterationMapping(schema, existingInputs, groups, definition, catalog
         patch[key] = { kind: 'ref', path: match.path };
         used.add(match.path);
         if (required.has(key)) matchedRequired = true;
+    }
+    // The same schema-matching layer as the single-value pass, per item.
+    const left = keys.filter(k => !patch[k] && isEmptyBinding((existingInputs || {})[k]) && !isSecretLikeKey(k));
+    for (const r of matchSchema(left.map(k => ({ key: k, ...(properties[k] || {}) })), candidates, used)) {
+        patch[r.key] = { kind: 'ref', path: r.path };
+        used.add(r.path);
+        if (required.has(r.key)) matchedRequired = true;
     }
     if (!matchedRequired) return null;
     return { patch, forEach: { overRef, itemVar, maxIterations: 100 } };
@@ -287,6 +295,18 @@ export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups,
         if (!match) continue;
         patch[key] = { kind: 'ref', path: match.path };
         used.add(match.path);
+    }
+    // What names alone did not settle: schema matching (schemaMatch.ts) —
+    // synonyms, the step's entity for a generic `id`, value kinds, allowed
+    // values. Conservative threshold, one field per parameter.
+    const rest = keys.filter(k => !patch[k] && isEmptyBinding((existingInputs || {})[k]) && !isSecretLikeKey(k));
+    if (rest.length && Object.keys(patch).length < maxPerStep) {
+        const params = rest.map(k => ({ key: k, ...(properties?.[k] || {}) }));
+        for (const r of matchSchema(params, candidates, used)) {
+            if (Object.keys(patch).length >= maxPerStep) break;
+            patch[r.key] = { kind: 'ref', path: r.path };
+            used.add(r.path);
+        }
     }
     return patch;
 }

@@ -10,6 +10,7 @@ import { isSecretLikeKey, nearestArrayRef, normalizeKey, requiredFirst, sampleTy
 import { isObj } from './json';
 import { isEmptyBinding } from './partitionInputs';
 import { buildSampleRoot } from './realOutputs';
+import { matchSchema } from './schemaMatch';
 import type { Binding, Catalog, FlowDefinition, ForEach, JsonSchema, VariableGroup } from './types';
 import { buildToolOutputMap, inferLoopItemSample, sampleToFields, suggestItemVar } from './upstream';
 
@@ -22,6 +23,9 @@ interface Cand {
     key: string;
     path: string;
     type: string;
+    sample?: unknown;
+    groupLabel?: string;
+    groupIndex: number;
 }
 
 function lastSegmentKey(path: string): string {
@@ -38,8 +42,8 @@ function idAffinityBase(key: string): string | null {
 function elementCandidates(elementSample: Record<string, unknown>, itemVar: string): Cand[] {
     const out: Cand[] = [];
     for (const f of sampleToFields(elementSample, `loop.${itemVar}`)) {
-        out.push({ key: f.key, path: f.path, type: sampleType(f.sample) });
-        for (const c of f.children || []) out.push({ key: c.key, path: c.path, type: sampleType(c.sample) });
+        out.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel: itemVar, groupIndex: 0 });
+        for (const c of f.children || []) out.push({ key: c.key, path: c.path, type: sampleType(c.sample), sample: c.sample, groupLabel: itemVar, groupIndex: 0 });
     }
     return out;
 }
@@ -87,6 +91,13 @@ function matchAll(keys: string[], properties: NonNullable<JsonSchema['properties
         patch[key] = { kind: 'ref', path: match.path };
         st.used.add(match.path);
         matched.push(key);
+    }
+    // The same schema-matching layer as the single-value pass, per item.
+    const left = keys.filter((k) => !patch[k] && isEmptyBinding(existing[k]) && !isSecretLikeKey(k));
+    for (const r of matchSchema(left.map((k) => ({ key: k, ...((properties[k] as Record<string, unknown>) || {}) })), candidates, st.used)) {
+        patch[r.key] = { kind: 'ref', path: r.path };
+        st.used.add(r.path);
+        matched.push(r.key);
     }
     return { patch, matched };
 }

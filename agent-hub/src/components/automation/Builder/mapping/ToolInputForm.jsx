@@ -66,6 +66,9 @@ export default function ToolInputForm({
     // have no schema, so expectedShapeFor(undefined) === 'unknown' and the
     // chooser never fires there.
     onRequestForEach = null,
+    // A value from a list inside the current item moves the step's forEach
+    // to that list (deepenForEach.ts); only while the step runs per item.
+    deepenForEach = null,
     // Round 4 (artboards 4a/4b), all optional and schema mode only:
     //   suggestions  { [key]: { binding, label, source } } for EMPTY required
     //                settings: a matching upstream field, else a safe default
@@ -251,6 +254,7 @@ export default function ToolInputForm({
                 previewSample={previewSample}
                 autoMapped={isAuto(key)}
                 onRequestForEach={onRequestForEach}
+                deepenForEach={deepenForEach}
                 suggestion={suggestions?.[key] || null}
                 tool={tool}
                 problem={problemKey === key ? problemText : null}

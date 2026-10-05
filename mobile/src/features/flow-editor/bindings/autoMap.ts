@@ -9,6 +9,7 @@
  */
 
 import { isEmptyBinding } from './partitionInputs';
+import { matchSchema } from './schemaMatch';
 import type { Binding, Catalog, JsonSchema, VariableField, VariableGroup } from './types';
 
 export function normalizeKey(name: unknown): string {
@@ -49,16 +50,20 @@ interface Candidate {
     key: string;
     path: string;
     type: string;
+    sample?: unknown;
+    groupLabel?: string;
     groupIndex: number;
     fieldIndex: number;
 }
 
-function pushField(out: Candidate[], f: VariableField, gi: number, fi: number): number {
-    out.push({ key: f.key, path: f.path, type: sampleType(f.sample), groupIndex: gi, fieldIndex: fi++ });
+function pushField(out: Candidate[], f: VariableField, group: { index: number; label?: string }, fi: number): number {
+    const gi = group.index;
+    const groupLabel = group.label;
+    out.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel, groupIndex: gi, fieldIndex: fi++ });
     for (const c of f.children || []) {
         // `[*]` children resolve to an ARRAY at run time — never a scalar param.
         if (/\[\*\]/.test(c.path)) continue;
-        out.push({ key: c.key, path: c.path, type: sampleType(c.sample), groupIndex: gi, fieldIndex: fi++ });
+        out.push({ key: c.key, path: c.path, type: sampleType(c.sample), sample: c.sample, groupLabel, groupIndex: gi, fieldIndex: fi++ });
     }
     return fi;
 }
@@ -70,7 +75,7 @@ function flattenCandidates(groups: VariableGroup[] | null | undefined): Candidat
         let fi = 0;
         for (const f of g.fields || []) {
             if (f.perIteration) fi++;
-            else fi = pushField(out, f, gi, fi);
+            else fi = pushField(out, f, { index: gi, label: g.label }, fi);
         }
     });
     return out;
@@ -155,6 +160,18 @@ function mapOne(key: string, pass: MapPass): Binding | null {
     return { kind: 'ref', path: match.path };
 }
 
+/** What names alone did not settle: schema matching (schemaMatch.ts), into `patch`. */
+function schemaPass(keys: string[], patch: Record<string, Binding>, pass: MapPass, maxPerStep: number): void {
+    const rest = keys.filter((k) => !patch[k] && isEmptyBinding(pass.existing[k]) && !isSecretLikeKey(k));
+    if (!rest.length || Object.keys(patch).length >= maxPerStep) return;
+    const params = rest.map((k) => ({ key: k, ...((pass.properties?.[k] as Record<string, unknown>) || {}) }));
+    for (const r of matchSchema(params, pass.candidates, pass.used)) {
+        if (Object.keys(patch).length >= maxPerStep) break;
+        patch[r.key] = { kind: 'ref', path: r.path };
+        pass.used.add(r.path);
+    }
+}
+
 /**
  * Only NEW `{kind:'ref'}` bindings for still-empty keys. Without a schema only
  * the step's existing keys are considered — never invented.
@@ -177,5 +194,6 @@ export function autoMapInputs(
         const binding = mapOne(key, pass);
         if (binding) patch[key] = binding;
     }
+    schemaPass(keys, patch, pass, maxPerStep);
     return patch;
 }

@@ -4,6 +4,7 @@ import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
 import BindingField from './BindingField';
 import previewBinding from './bindingPreview';
 import { isEmptyValue } from './boundPaths';
+import { nestedListPick } from './deepenForEach';
 import { EmptySlotNote, FieldLabelRow } from './fieldChrome';
 import { useFormRowLabel } from './FormRowLabelContext';
 import ListPickChooser from './ListPickChooser';
@@ -20,9 +21,10 @@ import {
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { bindingFromInput, formatPathForInsert } from '../../../../utils/bindingHelpers';
-import { controlSurfaceClass, denseInputClass, listBadgeClass, AMBER_NOTE, FOCUS_RING, INLINE_LINK } from '../flow/settings/formStyles';
+import { bindingFromInput, formatPathForInsert, walkPath } from '../../../../utils/bindingHelpers';
+import { humanizeFieldKey } from '../flow/displayHelpers';
 import { useFormMode } from '../flow/settings/formDensity';
+import { controlSurfaceClass, denseInputClass, listBadgeClass, AMBER_NOTE, FOCUS_RING, INLINE_LINK } from '../flow/settings/formStyles';
 
 /**
  * VISUAL value editor — the plain-language alternative to BindingField.
@@ -69,6 +71,10 @@ export default function ValueBuilder({
     // false while the step already runs per item (useForEachRequest), when
     // the callback stays only so Undo can clear what a pick just set.
     canForEach = null,
+    // { itemVar, apply(plan, newItem) => { undo, runs, orphans } } while the
+    // step already runs per item: a value from a list INSIDE that item moves
+    // the step to that list (deepenForEach.ts). Absent: not offered.
+    deepenForEach = null,
     // Slot chrome (mapping/fieldChrome.jsx) — the same label row and
     // empty-required note BindingField draws, so a schema-declared parameter
     // reads identically whichever editor renders it. `label` alone still only
@@ -174,6 +180,19 @@ export default function ValueBuilder({
             const field = fieldForSlot(clean, sampleRoot, { slot: label, expectedKind: expectKind });
             if (field) { clean = field; actualKind = kindAtPath(field, sampleRoot); }
         }
+        // A value from a list inside the item this step already runs over
+        // (Attachments ▸ Attachment id while it runs per email): one run per
+        // attachment, the step's other fields moved along. Never joined.
+        const plan = deepenForEach?.apply ? nestedListPick(clean, deepenForEach.itemVar) : null;
+        if (plan) {
+            const list = walkPath(`loop.${plan.fromVar}.${plan.listTail}`, sampleRoot);
+            const newItem = Array.isArray(list) ? list.find(x => x && typeof x === 'object') ?? null : null;
+            onChange?.({ kind: 'ref', path: `loop.${plan.itemVar}${plan.fieldTail}` });
+            const res = deepenForEach.apply(plan, newItem);
+            undoRef.current = { value, custom: res?.undo || null };
+            setForeachNote({ runs: res?.runs ?? null, noun: plan.itemVar, orphans: res?.orphans || [] });
+            return;
+        }
         // A scalar slot with no declared kind still wants ONE value; 'text' is
         // the widest scalar, so it asks the same question the shape-level rule
         // used to ask and never a narrower one.
@@ -275,6 +294,9 @@ export default function ValueBuilder({
         undoRef.current = null;
         setForeachNote(null);
         if (!undo) return;
+        // A deepened forEach restores the step as a whole (its forEach and the
+        // fields it moved), this field included.
+        if (undo.custom) { undo.custom(); return; }
         (undo.request || onRequestForEach)?.(null);
         onChange?.(undo.value ?? { kind: 'literal', value: '' });
     };
@@ -571,9 +593,16 @@ export default function ValueBuilder({
 
             {foreachNote && (
                 <div className={`${AMBER_NOTE} flex items-center gap-2`}>
-                    {foreachNote.runs === 1
-                        ? t('automations.builder.foreach_set_note_one', 'This step now runs once per row — 1 run.')
-                        : t('automations.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
+                    <span>
+                        {foreachNote.noun
+                            ? t('automations.builder.foreach_deepened_note', 'This step now runs once per {item}, across every one it read before.', { item: humanizeFieldKey(foreachNote.noun).toLowerCase() })
+                            : foreachNote.runs === 1
+                                ? t('automations.builder.foreach_set_note_one', 'This step now runs once per row — 1 run.')
+                                : t('automations.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
+                        {foreachNote.orphans?.length > 0 && (
+                            <> {t('automations.builder.foreach_deepened_orphans', 'Check {fields}: it has no match in the new item.', { fields: foreachNote.orphans.join(', ') })}</>
+                        )}
+                    </span>
                     <button type="button" onClick={undoForeach} className="underline hover:no-underline">
                         {t('automations.builder.undo', 'Undo')}
                     </button>

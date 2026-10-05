@@ -15,6 +15,7 @@ import { runStepProblem } from '../runProblem';
 import { isTablesRowTool, withoutValuesInput } from '../tablesRowValues';
 import TablesRowValuesEditor from '../TablesRowValuesEditor';
 import { AskOnceRow, askOnceAvailability } from './askOnceRow';
+import { deepenedForEach, rebindToNewItem } from '../../../mapping/deepenForEach';
 
 /**
  * Where the last run's error points (round 4, artboard 4a; see ../runProblem).
@@ -54,6 +55,23 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
     const requestForEach = React.useCallback((fe) => {
         set('forEach', fe ? { itemVar: 'item', maxIterations: 100, ...(draft.forEach || {}), ...fe } : null);
     }, [draft.forEach, set]);
+    // While the step runs per item: a value from a list INSIDE that item
+    // (Attachments ▸ Attachment id while it runs per email) moves the run to
+    // that list, and the fields that read the old item move to the new one.
+    // Both writes are updaters, so they land after the field's own change.
+    const deepenForEach = React.useMemo(() => ({
+        itemVar: draft.forEach?.itemVar || 'item',
+        apply: (plan, newItem) => {
+            const before = { forEach: draft.forEach, inputs: draft.inputs };
+            set('forEach', (fe) => deepenedForEach(fe, plan));
+            set('inputs', (cur) => rebindToNewItem(cur, plan, newItem).inputs);
+            // What cannot move is known from the fields as they are now: the
+            // field just picked already reads the new item.
+            const { orphans } = rebindToNewItem(draft.inputs, plan, newItem);
+            const undo = () => { set('forEach', before.forEach); set('inputs', before.inputs); };
+            return { undo, runs: null, orphans };
+        },
+    }), [draft.forEach, draft.inputs, set]);
     // Same app = one node with a switchable operation (n8n-style). Keep the
     // inputs that also exist in the new operation; drop the rest.
     const onChangeOperation = (newTool) => {
@@ -114,6 +132,7 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                     // Not while the step already runs per item: a second list would orphan
                     // every field that reads the current one.
                     onRequestForEach={draft.forEach?.overRef ? null : requestForEach}
+                    deepenForEach={draft.forEach?.overRef ? deepenForEach : null}
                     // Only let the user add ad-hoc fields when the tool can
                     // actually accept them: a fixed schema (gmail_search etc.)
                     // doesn't, so hide "Add custom field"; a tool with no
