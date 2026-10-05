@@ -85,7 +85,7 @@
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.2",
     "vega": "^6.4.0",
     "vega-embed": "^7.3.0",
     "vega-lite": "^6.4.3",
