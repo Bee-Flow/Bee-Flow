@@ -1,5 +1,5 @@
+import { Save, X } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
 import Modal from './Modal';
 import useTranslation from '../../hooks/useTranslation';
 
@@ -41,9 +41,12 @@ import useTranslation from '../../hooks/useTranslation';
  * the event before it reaches the window.
  *
  * Also exported: `DrawerSection` (the 10px uppercase label + content stack
- * that appears seven times across the two artboard drawers — "Betrokkene",
- * "Tijdlijn", "Besluit", "Motivatie · verplicht bij Uitgesloten") and
- * `DrawerId` (the mono 11px id in the header: "#2038", "A.5.20").
+ * that appears seven times across the two artboard drawers: "Data subject",
+ * "Timeline", "Decision", "Justification · required when excluded"),
+ * `DrawerId` (the mono 11px id in the header: "#2038", "A.5.20") and
+ * `DrawerFooter` (the one action row every drawer ends with: secondary
+ * actions on the left, ONE primary on the right, "Save" unless told
+ * otherwise).
  */
 export default function SideDrawer({
     open = false,
@@ -95,7 +98,7 @@ export default function SideDrawer({
             onClick={() => onClose?.()}
             aria-label={t('common.close', 'Close')}
             data-testid={testId ? `${testId}-close` : undefined}
-            className="grid place-items-center w-7 h-7 -mr-1.5 rounded-md flex-shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+            className="grid place-items-center w-7 h-7 -mr-1.5 rounded-md flex-shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
         >
             <X size={14} aria-hidden="true" />
         </button>
@@ -149,7 +152,7 @@ export default function SideDrawer({
                 ref={headerRef}
                 tabIndex={-1}
                 data-testid={testId ? `${testId}-header` : undefined}
-                className="flex items-center gap-2 px-3.5 py-3 border-b border-[var(--border-default)] flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-primary)]"
+                className="flex items-center gap-2 px-3.5 py-3 border-b border-[var(--border-default)] flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]"
             >
                 <div className="flex-1 min-w-0 flex items-center gap-2">{header}</div>
                 {closeButton}
@@ -201,5 +204,55 @@ export function DrawerId({ children, className = '', testId = undefined }) {
         <span className={`font-mono text-[11px] text-[var(--text-secondary)] flex-shrink-0 ${className}`.trim()} data-testid={testId}>
             {children}
         </span>
+    );
+}
+
+/**
+ * The drawer's action row: secondary actions (`children`) on the left, ONE
+ * primary on the right. The primary is either a ready element (`primary`)
+ * or built from `onPrimary`: the theme's filled button, labelled
+ * `primaryLabel` (default "Save") with `primaryIcon` (default Save). No
+ * primary at all is fine: a drawer that only reads has only secondaries.
+ */
+function PrimaryButton({ onClick, disabled, label, icon: Icon, testId }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            data-testid={testId}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-card)]"
+        >
+            {Icon ? <Icon size={13} aria-hidden="true" /> : null}
+            {label}
+        </button>
+    );
+}
+
+export function DrawerFooter({
+    children = null,
+    primary = null,
+    onPrimary = undefined,
+    primaryLabel = undefined,
+    primaryIcon = Save,
+    primaryDisabled = false,
+    className = '',
+    testId = undefined,
+}) {
+    const { t } = useTranslation();
+    const built = typeof onPrimary === 'function'
+        ? <PrimaryButton onClick={onPrimary} disabled={primaryDisabled} label={primaryLabel ?? t('common.save', 'Save')} icon={primaryIcon} testId={testId && `${testId}-primary`} />
+        : null;
+    const main = primary || built;
+    return (
+        <div
+            data-testid={testId}
+            className={`flex items-center gap-2 pt-3 border-t border-[var(--border-default)] ${className}`.trim()}
+        >
+            <div className="flex flex-wrap items-center gap-2 min-w-0" data-testid={testId && `${testId}-secondary`}>
+                {children}
+            </div>
+            {main && <div className="ml-auto flex-shrink-0 flex items-center">{main}</div>}
+        </div>
     );
 }

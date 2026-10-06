@@ -4,18 +4,21 @@
  *
  * Same registry (sections.js), same visibility rule (visibleSections: a
  * growing-set framework or register shows only once the org enabled it) and
- * the same meta (railMeta) as the desktop rail — only the chrome differs:
- * one card per group, rows of at least 44px (hit-target rule of the frame),
- * a chevron at the right. A meta of `null` renders nothing; nothing here
- * ever prints a 0 the server did not state.
+ * the same meta and hint (railMeta / railHint) as the desktop rail — only
+ * the chrome differs: one card per group, rows of at least 44px (hit-target
+ * rule of the frame), a chevron at the right. A meta of `null` renders
+ * nothing; nothing here ever prints a 0 the server did not state. The hint
+ * (a row's background figures) is the row's tooltip and its accessible
+ * description, as on the desktop rail.
  */
-import React from 'react';
 import { ChevronRight, Timer } from 'lucide-react';
+import React, { useId } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { GROUPS, sectionsInGroup } from '../sections';
-import railMeta from '../railMeta';
-import { visibleSections } from '../ComplianceRail';
+import DeadlineClock from '../../../shared/DeadlineClock';
 import { TONES } from '../../../shared/statusTone';
+import { visibleSections } from '../ComplianceRail';
+import railMeta, { railHint, railRowTitle } from '../railMeta';
+import { GROUPS, sectionsInGroup } from '../sections';
 
 export const MOBILE_ROW_CLASS = 'w-full flex items-center gap-3 px-3.5 py-2.5 min-h-[44px] text-left';
 
@@ -43,6 +46,9 @@ export function RailMetaText({ meta }) {
                         <Timer size={11} aria-hidden="true" />{meta.badge}
                     </span>
                 )}
+                {!meta.badge && meta.dueAt && (
+                    <DeadlineClock variant="rail" dueAt={meta.dueAt} startedAt={meta.startedAt} urgentBelowMs={meta.urgentBelowMs} />
+                )}
                 {meta.suffix && <span style={{ color: 'var(--text-tertiary)' }}>{meta.suffix}</span>}
             </span>
         );
@@ -59,19 +65,26 @@ export function MobileCard({ children, className = '', testId }) {
     );
 }
 
-export function MobileSectionRow({ section, meta, active, onClick, t }) {
+export function MobileSectionRow({ section, meta, hint = null, active, onClick, t }) {
     const Icon = section.icon;
+    const label = t(section.labelKey, section.labelFallback);
+    const hintId = `${useId()}-hint`;
     return (
-        <button type="button" data-testid={`mobile-row-${section.id}`} aria-current={active ? 'page' : undefined}
-            onClick={onClick} className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`}
-            style={{ borderColor: 'var(--border-default)', background: active ? 'var(--bg-tertiary)' : 'transparent' }}>
-            {Icon && <Icon size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: active ? 'var(--kind-compliance)' : 'var(--text-secondary)' }} />}
-            <span className="flex-1 min-w-0 truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                {t(section.labelKey, section.labelFallback)}
-            </span>
-            <RailMetaText meta={meta} />
-            <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-        </button>
+        <>
+            {/* Before the button, so the row stays the card's `last:` child. */}
+            {hint && <span id={hintId} className="sr-only" data-testid={`mobile-hint-${section.id}`}>{hint}</span>}
+            <button type="button" data-testid={`mobile-row-${section.id}`} aria-current={active ? 'page' : undefined}
+                title={railRowTitle(label, hint)} aria-describedby={hint ? hintId : undefined}
+                onClick={onClick} className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`}
+                style={{ borderColor: 'var(--border-default)', background: active ? 'var(--bg-tertiary)' : 'transparent' }}>
+                {Icon && <Icon size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: active ? 'var(--kind-compliance)' : 'var(--text-secondary)' }} />}
+                <span className="flex-1 min-w-0 truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {label}
+                </span>
+                <RailMetaText meta={meta} />
+                <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+            </button>
+        </>
     );
 }
 
@@ -101,8 +114,8 @@ export default function MobileRailList({ groups, counts, frameworks, active, onS
                         )}
                         <MobileCard testId={`${testId}-${groupId}`}>
                             {rows.map((s) => (
-                                <MobileSectionRow key={s.id} section={s} meta={railMeta(s, counts, t)} active={active === s.id}
-                                    onClick={() => onSelect(s.id)} t={t} />
+                                <MobileSectionRow key={s.id} section={s} meta={railMeta(s, counts, t)} hint={railHint(s, counts, t)}
+                                    active={active === s.id} onClick={() => onSelect(s.id)} t={t} />
                             ))}
                         </MobileCard>
                     </div>

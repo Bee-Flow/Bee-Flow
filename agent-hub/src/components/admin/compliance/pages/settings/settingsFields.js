@@ -25,7 +25,7 @@ export const LEGAL_BASES = Object.freeze([
     Object.freeze({ value: 'legitimate_interests', key: 'compliance.lb_legitimate_interests', en: 'Legitimate interests' }),
 ]);
 
-const RESIDENCY = Object.freeze([
+export const RESIDENCY = Object.freeze([
     Object.freeze({ value: 'eu', key: 'compliance.residency_eu', en: 'EU-only' }),
     Object.freeze({ value: 'internal', key: 'compliance.residency_internal', en: 'Self-hosted only' }),
     Object.freeze({ value: 'hybrid', key: 'compliance.residency_hybrid', en: 'Hybrid' }),

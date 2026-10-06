@@ -39,7 +39,7 @@ export const FRAMEWORK_CARDS = Object.freeze([
 ]);
 
 export default function OverviewPage({
-    section, tab, onTab, navigate, onNavigate, exportsEnabled = true, dl, api = '/api/compliance',
+    section, tab, navigate, onNavigate, exportsEnabled = true, dl, api = '/api/compliance',
     isMobile = false, data = {}, setHeaderActions,
 }) {
     const { t } = useTranslation();
@@ -59,11 +59,11 @@ export default function OverviewPage({
     const nextAia = useMemo(() => upcoming.find(m => m.framework_id === 'aia') || null, [upcoming]);
 
     const openCalendar = useCallback(() => {
-        // The full calendar lives on Frameworks › Calendar; the hub keeps one
-        // `?tab=` param, so the tab is set before the section changes.
-        onTab?.('calendar');
-        navigate?.('frameworks');
-    }, [onTab, navigate]);
+        // The full calendar lives on Frameworks › Calendar. The tab travels
+        // with the navigation: a host that pushes a new URL re-reads `?tab=`
+        // from it, so a tab set beforehand would be lost.
+        navigate?.('frameworks', undefined, 'calendar');
+    }, [navigate]);
 
     if (core.loading && !overview) {
         return (

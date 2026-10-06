@@ -1,21 +1,47 @@
 /**
  * Contract guard for ComplianceHub navigation. The settings surface
  * (AdvancedSettings → complianceNavAdapter) rewrites the paths this component
- * emits, so the shape `admin/compliance/<section>[/<checkId>]` is load-bearing
- * in two places. If these tests fail, update the adapter regex in
+ * emits, so the shape `admin/compliance/<section>[/<checkId>][?tab=<tab>]` is
+ * load-bearing in two places. If these tests fail, update the adapter regex in
  * src/pages/settings/complianceNavAdapter.js in the same change.
  */
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ComplianceHub from './index';
+import { rewriteComplianceNav } from '../../../pages/settings/complianceNavAdapter';
+
+// A page that wants a leave guard installs `guard.fn` (see the SettingsPage mock).
+const guard = vi.hoisted(() => ({ fn: null }));
 
 vi.mock('../../../hooks/useTranslation', () => {
     const t = (key) => key;
     // Both import styles are in use (the shared primitives take the default export).
     return { useTranslation: () => ({ t }), default: () => ({ t }) };
 });
-vi.mock('./pages/OverviewPage', () => ({
-    default: () => <div data-testid="overview-page" />,
+// The Overview mock renders the REAL DeadlinesCard, so a row click goes
+// through the same targetOf → navigate(section, id, tab) the product runs.
+vi.mock('./pages/OverviewPage', async () => {
+    const { default: DeadlinesCard } = await import('./pages/overview/DeadlinesCard');
+    const due = new Date(Date.now() - 86_400_000).toISOString();
+    const items = [
+        { id: 'obligation:3', kind: 'obligation', ref: 'training', title: 'Annual security awareness refresher', state: 'overdue', due_at: due,
+            target: '/app/admin/compliance/audits?tab=obligations' },
+        { id: 'attestation_expiry:agent:a1', kind: 'attestation_expiry', ref: 'Agent', title: 'Helpdesk', state: 'ok', due_at: due,
+            target: '/app/admin/compliance/frameworks?tab=per_automation' },
+    ];
+    return {
+        default: ({ navigate, tab }) => (
+            <div data-testid="overview-page" data-tab={tab}>
+                <DeadlinesCard items={items} navigate={navigate} />
+                <button type="button" onClick={() => navigate('frameworks', undefined, 'calendar')}>open-calendar</button>
+            </div>
+        ),
+    };
+});
+vi.mock('./pages/FrameworksPage', () => ({
+    default: ({ tab }) => <div data-testid="frameworks-page" data-tab={tab} />,
 }));
 // The redesigned framework page takes the hub props object; the regulation
 // it scores is derived from the section, so the mock derives it the same way.
@@ -29,12 +55,19 @@ vi.mock('./pages/FrameworkPage', async () => {
 });
 // The redesigned settings page takes the hub props object, so the directory
 // reaches it as `data.orgUsers` — the mock reads it where the page reads it.
-vi.mock('./pages/SettingsPage', () => ({
-    default: ({ data }) => {
+vi.mock('./pages/SettingsPage', async () => {
+    const { useEffect } = await import('react');
+    function SettingsPageMock({ data, setLeaveGuard }) {
+        useEffect(() => {
+            if (!guard.fn) return undefined;
+            setLeaveGuard(guard.fn);
+            return () => setLeaveGuard(null);
+        }, [setLeaveGuard]);
         const orgUsers = data?.orgUsers ?? null;
         return <div data-testid="settings-page" data-orgusers={orgUsers === null ? 'null' : JSON.stringify(orgUsers)} />;
-    },
-}));
+    }
+    return { default: SettingsPageMock };
+});
 vi.mock('./pages/DsrPage', () => ({ default: () => <div data-testid="dsr-page" /> }));
 vi.mock('./pages/RopaPage', () => ({ default: () => <div data-testid="ropa-page" /> }));
 // Only the PAGE is stubbed: ComplianceHeader imports `dpiaRows` from this same
@@ -80,7 +113,8 @@ describe('ComplianceHub navigation contract', () => {
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         fireEvent.click(screen.getByTitle('compliance.nav_gdpr'));
         expect(onNavigate).toHaveBeenCalledWith('admin/compliance/gdpr');
-        fireEvent.click(screen.getByTitle('compliance.nav_settings'));
+        // Settings carries a hint in its tooltip, so it is found by test id.
+        fireEvent.click(screen.getByTestId('rail-row-settings'));
         expect(onNavigate).toHaveBeenCalledWith('admin/compliance/settings');
     });
 
@@ -180,5 +214,81 @@ describe('ComplianceHub navigation contract', () => {
             // `data-layout` (set before the chunk resolves) still read 'mobile'.
             await waitFor(() => expect(screen.getByTestId('compliance-mobile')).toBeInTheDocument());
         } finally { viewport.isMobile = false; }
+    });
+
+});
+
+// ── Round 2 (Oct 2026): the tab travels with the navigation ──
+describe('ComplianceHub navigation — tabs, legacy tabs and the leave guard', () => {
+    beforeEach(() => {
+        cleanup();
+        mockFetch();
+    });
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('an obligation deadline row emits admin/compliance/training (the legacy audits tab is aliased)', async () => {
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        render(<ComplianceHub onNavigate={onNavigate} />);
+        const rows = await screen.findAllByTestId('deadlines-card-row');
+        await user.click(rows[0].querySelector('button'));
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/compliance/training');
+        await user.click(rows[1].querySelector('button'));
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/compliance/frameworks?tab=per_automation');
+    });
+
+    it('a legacy ?tab= redirects once, replacing the old URL', async () => {
+        const onNavigate = vi.fn();
+        window.history.replaceState({}, '', '/app/settings/organisation/compliance/audits?tab=obligations');
+        try {
+            const { rerender } = render(<ComplianceHub activeSection="audits" onNavigate={onNavigate} />);
+            await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('admin/compliance/training', { replace: true }));
+            rerender(<ComplianceHub activeSection="audits" onNavigate={onNavigate} />);
+            expect(onNavigate).toHaveBeenCalledTimes(1);
+        } finally { window.history.replaceState({}, '', '/'); }
+    });
+
+    it('a tab set by navigate survives the host pushing a new pathname (Overview › Calendar)', async () => {
+        const user = userEvent.setup();
+        // The Settings host, reduced: the URL owns the section, and a click
+        // pushes the rewritten URL — the pathname changes, so the hub re-reads ?tab=.
+        function Host() {
+            const [nav, setNav] = useState({ section: 'overview', checkId: '' });
+            const onNavigate = (path) => {
+                const hit = rewriteComplianceNav(path);
+                window.history.pushState({}, '', hit.url);
+                setNav({ section: hit.section, checkId: hit.checkId });
+            };
+            return <ComplianceHub activeSection={nav.section} focusCheckId={nav.checkId || null} onNavigate={onNavigate} />;
+        }
+        window.history.replaceState({}, '', '/app/settings/organisation/compliance/overview');
+        try {
+            render(<Host />);
+            await user.click(await screen.findByText('open-calendar'));
+            await waitFor(() => expect(screen.getByTestId('frameworks-page').dataset.tab).toBe('calendar'));
+            expect(window.location.pathname + window.location.search).toBe('/app/settings/organisation/compliance/frameworks?tab=calendar');
+            // Back: the Overview entry kept its own (absent) tab, not the next page's.
+            await act(async () => { window.history.back(); await new Promise(r => setTimeout(r, 30)); });
+            expect(window.location.search).toBe('');
+        } finally { window.history.replaceState({}, '', '/'); }
+    });
+
+    it('the leave guard blocks navigation when it resolves false, and lets it through when true', async () => {
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        let answer = false;
+        guard.fn = vi.fn(async () => answer);
+        try {
+            render(<ComplianceHub activeSection="settings" onNavigate={onNavigate} />);
+            await screen.findByTestId('settings-page');
+            await user.click(screen.getByTestId('rail-row-gdpr'));
+            await waitFor(() => expect(guard.fn).toHaveBeenCalledTimes(1));
+            expect(onNavigate).not.toHaveBeenCalled();
+            answer = true;
+            await user.click(screen.getByTestId('rail-row-gdpr'));
+            await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('admin/compliance/gdpr'));
+        } finally { guard.fn = null; }
     });
 });

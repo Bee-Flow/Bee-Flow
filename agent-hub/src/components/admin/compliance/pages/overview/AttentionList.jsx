@@ -6,7 +6,7 @@ import StatusPill from '../../shared/StatusPill';
 import ArticleRef from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
 import VerificationChip from '../../shared/VerificationChip';
-import { complianceActionPath, sectionOfPath } from '../../data/actions';
+import { complianceActionPath, resolveTarget } from '../../data/actions';
 import { sectionForRegulation } from '../../sections';
 
 /**
@@ -18,7 +18,7 @@ import { sectionForRegulation } from '../../sections';
  *   failed      the read failed (renders the same line)
  *   onAutoFix(checkId)   core.autoFix — called only after the inline confirm step
  *   autoFixingId         core.autoFixingId
- *   navigate(sectionId, subId?) / onNavigate(path)   hub callbacks; an action path outside the hub goes to onNavigate
+ *   navigate(sectionId, subId?, tab?) / onNavigate(path)   hub callbacks; an action path outside the hub goes to onNavigate
  *   onViewAll()          footer link (defaults to navigate(section of the first item))
  *   limit                rows shown (default 5)
  */
@@ -51,13 +51,9 @@ export default function AttentionList({
         }
         const path = complianceActionPath(action);
         if (!path) return;
-        const section = sectionOfPath(path);
-        if (section) {
-            const sub = /^admin\/compliance\/[^/]+\/(.+)$/.exec(path)?.[1];
-            navigate?.(section, sub ? decodeURIComponent(sub) : undefined);
-        } else {
-            onNavigate?.(path);
-        }
+        const target = resolveTarget(path);
+        if (target) navigate?.(target.section, target.id, target.tab);
+        else onNavigate?.(path);
     };
 
     return (
@@ -133,7 +129,7 @@ export default function AttentionList({
 
 function sectionOfItem(item) {
     const reg = item?.meta?.frameworks?.[0]?.regulation || item?.regulation;
-    const fromAction = item?.action ? sectionOfPath(complianceActionPath(item.action) || '') : null;
+    const fromAction = item?.action ? resolveTarget(complianceActionPath(item.action) || '')?.section : null;
     return fromAction || (reg ? sectionForRegulation(reg) : null);
 }
 

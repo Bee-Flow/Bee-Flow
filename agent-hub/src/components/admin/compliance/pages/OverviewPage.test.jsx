@@ -187,7 +187,7 @@ describe('OverviewPage — attention states', () => {
         const { navigate } = renderPage();
         const rows = screen.getAllByTestId('attention-list-row');
         fireEvent.click(within(rows[0]).getByTestId('attention-list-row-action'));
-        expect(navigate).toHaveBeenCalledWith('settings', undefined);
+        expect(navigate).toHaveBeenCalledWith('settings', undefined, undefined); // (section, id, tab)
     });
 
     it('an auto-fix asks first and only then calls core.autoFix', () => {
@@ -266,10 +266,11 @@ describe('OverviewPage — calendar and reports tabs', () => {
         expect(screen.queryByTestId('ovw-reports-group-iso')).not.toBeInTheDocument();
     });
 
-    it('"Calendar ↗" sends the hub to Frameworks with the calendar tab selected', () => {
+    it('"Calendar ↗" sends the hub to Frameworks with the calendar tab in the navigation itself', () => {
         const { navigate, onTab } = renderPage();
         fireEvent.click(screen.getByTestId('upcoming-dates-open'));
-        expect(onTab).toHaveBeenCalledWith('calendar');
-        expect(navigate).toHaveBeenCalledWith('frameworks');
+        // The tab rides on navigate: a tab set before a host pushes a new URL is lost.
+        expect(navigate).toHaveBeenCalledWith('frameworks', undefined, 'calendar');
+        expect(onTab).not.toHaveBeenCalled();
     });
 });

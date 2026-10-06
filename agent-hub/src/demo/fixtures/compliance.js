@@ -1319,7 +1319,7 @@ const ATTENTION = (state, limit = 5) => {
             id: `obligation:${o.id}`, code: 'obligation_overdue', severity: 'high', status: 'fail',
             title: `Overdue: ${o.title}`,
             detail: `Due ${o.due_at.slice(0, 10)}.`,
-            section: 'audits', target: `${sectionPath('audits')}?tab=obligations`,
+            section: 'training', target: sectionPath('training'),
             regulation: 'ISO27001', ref: 'cl. 9', at: due,
         }));
     }
@@ -1437,7 +1437,7 @@ const DEADLINES = (state) => {
     for (const o of state.training.obligations) {
         if (o.completed_at || !o.due_at) continue;
         items.push(deadlineItem('obligation', o.id, String(o.kind || 'obligation').replace(/_/g, ' '), o.title,
-            { kind: o.kind, recur_months: o.recur_months }, null, o.due_at, `${sectionPath('audits')}?tab=obligations`));
+            { kind: o.kind, recur_months: o.recur_months }, null, o.due_at, sectionPath('training')));
     }
     for (const a of state.aiAct) {
         if (!a.expires_at) continue;
@@ -1802,6 +1802,20 @@ const ACCESS_AUDIT_ROWS = () => ([
 
 const SWEEP_INTERVAL_HOURS = 6;
 
+/* server/routes/compliance/counts.js nextIncidentClock: the most urgent OPEN
+   clock over every stage of every incident, a stage of its own column winning
+   a tie with the rolled-up deadline_at. */
+const nextIncidentClock = (incidents) => incidents.flatMap(i => [
+    ['early_warning', i.early_warning_due_at, i.early_warning_sent_at],
+    ['customer_notice', i.customer_notice_due_at, i.customer_notified_at],
+    ['final_report', i.final_report_due_at, i.final_report_sent_at],
+    ['authority', i.deadline_at, i.authority_notified_at],
+].filter(([, due, done]) => due && !done).map(([stage, due]) => ({ stage, at: new Date(due).getTime() })))
+    .reduce((best, c) => (best.at == null || c.at < best.at ? c : best), { at: null, stage: null });
+
+/* counts.js hoursLeft: whole hours rounded away from zero, like deadlineMath. */
+const hoursAwayFromZero = (ms) => (ms < 0 ? -1 : 1) * Math.ceil(Math.abs(ms) / hours(1));
+
 const COUNTS = (state) => {
     const enabled = state.frameworks.enabled;
     const isoOn = enabled.includes('iso27001');
@@ -1816,10 +1830,8 @@ const COUNTS = (state) => {
     }
     const openDsr = state.dsr.filter(r => !DSR_CLOSED.has(r.status));
     const openIncidents = state.incidents.filter(i => i.status !== 'closed');
-    const nextDeadline = openIncidents
-        .filter(i => i.deadline_at && !i.authority_notified_at)
-        .map(i => new Date(i.deadline_at).getTime())
-        .sort((a, b) => a - b)[0] ?? null;
+    const nextClock = nextIncidentClock(openIncidents);
+    const nextDeadline = nextClock.at;
     const docs = state.docs.documents.filter(d => d.status === 'published');
     const personnel = state.training.personnel;
     const connectors = state.connectors.filter(c => c.config?.enabled);
@@ -1858,7 +1870,8 @@ const COUNTS = (state) => {
         body.incidents = {
             open: openIncidents.length,
             next_deadline_at: nextDeadline == null ? null : new Date(nextDeadline).toISOString(),
-            hours_left: nextDeadline == null ? null : Math.floor((nextDeadline - now()) / hours(1)),
+            next_stage: nextClock.stage,
+            hours_left: nextDeadline == null ? null : hoursAwayFromZero(nextDeadline - now()),
             vulnerabilities_open: enabled.includes('cra')
                 ? openIncidents.filter(i => i.kind === 'vulnerability').length
                 : null,
@@ -1868,7 +1881,7 @@ const COUNTS = (state) => {
     }
     if (isoOn) {
         body.risks = { total: state.risks.stats.total, high: state.risks.stats.high };
-        body.soa = { approved: state.soa.stats.approved, total: state.soa.stats.total };
+        body.soa = { approved: state.soa.stats.approved, total: state.soa.stats.total, todo: state.soa.stats.todo };
         body.policies = {
             total: docs.length,
             review_due: docs.filter(d => d.review_due_at && new Date(d.review_due_at).getTime() < now()).length,

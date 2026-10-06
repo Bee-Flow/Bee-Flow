@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ComplianceMobile, { mobileSubtitle } from './ComplianceMobile';
-import { attentionTarget, openChecksFor } from './mobile/MobileHomeOverview';
+import { attentionTarget } from './mobile/MobileHomeOverview';
 
 /**
  * The phone frame (artboard 1h). Everything below is about the three things
@@ -223,7 +223,7 @@ describe('ComplianceMobile — the overview segment', () => {
     it('sends an attention row to the target the server computed, id decoded', () => {
         const { navigate } = mount();
         fireEvent.click(screen.getByTestId('mobile-attention-a2'));
-        expect(navigate).toHaveBeenCalledWith('dpia', 'ag/9');
+        expect(navigate).toHaveBeenCalledWith('dpia', 'ag/9', undefined); // (section, id, tab)
     });
 
     it('falls back to the section scoring a check\'s first framework', () => {
@@ -231,13 +231,7 @@ describe('ComplianceMobile — the overview segment', () => {
         expect(attentionTarget({ action: { target: '/admin/compliance/dsr' } })).toEqual({ section: 'dsr', id: null });
     });
 
-    it('counts only the failing and warning checks of a regulation', () => {
-        expect(openChecksFor(CHECKS, 'GDPR')).toBe(2);
-        expect(openChecksFor(CHECKS, 'AI Act')).toBe(1);
-        // Not 0 — "the checks have not loaded" is a different fact.
-        expect(openChecksFor(null, 'GDPR')).toBeUndefined();
-        expect(openChecksFor(undefined, 'GDPR')).toBeUndefined();
-    });
+    // openChecksFor moved to data/openChecks.ts; its cases live in openChecks.test.ts.
 
     it('shows only the RUNNING deadlines, with a clock each', () => {
         mount();

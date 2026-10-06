@@ -37,7 +37,7 @@ function MrInputRows({ inputs, testId }) {
 const EMPTY_DRAFT = Object.freeze({ held_at: '', attendees: [], decisions: '' });
 
 export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId = null }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const { reviews, mrInputs, busy, createReview } = audit;
     const loading = reviews === null || reviews === undefined;
     const list = Array.isArray(reviews) ? reviews : [];
@@ -100,8 +100,8 @@ export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId 
         const r = selected;
         const snapshot = r.inputs && typeof r.inputs === 'object' && Object.keys(r.inputs).length > 0;
         drawer = (
-            <SideDrawer open onClose={() => setSelectedId(null)} mode={drawerMode} ariaLabel={`${t('compliance.mr_held_on', 'Held')} ${fmtDate(r.held_at)}`} testId="review-drawer"
-                header={<div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('compliance.mr_held_on', 'Held')} {fmtDate(r.held_at)}</div>}>
+            <SideDrawer open onClose={() => setSelectedId(null)} mode={drawerMode} ariaLabel={`${t('compliance.mr_held_on', 'Held')} ${fmtDate(r.held_at, resolvedLocale)}`} testId="review-drawer"
+                header={<div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('compliance.mr_held_on', 'Held')} {fmtDate(r.held_at, resolvedLocale)}</div>}>
                 <DrawerSection label={t('compliance.mr_attendees', 'Attendees')}>
                     <div className="text-xs text-[var(--text-secondary)]">{attendeeNames(r).join(', ') || '—'}</div>
                 </DrawerSection>
@@ -149,7 +149,7 @@ export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId 
                         className="w-full text-left min-h-[44px] flex flex-col justify-center gap-1 min-w-0"
                         data-testid={`review-card-${r.id}`}
                     >
-                        <span className="text-xs font-semibold text-[var(--text-primary)] tabular-nums">{fmtDate(r.held_at)}</span>
+                        <span className="text-xs font-semibold text-[var(--text-primary)] tabular-nums">{fmtDate(r.held_at, resolvedLocale)}</span>
                         <span className="text-[11px] text-[var(--text-secondary)] truncate">{attendeeNames(r).join(', ') || '—'}</span>
                         <span className="text-[11px] text-[var(--text-tertiary)] truncate">{r.decisions || '—'}</span>
                     </button>
@@ -157,7 +157,7 @@ export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId 
                 renderRow={(r, ctx) => (
                     <TableRow key={r.id} columns={ctx.columns} selected={!creating && String(selectedId) === String(r.id)}
                         onClick={() => { setCreating(false); setSelectedId(prev => (String(prev) === String(r.id) ? null : r.id)); }} testId={`review-row-${r.id}`}>
-                        <TableCell column={ctx.columns[0]} className="font-semibold text-[var(--text-primary)] tabular-nums">{fmtDate(r.held_at)}</TableCell>
+                        <TableCell column={ctx.columns[0]} className="font-semibold text-[var(--text-primary)] tabular-nums">{fmtDate(r.held_at, resolvedLocale)}</TableCell>
                         <TableCell column={ctx.columns[1]} className="truncate text-[var(--text-secondary)]">{attendeeNames(r).join(', ') || '—'}</TableCell>
                         <TableCell column={ctx.columns[2]} className="truncate text-[var(--text-secondary)]">{r.decisions || '—'}</TableCell>
                     </TableRow>

@@ -39,7 +39,7 @@ export function isReviewOverdue(doc, now = Date.now()) {
 }
 
 export default function PoliciesPage({ data = {}, isMobile = false, focusId = null }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const state = data.policies || {};
     const docs = state.docs;
     const orgUsers = data.orgUsers ?? null;
@@ -183,7 +183,7 @@ export default function PoliciesPage({ data = {}, isMobile = false, focusId = nu
                                 {d.status === 'published'
                                     ? t('compliance.policies_published_v', 'Published v{version}', { version: d.current_version })
                                     : t('compliance.policies_draft', 'Draft')}
-                                {d.review_due_at ? ` · ${fmtDate(d.review_due_at)}` : ''}
+                                {d.review_due_at ? ` · ${fmtDate(d.review_due_at, resolvedLocale)}` : ''}
                             </span>
                         </button>
                     )}

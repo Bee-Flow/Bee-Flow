@@ -13,8 +13,8 @@
  * Shape (PLAN.md §1.2): { attention_open, last_run:{at,interval_hours},
  * frameworks:{<id>:{score,tone}}, frameworks_summary:{active,candidates,
  * recently_in_force,locked}, dsr:{open,overdue,due_soon}, incidents:{open,
- * next_deadline_at,hours_left,vulnerabilities_open}, ropa:{last_reviewed_at},
- * dpia:{todo}, risks:{total,high}, soa:{approved,total}, policies:{total,
+ * next_deadline_at,next_stage,hours_left,vulnerabilities_open}, ropa:{last_reviewed_at},
+ * dpia:{todo}, risks:{total,high}, soa:{approved,total,todo}, policies:{total,
  * review_due}, audits:{planned}, training:{done,total}, connectors:{count,
  * next_sweep_at}, evidence:{rows,chain_ok,algorithm}, onboarded, setup_step }.
  */

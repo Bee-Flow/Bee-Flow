@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     SECTIONS, GROUPS, DEFAULT_SECTION, SECTIONS_WITH_PICKERS, SECTION_FOR_REGULATION,
-    resolveSection, sectionById, frameworkOf, sectionForRegulation, tabsOf, sectionsInGroup, tabLabelKey,
+    resolveSection, sectionById, frameworkOf, sectionForRegulation, tabsOf, sectionsInGroup, tabLabelKey, resolveTab,
 } from './sections';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -100,8 +100,33 @@ describe('compliance sections registry', () => {
         expect(tabLabelKey('iso_soa', 'controls')).toBe('compliance.tab_soa_controls');
     });
 
-    it('picker sections are real sections', () => {
+    it('picker sections are real sections; the Access log fetches the directory to show names', () => {
         for (const id of SECTIONS_WITH_PICKERS) expect(resolveSection(id)).toBe(id);
+        expect(SECTIONS_WITH_PICKERS).toContain('access_log');
+    });
+
+    it('resolveTab sends a tab that moved to where it went, and leaves a current tab alone', () => {
+        expect(resolveTab('audits', 'obligations')).toEqual({ section: 'training', tab: null });
+        expect(resolveTab('iso_audit', 'obligations')).toEqual({ section: 'training', tab: null });
+        expect(resolveTab('audits', 'ncs')).toEqual({ section: 'audits', tab: 'ncs' });
+        expect(resolveTab('frameworks', 'calendar')).toEqual({ section: 'frameworks', tab: 'calendar' });
+        expect(resolveTab('gdpr', null)).toEqual({ section: 'gdpr', tab: null });
+        expect(resolveTab('nope', '')).toEqual({ section: 'overview', tab: null });
+        // A key on Object.prototype is not a legacy tab.
+        expect(resolveTab('audits', 'toString')).toEqual({ section: 'audits', tab: 'toString' });
+    });
+
+    it('every legacyTabs entry is frozen, leaves its section, lands on a real section and a tab it has', () => {
+        for (const s of SECTIONS) {
+            expect(Object.isFrozen(s.legacyTabs), s.id).toBe(true);
+            for (const [oldTab, to] of Object.entries(s.legacyTabs)) {
+                // A legacy tab that is still a live tab would redirect away from itself.
+                expect(s.tabs, `${s.id}.${oldTab}`).not.toContain(oldTab);
+                expect(resolveSection(to.section), `${s.id}.${oldTab}`).toBe(to.section);
+                if (to.tab) expect(tabsOf(to.section), `${s.id}.${oldTab}`).toContain(to.tab);
+                expect(to.section === s.id && !to.tab, `${s.id}.${oldTab} is a loop`).toBe(false);
+            }
+        }
     });
 
     it('every labelKey, group label and tab label names a key that exists (dictionary or pending keys file)', () => {

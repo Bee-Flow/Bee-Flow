@@ -328,7 +328,9 @@ async function obligationFindings(orgId, d, nowMs) {
             id: `obligation:${r.id}`, code: 'obligation_overdue', severity: 'high', status: 'fail',
             title: `Overdue: ${String(r.title || r.kind || 'ISMS obligation').slice(0, 100)}`,
             detail: `Due ${new Date(r.due_at).toISOString().slice(0, 10)}.`,
-            section: 'audits', target: `${complianceSectionPath('audits')}?tab=obligations`,
+            // The ISMS obligations live on Training & competence; the client
+            // still aliases the old `audits?tab=obligations` for stored rows.
+            section: 'training', target: complianceSectionPath('training'),
             regulation: 'ISO27001', ref: 'cl. 9', at: toMs(r.due_at),
         }));
 }

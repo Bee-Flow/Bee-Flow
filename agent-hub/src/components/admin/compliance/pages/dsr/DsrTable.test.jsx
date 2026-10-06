@@ -29,7 +29,7 @@ const iso = (ms) => new Date(ms).toISOString();
 const ROWS = [
     // overdue by 3 days: received 33 days ago, no server due_at → +30 d
     { id: 2038, request_type: 'deletion', status: 'in_progress', subject_email: 'john.doe@gmail.com', channel: 'public_form', identity_status: 'verified_email_link', created_at: iso(NOW - 33 * DAY_MS) },
-    // still 18 days: server due_at wins
+    // 18 days left: server due_at wins
     { id: 2041, request_type: 'access', state: 'in_progress', subject_email_masked: 'm.•••@vandijkgroep.nl', channel: 'email_dpo', identity_status: 'employee', created_at: iso(NOW - 12 * DAY_MS), due_at: iso(NOW + 18 * DAY_MS) },
     // open, received today
     { id: 2044, request_type: 'portability', status: 'pending', subject_email: 'anna@vandijkgroep.nl', channel: 'form', created_at: iso(NOW - 20 * 60_000) },
@@ -50,7 +50,7 @@ describe('DsrTable — the clock column', () => {
         expect(late).toHaveAttribute('data-tone', 'error');
         const ok = screen.getByTestId('dsr-table-clock-2041');
         expect(ok).toHaveAttribute('data-state', 'ok');
-        expect(ok).toHaveTextContent('still 18 days');
+        expect(ok).toHaveTextContent('18 days left');
         expect(screen.getByTestId('dsr-table-clock-2041-bar')).toBeTruthy();
     });
 
@@ -128,7 +128,7 @@ describe('DsrTable — request, channel and status cells', () => {
         const headers = screen.getAllByRole('columnheader').map(h => h.textContent);
         expect(headers).toEqual(['Deadline', 'Request', 'Received', 'Via', 'Status']);
         const headerRow = screen.getAllByRole('row')[0];
-        expect(headerRow.style.gridTemplateColumns).toBe('118px 1fr 104px 110px 84px');
+        expect(headerRow.style.getPropertyValue('--ct-cols')).toBe('118px 1fr 104px 110px 84px');
     });
 });
 

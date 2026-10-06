@@ -3,7 +3,7 @@ import { Timer } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import DeadlineClock from '../../../../shared/DeadlineClock';
 import { DAY_MS, HOUR_MS } from '../../../../shared/deadlineMath';
-import { complianceActionPath, sectionOfPath } from '../../data/actions';
+import { complianceActionPath, resolveTarget } from '../../data/actions';
 
 /**
  * DeadlinesCard — the Overview's right-column clocks (artboard 1a, C6).
@@ -11,7 +11,7 @@ import { complianceActionPath, sectionOfPath } from '../../data/actions';
  *   items       GET /deadlines items (or the client fallback) | null
  *   emptyKinds  kinds with no open item ('cra_vulnerability' …) → a tertiary line each
  *   failed      the read failed AND no fallback exists → own state
- *   navigate(sectionId, subId?) — row click → the item's target
+ *   navigate(sectionId, subId?, tab?) — row click → the item's target
  *
  * Row: `{ id, kind, ref, title, meta:{ article, … }, started_at, due_at, state, pct, target }`
  * where target is `{ section, id }` (client fallback) or an app path (server).
@@ -44,15 +44,12 @@ const EMPTY_LINE = Object.freeze({
     incident: { key: 'compliance.ovw_no_open_incident', en: 'no open incident' },
 });
 
+/** `{ section, id, tab }` for a row's target — an app path (server) or `{ section, id }` (client fallback); null when it leaves the hub. */
 export function targetOf(item) {
     const tgt = item?.target;
     if (!tgt) return null;
-    if (typeof tgt === 'object') return tgt.section ? { section: tgt.section, id: tgt.id ?? undefined } : null;
-    const path = complianceActionPath(tgt);
-    const section = sectionOfPath(path);
-    if (!section) return null;
-    const sub = /^admin\/compliance\/[^/]+\/(.+)$/.exec(path)?.[1];
-    return { section, id: sub ? decodeURIComponent(sub) : undefined };
+    if (typeof tgt === 'object') return tgt.section ? { section: tgt.section, id: tgt.id ?? undefined, tab: tgt.tab ?? undefined } : null;
+    return resolveTarget(complianceActionPath(tgt) || '');
 }
 
 export default function DeadlinesCard({ items = null, emptyKinds = [], failed = false, navigate, className = '', testId = 'deadlines-card' }) {
@@ -91,7 +88,7 @@ export default function DeadlinesCard({ items = null, emptyKinds = [], failed = 
                             <li key={item.id} className="border-t border-[var(--border-default)] first:border-t-0" data-testid={`${testId}-row`} data-kind={item.kind} data-state={item.state}>
                                 <Row
                                     type={tgt ? 'button' : undefined}
-                                    onClick={tgt ? () => navigate?.(tgt.section, tgt.id) : undefined}
+                                    onClick={tgt ? () => navigate?.(tgt.section, tgt.id, tgt.tab) : undefined}
                                     className={`grid w-full grid-cols-[1fr_104px] items-center gap-2.5 py-2 text-left ${tgt ? 'cursor-pointer hover:bg-[var(--bg-secondary)]' : ''}`}
                                 >
                                     <div className="min-w-0">

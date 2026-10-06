@@ -196,8 +196,10 @@ async function obligationItems(orgId, d, nowMs) {
             'obligation', r.id, r.kind ? String(r.kind).replace(/_/g, ' ') : 'obligation',
             r.title ? String(r.title).slice(0, 120) : 'ISMS obligation',
             { kind: r.kind || null, recur_months: r.recur_months ?? null },
+            // Training & competence holds the ISMS obligations (the client
+            // aliases the old `audits?tab=obligations` for rows sent before).
             toMs(r.created_at || r.last_completed_at), toMs(r.due_at),
-            `${complianceSectionPath('audits')}?tab=obligations`, nowMs,
+            complianceSectionPath('training'), nowMs,
         ));
 }
 

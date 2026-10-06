@@ -2271,15 +2271,28 @@ module.exports = {
     'compliance.tab_audits_reviews': 'Management reviews',
     'compliance.tab_audits_ncs': 'Nonconformities',
     'compliance.tab_audits_objectives': 'Objectives',
-    'compliance.clock_days_left': 'still {days} days',
     'compliance.clock_days_overdue': 'overdue by {days} days',
-    'compliance.clock_hours_left': 'still {hours} hours',
     'compliance.clock_hours_overdue': 'overdue by {hours} hours',
     'compliance.clock_done_in_days': 'completed in {days} days',
     'compliance.clock_done': 'completed',
     'compliance.clock_none': 'no open deadline',
     'compliance.clock_short_days': '{days}',
     'compliance.clock_short_hours': '{hours} h',
+    // round 2 · P02-shared: clock copy without "still", singular forms, the
+    // compact row form, and the "+k" of a shortened reference list.
+    'compliance.clock_days_left': '{days} days left',
+    'compliance.clock_hours_left': '{hours} hours left',
+    'compliance.clock_days_left_one': '1 day left',
+    'compliance.clock_hours_left_one': '1 hour left',
+    'compliance.clock_days_overdue_one': 'overdue by 1 day',
+    'compliance.clock_hours_overdue_one': 'overdue by 1 hour',
+    'compliance.clock_done_in_days_one': 'completed in 1 day',
+    'compliance.clock_row_days_left': '{days} d left',
+    'compliance.clock_row_days_overdue': '{days} d overdue',
+    'compliance.clock_row_hours_left': '{hours} h left',
+    'compliance.clock_row_hours_overdue': '{hours} h overdue',
+    'compliance.ref_more': '+{n}',
+    // end round 2 · P02-shared
     'compliance.custom_attest_upload_unavailable': 'Attaching a file is not available here.',
     'compliance.ovw_attention_loading': 'Reading what needs attention…',
     'compliance.ladder_annex_high_risk_points': 'High risk under {points}.',
@@ -2429,4 +2442,13 @@ module.exports = {
     'compliance.dsr_found_team_chat': '{n} team chat messages they wrote',
     'compliance.dsr_found_projects': '{n} project items',
     // ── end compliance checks on collaborative projects ──
+    // round 2 · P01-nav — rail meta: one actionable count per row, nothing when clean
+    'compliance.rail_meta_new': '{n} new',
+    'compliance.rail_meta_to_decide': '{n} to decide',
+    'compliance.rail_meta_review_overdue': '{n} review overdue',
+    'compliance.rail_meta_acknowledged': '{done}/{total} acknowledged',
+    'compliance.rail_meta_review_due': 'review due',
+    'compliance.rail_meta_failing': '{n} to fix',
+    'compliance.rail_meta_high': '{n} high',
+    // ── end round 2 · P01-nav ──
 };

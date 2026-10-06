@@ -251,9 +251,12 @@ export function pageFromPath(pathname) {
     return 'agents';
 }
 
-// Parse /app/admin/{seg1}/{seg2}/{seg3} from the URL
+// Parse /app/admin/{seg1}/{seg2}/{seg3} from the URL. The query and hash are
+// never part of a segment: in-app navigation hands over the whole page string
+// ('admin/compliance/frameworks?tab=calendar'), and 'frameworks?tab=calendar'
+// is not a section.
 export function parseAdminPath(pathname) {
-    const match = pathname.match(/^\/(?:app\/)?admin(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?/);
+    const match = String(pathname || '').match(/^\/(?:app\/)?admin(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/([^/?#]+))?/);
     return {
         seg1: match?.[1] || '',
         seg2: match?.[2] || '',

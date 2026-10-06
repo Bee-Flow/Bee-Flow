@@ -46,7 +46,7 @@ const COLUMNS = Object.freeze([
 const COLUMN_FALLBACKS = Object.freeze({ connector: 'Connector', status: 'Status', last: 'Last sweep', next: 'Next sweep' });
 
 export default function ConnectorsPage({ data = {}, isMobile = false, focusId = null }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const state = data.connectors || {};
     const list = state.connectors;
 
@@ -136,7 +136,7 @@ export default function ConnectorsPage({ data = {}, isMobile = false, focusId = 
                                 </TableCell>
                                 <TableCell column={ctx.columns[2]}>
                                     <span className="text-[var(--text-secondary)] whitespace-nowrap" data-testid={`connectors-last-${c.id}`}>
-                                        {cfg?.last_sweep_at ? fmtStamp(cfg.last_sweep_at) : '—'}
+                                        {cfg?.last_sweep_at ? fmtStamp(cfg.last_sweep_at, resolvedLocale) : '—'}
                                     </span>
                                 </TableCell>
                                 <TableCell column={ctx.columns[3]}>

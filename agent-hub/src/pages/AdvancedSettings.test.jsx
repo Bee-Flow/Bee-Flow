@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -105,6 +106,8 @@ vi.mock('../components/admin/compliance', () => ({
                 down on mobile only, and it returns to the section list. */}
             <button disabled={typeof p.onBack !== 'function'} onClick={() => p.onBack?.()}>hub-back</button>
             <button onClick={() => p.onNavigate('admin/compliance/dsr/req%2F7')}>go-dsr</button>
+            <button onClick={() => p.onNavigate('admin/compliance/frameworks?tab=calendar')}>go-calendar</button>
+            <button onClick={() => p.onNavigate('admin/compliance/training', { replace: true })}>go-redirect</button>
             <button onClick={() => p.onNavigate('admin/security/guardrails')}>go-guardrails</button>
             <button onClick={() => p.onNavigate('admin/agents')}>go-agents</button>
         </div>
@@ -548,6 +551,19 @@ describe('AdvancedSettings — Compliance Center', () => {
         const hub = screen.getByTestId('section-compliance');
         expect(hub.dataset.section).toBe('dsr');
         expect(hub.dataset.check).toBe('req/7');
+    });
+
+    it('keeps the hub tab in the pushed URL, and a redirect replaces the entry instead of adding one', async () => {
+        const user = userEvent.setup();
+        await mount({ user: DPO, path: '/app/settings/organisation/compliance' });
+        const before = window.history.length;
+        await user.click(screen.getByText('go-calendar'));
+        expect(window.location.pathname + window.location.search).toBe('/app/settings/organisation/compliance/frameworks?tab=calendar');
+        expect(screen.getByTestId('section-compliance').dataset.section).toBe('frameworks');
+        expect(window.history.length).toBe(before + 1);
+        await user.click(screen.getByText('go-redirect'));
+        expect(window.location.pathname + window.location.search).toBe('/app/settings/organisation/compliance/training');
+        expect(window.history.length).toBe(before + 1);
     });
 
     it('lands a guardrails remediation link on Organisation → Privacy', async () => {

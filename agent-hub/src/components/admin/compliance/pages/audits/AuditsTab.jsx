@@ -23,7 +23,7 @@ const EMPTY_DRAFT = Object.freeze({ title: '', scope_note: '', auditor_user_id: 
 const EMPTY_FINDING = Object.freeze({ severity: 'observation', control_ref: '', clause: '', description: '', evidence_ref: '' });
 
 export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId = null }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const { audits, findings, busy, independenceWarning, createAudit, updateAudit, addFinding, createNc } = audit;
     const loading = audits === null || audits === undefined || findings === null || findings === undefined;
     const list = Array.isArray(audits) ? audits : [];
@@ -144,9 +144,9 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                 <DrawerSection label={t('compliance.audit_f_scope', 'Scope')}>
                     <div className="text-xs text-[var(--text-secondary)] whitespace-pre-wrap">{a.scope_note || '—'}</div>
                     <Fact label={t('compliance.audit_f_auditor', 'Auditor')}>{userName(orgUsers, a.auditor_user_id) || '—'}</Fact>
-                    <Fact label={t('compliance.audit_planned_on', 'Planned')}>{fmtDate(a.planned_at)}</Fact>
-                    {a.started_at && <Fact label={t('compliance.audit_started_on', 'Started')}>{fmtDate(a.started_at)}</Fact>}
-                    {a.closed_at && <Fact label={t('compliance.audit_closed_on', 'Closed')}>{fmtDate(a.closed_at)}</Fact>}
+                    <Fact label={t('compliance.audit_planned_on', 'Planned')}>{fmtDate(a.planned_at, resolvedLocale)}</Fact>
+                    {a.started_at && <Fact label={t('compliance.audit_started_on', 'Started')}>{fmtDate(a.started_at, resolvedLocale)}</Fact>}
+                    {a.closed_at && <Fact label={t('compliance.audit_closed_on', 'Closed')}>{fmtDate(a.closed_at, resolvedLocale)}</Fact>}
                 </DrawerSection>
                 <DrawerSection label={t('compliance.audit_findings', 'Findings')} hint={rows.length ? String(rows.length) : undefined}>
                     {rows.length === 0 ? (
@@ -234,7 +234,7 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                                 <span className="flex items-center gap-2 min-w-0 text-[11px] text-[var(--text-secondary)]">
                                     <StatusPill tone={toneOf(AUDIT_STATUS, a.status)}>{labelOf(t, AUDIT_STATUS, a.status)}</StatusPill>
                                     <span className="truncate">{userName(orgUsers, a.auditor_user_id) || '—'}</span>
-                                    <span className="tabular-nums whitespace-nowrap">{fmtDate(a.planned_at)}</span>
+                                    <span className="tabular-nums whitespace-nowrap">{fmtDate(a.planned_at, resolvedLocale)}</span>
                                     <span className="tabular-nums">{t('compliance.audit_findings', 'Findings')} {n}</span>
                                 </span>
                             </button>
@@ -254,7 +254,7 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                             </TableCell>
                             <TableCell column={ctx.columns[1]}><StatusPill tone={toneOf(AUDIT_STATUS, a.status)}>{labelOf(t, AUDIT_STATUS, a.status)}</StatusPill></TableCell>
                             <TableCell column={ctx.columns[2]} className="truncate text-[var(--text-secondary)]">{userName(orgUsers, a.auditor_user_id) || '—'}</TableCell>
-                            <TableCell column={ctx.columns[3]} className="text-[var(--text-secondary)] tabular-nums">{fmtDate(a.planned_at)}</TableCell>
+                            <TableCell column={ctx.columns[3]} className="text-[var(--text-secondary)] tabular-nums">{fmtDate(a.planned_at, resolvedLocale)}</TableCell>
                             <TableCell column={ctx.columns[4]} className="tabular-nums text-[var(--text-secondary)]">{n}</TableCell>
                             <TableCell column={ctx.columns[5]}>{transition(a)}</TableCell>
                         </TableRow>

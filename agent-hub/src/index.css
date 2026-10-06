@@ -301,6 +301,10 @@
     --bg-card-hover: #22222e;
 
     --accent-primary: #9ca3af;
+    /* Keyboard focus ring (rows, pills, inputs, drawer controls). The grey
+       accent measures about 2.4:1 on a light card, too faint for a ring;
+       the text colour at 55 % clears 3:1 on every card colour. */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #d1d5db;
     --accent-primary-hover: #6b7280;
     /* Foreground for text ON the accent. ~20 call sites read it with a #fff
@@ -413,6 +417,7 @@
     --bg-card-hover: #fafafa;
 
     --accent-primary: #9ca3af;
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #d1d5db;
     --accent-primary-hover: #6b7280;
     --accent-primary-fg: #111827;
@@ -488,6 +493,7 @@
     --bg-card-hover: rgba(255, 255, 255, 0.68);
 
     --accent-primary: #6b7280;
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #9ca3af;
     --accent-primary-hover: #4b5563;
     --accent-primary-fg: #ffffff;
@@ -557,6 +563,7 @@
     --bg-card-hover: rgba(15, 23, 42, 0.68);
 
     --accent-primary: #9ca3af;
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #cbd5e1;
     --accent-primary-hover: #d1d5db;
     --accent-primary-fg: #111827;
@@ -605,6 +612,8 @@
     --bg-card-hover: #1a1a1a;
 
     --accent-primary: #ffd400;
+    /* Keyboard focus ring: high contrast draws it in full text colour. */
+    --focus-ring: var(--text-primary);
     --accent-secondary: #ffeb70;
     --accent-primary-hover: #fff080;
     --accent-primary-fg: #000000;
@@ -685,6 +694,7 @@
     --bg-card-hover: #fff9ed;
 
     --accent-primary: #b45309;             /* amber-700, muted clay */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #d97706;
     --accent-primary-hover: #92400e;
     --accent-primary-fg: #ffffff;
@@ -735,6 +745,7 @@
     --bg-card-hover: #1c1c20;
 
     --accent-primary: #e7e5e4;             /* stone-200, warm pearl */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #f5f5f4;
     --accent-primary-hover: #d6d3d1;
     --accent-primary-fg: #000000;
@@ -787,6 +798,7 @@
     --bg-card-hover: #f4ede0;
 
     --accent-primary: #c2410c;             /* orange-700, terracotta */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #ea580c;
     --accent-primary-hover: #9a3412;
     --accent-primary-fg: #ffffff;
