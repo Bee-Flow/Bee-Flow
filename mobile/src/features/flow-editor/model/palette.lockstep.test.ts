@@ -183,7 +183,9 @@ describe('app naming and the integration catalogue', () => {
 
     it('resolveIntegrationFromTool agrees for every prefix and static tool', () => {
         const tools = [null, '', 'gmail_send', 'nextcloud_talk_x', 'nextcloud_x', 'ms_calendar_list', 'ms_other', 'n8n_workflow_run',
-            'n8n_execute', 'send_email', 'generate_image', 'generate_other', 'afas_query', 'mcp__server__tool', 'mcp_x', 'regex_x', 'transcribe_file'];
+            'n8n_execute', 'send_email', 'generate_image', 'generate_other', 'afas_query', 'mcp__server__tool', 'mcp_x', 'regex_x', 'transcribe_file',
+            'memory_save', 'webpage_publish', 'webpages_list', 'kb_fetch', 'knowledge_base_ingest', 'automation_runs_summary',
+            'automation_propose_evolution', 'automation_apply_evolution', 'create_presentation'];
         for (const tool of tools) expect(palette.resolveIntegrationFromTool(tool)).toBe(webIcons.resolveIntegrationFromTool(tool));
     });
 

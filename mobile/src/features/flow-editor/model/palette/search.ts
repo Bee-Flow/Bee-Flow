@@ -155,7 +155,7 @@ function staticCandidates({ inLayer = false, isBlockRoot = false, hasFormTrigger
         ...(!inLayer && !isBlockRoot ? tagged(additionalTriggerItems(), 'Trigger') : []),
         ...tagged(AI_ITEMS, 'AI'),
         ...tagged(DATA_ITEMS, 'Data'),
-        ...tagged(INTEGRATION_ITEMS, 'Integrations'),
+        ...tagged(INTEGRATION_ITEMS, 'Flow'),
         ...tagged(COLLECTION_ITEMS, 'Collection'),
         ...tagged(logic, 'Flow'),
     ];
