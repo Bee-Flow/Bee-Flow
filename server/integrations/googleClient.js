@@ -14,6 +14,7 @@
 const { loadConfig } = require('../auth/permissions');
 const { google } = require('googleapis');
 const log = require('../telemetry/log');
+const { parseRetryAfter, backoffDelay, sleep } = require('../core/http/retryAfter');
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
@@ -145,6 +146,68 @@ function isGoogleConnected(session) {
     return !!(session?.accessToken && session?.oauthProvider === 'google');
 }
 
+// ── Throttling ─────────────────────────────────────────────────────────
+//
+// googleapis already retries GETs on 429 and 5xx (gaxios: three tries, 0.1 s,
+// 0.5 s, 1.5 s apart, Retry-After ignored). Two gaps that matter once an
+// automation works through a few hundred emails: Google also signals its
+// per-user and per-project rate limits as 403 `userRateLimitExceeded` /
+// `rateLimitExceeded`, which was not retried at all (worse: the OAuth client
+// took the 403 for an auth error and refreshed the token for nothing), and the
+// waits were too short to let a per-minute quota recover. Google's advice is
+// exponential backoff of about 2^n seconds plus up to a second of jitter, and
+// honouring Retry-After when given
+// (https://developers.google.com/workspace/gmail/api/guides/handle-errors).
+//
+// Only methods that are safe to send again are retried (gaxios' own list), so
+// a POST such as messages.send or batchModify is never sent twice.
+
+const RETRY_METHODS = new Set(['GET', 'HEAD', 'PUT', 'OPTIONS', 'DELETE']);
+const RATE_LIMIT_REASONS = new Set(['rateLimitExceeded', 'userRateLimitExceeded']);
+const GOOGLE_MAX_RETRIES = 3;
+const GOOGLE_NO_RESPONSE_RETRIES = 2;
+
+/** A 403 that is Google saying "slow down", not "you may not". */
+function isRateLimitError(data) {
+    const error = data && typeof data === 'object' ? data.error : null;
+    if (!error || typeof error !== 'object') return false;
+    if (error.status === 'RESOURCE_EXHAUSTED') return true;
+    return Array.isArray(error.errors) && error.errors.some(e => RATE_LIMIT_REASONS.has(e?.reason));
+}
+
+/** gaxios `shouldRetry`: the default rules, plus rate-limit 403s. */
+function shouldRetryGoogleRequest(err) {
+    const config = err?.config || {};
+    if (err?.code === 'AbortError' || (config.signal?.aborted && err?.code !== 'TimeoutError')) return false;
+    const method = String(config.method || 'GET').toUpperCase();
+    if (!RETRY_METHODS.has(method)) return false;
+    const attempt = config.retryConfig?.currentRetryAttempt || 0;
+    const status = err?.response?.status;
+    if (!status) return attempt < GOOGLE_NO_RESPONSE_RETRIES;
+    if (attempt >= GOOGLE_MAX_RETRIES) return false;
+    if (status === 403) return isRateLimitError(err.response.data);
+    return status === 408 || status === 429 || (status >= 500 && status <= 599);
+}
+
+/** gaxios `retryBackoff`: Retry-After when Google names one, else ~2^n s with jitter. */
+function googleRetryBackoff(err) {
+    // gaxios has already counted this retry, so the first one arrives as 1.
+    const attempt = Math.max(0, (err?.config?.retryConfig?.currentRetryAttempt || 1) - 1);
+    const header = err?.response?.headers?.get?.('retry-after') ?? err?.response?.headers?.['retry-after'];
+    return sleep(backoffDelay(attempt, {
+        retryAfterMs: parseRetryAfter(header),
+        baseMs: 1000,
+        jitterMs: 1000,
+        maxMs: 32_000,
+    }), err?.config?.signal || null);
+}
+
+const GOOGLE_RETRY_CONFIG = Object.freeze({
+    retry: GOOGLE_MAX_RETRIES,
+    shouldRetry: shouldRetryGoogleRequest,
+    retryBackoff: googleRetryBackoff,
+});
+
 /**
  * Create an authenticated googleapis SDK client from a live session (M3).
  *
@@ -191,12 +254,13 @@ async function createGoogleApiClient(session, { api, version, extraApis = [], ex
         else session.save?.();
     });
 
-    const primary = google[api]({ version, auth: oauth2Client });
+    // gaxios mutates the retry config it is given, so every client gets its own copy.
+    const primary = google[api]({ version, auth: oauth2Client, retryConfig: { ...GOOGLE_RETRY_CONFIG } });
     if (extraApis.length === 0 && !exposeOAuth2) return primary;
 
     const result = { [api]: primary };
     for (const extra of extraApis) {
-        result[extra.api] = google[extra.api]({ version: extra.version, auth: oauth2Client });
+        result[extra.api] = google[extra.api]({ version: extra.version, auth: oauth2Client, retryConfig: { ...GOOGLE_RETRY_CONFIG } });
     }
     if (exposeOAuth2) result.oauth2Client = oauth2Client;
     return result;
@@ -205,6 +269,9 @@ async function createGoogleApiClient(session, { api, version, extraApis = [], ex
 module.exports = {
     googleFetch,
     createGoogleApiClient,
+    GOOGLE_RETRY_CONFIG,
+    shouldRetryGoogleRequest,
+    isRateLimitError,
     refreshAccessToken,
     revokeToken,
     isGoogleConnected,

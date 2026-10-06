@@ -40,7 +40,7 @@ const restore = installResolveStub({
     '../auth/permissions': { loadConfig: async () => ({ providers: { google: providerCfg } }) },
 });
 
-const { createGoogleApiClient } = require('./googleClient');
+const { createGoogleApiClient, GOOGLE_RETRY_CONFIG } = require('./googleClient');
 
 test('throws when Google OAuth not configured', async () => {
     providerCfg = {};
@@ -83,6 +83,10 @@ test('happy path: builds OAuth2, sets creds, returns google[api] with version', 
     assert.equal(client.auth, lastOAuth2);
     assert.equal(lastOAuth2.clientId, 'id');
     assert.deepEqual(lastOAuth2.creds, { access_token: 'acc', refresh_token: 'ref' });
+    // Every client waits out Google's rate limits (googleClient.retry.test.js),
+    // each with its own copy: gaxios writes its retry state into the object.
+    assert.equal(client.retryConfig.shouldRetry, GOOGLE_RETRY_CONFIG.shouldRetry);
+    assert.notEqual(client.retryConfig, GOOGLE_RETRY_CONFIG);
 });
 
 test("on('tokens') write-back: mutates session + calls session.save by default", async () => {

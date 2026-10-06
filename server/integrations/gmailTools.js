@@ -205,6 +205,43 @@ const GMAIL_TOOLS = [
                 required: ['body']
             }
         }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'gmail_read_many',
+            description: 'Read the full content of many Gmail emails at once (up to 100): Gmail is asked in batches of 50, so 40 emails cost one request instead of 40. Pass the message ids from gmail_search (`results[*].id`). Returns `messages`, each shaped exactly like gmail_read (from, to, subject, date, body, and attachments carrying the messageId and attachmentId that gmail_read_attachment needs); a body is cut at 20,000 characters. Ids Gmail does not know are listed in `notFound`. In an automation, use this instead of running gmail_read once per email.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    messageIds: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Gmail message ids, at most 100 (e.g. the `id` of every gmail_search result). A list of search results works too: each one\'s id is used.'
+                    }
+                },
+                required: ['messageIds']
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'gmail_bulk_modify',
+            description: 'Change many Gmail emails in ONE request (up to 1000): add or remove labels, mark them read or unread, or archive them. In an automation, use this instead of running gmail_modify_labels, gmail_mark_read, gmail_mark_unread or gmail_archive once per email. Labels may be given by name ("Invoices") or ID ("Label_3", "STARRED").',
+            parameters: {
+                type: 'object',
+                properties: {
+                    messageIds: { type: 'array', items: { type: 'string' }, description: 'Gmail message ids to change, at most 1000 (e.g. the `id` of every gmail_search result).' },
+                    addLabelIds: { type: 'array', items: { type: 'string' }, description: 'Labels (names or IDs) to add to every message.' },
+                    removeLabelIds: { type: 'array', items: { type: 'string' }, description: 'Labels (names or IDs) to remove from every message.' },
+                    markRead: { type: 'boolean', description: 'Mark every message as read.' },
+                    markUnread: { type: 'boolean', description: 'Mark every message as unread.' },
+                    archive: { type: 'boolean', description: 'Archive every message (take it out of the inbox).' }
+                },
+                required: ['messageIds']
+            }
+        }
     }
 ];
 
@@ -311,6 +348,117 @@ function summarizeSearchMessage(data) {
     };
 }
 
+/** gmail_read keeps up to this much of a body; gmail_read_many, reading up to 100 at once, less. */
+const READ_MAX_CHARS = 50000;
+const READ_MANY_MAX_CHARS = 20000;
+/** Ids per gmail_read_many call (two batches of 50). */
+const READ_MANY_MAX = 100;
+/** Gmail's own limit for users.messages.batchModify. */
+const BULK_MODIFY_MAX = 1000;
+/** What a Gmail message id looks like; anything else never reaches Gmail. */
+const GMAIL_MESSAGE_ID = /^[A-Za-z0-9_-]{1,128}$/;
+
+/**
+ * A `format: 'full'` message as gmail_read returns it. gmail_read and
+ * gmail_read_many both shape through here, so one email reads the same either way.
+ * @param {object} data - users.messages.get response data
+ * @param {number} [maxChars]
+ */
+function shapeReadMessage(data, maxChars = READ_MAX_CHARS) {
+    const headers = data?.payload?.headers || [];
+    const body = extractTextBody(data?.payload);
+    const threadId = data?.threadId || null;
+    return {
+        id: data?.id,
+        threadId,
+        from: getHeader(headers, 'From'),
+        to: getHeader(headers, 'To'),
+        subject: getHeader(headers, 'Subject') || '(no subject)',
+        date: getHeader(headers, 'Date'),
+        body: body.length > maxChars
+            ? body.substring(0, maxChars) + '\n\n[... truncated, email too large ...]'
+            : body,
+        attachments: extractAttachments(data?.payload, { messageId: data?.id, threadId }),
+    };
+}
+
+// Ids from a binding, the same way every bulk tool reads them (shared/idList.js).
+const { idList: messageIdList, isOn } = require('./shared/idList');
+
+/**
+ * gmail_read_many: up to 100 full messages through Gmail's batch endpoint (two
+ * requests for 100, where one gmail_read per email made 100). Takes the batch
+ * function so a test can hand it a fake one.
+ * @param {object} session
+ * @param {{ messageIds?: unknown }} args
+ * @param {{ batch?: Function }} [deps]
+ */
+async function readManyMessages(session, args, { batch = require('./googleBatch').googleBatch } = {}) {
+    const { partError } = require('./googleBatch');
+    const all = messageIdList(args?.messageIds);
+    const wanted = all.slice(0, READ_MANY_MAX);
+    const failed = wanted.filter(id => !GMAIL_MESSAGE_ID.test(id)).map(id => ({ id, error: 'not a Gmail message id' }));
+    const valid = wanted.filter(id => GMAIL_MESSAGE_ID.test(id));
+    const parts = valid.length > 0
+        ? await batch(session, valid.map(id => ({ id, path: `/gmail/v1/users/me/messages/${id}?format=full` })))
+        : new Map();
+    const messages = [];
+    const notFound = [];
+    for (const id of valid) {
+        const part = parts.get(id);
+        if (part && part.status >= 200 && part.status < 300) messages.push(shapeReadMessage(part.body, READ_MANY_MAX_CHARS));
+        else if (part?.status === 404) notFound.push(id);
+        else failed.push({ id, error: partError(part) });
+    }
+    const out = { messages, count: messages.length, notFound, failed };
+    if (all.length > wanted.length) {
+        out.truncated = true;
+        out.totalRequested = all.length;
+        out.message = `Read the first ${READ_MANY_MAX} of ${all.length} messages; read the rest in another step.`;
+    }
+    // Nothing could be read at all: say so as an error, so a run does not
+    // carry on green with an empty list.
+    if (messages.length === 0 && failed.length > 0) {
+        out.error = `Could not read any of the ${wanted.length} messages: ${failed[0].error}`;
+    }
+    return out;
+}
+
+/**
+ * gmail_bulk_modify: labels, read/unread and archive for up to 1000 messages
+ * in ONE users.messages.batchModify request.
+ * @param {any} gmail - Gmail client (createGmailClient)
+ * @param {object} args
+ * @param {object} [labelCacheKey] - the session, so a run resolves label names once a minute
+ */
+async function bulkModifyMessages(gmail, args, labelCacheKey = null) {
+    const ids = messageIdList(args?.messageIds);
+    if (ids.length > BULK_MODIFY_MAX) {
+        throw new Error(`gmail_bulk_modify changes at most ${BULK_MODIFY_MAX} messages per call (got ${ids.length}). Narrow the search, or split the list.`);
+    }
+    const invalid = ids.filter(id => !GMAIL_MESSAGE_ID.test(id));
+    if (invalid.length > 0) throw new Error(`Not Gmail message ids: ${invalid.slice(0, 3).join(', ')}`);
+    if (isOn(args.markRead) && isOn(args.markUnread)) throw new Error('Pick one of markRead and markUnread, not both');
+    const add = await resolveLabelIds(gmail, args.addLabelIds, labelCacheKey);
+    const remove = await resolveLabelIds(gmail, args.removeLabelIds, labelCacheKey);
+    if (isOn(args.markUnread)) add.push('UNREAD');
+    if (isOn(args.markRead)) remove.push('UNREAD');
+    if (isOn(args.archive)) remove.push('INBOX');
+    const addLabelIds = [...new Set(add)];
+    const removeLabelIds = [...new Set(remove)];
+    const both = addLabelIds.filter(id => removeLabelIds.includes(id));
+    if (both.length > 0) throw new Error(`A label cannot be added and removed at once: ${both.join(', ')}`);
+    if (addLabelIds.length === 0 && removeLabelIds.length === 0) {
+        throw new Error('Nothing to change: give addLabelIds, removeLabelIds, markRead, markUnread or archive');
+    }
+    // An empty search is not an error: there was simply nothing to change.
+    if (ids.length === 0) {
+        return { modified: 0, messageIds: [], addLabelIds, removeLabelIds, message: 'No messages to change.' };
+    }
+    await gmail.users.messages.batchModify({ userId: 'me', requestBody: { ids, addLabelIds, removeLabelIds } });
+    return { modified: ids.length, messageIds: ids, addLabelIds, removeLabelIds };
+}
+
 /**
  * Create an authenticated Gmail client from session tokens.
  */
@@ -401,24 +549,10 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
             id: messageId,
             format: 'full',
         });
+        return shapeReadMessage(detail.data);
 
-        const headers = detail.data.payload?.headers || [];
-        const body = extractTextBody(detail.data.payload);
-        const MAX_CHARS = 50000;
-        const threadId = detail.data.threadId || null;
-
-        return {
-            id: detail.data.id,
-            threadId,
-            from: getHeader(headers, 'From'),
-            to: getHeader(headers, 'To'),
-            subject: getHeader(headers, 'Subject') || '(no subject)',
-            date: getHeader(headers, 'Date'),
-            body: body.length > MAX_CHARS
-                ? body.substring(0, MAX_CHARS) + '\n\n[... truncated, email too large ...]'
-                : body,
-            attachments: extractAttachments(detail.data.payload, { messageId: detail.data.id, threadId }),
-        };
+    } else if (toolName === 'gmail_read_many') {
+        return readManyMessages(session, args);
 
     } else if (toolName === 'gmail_read_attachment') {
         const { messageId, attachmentId, filename: fname } = args;
@@ -603,14 +737,18 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
 
     } else if (toolName === 'gmail_list_labels') {
         const res = await gmail.users.labels.list({ userId: 'me' });
+        rememberLabels(session, res.data.labels || []);
         const labels = (res.data.labels || []).map(l => ({ id: l.id, name: l.name, type: l.type }));
         return { labels };
+
+    } else if (toolName === 'gmail_bulk_modify') {
+        return bulkModifyMessages(gmail, args, session);
 
     } else if (toolName === 'gmail_modify_labels') {
         const { messageId } = args;
         if (!messageId) throw new Error('messageId is required');
-        const addLabelIds = await resolveLabelIds(gmail, args.addLabelIds);
-        const removeLabelIds = await resolveLabelIds(gmail, args.removeLabelIds);
+        const addLabelIds = await resolveLabelIds(gmail, args.addLabelIds, session);
+        const removeLabelIds = await resolveLabelIds(gmail, args.removeLabelIds, session);
         if (!addLabelIds.length && !removeLabelIds.length) {
             throw new Error('Provide at least one label in addLabelIds or removeLabelIds');
         }
@@ -776,19 +914,51 @@ async function sendGmailMessage(gmail, { to, cc, bcc, subject, body, userEmail =
 }
 
 /**
+ * The mailbox's labels, kept for a minute per session. Labelling a message
+ * resolves its label names first, and in a run that labels every email of a
+ * search that was one labels.list request per email on top of the change
+ * itself.
+ */
+const LABEL_CACHE_MS = 60_000;
+const labelCache = new WeakMap();
+
+function rememberLabels(cacheKey, labels) {
+    if (cacheKey && typeof cacheKey === 'object') labelCache.set(cacheKey, { at: Date.now(), labels });
+}
+
+async function listLabels(gmail, cacheKey, { fresh = false } = {}) {
+    const hit = cacheKey && typeof cacheKey === 'object' ? labelCache.get(cacheKey) : null;
+    if (!fresh && hit && Date.now() - hit.at < LABEL_CACHE_MS) return { labels: hit.labels, cached: true };
+    const res = await gmail.users.labels.list({ userId: 'me' });
+    const labels = res.data.labels || [];
+    rememberLabels(cacheKey, labels);
+    return { labels, cached: false };
+}
+
+/**
  * Resolve a mix of label names and label IDs to label IDs. System labels
  * (INBOX, UNREAD, STARRED, …) already use their name as the ID; user-label
  * names (e.g. "Work") are looked up to their `Label_N` id. Unknown entries
  * pass through unchanged so callers can supply raw IDs directly.
+ *
+ * With a `cacheKey` (the session) the label list is reused for a minute; a
+ * name the cached list does not know (a label made since) asks Gmail once more.
  */
-async function resolveLabelIds(gmail, entries) {
+async function resolveLabelIds(gmail, entries, cacheKey = null) {
     const list = Array.isArray(entries) ? entries.filter(Boolean) : (entries ? [entries] : []);
     if (!list.length) return [];
-    const res = await gmail.users.labels.list({ userId: 'me' });
-    const labels = res.data.labels || [];
-    const byId = new Map(labels.map(l => [l.id, l.id]));
-    const byName = new Map(labels.map(l => [String(l.name).toLowerCase(), l.id]));
-    return list.map(entry => byId.get(entry) || byName.get(String(entry).toLowerCase()) || entry);
+    const lookup = (labels) => {
+        const byId = new Map(labels.map(l => [l.id, l.id]));
+        const byName = new Map(labels.map(l => [String(l.name).toLowerCase(), l.id]));
+        return (entry) => byId.get(entry) || byName.get(String(entry).toLowerCase()) || null;
+    };
+    let { labels, cached } = await listLabels(gmail, cacheKey);
+    let find = lookup(labels);
+    if (cached && list.some(entry => !find(entry))) {
+        ({ labels } = await listLabels(gmail, cacheKey, { fresh: true }));
+        find = lookup(labels);
+    }
+    return list.map(entry => find(entry) || entry);
 }
 
 /**
@@ -799,6 +969,7 @@ function isGmailTool(toolName) {
         'gmail_search', 'gmail_read', 'gmail_read_attachment', 'gmail_compose',
         'gmail_list_labels', 'gmail_modify_labels', 'gmail_mark_read', 'gmail_mark_unread',
         'gmail_archive', 'gmail_trash', 'gmail_create_draft',
+        'gmail_read_many', 'gmail_bulk_modify',
     ].includes(toolName);
 }
 
@@ -839,4 +1010,8 @@ module.exports = {
     sanitizeHeaderValue,
     summarizeSearchMessage,
     SEARCH_METADATA_HEADERS,
+    shapeReadMessage,
+    messageIdList,
+    readManyMessages,
+    bulkModifyMessages,
 };
