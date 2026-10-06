@@ -163,6 +163,7 @@ const NL_TRANSLATIONS = [
     'add-nl-gmeet-integrations-translations', // Google Meet-import bij Meeting Notes
     'add-nl-bfsf-sweep-translations',      // geconsolideerde BFSF-bugsweep-strings (2026-07)
     'add-nl-vplan-translations',           // vPlan-integratiekaart
+    'add-nl-scaleway-billing-translations', // Scaleway Billing integration card
     'add-nl-builder-redesign-translations', // builder-canvas, stappenlade, mismatch-vragen (Track R)
     'add-nl-builder-values-translations',  // de waarde-editor: lijstkeuze, slotchrome, invoegen (Track R)
     'add-nl-builder-mapping-translations', // geneste data: per item binnen een lijst, AI-koppelen, lege koppelingen in een run
@@ -195,6 +196,8 @@ const NL_TRANSLATIONS = [
     'add-nl-learning-foundations-translations', // Leerstof van de Bee Flow Basis-cursus (BFSF-474): lessen, quizzen, sims, de introtour en de actiechecklijsten
     'add-nl-notebooks-as-documents-translations', // A notebook as a document type: in the Documents library, and the notebook workspace's header and sources rail
     'add-nl-spreadsheet-documents-translations', // Spreadsheets in Documents: the type in the library and gallery, the grid editor and its formula errors
+    'add-nl-condition-node-translations', // Condition node: rule rows, File type, outputs and Otherwise, Suggest outputs, follow-the-route and whole-list notices, Filter a list
+    'add-nl-flatten-node-translations', // Flatten a list: the step card, Simple editor sentences, Choose fields, More options, run sentences
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

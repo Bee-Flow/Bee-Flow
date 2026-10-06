@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { SearchX } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { bindingWarningLine, type BindingWarning } from './bindingMisses';
+import { allRuleMisses, bindingWarningLine, type BindingWarning, type StepTypeLookup } from './bindingMisses';
 
 // Most steps miss one or two; a loop body with a bad mapping can list many.
 const SHOWN = 5;
 
-function WarningLine({ warning, labelById }: { warning: BindingWarning; labelById: Map<string, string> | null }) {
+function WarningLine({ warning, labelById, typeById }: {
+    warning: BindingWarning; labelById: Map<string, string> | null; typeById: StepTypeLookup;
+}) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const line = bindingWarningLine(t, warning, labelById);
+    const line = bindingWarningLine(t, warning, labelById, typeById);
     return (
         <li className="flex flex-col min-w-0">
             <button
@@ -43,9 +45,11 @@ function WarningLine({ warning, labelById }: { warning: BindingWarning; labelByI
  * otherwise all anyone sees: one line per input, which field it read, why it
  * came back empty, the server's sentence on hover and on open.
  */
-export default function BindingWarnings({ warnings, labelById = null }: {
+export default function BindingWarnings({ warnings, labelById = null, typeById = null }: {
     warnings: BindingWarning[];
     labelById?: Map<string, string> | null;
+    /** Step id → type: a path into a Condition's outputs then reads as the output's name. */
+    typeById?: StepTypeLookup;
 }) {
     const { t } = useTranslation();
     const [all, setAll] = useState(false);
@@ -60,7 +64,7 @@ export default function BindingWarnings({ warnings, labelById = null }: {
             </div>
             <ul className="flex flex-col gap-0.5 min-w-0">
                 {shown.map((w, i) => (
-                    <WarningLine key={`${w.field ?? ''}|${w.path}|${w.reason}|${i}`} warning={w} labelById={labelById} />
+                    <WarningLine key={`${w.field ?? ''}|${w.path}|${w.reason}|${i}`} warning={w} labelById={labelById} typeById={typeById} />
                 ))}
             </ul>
             {hidden > 0 && (
@@ -69,7 +73,9 @@ export default function BindingWarnings({ warnings, labelById = null }: {
                 </button>
             )}
             <div className="text-[var(--text-tertiary)] leading-4">
-                {t('automations.output.binding_misses_hint', 'These inputs were left empty. Pick the field again in the step’s settings, or check that the earlier step returned it.')}
+                {allRuleMisses(warnings)
+                    ? t('condition_node.miss.hint', 'A rule read a field that none of the items have, so it matched nothing. Pick the field again in the Condition.')
+                    : t('automations.output.binding_misses_hint', 'These inputs were left empty. Pick the field again in the step’s settings, or check that the earlier step returned it.')}
             </div>
         </div>
     );

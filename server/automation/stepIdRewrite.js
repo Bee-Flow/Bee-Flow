@@ -164,13 +164,16 @@ function decodeLiteral(lit) {
 function rewriteExpr(src, map) {
     if (typeof src !== 'string' || !src.includes('steps')) return src;
     const edits = [];
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- SPACE is one class tested on a single character: linear
     const skipSpace = (k) => { while (k < src.length && SPACE.test(src[k])) k++; return k; };
     let afterDot = false;
     let i = 0;
     while (i < src.length) {
         const c = src[i];
         if (SPACE.test(c)) { i++; continue; }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- DIGIT is one class tested on a single character: linear
         if (DIGIT.test(c) || (c === '.' && DIGIT.test(src[i + 1] || ''))) {
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a single class tested on one character: linear
             while (i < src.length && /[0-9.]/.test(src[i])) i++;
             afterDot = false;
             continue;
@@ -184,13 +187,16 @@ function rewriteExpr(src, map) {
         }
         if (ID_START.test(c)) {
             let j = i;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- ID_CHAR is one class tested on a single character: linear
             while (j < src.length && ID_CHAR.test(src[j])) j++;
             if (src.slice(i, j) === 'steps' && !afterDot) {
                 const k = skipSpace(j);
                 if (src[k] === '.') {
                     const s = skipSpace(k + 1);
                     let e = s;
+                    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- ID_CHAR is a single class tested on one character: linear
                     while (e < src.length && ID_CHAR.test(src[e])) e++;
+                    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- ID_START is a single class tested on one character: linear
                     const next = e > s && ID_START.test(src[s]) ? renamed(map, src.slice(s, e)) : null;
                     if (next) edits.push(isIdentifierKey(next) ? [s, e, next] : [k, e, `[${JSON.stringify(next)}]`]);
                 } else if (src[k] === '[') {

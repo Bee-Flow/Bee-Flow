@@ -6,7 +6,7 @@
  * `Builder/mapping/upstream/sampleFields.js`; pinned by upstream.lockstep.test.ts.
  */
 
-import { formatKey } from '@/shared/expr';
+import { formatKey, getList } from '@/shared/expr';
 
 import type { VariableField, VariableGroup } from '../types';
 import { walkPath } from '../walkPath';
@@ -21,10 +21,16 @@ export function sampleToFields(sample: unknown, basePath: string): VariableField
     return recordFields(sample, basePath);
 }
 
-/** ONE element standing for the array `arrayRef` points at (its rows' keys merged), or null. */
+/**
+ * ONE element standing for the array `arrayRef` points at (its rows' keys
+ * merged), or null. The list is read like the run reads it (getList), so a
+ * list held as JSON text has an element too.
+ */
 export function resolveElementSample(arrayRef: unknown, sampleRoot: unknown): unknown {
     if (typeof arrayRef !== 'string' || !arrayRef.trim() || !sampleRoot) return null;
-    const v = walkPath(arrayRef.trim(), sampleRoot);
+    // A flowlet sub-step id (`steps.<call>/<sub>`) is outside the runtime grammar: the builder's own walker reads it.
+    const ref = arrayRef.trim();
+    const v = getList(sampleRoot, ref) ?? walkPath(ref, sampleRoot);
     if (!Array.isArray(v) || v.length === 0) return null;
     return mergeElements(v);
 }

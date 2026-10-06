@@ -1,4 +1,5 @@
 const { randomUUID } = require('node:crypto');
+const { isDeepStrictEqual } = require('node:util');
 const { MUTATING_TOOLS } = require('../../../automation/builderTools');
 
 // These tools only inspect the draft or a schema. Unknown tools fail closed.
@@ -65,4 +66,74 @@ function changedSteps(before = {}, after = {}) {
     return changes;
 }
 
-module.exports = { MODES, PLAN_TOOL, QUESTIONS_TOOL, writeQuestions, toolAllowed, modeInstruction, writePlan, changedSteps };
+// A direct build that changes this many steps or more waits for the user's
+// Apply instead of landing in the live draft ("Ask before applying large
+// changes"). A draft without steps is exempt: building a new flow from
+// scratch always changes more than a handful of steps (BFSF-486).
+const LARGE_CHANGE_STEPS = 4;
+
+function isBlankDraft(def) {
+    return !(Array.isArray(def?.steps) && def.steps.length) && !Object.keys(def?.layers || {}).length;
+}
+
+// The proposal saved with the session is still pending while the live
+// definition is the one it was staged against. Once anything else changed the
+// live draft, Apply would refuse it (BuilderShell: stale_proposal), so it is
+// not shown to the agent as pending either.
+function pendingProposal(saved, liveDef) {
+    if (!saved || typeof saved !== 'object' || !saved.id || !saved.definition) return null;
+    return isDeepStrictEqual(saved.baseDefinition ?? null, liveDef ?? null) ? saved : null;
+}
+
+// What the agent is told at the start of a turn about its staged work: what
+// the user did with the last proposal (sessionSnapshot.js records it), and
+// whether a proposal still waits for Apply. Only the user applies a proposal;
+// the agent is told so, because a "yes" in the chat applies nothing.
+function reviewStatusNote({ outcome = null, pending = null, isolated = true } = {}) {
+    const lines = [];
+    if (outcome?.kind === 'proposal' && outcome.status === 'applied') lines.push('REVIEW STATUS: the user APPLIED your last proposal. Its changes are live; the draft above is the result.');
+    if (outcome?.kind === 'proposal' && outcome.status === 'discarded') lines.push('REVIEW STATUS: the user DISCARDED your last proposal. None of its changes were applied; the draft above is the live version.');
+    if (outcome?.kind === 'plan' && outcome.status === 'rejected') lines.push('REVIEW STATUS: the user rejected your last plan.');
+    if (pending) {
+        const changes = changedSteps(pending.baseDefinition, pending.definition);
+        const list = changes.length ? changes.join('; ') : 'name or description only';
+        lines.push(isolated
+            ? `STAGED, NOT APPLIED: a proposal waits for the user (${list}). The draft above already includes these staged changes. Build on it; do not stage them again.`
+            : `STAGED, NOT APPLIED: a proposal waits for the user (${list}). The draft above is the LIVE version without it. Changing the live draft now makes that proposal out of date.`);
+        lines.push('Only the user applies a proposal, with the Apply button on the proposal card. A "yes" or "approve" typed in the chat applies nothing: when the user approves in the chat, ask them to press Apply. Call these changes staged until a later turn reports them applied.');
+    }
+    return lines.length ? `\n${lines.join('\n')}` : '';
+}
+
+// Every change tool result in a work mode says where its change went, so the
+// agent never has to guess whether a step is live: `staged` (in the proposal,
+// waiting for Apply), `applied` (in the live draft), `rejected` (nothing
+// changed) or `partial` (a batch that stopped part way).
+function withChangeStatus(result, { isolated, buffered = false }) {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) return result;
+    const where = isolated ? 'staged' : 'applied';
+    if (result.error) {
+        const partial = Array.isArray(result.added) && result.added.length > 0;
+        result.changeStatus = partial ? 'partial' : 'rejected';
+        result._status = partial ? `The steps in "added" are ${where}; the rest was refused.` : 'Nothing changed: this call was refused.';
+    } else {
+        result.changeStatus = where;
+        result._status = !isolated ? 'Applied to the live draft.'
+            : buffered ? `Staged, not applied yet. At the end of this turn it is applied if fewer than ${LARGE_CHANGE_STEPS} steps changed; otherwise it waits for the user's Apply.`
+                : 'Staged, not applied. The user applies it with the Apply button.';
+    }
+    return result;
+}
+
+// A read of the draft during an isolated turn that holds staged changes says
+// so, so the agent never takes the staged version for the live one.
+function markStagedView(result, staged) {
+    if (staged && result && typeof result === 'object' && !Array.isArray(result) && !result.error) {
+        result.draftView = 'staged';
+        result._draftView = 'This view includes staged changes that are not applied yet.';
+    }
+    return result;
+}
+
+module.exports = { MODES, PLAN_TOOL, QUESTIONS_TOOL, LARGE_CHANGE_STEPS, writeQuestions, toolAllowed, modeInstruction, writePlan, changedSteps,
+    isBlankDraft, pendingProposal, reviewStatusNote, withChangeStatus, markStagedView };

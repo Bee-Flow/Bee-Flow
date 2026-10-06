@@ -80,6 +80,8 @@ const {
     execDataExtraction,
     runDag,
 } = require('./engine');
+// Not routed through engine.js's re-export list: only the dispatcher calls it.
+const { execFlatten } = require('./execCollections');
 const { createToolMemo } = require('./toolMemo');
 const log = require('../../telemetry/log');
 // Handoff 5: which copy a run executes (live vs working) and the automation's
@@ -774,6 +776,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
             case 'filter':             return execFilter(step, ctx_, state_);
             case 'limit':              return execLimit(step, ctx_, state_);
             case 'dedupe':             return execDedupe(step, ctx_, state_);
+            case 'flatten':            return execFlatten(step, ctx_, state_);
             case 'aggregate':          return execAggregate(step, ctx_, state_);
             case 'summarize':          return execSummarize(step, ctx_, state_);
             // One of the two steps whose effect outlives the run: rows in an

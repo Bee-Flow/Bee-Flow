@@ -57,10 +57,10 @@ export interface LoopListPick<T> {
 export function pickLoopList<T>(
     scope: LoopScope,
     choice: { path: string; sample?: unknown },
-    { previewSample = null, bindings, container = false }: { previewSample?: unknown; bindings?: T; container?: boolean } = {},
+    { previewSample = null, bindings, container = false, definition = null }: { previewSample?: unknown; bindings?: T; container?: boolean; definition?: unknown } = {},
 ): LoopListPick<T> {
     // Plain strings too: a step's prompt or title is text with `{{ }}` in it.
-    const r = rebaseForEach(scope, { path: choice.path, element: elementFor(choice, previewSample) }, bindings ?? ({} as T), { strings: true, container });
+    const r = rebaseForEach(scope, { path: choice.path, element: elementFor(choice, previewSample) }, bindings ?? ({} as T), { strings: true, container, definition });
     const canRebind = bindings !== undefined;
     const keepsOld = (r.forEach.parents || []).some(p => p.itemVar === scope.itemVar);
     const itemVar = canRebind || keepsOld || !isNamed(scope.itemVar) ? r.forEach.itemVar : scope.itemVar;

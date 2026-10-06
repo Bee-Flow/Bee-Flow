@@ -39,6 +39,20 @@ export const LIST_DEFS: Record<string, NodeDefSource> = {
         },
         labelFallback: 'Remove duplicates',
     },
+    flatten: {
+        family: 'data',
+        typeLabel: 'Flatten a list',
+        defaultLabel: 'Flatten a list',
+        desc: "One row for every item of a list inside a list, such as one row per attachment with its email's details.",
+        help: 'Turns a list inside a list into one table. Each row is one inner item, such as an attachment, with the details of the item it came from, such as the email.',
+        sectionKeys: ['config', 'more'],
+        simpleSections: ['config'],
+        issueSections: {
+            fallback: 'config',
+            map: { label: FLAT, arrayRef: 'config', parents: 'config', keepEmpty: 'more', maxItems: 'more' },
+        },
+        labelFallback: 'Flatten a list',
+    },
     aggregate: {
         family: 'data',
         typeLabel: 'Collect one field',

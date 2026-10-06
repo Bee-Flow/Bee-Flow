@@ -104,6 +104,52 @@ describe('routeEdges and switchCaseOps', () => {
         expect(reconcileSwitchEdges(clone(def), step.id, step.cases, patch.cases)).toEqual(webSwitch.reconcileSwitchEdges(clone(def), step.id, step.cases, patch.cases));
     });
 
+    // Follow the route (W3-W5): the step after a list Condition reads the output it hangs off.
+    const SRC = 'steps.rm.output.messages';
+    const listDef = (route: Record<string, unknown>, overRef: string, label?: string): FlowDefinition => ({
+        steps: [
+            { id: 'rm', type: 'action', label: 'Read many' },
+            { id: 'c', label: 'Condition', ...route },
+            { id: 't', type: 'action', label: 'Read attachment', forEach: { overRef, parents: [{ overRef: overRef.split('[*]')[0] }] },
+                inputs: { id: { kind: 'ref', path: 'loop.item.id' }, note: { kind: 'template', value: `{{${overRef.split('[*]')[0]}}}` } } },
+        ],
+        edges: [{ from: 'rm', to: 'c' }, { from: 'c', to: 't', ...(label ? { label } : {}) }],
+    } as never);
+    const filter = { type: 'filter', arrayRef: SRC, expr: 'contains(item.subject, "x")' };
+    const split = { type: 'switch', arrayRef: SRC, routeStyle: 'rules', cases: [{ name: 'pdf', expr: 'a' }, { name: 'word', expr: 'b' }] };
+    const follows: [FlowDefinition, Record<string, unknown>][] = [
+        [listDef(filter, 'steps.c.output.items[*].attachments'), { type: 'switch', routeStyle: 'rules', cases: [{ name: 'pdf', expr: 'a' }, { name: 'word', expr: 'b' }], expr: undefined }],
+        [listDef(split, 'steps.c.output.matchesByCase.pdf[*].attachments', 'case:pdf'), { cases: [{ name: 'invoices', expr: 'a' }, { name: 'word', expr: 'b' }] }],
+        [listDef(split, 'steps.c.output.matchesByCase.pdf[*].attachments', 'case:pdf'), { type: 'filter', cases: undefined, routeStyle: undefined, expr: 'a' }],
+        [listDef(filter, 'steps.c.output.items[*].attachments'), { arrayRef: `${SRC}[*].attachments` }],
+        [listDef(filter, 'steps.c.output.items[*].attachments'), { arrayRef: 'steps.other.output.rows' }],
+        [listDef(filter, 'steps.c.output.items[*].attachments'), { type: 'switch', arrayRef: SRC, routeStyle: 'rules', cases: [{ name: 'Output 1', expr: 'a' }] }],
+        [listDef({ type: 'condition', expr: 'x' }, 'steps.rm.output.messages[*].attachments', 'then'), { type: 'filter', arrayRef: SRC }],
+        [listDef(split, 'steps.c.output.matchesByCase.word', 'case:word'), { cases: [{ name: 'word', expr: 'b' }] }],
+        [listDef(split, 'steps.c.output.matchesByCase.pdf', 'case:pdf'), { cases: [{ name: 'word', expr: 'b' }, { name: 'pdf', expr: 'a' }] }],
+        [listDef(filter, 'steps.c.output.items[*].attachments', 'true'), { type: 'condition', arrayRef: undefined }],
+    ];
+    it.each(follows.map((f, i) => [i, f] as const))('merge follows the route, case %i', (_i, [def, patch]) => {
+        const step = def.steps[1] as FlowStep;
+        const mine = mergeStepPatchIntoDefinition(clone(def), clone(step), patch);
+        expect(mine).toEqual(webSwitch.mergeStepPatchIntoDefinition(clone(def), clone(step), patch));
+        if (_i < 4) expect(mine).not.toEqual(def);
+    });
+
+    it('a removed or reordered case never moves another output\'s reader; "The whole run" again reads the list', () => {
+        const overRef = (d: FlowDefinition) => (d.steps[2] as { forEach: { overRef: string } }).forEach.overRef;
+        const removed = listDef(split, 'steps.c.output.matchesByCase.word', 'case:word');
+        expect(overRef(mergeStepPatchIntoDefinition(removed, removed.steps[1] as FlowStep, { cases: [{ name: 'word', expr: 'b' }] })))
+            .toBe('steps.c.output.matchesByCase.word');
+        const reordered = listDef(split, 'steps.c.output.matchesByCase.pdf', 'case:pdf');
+        const swapped = mergeStepPatchIntoDefinition(reordered, reordered.steps[1] as FlowStep, { cases: [{ name: 'word', expr: 'b' }, { name: 'pdf', expr: 'a' }] });
+        expect(overRef(swapped)).toBe('steps.c.output.matchesByCase.pdf');
+        expect(swapped.edges).toEqual(reordered.edges);
+        const back = listDef(filter, 'steps.c.output.items[*].attachments', 'true');
+        expect(overRef(mergeStepPatchIntoDefinition(back, back.steps[1] as FlowStep, { type: 'condition', arrayRef: undefined })))
+            .toBe(`${SRC}[*].attachments`);
+    });
+
     it('leaves the definition alone when nothing changed shape', () => {
         const def = clone(FIXTURES.switchy as FlowDefinition);
         expect(reconcileRouteEdges(def, 'sw', sw, { ...sw, expr: 'other' })).toBe(def);
@@ -127,6 +173,19 @@ const EXPRS = [
     'isEmpty(steps.m.output.h[name="a,b"])', '!isEmpty(steps.m.output.h[name="a,b"])', 'endsWith(steps.m.output.h[name="a,b"].value, "7")',
     "steps.j.output.fields['Story Points'] > 3", "trigger.output['x-y']", 'trigger.output.headers["content-type"] == "json"',
     'contains(a.b, "x", "y")', 'contains(a.b, "x") + 1', '!startsWith(a.b, "x")',
+    // Condition node Tier 1: text "is", quantified rows, File type, saved blanks.
+    'equals(item.status, "open")', '!equals(item.status, "open")', 'item.status == "Open"', 'item.status != "Open"',
+    'equals(item.a, "")', 'item.a == ""', 'item.a != ""', 'equals(item.a)', 'equals(item.a, "x") + 1',
+    'anyOf(item.attachments[*].filename, "endsWith", ".pdf")', 'everyOf(item.lines[*].qty, ">", 0)',
+    'noneOf(item.labels[*].name, "equals", "spam")', 'anyOf(item.attachments[*].name, "isEmpty")',
+    'anyOf(item.attachments[*].name, "!isEmpty")', 'anyOf(item.attachments[*].name, "contains", "")',
+    'anyOf(item.attachments[*].name, "bogus", "x")', 'anyOf(item.attachments[*].name, "isEmpty", "x")', '!anyOf(item.a[*].b, "equals", 1)',
+    'anyOf(item.attachments[*], "equals", "x")', 'anyOf(item.a[*].b[*].c, "equals", "x")',
+    'equals(fileType(item), "pdf")', '!equals(fileType(item), "pdf")', 'anyOf(fileType(item.attachments[*]), "equals", "pdf")',
+    'noneOf(fileType(item.attachments[*]), "!equals", "word")', 'equals(fileType(item.name), "pdf")', 'equals(fileType(item.a[*].b), "pdf")',
+    'contains(item.attachments[*].mimeType, "pdf")', '!contains(item.attachments[*].mimeType, "pdf")', 'contains(item.attachments[*].mimeType)',
+    'startsWith(item.attachments[*].name, "x")', 'contains(item.from, "fabrikam") && anyOf(fileType(item.attachments[*]), "equals", "pdf")',
+    "anyOf(item['my list'][*].x, 'contains', 'a')", 'isEmpty(item.attachments)', '!isEmpty(item.attachments)',
 ];
 
 describe('conditionModel', () => {
@@ -141,9 +200,16 @@ describe('conditionModel', () => {
         const values = [undefined, null, { kind: 'literal', value: null }, { kind: 'literal', value: 'x' }, { kind: 'ref', path: 'a.b' },
             { kind: 'template', value: 'Hi {{trigger.output.name}}!' }, { kind: 'template', value: '{{a.b}}' }, { kind: 'template', value: '{{a + 1}}' },
             { kind: 'template', value: 'plain' }, { kind: 'expr', value: '1+1' }, { kind: 'odd' }, 7];
-        const ops = ['eq', 'neq', 'gt', 'contains', 'notContains', 'isEmpty', 'isNotEmpty', 'isTrue', 'isFalse', 'truthy', 'seq', 'bogus', undefined];
+        const ops = ['is', 'isNot', 'eq', 'neq', 'gt', 'lte', 'contains', 'notContains', 'endsWith', 'isEmpty', 'isNotEmpty', 'isTrue', 'isFalse', 'truthy', 'seq', 'bogus', undefined];
         for (const field of fields) for (const value of values) for (const op of ops) {
             const row = { field, op, value } as never;
+            expect(cm.serializeRow(row)).toBe(webCond.serializeRow(row));
+        }
+        const extras = [{}, { keepBlank: true }, { quantifier: 'any' }, { quantifier: 'every', keepBlank: true }, { quantifier: 'none' }, { quantifier: 'odd' }];
+        const qFields = [{ kind: 'ref', path: 'item.attachments[*].name' }, { kind: 'ref', path: 'fileType(item.attachments[*])' }, { kind: 'ref', path: 'fileType(item)' }];
+        const qValues = [undefined, { kind: 'literal', value: '' }, { kind: 'literal', value: 'pdf' }, { kind: 'literal', value: null }, { kind: 'ref', path: '' }, { kind: 'expr', value: ' ' }];
+        for (const field of qFields) for (const value of qValues) for (const op of ops) for (const extra of extras) {
+            const row = { field, op, value, ...extra } as never;
             expect(cm.serializeRow(row)).toBe(webCond.serializeRow(row));
         }
         expect(cm.serializeRow(null)).toBe(webCond.serializeRow(null));
@@ -157,11 +223,18 @@ describe('conditionModel', () => {
         for (const v of [null, undefined, [1], 3, true, {}, '2026-01-01', '2026-01-01T10:00', ' 2026-13-99 ', 'hello', () => 1]) {
             expect(cm.inferType(v)).toBe(webCond.inferType(v));
         }
-        for (const type of ['string', 'number', 'boolean', 'date', 'array', 'object', 'unknown', 'weird']) {
+        const t = (key: string, fallback: string) => `${key}=${fallback}`;
+        for (const type of ['string', 'number', 'boolean', 'date', 'array', 'object', 'records', 'fileType', 'unknown', 'weird']) {
             expect(cm.operatorsForType(type)).toEqual(webCond.operatorsForType(type));
             expect(cm.operatorsForType(type, 'seq')).toEqual(webCond.operatorsForType(type, 'seq'));
             expect(cm.operatorsForType(type, 'nope')).toEqual(webCond.operatorsForType(type, 'nope'));
-            for (const key of ['eq', 'gt', 'gte', 'lt', 'lte', 'contains', 'x']) expect(cm.labelFor(key, type)).toBe(webCond.labelFor(key, type));
+            for (const current of [null, 'eq', 'truthy', 'isTrue']) {
+                expect(cm.operatorsForType(type, current, { quantified: true, t })).toEqual(webCond.operatorsForType(type, current, { quantified: true, t }));
+            }
+            for (const key of ['is', 'isNot', 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'isEmpty', 'isNotEmpty', 'seq', 'x']) {
+                expect(cm.labelFor(key, type)).toBe(webCond.labelFor(key, type));
+                expect(cm.labelFor(key, type, t)).toBe(webCond.labelFor(key, type, t));
+            }
         }
         for (const key of ['eq', 'isEmpty', 'truthy', 'x', null]) {
             expect(cm.isUnaryOp(key)).toBe(webCond.isUnaryOp(key));
@@ -170,13 +243,49 @@ describe('conditionModel', () => {
         expect(cm.emptyRow()).toEqual(webCond.emptyRow());
     });
 
-    it('translates operator labels under mobile.flow.op, dates apart', () => {
+    it('translates operator labels under condition_node.op, dates, text and lists apart', () => {
         const t = (key: string, fallback: string) => `${key}=${fallback}`;
-        expect(cm.labelFor('gt', 'number', t)).toBe('mobile.flow.op.gt=greater than');
-        expect(cm.labelFor('gt', 'date', t)).toBe('mobile.flow.op.gt_date=is after');
-        expect(cm.labelFor('contains', 'date', t)).toBe('mobile.flow.op.contains=contains');
+        expect(cm.labelFor('gt', 'number', t)).toBe('condition_node.op.gt=greater than');
+        expect(cm.labelFor('gt', 'date', t)).toBe('condition_node.op.gt_date=is after');
+        expect(cm.labelFor('eq', 'string', t)).toBe('condition_node.op.eq_text=is exactly (same upper/lower case)');
+        expect(cm.labelFor('isEmpty', 'records', t)).toBe('condition_node.op.isEmpty_records=has none');
+        expect(cm.labelFor('contains', 'date', t)).toBe('condition_node.op.contains=contains');
         expect(cm.labelFor('nope', 'date', t)).toBe('nope');
-        expect(cm.operatorsForType('boolean', null, t)[0]).toEqual({ key: 'isTrue', label: 'mobile.flow.op.isTrue=is true' });
+        expect(cm.operatorsForType('boolean', null, { t })[0]).toEqual({ key: 'isTrue', label: 'condition_node.op.isTrue=is true' });
+    });
+
+    const walk = (path: string, root: unknown): unknown => {
+        const parts = path.replace(/\[\*\]/g, '.*').split('.');
+        let cur: unknown[] = [root];
+        for (const p of parts) cur = cur.flatMap((v) => (p === '*' ? (Array.isArray(v) ? v : []) : v && typeof v === 'object' ? [(v as Record<string, unknown>)[p]] : []));
+        return path.includes('[*]') ? cur : cur[0];
+    };
+    const SAMPLE = { item: { subject: 'Hi', amount: 3, when: '2026-01-01', ok: true, tags: ['a'], attachments: [{ name: 'a.pdf', size: 3 }] } };
+    const ROW_FIELDS = ['', 'item.subject', 'item.amount', 'item.when', 'item.ok', 'item.tags', 'item.attachments', 'item.attachments[*].name',
+        'item.attachments[*].size', 'fileType(item)', 'fileType(item.attachments[*])', 'item.missing'];
+
+    it('rowType and rowForField match', () => {
+        for (const path of ROW_FIELDS) {
+            const row = { field: { kind: 'ref', path }, op: 'contains', value: { kind: 'literal', value: 'x' } } as never;
+            for (const root of [SAMPLE, null]) expect(cm.rowType(row, root, walk)).toBe(webCond.rowType(row, root, walk));
+            const type = webCond.rowType(row, SAMPLE, walk);
+            for (const start of [cm.emptyRow(), { ...cm.emptyRow(), op: 'gt', quantifier: 'none', keepBlank: true }, { field: null, op: 'endsWith', value: 'v', threshold: 0.5 }]) {
+                expect(cm.rowForField(start as never, { kind: 'ref', path }, type)).toEqual(webCond.rowForField(start, { kind: 'ref', path }, type));
+            }
+        }
+    });
+
+    it('deepenRows matches', () => {
+        const rowsOf = (expr: string) => webCond.parseExprToRows(expr).rows;
+        const cases: [string, string][] = [
+            ['anyOf(item.attachments[*].name, "endsWith", ".pdf") && contains(item.from, "x")', 'attachments'],
+            ['noneOf(fileType(item.attachments[*]), "equals", "pdf")', 'attachments'],
+            ['noneOf(item.attachments[*].name, "endsWith", ".pdf")', 'attachments'],
+            ['noneOf(item.attachments[*].size, ">", 3) || everyOf(item.attachments[*].size, "<=", 9)', 'attachments'],
+            ['anyOf(item.lines[*].qty, ">", 0) && equals(fileType(item.name), "pdf")', 'attachments'],
+            ['equals(fileType(item), "pdf") && trigger.output.ok == true', 'attachments'],
+        ];
+        for (const [expr, key] of cases) expect(cm.deepenRows(rowsOf(expr), key)).toEqual(webCond.deepenRows(rowsOf(expr), key));
     });
 });
 

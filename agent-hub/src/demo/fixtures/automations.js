@@ -19,7 +19,11 @@ import { recordRun, runRoutes, seedRuns } from './automationsRuns';
 import { SETTINGS_LIBRARY_ROUTES, SETTINGS_ROUTES, seedFolders, seedShares, seedTrash, seedWebhooks } from './automationsSettings';
 import { TEMPLATE_ROUTES } from './automationsTemplates';
 import { CODE_ROUTES, CODE_STEP } from './automationsCode';
+import {
+    MAIL_CONDITION_STEP_RESULTS, MAIL_SPLIT_STEP_RESULTS, mailConditionAutomationFields, mailSplitAutomationFields, seedMailConditionRuns, seedMailSplitRuns,
+} from './automationsMailCondition';
 import { MAIL_FANOUT_CATALOG_APP, MAIL_FANOUT_STEP_RESULTS, mailFanoutAutomationFields, seedMailFanoutRuns } from './automationsMailFanout';
+import { MAIL_FLATTEN_STEP_RESULTS, ORDERS_FLATTEN_STEP_RESULTS, mailFlattenAutomationFields, ordersFlattenAutomationFields, seedMailFlattenRuns } from './automationsMailFlatten';
 import { NESTED_CATALOG_APPS, NESTED_STEP_RESULTS, nestedAutomationFields, seedNestedRuns } from './automationsNested';
 import { VERSION_ROUTES, recordSave, seedVersions } from './automationsVersions';
 
@@ -310,6 +314,11 @@ const AUTOMATIONS = () => ([
     automationRow(nestedAutomationFields()),
     // Gmail per-item fan-out: 4 mails × 16 attachments, 3 list levels (automationsMailFanout.ts).
     automationRow(mailFanoutAutomationFields()),
+    // A Condition after a list of mails with attachments (automationsMailCondition.ts).
+    automationRow(mailConditionAutomationFields()),
+    // The same mails split by file type with a three-output list Condition.
+    automationRow(mailSplitAutomationFields()),
+    automationRow(mailFlattenAutomationFields()), automationRow(ordersFlattenAutomationFields()),
 ]);
 
 const TASKS = () => ([
@@ -402,7 +411,7 @@ export function createState() {
         agents: AGENTS(),
         // The Runs tab, the Versions tab and Settings (handoff 5): each in
         // its own module, all reading this one state.
-        runs: [...seedRuns(), ...seedNestedRuns(), ...seedMailFanoutRuns()],
+        runs: [...seedRuns(), ...seedNestedRuns(), ...seedMailFanoutRuns(), ...seedMailConditionRuns(), ...seedMailSplitRuns(), ...seedMailFlattenRuns()],
         versions: seedVersions(automations),
         aiAct: seedAiAct(),
         shares: seedShares(),
@@ -515,6 +524,9 @@ const STEP_RESULTS = {
     },
     ...NESTED_STEP_RESULTS,
     ...MAIL_FANOUT_STEP_RESULTS,
+    ...MAIL_CONDITION_STEP_RESULTS,
+    ...MAIL_SPLIT_STEP_RESULTS,
+    ...MAIL_FLATTEN_STEP_RESULTS, ...ORDERS_FLATTEN_STEP_RESULTS,
 };
 
 /** Execution order, so `mode: 'from'` can run the tail of the graph. */

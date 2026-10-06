@@ -8,7 +8,7 @@
  * steps resolve their `arrayRef` with, the list-source scan, and the
  * declared-type → placeholder table the schema-driven describers use.
  */
-import { formatKey } from '@shared/expr/path.mjs';
+import { formatKey, getList } from '@shared/expr/path.mjs';
 import { eachField, isRecord, mergeElements, recordFields } from './fieldTree';
 import { overlayGroupWithReal } from './realOverlay';
 import { walkPath } from '../../../../../utils/bindingHelpers';
@@ -43,7 +43,11 @@ export function sampleToFields(sample, basePath) {
  */
 export function resolveElementSample(arrayRef, sampleRoot) {
     if (typeof arrayRef !== 'string' || !arrayRef.trim() || !sampleRoot) return null;
-    const v = walkPath(arrayRef.trim(), sampleRoot);
+    // Read like the run reads a list (getList: an array, or JSON text that
+    // encodes one). A flowlet sub-step id (`steps.<call>/<sub>`) is outside
+    // the runtime grammar, so it falls back to the builder's own walker.
+    const ref = arrayRef.trim();
+    const v = getList(sampleRoot, ref) ?? walkPath(ref, sampleRoot);
     if (!Array.isArray(v) || v.length === 0) return null;
     return mergeElements(v);
 }

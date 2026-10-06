@@ -15,7 +15,15 @@ import { Text } from '@/shared/ui';
 
 import type { RoutePatch } from './routeEdits';
 
-export function RouteAdvanced({ route, setRoute, disabled = false }: { route: Route; setRoute: (patch: RoutePatch) => void; disabled?: boolean }) {
+export interface RouteAdvancedProps {
+    route: Route;
+    setRoute: (patch: RoutePatch) => void;
+    /** A new list goes through the editor's list change (R11), not a bare patch. */
+    onSource?: (source: string) => void;
+    disabled?: boolean;
+}
+
+export function RouteAdvanced({ route, setRoute, onSource, disabled = false }: RouteAdvancedProps) {
     const t = useTranslation();
     const items = route.mode === 'items';
     const several = route.rules.length > 1;
@@ -41,11 +49,12 @@ export function RouteAdvanced({ route, setRoute, disabled = false }: { route: Ro
                         list
                         required
                         value={route.source || ''}
-                        onChange={(v) => setRoute({ source: String(v) })}
+                        onChange={(v) => (onSource ? onSource(String(v)) : setRoute({ source: String(v) }))}
                         label={t('mobile.flow.list.source', 'Source list')}
                         hint={t('mobile.flow.list.source_hint', 'Pick a list from a previous step — or type a path manually.')}
                         prompt={t('mobile.flow.list.none_yet', 'No list picked yet')}
                         disabled={disabled}
+                        testID="route-source"
                     />
                     <NumberField
                         label={t('mobile.flow.list.max_items', 'Max input items')}
@@ -80,7 +89,7 @@ export function RouteAdvanced({ route, setRoute, disabled = false }: { route: Ro
                     hint={t('mobile.flow.route.nothing_matches_hint', "Send unmatched values to one of your rules, or use the node's otherwise output.")}
                     value={route.defaultBranch || ''}
                     options={[
-                        { value: '', label: t('mobile.flow.route.use_otherwise', 'Use the otherwise output') },
+                        { value: '', label: t('condition_node.otherwise.use', 'Use the Otherwise output') },
                         ...route.rules.filter((r) => r.name).map((r) => ({ value: r.name, label: r.name })),
                     ]}
                     onChange={(defaultBranch) => setRoute({ defaultBranch })}

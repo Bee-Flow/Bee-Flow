@@ -117,6 +117,7 @@ function scanExpr(text, report) {
  * (only in LOOSE_KEYS).
  */
 function scanText(text, report, listHint, as = 'text', loose = false) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an alternation of two fixed literals, no repeats: linear
     if (typeof text !== 'string' || !/steps|loop/.test(text)) return;
     if (as === 'expr' && scanExpr(text, report)) return;
     const whole = as === 'expr' ? null : parsePath(text);
@@ -138,6 +139,7 @@ function scanText(text, report, listHint, as = 'text', loose = false) {
 function scanLoose(text, report) {
     const re = /(steps|loop)(?=[.[])/g;
     let m;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- two fixed literals and a one-character lookahead, no repeats: linear
     while ((m = re.exec(text)) !== null) {
         const before = m.index > 0 ? text[m.index - 1] : '';
         if (before && /[\p{L}\p{N}_$@.\]-]/u.test(before)) continue;

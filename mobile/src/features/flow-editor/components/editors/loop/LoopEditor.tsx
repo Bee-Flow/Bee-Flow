@@ -13,6 +13,7 @@ import { View, type ViewStyle } from 'react-native';
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { BindingInput, NumberField } from '@/features/flow-editor/components/fields';
+import { buildStepTypeMap } from '@/features/flow-editor/model';
 import { Button, Icon, OptionRow, Text, TextField } from '@/shared/ui';
 
 import { Band } from '../shared/Band';
@@ -32,13 +33,14 @@ function LoopOver(editor: StepEditorProps) {
     // Steps inside that read a field the newly picked list's item lacks.
     const [orphans, setOrphans] = useState<string[]>([]);
     const pick = (path: string) => {
-        const r = pickLoopListFull(draft, path, ctx.sampleRoot);
+        const r = pickLoopListFull(draft, path, ctx.sampleRoot, ctx.definition);
         setMany(r.patch);
         setOrphans(r.orphans);
     };
     const overRef = typeof draft.overRef === 'string' ? draft.overRef : '';
     const itemVar = typeof draft.itemVar === 'string' && draft.itemVar ? draft.itemVar : 'item';
-    const lists = loopLists(ctx.groups, ctx.sampleRoot, ctx.stepLabelById, t);
+    const stepTypeById = buildStepTypeMap(ctx.definition);
+    const lists = loopLists(ctx.groups, ctx.sampleRoot, ctx.stepLabelById, { t, stepTypeById });
     return (
         <>
             <Text variant="caption" weight="medium" tone="secondary">
@@ -48,7 +50,7 @@ function LoopOver(editor: StepEditorProps) {
                 <View style={styles.current}>
                     <Icon name="Repeat" size={14} color={styles.accent.color} />
                     <Text variant="body" numberOfLines={2} style={styles.grow}>
-                        {friendlyPath(overRef, ctx.stepLabelById, t) || overRef}
+                        {friendlyPath(overRef, ctx.stepLabelById, t, stepTypeById) || overRef}
                     </Text>
                 </View>
             ) : null}

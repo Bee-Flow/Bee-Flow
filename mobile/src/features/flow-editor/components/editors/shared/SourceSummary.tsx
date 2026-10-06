@@ -3,7 +3,9 @@
  * reveals the list path and the input cap — the web's SourceSummaryRow
  * (collectionEditors.jsx), shared by the Condition node and Edit data so the
  * two list-mode steps read the same. A list the summary cannot describe is
- * shown as its raw path, in the warning tone.
+ * named, never shown as a path (R10): "Read many ▸ Messages — no sample yet",
+ * in the warning tone. The list is read like the run reads it (getList), so a
+ * list held as JSON text is counted too.
  */
 
 import React, { useState } from 'react';
@@ -11,9 +13,12 @@ import { View, type ViewStyle } from 'react-native';
 
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import { collectArrayPaths, walkPath, type VariableGroup } from '@/features/flow-editor/bindings';
+import { collectArrayPaths, type StepLabelMap, type VariableGroup } from '@/features/flow-editor/bindings';
+import { listPathLabel } from '@/features/flow-editor/bindings/listPathLabel';
+import { fieldLabelText, routeFieldLabel } from '@/features/flow-editor/bindings/upstream';
 import { BindingInput, FieldRow, NumberField } from '@/features/flow-editor/components/fields';
 import { humanizeFieldKey } from '@/features/flow-editor/model';
+import { getList } from '@/shared/expr';
 import { Button, Text } from '@/shared/ui';
 
 export interface SourceDescription {
@@ -22,16 +27,22 @@ export interface SourceDescription {
     count: number | null;
 }
 
-/** The one-line description of a source list, or null when it resolves to nothing describable. */
-export function describeSourceList(source: unknown, groups: readonly VariableGroup[], sampleRoot: unknown): SourceDescription | null {
+type Translate = (key: string, fallback: string) => string;
+
+/**
+ * The one-line description of a source list, or null when it resolves to
+ * nothing describable. A Condition's output reads as its name ("pdf",
+ * "Otherwise"), never as its internal key (routeFieldLabel).
+ */
+export function describeSourceList(source: unknown, groups: readonly VariableGroup[], sampleRoot: unknown, t: Translate | null = null): SourceDescription | null {
     const path = String(source || '').trim();
     if (!path) return null;
     const match = collectArrayPaths([...groups], sampleRoot).find((a) => a.path === path);
     if (!match) return null;
     const owner = groups.find((g) => g.basePath && path.startsWith(g.basePath));
-    const resolved = sampleRoot ? walkPath(path, sampleRoot) : undefined;
-    const list = Array.isArray(resolved) ? resolved : Array.isArray(match.sample) ? match.sample : null;
-    return { stepLabel: owner?.label ?? null, fieldLabel: humanizeFieldKey(match.key), count: list ? list.length : null };
+    const list = (sampleRoot == null ? null : getList(sampleRoot, path)) ?? (Array.isArray(match.sample) ? match.sample : null);
+    const own = t ? fieldLabelText(routeFieldLabel(path), t) : null;
+    return { stepLabel: owner?.label ?? null, fieldLabel: own ?? humanizeFieldKey(match.key), count: list ? list.length : null };
 }
 
 export interface SourceSummaryProps {
@@ -42,14 +53,18 @@ export interface SourceSummaryProps {
     onMaxItems: (maxItems: number | '') => void;
     groups: readonly VariableGroup[];
     sampleRoot: unknown;
+    /** Names the steps of a list the summary cannot describe. */
+    stepLabelById?: StepLabelMap;
+    /** Which steps are Conditions, so what one keeps reads as its name, never "Items". */
+    stepTypeById?: StepLabelMap;
     disabled?: boolean;
 }
 
-export function SourceSummary({ hint, source, maxItems, onSource, onMaxItems, groups, sampleRoot, disabled = false }: SourceSummaryProps) {
+export function SourceSummary({ hint, source, maxItems, onSource, onMaxItems, groups, sampleRoot, stepLabelById = null, stepTypeById = null, disabled = false }: SourceSummaryProps) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const [open, setOpen] = useState(false);
-    const summary = describeSourceList(source, groups, sampleRoot);
+    const summary = describeSourceList(source, groups, sampleRoot, t as Translate);
     const line = summary
         ? [
               `${summary.stepLabel ?? t('automations.ndv.prev_step', 'Previous step')} · ${summary.fieldLabel}`,
@@ -57,7 +72,9 @@ export function SourceSummary({ hint, source, maxItems, onSource, onMaxItems, gr
           ]
               .filter(Boolean)
               .join(' — ')
-        : source || t('mobile.flow.list.none_yet', 'No list picked yet');
+        : source
+          ? `${listPathLabel(source, stepLabelById, t as Parameters<typeof listPathLabel>[2], { stepTypeById })} · ${t('condition_node.source.no_sample', 'no sample yet: run the step above to see its fields')}`
+          : t('mobile.flow.list.none_yet', 'No list picked yet');
     return (
         <FieldRow label={t('mobile.flow.list.working_through', 'Working through')} hint={hint}>
             <View style={styles.row}>

@@ -115,6 +115,7 @@ function unbracketBareNames(s) {
 function normalizeAiPath(raw, { trimDebris = true } = {}) {
     if (typeof raw !== 'string') return { path: raw, tokens: null, debris: null, notes: [] };
     const notes = [];
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NAME_CHAR_RE is one character class tested on a single character (s[i - 1]), and /^\$+/ and /^\.+/ are anchored single repeats: linear
     let s = raw.trim().replace(/^\$+/, '').replace(/^\.+/, '');
     s = unbracketBareNames(squeezeDots(s));
     let tokens = parsePath(s);

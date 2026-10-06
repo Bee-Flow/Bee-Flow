@@ -41,12 +41,14 @@ const LISTS = 'grid grid-cols-1 content-start shrink-0 border-b border-[var(--bo
 const SECOND_LIST = 'border-t border-[var(--border-default)] @[600px]/runio:border-t-0 @[600px]/runio:border-l @[1100px]/runio:border-l-0 @[1100px]/runio:border-t';
 
 /** Got in / Passed on for one step, and its output as a table. */
-export default function RunIo({ step, label, stepDef = null, labelById = null }: {
+export default function RunIo({ step, label, stepDef = null, labelById = null, typeById = null }: {
     step: RunStepRecord | null;
     label: string;
     /** The step as this run's version defined it (BFSF-456): what it was set up to do. */
     stepDef?: Record<string, unknown> | null;
     labelById?: Map<string, string> | null;
+    /** Step id → type, so a path into a Condition's outputs names the output. */
+    typeById?: Map<string, string> | null;
 }) {
     const { t } = useTranslation();
     const settings = useMemo(() => configFields(t, stepDef, labelById), [t, stepDef, labelById]);
@@ -73,7 +75,7 @@ export default function RunIo({ step, label, stepDef = null, labelById = null }:
                 </div>
                 <div className="px-4 py-3 flex flex-col gap-2 flex-1 min-h-[320px] min-w-0 @[1100px]/runio:min-h-0">
                     {/* An input that came up empty is why an output looks wrong. */}
-                    <BindingWarnings warnings={misses} labelById={labelById} />
+                    <BindingWarnings warnings={misses} labelById={labelById} typeById={typeById} />
                     <div className="flex items-center gap-2">
                         <span className="font-semibold text-[var(--text-primary)] truncate">{tableTitle}</span>
                         {list && (

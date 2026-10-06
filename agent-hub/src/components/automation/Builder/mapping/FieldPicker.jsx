@@ -2,10 +2,11 @@ import { appendKey, canonicalPath, isValidPath, pathKeys } from '@shared/expr/pa
 import { ChevronDown, FunctionSquare, Search } from 'lucide-react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
-import { humanizeFieldKey } from '../flow/displayHelpers';
+import useTranslation from '../../../../hooks/useTranslation';
 import { previewValue } from '../../../../utils/bindingHelpers';
-import { denseInputClass } from '../flow/settings/formStyles';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
+import { humanizeFieldKey } from '../flow/displayHelpers';
+import { denseInputClass } from '../flow/settings/formStyles';
 
 /**
  * Pick a data field by its NAME.
@@ -19,7 +20,8 @@ import AnchoredMenu from '../../../shared/AnchoredMenu';
  * Free typing stays possible (there is no sample before the first test run):
  * an unmatched name resolves against `fallbackBase`, so typing "subject"
  * yields `item.subject`. `onUseExpression` adds the escape hatch for authors
- * who do want to write an expression.
+ * who do want to write an expression; the Condition editor passes it in
+ * Advanced only (Simple mode never leads to a formula).
  *
  * Props:
  *   value          — binding ({kind:'ref', path}) or null
@@ -46,7 +48,8 @@ export default function FieldPicker({
 
     const path = value?.kind === 'ref' ? String(value.path || '') : '';
     const current = useMemo(() => options.find(o => o.path === path) || null, [options, path]);
-    const currentLabel = current?.label || (path ? humanizeFieldKey(lastSegment(path)) : '');
+    const { t } = useTranslation();
+    const currentLabel = current?.label || nameOfPath(path, t);
     const currentSample = current?.sample;
 
     const emit = (nextPath) => {
@@ -114,7 +117,7 @@ export default function FieldPicker({
                 `absolute` panel was cut off at the bottom of the form and its
                 click-away backdrop stole every press on the modal's scrollbar
                 (BFSF-328). AnchoredMenu measures, flips and stays reachable. */}
-            <AnchoredMenu open={open} onClose={close} anchorRef={anchorRef} align="stretch" maxHeight={320}>
+            <AnchoredMenu open={open} onClose={close} anchorRef={anchorRef} align="stretch" maxHeight={420}>
                 <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[var(--border-default)] sticky top-0 bg-[var(--bg-primary)] z-10">
                     <Search size={12} className="text-[var(--text-tertiary)] shrink-0" />
                     <input
@@ -197,6 +200,13 @@ export default function FieldPicker({
             </AnchoredMenu>
         </div>
     );
+}
+
+/** A field that is not among the options, by name; a File type field (`fileType(item)`) is no key of the item. */
+function nameOfPath(path, t) {
+    if (!path) return '';
+    if (path.startsWith('fileType(')) return t('condition_node.file_type.label', 'File type');
+    return humanizeFieldKey(lastSegment(path));
 }
 
 /** `steps.g1.output.results[*]["first-name"]` → `first-name`: the last key, read as the runtime reads it. */

@@ -2,90 +2,35 @@
  * An expression back into clickable rows — the parsing half of the web
  * builder's utils/conditionModel.js, pinned by route.lockstep.test.ts.
  *
+ * The scanners (top-level `&&`/`||`, call arguments, comparator symbols) and
+ * the rule shapes (`anyOf(item.attachments[*].mimeType, "contains", "pdf")`,
+ * `fileType(item)`) are the shared ones (@/shared/expr rules.mjs), so the
+ * phone, the browser and the server read a rule the same way.
+ *
  * Anything it cannot recognise (mixed `&&`/`||`, function composition,
- * arithmetic on the left) returns null, and the editor keeps the raw
- * expression field instead. The parser stays strict on purpose.
+ * arithmetic on the left) returns null, and the editor shows the rule as a
+ * formula instead. Reading never rewrites: a saved `x == "Open"` comes back
+ * as the "is exactly" row that writes `==` again.
  */
+
+import { fieldShape, findTopLevelSymbol, readQuantifiedCall, splitCallArgs, splitTopLevel } from '@/shared/expr';
 
 import { canonicalRefPath } from '../pathGrammar';
 import type { Binding } from '../types';
 import { bindingFromInput, isCleanPath } from './bindingText';
-import type { ConditionRow, ConditionRows } from './conditionModel';
-
-type Join = '&&' | '||';
-
-interface ScanState {
-    parts: string[];
-    buf: string;
-    depth: number;
-    str: string | null;
-    join: Join | null;
-}
-
-/** Feed one character of a quoted string; returns how many extra chars were consumed. */
-function scanString(s: ScanState, expr: string, i: number): number {
-    const c = expr[i] as string;
-    s.buf += c;
-    if (c === '\\' && i + 1 < expr.length) {
-        s.buf += expr[i + 1];
-        return 1;
-    }
-    if (c === s.str) s.str = null;
-    return 0;
-}
-
-/**
- * Split on top-level `&&` or `||` (outside strings and brackets). Null when
- * BOTH appear at top level, or the brackets/quotes do not balance.
- */
-/** Track quotes and bracket depth for one character outside a string. */
-function scanStructure(s: ScanState, c: string): void {
-    if (c === '"' || c === "'") s.str = c;
-    else if (c === '(' || c === '[') s.depth++;
-    else if (c === ')' || c === ']') s.depth--;
-}
-
-/** A top-level joiner at `i`, or null. */
-function joinerAt(s: ScanState, expr: string, i: number): Join | null {
-    const two = expr.slice(i, i + 2);
-    return !s.str && s.depth === 0 && (two === '&&' || two === '||') ? two : null;
-}
-
-function splitTopLevel(expr: string): { parts: string[]; join: Join } | null {
-    const s: ScanState = { parts: [], buf: '', depth: 0, str: null, join: null };
-    for (let i = 0; i < expr.length; i++) {
-        const c = expr[i] as string;
-        if (s.str) {
-            i += scanString(s, expr, i);
-            continue;
-        }
-        scanStructure(s, c);
-        const join = joinerAt(s, expr, i);
-        if (!join) {
-            s.buf += c;
-            continue;
-        }
-        if (s.join && s.join !== join) return null;
-        s.join = join;
-        s.parts.push(s.buf.trim());
-        s.buf = '';
-        i++;
-    }
-    if (s.str || s.depth !== 0) return null;
-    s.parts.push(s.buf.trim());
-    return { parts: s.parts.filter((p) => p.length), join: s.join || '&&' };
-}
+import { isBlankValue, isUnaryOp, type ConditionRow, type ConditionRows, type Quantifier } from './conditionModel';
 
 const SYMBOL_TO_KEY: Record<string, string> = {
     '==': 'eq', '!=': 'neq', '===': 'seq', '!==': 'sneq', '>=': 'gte', '<=': 'lte', '>': 'gt', '<': 'lt',
 };
 
+const BLANK: Binding = { kind: 'literal', value: '' };
+
 /** A raw right-hand side (`"file"`, `1000`, `steps.x.y`) as a binding. */
 function valueRawToBinding(rawText: unknown): Binding {
     const trimmed = String(rawText ?? '').trim();
-    if (/^(true|false|null)$/.test(trimmed)) {
-        return { kind: 'literal', value: trimmed === 'null' ? null : trimmed === 'true' };
-    }
+    if (trimmed === 'true' || trimmed === 'false') return { kind: 'literal', value: trimmed === 'true' };
+    if (trimmed === 'null') return { kind: 'literal', value: null };
     if (/^-?\d+(\.\d+)?$/.test(trimmed)) return { kind: 'literal', value: Number(trimmed) };
     const quoted = (trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"));
     if (quoted) {
@@ -98,33 +43,34 @@ function valueRawToBinding(rawText: unknown): Binding {
     return bindingFromInput(trimmed, 'expression');
 }
 
-/** Only a clean path is a parsed field; a `[*]` wildcard is not comparable to a scalar. */
+/**
+ * A field the rows can hold: a clean path (no `[*]` — a whole list is not
+ * comparable to one value), or the File type of the item (`fileType(item)`).
+ */
 function fieldFromLeft(left: unknown): Binding | null {
     const t = String(left || '').trim();
+    if (fieldShape(t)?.kind === 'fileRecord') return { kind: 'ref', path: (fieldShape(t) as { path: string }).path };
     if (t.includes('[*]')) return null;
     return isCleanPath(t) ? { kind: 'ref', path: canonicalRefPath(t) } : null;
 }
 
-const CMP_SYMBOLS = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'];
-const OP_CHARS = new Set(['=', '!', '<', '>']);
-
-function findTopLevelSymbol(text: string, sym: string): number {
-    let depth = 0;
-    let str: string | null = null;
-    for (let i = 0; i <= text.length - sym.length; i++) {
-        const c = text[i];
-        if (str) {
-            if (c === '\\') i++;
-            else if (c === str) str = null;
-            continue;
-        }
-        if (c === '"' || c === "'") str = c;
-        else if (c === '(' || c === '[') depth++;
-        else if (c === ')' || c === ']') depth--;
-        else if (depth === 0 && text.slice(i, i + sym.length) === sym) return i;
-    }
-    return -1;
+/** A list column (`item.attachments[*].mimeType`) or the File type of a list, as a quantified row's field. */
+function quantifiedField(left: unknown): Binding | null {
+    const shape = fieldShape(String(left || '').trim());
+    return shape && (shape.kind === 'column' || shape.kind === 'fileList') ? { kind: 'ref', path: shape.path } : null;
 }
+
+/** A row; a saved blank value (`x == ""`) is marked so it keeps round-tripping. */
+function row(field: Binding | null, op: string, value: Binding = BLANK, quantifier?: Quantifier): ConditionRow | null {
+    if (!field) return null;
+    const out: ConditionRow = { field, op, value };
+    if (quantifier) out.quantifier = quantifier;
+    if (!isUnaryOp(op) && isBlankValue(value)) out.keepBlank = true;
+    return out;
+}
+
+const OP_CHARS = new Set(['=', '!', '<', '>']);
+const CMP_SYMBOLS = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'];
 
 function parseComparator(text: string): { left: string; op: string; right: string } | null {
     for (const sym of CMP_SYMBOLS) {
@@ -141,69 +87,64 @@ function parseComparator(text: string): { left: string; op: string; right: strin
     return null;
 }
 
-const row = (field: Binding | null, op: string, value: Binding = { kind: 'literal', value: '' }): ConditionRow | null =>
-    field && { field, op, value };
+// `[!]name(arg, …)` as a whole fragment. (The web also reads `isAbout(…)`; the
+// phone has no topic operators, so such a rule stays a formula here.)
+const CALL_HEAD_RE = /^(!\s*)?(isEmpty|isAbout|contains|startsWith|endsWith|equals)\(/;
 
-// `[!]name(arg, …)` as a whole fragment: the arguments split on top-level
-// commas only, outside strings, brackets and parens, so a field like
-// `headers[name="a,b"]` or a text like "a, b" stays one argument. (The web
-// also reads `isAbout(…)`; the phone has no topic operators, so it stays raw.)
-const CALL_HEAD_RE = /^(!\s*)?(isEmpty|isAbout|contains|startsWith|endsWith)\(/;
-
-/** The arguments from `from` up to the call's own `)` (`{ args, end }`), or null when unclosed. */
-function splitArgs(text: string, start: number): { args: string[]; end: number } | null {
-    const args: string[] = [];
-    let from = start;
-    let depth = 0;
-    let str: string | null = null;
-    for (let i = start; i < text.length; i++) {
-        const c = text[i];
-        if (str) {
-            if (c === '\\') i++;
-            else if (c === str) str = null;
-            continue;
-        }
-        if (c === '"' || c === "'") str = c;
-        else if (c === '(' || c === '[') depth++;
-        else if (depth > 0 && (c === ')' || c === ']')) depth--;
-        else if (depth === 0 && c === ',') {
-            args.push(text.slice(from, i).trim());
-            from = i + 1;
-        } else if (c === ')') return { args: [...args, text.slice(from, i).trim()], end: i };
-    }
-    return null;
+/** A legacy `[!]contains(<column>, v)`: any (or no) entry of the column contains v. */
+function legacyColumnContains(args: string[], negate: boolean): ConditionRow | null {
+    const field = args.length === 2 && args[1] ? quantifiedField(args[0]) : null;
+    if (!field || fieldShape(String(args[0]).trim())?.kind !== 'column') return null;
+    return row(field, 'contains', valueRawToBinding(args[1]), negate ? 'none' : 'any');
 }
 
-/** The helper-call shapes: isEmpty, !isEmpty, !contains, contains/startsWith/endsWith. */
+/** A row for a recognised helper call, or null. */
+function rowFromCall(fn: string, negate: boolean, args: string[]): ConditionRow | null {
+    if (fn === 'isAbout') return null;
+    const f = fieldFromLeft(args[0]);
+    if (fn === 'isEmpty') return args.length === 1 ? row(f, negate ? 'isNotEmpty' : 'isEmpty') : null;
+    if (args.length !== 2 || !args[1]) return null;
+    if (fn === 'equals') return row(f, negate ? 'isNot' : 'is', valueRawToBinding(args[1]));
+    if (fn === 'contains' && !f) return legacyColumnContains(args, negate);
+    if (negate && fn !== 'contains') return null;
+    return row(f, negate ? 'notContains' : fn, valueRawToBinding(args[1]));
+}
+
+/** The helper-call shapes; undefined when the fragment is not one call. */
 function parseCall(text: string): ConditionRow | null | undefined {
     const head = CALL_HEAD_RE.exec(text);
     if (!head) return undefined;
-    const inner = splitArgs(text, head[0].length);
+    const inner = splitCallArgs(text, head[0].length);
     // The call's own `)` must end the fragment (`contains(a, b) + 1` is a formula).
     if (!inner || inner.end !== text.length - 1) return undefined;
-    const negate = !!head[1];
-    const fn = head[2] as string;
-    const { args } = inner;
-    if (fn === 'isEmpty') return args.length === 1 ? row(fieldFromLeft(args[0]), negate ? 'isNotEmpty' : 'isEmpty') : null;
-    if (fn === 'isAbout' || args.length !== 2 || !args[1] || (negate && fn !== 'contains')) return null;
-    return row(fieldFromLeft(args[0]), negate ? 'notContains' : fn, valueRawToBinding(args[1]));
+    return rowFromCall(head[2] as string, !!head[1], inner.args);
+}
+
+/** `anyOf / everyOf / noneOf(<column>, "<test>"[, value])` as a quantified row. */
+function parseQuantified(text: string): ConditionRow | null | undefined {
+    const q = readQuantifiedCall(text);
+    if (!q) return undefined;
+    const value = q.rhs == null ? BLANK : valueRawToBinding(q.rhs);
+    return row(quantifiedField(q.left), q.op, value, q.quantifier as Quantifier);
 }
 
 /** One fragment as a row, or null when it is not a recognised shape. */
 function parseFragment(part: string): ConditionRow | null {
     const text = part.trim();
     if (!text) return null;
+    const quantified = parseQuantified(text);
+    if (quantified !== undefined) return quantified;
     const call = parseCall(text);
     if (call !== undefined) return call;
     const cmp = parseComparator(text);
     if (cmp) {
         const f = fieldFromLeft(cmp.left);
         if (!f) return null;
-        if (cmp.op === 'eq' && /^(true|false)$/.test(cmp.right)) return row(f, cmp.right === 'true' ? 'isTrue' : 'isFalse');
+        if (cmp.op === 'eq' && (cmp.right === 'true' || cmp.right === 'false')) return row(f, cmp.right === 'true' ? 'isTrue' : 'isFalse');
         return row(f, cmp.op, valueRawToBinding(cmp.right));
     }
     // A bare field (a truthiness check); `[*]` IS allowed here.
-    if (!/^(true|false|null)$/.test(text) && isCleanPath(text)) return row({ kind: 'ref', path: canonicalRefPath(text) }, 'truthy');
+    if (text !== 'true' && text !== 'false' && text !== 'null' && isCleanPath(text)) return row({ kind: 'ref', path: canonicalRefPath(text) }, 'truthy');
     return null;
 }
 

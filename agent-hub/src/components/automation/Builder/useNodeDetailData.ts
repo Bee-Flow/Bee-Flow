@@ -5,6 +5,8 @@ import { stepNumbers } from './flow/flowOrder';
 import { stepPayload } from './flow/stepPayload';
 import { isInlineId, parseInlineId } from './flow/inlineFlowlets';
 import { matchValidationToStep } from './flow/matchValidationToStep';
+import { routeContextOf, routeSummaryOf } from './output/routeNote';
+import { routeFollowOf, wholeRunNoticeOf, type RouteFollow, type WholeRunNotice } from './flow/routeFollowNotes';
 import type { DataSummary, FlowDefinition, FlowEdge, FlowStep, RunStepRow } from './flow/types';
 import { usedPathsIn } from './mapping/boundPaths';
 import { buildRealOutputMap, buildSampleRoot } from './mapping/realOutputs';
@@ -12,6 +14,7 @@ import { buildToolOutputMap, describeNode } from './mapping/upstream';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useUpstreamVariables from '../../../hooks/useUpstreamVariables';
 import type { UpstreamGroup } from '../../../hooks/useUpstreamVariables';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { walkPath } from '../../../utils/bindingHelpers';
 import { initialValues } from '../../forms/PublicFormRenderer';
 
@@ -42,6 +45,8 @@ export interface LoopContext {
     itemNoun?: string | null;
 }
 
+export type { RouteFollow, WholeRunNotice };
+
 /** Everything the step editor derives from its props — facts, never edits. */
 export interface NodeDetailData {
     catalog: ToolCatalog | null;
@@ -63,6 +68,10 @@ export interface NodeDetailData {
     loopContext: LoopContext | null;
     inSummary: DataSummary | null;
     outSummary: DataSummary | null;
+    /** Null unless this is a Condition working through a list and the shell can re-point steps. */
+    routeFollow: RouteFollow | null;
+    /** Null unless this Condition decides once for the whole run but reads a list (BFSF-485). */
+    wholeRun: WholeRunNotice | null;
 }
 
 // The four modules aliased here are still JavaScript, and their optional
@@ -97,6 +106,8 @@ export interface UseNodeDetailDataOptions {
     /** The owner's catalog copy; absent on stand-alone mounts, which fetch one. */
     catalog?: ToolCatalog | null;
     realOutputById?: ReadonlyMap<string, unknown> | null;
+    /** BuildTab.onFollowRoute: re-point next steps at what a list Condition keeps. */
+    onFollowRoute?: ((routeId: string, stepIds: string[]) => void) | null;
 }
 
 /**
@@ -108,8 +119,9 @@ export interface UseNodeDetailDataOptions {
  */
 export default function useNodeDetailData({
     step, runStep, runSteps, definition, rootDefinition, validation,
-    catalog: catalogProp, realOutputById,
+    catalog: catalogProp, realOutputById, onFollowRoute,
 }: UseNodeDetailDataOptions): NodeDetailData {
+    const { t } = useTranslation();
     // Catalog (tool schemas): use the owner's copy when provided (BuildTab
     // already fetched it — no duplicate request); fetch only as a fallback
     // for stand-alone mounts. Upstream groups + preview sample derive from
@@ -221,9 +233,15 @@ export default function useNodeDetailData({
     const outSummary = useMemo(() => {
         const out = runStep?.output ?? (step?.pinnedOutput ?? null);
         // A Code step's output is `{ result, logs, httpCalls }`: count the
-        // result, not the console lines next to it.
-        return summarise(stepPayload(step?.type, out));
-    }, [runStep?.output, step?.pinnedOutput, step?.type]);
+        // result, not the console lines next to it. A Condition splitting a
+        // list counts the rows it routed, not its one result record (P2).
+        return routeSummaryOf(out, routeContextOf(step, t), t) ?? summarise(stepPayload(step?.type, out));
+    }, [runStep?.output, step, t]);
+    // A Condition working through a list: the next steps that still read that
+    // list, and the one-click fix (W7). A Condition deciding for the whole run
+    // that reads a list as a whole: the note that says so (BFSF-485).
+    const routeFollow = useMemo(() => routeFollowOf(step, definition, onFollowRoute, t), [step, definition, onFollowRoute, t]);
+    const wholeRun = useMemo(() => wholeRunNoticeOf(step, definition, previewSample, t), [step, definition, previewSample, t]);
     return {
         catalog,
         isSecondaryTrigger,
@@ -240,6 +258,8 @@ export default function useNodeDetailData({
         loopContext,
         inSummary,
         outSummary,
+        routeFollow,
+        wholeRun,
     };
 }
 

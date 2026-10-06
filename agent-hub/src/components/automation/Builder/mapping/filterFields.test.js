@@ -84,4 +84,13 @@ describe('filterGroups', () => {
     it('passes everything through for an empty query', () => {
         expect(filterGroups(GROUPS, '  ')).toBe(GROUPS);
     });
+
+    it('finds a field by the label a person reads, not only its internal key', () => {
+        const byCase = [{
+            key: 'matchesByCase', path: 'steps.c.output.matchesByCase', sample: {},
+            children: [{ key: 'default', path: 'steps.c.output.matchesByCase.default', sample: [], label: 'Otherwise' }],
+        }];
+        const out = filterFields(byCase, 'otherwise');
+        expect(out[0].children.map(c => c.key)).toEqual(['default']);
+    });
 });

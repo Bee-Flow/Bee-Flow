@@ -9,6 +9,7 @@ import { startPathDrag } from './bindingDnd';
 import { fieldListShape } from './listShape';
 import { humanizeFieldKey } from '../flow/displayHelpers';
 import { fieldValueLabel, friendlyBasePath } from './VariableTree';
+import { fieldLabelText } from './upstream/routeFieldLabel';
 
 /**
  * Portal-rendered popover that lists upstream variables, filterable by
@@ -363,7 +364,7 @@ function LeafText({ field, shape, previewSample, hasChildren }) {
     return (
         <>
             <span className="text-[var(--text-primary)] truncate shrink-0 max-w-[60%]" title={field.key} data-picker-name="">
-                {humanizeFieldKey(field.key) || field.key}
+                {fieldLabelText(field, t) ?? (humanizeFieldKey(field.key) || field.key)}
             </span>
             {shape && (
                 <span className={listBadgeClass()} title={t(shape.explainKey, shape.explainEn, shape.explainParams)}>

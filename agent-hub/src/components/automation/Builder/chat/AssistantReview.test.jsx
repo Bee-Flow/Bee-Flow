@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PlanReview from './PlanReview';
 import WorkModePicker from './WorkModePicker';
@@ -81,5 +82,20 @@ describe('assistant review controls', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
         expect(onApply.mock.calls[0][0].steps[0].settings).toEqual({ to: baseDefinition.steps[0].settings.to, subject: 'New' });
         expect(baseDefinition.steps[0].settings.subject).toBe('Old');
+    });
+});
+
+describe('proposal card', () => {
+    it('says a yes in the chat applies nothing, and offers Apply and Discard (BFSF-486)', async () => {
+        const user = userEvent.setup();
+        const onApply = vi.fn(), onDiscard = vi.fn();
+        const baseDefinition = { trigger: { id: 't', kind: 'manual' }, steps: [] };
+        const definition = { ...baseDefinition, steps: [{ id: 's1', type: 'set', label: 'Email totals' }] };
+        render(<ProposalCard proposal={{ id: 'p', baseDefinition, definition }} onApply={onApply} onDiscard={onDiscard} onPreview={vi.fn()} />);
+        expect(screen.getByText(/does not apply this\. Press Apply/)).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Discard' }));
+        expect(onDiscard).toHaveBeenCalledTimes(1);
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
+        expect(onApply.mock.calls[0][0].steps[0].label).toBe('Email totals');
     });
 });

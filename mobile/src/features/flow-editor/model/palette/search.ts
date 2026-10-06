@@ -14,7 +14,7 @@ import { codeItemFor, gated, localised, NOT_INSIDE_A_LAYER } from './gating';
 import { blockItem, inlineLayerItem, prettifyToolName, scopeBlocks } from './groups';
 import {
     additionalTriggerItems, AI_ITEMS, ALL_STATIC_ITEMS, COLLECTION_ITEMS, CREATE_LAYER_ITEM, DATA_ITEMS,
-    EDIT_DATA_ITEM, INTEGRATION_ITEMS, LAYER_OUTPUT_ITEM, LOGIC_ITEMS, PRIVACY_SHIELD_ITEM, ROUTE_ITEM, TRIGGERS,
+    EDIT_DATA_ITEM, FILTER_LIST_ITEM, INTEGRATION_ITEMS, LAYER_OUTPUT_ITEM, LOGIC_ITEMS, PRIVACY_SHIELD_ITEM, ROUTE_ITEM, TRIGGERS,
 } from './items';
 import type { Translate } from '../types';
 import type { PaletteCatalog, PaletteItem, PaletteLayer, PaletteResult, PaletteScope } from './types';
@@ -42,7 +42,9 @@ const labelsOf = (a: App) => actionLabelMap((a.actions || []).map((x) => ({ tool
 
 /** A merged or retired step type still resolves to what the picker offers now. */
 function stepForKey(rest: string, { catalog, t }: KeyScope): PaletteResult | null {
-    if (['condition', 'switch', 'filter', 'filter_route'].includes(rest)) return asResult(ROUTE_ITEM, t);
+    // A `filter` is what "Filter a list" drops, so its usage comes back as that entry (BFSF-485 F1).
+    if (rest === 'filter') return asResult(FILTER_LIST_ITEM, t);
+    if (['condition', 'switch', 'filter_route'].includes(rest)) return asResult(ROUTE_ITEM, t);
     if (rest === 'parse_json') return asResult(EDIT_DATA_ITEM, t);
     if (['guard', 'tokenize', 'untokenize'].includes(rest)) return asResult(PRIVACY_SHIELD_ITEM, t);
     if (rest === 'code') {
@@ -156,7 +158,8 @@ function staticCandidates({ inLayer = false, isBlockRoot = false, hasFormTrigger
         ...tagged(AI_ITEMS, 'AI'),
         ...tagged(DATA_ITEMS, 'Data'),
         ...tagged(INTEGRATION_ITEMS, 'Flow'),
-        ...tagged(COLLECTION_ITEMS, 'Collection'),
+        // The browse group is called "Lists"; a search result names the same group.
+        ...tagged(COLLECTION_ITEMS, 'Lists'),
         ...tagged(logic, 'Flow'),
     ];
 }

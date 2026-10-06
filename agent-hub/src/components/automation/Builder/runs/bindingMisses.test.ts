@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bindingWarningsOf, bindingWarningLine, stepBindingWarnings } from './bindingMisses';
+import { allRuleMisses, bindingWarningsOf, bindingWarningLine, runStepTypeMap, stepBindingWarnings } from './bindingMisses';
 
 // The run-step row's `bindingWarnings` as the server stores it
 // (server/stores/automationStore/bindingWarnings.js).
@@ -77,5 +77,60 @@ describe('bindingWarningLine: which input, which field, and why, without path sy
         const line = bindingWarningLine(t, bindingWarningsOf([{ ...MISS, path: 'steps.gone.output.name' }])[0], null);
         expect(line.source).toBe('Previous step ▸ Name');
         expect(line.source).not.toContain('steps.');
+    });
+});
+
+describe('a rule that matched nothing (binding log kind "rule", V1)', () => {
+    // The runner's entry for a Condition whose rule read a typo on all 4 items.
+    const RULE = { kind: 'rule', path: 'item.atachments', reason: 'missing', at: 'item', found: 'record', missing: 'atachments', count: 4 };
+
+    it('keeps the kind', () => {
+        expect(bindingWarningsOf([RULE])[0].kind).toBe('rule');
+    });
+
+    it('names the rule, the item field and how often: "The rule · Each item ▸ Atachments · nothing there · 4×"', () => {
+        const line = bindingWarningLine(t, bindingWarningsOf([RULE])[0], labels);
+        expect(line.input).toBe('The rule');
+        expect(line.source).toBe('Each item ▸ Atachments');
+        expect(line.why).toBe('nothing there');
+        expect(line.count).toBe(4);
+    });
+
+    it('a switch case names its output', () => {
+        const line = bindingWarningLine(t, bindingWarningsOf([{ ...RULE, field: 'pdf' }])[0], labels);
+        expect(line.input).toBe('Output “pdf”');
+    });
+
+    it('allRuleMisses is true only for a non-empty list of rule misses', () => {
+        expect(allRuleMisses(bindingWarningsOf([RULE, { ...RULE, field: 'pdf' }]))).toBe(true);
+        expect(allRuleMisses(bindingWarningsOf([RULE, MISS]))).toBe(false);
+        expect(allRuleMisses([])).toBe(false);
+    });
+});
+
+describe('a path into a Condition\'s outputs names the output, not the runner\'s keys', () => {
+    const definition = {
+        trigger: { id: 't1', type: 'trigger' },
+        steps: [{ id: 'cond', type: 'filter', label: 'Only invoices' }, { id: 'split', type: 'switch', label: 'By type' }],
+    };
+    const condLabels = new Map([['cond', 'Only invoices'], ['split', 'By type']]);
+    const miss = (path: string) => bindingWarningsOf([{ field: 'to', kind: 'ref', path, reason: 'missing' }])[0];
+
+    it('runStepTypeMap reads every step\'s type', () => {
+        const types = runStepTypeMap(definition);
+        expect(types.get('cond')).toBe('filter');
+        expect(types.get('split')).toBe('switch');
+        expect(runStepTypeMap(null).size).toBe(0);
+    });
+
+    it('a filter\'s kept list reads as the Condition, not "Items", given the types', () => {
+        const typeById = runStepTypeMap(definition);
+        expect(bindingWarningLine(t, miss('steps.cond.output.items[*].subject'), condLabels, typeById).source).not.toMatch(/Items/);
+        expect(bindingWarningLine(t, miss('steps.cond.output.items[*].subject'), condLabels).source).toMatch(/Items/);
+    });
+
+    it('a switch output reads as its name and Otherwise', () => {
+        const typeById = runStepTypeMap(definition);
+        expect(bindingWarningLine(t, miss('steps.split.output.matchesByCase.default'), condLabels, typeById).source).toBe('By type ▸ Otherwise');
     });
 });

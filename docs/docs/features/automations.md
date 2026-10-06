@@ -84,10 +84,25 @@ These run with no LLM call and no integration tool — they exist to shape data 
 | `set` | **Edit data** — build an object from `{ key: bindingValue }` pairs, or work through a whole table (see below). Used to rename, default, or re-shape data. |
 | `datetime` | **Date & time** — `now`, `parse`, `format`, `addDays/Hours/Minutes`, `diff`, `extract`. Single-purpose date math without leaning on the code step. Give it an `arrayRef` and it works through a whole TABLE instead: the operation runs per row with the row bound as `item` (so `input` reads `item.updated`), every row keeps the columns it already had, and the result is added as one new column. The column is named by `target`, defaulting to the `part` for `extract` (so extracting the day gives you a `day` column) and to the operation otherwise. Output is `{items, count}`. A row whose date cannot be read gets `null` there and is counted in `output.warning`; if *no* row could be read the step is recorded as **skipped** — that is the wrong column, not bad data. |
 | `filter` | Drop array items that don't match a boolean expression. Reads `arrayRef`, writes `output.items`. (This is a Condition step in list mode with one rule.) |
+| `flatten` | **Flatten a list**: one row for every item of a list inside a list, such as one row per attachment with its email's details. See below. |
 | `limit` | **Shorten list** — take the first or last N items of an array. |
 | `dedupe` | **Remove duplicates** — drop duplicates by a chosen field (or by the whole item), preserving order. A `keyField` no item carries passes everything through with a warning rather than collapsing the list. |
 | `aggregate` | **Collect one field** — pluck ONE field from every item into a flat list. Reads `arrayRef` + `field`; writes `output.values` (array), `output.count`, `output.foundCount`. A field no item carries records the step as *skipped* rather than emitting a list of blanks. |
 | `summarize` | **Add up or count** — `sum / count / avg / min / max` of a numeric field across items. Writes `output.result` (single scalar), `output.op`, `output.count`, `output.usedCount`. A field no item carries records the step as *skipped*, not a green `0`: a notification saying "Total: €0" is worse than no answer. |
+
+### Flatten a list
+
+Some lists hold a list in every item: emails with their attachments, orders with their lines. **Flatten a list** turns that into one flat table with one row per inner item, and copies the outer item's fields onto every row. It sits in the Lists group, right after Filter a list.
+
+Example: "Search mail" then "Read many" gives 4 emails with 16 attachments each. Add Flatten a list after Read many and it fills itself in: it works through the emails, makes one row per attachment, and copies the short header fields of each email. The result is 64 rows, each with the attachment's own fields (`attachmentId`, `filename`, `mimeType`, `size`) and the email's `from`, `to`, `subject` and `date`. A Filter after it can keep only the PDFs ("Kept 8 of 64 attachments"), and "Read attachment" after that runs once per row with `messageId` and `attachmentId` mapped by name.
+
+- **Stored as a route.** `arrayRef` is the outer list plus the inner one, e.g. `steps.read_many.output.messages[*].attachments`. Deeper routes such as `orders[*].lines[*].taxes` work too (pick them under **More options**).
+- **Columns are decided when you design the step, not at run time.** The step stores which outer fields it copies and under which name (`parents[].fields`). A generic name such as `id` becomes `messageId`; a field the attachment already carries with the same value (Gmail's `messageId` and `threadId`) is not written twice; a field with the same name but a different value gets the outer item's name in front. Nothing is overwritten. Long text (`body`, `html`, anything over 1,000 characters), objects and lists of records are left out by default; **Choose fields** changes the selection.
+- **Nothing disappears silently.** An email without attachments makes no row by default. The editor warns about it before the run and offers **Keep it anyway** (`keepEmpty`), which gives such an email one row with empty attachment fields. The run note says how many made no row.
+- **Output** is `{ items, count, inputCount, emptyCount }`, the same `items` envelope the other list steps write, so the output table, the field picker, Filter and per-item steps work on it unchanged.
+- **Size.** More outer items, or more rows, than the collection limit (10,000, or the step's lower **Max input items**) stops the step with an error that says to put a Filter or a Limit before it. Nothing is cut off silently.
+
+The AI builder adds it with `builder_add_array_op` (`op: "flatten"`, `arrayRef` the outer list, `childField` the list inside each item, optional `keepFields` and `keepEmpty`).
 
 ### Edit data on a table (list mode)
 

@@ -2,15 +2,19 @@
 // SourceSummaryRow, CollectionArrayRefField, useElementSample) plus the small
 // collection / datetime / wait step editors, extracted verbatim from
 // SettingsForm.jsx.
+import { getList } from '@shared/expr/path.mjs';
 import { Repeat, RotateCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { walkPath } from '../../../../../utils/bindingHelpers';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
 import { applyStepBindings, stepBindings } from '../../mapping/forEachBindings';
+import { listPathLabel } from '../../mapping/listPathLabel';
 import LoopOverPicker from '../../mapping/LoopOverPicker';
 import PathField from '../../mapping/PathField';
 import ToolInputForm from '../../mapping/ToolInputForm';
 import { collectArrayPaths, resolveElementSample, elementFieldOptions } from '../../mapping/upstream';
+import { fieldLabelText, routeFieldLabel } from '../../mapping/upstream/routeFieldLabel';
 import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import AccordionSection from '../AccordionSection';
 import { datetimeTargetColumn, dateInputPatch } from '../datetimeTarget';
@@ -322,27 +326,33 @@ function FieldsSection({
  */
 function SourceSummaryRow({ hint, warning = null, source, maxItems, onPatch, groups, onFocusField, previewSample }) {
     const pickerCtx = useVariablePickerContext();
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const summary = useMemo(
-        () => describeSourceList(source, pickerCtx.groups, previewSample),
-        [source, pickerCtx.groups, previewSample],
+        () => describeSourceList(source, pickerCtx.groups, previewSample, t),
+        [source, pickerCtx.groups, previewSample, t],
     );
+    // R10: never a raw path — an unreadable list shows its name and why it has no fields yet.
+    const unread = !summary && source ? listPathLabel(source, pickerCtx.stepLabelById, t, { stepTypeById: pickerCtx.stepTypeById }) : null;
     return (
         <FormRow label="Working through" hint={hint}>
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                 {summary ? (
                     <span className="truncate">
                         <span className="text-[var(--text-primary)]">{summary.stepLabel}</span>
-                        <span className="text-[var(--text-tertiary)]"> · </span>
-                        <span className="text-[var(--text-primary)]">{summary.fieldLabel}</span>
+                        {summary.fieldLabel && <span className="text-[var(--text-tertiary)]"> · </span>}
+                        {summary.fieldLabel && <span className="text-[var(--text-primary)]">{summary.fieldLabel}</span>}
                         {summary.count != null && (
                             <span className="text-[var(--text-tertiary)]"> — {summary.count} item{summary.count === 1 ? '' : 's'}</span>
                         )}
                     </span>
-                ) : (
-                    <span className="text-amber-600 dark:text-amber-400 truncate">
-                        {source || 'No list picked yet'}
+                ) : unread ? (
+                    <span className="truncate" title={source}>
+                        <span className="text-[var(--text-primary)]">{unread}</span>
+                        <span className="text-[var(--text-tertiary)]"> · {t('condition_node.source.no_sample', 'no sample yet: run the step above to see its fields')}</span>
                     </span>
+                ) : (
+                    <span className="text-amber-600 dark:text-amber-400 truncate">No list picked yet</span>
                 )}
                 <button
                     type="button"
@@ -375,25 +385,39 @@ function SourceSummaryRow({ hint, warning = null, source, maxItems, onPatch, gro
 
 /**
  * The one-line "Working through ‹gmail search› · Results — 10 items" summary.
- * Returns null when the path resolves to nothing we can describe, so the form
- * can fall back to showing the raw path with a warning tone.
+ * The list is read the way the run reads it (`getList`, R10), so a list held
+ * as JSON text is counted too; such a list, which the quick-picks do not
+ * offer, is named by `listPathLabel`. Returns null when the path resolves to
+ * nothing, so the form can name the list and say it has no sample yet. A
+ * Condition's output reads as its name ("pdf", "Otherwise"), never as its
+ * internal key (routeFieldLabel).
  */
-function describeSourceList(source, groups, previewSample) {
+function describeSourceList(source, groups, previewSample, t = null) {
     const path = String(source || '').trim();
     if (!path) return null;
+    // Count from the RESOLVED value: for a `[*]` path a quick-pick's sample is
+    // the first element (the collectionItemsFields convention), so its length
+    // was the first ROW's size, not the list's.
+    const arr = previewSample ? getList(previewSample, path) : null;
     const match = collectArrayPaths(groups, previewSample).find(a => a.path === path);
-    if (!match) return null;
+    if (!match) return arr ? { stepLabel: listPathLabel(path, stepLabels(groups)), fieldLabel: null, count: arr.length } : null;
     const owner = (groups || []).find(g => g.basePath && path.startsWith(g.basePath));
-    // Count from the RESOLVED value: for a `[*]` path `match.sample` is the
-    // first element (the collectionItemsFields convention), so its length was
-    // the first ROW's size, not the list's.
-    const resolved = previewSample ? walkPath(path, previewSample) : undefined;
-    const arr = Array.isArray(resolved) ? resolved : (Array.isArray(match.sample) ? match.sample : null);
+    const counted = arr || (Array.isArray(match.sample) ? match.sample : null);
     return {
         stepLabel: owner?.label || 'Previous step',
-        fieldLabel: humanizeFieldKey(match.key),
-        count: arr ? arr.length : null,
+        fieldLabel: (t && fieldLabelText(routeFieldLabel(path), t)) || humanizeFieldKey(match.key),
+        count: counted ? counted.length : null,
     };
+}
+
+/** Step id → label, from the picker groups (`steps.<id>.output`). */
+function stepLabels(groups) {
+    const out = new Map();
+    for (const g of groups || []) {
+        const m = typeof g?.basePath === 'string' ? g.basePath.split('.') : [];
+        if (m[0] === 'steps' && m[1]) out.set(m[1], g.label);
+    }
+    return out;
 }
 
 function CollectionArrayRefField({ draft, set, groups, onFocusField, previewSample }) {

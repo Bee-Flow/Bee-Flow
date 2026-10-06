@@ -62,8 +62,8 @@ describe('readableRule', () => {
         expect(readableRule('contains(item.subject, "isv")', LABELS)).toBe('Subject contains “isv”');
     });
 
-    it('names the references where the sentence falls back to the expression', () => {
-        expect(readableRule('steps.ai_1.output.score * 2 > trigger.output.cap', LABELS)).toBe('‹Classify ▸ Score› * 2 > ‹Trigger ▸ Cap›');
+    it('calls a formula the rule rows cannot show a custom rule, never code (C1)', () => {
+        expect(readableRule('steps.ai_1.output.score * 2 > trigger.output.cap', LABELS)).toBe('Custom rule');
         expect(readableRule('', LABELS)).toBe('');
     });
 });

@@ -164,9 +164,9 @@ describe('truthy operator — "has a value" for a bare field with no comparison'
 });
 
 describe('emptyRow', () => {
-    it('is a blank equals row', () => {
+    it('is a blank "is" row (R6)', () => {
         const r = emptyRow();
-        expect(r.op).toBe('eq');
+        expect(r.op).toBe('is');
         expect(r.field.kind).toBe('ref');
         expect(serializeRow(r)).toBe('');
     });
@@ -239,13 +239,20 @@ describe('conditionModel — comparing against null', () => {
             .toBe('form.assignee == null && form.status == "closed"');
     });
 
-    it('still serialises a row nobody has filled in as an empty string', () => {
-        // emptyRow() carries value:'' — unchanged. An explicitly UNDEFINED
-        // value is the other "not filled in" shape and must not become `null`.
+    it('never saves a row nobody has filled in (R6)', () => {
+        // emptyRow() carries value:''. An explicitly UNDEFINED value is the
+        // other "not filled in" shape: it must not become `null`, and an
+        // unfinished row is not saved as `form.a == ""` either.
         expect(serializeRows([emptyRow()], '&&')).toBe('');
         expect(serializeRows([
             { field: { kind: 'ref', path: 'form.a' }, op: 'eq', value: { kind: 'literal', value: undefined } },
-        ], '&&')).toBe('form.a == ""');
+        ], '&&')).toBe('');
+    });
+
+    it('keeps a saved `x == ""` as it was written (keepBlank)', () => {
+        const parsed = parseExprToRows('form.a == ""');
+        expect(parsed.rows[0]).toMatchObject({ op: 'eq', keepBlank: true });
+        expect(serializeRows(parsed.rows, parsed.join)).toBe('form.a == ""');
     });
 });
 

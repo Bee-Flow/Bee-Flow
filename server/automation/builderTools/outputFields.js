@@ -31,7 +31,7 @@
 const { OUTPUT_SCHEMAS } = require('../outputSchemas');
 const { findStepAnywhere } = require('./draftGraph');
 const triggerCatalog = require('./triggerCatalog');
-const { formatPath } = require('../expr');
+const { formatPath, flattenShape } = require('../expr');
 const { normalizeAiPath } = require('./aiPaths');
 const { shapeAtRef, checkAgainst, describeProblem } = require('./refCheck');
 const { itemOf } = require('./shapeTree');
@@ -267,6 +267,8 @@ function fieldsAtStepOutput(graph, stepId, field, draftWrap, depth) {
         return { ...base, fields, source };
     }
 
+    if (step.type === 'flatten' && field === 'items' && typeof step.arrayRef === 'string') return flattenFieldsOf(graph, step, base, draftWrap, depth);
+
     const passesThrough = (step.type === 'filter' || step.type === 'limit' || step.type === 'dedupe' || step.type === 'set')
         && field === 'items' && typeof step.arrayRef === 'string';
     if (passesThrough) {
@@ -282,6 +284,14 @@ function fieldsAtStepOutput(graph, stepId, field, draftWrap, depth) {
     }
 
     return base;
+}
+
+/** The row keys a flatten makes from its source's sample (never its source's own fields: a row is a new record). */
+function flattenFieldsOf(graph, step, base, draftWrap, depth) {
+    if (depth >= MAX_REF_DEPTH) return base;
+    const { sampleRootFor } = require('./stepBuilders/flattenStep');
+    const fields = Object.keys(flattenShape(sampleRootFor(graph, step.arrayRef, draftWrap, depth + 1), step));
+    return fields.length ? { ...base, fields, source: 'flatten' } : base;
 }
 
 function fieldsAtTriggerOutput(graph, arrayField) {

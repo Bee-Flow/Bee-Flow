@@ -1,13 +1,17 @@
+import { singularKey } from '@shared/expr/rules.mjs';
 import { Lightbulb, Loader2, Plus, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { describeRuleExpr } from '../displayHelpers';
+import { useMemo, useRef, useState } from 'react';
 import { cardClass, rowInputClass } from './formPrimitives';
+import {
+    FilesInsideNote, PRIMARY_BUTTON_CLASS, SuggestProblem, UnmatchedLine, useRuleLine,
+} from './RouteAssistParts';
 import { parseCategories, planRouteHandoff } from './routeHandoff';
 import { suggestOutputs } from './routeIntents';
 import { askFailureMessage, askModelForRules } from './routeRulesRequest';
 import TopicCheckRow from './TopicCheckRow';
 import useTopicPreview from './useTopicPreview';
+import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * "Suggest outputs" — describe the outputs in words, read them back as
@@ -44,10 +48,10 @@ import useTopicPreview from './useTopicPreview';
  *    still saves as a `filter` and several still save as a `switch`
  *    (flow/routeModel.js, writeRoute).
  *  - It is not a preview of code. Every rule is read back through
- *    `describeRuleExpr` — the canvas's own describer — so what the author
- *    checks is "Name ends with “.doc” or Name ends with “.docx”", never the
- *    expression. The expression stays where every other generated expression
- *    lives: under Advanced.
+ *    `ruleSentence` — the canvas's own describer — so what the author checks
+ *    is "any attachment · File type is PDF", never the expression, and a rule
+ *    it cannot describe reads "a custom rule". The expression stays where
+ *    every other generated expression lives: under Advanced.
  *
  * The match count is the honest part. It is evaluated with the same engine
  * the server runs, against whatever sample rows the editor already has — and
@@ -70,13 +74,14 @@ import useTopicPreview from './useTopicPreview';
  * sentence on screen is how someone accepts rules for a question they have
  * already changed their mind about.
  */
-function useRouteSuggestion({ fields, itemVar, sampleRows, unit, topics }) {
+function useRouteSuggestion({ fields, itemVar, sampleRows, unit, perItem: perItemProp, topics, element }) {
     const api = useAutomationApi();
     // Does this node decide about the whole run, or about one row at a time?
     // It follows from what the editor handed down rather than being asked
     // again, and both the model request and the handoff plan below hinge on
     // it, so it is derived once here.
-    const perItem = !!sampleRows || unit === 'items';
+    // An explicit `perItem` wins: `unit` is the list's own word ("messages").
+    const perItem = perItemProp ?? (!!sampleRows || unit === 'items');
     const [text, setText] = useState('');
     const [ai, setAi] = useState(null);        // { rules, problem } once asked
     const [asking, setAsking] = useState(false);
@@ -87,7 +92,7 @@ function useRouteSuggestion({ fields, itemVar, sampleRows, unit, topics }) {
     // question, and leaving it standing under a changed sentence is the same
     // stale-answer trap the model result above is cleared for.
     const [answers, setAnswers] = useState('');
-    const offline = useMemo(() => suggestOutputs(text, { fields, topics }), [text, fields, topics]);
+    const offline = useMemo(() => suggestOutputs(text, { fields, topics, element }), [text, fields, topics, element]);
     const suggestion = offline.rules.length ? offline : (ai || offline);
 
     const retype = (next) => {
@@ -159,12 +164,25 @@ function useRouteHandoff({
     return { offered, named, plan, accept, losingWires };
 }
 
+/**
+ * "Check each attachment instead" removes its own note; focus stays in the
+ * box, on the description, which is suggested again against the files.
+ */
+function useWorkThroughFocus(onWorkThroughList) {
+    const inputRef = useRef(null);
+    const workThroughList = typeof onWorkThroughList === 'function'
+        ? (listPath) => { onWorkThroughList(listPath); inputRef.current?.focus(); }
+        : null;
+    return { inputRef, workThroughList };
+}
+
 function RouteAssist({
     fields = [],
     sampleRows = null,
     sampleRoot = null,
     itemVar = 'item',
     unit = 'records',
+    perItem: perItemProp, // works through a list; derived from the rows when absent
     existingRuleCount = 0,
     wiredOutputNames = [],
     // The accept, and the three handoff props beside it — the list this node
@@ -179,14 +197,20 @@ function RouteAssist({
     // `{ available, reason }` for the topic classifier: "is about" outputs can
     // be suggested only when it is available (routeTopicIntent.ts).
     topics = null,
+    // One item's sample (is it a file, or does it hold files?) and
+    // `(listPath) => void`, which makes the node work through another list.
+    // After an accept: does a row matching several outputs go down each
+    // (`fanOut`), and does one output send what it does not match to Otherwise?
+    itemSample, onWorkThroughList, fanOut, keepRest,
 }) {
     const { text, retype, suggestion, fromAi, asking, askError, askAi, answers, setAnswers, perItem } =
-        useRouteSuggestion({ fields, itemVar, sampleRows, unit, topics: topics?.available === true });
+        useRouteSuggestion({ fields, itemVar, sampleRows, unit, perItem: perItemProp, topics: topics?.available === true, element: itemSample });
     const rules = suggestion.rules;
     // "Is about" rules are counted only against rows the classifier scored,
     // after the author asks; every other rule as before (useTopicPreview).
     const { counts, topic } = useTopicPreview({ rules, rows: sampleRows, root: sampleRoot, itemVar });
 
+    const { inputRef, workThroughList } = useWorkThroughFocus(onWorkThroughList);
     const handoff = useRouteHandoff({
         text, answers, suggestion, fromAi, itemVar, perItem, sourceRef, wiredOutputNames,
         onInsertUpstreamStep, onApplyHandoff,
@@ -201,7 +225,7 @@ function RouteAssist({
                 Describe the outputs in your own words and check them below. Nothing changes until you accept.
                 This runs here in the browser first — no AI, and nothing leaves this page.
             </div>
-            <input
+            <input ref={inputRef}
                 type="text"
                 value={text}
                 onChange={(e) => retype(e.target.value)}
@@ -210,12 +234,7 @@ function RouteAssist({
                 className={rowInputClass('w-full')}
             />
 
-            {/* A description that produced nothing gets a sentence saying what
-                this box does understand. Silence would read as "still
-                thinking", which — with no model behind it — it never is. */}
-            {!rules.length && suggestion.problem && (
-                <div className="text-[10px] text-amber-600 dark:text-amber-400">{suggestion.problem}</div>
-            )}
+            {!rules.length && <SuggestProblem suggestion={suggestion} />}
 
             <AskAiRow
                 offered={!rules.length && text.trim().length > 2}
@@ -242,7 +261,7 @@ function RouteAssist({
                     suggestion={suggestion}
                     fromAi={fromAi}
                     counts={counts}
-                    unit={unit}
+                    unit={unit} keepRest={keepRest}
                     existingRuleCount={existingRuleCount}
                     /* An output that keeps its name keeps its connection —
                        the rule this whole section states out loud — so only
@@ -254,6 +273,8 @@ function RouteAssist({
                     topic={topic}
                 />
             )}
+            <FilesInsideNote filesInside={suggestion.filesInside} sourceRef={sourceRef}
+                ruleCount={rules.length} fanOut={fanOut} onWorkThroughList={workThroughList} />
         </div>
     );
 }
@@ -268,13 +289,18 @@ function RouteAssist({
  * the two indistinguishable — and only one of them is a fixed answer that
  * cannot drift between releases.
  */
-function previewHeading(suggestion, fromAi) {
+function previewHeading(suggestion, fromAi, t) {
     const n = suggestion.rules.length;
     if (fromAi) {
         return `Written by the AI — ${n === 1 ? 'one output' : `${n} outputs`}, checked against the fields this step produces:`;
     }
     const outputs = n === 1 ? 'one output, using' : `${n} outputs, using`;
-    return `${suggestion.understood} — ${outputs} ${suggestion.field?.label || 'this field'}:`;
+    const fileType = suggestion.kind === 'fileType';
+    const understood = fileType ? t('condition_node.suggest.by_file_type', 'Split by file type') : suggestion.understood;
+    const label = fileType && suggestion.field?.path?.startsWith('fileType(')
+        ? t('condition_node.file_type.label', 'File type')
+        : suggestion.field?.label || 'this field';
+    return `${understood} — ${outputs} ${label}:`;
 }
 
 /**
@@ -405,6 +431,7 @@ function HandoffOffer({
  * exists yet to reassure anyone with.
  */
 function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, losingWires, onAccept }) {
+    const ruleLine = useRuleLine();
     const n = plan.rules.length;
     const one = n === 1;
     const oneWire = losingWires.length === 1;
@@ -412,7 +439,7 @@ function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, los
         <div className="space-y-1.5">
             <div className="text-[10px] text-[var(--text-tertiary)]">
                 One new step, “{plan.step.label}”
-                {perItem ? `, run once per ${unit === 'items' ? 'item' : 'record'} of the list above,` : ','} answering with
+                {perItem ? `, run once per ${singularKey(unit)} of the list above,` : ','} answering with
                 one of {named.length === 1 ? 'that word' : `those ${named.length} words`} — and {one ? 'one output' : `${n} outputs`} here
                 reading it:
             </div>
@@ -421,7 +448,7 @@ function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, los
                     <li key={r.name} className="text-[11px] text-[var(--text-secondary)]">
                         <span className="text-[var(--text-primary)] font-medium">{r.name}</span>
                         {' — '}
-                        {describeRuleExpr(r.expr)}
+                        {ruleLine(r.expr)}
                     </li>
                 ))}
             </ul>
@@ -456,7 +483,7 @@ function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, los
             <button
                 type="button"
                 onClick={onAccept}
-                className="px-2 py-1 text-[11px] rounded border border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 transition"
+                className={PRIMARY_BUTTON_CLASS}
             >
                 Add the step and use {one ? 'this output' : `these ${n} outputs`}
             </button>
@@ -469,19 +496,21 @@ function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, los
  * sample rows say about it — and an accept button that is the first thing in
  * this box to change anything at all.
  */
-function SuggestionPreview({ suggestion, fromAi = false, counts, unit, existingRuleCount, losingWires = [], onApply, onReset, topic }) {
+function SuggestionPreview({ suggestion, fromAi = false, counts, unit, keepRest = false, existingRuleCount, losingWires = [], onApply, onReset, topic }) {
+    const { t } = useTranslation();
+    const ruleLine = useRuleLine();
     const rules = suggestion.rules;
     return (
         <div className="space-y-1.5">
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                {previewHeading(suggestion, fromAi)}
+                {previewHeading(suggestion, fromAi, t)}
             </div>
             <ul className="space-y-1">
                 {rules.map((r, i) => (
                     <li key={r.name} className="text-[11px] text-[var(--text-secondary)]">
                         <span className="text-[var(--text-primary)] font-medium">{r.name}</span>
                         {' — '}
-                        {describeRuleExpr(r.expr)}
+                        {ruleLine(r.expr)}
                         {counts && (
                             <span className="text-[var(--text-tertiary)]">
                                 {' · '}{counts.perRule[i].matched} of {counts.total} sample {unit}
@@ -492,12 +521,7 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, existingR
             </ul>
             <TopicCheckRow unit={unit} topic={topic} />
             {counts
-                ? (
-                    <div className="text-[10px] text-[var(--text-tertiary)]">
-                        {counts.unmatched} of {counts.total} sample {unit} match none of these
-                        {rules.length > 1 ? ' and would take the otherwise output.' : ' and would stop here.'}
-                    </div>
-                )
+                ? <UnmatchedLine counts={counts} ruleCount={rules.length} keepRest={keepRest} unit={unit} />
                 : !topic?.needed && (
                     <div className="text-[10px] text-[var(--text-tertiary)]">
                         There are no sample {unit} here yet, so none of this can be counted — the lines above are
@@ -531,7 +555,7 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, existingR
                 <button
                     type="button"
                     onClick={onApply}
-                    className="px-2 py-1 text-[11px] rounded border border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 transition"
+                    className={PRIMARY_BUTTON_CLASS}
                 >
                     {rules.length === 1 ? 'Use this output' : `Use these ${rules.length} outputs`}
                 </button>

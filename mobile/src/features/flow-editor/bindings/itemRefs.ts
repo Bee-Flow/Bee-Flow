@@ -25,6 +25,7 @@ export function rewritePathsInText(text: string, fn: (tokens: Tok[]) => string |
     let i = 0;
     const re = /(^|[^A-Za-z0-9_$.\]"'])loop\./g;
     let m: RegExpExecArray | null;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- no quantifier (start or one character, then the literal loop.) and each exec resumes past the previous match: linear
     while ((m = re.exec(text)) !== null) {
         const start = m.index + (m[1] || '').length;
         const r = readPath(text, start) as { tokens: Tok[]; end: number } | null;
@@ -162,14 +163,14 @@ function slotsReading(value: unknown, vars: string[]): string[] {
  *     item read the same-named field of the new one (`moved`); a field the new
  *     item does not have is left as it was and reported (`orphans`).
  *
- * `strings` rewrites plain strings too (a Loop body); `container` is a Loop,
- * which keeps no outer items. Pure, for Undo.
+ * `strings` rewrites plain strings too (a Loop body); `container` is a Loop, which keeps
+ * no outer items; `definition` names a flatten's rows (listNounKey). Pure, for Undo.
  */
 export function rebaseForEach<T>(
     fe: { overRef?: string; itemVar?: string; parents?: ForEachParent[] } | null | undefined,
     { path: newPath, element: newElement }: { path: string; element: unknown },
     bindings: T,
-    { strings = false, container = false }: { strings?: boolean; container?: boolean } = {},
+    { strings = false, container = false, definition = null }: { strings?: boolean; container?: boolean; definition?: unknown } = {},
 ): { forEach: { overRef: string; itemVar: string; parents: ForEachParent[] | undefined }; bindings: T; moved: string[]; orphans: string[] } {
     const old = scopeOf(fe);
     const t = parse(String(newPath || '').trim());
@@ -178,7 +179,7 @@ export function rebaseForEach<T>(
     // A Loop container binds only its own item (execLoop has no parents), so
     // its body always follows the item to the new list.
     const parents = container ? [] : levelParents(t, old.canon, old.itemVar, old.parents);
-    const itemVar = uniqueItemVar(suggestItemVar(lastKeyOf(t)), parents.map(p => p.itemVar));
+    const itemVar = uniqueItemVar(suggestItemVar(lastKeyOf(t), (definition || null) as never, overRef), parents.map(p => p.itemVar));
     const keptVars = new Set([...parents.map(p => p.itemVar), itemVar]);
     // The old item kept as a parent: every field still reads what it read.
     const r = parents.some(p => p.itemVar === old.itemVar)

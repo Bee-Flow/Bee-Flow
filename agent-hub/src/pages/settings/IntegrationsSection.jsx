@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import ConnectionsManager from './ConnectionsManager';
 import { Microsoft365Group } from './Microsoft365Integration';
 import N8nSection from './N8nSection';
+import ScalewayBillingIntegration from './ScalewayBillingIntegration';
 import SimpleApiKeyIntegration from './SimpleApiKeyIntegration';
 import { getIntegrationIcon } from '../../config/integrationIcons';
 import { useEntitlements } from '../../components/licensing/EntitlementsContext';
@@ -995,6 +996,7 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
     const showGamma = isEnabled('gamma');
     const showAfas = isEnabled('afas-profit');
     const showVplan = isEnabled('vplan');
+    const showScalewayBilling = isEnabled('scaleway-billing');
     const showNmbrs = isEnabled('nmbrs');
     const showLinkedIn = isEnabled('linkedin');
     const showWithings = isEnabled('withings');
@@ -1018,7 +1020,7 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
     // only when the effective set includes at least one installed server.
     const showMcp = loading || error || (effective?.integration || []).some(id => id.startsWith('mcp:'));
 
-    const productivityItems = [showFireflies, showYouTrack, showSignRequest, showGamma, showAfas, showVplan, showNmbrs, showNextcloud].filter(Boolean).length;
+    const productivityItems = [showFireflies, showYouTrack, showSignRequest, showGamma, showAfas, showVplan, showScalewayBilling, showNmbrs, showNextcloud].filter(Boolean).length;
     const socialItems = [showLinkedIn].filter(Boolean).length;
     const healthItems = [showWithings].filter(Boolean).length;
     const devItems = [showGitHub].filter(Boolean).length;
@@ -1046,12 +1048,13 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
                 <div className="space-y-1.5">
                     <GroupLabel>{t('settings.integrations_productivity')}</GroupLabel>
                     <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        {showFireflies && <FirefliesIntegration hasFirefliesKey={statuses.hasFirefliesKey} onSaved={() => onSaved('fireflies')} last={!showYouTrack && !showSignRequest && !showGamma && !showAfas && !showVplan && !showNmbrs && !showNextcloud} />}
-                        {showYouTrack && <YouTrackIntegration hasYouTrackConfig={statuses.hasYouTrackConfig} onSaved={() => onSaved('youtrack')} last={!showSignRequest && !showGamma && !showAfas && !showVplan && !showNmbrs && !showNextcloud} />}
-                        {showSignRequest && <SignRequestIntegration hasSignRequestConfig={statuses.hasSignRequestConfig} onSaved={() => onSaved('signrequest')} last={!showGamma && !showAfas && !showVplan && !showNmbrs && !showNextcloud} />}
-                        {showGamma && <GammaIntegration hasGammaKey={statuses.hasGammaKey} onSaved={() => onSaved('gamma')} last={!showAfas && !showVplan && !showNmbrs && !showNextcloud} />}
-                        {showAfas && <AFASIntegration hasAfasConfig={statuses.hasAfasConfig} onSaved={() => onSaved('afas-profit')} last={!showVplan && !showNmbrs && !showNextcloud} />}
-                        {showVplan && <VplanIntegration hasVplanConfig={statuses.hasVplanConfig} onSaved={() => onSaved('vplan')} last={!showNmbrs && !showNextcloud} />}
+                        {showFireflies && <FirefliesIntegration hasFirefliesKey={statuses.hasFirefliesKey} onSaved={() => onSaved('fireflies')} last={!showYouTrack && !showSignRequest && !showGamma && !showAfas && !showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
+                        {showYouTrack && <YouTrackIntegration hasYouTrackConfig={statuses.hasYouTrackConfig} onSaved={() => onSaved('youtrack')} last={!showSignRequest && !showGamma && !showAfas && !showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
+                        {showSignRequest && <SignRequestIntegration hasSignRequestConfig={statuses.hasSignRequestConfig} onSaved={() => onSaved('signrequest')} last={!showGamma && !showAfas && !showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
+                        {showGamma && <GammaIntegration hasGammaKey={statuses.hasGammaKey} onSaved={() => onSaved('gamma')} last={!showAfas && !showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
+                        {showAfas && <AFASIntegration hasAfasConfig={statuses.hasAfasConfig} onSaved={() => onSaved('afas-profit')} last={!showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
+                        {showVplan && <VplanIntegration hasVplanConfig={statuses.hasVplanConfig} onSaved={() => onSaved('vplan')} last={!showScalewayBilling && !showNmbrs && !showNextcloud} />}
+                        {showScalewayBilling && <ScalewayBillingIntegration hasScalewayBillingConfig={!!statuses.hasScalewayBillingConfig} onSaved={() => onSaved('scaleway-billing')} last={!showNmbrs && !showNextcloud} />}
                         {showNmbrs && <NMBRSIntegration hasNmbrsConfig={statuses.hasNmbrsConfig} apiMode={statuses.nmbrsApiMode} subdomain={statuses.nmbrsSubdomain} email={statuses.nmbrsEmail} env={statuses.nmbrsEnv} onSaved={() => onSaved('nmbrs')} last={!showNextcloud} />}
                         {showNextcloud && <NextcloudIntegration hasNextcloudAppPassword={statuses.hasNextcloudAppPassword} isNextcloudUser={statuses.isNextcloudUser} isConnectorUser={user?.provider === 'nextcloud_connector'} nextcloudUrl={statuses.nextcloudUrl} onSaved={() => onSaved('nextcloud')} last />}
                     </div>

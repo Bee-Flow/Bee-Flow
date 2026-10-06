@@ -89,13 +89,21 @@ describe('describeRuleExpr', () => {
     });
 
     it('joins multiple conditions with and / or', () => {
-        expect(describeRuleExpr('item.a > 1 && item.b == "x"')).toBe('A greater than 1 and B equals “x”');
+        // A saved text `==` keeps its case-sensitive meaning, and says so (R7).
+        expect(describeRuleExpr('item.a > 1 && item.b == "x"')).toBe('A greater than 1 and B is exactly (same upper/lower case) “x”');
         expect(describeRuleExpr('item.a > 1 || item.b > 2')).toBe('A greater than 1 or B greater than 2');
     });
 
-    it('falls back to the step-label humanizer for expressions it cannot model', () => {
+    it('says "and" / "or" in the reader\'s language', () => {
+        const nl = { 'condition_node.join.and': 'en', 'condition_node.join.or': 'of' };
+        const t = (key, en, vars = {}) => (nl[key] ?? en).replace(/\{(\w+)\}/g, (_, v) => String(vars[v] ?? ''));
+        expect(describeRuleExpr('item.a > 1 && item.b > 2', null, t)).toBe('A greater than 1 en B greater than 2');
+        expect(describeRuleExpr('item.a > 1 || item.b > 2', null, t)).toBe('A greater than 1 of B greater than 2');
+    });
+
+    it('names a formula it cannot show as rows "Custom rule", never its code', () => {
         const labels = new Map([['ai_1', 'Classify']]);
-        expect(describeRuleExpr('len(steps.ai_1.output.tags) > 2', labels)).toBe('len(‹Classify›.tags) > 2');
+        expect(describeRuleExpr('len(steps.ai_1.output.tags) > 2', labels)).toBe('Custom rule');
         expect(describeRuleExpr('')).toBe('');
     });
 });

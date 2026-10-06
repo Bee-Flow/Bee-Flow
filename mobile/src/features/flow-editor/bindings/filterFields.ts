@@ -13,7 +13,10 @@ export function filterFields(fields: VariableField[] | null | undefined, q: unkn
     if (!needle) return fields || [];
     const out: VariableField[] = [];
     for (const f of fields || []) {
-        const matchesSelf = f.key?.toLowerCase().includes(needle) || f.path?.toLowerCase().includes(needle);
+        // `label` is the name a person reads for an internal key (a Condition
+        // output "Otherwise" for `matchesByCase.default`), so it is searchable.
+        const matchesSelf = f.key?.toLowerCase().includes(needle) || f.path?.toLowerCase().includes(needle)
+            || (typeof f.label === 'string' && f.label.toLowerCase().includes(needle));
         const subs = Array.isArray(f.children) ? filterFields(f.children, needle) : [];
         if (matchesSelf) out.push(subs.length > 0 ? { ...f, children: subs } : f);
         else if (subs.length > 0) out.push({ ...f, children: subs });

@@ -19,7 +19,7 @@ import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { isDisplayField } from '@/features/forms/model/contract';
 import type { FillForm } from '@/features/forms/model/fillTypes';
-import { isLongEnding, txtFilename } from '@/features/forms/model/fillValues';
+import { isLongEnding, resultFilename } from '@/features/forms/model/fillValues';
 import { Markdown } from '@/shared/markdown';
 import { Button, Icon, Text } from '@/shared/ui';
 
@@ -47,16 +47,16 @@ function ExportBar({ text, title, onSaveToNotebook }: { text: string; title: str
     return (
         <View style={styles.bar} testID="fill-export">
             <View style={styles.actions}>
-                <Button size="sm" variant="secondary" iconName="Share2" label={t('mobile.forms.fill.share_text', 'Share as .txt')} onPress={() => void shareText(text, txtFilename(title))} />
+                <Button size="sm" variant="secondary" iconName="Share2" label={t('mobile.forms.fill.share_text', 'Share as .txt')} onPress={() => void shareText(text, resultFilename(title, 'txt'))} />
                 <Button
                     size="sm"
                     variant="secondary"
                     iconName={copied ? 'Check' : 'Copy'}
-                    label={copied ? t('mobile.forms.fill.copied', 'Copied') : t('mobile.forms.fill.copy_text', 'Copy text')}
+                    label={copied ? t('forms.result.copied', 'Copied') : t('forms.result.copy', 'Copy text')}
                     onPress={() => void Clipboard.setStringAsync(text).then(() => setCopied(true))}
                 />
                 {onSaveToNotebook ? (
-                    <Button size="sm" variant="secondary" iconName="BookOpen" loading={saving} label={t('mobile.forms.fill.save_notebook', 'Save to Notebook')} onPress={() => void save()} />
+                    <Button size="sm" variant="secondary" iconName="BookOpen" loading={saving} label={t('forms.result.save_notebook', 'Save to Notebook')} onPress={() => void save()} />
                 ) : null}
             </View>
             {error ? (

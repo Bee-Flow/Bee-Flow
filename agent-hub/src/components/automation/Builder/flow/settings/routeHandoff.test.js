@@ -95,9 +95,9 @@ describe('the rules that read it', () => {
     it('is one equals-comparison per answer, against the new step\'s output', () => {
         const { rules } = plan();
         expect(rules).toEqual([
-            { name: 'complaint', expr: 'steps.ai_handoff.output.is_this_e_mail_about_a_complaint == "complaint"' },
-            { name: 'question', expr: 'steps.ai_handoff.output.is_this_e_mail_about_a_complaint == "question"' },
-            { name: 'something_else', expr: 'steps.ai_handoff.output.is_this_e_mail_about_a_complaint == "something else"' },
+            { name: 'complaint', expr: 'equals(steps.ai_handoff.output.is_this_e_mail_about_a_complaint, "complaint")' },
+            { name: 'question', expr: 'equals(steps.ai_handoff.output.is_this_e_mail_about_a_complaint, "question")' },
+            { name: 'something_else', expr: 'equals(steps.ai_handoff.output.is_this_e_mail_about_a_complaint, "something else")' },
         ]);
     });
 
@@ -110,7 +110,8 @@ describe('the rules that read it', () => {
         expect(describeRuleExpr(rules[0].expr))
             // "mail" is in the describer's proper-noun table, which is why
             // the humanised name is not simply the slug with spaces in it.
-            .toBe('Is this e Mail about a complaint equals “complaint”');
+            // New text rules are `equals()`: upper/lower case does not matter (R7).
+            .toBe('Is this e Mail about a complaint is “complaint”');
     });
 
     it('names every port uniquely even when two answers slug the same', () => {
@@ -138,7 +139,7 @@ describe('a Condition that works through a list', () => {
     it('points the rules at the per-item answer, and re-points the Condition at the results', () => {
         const { rules, fieldPath, source } = plan(perItem);
         expect(fieldPath).toBe('item.output.is_this_e_mail_about_a_complaint');
-        expect(rules[0].expr).toBe('item.output.is_this_e_mail_about_a_complaint == "complaint"');
+        expect(rules[0].expr).toBe('equals(item.output.is_this_e_mail_about_a_complaint, "complaint")');
         // Without this re-point the rules above name a path that resolves to
         // nothing — a forEach step publishes `results`, not the rows.
         expect(source).toBe('steps.ai_handoff.output.results');
@@ -146,7 +147,7 @@ describe('a Condition that works through a list', () => {
 
     it('follows the editor\'s own name for the row', () => {
         const { rules } = plan({ ...perItem, itemVar: 'row' });
-        expect(rules[0].expr.startsWith('row.output.')).toBe(true);
+        expect(rules[0].expr.startsWith('equals(row.output.')).toBe(true);
     });
 
     it('leaves the Condition alone in whole-run mode', () => {

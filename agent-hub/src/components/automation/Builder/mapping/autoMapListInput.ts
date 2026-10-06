@@ -162,6 +162,7 @@ function nearestColumn(key: string, items: ListProp['items'], groups: UpstreamGr
 
 /** A list input nothing filled yet (not this pass, not the author) and not a secret. */
 function isOpenListInput(key: string, prop: ListProp | undefined, patch: Record<string, Binding>, existing: Record<string, unknown>): boolean {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- SECRET_RE is an alternation of short literals whose only quantifier is an optional [_-]: bounded work per position, linear
     return !patch[key] && isEmptyBinding(existing[key]) && !SECRET_RE.test(key) && expectedShapeFor(prop) === 'list';
 }
 

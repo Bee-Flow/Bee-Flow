@@ -74,14 +74,15 @@ interface Scored { patch: Record<string, Binding>; required: number; source: Lis
 interface RecordId { field: Cand; words: Set<string> }
 
 /** The names of a list's levels (outer lists first, then its own item), their candidates and their ids. */
-function sourceCandidates(source: ListSource): { itemVar: string; parents: ForEachParent[]; own: Cand[]; outer: Cand[]; ids: RecordId[] } {
+function sourceCandidates(source: ListSource, definition: unknown): { itemVar: string; parents: ForEachParent[]; own: Cand[]; outer: Cand[]; ids: RecordId[] } {
     const names: string[] = [];
     const parents: ForEachParent[] = source.chain.map((level) => {
         const itemVar = uniqueItemVar(suggestItemVar(lastPathKey(level.path)), names);
         names.push(itemVar);
         return { itemVar, overRef: level.path };
     });
-    const itemVar = uniqueItemVar(suggestItemVar(source.key || lastPathKey(source.path)), names);
+    // After a flatten (or a filter over one) the rows are named by what they are (F47).
+    const itemVar = uniqueItemVar(suggestItemVar(source.key || lastPathKey(source.path), definition as never, source.path), names);
     const own = elementCandidates(source.element, itemVar, source.chain.length + 1);
     const levels = source.chain.map((level, li) => elementCandidates(level.element, parents[li]?.itemVar || 'item', li + 1));
     // Each element's own `id`, innermost first, with what it is: the names it
@@ -123,10 +124,10 @@ function nameMatches({ keys, schema }: { keys: string[]; schema: Schema }, candi
  * Fill the inputs from one list's element (and its outer elements): names
  * first, then schema matching. Null when no REQUIRED input is filled.
  */
-function matchSource(source: ListSource, schema: Schema, existing: Record<string, unknown>): Scored | null {
+function matchSource(source: ListSource, schema: Schema, existing: Record<string, unknown>, definition: unknown): Scored | null {
     const properties = schema.properties || {};
     const required = new Set(schema.required || []);
-    const { itemVar, parents, own, outer, ids } = sourceCandidates(source);
+    const { itemVar, parents, own, outer, ids } = sourceCandidates(source, definition);
     const candidates = [...own, ...outer];
     if (!candidates.length) return null;
     const keys = Object.keys(properties).sort((a, b) => (required.has(b) ? 1 : 0) - (required.has(a) ? 1 : 0));
@@ -148,11 +149,15 @@ function better(a: Scored, b: Scored | null, order: Map<ListSource, number>): bo
     if (a.required !== b.required) return a.required > b.required;
     if (a.source.chain.length !== b.source.chain.length) return a.source.chain.length < b.source.chain.length;
     if (a.source.weight !== b.source.weight) return a.source.weight < b.source.weight;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- ARRAY_NAME_RE is an alternation of short literals with no quantifier: bounded work per position, linear
     const an = ARRAY_NAME_RE.test(a.source.key) ? 0 : 1;
     const bn = ARRAY_NAME_RE.test(b.source.key) ? 0 : 1;
     if (an !== bn) return an < bn;
     return (order.get(a.source) ?? 0) < (order.get(b.source) ?? 0);
 }
+
+/** `isDiagnostic(kind, key)` keeps a Code step's `logs` out; `definition` names a flatten's rows (F47). */
+interface IterationContext { isDiagnostic?: (kind: string | undefined, key: string) => boolean; definition?: unknown }
 
 /**
  * Only from a declared schema with REQUIRED inputs, only for inputs the
@@ -164,13 +169,13 @@ export function tryIterationMapping(
     schema: Schema | null | undefined,
     existingInputs: Record<string, unknown> | null | undefined,
     groups: UpstreamGroup[] | null | undefined,
-    isDiagnostic: (kind: string | undefined, key: string) => boolean = () => false,
+    ctx: IterationContext = {},
 ): IterationMapping | null {
     if (!schema?.properties || !(schema.required || []).length) return null;
     const list = groups || [];
     for (let gi = list.length - 1; gi >= 0; gi--) {
         const g = list[gi];
-        const best = g && !g.ownItem ? bestSource(g, schema, existingInputs || {}, isDiagnostic) : null;
+        const best = g && !g.ownItem ? bestSource(g, schema, existingInputs || {}, ctx) : null;
         if (!best) continue;
         const forEach: IterationMapping['forEach'] = { overRef: best.source.path, itemVar: best.itemVar, maxIterations: 100 };
         if (best.parents.length) forEach.parents = best.parents;
@@ -180,12 +185,12 @@ export function tryIterationMapping(
 }
 
 /** The best list of one group for these inputs, or null when none fills a required one. */
-function bestSource(g: UpstreamGroup, schema: Schema, existing: Record<string, unknown>, isDiagnostic: (kind: string | undefined, key: string) => boolean): Scored | null {
+function bestSource(g: UpstreamGroup, schema: Schema, existing: Record<string, unknown>, { isDiagnostic = () => false, definition = null }: IterationContext): Scored | null {
     const sources = groupListSources(g).filter(s => isRecord(s.element) && !firstKeyIsDiagnostic(g, s.path, isDiagnostic));
     const order = new Map(sources.map((s, i) => [s, i]));
     let best: Scored | null = null;
     for (const s of sources) {
-        const m = matchSource(s, schema, existing);
+        const m = matchSource(s, schema, existing, definition);
         if (m && better(m, best, order)) best = m;
     }
     return best;

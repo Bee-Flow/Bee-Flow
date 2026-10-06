@@ -76,7 +76,7 @@ export function ApprovalEditor(editor: StepEditorProps) {
                         stages={stages}
                         onChange={(next) => set('stages', next)}
                         onDropStages={() => setMany(oneRoundFrom(draft))}
-                        shared={{ directory, sampleRoot: ctx.sampleRoot, fieldOptions: upstreamFieldOptions(ctx.groups), disabled }}
+                        shared={{ directory, sampleRoot: ctx.sampleRoot, fieldOptions: upstreamFieldOptions(ctx.groups, t), disabled }}
                     />
                 ) : (
                     <ApprovalRound

@@ -1,34 +1,27 @@
 /**
- * Datatype-aware condition model for the clickable Filter / Condition / Switch
- * builder.
- *
- * A condition is modelled as an array of `rows` joined by a single boolean
- * `join` ('&&' or '||'). Each row is `{ field, op, value }`:
- *   - field — a binding (ref/expr) pointing at the left-hand value
- *   - op    — an operator KEY (see OPERATORS)
- *   - value — a binding for the right-hand side (ignored for unary ops)
- *
- * This module is pure (no React) so it can be unit-tested and shared. It
- * serialises rows to the restricted-JS `expr` string the server engine
- * evaluates — comparators map to `==`,`>` … and the friendly text operators
- * map to the whitelisted helper functions added to server/automation/expr.js
- * (`contains`, `startsWith`, `endsWith`, `isEmpty`). It also parses an `expr`
- * back into rows so editing an existing step re-hydrates the clickable UI;
- * anything it can't recognise returns null and the caller falls back to the
- * raw-expression textarea.
+ * Condition model for the clickable Filter / Condition / Switch builder: rows
+ * `{ field, op, value, threshold?, quantifier?, keepBlank? }` joined by one `join` ('&&' | '||').
+ * `field` is a binding (File type is the ref `fileType(item)` or `fileType(item.attachments[*])`),
+ * `op` an OPERATORS key, `quantifier` 'any' | 'every' | 'none' for a column of a list inside the
+ * item, `keepBlank` a saved `x == ""` that keeps round-tripping. Pure: rows serialise to the shared
+ * engine's `expr` and parse back; anything else parses to null (a formula). Text helpers shared
+ * with the phone live in shared/expr/rules.mjs.
  */
+import { appendKey } from '@shared/expr/path.mjs';
+import {
+    fieldShape, findTopLevelSymbol, quantifiedCall, readQuantifiedCall, splitCallArgs, splitTopLevel,
+    TEST_OF_OP, UNARY_TESTS,
+} from '@shared/expr/rules.mjs';
 import { renderBindingValue, isCleanPath, bindingFromInput, canonicalRefPath } from '../../../../utils/bindingHelpers';
 import { ISO_DATE_RE } from '../mapping/fieldKinds';
 
-// ── Datatype inference ─────────────────────────────────
-/**
- * Infer a coarse datatype from a sample value, used to pick which operators
- * to offer. ISO-8601-ish strings are surfaced as 'date' so the comparators
- * can be relabelled "is before/after".
- */
+/** A coarse datatype from a sample value: picks the operators offered. */
 export function inferType(value) {
     if (value == null) return 'unknown';
-    if (Array.isArray(value)) return 'array';
+    if (Array.isArray(value)) {
+        const first = value.find((v) => v != null);
+        return first && typeof first === 'object' && !Array.isArray(first) ? 'records' : 'array';
+    }
     const t = typeof value;
     if (t === 'number') return 'number';
     if (t === 'boolean') return 'boolean';
@@ -40,121 +33,125 @@ export function inferType(value) {
     return 'unknown';
 }
 
-// ── Operator registry ──────────────────────────────────
 // kind: 'cmp' (binary symbol) | 'fn' (helper call) | 'unary' (no value input)
-//       | 'topic' (isAbout: the value is a topic in words, answered by the
-//         topic classifier; only offered where the caller passes `topics`)
+//       | 'topic' (isAbout, answered by the topic classifier). `label` is the
+// English of `condition_node.op.<key>`.
 const OPERATORS = [
+    // Text "is": equals() ignores upper/lower case and surrounding spaces.
+    { key: 'is',    kind: 'fn', fn: 'equals', label: 'is' },
+    { key: 'isNot', kind: 'fn', fn: 'equals', label: 'is not', negate: true },
     { key: 'eq',  kind: 'cmp', symbol: '==',  label: 'equals' },
     { key: 'neq', kind: 'cmp', symbol: '!=',  label: 'does not equal' },
     { key: 'gt',  kind: 'cmp', symbol: '>',   label: 'greater than' },
     { key: 'gte', kind: 'cmp', symbol: '>=',  label: 'greater than or equal' },
     { key: 'lt',  kind: 'cmp', symbol: '<',   label: 'less than' },
     { key: 'lte', kind: 'cmp', symbol: '<=',  label: 'less than or equal' },
-    // Strict equality — hidden from the friendly menu but kept so an existing
-    // expr that uses === / !== round-trips without being silently weakened.
+    // Strict equality: hidden from the menu, kept so a saved === round-trips.
     { key: 'seq',  kind: 'cmp', symbol: '===', label: 'strictly equals', hidden: true },
     { key: 'sneq', kind: 'cmp', symbol: '!==', label: 'strictly does not equal', hidden: true },
-    // Text/array helpers → whitelisted server functions. `negate` wraps the
-    // call in `!` (`!contains(l, r)`) — the same prefix isNotEmpty already
-    // emits, so the server grammar is known to accept it.
+    // `negate` wraps the call in `!` (`!contains(l, r)`).
     { key: 'contains',    kind: 'fn', fn: 'contains',   label: 'contains' },
     { key: 'notContains', kind: 'fn', fn: 'contains',   label: 'does not contain', negate: true },
     { key: 'startsWith',  kind: 'fn', fn: 'startsWith', label: 'starts with' },
     { key: 'endsWith',    kind: 'fn', fn: 'endsWith',   label: 'ends with' },
-    // Unary — no right-hand value.
     { key: 'isEmpty',    kind: 'unary', label: 'is empty',     emit: (l) => `isEmpty(${l})` },
     { key: 'isNotEmpty', kind: 'unary', label: 'is not empty', emit: (l) => `!isEmpty(${l})` },
     { key: 'isTrue',     kind: 'unary', label: 'is true',      emit: (l) => `${l} == true` },
     { key: 'isFalse',    kind: 'unary', label: 'is false',     emit: (l) => `${l} == false` },
-    // "has a value" — a bare field with NO comparison chosen yet (or an
-    // intentional truthiness check). Emits the left fragment VERBATIM so a
-    // bare-path expr (e.g. `steps.s1.output.results[*].to`, saved with no
-    // operator) round-trips byte-identical instead of falling to raw mode.
+    // "has a value": a bare field, emitted verbatim so it round-trips.
     { key: 'truthy', kind: 'unary', label: 'has a value', emit: (l) => l },
-    // "Is about" — the Condition node's routing by meaning (shared/expr/
-    // topics.mjs). The value is a topic in plain words, always a literal; a
-    // row may carry `threshold` (0..1) for its sensitivity.
+    // Routing by meaning: the value is a topic in words; `threshold` (0..1) optional.
     { key: 'isAbout',  kind: 'topic', label: 'is about' },
     { key: 'notAbout', kind: 'topic', label: 'is not about', negate: true },
 ];
 
 const OP_BY_KEY = new Map(OPERATORS.map((o) => [o.key, o]));
 
-export function getOperator(key) {
-    return OP_BY_KEY.get(key) || null;
-}
+export const getOperator = (key) => OP_BY_KEY.get(key) || null;
+export const isUnaryOp = (key) => getOperator(key)?.kind === 'unary';
+export const isTopicOp = (key) => getOperator(key)?.kind === 'topic';
 
-export function isUnaryOp(key) {
-    return getOperator(key)?.kind === 'unary';
-}
-
-export function isTopicOp(key) {
-    return getOperator(key)?.kind === 'topic';
-}
-
-// The field types a topic can be read from: text, or a field whose type the
-// sample does not tell.
 const TOPIC_TYPES = new Set(['string', 'unknown']);
 
-// Which operator keys to surface for each datatype.
+// Operators per datatype. Text offers "is" (equals, any case); a saved `==` keeps its own.
 const TYPE_OPS = {
-    string:  ['eq', 'neq', 'contains', 'notContains', 'startsWith', 'endsWith', 'isEmpty', 'isNotEmpty', 'truthy'],
-    number:  ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'truthy'],
-    boolean: ['isTrue', 'isFalse', 'eq', 'neq', 'truthy'],
-    date:    ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'truthy'],
-    array:   ['contains', 'notContains', 'isEmpty', 'isNotEmpty', 'truthy'],
-    object:  ['eq', 'neq', 'isEmpty', 'isNotEmpty', 'truthy'],
-    unknown: ['eq', 'neq', 'contains', 'notContains', 'startsWith', 'endsWith', 'gt', 'lt', 'isEmpty', 'isNotEmpty', 'truthy'],
+    string:   ['is', 'isNot', 'contains', 'notContains', 'startsWith', 'endsWith', 'isEmpty', 'isNotEmpty', 'truthy'],
+    number:   ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'truthy'],
+    boolean:  ['isTrue', 'isFalse', 'eq', 'neq', 'truthy'],
+    date:     ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'truthy'],
+    array:    ['contains', 'notContains', 'isEmpty', 'isNotEmpty', 'truthy'],
+    object:   ['eq', 'neq', 'isEmpty', 'isNotEmpty', 'truthy'],
+    records:  ['isNotEmpty', 'isEmpty'],
+    fileType: ['is', 'isNot'],
+    unknown:  ['is', 'isNot', 'contains', 'notContains', 'startsWith', 'endsWith', 'gt', 'lt', 'isEmpty', 'isNotEmpty', 'truthy'],
 };
 
+/** @typedef {(key: string, en: string, vars?: Record<string, unknown>) => string} Translate */
+
 /**
- * Operator options for a datatype, as `{ key, label, disabled? }`. `currentKey`
- * is always appended (even if hidden / off-type) so a parsed operator stays
- * selectable and round-trips. Comparator labels are date-aware (greater than →
- * is after).
- *
- * `topics` (optional) is the builder catalog's answer about the topic
- * classifier, `{ available }`. Only a caller that passes it gets "is about":
- * App Studio never does, because its formulas cannot ask a classifier. When the
- * classifier is not available the operators are listed DISABLED, so the author
- * learns the feature exists and why it is off.
+ * Operator options for a datatype. `currentKey` is always kept so a parsed operator round-trips.
+ * `topics` (`{ available }`) adds "is about" (disabled when unavailable); `quantified` keeps what a quantifier can test.
+ * @param {string} type
+ * @param {string|null} [currentKey]
+ * @param {{ topics?: { available?: boolean }|null, quantified?: boolean, t?: Translate|null }} [opts]
+ * @returns {Array<{ key: string, label: string, disabled?: boolean }>}
  */
-export function operatorsForType(type, currentKey = null, { topics = null } = {}) {
-    const keys = TYPE_OPS[type] || TYPE_OPS.unknown;
-    const list = keys.slice();
+export function operatorsForType(type, currentKey = null, { topics = null, quantified = false, t = null } = {}) {
+    let list = (TYPE_OPS[type] || TYPE_OPS.unknown).slice();
     if (topics && TOPIC_TYPES.has(type)) list.push('isAbout', 'notAbout');
+    if (quantified) list = list.filter((k) => k in TEST_OF_OP);
     if (currentKey && !list.includes(currentKey)) list.push(currentKey);
     return list
         .map((k) => OP_BY_KEY.get(k))
         .filter(Boolean)
         .map((o) => ({
             key: o.key,
-            label: labelFor(o.key, type),
+            label: labelFor(o.key, type, t),
             ...(o.kind === 'topic' && !topics?.available && o.key !== currentKey ? { disabled: true } : {}),
         }));
 }
 
-export function labelFor(key, type) {
-    const o = OP_BY_KEY.get(key);
-    if (!o) return key;
-    if (type === 'date') {
-        if (key === 'gt') return 'is after';
-        if (key === 'gte') return 'is on or after';
-        if (key === 'lt') return 'is before';
-        if (key === 'lte') return 'is on or before';
-        if (key === 'eq') return 'is on';
-    }
-    return o.label;
+// The English of the type-dependent label keys (`condition_node.op.<key>_<variant>`).
+const VARIANT_EN = {
+    eq_date: 'is on', gt_date: 'is after', gte_date: 'is on or after', lt_date: 'is before', lte_date: 'is on or before',
+    eq_text: 'is exactly (same upper/lower case)', neq_text: 'is not exactly (same upper/lower case)',
+    isEmpty_records: 'has none', isNotEmpty_records: 'has at least one',
+};
+
+function labelKey(key, type) {
+    if (type === 'date' && ['eq', 'gt', 'gte', 'lt', 'lte'].includes(key)) return `${key}_date`;
+    if ((type === 'string' || type === 'unknown') && (key === 'eq' || key === 'neq')) return `${key}_text`;
+    if (type === 'records' && (key === 'isEmpty' || key === 'isNotEmpty')) return `${key}_records`;
+    return key;
 }
 
-// ── Serialisation: rows → expr ─────────────────────────
-function leftFragment(fieldBinding) {
-    if (!fieldBinding || typeof fieldBinding !== 'object') return String(fieldBinding || '').trim();
-    if (fieldBinding.kind === 'ref') return String(fieldBinding.path || '').trim();
-    if (fieldBinding.kind === 'expr') return String(fieldBinding.value || '').trim();
-    if (fieldBinding.kind === 'literal') return renderBindingValue(fieldBinding);
-    return '';
+/**
+ * The operator's words for a field of `type`; `t` translates (English without it).
+ * @param {string} key
+ * @param {string} type
+ * @param {Translate|null} [t]
+ * @returns {string}
+ */
+export function labelFor(key, type, t = null) {
+    const o = OP_BY_KEY.get(key);
+    if (!o) return key;
+    const k = labelKey(key, type);
+    const en = VARIANT_EN[k] || o.label;
+    return typeof t === 'function' ? t(`condition_node.op.${k}`, en) : en;
+}
+
+function leftFragment(b) {
+    if (!b || typeof b !== 'object') return String(b || '').trim();
+    if (b.kind === 'literal') return renderBindingValue(b);
+    return String((b.kind === 'ref' ? b.path : b.kind === 'expr' ? b.value : '') || '').trim();
+}
+
+/** Nothing filled in yet: an explicit `null` is a value (`== null` asks about absence). */
+function isBlankValue(v) {
+    if (!v || typeof v !== 'object') return v === undefined || v === '';
+    if (v.kind === 'literal') return v.value === undefined || v.value === '';
+    if (v.kind === 'ref') return !String(v.path || '').trim();
+    return !String(v.value ?? '').trim();
 }
 
 /** Serialise a single row to an expression fragment, or '' if incomplete. */
@@ -163,19 +160,24 @@ export function serializeRow(row) {
     const op = getOperator(row.op) || OP_BY_KEY.get('eq');
     const left = leftFragment(row.field);
     if (!left) return '';
+    if (row.quantifier) return serializeQuantified(row, op, left);
     if (op.kind === 'unary') return op.emit(left);
     if (op.kind === 'topic') return serializeTopic(op, left, row);
+    // An unfinished row is never saved as `field == ""`; only a saved one keeps that shape.
+    if (isBlankValue(row.value) && !row.keepBlank) return '';
     const rhs = renderBindingValue(row.value);
     if (op.kind === 'fn') return `${op.negate ? '!' : ''}${op.fn}(${left}, ${rhs})`;
     return `${left} ${op.symbol} ${rhs}`;
 }
 
-/**
- * `isAbout(left, "topic"[, threshold])`. The topic is always written as a
- * string literal (the runner needs the step's topics before it runs). An empty
- * topic still serialises, so the row stays on screen and the validator can say
- * what is missing, instead of the row silently vanishing from the rule.
- */
+/** `anyOf(item.attachments[*].mimeType, "contains", "pdf")` — every entry of the list checked. */
+function serializeQuantified(row, op, left) {
+    const unary = UNARY_TESTS.includes(TEST_OF_OP[op.key]);
+    if (!unary && isBlankValue(row.value) && !row.keepBlank) return '';
+    return quantifiedCall(row.quantifier, left, op.key, unary ? null : renderBindingValue(row.value));
+}
+
+/** `isAbout(left, "topic"[, threshold])`; an empty topic still serialises, for the validator. */
 function serializeTopic(op, left, row) {
     const topic = row.value?.kind === 'literal' && row.value.value != null ? String(row.value.value).trim() : '';
     const t = Number(row.threshold);
@@ -183,56 +185,16 @@ function serializeTopic(op, left, row) {
     return `${op.negate ? '!' : ''}isAbout(${left}, ${JSON.stringify(topic)}${cut})`;
 }
 
-/**
- * Serialise rows to a single expression. Rows are joined by `join`
- * ('&&'|'||'); incomplete rows are dropped. Empty when nothing serialises.
- */
+/** Rows joined by `join` ('&&'|'||'); incomplete rows dropped; '' when nothing serialises. */
 export function serializeRows(rows, join = '&&') {
     const j = join === '||' ? '||' : '&&';
     const frags = (rows || []).map(serializeRow).filter(Boolean);
     return frags.join(` ${j} `);
 }
 
-// ── Parsing: expr → rows ───────────────────────────────
-/**
- * Split an expression on top-level `&&` or `||` (outside strings/parens).
- * Returns `{ parts, join }`, or null if BOTH joiners appear at top level
- * (mixed precedence — too ambiguous for the clickable UI).
- */
-function splitTopLevel(expr) {
-    const parts = [];
-    let depth = 0;
-    let str = null;
-    let buf = '';
-    let join = null;
-    for (let i = 0; i < expr.length; i++) {
-        const c = expr[i];
-        if (str) {
-            buf += c;
-            if (c === '\\' && i + 1 < expr.length) { buf += expr[i + 1]; i++; continue; }
-            if (c === str) str = null;
-            continue;
-        }
-        if (c === '"' || c === "'") { str = c; buf += c; continue; }
-        if (c === '(' || c === '[') { depth++; buf += c; continue; }
-        if (c === ')' || c === ']') { depth--; buf += c; continue; }
-        const two = expr.slice(i, i + 2);
-        if (depth === 0 && (two === '&&' || two === '||')) {
-            if (join && join !== two) return null; // mixed && and || at top level
-            join = two;
-            parts.push(buf.trim());
-            buf = '';
-            i++; // skip 2nd char
-            continue;
-        }
-        buf += c;
-    }
-    if (str || depth !== 0) return null; // unbalanced
-    parts.push(buf.trim());
-    return { parts: parts.filter((p) => p.length), join: join || '&&' };
-}
-
 const SYMBOL_TO_KEY = { '==': 'eq', '!=': 'neq', '===': 'seq', '!==': 'sneq', '>=': 'gte', '<=': 'lte', '>': 'gt', '<': 'lt' };
+const ref = (path) => ({ kind: 'ref', path });
+const blank = () => ({ kind: 'literal', value: '' });
 
 /** Convert a raw right-hand-side token (`"file"`, `1000`, `steps.x.y`) to a binding. */
 function valueRawToBinding(rawText) {
@@ -246,44 +208,25 @@ function valueRawToBinding(rawText) {
     return bindingFromInput(trimmed, 'expression');
 }
 
-// Only a clean dotted/bracketed path is accepted as a parsed field. A left
-// side that's an expression (function calls, `[*]` wildcards, arithmetic)
-// returns null so the whole expr falls back to the raw textarea — where the
-// user sees the real grammar and any server parse error. Live editing can
-// still hold an expr-kind field (see leftFragment); the PARSER stays strict.
-function fieldFromLeft(left) {
-    const t = String(left || '').trim();
-    // A `[*]` wildcard projects an ARRAY; comparing that to a scalar in a
-    // single condition row isn't representable in the clickable builder, so
-    // reject it here (it lands in raw mode) even though isCleanPath now treats
-    // `[*]` as a valid ref path for binding fields elsewhere.
-    if (t.includes('[*]')) return null;
-    return isCleanPath(t) ? { kind: 'ref', path: canonicalRefPath(t) } : null;
+/** A binary row read from a saved `x == ""` keeps that shape (see serializeRow). */
+function withValue(row, rawText) {
+    const value = valueRawToBinding(rawText);
+    return isBlankValue(value) ? { ...row, value, keepBlank: true } : { ...row, value };
 }
 
-// `[!]name(arg, …)` as a whole fragment: the arguments split on top-level
-// commas only, outside strings, brackets and parens, so a field like
-// `headers[name="a,b"]` or a text like "a, b" stays one argument.
-const CALL_HEAD_RE = /^(!\s*)?(isEmpty|isAbout|contains|startsWith|endsWith)\(/;
-/** The arguments from `from` up to the call's own `)` (`{ args, end }`), or null when unclosed. */
-function splitArgs(text, from) {
-    const args = [];
-    let depth = 0;
-    let str = null;
-    for (let i = from; i < text.length; i++) {
-        const c = text[i];
-        if (str) { if (c === '\\') i++; else if (c === str) str = null; continue; }
-        if (c === '"' || c === "'") str = c;
-        else if (c === '(' || c === '[') depth++;
-        else if (depth > 0 && (c === ')' || c === ']')) depth--;
-        else if (depth === 0 && c === ',') { args.push(text.slice(from, i).trim()); from = i + 1; }
-        else if (c === ')') return { args: [...args, text.slice(from, i).trim()], end: i };
-    }
-    return null;
+// A clean path (a list column is only a quantified row) or a File type of the item / a field.
+function fieldFromLeft(left) {
+    const t = String(left || '').trim();
+    if (t.startsWith('fileType(')) return fieldShape(t)?.kind === 'fileRecord' ? ref(fieldShape(t).path) : null;
+    if (t.includes('[*]')) return null;
+    return isCleanPath(t) ? ref(canonicalRefPath(t)) : null;
 }
+
+// `[!]name(arg, …)` as a whole fragment, split on top-level commas only.
+const CALL_HEAD_RE = /^(!\s*)?(isEmpty|isAbout|contains|startsWith|endsWith|equals)\(/;
 function parseCall(text) {
     const head = CALL_HEAD_RE.exec(text);
-    const inner = head && splitArgs(text, head[0].length);
+    const inner = head && splitCallArgs(text, head[0].length);
     // The call's own `)` must end the fragment (`contains(a, b) + 1` is a formula).
     if (!inner || inner.end !== text.length - 1) return null;
     return { negate: !!head[1], fn: head[2], args: inner.args };
@@ -299,56 +242,72 @@ function topicRow(field, negate, [, topic = '', cut, ...rest]) {
     return cut ? { ...row, threshold: Number(cut) } : row;
 }
 
-/** A row for a recognised helper call (is empty, is about, contains, …), or null. */
-function rowFromCall({ negate, fn, args }) {
+/** The legacy `contains(item.l[*].c, v)` / `!contains(…)`: "any" / "no" entry contains v. */
+function legacyColumnRow({ negate, fn, args }) {
+    const shape = fn === 'contains' && args.length === 2 && args[1] ? fieldShape(args[0]) : null;
+    if (shape?.kind !== 'column') return null;
+    return withValue({ field: ref(shape.path), op: 'contains', quantifier: negate ? 'none' : 'any' }, args[1]);
+}
+
+/** A row for a recognised helper call (is, is empty, is about, contains, …), or null. */
+function rowFromCall(call) {
+    const { negate, fn, args } = call;
     const f = fieldFromLeft(args[0]);
-    if (!f) return null;
-    if (fn === 'isEmpty') return args.length === 1 ? { field: f, op: negate ? 'isNotEmpty' : 'isEmpty', value: { kind: 'literal', value: '' } } : null;
+    if (!f) return legacyColumnRow(call);
+    if (fn === 'isEmpty') return args.length === 1 ? { field: f, op: negate ? 'isNotEmpty' : 'isEmpty', value: blank() } : null;
     if (fn === 'isAbout') return topicRow(f, negate, args);
+    if (args.length !== 2 || !args[1]) return null;
+    if (fn === 'equals') return withValue({ field: f, op: negate ? 'isNot' : 'is' }, args[1]);
     // contains/startsWith/endsWith(LEFT, RHS); only contains has a negated operator.
-    if (args.length !== 2 || !args[1] || (negate && fn !== 'contains')) return null;
-    return { field: f, op: negate ? 'notContains' : fn, value: valueRawToBinding(args[1]) };
+    if (negate && fn !== 'contains') return null;
+    return withValue({ field: f, op: negate ? 'notContains' : fn }, args[1]);
+}
+
+/** `anyOf(<column or File type of a list>, "<test>"[, value])` → a quantified row. */
+function quantifiedRow(q) {
+    const shape = fieldShape(q.left);
+    if (shape?.kind !== 'column' && shape?.kind !== 'fileList') return null;
+    const row = { field: ref(shape.path), op: q.op, quantifier: q.quantifier };
+    return q.rhs == null ? { ...row, value: blank() } : withValue(row, q.rhs);
+}
+
+function rowFromComparator(cmp) {
+    const f = fieldFromLeft(cmp.left);
+    if (!f) return null;
+    // `x == true` / `x == false` are the unary boolean forms.
+    if (cmp.op === 'eq' && (cmp.right === 'true' || cmp.right === 'false')) {
+        return { field: f, op: cmp.right === 'true' ? 'isTrue' : 'isFalse', value: blank() };
+    }
+    return withValue({ field: f, op: cmp.op }, cmp.right);
 }
 
 /** Parse one fragment into a row, or null if it isn't a recognised shape. */
 function parseFragment(part) {
     const text = part.trim();
     if (!text) return null;
+    const quantified = readQuantifiedCall(text);
+    if (quantified) return quantifiedRow(quantified);
     const call = parseCall(text);
     if (call) return rowFromCall(call);
-    // comparator: LEFT <op> RHS — reuse the symbol scan via a small parse.
     const cmp = parseComparator(text);
-    if (cmp) {
-        const f = fieldFromLeft(cmp.left);
-        if (!f) return null;
-        // `x == true` / `x == false` are the unary boolean forms.
-        if (cmp.op === 'eq' && /^(true|false)$/.test(cmp.right)) {
-            return { field: f, op: cmp.right === 'true' ? 'isTrue' : 'isFalse', value: { kind: 'literal', value: '' } };
-        }
-        return { field: f, op: cmp.op, value: valueRawToBinding(cmp.right) };
-    }
-    // Bare field, no operator at all (e.g. `steps.s1.output.results[*].to`,
-    // saved as a plain truthy check) — `[*]` IS allowed here (unlike
-    // fieldFromLeft's comparator/fn use): "is this array truthy" is a
-    // meaningful whole-value check, unlike comparing an array with `>`/`==`.
-    // Reserved literal words are NOT a field reference (a bare `true`/`false`
-    // is a trivial "not configured yet" placeholder — ConditionBuilder
-    // handles that case separately, opening an empty row instead).
+    if (cmp) return rowFromComparator(cmp);
+    // A bare field, no operator: "has a value" (`[*]` allowed — "is this list
+    // non-empty" is a whole-value check). A bare true/false/null is not a field.
     if (!/^(true|false|null)$/.test(text) && isCleanPath(text)) {
-        return { field: { kind: 'ref', path: canonicalRefPath(text) }, op: 'truthy', value: { kind: 'literal', value: '' } };
+        return { field: ref(canonicalRefPath(text)), op: 'truthy', value: blank() };
     }
     return null;
 }
 
 const CMP_SYMBOLS = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'];
+const OP_CHARS = new Set(['=', '!', '<', '>']);
 function parseComparator(text) {
     for (const sym of CMP_SYMBOLS) {
         const idx = findTopLevelSymbol(text, sym);
         if (idx === -1) continue;
         const before = idx > 0 ? text[idx - 1] : ' ';
         const after = idx + sym.length < text.length ? text[idx + sym.length] : ' ';
-        const opChars = new Set(['=', '!', '<', '>']);
-        if (opChars.has(before) || opChars.has(after)) continue;
+        if (OP_CHARS.has(before) || OP_CHARS.has(after)) continue;
         const left = text.slice(0, idx).trim();
         const right = text.slice(idx + sym.length).trim();
         if (!left || !right) return null;
@@ -357,25 +316,7 @@ function parseComparator(text) {
     return null;
 }
 
-function findTopLevelSymbol(text, sym) {
-    let depth = 0;
-    let str = null;
-    for (let i = 0; i <= text.length - sym.length; i++) {
-        const c = text[i];
-        if (str) { if (c === '\\') { i++; continue; } if (c === str) str = null; continue; }
-        if (c === '"' || c === "'") { str = c; continue; }
-        if (c === '(' || c === '[') { depth++; continue; }
-        if (c === ')' || c === ']') { depth--; continue; }
-        if (depth === 0 && text.slice(i, i + sym.length) === sym) return i;
-    }
-    return -1;
-}
-
-/**
- * Parse an expression into `{ rows, join }` for the clickable builder, or null
- * if it doesn't fit the model (mixed joiners, unrecognised fragment, …) — the
- * caller then keeps the raw-expression textarea.
- */
+/** `{ rows, join }` for the clickable builder, or null when the expression is a formula. */
 export function parseExprToRows(expr) {
     if (typeof expr !== 'string' || !expr.trim()) return null;
     const split = splitTopLevel(expr.trim());
@@ -391,6 +332,72 @@ export function parseExprToRows(expr) {
 }
 
 /** A blank row for the "add condition" affordance. */
-export function emptyRow() {
-    return { field: { kind: 'ref', path: '' }, op: 'eq', value: { kind: 'literal', value: '' } };
+export const emptyRow = () => ({ field: ref(''), op: 'is', value: blank() });
+
+const isQuantifiedShape = (shape) => shape?.kind === 'column' || shape?.kind === 'fileList';
+const rowPath = (row) => (row?.field?.kind === 'ref' ? String(row.field.path || '') : '');
+
+/** The datatype a row compares (a column: its first entry's; File type: 'fileType'). `walk(path, root)` reads the sample. */
+export function rowType(row, sampleRoot, walk) {
+    const path = rowPath(row);
+    const shape = path ? fieldShape(path) : null;
+    if (shape?.kind === 'fileRecord' || shape?.kind === 'fileList') return 'fileType';
+    if (!path || sampleRoot == null || typeof walk !== 'function') return 'unknown';
+    const value = walk(path, sampleRoot);
+    if (shape?.kind === 'column') return inferType(Array.isArray(value) ? value.find((v) => v != null) : value);
+    return inferType(value);
+}
+
+/** The row with a new field of `type`: an operator not offered resets; a column gets "any". */
+export function rowForField(row, field, type) {
+    const quantified = isQuantifiedShape(field?.kind === 'ref' ? fieldShape(String(field.path || '')) : null);
+    const offered = operatorsForType(type, null, { quantified }).map((o) => o.key);
+    const keepsTopic = isTopicOp(row?.op) && TOPIC_TYPES.has(type) && !quantified;
+    const { quantifier: _q, keepBlank: _k, ...rest } = row || emptyRow();
+    const op = offered.includes(rest.op) || keepsTopic ? rest.op : offered[0];
+    // R2: a value typed for another field never becomes a File type ("pdf" from
+    // a Mime type row would pick PDF unasked), nor a File type key a text value.
+    if (isFileTypePath(field) !== isFileTypePath(rest.field)) rest.value = blank();
+    return quantified ? { ...rest, field, op, quantifier: 'any' } : { ...rest, field, op };
+}
+
+const isFileTypePath = (binding) => binding?.kind === 'ref' && String(binding.path || '').startsWith('fileType(');
+
+// "no attachment is a PDF" on each attachment reads "is not a PDF".
+const NEGATED = {
+    is: 'isNot', isNot: 'is', eq: 'neq', neq: 'eq', contains: 'notContains', notContains: 'contains',
+    isEmpty: 'isNotEmpty', isNotEmpty: 'isEmpty', gt: 'lte', lte: 'gt', gte: 'lt', lt: 'gte',
+};
+
+/** A quantified row over `list`, re-rooted on the list's own entry; null when it cannot be. */
+function rowOnEntry(row, shape, list) {
+    if (!row.quantifier || !isQuantifiedShape(shape) || canonicalRefPath(shape.list) !== list) return null;
+    const head = `${list}[*]`;
+    if (shape.kind === 'column' && !shape.path.startsWith(head)) return null;
+    const path = shape.kind === 'fileList' ? 'fileType(item)' : `item${shape.path.slice(head.length)}`;
+    const { quantifier, ...rest } = row;
+    if (quantifier !== 'none') return { ...rest, field: ref(path) };
+    return NEGATED[rest.op] ? { ...rest, field: ref(path), op: NEGATED[rest.op] } : null;
+}
+
+/** Does this field read a key of the (old) item? `fileType(item)` reads the item itself. */
+const readsItemKey = (path) => ['item.', 'item[', 'fileType(item.', 'fileType(item['].some((head) => path.startsWith(head));
+
+/**
+ * Rows after the list moved one level in (L → L[*].<listKey>): rows quantified over
+ * `item.<listKey>` become rows on the entry; rows reading another field of the old
+ * item are kept and their field paths returned in `unfit` (named, offered for removal).
+ */
+export function deepenRows(rows, listKey) {
+    const list = appendKey('item', listKey);
+    const out = [];
+    const unfit = [];
+    for (const row of rows || []) {
+        const path = rowPath(row);
+        const moved = path ? rowOnEntry(row, fieldShape(path), list) : null;
+        if (moved) { out.push(moved); continue; }
+        out.push(row);
+        if (path && readsItemKey(path) && !unfit.includes(path)) unfit.push(path);
+    }
+    return { rows: out, unfit };
 }

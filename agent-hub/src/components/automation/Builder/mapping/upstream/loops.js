@@ -12,7 +12,9 @@
  * as `["Story Points"]` — the spelling the run resolves — not as a dotted
  * segment the runtime rejects.
  */
+import { listNounKey } from '@shared/expr/flatten.mjs';
 import { appendKey, appendWildcard, getPath, parsePath, walkTokens } from '@shared/expr/path.mjs';
+import { singularKey } from '@shared/expr/rules.mjs';
 import { describeNode } from './describeNode';
 import { forEachOutputPath, perIterationField, rebaseFields } from './forEachShape';
 import { sampleToFieldsReal } from './realOverlay';
@@ -287,31 +289,26 @@ const RESERVED_VARS = new Set(['true', 'false', 'null', '_index']);
  * Always an identifier: the name becomes `loop.<name>`, and a key such as
  * `line-items`, `Line Items` or `@odata.items` would give `loop.line-item`,
  * which the runtime reads as nothing. Such a key becomes `line_item`.
+ * Given the `definition` and the list `path`, the rows of a step's `items`
+ * are named by what they are (listNounKey, F47): after a flatten, or a
+ * filter over one, `attachments` → `attachment`, not `item`.
  * @param {unknown} key
+ * @param {object|null} [definition]
+ * @param {string|null} [path]
  * @returns {string}
  */
-export function suggestItemVar(key) {
-    const s = String(key ?? '').trim();
+export function suggestItemVar(key, definition = null, path = null) {
+    const noun = definition && path ? listNounKey(definition, path) : null;
+    const s = String(noun || (key ?? '')).trim();
     if (!s) return 'item';
     const words = s.split(/[^A-Za-z0-9_]+/).filter(Boolean);
     if (!words.length) return 'item';
     const plain = words.length === 1 && words[0] === s;
-    const last = singular(words[words.length - 1]);
+    const last = singularKey(words[words.length - 1]);
     let name = plain ? last : [...words.slice(0, -1), last].join('_').toLowerCase();
     name = name.replace(/^_+|_+$/g, '') || 'item';
     if (/^[0-9]/.test(name)) name = `item_${name}`;
     return RESERVED_VARS.has(name) ? 'item' : name;
-}
-
-function singular(s) {
-    if (/ies$/.test(s)) return s.slice(0, -3) + 'y'; // "categories" → "category"
-    // "-es" is a plural ending only after s/x/z/ch/sh ("addresses", "boxes",
-    // "matches"); elsewhere the "e" belongs to the word: "lines" → "line",
-    // not "lin". Words that merely end in s ("status", "address") stay.
-    if (/(ss|x|z|ch|sh)es$/.test(s)) return s.slice(0, -2);
-    if (/(ss|us|is)$/.test(s)) return s;
-    if (/s$/.test(s) && s.length > 2) return s.slice(0, -1);
-    return s;
 }
 
 /**

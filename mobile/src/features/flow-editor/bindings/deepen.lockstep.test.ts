@@ -222,6 +222,24 @@ describe('a list path in words', () => {
         }
         expect(listPathLabel('steps.s1.output.value[*].attachments', labels)).toBe('Read the purchasing inbox ▸ Value ▸ Attachments (inside each row)');
     });
+
+    it('names a Condition’s outputs and the canvas’s compact form the same on the phone', () => {
+        const label = requireWeb(`${BUILDER}/mapping/listPathLabel.ts`);
+        const labels = new Map([['s1', 'Read many'], ['split', 'Split'], ['keep', 'Keep']]);
+        const stepTypeById = new Map([['split', 'switch'], ['keep', 'filter'], ['s1', 'integration_action']]);
+        const t = (key: string, en: string, vars?: Record<string, unknown>) => `[${key}|${en}|${JSON.stringify(vars ?? {})}]`;
+        for (const p of [
+            'steps.split.output.matchesByCase.pdf', 'steps.split.output.matchesByCase.default', 'steps.split.output.matchesByCase["High priority"]',
+            'steps.keep.output.items', 'steps.keep.output.items[*].attachments', 'steps.s1.output.items', 'steps.s1.output.messages[*].attachments', 'item.subject',
+        ]) {
+            for (const opts of [{}, { stepTypeById }, { compact: true, stepTypeById }]) {
+                expect(listPathLabel(p, labels, null, opts)).toBe(label.listPathLabel?.(p, labels, null, opts));
+                expect(listPathLabel(p, labels, t, opts)).toBe(label.listPathLabel?.(p, labels, t, opts));
+            }
+        }
+        expect(listPathLabel('steps.split.output.matchesByCase.default', labels)).toBe('Split ▸ Otherwise');
+        expect(listPathLabel('steps.keep.output.items[*].attachments', labels, null, { compact: true, stepTypeById })).toBe('Keep ▸ Attachments');
+    });
 });
 
 describe('a value from a list inside a list, picked into one field', () => {

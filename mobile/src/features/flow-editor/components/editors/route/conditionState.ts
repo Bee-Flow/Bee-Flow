@@ -8,7 +8,7 @@
  */
 
 import { bindingFromInput, isDataPath, walkPath } from '@/features/flow-editor/bindings';
-import { emptyRow, inferType, parseExprToRows, type Binding, type ConditionRow, type ValueType } from '@/features/flow-editor/model';
+import { emptyRow, parseExprToRows, rowType as modelRowType, type Binding, type ConditionRow, type ValueType } from '@/features/flow-editor/model';
 import { renderBindingValue } from '@/features/flow-editor/model/route/bindingText';
 
 export interface ConditionState {
@@ -74,16 +74,19 @@ export function fieldFromExpression(text: string): Binding {
     return bindingFromInput(typed, 'expression');
 }
 
-/** The row's field datatype, from the sample it resolves to. */
+/** The row's field datatype, from the sample it resolves to (a column: its first entry; File type: 'fileType'). */
 export function rowType(row: ConditionRow, sampleRoot: unknown): ValueType {
-    const f = row.field;
-    const path = f && typeof f === 'object' && f.kind === 'ref' ? String(f.path || '') : '';
-    return path && sampleRoot ? inferType(walkPath(path, sampleRoot)) : 'unknown';
+    return modelRowType(row, sampleRoot, walkPath);
 }
 
-/** A list path (`[*]`) compared as a whole: worth a warning, except for "has a value". */
-export function hasWildcard(rows: readonly ConditionRow[]): boolean {
-    return rows.some((r) => r.op !== 'truthy' && fieldText(r).includes('[*]'));
+/**
+ * Inside a list, a `[*]` path with no quantifier compares a whole list as one
+ * value: worth a note under its row, except for "has a value". A whole-run
+ * Condition says this once, above its rules (RouteEditor's whole-list notice,
+ * from the shared wholeRunListReads), so this is for list mode only.
+ */
+export function readsListAsValue(row: ConditionRow): boolean {
+    return !row.quantifier && row.op !== 'truthy' && fieldText(row).includes('[*]');
 }
 
 /** Rows with one removed; never none — the last row empties instead. */

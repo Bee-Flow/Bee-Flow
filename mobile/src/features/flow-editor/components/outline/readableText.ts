@@ -12,8 +12,9 @@
  */
 
 import { describeDataPath, describeListPath, isDataPath, type StepLabelMap } from '@/features/flow-editor/bindings';
+import { listPathLabel } from '@/features/flow-editor/bindings/listPathLabel';
 import { chipLabel, chipsIn, type TextChip } from '@/features/flow-editor/components/fields/bindingText';
-import { describeRuleExpr, humanizeExpression, type Summary, type Translate } from '@/features/flow-editor/model';
+import { describeRuleExpr, type Summary, type Translate } from '@/features/flow-editor/model';
 
 const TOKEN_RE = /\{\{([^}]*)\}\}/g;
 
@@ -52,24 +53,48 @@ export function readableText(text: unknown, labels: StepLabelMap = null, { expre
  * scans — named: "‹gmail search ▸ Results›", a column "‹gmail search ▸
  * Subject (inside each row)›". A trailing `[*]` is the list itself. Anything
  * that is not one path is read as an expression. '' when there is none.
+ *
+ * A Condition's own outputs read the way the web's listPathLabel names them,
+ * never by their internal keys: `matchesByCase.pdf` as "‹Split ▸ pdf›", its
+ * `default` as "Otherwise", and what a list Condition keeps (`items`, when
+ * `stepTypeById` says the step is one) as the Condition itself. `compact` is
+ * the canvas card's form of a list inside each row ("‹Read many ▸ Attachments›").
  */
-export function readablePath(path: unknown, labels: StepLabelMap = null, t: Translate | null = null): string {
+export function readablePath(path: unknown, labels: StepLabelMap = null, t: Translate | null = null, opts: ReadablePathOptions = {}): string {
     const raw = (typeof path === 'string' ? path : '').trim().replace(/(?:\[\*\])+$/, '');
     if (!raw) return '';
     if (!isDataPath(raw)) return readableText(raw, labels, { expression: true });
+    if (opts.compact || isRouteOutput(raw, opts.stepTypeById ?? null)) {
+        return `‹${listPathLabel(raw, labels, t as ListLabelT, { compact: !!opts.compact, stepTypeById: opts.stepTypeById ?? null })}›`;
+    }
     return `‹${raw.includes('[*]') ? describeListPath(raw, labels, t) : chipLabel(describeDataPath(raw, labels))}›`;
+}
+
+export interface ReadablePathOptions {
+    compact?: boolean;
+    stepTypeById?: Map<string, string> | null;
+}
+
+/** listPathLabel's own translate type: the app's `t` with looser params. */
+type ListLabelT = Parameters<typeof listPathLabel>[2];
+
+const ROUTE_TYPES = new Set(['filter', 'switch']);
+
+/** `steps.<id>.output.matchesByCase…`, or `steps.<id>.output.items…` of a Condition: a key the author never named. */
+function isRouteOutput(path: string, stepTypeById: Map<string, string> | null): boolean {
+    const m = /^steps\.([^.[]+)\.output\.(matchesByCase|items)(?=$|[.[])/.exec(path);
+    if (!m) return false;
+    return m[2] === 'matchesByCase' || ROUTE_TYPES.has(stepTypeById?.get(m[1] ?? '') ?? '');
 }
 
 /**
  * A rule as a sentence ("Subject contains “isv”", the web's describeRuleExpr)
- * — and, where that sentence falls back to the expression itself, the
- * expression with its references named.
+ * — and, for a formula the rule rows cannot show, "Custom rule": a card never
+ * shows code (C1, D6).
  */
-export function readableRule(expr: unknown, labels: Map<string, string> | null = null): string {
+export function readableRule(expr: unknown, labels: Map<string, string> | null = null, t: Translate | null = null): string {
     const src = (typeof expr === 'string' ? expr : '').trim();
-    if (!src) return '';
-    const sentence = describeRuleExpr(src, labels);
-    return sentence === humanizeExpression(src, labels) ? readableText(src, labels, { expression: true }) : sentence;
+    return src ? describeRuleExpr(src, labels, t) : '';
 }
 
 /** A card line with its references named; the muted "not yet" words are left as they are. */

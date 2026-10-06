@@ -4,6 +4,9 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import OutputView from '../OutputView';
 import ErrorCard, { type ErrorFix, type StepErrorInfo } from '../output/ErrorCard';
 import ExpectedFields from '../output/ExpectedFields';
+import { appendKey } from '@shared/expr/path.mjs';
+import { routeNoteOf, routeOutputsOf, type RouteContext } from '../output/routeNote';
+import RunNote from '../output/RunNote';
 import { smartRowsOf } from '../output/SmartOutput';
 import UsedBy, { type NextSuggestion } from '../output/UsedBy';
 import { looksLikeFileRows, type UsedByEntry } from '../output/usedBy';
@@ -34,6 +37,8 @@ export interface StepOutputTabProps {
     describedSample?: unknown;
     /** Later steps reading this output; undefined = do not show "Used by". */
     usedBy?: UsedByEntry[];
+    /** Columns the table suggests by default (a flatten's ids). */
+    promote?: readonly string[];
     onAddAfter?: ((suggestion: NextSuggestion) => void) | null;
     onRetry?: (() => void) | null;
     onFix?: ((fix: ErrorFix, info: StepErrorInfo | null) => boolean | void) | null;
@@ -45,6 +50,23 @@ export interface StepOutputTabProps {
     bindingWarnings?: unknown;
     /** Step id → label, so a warning names the step it read from, not its id. */
     stepLabelById?: Map<string, string> | null;
+    /** Step id → type, so a path into a Condition's outputs names the output. */
+    stepTypeById?: Map<string, string> | null;
+    /**
+     * The step works through a list as a Condition: its unit and outputs, so
+     * the output opens with "Kept 3 of 4 messages" or the per-output split.
+     */
+    route?: RouteContext | null;
+}
+
+/** "Kept 3 of 4 messages" above a Condition's output; nothing for any other step. */
+function RouteNoteLine({ value, route }: { value: unknown; route?: RouteContext | null }) {
+    if (!route || !routeNoteOf(value, route)) return null;
+    return (
+        <div className="shrink-0 px-1 text-xs">
+            <RunNote value={value} route={route} />
+        </div>
+    );
 }
 
 /**
@@ -57,7 +79,7 @@ export default function StepOutputTab({
     stepId = null, stepLabel = null, liveOutput, error = null, errorInfo = null, remediation = null,
     onCopyPath = null, compact = false, describedSample = null, usedBy, onAddAfter = null,
     onRetry = null, onFix = null, columnsKey = null, toolsWithheld = null, bindingWarnings = null,
-    stepLabelById = null,
+    stepLabelById = null, stepTypeById = null, route, promote,
 }: StepOutputTabProps) {
     const { t } = useTranslation();
     const basePath = stepId ? `steps.${stepId}.output` : '';
@@ -68,6 +90,12 @@ export default function StepOutputTab({
     const showExpected = !hasOutput && describedSample != null;
     const withheld = useMemo(() => withheldRunTools(toolsWithheld), [toolsWithheld]);
     const misses = useMemo(() => bindingWarningsOf(bindingWarnings), [bindingWarnings]);
+    // A list switch's record is the runner's filing (mode, branch, counts):
+    // the panel shows its outputs instead, at their own path, and the route
+    // note above says the counts (P2).
+    const outputs = useMemo(() => routeOutputsOf(liveOutput, route), [liveOutput, route]);
+    const shown = outputs ?? liveOutput;
+    const shownPath = outputs && basePath ? appendKey(basePath, 'matchesByCase') : basePath;
 
     // `flex-1` so this sizes as a flex ITEM of its (flex) parent: in the
     // compact dialog that parent only carries a max-height, so `h-full` alone
@@ -80,7 +108,8 @@ export default function StepOutputTab({
                 )}
                 {/* Above the output: an input that came up empty explains an
                     output that looks wrong, and often the error above it. */}
-                <BindingWarnings warnings={misses} labelById={stepLabelById} />
+                <BindingWarnings warnings={misses} labelById={stepLabelById} typeById={stepTypeById} />
+                <RouteNoteLine value={liveOutput} route={route} />
                 {hasOutput && (
                     <div className="flex-1 min-h-[160px] flex flex-col">
                         <OutputView
@@ -88,11 +117,12 @@ export default function StepOutputTab({
                             fieldsView
                             allowExpand
                             smartTable
-                            value={liveOutput}
-                            basePath={basePath}
+                            value={shown}
+                            basePath={shownPath}
                             onCopyPath={onCopyPath}
                             columnsKey={columnsKey}
                             usedFields={usedFields}
+                            promote={promote}
                             stepLabel={stepLabel}
                             emptyMessage={t('automations.output.none_recorded', 'No output recorded yet. Run or dry-run this step to capture one.')}
                         />

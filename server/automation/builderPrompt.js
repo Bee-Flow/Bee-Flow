@@ -15,6 +15,7 @@
 const { renderCatalog, renderCatalogSlim, renderDatatablesBlock, renderDocumentsBlock } = require('./builderPrompt/catalogRender');
 const { buildFewShotMessages } = require('./builderPrompt/fewShotExamples');
 const { renderTriggerBlockLean } = require('./builderPrompt/triggerBlock');
+const { CONDITION_RULES_HINT } = require('./builderTools/ruleExamples');
 
 
 // The name a draft has until somebody names it. The same literal lives in
@@ -326,7 +327,7 @@ draft is a typed DAG of steps:
                      inside a loop, a parallel branch or a flowlet. Like stop_error, NOTHING
                      after it ever runs — do not wire anything to its output.
   switch           — multi-way branch by case name (preferred over chained conditions)
-  array_op         — filter/limit/dedupe/aggregate/summarize over an upstream array
+  array_op         — filter/limit/dedupe/aggregate/summarize/flatten over an upstream array
   datatable        — read or write rows of an organisation-scoped DATATABLE: WORKING DATA a
                      automation leaves behind for a later run or for a different automation
                      (knowledge_write below also outlives the run, but stores TEXT an agent
@@ -642,7 +643,7 @@ When something must happen for EACH item of an upstream array, pick the lighter 
   next step's \`forEach\` at that array keeps the per-item link: \`loop.<v>.item\` is the original
   and \`loop.<v>.output\` is that item's result from the step before. A failed item has
   \`status:"error"\` and no \`output\`, so filter first:
-  \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"item.status === 'success'"})\`.
+  \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\`.
 - **A \`loop\` step** is for the rare shape where two steps need the SAME source item without one
   consuming the other's results, or where a body step branches. Note the failure semantics differ:
   a \`loop\` aborts entirely on the first failing item; \`forEach\` collects the error, continues,
@@ -659,6 +660,10 @@ of \`gmail_modify_labels\` / \`gmail_mark_read\` / \`gmail_archive\` per email, 
 were actually read: \`messageIds:{kind:"ref",path:"steps.<readMany>.output.messages[*].id"}\`. Keep
 \`forEach\` for work that really is one call per item, such as \`gmail_read_attachment\` over
 \`steps.<readMany>.output.messages[*].attachments\`.
+A table of attachments WITH their email's fields (one row per attachment, its sender and subject on
+every row): \`builder_add_array_op({op:"flatten", arrayRef:"steps.<readMany>.output.messages", childField:"attachments"})\`,
+then \`forEach\` over \`steps.<flat>.output.items\` (the item has \`attachmentId\`, \`messageId\`, \`filename\`,
+\`from\`, \`subject\`). Google Sheets append still needs \`forEach\` per row.
 Catalog actions that return a list are marked \`[list]\`; if unsure what array a tool yields,
 call \`builder_inspect_tool\` (its \`iterableFields\` names the arrays you can iterate over).
 
@@ -683,6 +688,11 @@ call \`builder_inspect_tool\` (its \`iterableFields\` names the arrays you can i
   thenStepId/elseStepId to wire EXISTING steps. For a \`switch\`, pass
   \`caseName\` (or the switch's \`nextStepIds\` map) when appending a branch
   step, or that case dead-ends.
+- A condition decides ONCE for the whole run; to keep the matching items
+  of a list use builder_add_filter (or a switch with arrayRef) and continue
+  on its output.items. A condition that reads \`list[*]\` sends every item
+  the same way, so the steps after it still process all of them.
+- Condition, filter and switch rules: ${CONDITION_RULES_HINT}
 - Inserting INTO an existing chain: \`afterStepId\` alone adds the new step
   BESIDE the anchor's current successor (the old edge stays, so both run in
   parallel and nothing downstream can depend on the new step). Pass
@@ -855,9 +865,9 @@ You may emit SEVERAL tool calls in one reply — they execute in order. Typical 
     const loopBullets = fullMenu
         ? `   - PREFER \`forEach\` ON THE STEP over a \`loop\` container. Set \`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"item"}\` on the step itself (integration_action / ai_step / code / notification / set / http_request / datatable / knowledge_write) and reference the item as \`loop.<itemVar>\`. It reads as one node on the canvas instead of a nested block.
    - CHAIN per-item work with forEach — you almost never need a \`loop\`. A \`forEach\` step publishes \`steps.<id>.output.results\`, one entry per item carrying \`{index, item, output, status}\`. Point the NEXT step's \`forEach\` at that array and per-item correlation is preserved: \`loop.<v>.item\` is the original item and \`loop.<v>.output\` is that same item's result from the previous step. So "read each file, then extract from each file" is TWO flat forEach steps, not a loop.
-   - A failed item's entry has \`status:"error"\` and NO \`output\` key. Before chaining, drop them: \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"item.status === 'success'"})\` and point the next \`forEach\` at that filter's \`output.items\`.
+   - A failed item's entry has \`status:"error"\` and NO \`output\` key. Before chaining, drop them: \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\` and point the next \`forEach\` at that filter's \`output.items\`.
    - A \`loop\` container is for the rare case where two steps must read the SAME source item without one consuming the other's results, or where a body step branches. It is also ALL-OR-NOTHING: one failing item aborts the whole loop, while \`forEach\` records the failure, carries on, and only fails if every item failed. Prefer \`forEach\`. Never wrap a single step in a loop.`
-        : `   - There is no loop container on this menu. Per-item work is \`forEach\` on the step (\`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"f"}\`, the item is \`loop.f\`); a forEach step publishes \`steps.<id>.output.results\`, one entry per item as \`{index, item, output, status}\`. Chain: the next step's forEach points at \`steps.<prev>.output.results\` and reads \`loop.<v>.output.<field>\` — "read each file, then extract from each file" is TWO flat forEach steps. Failed items have \`status:"error"\` and no \`output\` — drop them first with \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"item.status === 'success'"})\` and point the next forEach at that filter's \`output.items\`.`;
+        : `   - There is no loop container on this menu. Per-item work is \`forEach\` on the step (\`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"f"}\`, the item is \`loop.f\`); a forEach step publishes \`steps.<id>.output.results\`, one entry per item as \`{index, item, output, status}\`. Chain: the next step's forEach points at \`steps.<prev>.output.results\` and reads \`loop.<v>.output.<field>\` — "read each file, then extract from each file" is TWO flat forEach steps. Failed items have \`status:"error"\` and no \`output\` — drop them first with \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\` and point the next forEach at that filter's \`output.items\`.`;
 
     // Which trigger fired. The full menu can branch on it with a switch and
     // can add flowlets, whose own trigger is their input contract.
@@ -960,7 +970,7 @@ Forwarding a mail attachment to Drive? Pass the \`sourceHandle\` returned by \`g
 
 ## Placing steps
 
-\`afterStepId\` = the anchor (default: the last step; in a batch, the previous entry). \`branch\`: "then" | "else" on a condition, "error" = runs only when afterStepId fails. \`splice:true\` inserts between the anchor and its successor instead of beside it. \`forEach:{overRef, itemVar}\` runs the step per item; the item is \`loop.<itemVar>\`. Grow a condition branch by appending with \`afterStepId\` = the condition id (auto-labels "then" first, "else" second); pass \`branch\` to override.${switchRule}
+\`afterStepId\` = the anchor (default: the last step; in a batch, the previous entry). \`branch\`: "then" | "else" on a condition, "error" = runs only when afterStepId fails. \`splice:true\` inserts between the anchor and its successor instead of beside it. \`forEach:{overRef, itemVar}\` runs the step per item; the item is \`loop.<itemVar>\`. Grow a condition branch by appending with \`afterStepId\` = the condition id (auto-labels "then" first, "else" second); pass \`branch\` to override.${switchRule} A condition decides ONCE for the whole run; to keep the matching items of a list use \`builder_add_array_op({op:"filter"})\` and continue on its \`output.items\`. One row per item of a list inside each item (an attachment with its email's fields) is \`op:"flatten"\` with \`childField\`. Rules: contains(item.subject, "invoice"), equals(item.status, "open"), anyOf(item.attachments[*].filename, "endsWith", ".pdf"); text helpers ignore upper/lower case, never lower()/upper().
 
 ${renderTriggerBlockLean()}
 

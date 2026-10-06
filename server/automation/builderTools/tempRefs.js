@@ -26,6 +26,7 @@ const NOT_A_START = /[\p{L}\p{N}\p{M}_$@.\-\]]/u;
 function startsAPath(text, i) {
     let j = i;
     while (j > 0 && (text[j - 1] === '$' || text[j - 1] === '.')) j--;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NOT_A_START is one character class tested on a single character (text[j - 1]): linear
     return j === 0 || !NOT_A_START.test(text[j - 1]);
 }
 

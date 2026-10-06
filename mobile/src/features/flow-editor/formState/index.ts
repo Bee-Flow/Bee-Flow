@@ -12,8 +12,8 @@ import { extractAiStep, patchAiStep } from './aiStep';
 import { extractApproval, patchApproval } from './approvalStep';
 import { applyRetryPatch, normalizeRetry, RETRY_FORM_TYPES } from './common';
 import {
-    extractAggregate, extractDatatable, extractDateTime, extractDedupe, extractKnowledgeWrite, extractLimit, extractParseJson,
-    extractSet, extractSummarize, patchAggregate, patchDatatable, patchDateTime, patchDedupe, patchKnowledgeWrite, patchLimit,
+    extractAggregate, extractDatatable, extractDateTime, extractDedupe, extractFlatten, extractKnowledgeWrite, extractLimit, extractParseJson,
+    extractSet, extractSummarize, patchAggregate, patchDatatable, patchDateTime, patchDedupe, patchFlatten, patchKnowledgeWrite, patchLimit,
     patchParseJson, patchSet, patchSummarize,
 } from './dataSteps';
 import {
@@ -67,6 +67,7 @@ const FAMILIES: Record<string, [Extractor, Patcher]> = {
     dedupe: [extractDedupe, patchDedupe],
     aggregate: [extractAggregate, patchAggregate],
     summarize: [extractSummarize, patchSummarize],
+    flatten: [extractFlatten, patchFlatten],
     datatable: [extractDatatable, patchDatatable],
     knowledge_write: [extractKnowledgeWrite, patchKnowledgeWrite],
 };

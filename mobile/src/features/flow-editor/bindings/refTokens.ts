@@ -108,8 +108,10 @@ const INLINE_HEAD = /steps\.[A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]*)+\.output/y;
 const MARK = /\p{M}/u;
 
 function identEnd(s: string, i: number): number {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- IDENT_START is one character class, tested on one character: linear
     if (!IDENT_START.test(s.charAt(i))) return -1;
     let j = i + 1;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- IDENT_CHAR is one character class, tested on one character per step: linear
     while (j < s.length && IDENT_CHAR.test(s.charAt(j))) j++;
     return j;
 }
@@ -138,6 +140,7 @@ function engineCut(s: string, from: number, to: number): number {
         if (c === '[') depth++;
         else if (c === ']') depth--;
         else if (depth === 0 && (c === '-' || c === '@')) return s.charAt(j - 1) === '.' ? j - 1 : j;
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- MARK is one character class (\p{M}), tested on one character: linear
         else if (depth === 0 && c === '.' && MARK.test(s.charAt(j + 1))) return j;
     }
     return to;
@@ -145,6 +148,7 @@ function engineCut(s: string, from: number, to: number): number {
 
 function exprPathEnd(s: string, i: number): number {
     INLINE_HEAD.lastIndex = i;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- INLINE_HEAD is sticky (one start, at i) and each [\w$]* stops at the / or . that must follow it, so no two quantifiers compete for a character: linear
     if (INLINE_HEAD.test(s)) {
         // The sub-step id is one key; the rest is a path tail behind a stand-in head.
         const head = INLINE_HEAD.lastIndex;

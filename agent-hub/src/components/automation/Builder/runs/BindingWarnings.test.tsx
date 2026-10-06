@@ -55,3 +55,24 @@ describe('Mappings that found nothing', () => {
         expect(screen.getAllByRole('listitem')).toHaveLength(8);
     });
 });
+
+describe('rule misses (V1, P4)', () => {
+    const RULE = { kind: 'rule', path: 'item.atachments', reason: 'missing', count: 4 };
+    const RULE_HINT = 'A rule read a field that none of the items have, so it matched nothing. Pick the field again in the Condition.';
+    const MAPPING_HINT = /These inputs were left empty/;
+
+    it('a rule miss reads "The rule · Each item ▸ Atachments" with the rule hint', () => {
+        render(<BindingWarnings warnings={bindingWarningsOf([RULE])} labelById={labels} />);
+        const line = screen.getByRole('button', { name: /The rule/ });
+        expect(line.textContent).toContain('Each item ▸ Atachments');
+        expect(line.textContent).toContain('4×');
+        expect(screen.getByText(RULE_HINT)).toBeTruthy();
+        expect(screen.queryByText(MAPPING_HINT)).toBeNull();
+    });
+
+    it('a mix of rule and mapping misses keeps the mapping hint', () => {
+        render(<BindingWarnings warnings={bindingWarningsOf([RULE, MISS])} labelById={labels} />);
+        expect(screen.getByText(MAPPING_HINT)).toBeTruthy();
+        expect(screen.queryByText(RULE_HINT)).toBeNull();
+    });
+});

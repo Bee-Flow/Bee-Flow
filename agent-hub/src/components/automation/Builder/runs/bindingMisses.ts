@@ -12,14 +12,20 @@
 import { isValidPath } from '@shared/expr/path.mjs';
 import { humanizeFieldKey } from '../flow/displayHelpers';
 import { listPathLabel } from '../mapping/listPathLabel';
+import { buildRunStepMap } from '../flow/runStepLabels';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 export type BindingMissReason = 'missing' | 'not_run' | 'syntax' | 'error';
-export type BindingMissKind = 'ref' | 'template' | 'expr';
+/** `rule`: a Condition's rule read a field none of the items have (binding log entry kind 'rule'). */
+export type BindingMissKind = 'ref' | 'template' | 'expr' | 'rule';
 
 /** One input whose mapping found nothing (or could not be read). */
 export interface BindingWarning {
-    /** The input it was for, nested inputs dotted ('values.Datum'); null when unknown. */
+    /**
+     * The input it was for, nested inputs dotted ('values.Datum'); null when
+     * unknown. On a rule miss: the output (switch case) whose rule missed, or
+     * null for the Condition's one rule.
+     */
     field: string | null;
     kind: BindingMissKind | null;
     /** The path it read, or a formula's text. */
@@ -34,7 +40,7 @@ export interface BindingWarning {
 }
 
 const REASONS = new Set<string>(['missing', 'not_run', 'syntax', 'error']);
-const KINDS = new Set<string>(['ref', 'template', 'expr']);
+const KINDS = new Set<string>(['ref', 'template', 'expr', 'rule']);
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
 
@@ -92,27 +98,53 @@ function whyText(t: TranslateFn, w: BindingWarning): string {
     }
 }
 
-function inputText(t: TranslateFn, field: string | null): string {
+function inputText(t: TranslateFn, w: BindingWarning): string {
+    const { field } = w;
+    if (w.kind === 'rule') {
+        return field
+            ? t('condition_node.miss.output', 'Output “{name}”', { name: field })
+            : t('condition_node.miss.rule', 'The rule');
+    }
     const parts = (field || '').split('.').map(humanizeFieldKey).filter(Boolean);
     return parts.length ? parts.join(' ▸ ') : t('automations.output.binding_any_input', 'A mapping');
 }
 
-function sourceText(t: TranslateFn, w: BindingWarning, labelById: Map<string, string> | null): string {
+/** Step id → step type, so a path into a Condition's outputs reads as its output names. */
+export type StepTypeLookup = Pick<Map<string, string>, 'get'> | null;
+
+/**
+ * Every step type of a run's definition by the id the runner records it
+ * under (flowlet steps too), for `bindingWarningLine`.
+ */
+export function runStepTypeMap(definition: unknown): Map<string, string> {
+    const m = new Map<string, string>();
+    for (const [id, s] of buildRunStepMap(definition)) if (typeof s?.type === 'string') m.set(id, s.type);
+    return m;
+}
+
+function sourceText(t: TranslateFn, w: BindingWarning, labelById: Map<string, string> | null, typeById: StepTypeLookup): string {
     // A formula's text is not a field: name it as one and keep the text for
     // the detail. A path that does not parse has no friendlier reading than
     // itself.
     if (w.kind === 'expr' && !isValidPath(w.path)) return t('automations.output.binding_formula', 'A formula');
     if (!isValidPath(w.path)) return w.path;
-    return listPathLabel(w.path, labelById, t);
+    return listPathLabel(w.path, labelById, t, { stepTypeById: typeById });
 }
 
-export function bindingWarningLine(t: TranslateFn, w: BindingWarning, labelById: Map<string, string> | null = null): BindingWarningLine {
+export function bindingWarningLine(
+    t: TranslateFn, w: BindingWarning, labelById: Map<string, string> | null = null, typeById: StepTypeLookup = null,
+): BindingWarningLine {
     return {
-        input: inputText(t, w.field),
-        source: sourceText(t, w, labelById),
+        input: inputText(t, w),
+        source: sourceText(t, w, labelById, typeById),
         why: whyText(t, w),
         count: w.count,
         detail: w.description || w.message || w.path,
         raw: w.path,
     };
+}
+
+/** True when every warning is a rule that matched nothing (the panel then explains rules, not mappings). */
+export function allRuleMisses(warnings: BindingWarning[]): boolean {
+    return warnings.length > 0 && warnings.every(w => w.kind === 'rule');
 }

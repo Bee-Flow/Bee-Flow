@@ -17,11 +17,13 @@ import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { BindingInput } from '@/features/flow-editor/components/fields';
 import { readableExample } from '@/features/flow-editor/components/outline/readableText';
-import { emptyRow, serializeRows, type ConditionRow } from '@/features/flow-editor/model';
+import { emptyRow, rowForField, serializeRows, type Binding, type ConditionRow } from '@/features/flow-editor/model';
 import { Button, Segmented, Text } from '@/shared/ui';
 
 import { ConditionRowEditor } from './ConditionRowEditor';
-import { canUseVisual, conditionState, hasWildcard, rowType, withoutRow, type ConditionState } from './conditionState';
+import { canUseVisual, conditionState, fieldText, rowType, withoutRow, type ConditionState } from './conditionState';
+import { CustomRuleCard } from './CustomRuleCard';
+import { ruleRowHints } from './ruleHints';
 import type { PickOption } from '../shared/FieldPicker';
 import { patchAt } from '../shared/list';
 
@@ -34,6 +36,8 @@ export interface ConditionBuilderProps {
     /** Pick fields by name; without it each field is bound like any value. */
     fieldOptions?: readonly PickOption[] | null;
     fieldBase?: string;
+    /** Simple mode: no formula box, no "Write raw expression" (R8). */
+    simple?: boolean;
     disabled?: boolean;
 }
 
@@ -68,62 +72,100 @@ function useRowKeys(count: number) {
     return { keys, removeAt, append };
 }
 
-export function ConditionBuilder({ value, onChange, sampleRoot, context = 'condition', fieldOptions = null, fieldBase = 'item', disabled = false }: ConditionBuilderProps) {
+function RawFormula({ value, onType, onVisual, context, disabled }: { value: string; onType: (next: string) => void; onVisual: () => void; context: string; disabled: boolean }) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
-    const { state, setState, setSeen } = useConditionState(value);
-    const emit = (rows: ConditionRow[], join: ConditionState['join']) => {
-        const expr = serializeRows(rows, join);
-        setState({ rows, join, raw: false });
-        setSeen(expr);
-        onChange(expr);
-    };
-    if (state.raw) {
-        return (
-            <View style={styles.box}>
-                <BindingInput
-                    mode="expression"
-                    multiline
-                    value={value}
-                    onChange={(next) => {
-                        setSeen(String(next));
-                        onChange(String(next));
-                    }}
-                    label={t('mobile.flow.condition.expression', 'Expression')}
-                    // The example as its pills will read: "‹Current row ▸ Amount› > 1000".
-                    prompt={readableExample(context === 'filter' ? 'item.amount > 1000' : 'steps.step1.output.amount > 1000', true)}
-                    disabled={disabled}
-                />
-                {canUseVisual(value) ? (
-                    <Button size="sm" variant="ghost" label={t('mobile.flow.condition.use_visual', 'Use visual builder')} onPress={() => setState(conditionState(value))} />
-                ) : null}
-            </View>
-        );
-    }
-    const { rows, join } = state;
     return (
-        <RowList
-            rows={rows}
-            join={join}
-            emit={emit}
-            onRaw={() => setState({ ...state, raw: true })}
-            {...{ sampleRoot, context, fieldOptions, fieldBase, disabled }}
-        />
+        <View style={styles.box}>
+            <BindingInput
+                mode="expression"
+                multiline
+                value={value}
+                onChange={(next) => onType(String(next))}
+                label={t('mobile.flow.condition.expression', 'Expression')}
+                // The example as its pills will read: "‹Current row ▸ Amount› > 1000".
+                prompt={readableExample(context === 'filter' ? 'item.amount > 1000' : 'steps.step1.output.amount > 1000', true)}
+                disabled={disabled}
+            />
+            {canUseVisual(value) ? <Button size="sm" variant="ghost" label={t('mobile.flow.condition.use_visual', 'Use visual builder')} onPress={onVisual} /> : null}
+        </View>
     );
 }
 
-interface RowListProps extends Required<Pick<ConditionBuilderProps, 'sampleRoot' | 'context' | 'fieldBase' | 'disabled'>> {
+export function ConditionBuilder({ value, onChange, sampleRoot, context = 'condition', fieldOptions = null, fieldBase = 'item', simple = false, disabled = false }: ConditionBuilderProps) {
+    const t = useTranslation();
+    const { state, setState, setSeen } = useConditionState(value);
+    // "Build it again by clicking": rows on screen, the formula still saved until a field is picked.
+    const [rebuilding, setRebuilding] = useState(false);
+    const emit = (rows: ConditionRow[], join: ConditionState['join']) => {
+        setState({ rows, join, raw: false });
+        if (rebuilding && !rows.some((r) => fieldText(r))) return;
+        setRebuilding(false);
+        const expr = serializeRows(rows, join);
+        setSeen(expr);
+        onChange(expr);
+    };
+    if (state.raw && simple) {
+        return (
+            <CustomRuleCard
+                expr={value}
+                onRebuild={() => {
+                    setRebuilding(true);
+                    setState({ rows: [emptyRow()], join: '&&', raw: false });
+                }}
+            />
+        );
+    }
+    if (state.raw) {
+        const type = (next: string) => {
+            setSeen(next);
+            onChange(next);
+        };
+        return <RawFormula value={value} onType={type} onVisual={() => setState(conditionState(value))} context={context} disabled={disabled} />;
+    }
+    const keepFormula = () => {
+        setRebuilding(false);
+        setState(conditionState(value));
+    };
+    return (
+        <>
+            {rebuilding ? (
+                <>
+                    <Text variant="caption" tone="tertiary">
+                        {t('condition_node.custom.rebuild_note', 'The formula stays until you pick a field.')}
+                    </Text>
+                    <Button size="sm" variant="ghost" label={t('condition_node.custom.keep', 'Keep the formula')} onPress={keepFormula} testID="custom-rule-keep" />
+                </>
+            ) : null}
+            <RowList
+                rows={state.rows}
+                join={state.join}
+                emit={emit}
+                onRaw={simple ? null : () => setState({ ...state, raw: true })}
+                {...{ sampleRoot, context, fieldOptions, fieldBase, simple, disabled }}
+            />
+        </>
+    );
+}
+
+interface RowListProps extends Required<Pick<ConditionBuilderProps, 'sampleRoot' | 'context' | 'fieldBase' | 'simple' | 'disabled'>> {
     rows: ConditionRow[];
     join: ConditionState['join'];
     emit: (rows: ConditionRow[], join: ConditionState['join']) => void;
-    onRaw: () => void;
+    onRaw: (() => void) | null;
     fieldOptions: readonly PickOption[] | null;
 }
 
-function RowList({ rows, join, emit, onRaw, sampleRoot, context, fieldOptions, fieldBase, disabled }: RowListProps) {
+/** A field picked by name: the test and the quantifier follow the field (R6). */
+function pickedRow(row: ConditionRow, field: Binding, sampleRoot: unknown): ConditionRow {
+    return rowForField(row, field, rowType({ ...row, field }, sampleRoot));
+}
+
+function RowList({ rows, join, emit, onRaw, sampleRoot, context, fieldOptions, fieldBase, simple, disabled }: RowListProps) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const keys = useRowKeys(rows.length);
+    const labelOf = (row: ConditionRow) => fieldOptions?.find((o) => o.path === fieldText(row))?.label ?? null;
     return (
         <View style={styles.box}>
             {rows.length > 1 ? (
@@ -138,39 +180,32 @@ function RowList({ rows, join, emit, onRaw, sampleRoot, context, fieldOptions, f
                     fullWidth
                 />
             ) : null}
-            {rows.map((row, i) => (
-                <ConditionRowEditor
-                    key={keys.keys[i]}
-                    row={row}
-                    index={i}
-                    type={rowType(row, sampleRoot)}
-                    onChange={(patch) => emit(patchAt(rows, i, patch), join)}
-                    onRemove={
-                        rows.length > 1
-                            ? () => {
-                                  keys.removeAt(i);
-                                  emit(withoutRow(rows, i), join);
-                              }
-                            : null
-                    }
-                    fieldOptions={fieldOptions}
-                    fieldBase={fieldBase}
-                    disabled={disabled}
-                />
-            ))}
-            {hasWildcard(rows) ? (
-                <Text variant="caption" tone="warning">
-                    {context === 'filter'
-                        ? t('mobile.flow.condition.wildcard_filter', 'Inside a filter the current element is bound as item — reference item.<field> instead of a list path with [*].')
-                        : t('mobile.flow.condition.wildcard', 'This field points at a list (contains [*]). Add a Filter step to work through items one at a time.')}
-                </Text>
-            ) : null}
+            {rows.map((row, i) => {
+                const type = rowType(row, sampleRoot);
+                const remove = () => {
+                    keys.removeAt(i);
+                    emit(withoutRow(rows, i), join);
+                };
+                return (
+                    <ConditionRowEditor
+                        key={keys.keys[i]}
+                        row={row}
+                        index={i}
+                        type={type}
+                        onChange={(patch) => emit(patchAt(rows, i, patch), join)}
+                        onPickField={(field) => emit(rows.map((r, k) => (k === i ? pickedRow(r, field, sampleRoot) : r)), join)}
+                        onRemove={rows.length > 1 ? remove : null}
+                        hints={ruleRowHints({ row, type, sampleRoot, context, label: labelOf(row) }, t)}
+                        {...{ fieldOptions, fieldBase, simple, disabled }}
+                    />
+                );
+            })}
             <View style={styles.actions}>
                 <Button size="sm" variant="ghost" iconName="Plus" label={t('mobile.flow.condition.add', 'Add condition')} onPress={() => {
                         keys.append();
                         emit([...rows, emptyRow()], join);
                     }} disabled={disabled} />
-                <Button size="sm" variant="ghost" label={t('mobile.flow.condition.write_raw', 'Write raw expression')} onPress={onRaw} disabled={disabled} />
+                {onRaw ? <Button size="sm" variant="ghost" label={t('mobile.flow.condition.write_raw', 'Write raw expression')} onPress={onRaw} disabled={disabled} /> : null}
             </View>
         </View>
     );

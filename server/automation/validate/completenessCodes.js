@@ -165,6 +165,9 @@ const COMPLETENESS_CODES = new Set([
     'dedupe.arrayRef_missing',
     'aggregate.arrayRef_missing',
     'summarize.arrayRef_missing',
+    // Flatten: no list yet, or a list without the inner level picked.
+    'flatten.arrayRef_missing',
+    'flatten.level_missing',
     'aggregate.field_missing',
     'summarize.field_missing',
     // Date & time list mode: same story — the source list is blank for as long

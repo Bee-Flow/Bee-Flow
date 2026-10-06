@@ -1,5 +1,5 @@
-import path from 'node:path';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } from './exprFunctions';
@@ -39,5 +39,24 @@ describe('conditionModel operator registry — fn operators stay in the server w
         const row = { field: { kind: 'ref', path: 'item.name' }, op: 'isEmpty', value: { kind: 'literal', value: '' } };
         expect(serializeRow(row)).toBe('isEmpty(item.name)');
         expect(SERVER_NAMES).toContain('isEmpty');
+    });
+});
+
+describe('conditionModel rule rows — equals, the quantifiers and fileType are whitelisted helpers', () => {
+    const ref = (path) => ({ kind: 'ref', path });
+    const lit = (value) => ({ kind: 'literal', value });
+
+    it.each([
+        [{ field: ref('item.subject'), op: 'is', value: lit('Open') }, 'equals(item.subject, "Open")', ['equals']],
+        [{ field: ref('item.a[*].b'), op: 'contains', value: lit('x'), quantifier: 'any' }, 'anyOf(item.a[*].b, "contains", "x")', ['anyOf']],
+        [{ field: ref('item.a[*].b'), op: 'isEmpty', value: lit(''), quantifier: 'every' }, 'everyOf(item.a[*].b, "isEmpty")', ['everyOf']],
+        [{ field: ref('item.a[*].b'), op: 'is', value: lit('x'), quantifier: 'none' }, 'noneOf(item.a[*].b, "equals", "x")', ['noneOf']],
+        [{ field: ref('fileType(item)'), op: 'is', value: lit('pdf') }, 'equals(fileType(item), "pdf")', ['equals', 'fileType']],
+    ])('row %# writes a whitelisted call', (row, expr, names) => {
+        expect(serializeRow(row)).toBe(expr);
+        for (const name of names) {
+            expect(SERVER_NAMES).toContain(name);
+            expect(EXPR_FUNCTION_NAMES).toContain(name);
+        }
     });
 });

@@ -29,8 +29,8 @@ describe('StepOutline', () => {
     it('draws a card per step, the lanes, and opens a card on a tap and its menu on a hold', async () => {
         const p = props();
         await renderWithProviders(<StepOutline {...p} />);
-        expect(screen.getByText('match')).toBeTruthy();
-        expect(screen.getByText('otherwise')).toBeTruthy();
+        expect(screen.getByText('Match')).toBeTruthy();
+        expect(screen.getByText('Otherwise')).toBeTruthy();
         await fireEvent.press(screen.getByTestId('step-card-act_a'));
         expect(p.onOpen).toHaveBeenCalledWith('act_a');
         await fireEvent(screen.getByTestId('step-card-cond_1'), 'longPress');

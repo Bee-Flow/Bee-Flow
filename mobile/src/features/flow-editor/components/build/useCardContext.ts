@@ -2,6 +2,7 @@
  * What every card on the outline reads besides its own step: the step names
  * (for "from ‹Search email ▸ Results›" in a summary — every step's, a loop's
  * body included, and the card's own name for one without a label), the table
+ * the step types (which steps are Conditions), the table
  * and knowledge-base names the catalog knows, the last test run, the findings
  * and the step numbers. Built once per change, not per card.
  */
@@ -10,7 +11,7 @@ import { useMemo } from 'react';
 
 import { useTranslation } from '@/core/i18n';
 import type { FlowCatalog } from '@/features/flow-editor/api';
-import { stepNumbers, type FlowDefinition, type StepIssues } from '@/features/flow-editor/model';
+import { buildStepTypeMap, stepNumbers, type FlowDefinition, type StepIssues } from '@/features/flow-editor/model';
 
 import type { CardContext, RunRow } from '../outline/cardModel';
 import { cardLabelMap } from '../outline/stepLabels';
@@ -30,6 +31,7 @@ export function useCardContext(
         () => ({
             t,
             stepLabelById: cardLabelMap(definition, t),
+            stepTypeById: buildStepTypeMap(definition),
             // Null (not {}) until the catalog answers: a card then says "a table", not "a table you can no longer see".
             tableNameById: catalog ? namesById(catalog.datatables) : null,
             kbNameById: catalog ? namesById(catalog.knowledgeBases) : null,

@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { listLayers, getLayerDependencies } from './flow/flowletScope';
+import { nodeTypeLabel } from './flow/nodeDefs';
 
 /**
  * Flowlets manager — a compact popover that opens UPWARD from the Flowlets
@@ -52,6 +53,7 @@ const STEP_TYPE_LABELS = {
     filter: 'Condition',
     limit: 'Limit',
     dedupe: 'Dedupe',
+    flatten: nodeTypeLabel('flatten'),
     aggregate: 'Aggregate',
     summarize: 'Summarize',
 };

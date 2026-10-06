@@ -5,12 +5,14 @@
  * (autoMapStep / applyAutoMapToStep); pinned by autoMap.lockstep.test.ts.
  */
 
-import { autoMapInputs, findInputSchemaForTool, nearestArrayRef, nearestScannableRef } from './autoMap';
+import { autoMapInputs, findInputSchemaForTool, nearestArrayRef, nearestScannableRef, rankedArrayRefs } from './autoMap';
 import { tryIterationMapping } from './autoMapIteration';
 import { getLayerContract } from './flowDeps/flowletScope';
+import { buildSampleRoot } from './realOutputs';
 import type { Catalog, FlowDefinition, FlowNode, ForEach, JsonSchema, VariableGroup } from './types';
 import { computeUpstreamGroups } from './upstream';
 import { isDiagnosticOutputKey } from './upstream/stepPayload';
+import { flattenLevels, flattenRouteFields } from '../model/flattenStep';
 import { reconcileRouteEdges } from '../model/route/routeEdges';
 
 export interface AutoMapOptions {
@@ -24,7 +26,7 @@ export interface AutoMapResult {
     forEachEnabled?: boolean;
 }
 
-const LIST_OPS = new Set(['filter', 'limit', 'dedupe', 'aggregate', 'summarize']);
+const LIST_OPS = new Set(['filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten']);
 
 /** The palette scaffold (never user-chosen); the legacy literal heals on re-connect (C20). */
 function isScaffoldOverRef(ref: unknown): boolean {
@@ -59,14 +61,14 @@ interface MapContext {
     opts: AutoMapOptions;
 }
 
-function mapIntegration(step: FlowNode, { catalog, groups, opts }: MapContext): AutoMapResult {
+function mapIntegration(step: FlowNode, { definition, catalog, groups, opts }: MapContext): AutoMapResult {
     const schema = findInputSchemaForTool(catalog, step.tool);
     // Iteration fallback — never over a forEach the user set. Decided on the
     // inputs WITHOUT list columns: a step that runs once per row never also
     // gets every row's value, so the columns come only when it runs once.
     const inputs = step.inputs || {};
     const single = autoMapInputs(schema, inputs, groups, { ...opts, listColumns: false });
-    const iter = step.forEach ? null : tryIterationMapping(schema, { ...inputs, ...single }, groups, isDiagnosticOutputKey);
+    const iter = step.forEach ? null : tryIterationMapping(schema, { ...inputs, ...single }, groups, { isDiagnostic: isDiagnosticOutputKey, definition });
     const patch = iter ? single : autoMapInputs(schema, inputs, groups, opts);
     let nextInputs: Record<string, unknown> = { ...inputs, ...patch };
     let keys = Object.keys(patch);
@@ -111,6 +113,22 @@ function mapSet(step: FlowNode, groups: VariableGroup[], opts: AutoMapOptions): 
     return withInputs(step, autoMapInputs(null, (step.fields as Record<string, unknown>) || {}, groups, opts), 'fields');
 }
 
+/**
+ * Flatten a list (F45): the first upstream list, nearest first, whose items
+ * hold a list of records; its first such list is the level, and the plan is
+ * made from the sample. No such list leaves the step blank.
+ */
+function mapFlatten(step: FlowNode, groups: VariableGroup[]): AutoMapResult {
+    if (!isScaffoldOverRef(step.arrayRef)) return unchanged(step);
+    const root = buildSampleRoot(groups);
+    for (const source of rankedArrayRefs(groups)) {
+        const level = flattenLevels(source, root)[0];
+        const fields = level ? flattenRouteFields(step, level.path, root) : null;
+        if (fields) return { step: { ...step, ...fields } as FlowNode, mappedKeys: ['arrayRef'] };
+    }
+    return unchanged(step);
+}
+
 type Mapper = (step: FlowNode, ctx: MapContext) => AutoMapResult;
 
 const privacy: Mapper = (s, c) => mapPrivacy(s, c.groups);
@@ -125,6 +143,7 @@ const MAPPERS: Record<string, Mapper> = {
     tokenize: privacy,
     untokenize: privacy,
     set: (s, c) => mapSet(s, c.groups, c.opts),
+    flatten: (s, c) => mapFlatten(s, c.groups),
     loop: (s, c) => (isScaffoldOverRef(s.overRef) ? withArrayRef(s, c.groups, 'overRef') : unchanged(s)),
     // A fresh Condition wired below a list becomes a list-mode Filter.
     condition: (s, c) => (isScaffoldExpr(s.expr) ? withArrayRef(s, c.groups, 'arrayRef', { type: 'filter' }) : unchanged(s)),

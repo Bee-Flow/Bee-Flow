@@ -28,4 +28,37 @@ describe('listPathLabel', () => {
         const t = (k: string, en: string, v?: Record<string, unknown>) => `[${k}]${en.replace(/\{(\w+)\}/g, (_, x) => String(v?.[x]))}`;
         expect(listPathLabel('steps.s1.output.value[*].attachments', labels, t)).toBe('[automations.builder.inside_each_row]Read the purchasing inbox ▸ Value ▸ Attachments (inside each row)');
     });
+
+    it('names a rule\'s own item "Each item"', () => {
+        expect(listPathLabel('item.attachments')).toBe('Each item ▸ Attachments');
+        expect(listPathLabel('item')).toBe('Each item');
+    });
+
+    it('compact: a list inside each row reads as the step and the inner list, no brackets', () => {
+        expect(listPathLabel('steps.s1.output.value[*].attachments', labels, null, { compact: true })).toBe('Read the purchasing inbox ▸ Attachments');
+        expect(listPathLabel('steps.s1.output.value', labels, null, { compact: true })).toBe('Read the purchasing inbox ▸ Value');
+    });
+
+    it('a Condition\'s outputs read as the output\'s name and "Otherwise", never its runner keys', () => {
+        const routeLabels = new Map([['ms_split', 'Split attachments'], ['mc', 'Keep invoices'], ['s1', 'Read the purchasing inbox']]);
+        const types = new Map([['ms_split', 'switch'], ['mc', 'filter'], ['s1', 'integration_action']]);
+        const opts = { stepTypeById: types };
+        expect(listPathLabel('steps.ms_split.output.matchesByCase.pdf', routeLabels, null, opts)).toBe('Split attachments ▸ pdf');
+        expect(listPathLabel('steps.ms_split.output.matchesByCase["Output 1"]', routeLabels)).toBe('Split attachments ▸ Output 1');
+        expect(listPathLabel('steps.ms_split.output.matchesByCase.default', routeLabels)).toBe('Split attachments ▸ Otherwise');
+        expect(listPathLabel('steps.mc.output.items', routeLabels, null, opts)).toBe('Keep invoices');
+        expect(listPathLabel('steps.mc.output.items[*].attachments', routeLabels, null, opts)).toBe('Keep invoices ▸ Attachments (inside each row)');
+        expect(listPathLabel('steps.mc.output.items[*].attachments', routeLabels, null, { ...opts, compact: true })).toBe('Keep invoices ▸ Attachments');
+        for (const p of ['steps.ms_split.output.matchesByCase.pdf', 'steps.ms_split.output.matchesByCase.default', 'steps.mc.output.items[*].attachments']) {
+            const label = listPathLabel(p, routeLabels, null, opts);
+            expect(label).not.toMatch(/Matches by case|Default|Items/);
+        }
+        // Another step's list called "items" keeps its name.
+        expect(listPathLabel('steps.s1.output.items', routeLabels, null, opts)).toBe('Read the purchasing inbox ▸ Items');
+    });
+
+    it('"Otherwise" goes through t', () => {
+        const t = (k: string, en: string) => (k === 'condition_node.otherwise.label' ? 'Anders' : en);
+        expect(listPathLabel('steps.ms.output.matchesByCase.default', new Map([['ms', 'Splitsen']]), t)).toBe('Splitsen ▸ Anders');
+    });
 });

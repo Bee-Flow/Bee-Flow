@@ -35,7 +35,7 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
                 <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-primary)]">{t(`automations.assistant.mode.${m.key}`, m.label)}</span><span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-tertiary)]">{t(`automations.assistant.mode.${m.key}_hint`, m.description)}</span></span>
                 {value === m.id && <Check size={13} className="shrink-0 mt-0.5" />}
             </button>)}
-            {onAlwaysPlanLargeChange && <label className="flex items-center gap-2 border-t border-[var(--border-default)] mt-1 p-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1">{t('automations.assistant.large_plan', 'Always plan first for large changes (4+ steps)')}</span><input type="checkbox" checked={alwaysPlanLarge} onChange={e => onAlwaysPlanLargeChange(e.target.checked)} /></label>}
+            {onAlwaysPlanLargeChange && <label className="flex items-center gap-2 border-t border-[var(--border-default)] mt-1 p-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1">{t('automations.assistant.large_plan', 'Ask before applying large changes (4+ steps)')}</span><input type="checkbox" checked={alwaysPlanLarge} onChange={e => onAlwaysPlanLargeChange(e.target.checked)} /></label>}
         </div>}
     </div>;
 }

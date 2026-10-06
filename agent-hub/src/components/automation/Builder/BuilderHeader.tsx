@@ -103,6 +103,11 @@ const ICON_BTN = 'w-[30px] h-[30px] rounded-lg grid place-items-center text-[var
  * Step mode (kind='block') keeps its icon picker, category and Publish
  * cluster. A flowlet scope turns the name into a breadcrumb; the status and
  * the actions stay whole-automation.
+ *
+ * A phone-width bar (under 640px) folds further instead of squeezing: the
+ * menu toggle, trigger tile and canvas undo/redo go, the status keeps only
+ * its dot and the primary only its icon, and the right column takes the
+ * room it needs (no centring) while the name truncates.
  */
 export default function BuilderHeader(props: BuilderHeaderProps) {
     const {
@@ -131,9 +136,10 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
     const browse = isStepMode ? t('automations.header.browse_steps', 'Browse Steps') : t('automations.header.browse', 'Browse automations');
 
     return (
-        <div>
-            <div className="@container/bar grid grid-cols-[1fr_auto_1fr] items-center gap-x-6 h-[52px] px-3.5 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-[12px] text-[var(--text-primary)] min-w-0">
-                <div className="flex items-center gap-2.5 min-w-0">
+        // The container sits on the wrapper so the bar's own grid can answer it too.
+        <div className="@container/bar">
+            <div className="grid grid-cols-[1fr_auto_1fr] @max-[640px]/bar:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 @max-[640px]/bar:gap-x-2 h-[52px] px-3.5 @max-[640px]/bar:px-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-[12px] text-[var(--text-primary)] min-w-0">
+                <div className="flex items-center gap-2.5 @max-[640px]/bar:gap-1 min-w-0 overflow-hidden">
                     {/* A host with its own back button (the playbook run page)
                         passes no onBack, so the room never shows two arrows. */}
                     {onBack && (
@@ -149,7 +155,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                     {onOpenList && (
                         <button type="button" onClick={() => setStudioMenuHidden(!menuHidden)} aria-pressed={menuHidden}
                             title={menuHidden ? showMenu : hideMenu} aria-label={menuHidden ? showMenu : hideMenu}
-                            data-testid="studio-menu-toggle" className={`${ICON_BTN} flex-shrink-0`}>
+                            data-testid="studio-menu-toggle" className={`${ICON_BTN} flex-shrink-0 @max-[640px]/bar:hidden`}>
                             {menuHidden ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                         </button>
                     )}
@@ -163,7 +169,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                             placeholder={<Box size={14} className="text-[var(--text-primary)]" />}
                         />
                     ) : (
-                        <div data-testid="trigger-tile" className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]">
+                        <div data-testid="trigger-tile" className="@max-[640px]/bar:hidden w-7 h-7 rounded-lg grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]">
                             <TriggerIcon size={14} />
                         </div>
                     )}
@@ -187,9 +193,9 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                         : <ViewSwitcher tab={tab} onTabChange={onTabChange} counts={{ runs: counts?.runs7d ?? null, versions: counts?.versions ?? null }} />)}
                 </div>
 
-                <div className="flex items-center gap-2 justify-end min-w-0">
+                <div className="flex items-center gap-2 @max-[640px]/bar:gap-1 justify-end min-w-0">
                     {tab === 'build' && onUndo && (
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-0.5 @max-[640px]/bar:hidden">
                             <button type="button" onClick={() => onUndo()} disabled={!canUndo} className={ICON_BTN}
                                 aria-label={t('automations.header.undo', 'Undo')}
                                 // The canvas undo, not a saved version.

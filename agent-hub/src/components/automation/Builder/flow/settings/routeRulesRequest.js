@@ -31,7 +31,12 @@
 export async function askModelForRules(api, { description, fields, itemVar, perItem }) {
     const res = await api.suggestRouteRules({
         description: String(description || '').trim(),
-        fields: (fields || []).map(f => ({ key: f.path, name: f.label, type: f.type || '' })),
+        // "File type" entries of the rule menu are not fields but a function
+        // over one (`fileType(item)`); the model learns fileType() from the
+        // server's rule hint and declares only real paths.
+        fields: (fields || [])
+            .filter(f => !String(f?.path || '').startsWith('fileType('))
+            .map(f => ({ key: f.path, name: f.label, type: f.type || '' })),
         itemVar,
         perItem,
     });

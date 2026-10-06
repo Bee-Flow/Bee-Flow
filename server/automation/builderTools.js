@@ -46,6 +46,7 @@ const {
 } = require('./builderTools/stepEditing');
 const { applyAddSteps } = require('./builderTools/addSteps');
 const { applyInspectTool } = require('./builderTools/inspection');
+const { followAddedSteps } = require('./builderTools/routeFollowDraft');
 const {
     summariseDraftSteps, renderStepIdLine, renderEdgeLine,
     compactSample, compactDryRunForModel, truncateToolResultJson,
@@ -232,6 +233,7 @@ async function applyToolCall(name, args, draftWrap) {
     // would resend from index i against a graph it was never shown.
     const partial = !!(result && typeof result === 'object' && result.error && Array.isArray(result.added) && result.added.length);
     if (MUTATING_TOOLS.has(name) && result && typeof result === 'object' && (!result.error || partial)) {
+        followAdded(result, callArgs, draftWrap);
         if (TOPOLOGY_TOOLS.has(name) || draftWrap._resultDetail === 'full') {
             result._draftSteps = summariseDraftSteps(draftWrap.def);
         } else {
@@ -300,6 +302,30 @@ async function applyToolCall(name, args, draftWrap) {
     // a third identical resend after a failed patch must still count.
     rejectionLadder(name, args, result, draftWrap, { patched: !!repaired });
     return result;
+}
+
+/**
+ * Follow the route (W8): every step this call added that hangs off a
+ * Condition working through a list reads what that Condition keeps, and an
+ * added list Condition hands its outputs to the step after it (a splice).
+ * The rewrites are the canvas's own (shared/expr/routeFollow.mjs) and are
+ * said in `_warnings`, so the model knows which of its refs moved.
+ */
+function followAdded(result, callArgs, draftWrap) {
+    if (!result.added) return;
+    const list = Array.isArray(result.added) ? result.added : [result.added];
+    const ids = list.map(a => a && a.id).filter(id => typeof id === 'string');
+    if (!ids.length) return;
+    const scope = callArgs && typeof callArgs.scope === 'string' && callArgs.scope ? callArgs.scope : null;
+    const graph = scope ? draftWrap.def.layers?.[scope] : draftWrap.def;
+    if (!graph) return;
+    const notes = followAddedSteps(graph, ids);
+    if (!notes.length) return;
+    (result._warnings = result._warnings || []).push(...notes);
+    // A single added step that was itself re-pointed: echo what is stored.
+    if (!Array.isArray(result.added)) {
+        result.added = (graph.steps || []).find(s => s && s.id === result.added.id) || result.added;
+    }
 }
 
 // ── The repeat ladder ────────────────────────────────────────────────
@@ -541,7 +567,7 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_add_approval':       return applyAddApproval(graph, args);
         case 'builder_add_form_page':      return applyAddFormPage(graph, args);
         case 'builder_add_stop_error':     return applyAddStopError(graph, args);
-        case 'builder_add_switch':         return applyAddSwitch(graph, args);
+        case 'builder_add_switch':         return applyAddSwitch(graph, args, draftWrap);
         case 'builder_add_filter':         return applyAddFilter(graph, args, draftWrap);
         case 'builder_add_limit':          return applyAddLimit(graph, args, draftWrap);
         case 'builder_add_dedupe':         return applyAddDedupe(graph, args, draftWrap);

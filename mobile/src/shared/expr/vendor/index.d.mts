@@ -124,3 +124,274 @@ export declare function replaceTemplate(text: string, fn: (inner: string, raw: s
 export declare function appendMatch(prefix: string, key: string, value: string | number | boolean | null): string;
 export declare function stepMatch(cur: unknown, key: string, value: unknown): unknown;
 export declare function jsonCacheFor(root: unknown): Map<string, unknown> | null;
+/** A path's value as a list: an array, or JSON text holding one (the run's list reader); null otherwise. */
+export declare function getList(root: unknown, path: unknown): unknown[] | null;
+
+// ── Condition rules (rules.mjs, fileTypes.mjs, ruleFields.mjs) ────────────
+export type RuleQuantifier = 'any' | 'every' | 'none';
+export type QuantifierFunction = 'anyOf' | 'everyOf' | 'noneOf';
+export type FileTypeKey =
+    | 'pdf'
+    | 'word'
+    | 'excel'
+    | 'powerpoint'
+    | 'image'
+    | 'text'
+    | 'archive'
+    | 'audio'
+    | 'video'
+    | 'other';
+export type RuleFieldShape =
+    | { kind: 'plain'; path: string }
+    | { kind: 'column'; path: string; list: string; column: string }
+    | { kind: 'fileRecord'; path: string; record: string }
+    | { kind: 'fileList'; path: string; list: string };
+/** One node of a platform's sample field tree (`sampleToFields(element, 'item')`). */
+export interface RuleFieldNode {
+    key: string;
+    path: string;
+    sample?: unknown;
+    children?: readonly RuleFieldNode[];
+}
+export interface RuleFieldOption {
+    path: string;
+    label: string;
+    sample: unknown;
+    group: string;
+    quantified?: true;
+    kind?: 'records' | 'fileType';
+}
+export interface RuleFieldOptionsOpts {
+    element?: unknown;
+    name: (key: string) => string;
+    group: (kind: 'item' | 'inner' | 'parent', vars: Record<string, string>) => string;
+    itemName: string;
+    parent?: { fields: readonly RuleFieldNode[]; element?: unknown; name: string } | null;
+    fileTypeLabel?: string;
+}
+export declare function splitTopLevel(expr: string): { parts: string[]; join: '&&' | '||' } | null;
+export declare function splitCallArgs(text: string, from: number): { args: string[]; end: number } | null;
+export declare function findTopLevelSymbol(text: string, sym: string): number;
+export declare function textContains(a: unknown, b: unknown): boolean;
+export declare function textStartsWith(a: unknown, b: unknown): boolean;
+export declare function textEndsWith(a: unknown, b: unknown): boolean;
+export declare function isEmptyValue(a: unknown): boolean;
+export declare function equalsValue(a: unknown, b: unknown): boolean;
+export declare const QUANTIFIER_FN: Readonly<Record<RuleQuantifier, QuantifierFunction>>;
+export declare const QUANTIFIER_OF_FN: Readonly<Record<QuantifierFunction, RuleQuantifier>>;
+/** Operator key of a rule row → the test name a quantified call carries. */
+export declare const TEST_OF_OP: Readonly<Record<string, string>>;
+export declare const OP_OF_TEST: Readonly<Record<string, string>>;
+export declare const UNARY_TESTS: readonly string[];
+export declare function elementPasses(el: unknown, test: string, value?: unknown): boolean;
+export declare function quantify(quantifier: RuleQuantifier, list: unknown, test: string, value?: unknown): boolean;
+export declare const FILE_TYPE_KEYS: readonly FileTypeKey[];
+export declare function fileTypeOf(value: readonly unknown[]): Array<FileTypeKey | null>;
+export declare function fileTypeOf(value: unknown): FileTypeKey | null;
+export declare function isFileRecord(value: unknown): boolean;
+export declare function fileTypesNamedIn(text: unknown): Array<{ key: FileTypeKey; word: string; at: number }>;
+export declare function fileTypeField(path: string, opts?: { list?: boolean }): string;
+export declare function fieldShape(text: unknown): RuleFieldShape | null;
+export declare function quantifiedCall(quantifier: string, left: string, op: string, rhs?: string | null): string;
+export declare function readQuantifiedCall(
+    text: string,
+): { quantifier: RuleQuantifier; left: string; op: string; rhs: string | null } | null;
+export declare function singularKey(key: string): string;
+export declare function ruleFieldOptions(
+    fields: readonly RuleFieldNode[] | null | undefined,
+    opts: RuleFieldOptionsOpts,
+): RuleFieldOption[];
+
+// ── Follow the route (routeFollow.mjs) ────────────────────────────────────
+/** The minimum the route helpers read of an automation definition. */
+export interface RouteDefinition {
+    steps?: readonly unknown[];
+    edges?: readonly unknown[];
+}
+export interface RouteRebound {
+    stepId: string;
+    from: string;
+    to: string;
+}
+export declare function isListRoute(step: unknown): boolean;
+export declare function routeListPath(step: unknown, edge: unknown): string | null;
+export declare function routeOutputPaths(step: unknown): string[];
+export declare function rebaseRefs<V>(value: V, from: string, to: string): { value: V; changed: boolean };
+export declare function stepReadsPath(step: unknown, path: string): boolean;
+export declare function followRouteAround<D extends RouteDefinition>(
+    definition: D,
+    stepId: string,
+): { definition: D; rebound: RouteRebound[] };
+export declare function followRouteEdit<D extends RouteDefinition>(
+    definition: D,
+    routeId: string,
+    previousStep: unknown,
+): { definition: D; rebound: RouteRebound[] };
+export declare function staleSuccessors(
+    definition: RouteDefinition,
+    routeId: string,
+): Array<{ stepId: string; reads: string; to: string }>;
+export declare function followSuccessors<D extends RouteDefinition>(
+    definition: D,
+    routeId: string,
+    stepIds: readonly string[],
+): { definition: D; rebound: RouteRebound[] };
+/** A switch's case change by name: renamed in place (old → new) and removed names. */
+export declare function switchCaseChanges(
+    prevCases: unknown,
+    nextCases: unknown,
+): { renames: Map<string, string>; removed: Set<string> };
+/** A switch's edges and defaultBranch after its cases changed; the same definition when nothing had to. */
+export declare function relabelSwitchEdges<D extends RouteDefinition | null | undefined>(
+    definition: D,
+    stepId: string,
+    prevCases: unknown,
+    nextCases: unknown,
+): D;
+
+// ── A whole-run Condition that reads a list (wholeRun.mjs) ────────────────
+// `isList` answers a boolean, or returns the list (e.g. getList(sampleRoot, path))
+// or null; a returned list of plain values read whole is then skipped.
+export type WholeRunIsList = (path: string) => boolean | readonly unknown[] | null;
+export declare function isWholeRunRoute(step: unknown): boolean;
+export declare function wholeRunListReads(
+    step: unknown,
+    isList?: WholeRunIsList,
+): Array<{ list: string; path: string }>;
+export declare function loopsAfterWholeRun(
+    definition: RouteDefinition | null | undefined,
+    condId: string,
+    isList?: WholeRunIsList,
+): Array<{ stepId: string; reads: string }>;
+
+// ── A path as a person reads it (pathLabel.mjs) ───────────────────────────
+export declare function listPathLabel(
+    path: string,
+    stepLabelById?: Pick<Map<string, string>, 'get'> | null,
+    t?: ((key: string, fallback: string, vars?: Record<string, unknown>) => string) | null,
+    opts?: {
+        compact?: boolean;
+        stepTypeById?: Pick<Map<string, string>, 'get'> | null;
+        humanize?: (key: string) => string;
+    },
+): string;
+// ── Lists inside lists (nested.mjs) ───────────────────────────────────────
+/** One element of a forEach trail walk, with the values passed on the way to it. */
+export interface TrailEntry {
+    value: unknown;
+    trail: unknown[];
+}
+/** One row of a list inside a list: the innermost item and the element of each level. */
+export interface NestedRow {
+    item: unknown;
+    parents: unknown[];
+    empty: boolean;
+}
+export interface NestedRows {
+    rows: NestedRow[];
+    inputCount: number;
+    emptyCount: number;
+    dead: boolean;
+    over: boolean;
+}
+/** A level a person can make rows from (`routeLevels`). */
+export interface RouteLevel {
+    path: string;
+    key: string;
+    itemVar: string;
+    count: number;
+    outerCount: number | null;
+    depth: number;
+    records: boolean;
+}
+export declare function listOf(cur: unknown, cache?: Map<string, unknown> | null): unknown[] | null;
+export declare function walkTrail(
+    tokens: readonly PathToken[],
+    root: unknown,
+): { entries: TrailEntry[] | null; dead: boolean } | undefined;
+export declare function sameToken(a: PathToken | undefined, b: PathToken | undefined): boolean;
+export declare function parentDepths(
+    parents: unknown,
+    tokens: readonly PathToken[],
+    itemVar: string,
+): Array<{ itemVar: string; at: number }>;
+export declare function isRecord(v: unknown): v is Record<string, unknown>;
+export declare function asRows(value: unknown, cache?: Map<string, unknown> | null): unknown[] | null;
+export declare const RESERVED_VARS: readonly string[];
+export declare function itemVarFor(key: unknown, taken?: readonly string[]): string;
+export declare function withSuffix(base: string, isTaken: (name: string) => boolean): string;
+export declare function splitRoute(path: unknown): { segments: PathToken[][]; levels: number } | null;
+export declare function nestedRows(
+    root: unknown,
+    route: string,
+    opts?: { keepEmpty?: boolean; limit?: number },
+): NestedRows | null;
+export declare function lastKey(path: string | readonly PathToken[]): string;
+export declare function isScalar(v: unknown): boolean;
+export declare function routeLevels(source: string, root: unknown, opts?: { maxDepth?: number }): RouteLevel[];
+
+// ── Flatten a list (flatten.mjs) ──────────────────────────────────────────
+export type FlattenFieldMode = 'copy' | 'fill';
+export interface FlattenField {
+    from: string;
+    to: string;
+    mode: FlattenFieldMode;
+}
+/** One level of a flatten step's stored `parents`, outermost first. */
+export interface FlattenParent {
+    overRef: string;
+    itemVar: string;
+    auto?: boolean;
+    fields?: FlattenField[];
+}
+/** The parts of a flatten step the shared helpers read. */
+export interface FlattenStepLike {
+    arrayRef?: string;
+    parents?: readonly FlattenParent[] | null;
+    keepEmpty?: boolean;
+    maxItems?: number;
+}
+export interface FlattenPlan {
+    parents: Array<Required<FlattenParent>>;
+    left: Array<{ level: number; key: string; reason: 'long_text' | 'object' | 'list' }>;
+    clashes: Array<{ level: number; from: string; to: string }>;
+    unknown: string[];
+}
+export interface FlattenOutput {
+    items: Array<Record<string, unknown>>;
+    count: number;
+    inputCount: number;
+    emptyCount: number;
+    warning?: string;
+    dead: boolean;
+    over: boolean;
+}
+export interface FlattenSentenceParts {
+    kind: 'made' | 'empty' | 'no_match';
+    count: number;
+    inputCount: number;
+    emptyCount: number;
+    keepEmpty: boolean;
+    parents: string;
+    children: string;
+    child: string;
+}
+export declare const LONG_TEXT_KEYS: ReadonlySet<string>;
+export declare const LONG_TEXT_CHARS: number;
+export declare const GENERIC_KEYS: ReadonlySet<string>;
+export declare function normalizeFlattenRoute(path: unknown): string | null;
+export declare function routeFromParts(arrayRef: unknown, childField: unknown): string | null;
+export declare function joinKey(prefix: string, key: string): string;
+export declare function childVarOf(route: string): string;
+export declare function childNounOf(route: string): string;
+export declare function defaultParents(route: string): Array<{ overRef: string; itemVar: string }>;
+export declare function flattenPlan(
+    root: unknown,
+    route: string,
+    opts?: { keepFields?: readonly string[] | null; prior?: readonly FlattenParent[] | null },
+): FlattenPlan;
+export declare function flattenRows(root: unknown, step: FlattenStepLike, opts?: { limit?: number }): FlattenOutput | null;
+export declare function flattenShape(root: unknown, step: FlattenStepLike): Record<string, unknown>;
+export declare function checkFlattenParents(step: FlattenStepLike): 'count' | 'overRef' | 'itemVar' | 'fields' | null;
+export declare function listNounKey(definition: RouteDefinition | null | undefined, path: string): string | null;
+export declare function flattenSentenceParts(output: unknown, step: FlattenStepLike): FlattenSentenceParts;

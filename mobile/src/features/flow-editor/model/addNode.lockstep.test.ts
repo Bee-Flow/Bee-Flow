@@ -55,7 +55,7 @@ const KINDS = [
     'integration_action', 'ai_step', 'data_extraction', 'condition', 'tokenize', 'untokenize', 'guard', 'loop',
     'notification', 'http_request', 'generate_document', 'slide', 'presentation', 'fill_document', 'form_page',
     'code', 'set', 'parse_json', 'datetime', 'wait', 'approval', 'stop_error', 'return_to_app', 'datatable',
-    'knowledge_write', 'switch', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'call_layer', 'call_block',
+    'knowledge_write', 'switch', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten', 'call_layer', 'call_block',
     'layer_output', 'note', 'parallel', 'mystery',
 ];
 const PAYLOADS: Record<string, unknown>[] = [

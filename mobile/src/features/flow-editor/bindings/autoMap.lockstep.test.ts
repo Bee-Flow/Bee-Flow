@@ -61,10 +61,23 @@ const SCENARIOS: FlowNode[] = [
     { id: 'dedupe', type: 'dedupe', arrayRef: 'steps.custom.output.x' },
     { id: 'agg', type: 'aggregate' },
     { id: 'sum', type: 'summarize' },
+    { id: 'flat', type: 'flatten', arrayRef: '' },
+    { id: 'flatSet', type: 'flatten', arrayRef: 'steps.custom.output.x[*].y' },
     { id: 'code', type: 'code' },
 ];
 
 describe('applyAutoMapToStep', () => {
+    it('flatten below a list of mails with attachments picks the same route, plan and label', () => {
+        const step = { id: 'flat', type: 'flatten', arrayRef: '', label: 'Flatten a list' } as FlowNode;
+        const def = below(step);
+        const mail = { id: 'm1', threadId: 't1', subject: 'Invoice', attachments: [{ attachmentId: 'a1', filename: 'a.pdf', messageId: 'm1' }] };
+        const realOutputById = new Map<string, unknown>([['search', { messages: [mail], count: 1 }]]);
+        const port = applyAutoMapToStep(def, step.id, CATALOG, { realOutputById });
+        expect(port.definition.steps?.find((s) => s.id === 'flat')).toMatchObject({ arrayRef: 'steps.search.output.messages[*].attachments' });
+        expect(port).toStrictEqual(web.applyAutoMapToStep?.(def, step.id, CATALOG, { realOutputById }));
+    });
+
+
     it.each(SCENARIOS.map((s) => [s.id, s]))('%s below a list', (_id, step) => {
         const def = below(step);
         expect(applyAutoMapToStep(def, step.id, CATALOG)).toStrictEqual(web.applyAutoMapToStep?.(def, step.id, CATALOG));

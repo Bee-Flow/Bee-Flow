@@ -29,15 +29,19 @@ export function fileKind(filename: unknown): string {
 export const LONG_ENDING_CHARS = 240;
 export const isLongEnding = (text: string | null | undefined): boolean => (text ?? '').length > LONG_ENDING_CHARS;
 
-/** A safe, boring .txt filename from the closing page's own title. */
-export function txtFilename(title: unknown): string {
+/**
+ * A safe, boring filename from the closing page's own title — the web's
+ * resultFilename (components/forms/resultFile.ts), the same rule the server
+ * names a .docx or .pdf of the result by.
+ */
+export function resultFilename(title: unknown, extension: string): string {
     const base = String(title || 'result')
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .slice(0, 60);
-    return `${base || 'result'}.txt`;
+    return `${base || 'result'}.${extension}`;
 }
 
 /**

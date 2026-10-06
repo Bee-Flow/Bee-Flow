@@ -196,6 +196,12 @@ function collectStepRefs(step) {
         case 'summarize':
             ref(step.arrayRef, 'arrayRef');
             break;
+        case 'flatten':
+            ref(step.arrayRef, 'arrayRef');
+            (Array.isArray(step.parents) ? step.parents : []).forEach((p, i) => {
+                if (isObject(p)) ref(p.overRef, `parents[${i}].overRef`);
+            });
+            break;
         case 'knowledge_write':
             // The same three-template shape generate_document has. A binding
             // OBJECT is accepted too: a definition is data, and an import or an

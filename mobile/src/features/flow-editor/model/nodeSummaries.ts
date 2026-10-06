@@ -10,6 +10,9 @@
 
 import { humanizeExpression, humanizeFieldKey } from './displayHelpers';
 import { formatWaitDuration } from './waitDuration';
+import { listPathLabel } from '../bindings/listPathLabel';
+
+type Translate = (key: string, fallback: string, vars?: Record<string, string | number>) => string;
 
 export type Summary = string | { muted: string };
 type Step = Record<string, unknown>;
@@ -48,6 +51,22 @@ export function aggregateSummary(step: Step, { stepLabelById }: Ctx = {}): Summa
     if (!step.arrayRef) return { ...NO_LIST };
     if (!step.field) return { muted: 'pick which field to collect' };
     return `${humanizeFieldKey(step.field)} from every item${fromList(step.arrayRef, stepLabelById)}`;
+}
+
+/** The outermost list a flatten works through: the route before its first `[*]` (the whole path while none is picked). */
+export function flattenSourceRef(step: Step | null | undefined): string {
+    const route = s(step?.arrayRef);
+    const wild = route.indexOf('[*]');
+    return wild > 0 ? route.slice(0, wild) : route.trim();
+}
+
+/** "From Read many ▸ Messages": the outer list a flatten works through, or "Pick a list" (muted). */
+export function flattenSummary(step: Step, { stepLabelById, t = null }: Ctx & { t?: Translate | null } = {}): Summary {
+    const outer = flattenSourceRef(step);
+    if (!outer) return { muted: t ? t('flatten_node.card.pick', 'Pick a list') : 'Pick a list' };
+    // The label maker passes only strings through; its looser `vars` type is the one difference.
+    const source = listPathLabel(outer, stepLabelById, t as Parameters<typeof listPathLabel>[2], { compact: true }) || outer;
+    return t ? t('flatten_node.card.from', 'From {source}', { source }) : `From ${source}`;
 }
 
 const DATATABLE_VERB: Record<string, string> = {

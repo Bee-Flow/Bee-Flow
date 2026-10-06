@@ -8,6 +8,7 @@
 const { evaluate, parsePath, walkTokens, parseJsonText, jsonCacheFor } = require('../../automation/expr');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
+const { createRuleMissCounter } = require('./ruleMisses');
 // Literals only, no requires of its own — the validator's vocabulary module is
 // safe to pull into the runner, and sharing it is the point: the values the
 // validator accepts and the values the runner forwards to the app must be the
@@ -34,8 +35,21 @@ async function execCondition(step, ctx, runState) {
             if (e.topicFatal) throw e;
             v = false; evalError = e.message || String(e);
         }
+        noteRunMisses([{ ast }], [runState], v ? 1 : 0);
     }
     return { output: { branch: v ? 'then' : 'else', value: !!v, expr: step.expr, ...(topics ? { topics } : {}), ...(evalError ? { _evalError: evalError } : {}) } };
+}
+
+/**
+ * Record, in the step's binding log, every rule path that found nothing on
+ * any of `scopes` (ruleMisses.js). `entries`: `[{ ast, field? }]`;
+ * `matched`: what the rule(s) kept, a number or a count per case name.
+ */
+function noteRunMisses(entries, scopes, matched) {
+    const counter = createRuleMissCounter(entries);
+    let total = 0;
+    for (const scope of scopes) { counter.observe(scope); total += 1; }
+    counter.report(total, null, { matched });
 }
 
 /**
@@ -415,6 +429,7 @@ async function execSwitch(step, ctx, runState) {
         if (!arr) return skippedArrayRef(step, runState, { mode: 'collection', branch: 'case:default', branches: [], matchesByCase: {}, counts: {}, total: 0 });
         const { host, summary } = await prepareTopics(caseAsts, rowScopes(arr, runState), ctx);
         const output = partitionSwitchRows(step, compiled, arr, switchRowValues(step, arr, runState, onError), runState, onError, host);
+        noteRunMisses(compiled.map((cc) => ({ ast: cc.ast, field: cc.c && cc.c.name })), rowScopes(arr, runState)(), output.counts);
         return { output: { ...output, ...(summary ? { topics: summary } : {}), ...(evalError ? { _evalError: evalError } : {}) } };
     }
 

@@ -4,9 +4,14 @@
  * the Condition node's field picker uses `humanizeFieldKey` in the inspector too,
  * because a non-technical author should read "Subject", never `item.subject`.
  */
+import { formatPath, parsePath } from '@shared/expr/path.mjs';
+import { fieldShape, singularKey } from '@shared/expr/rules.mjs';
 import { pathLabelParts } from '../../../../utils/bindingHelpers';
 import { parseRefTokens, resolveChipLabel } from '../mapping/refTokens';
-import { parseExprToRows, labelFor, isUnaryOp } from '../utils/conditionModel';
+import { inferType, isUnaryOp, labelFor, parseExprToRows } from '../utils/conditionModel';
+
+// Step labels by id live in runStepLabels.ts; their names stay importable from here.
+export { buildRunStepLabelMap, buildRunStepMap, buildStepLabelMap, runStepLabel } from './runStepLabels';
 
 // Hand-curated proper-noun casing so 'gmail' renders as 'Gmail' instead
 // of 'Gmail' is fine but 'github' should render as 'GitHub', 'youtrack'
@@ -48,7 +53,7 @@ const PROPER_CASE = {
     tts: 'TTS',
     sfx: 'SFX',
     ai: 'AI',
-    pdf: 'PDF',
+    pdf: 'PDF', ocr: 'OCR',
 };
 
 function pretty(token) {
@@ -227,119 +232,135 @@ export function humanizeTemplate(text, stepLabelById = null) {
     return out;
 }
 
+// ── Rules as sentences (canvas cards, Suggest outputs, the run panel) ──
+
+/** The English of `condition_node.file_type.<key>` (server/i18n/defaults/en/condition_node.js). */
+const FILE_TYPE_EN = new Map(Object.entries({
+    pdf: 'PDF', word: 'Word', excel: 'Excel or CSV', powerpoint: 'PowerPoint', image: 'Image',
+    text: 'Text', archive: 'Archive (zip)', audio: 'Audio', video: 'Video', other: 'Other',
+}));
+const QUANTIFIER_EN = new Map([['any', 'any {name}'], ['every', 'every {name}'], ['none', 'no {name}']]);
+const TRIVIAL_RULES = new Set(['', 'true', 'false']);
+// Where the field's own part of a path starts, after the root that says whose it is.
+const ROOT_SKIP = new Map([['item', 1], ['loop', 2], ['vars', 1]]);
+
+const say = (t, key, en, vars = {}) => (t ? t(key, en, vars) : en.replace(/\{(\w+)\}/g, (_, v) => String(vars[v] ?? '')));
+
 /**
- * A rule expression as a readable sentence for the node body:
- *
- *   contains(item.subject, "isv")            → Subject contains “isv”
- *   item.amount > 1000 && item.paid == false → Amount greater than 1000 and Paid is false
- *
- * Anything the clickable model can't parse (hand-written expressions, function
- * composition) falls back to `humanizeExpression`, which at least swaps step
- * ids for their labels. The canvas never shows a raw `item.<key>` path.
+ * A rule's field the way the pills name it (humanizeFieldTail): the part
+ * after `item` ("From ▸ Email"), and for a whole-run rule the step's label in
+ * front ("Classify ▸ Urgency") when the map knows it.
  */
-export function describeRuleExpr(expr, stepLabelById = null) {
-    const src = String(expr || '').trim();
-    if (!src) return '';
+function fieldName(path, stepLabelById) {
+    const tokens = parsePath(path);
+    if (!tokens?.length) return humanizeFieldTail(path);
+    const root = String(tokens[0].key);
+    const from = fieldStart(root, tokens);
+    const tail = tokens.length > from ? humanizeFieldTail(formatPath(tokens.slice(from))) : humanizeFieldKey(root);
+    const step = root === 'steps' ? stepLabelById?.get?.(String(tokens[1]?.key ?? '')) : null;
+    return step ? `${step} ▸ ${tail}` : tail;
+}
+
+function fieldStart(root, tokens) {
+    if (root === 'steps') return tokens[2]?.key === 'output' ? 3 : 2;
+    if (root === 'trigger') return tokens[1]?.key === 'output' ? 2 : 1;
+    return ROOT_SKIP.get(root) ?? 0;
+}
+
+/** One entry of the list a quantified row checks, in words: "attachment". */
+function entryName(list) {
+    const tokens = parsePath(list);
+    const key = tokens?.length ? tokens[tokens.length - 1].key : null;
+    return humanizeFieldKey(singularKey(typeof key === 'string' ? key : 'items')).toLowerCase();
+}
+
+/** `{ name, list, file }` for a row's left side, or null when it is no field (a formula). */
+function ruleField(path, stepLabelById, t) {
+    const shape = path ? fieldShape(path) : null;
+    // A path the shapes do not cover (a whole list, `results[*]`) still has a name.
+    if (!shape) return path && parsePath(path) ? { name: fieldName(path, stepLabelById), list: null, file: false } : null;
+    if (shape.kind === 'fileRecord' || shape.kind === 'fileList') {
+        return { name: say(t, 'condition_node.file_type.label', 'File type'), list: shape.list || null, file: true };
+    }
+    if (shape.kind === 'column') return { name: humanizeFieldTail(shape.column), list: shape.list, file: false };
+    return { name: fieldName(shape.path, stepLabelById), list: null, file: false };
+}
+
+/** The value of a row: a file type's name, “quoted” text, a number bare, a field by its name. */
+function ruleValue(row, field, stepLabelById, t) {
+    const v = row.value;
+    if (v?.kind === 'ref' && v.path) return fieldName(v.path, stepLabelById);
+    const raw = v?.kind === 'literal' ? v.value : v?.value;
+    if (raw === '' || raw == null) return '';
+    if (field.file && FILE_TYPE_EN.has(raw)) return say(t, `condition_node.file_type.${raw}`, FILE_TYPE_EN.get(raw));
+    return typeof raw === 'string' ? `“${raw}”` : String(raw);
+}
+
+// An emptiness test on a plural field (`attachments`) reads like the editor's list of
+// records ("has at least one"); a card has no sample, so the name is the evidence.
+function readsAsRecords(row, path) {
+    if (row.op !== 'isEmpty' && row.op !== 'isNotEmpty') return false;
+    const tokens = fieldShape(path)?.kind === 'plain' ? parsePath(path) : null;
+    const key = tokens?.length > 1 ? tokens[tokens.length - 1].key : null;
+    return typeof key === 'string' && singularKey(key) !== key;
+}
+
+/** The type that picks the operator's words (dates read "is after"); the value is a sentence's only evidence of it. */
+function sentenceType(row, field, path) {
+    if (field.file) return 'fileType';
+    if (readsAsRecords(row, path)) return 'records';
+    return row.value?.kind === 'literal' ? inferType(row.value.value) : 'unknown';
+}
+
+function rowSentence(row, stepLabelById, t) {
+    const path = row?.field?.kind === 'ref' ? row.field.path : '';
+    const field = ruleField(path, stepLabelById, t);
+    if (!field) return null;
+    const type = sentenceType(row, field, path);
+    const value = isUnaryOp(row.op) ? '' : ruleValue(row, field, stepLabelById, t);
+    const body = [field.name, labelFor(row.op, type, t), value].filter(Boolean).join(' ');
+    if (!row.quantifier || !field.list || !QUANTIFIER_EN.has(row.quantifier)) return body;
+    const which = say(t, `condition_node.quantifier.${row.quantifier}`, QUANTIFIER_EN.get(row.quantifier), { name: entryName(field.list) });
+    return `${which} · ${body}`;
+}
+
+/**
+ * A rule as the sentence its clickable rows read, or null when the rows
+ * cannot show it (a formula):
+ *
+ *   contains(item.subject, "isv")                         → Subject contains “isv”
+ *   anyOf(fileType(item.attachments[*]), "equals", "pdf") → any attachment · File type is PDF
+ *   item.amount > 1000 && item.paid == false              → Amount greater than 1000 and Paid is false
+ *
+ * A rule that is not there yet (empty, `true`, `false`) is ''. Never a path,
+ * a function name or a step id.
+ *
+ * @param {string|null|undefined} expr
+ * @param {Pick<Map<string, string>, 'get'>|null} [stepLabelById]
+ * @param {((key: string, en: string, vars?: Record<string, unknown>) => string)|null} [t]
+ * @returns {string|null}
+ */
+export function ruleSentence(expr, stepLabelById = null, t = null) {
+    const src = String(expr ?? '').trim();
+    if (TRIVIAL_RULES.has(src)) return '';
     const parsed = parseExprToRows(src);
-    if (!parsed?.rows?.length) return humanizeExpression(src, stepLabelById);
-    const joiner = parsed.join === '||' ? ' or ' : ' and ';
-    const parts = parsed.rows.map((row) => {
-        const path = row.field?.kind === 'ref' ? row.field.path : '';
-        if (!path) return null;
-        const name = humanizeFieldKey(lastPathSegment(path));
-        const op = labelFor(row.op, 'unknown');
-        if (isUnaryOp(row.op)) return `${name} ${op}`;
-        const v = row.value;
-        if (v?.kind === 'ref' && v.path) return `${name} ${op} ${humanizeFieldKey(lastPathSegment(v.path))}`;
-        const raw = v?.kind === 'literal' ? v.value : v?.value;
-        if (raw === '' || raw == null) return `${name} ${op}`;
-        return typeof raw === 'string' ? `${name} ${op} “${raw}”` : `${name} ${op} ${raw}`;
-    }).filter(Boolean);
-    return parts.length ? parts.join(joiner) : humanizeExpression(src, stepLabelById);
-}
-
-/** `steps.g1.output.results[*].subject` → `subject` (array markers stripped). */
-function lastPathSegment(path) {
-    const cleaned = String(path || '').replace(/\[(?:\*|\d+)\]/g, '');
-    const seg = cleaned.split('.').filter(Boolean).pop() || '';
-    return seg;
+    if (!parsed?.rows?.length) return null;
+    const parts = parsed.rows.map((row) => rowSentence(row, stepLabelById, t));
+    if (parts.some((p) => p == null)) return null;
+    const sep = parsed.join === '||' ? say(t, 'condition_node.join.or', 'or') : say(t, 'condition_node.join.and', 'and');
+    return parts.join(` ${sep} `);
 }
 
 /**
- * Build the lookup map the helpers above need from a definition.
- * Trigger + steps both contribute; falls back to id when a step has
- * no `label` set.
+ * The rule for a card or a preview line: its sentence, and "Custom rule" for
+ * a formula the rows cannot show (the formula itself lives in Advanced).
+ * @param {string|null|undefined} expr
+ * @param {Pick<Map<string, string>, 'get'>|null} [stepLabelById]
+ * @param {((key: string, en: string, vars?: Record<string, unknown>) => string)|null} [t]
+ * @returns {string}
  */
-export function buildStepLabelMap(def) {
-    const m = new Map();
-    if (!def) return m;
-    const all = [def.trigger, ...(def.steps || [])].filter(Boolean);
-    for (const s of all) m.set(s.id, s.label || s.id);
-    return m;
-}
-
-// Same ceiling as the runner (server/core/automationRunner/shared.js): a
-// deeper call fails there, so nothing below it is ever recorded.
-const MAX_LAYER_DEPTH = 8;
-
-/**
- * The run viewer's lookup map (BFSF-457): `buildStepLabelMap` plus every step
- * inside a flowlet, keyed the way the runner records it, `<callId>/<innerId>`,
- * with one more `<callId>/` segment per nested call (execFlow.execCallLayer).
- * Without these, nested rows showed their raw recorded path.
- *
- * Kept apart from `buildStepLabelMap` on purpose: that one also feeds
- * validation text, where only top-level ids mean anything. A layer already on
- * the current call path is not entered again (the runner refuses that
- * recursion too).
- */
-export function buildRunStepLabelMap(def) {
-    const m = buildStepLabelMap(def);
-    for (const [id, s] of buildRunStepMap(def)) if (!m.has(id)) m.set(id, s.label || s.id);
-    return m;
-}
-
-/**
- * Every step of a run's definition by the id the runner records it under:
- * top-level steps and the trigger by their own id, flowlet steps as
- * `<callId>/<innerId>` (one more segment per nested call). The run viewer
- * reads a step's SETTINGS from this (BFSF-456), the labels come from it too.
- */
-export function buildRunStepMap(def) {
-    const m = new Map();
-    if (!def) return m;
-    for (const s of [def.trigger, ...(def.steps || [])]) if (s?.id) m.set(s.id, s);
-    const layers = def.layers || {};
-    const walk = (steps, prefix, stack) => {
-        if (stack.length >= MAX_LAYER_DEPTH) return;
-        for (const s of steps || []) {
-            if (s?.type !== 'call_layer' || !s.layerKey || stack.includes(s.layerKey)) continue;
-            const layer = layers[s.layerKey];
-            if (!layer) continue;
-            const inner = `${prefix}${s.id}/`;
-            for (const x of [layer.trigger, ...(layer.steps || [])]) {
-                if (x?.id) m.set(`${inner}${x.id}`, x);
-            }
-            walk(layer.steps, inner, [...stack, s.layerKey]);
-        }
-    };
-    walk(def.steps, '', []);
-    return m;
-}
-
-/**
- * The label for one recorded run-step id, from a `buildRunStepLabelMap` map.
- * A nested id the map does not know (a published Step runs a definition that
- * is not in the run's snapshot) reads as "<call step label> › <inner id>"
- * rather than the bare recorded path.
- */
-export function runStepLabel(labelById, stepId) {
-    if (typeof stepId !== 'string' || !stepId) return stepId;
-    const known = labelById?.get(stepId);
-    if (known) return known;
-    const cut = stepId.lastIndexOf('/');
-    if (cut <= 0) return stepId;
-    return `${runStepLabel(labelById, stepId.slice(0, cut))} › ${stepId.slice(cut + 1)}`;
+export function describeRuleExpr(expr, stepLabelById = null, t = null) {
+    return ruleSentence(expr, stepLabelById, t) ?? say(t, 'condition_node.custom.title', 'Custom rule');
 }
 
 /**

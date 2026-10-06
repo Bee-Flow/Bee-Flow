@@ -118,6 +118,7 @@ const INTEGRATION_CATALOG = [
     { id: 'afas-profit',      name: 'AFAS Profit',           description: 'Query AFAS Profit GetConnectors (read-only)', category: 'Productivity' },
     { id: 'nmbrs',            name: 'NMBRS',                 description: 'Read NMBRS payroll & HR data (read-only)',    category: 'Productivity' },
     { id: 'vplan',            name: 'vPlan',                 description: 'Read vPlan planning, capacity & time tracking (read-only)', category: 'Productivity' },
+    { id: 'scaleway-billing', name: 'Scaleway Billing',      description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', category: 'Productivity' },
     { id: 'youtrack',         name: 'YouTrack',              description: 'Issue tracking',                             category: 'Developer' },
     { id: 'github',           name: 'GitHub',                description: 'Repository management, view code',           category: 'Developer' },
     { id: 'n8n',              name: 'n8n',                   description: 'Workflow automation',                        category: 'Automation' },

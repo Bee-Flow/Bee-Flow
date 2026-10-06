@@ -4,9 +4,10 @@
  * resolution and "unresolved list" skip stub the list-mode steps build on.
  */
 
-const { evaluate } = require('../../automation/expr');
+const { evaluate, flattenRows, flattenSentenceParts, normalizeFlattenRoute, defaultParents } = require('../../automation/expr');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
+const { createRuleMissCounter } = require('./ruleMisses');
 
 // ── Phase B: collection operators ──────────────────────
 //
@@ -27,18 +28,25 @@ function resolveArrayRef(step, runState, { enforceCap = true } = {}) {
     // per-item work and its output is bounded by `count` — and it IS the
     // escape hatch this error message tells users to add, so capping it made
     // oversized lists permanently un-limitable from the UI.
+    const cap = collectionCap(step);
+    if (enforceCap && v.length > cap) throw tooLargeError(v.length, cap);
+    return v;
+}
+
+/** The input cap of a collection step: min(step.maxItems, global). */
+function collectionCap(step) {
     const stepMax = (typeof step.maxItems === 'number' && Number.isFinite(step.maxItems) && step.maxItems > 0)
         ? Math.floor(step.maxItems) : null;
-    const cap = Math.min(stepMax || COLLECTION_OP_MAX_ITEMS, COLLECTION_OP_MAX_ITEMS);
-    if (enforceCap && v.length > cap) {
-        const err = new Error(`Collection op input has ${v.length} items (max ${cap}). Add a Limit step upstream to cut the list down first (Limit is exempt from this cap), or raise AUTOMATION_COLLECTION_MAX_ITEMS.`);
-        // Stable class for run-history facets, same pattern as
-        // automationErrors.js codes — recordRunStep call sites read
-        // err.errorClass before falling back to classifyUnknownError.
-        err.errorClass = 'collection_too_large';
-        throw err;
-    }
-    return v;
+    return Math.min(stepMax || COLLECTION_OP_MAX_ITEMS, COLLECTION_OP_MAX_ITEMS);
+}
+
+function tooLargeError(length, cap) {
+    const err = new Error(`Collection op input has ${length} items (max ${cap}). Add a Limit step upstream to cut the list down first (Limit is exempt from this cap), or raise AUTOMATION_COLLECTION_MAX_ITEMS.`);
+    // Stable class for run-history facets, same pattern as
+    // automationErrors.js codes — recordRunStep call sites read
+    // err.errorClass before falling back to classifyUnknownError.
+    err.errorClass = 'collection_too_large';
+    return err;
 }
 
 /**
@@ -103,14 +111,20 @@ async function execFilter(step, ctx, runState) {
     const opts = host ? { host } : undefined;
     const out = [];
     let evalError = null;
+    // A rule path that finds nothing on any item goes to the binding log
+    // (ruleMisses.js), so a typo is named instead of keeping nothing silently.
+    const misses = createRuleMissCounter([{ ast }]);
     for (let i = 0; i < arr.length; i++) {
         let keep = false;
-        try { keep = !!evaluate(ast, scope(i), opts); } catch (e) {
+        const itemScope = scope(i);
+        try { keep = !!evaluate(ast, itemScope, opts); } catch (e) {
             if (e.topicFatal) throw e;
             keep = false; if (!evalError) evalError = e.message || String(e);
         }
+        misses.observe(itemScope);
         if (keep) out.push(arr[i]);
     }
+    misses.report(arr.length, null, { matched: out.length });
     // inputCount/rejectedCount: cheap numbers (never the dropped rows) so the
     // canvas can say "3 of 201 kept" on a filter's connection. Additive —
     // absent on rows recorded before this shipped.
@@ -245,7 +259,44 @@ async function execSummarize(step, ctx, runState) {
     };
 }
 
+/**
+ * Flatten a list: one row per item of a list inside a list, with the planned
+ * parent fields copied on (shared/expr/flatten.mjs makes the rows, so the
+ * editor preview equals the run). Both caps throw; nothing is truncated.
+ */
+async function execFlatten(step, ctx, runState) {
+    const cap = collectionCap(step);
+    const res = flattenRows(runState, step, { limit: cap });
+    if (!res) return flattenUnresolved(step, runState);
+    if (res.inputCount > cap) throw tooLargeError(res.inputCount, cap);
+    if (res.over) {
+        const err = new Error(`This step would make more than ${cap.toLocaleString('en-US')} rows. Put a Filter or a Limit before it to make the list smaller.`);
+        err.errorClass = 'collection_too_large';
+        throw err;
+    }
+    const { dead, over: _over, ...output } = res;
+    if (dead) {
+        const parts = flattenSentenceParts(output, step);
+        return {
+            output: {
+                items: [], count: 0, inputCount: res.inputCount, emptyCount: res.inputCount,
+                skipped: `None of the ${res.inputCount} ${parts.parents} has a list called ${parts.children}, so there was nothing to flatten. `
+                    + 'Re-run the step before this one, or pick another list in this step.',
+            },
+            skippedReason: 'flatten_no_match',
+        };
+    }
+    return { output };
+}
+
+/** The outermost list of a flatten did not resolve: the shared skip, named by that list. */
+function flattenUnresolved(step, runState) {
+    const route = normalizeFlattenRoute(step.arrayRef);
+    const outer = route ? defaultParents(route)[0].overRef : step.arrayRef;
+    return skippedArrayRef({ ...step, arrayRef: outer }, runState, { items: [], count: 0 });
+}
+
 module.exports = {
-    resolveArrayRef, unresolvedListMessage, skippedArrayRef,
-    execFilter, execLimit, execDedupe, execAggregate, execSummarize,
+    resolveArrayRef, unresolvedListMessage, skippedArrayRef, collectionCap,
+    execFilter, execFlatten, execLimit, execDedupe, execAggregate, execSummarize,
 };

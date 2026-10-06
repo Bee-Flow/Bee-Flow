@@ -135,7 +135,10 @@ function renderNote(p: RenderProps): ReactElement | null {
 
 function renderDisplay(p: RenderProps): ReactElement | null {
     if (p.field.kind !== 'display') return null;
-    return <InfoRow label={p.label ?? ''} value={p.field.show(p.draft, p.ctx)} />;
+    const value = p.field.show(p.draft, p.ctx, p.t);
+    // Without a label the value is a sentence of its own, read left to right in full.
+    if (!p.label) return value ? <Text variant="body">{value}</Text> : null;
+    return <InfoRow label={p.label} value={value} />;
 }
 
 export const RENDERERS: Record<FieldKind, Renderer> = {

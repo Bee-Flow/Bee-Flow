@@ -8,17 +8,16 @@
  */
 
 import { translate as t } from '@/core/i18n';
-import { tryEvaluate } from '@/shared/expr';
+import { appendKey, fileTypesNamedIn, tryEvaluate } from '@/shared/expr';
 
 import {
     dateRules, findDateClauses, findNumberClauses, findPhrases, numberRules, quote, type Rule, slugName,
 } from './routeIntentClauses';
-import {
-    findFileTypes, type IntentField, namedField, pickDateField, pickFileField, pickNumberField, pickTextField,
-} from './routeIntentFields';
+import { type IntentField, namedField, pickDateField, pickFileField, pickNumberField, pickTextField } from './routeIntentFields';
+import { fileTarget, filesListKey, type FilesInside, isPlainOption, itemIsFile, listTarget, mentionsFiles } from './routeIntentFiles';
 
-export { FILE_TYPES } from './routeIntentFields';
 export { slugName };
+export type { FilesInside };
 
 // More outputs than this is a lookup table, not a routing decision.
 const MAX_RULES = 8;
@@ -29,7 +28,11 @@ export interface Suggestion {
     field: IntentField | null;
     rules: Rule[];
     problem: string | null;
+    /** 'name_types': about files, but no type named. */
+    problemCode: string | null;
     truncated: boolean;
+    /** The files sit in a list inside each item: the box offers to work through them instead (S4). */
+    filesInside: FilesInside | null;
 }
 
 /** Port names must be unique — two cases with one name is an unwireable node. */
@@ -51,27 +54,38 @@ function result(r: Partial<Suggestion>): Suggestion {
         field: r.field ?? null,
         rules: withUniqueNames(r.rules ?? []).slice(0, MAX_RULES),
         problem: r.problem ?? null,
+        problemCode: r.problemCode ?? null,
         truncated: r.truncated ?? false,
+        filesInside: r.filesInside ?? null,
     };
 }
 
 interface Ctx {
     src: string;
     lower: string;
+    /** The plain fields (one value per item): the only ones compared directly. */
     fields: IntentField[];
     named: IntentField | null;
+    /** Every option of the rule menu, list columns and File type entries included. */
+    allFields: IntentField[];
+    namedAny: IntentField | null;
+    /** One item's sample: is it a file, or does it hold a list of files? */
+    element: unknown;
 }
 
-function tryFileTypes({ lower, fields, named }: Ctx): Suggestion | null {
-    const types = findFileTypes(lower);
+function tryFileTypes({ lower, allFields, namedAny, element }: Ctx): Suggestion | null {
+    const types = fileTypesNamedIn(lower);
     if (!types.length) return null;
-    const field = named || pickFileField(fields);
-    if (!field) {
+    const target = fileTarget(namedAny, element, allFields, pickFileField);
+    if (!target) {
         return result({ problem: t('mobile.flow.suggest.no_file_field', 'Nothing here looks like a file name, so there is nothing to check the extension against. Name the field in your description — for example “file name is a pdf” — or add the outputs by hand.') });
     }
-    // One `endsWith` per extension, OR-joined; the engine's endsWith ignores case.
-    const rules = types.map((ft) => ({ name: ft.key, expr: ft.extensions.map((e) => `endsWith(${field.path}, ${quote(e)})`).join(' || ') }));
-    return result({ kind: 'fileType', understood: t('mobile.flow.suggest.split_file_type', 'Split by file type'), field, rules, truncated: types.length > MAX_RULES });
+    // Each output keeps the author's word ("csv" stays csv, though it is the excel type).
+    const rules = types.map((ft) => ({ name: slugName(ft.word), expr: target.expr(ft.key) }));
+    return result({
+        kind: 'fileType', understood: t('mobile.flow.suggest.split_file_type', 'Split by file type'), field: target.field,
+        rules, truncated: types.length > MAX_RULES, filesInside: target.filesInside,
+    });
 }
 
 function tryDates({ lower, fields, named }: Ctx): Suggestion | null {
@@ -113,18 +127,35 @@ const DATE_WORDS = /\b(before|after|since|older than|newer than|last (?:week|mon
  * are the options the rule rows offer, so a suggestion only ever references a
  * field the author could have picked by hand.
  */
-export function suggestOutputs(text: unknown, { fields = [] }: { fields?: IntentField[] } = {}): Suggestion {
+export function suggestOutputs(text: unknown, { fields = [], element = undefined }: { fields?: IntentField[]; element?: unknown } = {}): Suggestion {
     const src = String(text || '').trim();
     if (!src) return result({});
     if (!(fields || []).length) {
         return result({ problem: t('mobile.flow.suggest.no_sample', 'There is no sample data for this step yet, so there are no field names to build rules from. Run the step above once, or add the outputs by hand.') });
     }
     const lower = src.toLowerCase();
-    const ctx: Ctx = { src, lower, fields, named: namedField(lower, fields) };
+    const plain = fields.filter(isPlainOption);
+    const ctx: Ctx = { src, lower, fields: plain, named: namedField(lower, plain), allFields: fields, namedAny: namedField(lower, fields), element };
     for (const intent of INTENTS) {
         const answer = intent(ctx);
         if (answer) return answer;
     }
+    return unrecognised(ctx);
+}
+
+/** The sentence for a description no intent answered. */
+function unrecognised({ lower, element, allFields }: Ctx): Suggestion {
+    const isFile = itemIsFile(element, allFields);
+    const listKey = isFile ? null : filesListKey(element, allFields);
+    if (mentionsFiles(lower) && (isFile || listKey)) {
+        // About files, but no type named: say which words work, and still offer the files inside (S4).
+        return result({
+            problem: t('condition_node.suggest.name_types', 'Name the file types to split by, for example “pdf, word and powerpoint”.'),
+            problemCode: 'name_types',
+            filesInside: listKey ? listTarget(appendKey('item', listKey), allFields).filesInside : null,
+        });
+    }
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one alternation of fixed words and bounded digit runs between word boundaries, no nested quantifiers: linear in the sentence
     if (DATE_WORDS.test(lower)) {
         return result({ problem: t('mobile.flow.suggest.full_dates', 'Dates have to be written in full, as 2026-01-31. A date relative to today (“last week”) is not something this box can work out on its own.') });
     }
@@ -151,8 +182,9 @@ export function matchCounts(
     const base = root && typeof root === 'object' && !Array.isArray(root) ? root : null;
     const perRule = rules.map((r) => ({ name: r.name, matched: 0, failed: 0 }));
     let unmatched = 0;
-    for (const row of rows) {
-        const scope = { ...(base as object), [itemVar]: row };
+    rows.forEach((row, index) => {
+        // The run's scope for a list rule: the item and its position.
+        const scope = { ...(base as object), [itemVar]: row, _index: index };
         let any = false;
         rules.forEach((r, i) => {
             const { value, error } = tryEvaluate(r.expr, scope);
@@ -164,6 +196,6 @@ export function matchCounts(
             }
         });
         if (!any) unmatched += 1;
-    }
+    });
     return { total: rows.length, perRule, unmatched };
 }

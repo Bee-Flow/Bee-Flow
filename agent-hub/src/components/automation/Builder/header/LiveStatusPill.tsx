@@ -42,7 +42,8 @@ export default function LiveStatusPill({ live }: { live: LiveState }) {
                 className={`inline-flex items-center gap-[5px] px-2 py-0.5 rounded-full text-[12px] whitespace-nowrap flex-shrink-0 ${tone}`}
             >
                 <span aria-hidden="true" className={`w-[7px] h-[7px] rounded-full box-border ${dot}`} />
-                {label}
+                {/* A phone-width bar keeps only the dot: the words would run under the view menu. */}
+                <span className="@max-[640px]/bar:sr-only">{label}</span>
             </span>
             {pending && (
                 <span

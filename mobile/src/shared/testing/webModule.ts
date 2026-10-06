@@ -50,6 +50,8 @@ export function loadWebFunctions<T = Record<string, unknown>>(
 
 const IMPORT_RX = /^import\s[\s\S]*?\sfrom\s+['"][^'"]+['"];?[ \t]*$/gm;
 const DECLARED_EXPORT_RX = /^export\s+(?:default\s+)?((?:async\s+)?(?:function\*?|const|let|class))\s+([A-Za-z0-9_$]+)/gm;
+// `export { a, b } from './x';` re-exports another module's names; like `export * from`, they are not this module's own.
+const REEXPORT_RX = /^export\s*\{[^}]*\}\s*from\s+['"][^'"]+['"];?[ \t]*$/gm;
 const LIST_EXPORT_RX = /^export\s*\{([^}]*)\};?[ \t]*$/gm;
 
 /** A path under agent-hub/src, or an absolute one (a caller that resolved it itself). */
@@ -60,6 +62,7 @@ const resolveWeb = (file: string) => (file.startsWith('/') ? file : `${AGENT_HUB
  * exports — declared ones (`export function x`, `export async function`,
  * `export const`, `export class`) and listed ones (`export { a, b as c }`).
  * A trailing `export default name;` is dropped: the name is declared anyway.
+ * Re-exports (`export * from`, `export { a } from`) are dropped too.
  */
 export function loadWebModule<T = Record<string, unknown>>(file: string, deps: Record<string, unknown> = {}): T {
     const names = new Set<string>();
@@ -67,6 +70,7 @@ export function loadWebModule<T = Record<string, unknown>>(file: string, deps: R
         .readFileSync(resolveWeb(file), 'utf8')
         .replace(IMPORT_RX, '')
         .replace(/^export \* from .*$/gm, '')
+        .replace(REEXPORT_RX, '')
         .replace(/^export default [A-Za-z0-9_$]+;?[ \t]*$/gm, '')
         .replace(DECLARED_EXPORT_RX, (_m, kind: string, name: string) => {
             names.add(name);

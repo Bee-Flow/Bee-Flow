@@ -46,7 +46,7 @@
 
 const { OUTPUT_SCHEMAS } = require('../outputSchemas');
 const { findStepAnywhere } = require('./draftGraph');
-const { formatPath, appendKey, appendMatch } = require('../expr');
+const { formatPath, appendKey, appendMatch, flattenShape } = require('../expr');
 const S = require('./shapeTree');
 const { normalizeAiPath } = require('./aiPaths');
 
@@ -153,9 +153,24 @@ function ownOutputShape(step, graph, draftWrap, depth) {
             const item = S.itemOf(shapeAtRef(graph, step.arrayRef, draftWrap, depth + 1));
             return obj([['items', { t: 'arr', item, sure: true }], ['count', num()]], { open: true });
         }
+        case 'flatten':
+            return depth >= MAX_REF_DEPTH ? ANY : flattenOutputShape(step, graph, draftWrap, depth);
         default:
             return ANY;
     }
+}
+
+/**
+ * A flatten's {items, count, inputCount, emptyCount}: its rows have the keys
+ * the shared engine makes from the source's sample, and are not sure (with no
+ * stored plan the run picks the parent fields from its own data).
+ */
+function flattenOutputShape(step, graph, draftWrap, depth) {
+    // Lazy: flattenStep reads shapes through this module.
+    const { sampleRootFor } = require('./stepBuilders/flattenStep');
+    const keys = Object.keys(flattenShape(sampleRootFor(graph, step.arrayRef, draftWrap, depth + 1), step));
+    const item = keys.length ? obj(keys.map(k => [k, ANY]), { sure: false }) : ANY;
+    return obj([['items', { t: 'arr', item, sure: true }], ['count', num()], ['inputCount', num()], ['emptyCount', num()], ['warning', str()], ['skipped', str()]]);
 }
 
 /**

@@ -17,7 +17,7 @@ const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { LOCAL_RUNTIMES, isLocalProviderType } = require('../providers/localModels');
 const { SCALEWAY_BASE_URL } = require('../providers/scalewayModels');
-const { EUGPT_BASE_URL } = require('../providers/eugptModels');
+const { EUGPT_BASE_URL, EUGPT_LEGACY_BASE_URL } = require('../providers/eugptModels');
 
 // Self-hosted runtimes are presets too — same shape, derived from the single
 // runtime table so the admin UI and the backend never disagree about which
@@ -483,10 +483,17 @@ async function ensureEuGptProvider() {
 
     const existing = ai.providers.find(p => p.id === 'eugpt-default');
     if (existing) {
+        // The old seed pointed at the chat web app, which answers every API
+        // call with a 412 from its storage bucket. An admin-chosen URL stays.
+        const movesHost = (existing.url || '').replace(/\/+$/, '') === EUGPT_LEGACY_BASE_URL;
         // Not an authentication check: both sides are this server's own
         // config, and the answer only decides whether to write it again.
-        if (existing.apiKey === apiKey) return; // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack
+        if (existing.apiKey === apiKey && !movesHost) return; // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack
         existing.apiKey = apiKey;
+        if (movesHost) {
+            existing.url = EUGPT_BASE_URL;
+            log.info('[AIAgent] Moved the EU GPT provider to the API host');
+        }
     } else {
         ai.providers.push({
             id: 'eugpt-default',

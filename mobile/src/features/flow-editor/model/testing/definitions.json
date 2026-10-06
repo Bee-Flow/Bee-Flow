@@ -438,6 +438,23 @@
                 "id": "loose",
                 "type": "dedupe",
                 "label": "LOOSE"
+            },
+            {
+                "id": "mf_flatten",
+                "type": "flatten",
+                "label": "One row per attachment",
+                "arrayRef": "steps.g_read_many.output.messages[*].attachments",
+                "parents": [
+                    {
+                        "overRef": "steps.g_read_many.output.messages",
+                        "itemVar": "message",
+                        "auto": true,
+                        "fields": [
+                            { "from": "id", "to": "messageId", "mode": "fill" },
+                            { "from": "subject", "to": "subject", "mode": "copy" }
+                        ]
+                    }
+                ]
             }
         ],
         "edges": [

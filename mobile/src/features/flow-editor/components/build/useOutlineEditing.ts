@@ -16,8 +16,10 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useTranslation, type TranslateFn } from '@/core/i18n';
 import type { StepRunMode } from '@/features/flow-editor/api';
-import { applyAutoMapToStep, autoMapInserted, buildRealOutputMap, type Catalog, type MappedInsert, type RunStepRow } from '@/features/flow-editor/bindings';
-import { createLayerInDefinition, defaultTriggerLabel, isTerminalStepType, type FlowDefinition, type StepPayload } from '@/features/flow-editor/model';
+import {
+    applyAutoMapToStep, autoMapInserted, buildRealOutputMap, followAround, reboundRouteId, type Catalog, type MappedInsert, type Rebound, type RunStepRow,
+} from '@/features/flow-editor/bindings';
+import { buildStepLabelMap, createLayerInDefinition, defaultTriggerLabel, isTerminalStepType, type FlowDefinition, type StepPayload } from '@/features/flow-editor/model';
 import { detachStep, findAtAddress, insertStep, moveStep, stepIdOf, toggleDisabled, togglePin, type AddTarget, type InsertResult, type StepActionId } from '@/features/flow-editor/model/outline';
 import { autoMapOnConnect, loadAutoMapPreference, type DraftStore } from '@/features/flow-editor/state';
 import { useConfirm } from '@/shared/patterns';
@@ -58,6 +60,21 @@ const realOutputs = (def: FlowDefinition, rows: RunRows) => buildRealOutputMap(d
 
 const mappedWords = (t: TranslateFn, n: number) => t('mobile.flow.auto_mapped', 'Filled {n} inputs from the step before', { n });
 
+/** "“Read attachment” now works through what “Condition” keeps." — once per re-pointed step. */
+export function followedWords(def: FlowDefinition | null, rebound: readonly Rebound[], t: TranslateFn): string[] {
+    const labels = buildStepLabelMap(def);
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const r of rebound) {
+        if (seen.has(r.stepId)) continue;
+        seen.add(r.stepId);
+        const route = reboundRouteId(r);
+        const condition = (route && labels.get(route)) || route || '';
+        out.push(t('condition_node.followed_toast', '“{step}” now works through what “{condition}” keeps.', { step: labels.get(r.stepId) || r.stepId, condition }));
+    }
+    return out;
+}
+
 /** Map the steps added before the catalog answered, once it has; one edit, one toast. */
 function useLateAutoMap(store: DraftStore, catalog: Catalog | null, runRows: RunRows) {
     const t = useTranslation();
@@ -68,17 +85,21 @@ function useLateAutoMap(store: DraftStore, catalog: Catalog | null, runRows: Run
         const ids = pending.current.splice(0);
         let mapped = 0;
         let forEach = false;
-        store.getState().applyOp((def) => {
+        const rebound: Rebound[] = [];
+        const written = store.getState().applyOp((def) => {
             let next = def;
             for (const id of ids) {
                 const r = applyAutoMapToStep(next, id, catalog, { realOutputById: realOutputs(next, runRows) });
-                next = r.definition;
+                const followed = followAround(r.definition, id);
+                next = followed.definition;
+                rebound.push(...followed.rebound);
                 mapped += r.mappedKeys.length;
                 forEach ||= r.forEachEnabled;
             }
             return next;
         });
         if (mapped || forEach) toast(mappedWords(t, mapped), 'success');
+        for (const words of followedWords(written, rebound, t)) toast(words, 'success');
     }, [catalog, store, runRows, toast, t]);
     return pending;
 }
@@ -186,6 +207,7 @@ export function useOutlineEditing({ store, catalog, runByStep, runRows, onOpen, 
     const afterInsert = (done: MappedInsert, payload: StepPayload) => {
         if (done.awaitingCatalog && done.addedId) lateAutoMap.current.push(done.addedId);
         if (done.mapped || done.forEach) toast(mappedWords(t, done.mapped), 'success');
+        for (const words of followedWords(done.definition, done.rebound, t)) toast(words, 'success');
         if (done.address && payload.kind !== 'trigger' && payload.kind !== 'note') onOpen(done.address);
     };
 

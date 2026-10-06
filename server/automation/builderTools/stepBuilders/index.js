@@ -16,6 +16,7 @@
  *   aiStep.js              ai_step, its agent/skill/permission block, the model-tier gate
  *   flowSteps.js           condition, switch, guard, tokenize, loop, wait, form_page, stop_error
  *   dataSteps.js           set + the five list ops, datetime, code, the retired parse_json rows
+ *   flattenStep.js         flatten: one row per item of a list inside a list
  *   documentSteps.js       generate_document, fill_document, slide, presentation
  *   dataExtractionStep.js  data_extraction, and every vocabulary it arrives in
  *   datatableStep.js       datatable reads and writes
@@ -31,6 +32,7 @@ const {
     autoBindRequiredInputs, requiredInputError, fileLocationField, bindingToTemplate,
 } = require('./inputBindings');
 const { applyAddAction } = require('./actionStep');
+const { applyAddFlatten } = require('./flattenStep');
 const {
     modelTierGateError, sanitizeAgentId, sanitizeSkillIds, sanitizeAgentPermissions,
     sanitizeDisabledAgentSkillIds, agentPermissionsBlock, applyAddAi,
@@ -81,6 +83,7 @@ const ADD_FOR_TYPE = {
     aggregate: applyAddAggregate, summarize: applyAddSummarize, call_layer: applyAddCallLayer, loop: applyAddLoop,
     datatable: applyAddDatatable,
     knowledge_write: applyAddKnowledgeWrite,
+    flatten: applyAddFlatten,
 };
 
 module.exports = {

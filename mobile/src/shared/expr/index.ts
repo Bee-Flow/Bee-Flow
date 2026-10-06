@@ -36,6 +36,7 @@ export {
     extractJsonText,
     formatKey,
     formatPath,
+    getList,
     getPath,
     getRelativePath,
     isIdentifierKey,
@@ -56,6 +57,109 @@ export type { PathToken, TemplatePart } from './vendor/index.mjs';
 // How a value reads inside a `{{ }}` placeholder (vendor/templateText.mjs):
 // a list of plain values joined, anything else as JSON — what the run writes.
 export { isScalarList, templateText } from './vendor/index.mjs';
+
+// The Condition node's rules (vendor/rules.mjs): equals, File type, the
+// any / every / no quantifiers, and the rule-shape text helpers the rule rows
+// are read from and written with.
+export {
+    FILE_TYPE_KEYS,
+    OP_OF_TEST,
+    QUANTIFIER_FN,
+    QUANTIFIER_OF_FN,
+    TEST_OF_OP,
+    UNARY_TESTS,
+    elementPasses,
+    equalsValue,
+    fieldShape,
+    fileTypeField,
+    fileTypeOf,
+    fileTypesNamedIn,
+    findTopLevelSymbol,
+    isEmptyValue,
+    isFileRecord,
+    quantifiedCall,
+    quantify,
+    readQuantifiedCall,
+    ruleFieldOptions,
+    singularKey,
+    splitCallArgs,
+    splitTopLevel,
+    textContains,
+    textEndsWith,
+    textStartsWith,
+} from './vendor/index.mjs';
+export type {
+    FileTypeKey,
+    QuantifierFunction,
+    RuleFieldNode,
+    RuleFieldOption,
+    RuleFieldOptionsOpts,
+    RuleFieldShape,
+    RuleQuantifier,
+} from './vendor/index.mjs';
+
+// Follow the route (vendor/routeFollow.mjs): a step after a Condition that
+// works through a list reads what that Condition keeps. And a whole-run
+// Condition that reads a list (vendor/wholeRun.mjs).
+export {
+    followRouteAround,
+    followRouteEdit,
+    followSuccessors,
+    isListRoute,
+    isWholeRunRoute,
+    loopsAfterWholeRun,
+    rebaseRefs,
+    relabelSwitchEdges,
+    routeListPath,
+    routeOutputPaths,
+    staleSuccessors,
+    stepReadsPath,
+    switchCaseChanges,
+    wholeRunListReads,
+} from './vendor/index.mjs';
+export type { RouteDefinition, RouteRebound } from './vendor/index.mjs';
+
+// A path as a person reads it (vendor/pathLabel.mjs), shared with the web builder.
+export { listPathLabel } from './vendor/index.mjs';
+// Lists inside lists (vendor/nested.mjs) and "Flatten a list" (vendor/flatten.mjs):
+// the levels a list holds, the rows of a route, and a flatten's column plan,
+// rows and run sentence, exactly as the server runs them.
+export {
+    GENERIC_KEYS,
+    LONG_TEXT_CHARS,
+    LONG_TEXT_KEYS,
+    RESERVED_VARS,
+    asRows,
+    checkFlattenParents,
+    childNounOf,
+    childVarOf,
+    defaultParents,
+    flattenPlan,
+    flattenRows,
+    flattenSentenceParts,
+    flattenShape,
+    itemVarFor,
+    joinKey,
+    lastKey,
+    listNounKey,
+    nestedRows,
+    normalizeFlattenRoute,
+    routeFromParts,
+    routeLevels,
+    splitRoute,
+} from './vendor/index.mjs';
+export type {
+    FlattenField,
+    FlattenFieldMode,
+    FlattenOutput,
+    FlattenParent,
+    FlattenPlan,
+    FlattenSentenceParts,
+    FlattenStepLike,
+    NestedRow,
+    NestedRows,
+    RouteLevel,
+} from './vendor/index.mjs';
 
 /** What `checkExpr` says about an expression, without running it. */
 export type ExprCheck =

@@ -97,7 +97,8 @@ const URL_PATTERNS = [
     // Serverless Generative APIs and the per-project variant
     // (api.scaleway.ai/<project-id>/v1) share one host.
     { pattern: /api\.scaleway\.ai/i, adapter: scalewayAdapter },
-    // chat.eugpt.ai (documented) and api.eugpt.ai serve the same backend.
+    // api.eugpt.ai is the API; chat.eugpt.ai (the web app) still resolves here
+    // so a provider saved with the old URL keeps its adapter until it is moved.
     { pattern: /(^|\/\/|\.)eugpt\.ai(:|\/|$)/i, adapter: eugptAdapter },
 ];
 

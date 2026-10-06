@@ -197,6 +197,7 @@ const STEP_TYPE_LABELS = {
     parse_json: 'Read fields', guard: 'Privacy check', tokenize: 'Hide personal data', call_layer: 'Flowlet',
     call_block: 'Building block', layer_output: 'Flowlet result', http_request: 'Web request', datetime: 'Date and time',
     filter: 'Filter', limit: 'Limit', dedupe: 'Remove duplicates', aggregate: 'Combine', summarize: 'Summarise',
+    flatten: 'Flatten a list',
     stop_error: 'Stop with an error', return_to_app: 'Back to the app', note: 'Note',
 };
 
@@ -237,6 +238,7 @@ const SETTING_LABELS = {
     concurrency: 'Running at the same time', retentionDays: 'Keep runs', notificationSettings: 'Notifications',
     appButtons: 'App buttons', manualTriggerPayload: 'Test input', skipHolidays: 'Skip public holidays',
     pinnedOutput: 'Pinned sample', assignee: 'Approver', approvers: 'Approvers',
+    parents: 'Copied fields', keepEmpty: 'Keep items without a list',
 };
 // Input names that mean "a folder", whatever the tool calls them.
 const FOLDER_KEYS = new Set(['folder', 'folderPath', 'dir', 'directory', 'targetFolder', 'destinationFolder', 'parentPath']);

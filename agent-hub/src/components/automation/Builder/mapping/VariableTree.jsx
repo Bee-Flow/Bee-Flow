@@ -5,6 +5,7 @@ import { fieldInUse } from './fieldInUse';
 import FieldKindIcon from './FieldKindIcon';
 import { describeField } from './fieldKinds';
 import { jsonTextValue } from './upstream/fieldTree';
+import { fieldLabelText } from './upstream/routeFieldLabel';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
 import { humanizeFieldKey } from '../flow/displayHelpers';
@@ -234,6 +235,9 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
     const desc = describeField(field, previewSample, t);
     // Marked at every level the step reads, `[*]` rows included (fieldInUse).
     const used = inUse ? fieldInUse(field.path, inUse) : false;
+    // A field the runner files under its own key carries the name a person
+    // gave it ("Otherwise" for `matchesByCase.default`): that name wins.
+    const name = fieldLabelText(field, t) ?? (human ? (humanizeFieldKey(field.key) || field.key) : field.key);
 
     return (
         <div>
@@ -247,7 +251,7 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 // The accessible name is the field's name alone: with none, the
                 // button read its whole row (kind, sample value, "used", grip).
                 // The kind and value stay on screen and in the title.
-                aria-label={human ? (humanizeFieldKey(field.key) || field.key) : field.key}
+                aria-label={name}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onInsert?.(field.path, { raw: e.altKey }); } }}
                 className={`group flex items-center gap-2 py-[5px] text-[11px] cursor-grab active:cursor-grabbing select-none hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none${used && human ? ' bg-[color-mix(in_srgb,var(--type-trigger)_7%,transparent)]' : ''}`}
                 style={{ paddingLeft: indent, paddingRight: 8 }}
@@ -268,8 +272,8 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 <FieldKindIcon kind={desc.kind} size={11} className="shrink-0 text-[var(--text-tertiary)]" />
                 {/* `human` (the Comes-in column, round 4): the name a person
                     reads, "Added by" for `added_by`; the key stays in the title. */}
-                <span className="text-[var(--text-primary)] font-medium truncate min-w-[64px] max-w-[50%]" title={human ? field.key : undefined}>
-                    {human ? (humanizeFieldKey(field.key) || field.key) : field.key}
+                <span className="text-[var(--text-primary)] font-medium truncate min-w-[64px] max-w-[50%]" title={name !== field.key ? field.key : undefined}>
+                    {name}
                 </span>
                 {desc.kind !== 'unknown' && (
                     <span className="min-w-0 text-[10px] text-[var(--text-tertiary)] truncate" data-testid="field-kind" title={desc.detail ? `${desc.word} ${desc.detail}` : desc.word}>

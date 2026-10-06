@@ -28,6 +28,7 @@ const { isGammaTool, executeGammaTool } = require('../../integrations/gammaTools
 const { isAfasTool, executeAfasTool } = require('../../integrations/afasTools');
 const { isNmbrsTool, executeNmbrsTool } = require('../../integrations/nmbrsTools');
 const { isVplanTool, executeVplanTool } = require('../../integrations/vplanTools');
+const { isScalewayBillingTool, executeScalewayBillingTool } = require('../../integrations/scalewayBillingTools');
 const { isN8nTool, executeN8nTool } = require('../../integrations/n8nTools');
 const { isN8nWorkflowTool, executeN8nWorkflowTool, getN8nToolPermission } = require('../../integrations/n8nWorkflowTools');
 const { hasPermission } = require('../../auth/permissions');
@@ -323,6 +324,14 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     }
     if (isVplanTool(toolName)) {
         return await executeVplanTool(toolName, toolArgs, userId);
+    }
+    if (isScalewayBillingTool(toolName)) {
+        // The run scope lets scaleway_download_invoice keep the PDF for this
+        // automation run and hand on a generated_file handle.
+        return await executeScalewayBillingTool(toolName, toolArgs, userId, {
+            automationId: context.automationId || null,
+            runScope: runScope || null,
+        });
     }
     {
         // Lazily required: withingsTools pulls in automationAuth (and through it the

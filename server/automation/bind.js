@@ -112,11 +112,14 @@ function noteMiss(rec) {
     const field = store.field || rec.field || null;
     const same = store.entries.find(e => e.kind === rec.kind && e.path === rec.path
         && e.reason === rec.reason && (e.field || null) === field);
-    if (same) { same.count += 1; return; }
+    // A caller that already counted (a rule that missed on every item of a
+    // list) passes `count`; every other miss is one.
+    const n = Number.isInteger(rec.count) && rec.count > 0 ? rec.count : 1;
+    if (same) { same.count += n; return; }
     if (store.entries.length >= MAX_BINDING_LOG_ENTRIES) return;
     const entry = { ...(field ? { field } : {}) };
     for (const [k, v] of Object.entries(rec)) if (k !== 'field' && v !== undefined) entry[k] = v;
-    entry.count = 1;
+    entry.count = n;
     store.entries.push(entry);
 }
 
@@ -126,13 +129,26 @@ function noteMissedPath(kind, path, root, extra = {}) {
 }
 
 /**
+ * A path in a Condition / Filter / Switch rule that found nothing on any of
+ * the items the rule was asked about (core/automationRunner/ruleMisses.js).
+ * `extra` carries `count` (how many items it missed on), `field` (the output
+ * name of a switch case) and, for a list column, where the walk stopped.
+ */
+function noteRuleMiss(path, root, extra = {}) {
+    if (!bindingLogStore.getStore()) return;
+    noteMiss({ kind: 'rule', path, ...analyseMiss(path, root), ...extra });
+}
+
+/**
  * One binding-log entry as a sentence a person can act on:
  *   'input "to" read steps.http.output.data.contact.e-mail, but
  *    steps.http.output.data.contact has no "e-mail"'.
  */
 function describeBindingMiss(e) {
     if (!e || typeof e !== 'object') return '';
-    const who = e.field ? `input "${e.field}"` : 'a mapping';
+    const who = e.kind === 'rule'
+        ? (e.field ? `the rule of output "${e.field}"` : 'the rule')
+        : (e.field ? `input "${e.field}"` : 'a mapping');
     const what = e.path;
     const times = e.count > 1 ? ` (${e.count}×)` : '';
     let why;
@@ -591,5 +607,5 @@ function interpolateJsonBody(template, runState, opts = {}) {
 module.exports = {
     walkList,
     resolveValue, resolveDeep, resolveInputs, walkPath, walkRelativePath, interpolateTemplate, cloneLiteral,
-    interpolateJsonBody, withBindingLog, describeBindingMiss,
+    interpolateJsonBody, withBindingLog, describeBindingMiss, noteRuleMiss,
 };

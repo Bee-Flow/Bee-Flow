@@ -29,7 +29,7 @@ export const APP_CATEGORIES: Readonly<Record<string, readonly [string, number?]>
     'image-gen': [AI], 'music-gen': [AI], 'video-gen': [AI], elevenlabs: [AI], 'agent-search': [AI],
     'browser-fetch': [AI], transcription: [AI], 'kb-search': [AI],
     fireflies: ['Productivity'], gamma: ['Productivity'], 'afas-profit': ['Productivity'], nmbrs: ['Productivity'],
-    vplan: ['Productivity'], signrequest: ['Productivity'],
+    vplan: ['Productivity'], signrequest: ['Productivity'], 'scaleway-billing': ['Productivity'],
     youtrack: ['Developer'], github: ['Developer'],
     n8n: ['Automation'], webpages: ['Automation'],
     linkedin: ['Social'], withings: ['Health'],

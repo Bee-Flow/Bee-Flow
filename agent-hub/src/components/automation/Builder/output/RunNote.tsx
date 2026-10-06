@@ -1,6 +1,7 @@
-import { Check, CircleAlert } from 'lucide-react';
+import { Check, CircleAlert, Filter, Rows3 } from 'lucide-react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { runNoteOf, type RunNote as RunNoteData } from './perItem';
+import { routeNoteOf, routeSentence, type RouteContext } from './routeNote';
 
 /** The plain run sentence: "Ran 4 times · all worked", "Ran 64 times · 60 didn't work". */
 function sentenceOf(note: RunNoteData, t: TranslateFn): string {
@@ -14,13 +15,38 @@ function sentenceOf(note: RunNoteData, t: TranslateFn): string {
     return `${head} · ${capped}`;
 }
 
+function RouteLine({ value, route }: { value: unknown; route: RouteContext }) {
+    const { t } = useTranslation();
+    const note = routeNoteOf(value, route);
+    if (!note) return null;
+    const text = routeSentence(note, route.unit, t, route.flatten ?? null);
+    return (
+        <span data-testid="output-route-note" className="inline-flex items-center gap-1 min-w-0 text-[var(--text-tertiary)]" title={text}>
+            {note.kind === 'flatten'
+                ? <Rows3 size={12} aria-hidden className="shrink-0" />
+                : <Filter size={12} aria-hidden className="shrink-0" />}
+            <span className="truncate">{text}</span>
+        </span>
+    );
+}
+
 /**
  * How a step that ran once per item went, in one muted line, in place of the
  * Iterations / Succeeded / Failed numbers. Renders nothing for a value
  * without those numbers (a Loop container, an ordinary list). Inline, so the
  * large view's footer can hold it in its own sentence.
+ *
+ * Given `route` (the step works through a list as a Condition), it says what
+ * the Condition kept or how it split the list instead, and nothing for an
+ * output without those numbers. For a flatten it says how many rows it made
+ * from how many items ("Made 64 rows from 4 messages.").
  */
-export default function RunNote({ value }: { value: unknown }) {
+export default function RunNote({ value, route = null }: { value: unknown; route?: RouteContext | null }) {
+    if (route) return <RouteLine value={value} route={route} />;
+    return <PerItemLine value={value} />;
+}
+
+function PerItemLine({ value }: { value: unknown }) {
     const { t } = useTranslation();
     const note = runNoteOf(value);
     if (!note) return null;

@@ -11,7 +11,7 @@ import { LAYER_OUTPUT, RETURN_TO_APP, STOP_ERROR } from './end';
 import { DATA_EXTRACTION } from './extraction';
 import { INTEGRATION_ACTION } from './integration';
 import { KNOWLEDGE_WRITE } from './knowledge';
-import { AGGREGATE, DEDUPE, LIMIT, SUMMARIZE } from './lists';
+import { AGGREGATE, DEDUPE, FLATTEN, LIMIT, SUMMARIZE } from './lists';
 import { NOTE } from './note';
 import { NOTIFICATION, WAIT } from './pause';
 import { PRESENTATION } from './presentation';
@@ -19,7 +19,7 @@ import { PRIVACY } from './privacy';
 import { SLIDE } from './slide';
 
 const ALL: readonly EditorSpec[] = [
-    WAIT, NOTIFICATION, LIMIT, DEDUPE, AGGREGATE, SUMMARIZE, DATETIME, STOP_ERROR, RETURN_TO_APP, LAYER_OUTPUT,
+    WAIT, NOTIFICATION, LIMIT, DEDUPE, AGGREGATE, SUMMARIZE, FLATTEN, DATETIME, STOP_ERROR, RETURN_TO_APP, LAYER_OUTPUT,
     KNOWLEDGE_WRITE, DATA_EXTRACTION, GENERATE_DOCUMENT, FILL_DOCUMENT, SLIDE, PRESENTATION, CALL_BLOCK, CALL_LAYER,
     NOTE, INTEGRATION_ACTION,
 ];

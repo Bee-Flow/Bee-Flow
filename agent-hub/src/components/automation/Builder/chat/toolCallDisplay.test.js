@@ -209,3 +209,16 @@ describe('describeLiveRun', () => {
         expect(describeLiveRun({ label: 'x', done: 0, total: 1 }, t).title).toBe('Automation wordt getest…');
     });
 });
+
+describe('describeToolCall: a flatten array op', () => {
+    it('names the op while no step names it yet, and the step once it does', () => {
+        const pending = { name: 'builder_add_array_op', arguments: { op: 'flatten', arrayRef: 'steps.g.output.messages', childField: 'attachments' } };
+        expect(describeToolCall(pending).title).toBe('Flattening a list');
+        const seen = [];
+        describeToolCall(pending, (k, d) => { seen.push(k); return d; });
+        expect(seen).toContain('flatten_node.activity');
+        const done = { ...pending, result: { added: { id: 'f1', type: 'flatten', label: 'One row per attachment' } } };
+        expect(describeToolCall(done).title).toBe('Flatten a list');
+        expect(describeToolCall(done).detail).toBe('One row per attachment');
+    });
+});

@@ -1,10 +1,11 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
-import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import SettingsForm from './SettingsForm';
-import { VariablePickerProvider } from '../mapping/VariablePickerContext';
-import scopedStorage from '../../../../utils/scopedStorage';
 import { FormDensityContext } from './settings/formDensity';
+import SettingsForm from './SettingsForm';
+import { editorWithValue } from '../../../../test/refEditor';
+import scopedStorage from '../../../../utils/scopedStorage';
+import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 /**
  * The unified Filter form: If / Switch / Filter are ONE editor, the runtime
@@ -109,7 +110,9 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.type).toBe('switch');
-        expect(patch.cases[0]).toEqual({ name: 'rule1', expr: IF_STEP.expr });
+        // O3: the If's internal first name becomes "Output 1" once it is a port.
+        expect(patch.cases[0]).toEqual({ name: 'Output 1', expr: IF_STEP.expr });
+        expect(patch.cases[1]).toEqual({ name: 'Output 2', expr: '' });
     });
 
     it('the Advanced mode override still flips the runtime type', async () => {
@@ -173,23 +176,30 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
     it('asks the question first, and keeps a running count', () => {
         renderForm(IF_STEP);
         expect(chooser()).toBeTruthy();
-        expect(screen.getByRole('button', { name: 'One output' }).getAttribute('aria-pressed')).toBe('true');
-        expect(screen.getByRole('button', { name: 'Several outputs' }).getAttribute('aria-pressed')).toBe('false');
-        expect(screen.getByText('This node has 1 output.')).toBeTruthy();
+        // O1: the shared SegmentedControl — a radio group, the selected option checked.
+        expect(screen.getByRole('radiogroup', { name: 'Number of outputs' })).toBeTruthy();
+        expect(screen.getByRole('radio', { name: 'One output' }).getAttribute('aria-checked')).toBe('true');
+        expect(screen.getByRole('radio', { name: 'Several outputs' }).getAttribute('aria-checked')).toBe('false');
+        // A whole-run Condition: one output, and its else port as “Otherwise”.
+        expect(screen.getByText('This node has 1 output plus “Otherwise”.')).toBeTruthy();
     });
 
-    it('explains what an output IS — there is no documentation for this node anywhere', () => {
+    it('explains what an output IS — there is no documentation for this node anywhere', async () => {
         renderForm(IF_STEP);
+        // Said where it applies: with one output there is no Output 2.
+        expect(screen.queryByText(/Each output is a filter with its own destination/)).toBeNull();
+        await userEvent.click(screen.getByRole('radio', { name: 'Several outputs' }));
         expect(screen.getByText(/Each output is a filter with its own destination/)).toBeTruthy();
-        expect(screen.getByText(/Output A: Subject contains urgent/)).toBeTruthy();
+        expect(screen.getByText(/Output 1: Subject contains urgent/)).toBeTruthy();
     });
 
     it('"Several outputs" grows the node and labels every output', async () => {
         const { onPatch } = renderForm(IF_STEP);
-        fireEvent.click(screen.getByRole('button', { name: 'Several outputs' }));
+        await userEvent.click(screen.getByRole('radio', { name: 'Several outputs' }));
         expect(screen.getByText('This node has 2 outputs.')).toBeTruthy();
-        expect(screen.getByText('Output A')).toBeTruthy();
-        expect(screen.getByText('Output B')).toBeTruthy();
+        // O3: "Output 1", "Output 2" (the Advanced "When nothing matches" menu names them too).
+        expect(screen.getByText('Output 1', { selector: 'div' })).toBeTruthy();
+        expect(screen.getByText('Output 2', { selector: 'div' })).toBeTruthy();
         // "+ Add output" grows the list further.
         fireEvent.click(screen.getByText('Add output'));
         expect(screen.getByText('This node has 3 outputs.')).toBeTruthy();
@@ -199,11 +209,14 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
         expect(onPatch.mock.calls[0][0].cases).toHaveLength(3);
     });
 
-    it('states the fan-out semantic instead of leaving it to be discovered', () => {
+    it('tells one story about what matches no output (O2)', async () => {
         renderForm(IF_STEP);
-        fireEvent.click(screen.getByRole('button', { name: 'Several outputs' }));
-        expect(screen.getByText(/matches two outputs travels both paths/)).toBeTruthy();
-        expect(screen.getByText(/matches no output at all is dropped here/)).toBeTruthy();
+        // A whole-run Condition decides for the run: then, or “Otherwise”.
+        expect(screen.getByText('When the rule holds, the run continues; when it doesn’t, the run goes to “Otherwise”; leave “Otherwise” unconnected to stop it there.')).toBeTruthy();
+        expect(screen.queryByText(/the rest stops here/)).toBeNull();
+        await userEvent.click(screen.getByRole('radio', { name: 'Several outputs' }));
+        expect(screen.getByText(/Each output is checked on its own, so one item can go down several outputs\. What matches no output goes to “Otherwise”; leave “Otherwise” unconnected to drop it\./)).toBeTruthy();
+        expect(screen.queryByText(/counted as rejected/)).toBeNull();
     });
 
     it('states the canvas consequences of growing and shrinking the list', () => {
@@ -214,13 +227,13 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
 
     it('collapsing to one output NAMES the wired outputs it would cost, and waits', async () => {
         const { onPatch } = renderForm(TWO_OUTPUT_SWITCH, { wiredCaseNames: new Set(['big', 'small']) });
-        fireEvent.click(screen.getByRole('button', { name: 'One output' }));
+        await userEvent.click(screen.getByRole('radio', { name: 'One output' }));
         // Nothing has changed yet — the node still has both outputs.
         expect(screen.getByText('This node has 2 outputs.')).toBeTruthy();
         expect(screen.getByText(/Going back to one output removes/)).toBeTruthy();
-        expect(screen.getByText(/Output B \(small\)/)).toBeTruthy();
-        // Output A survives a collapse, so it is not listed as a casualty.
-        expect(screen.queryByText(/Output A \(big\)/)).toBeNull();
+        expect(screen.getByText(/Output 2 \(small\)/)).toBeTruthy();
+        // Output 1 survives a collapse, so it is not listed as a casualty.
+        expect(screen.queryByText(/Output 1 \(big\)/)).toBeNull();
 
         // Backing out leaves the node exactly as it was.
         fireEvent.click(screen.getByText('Keep several outputs'));
@@ -228,9 +241,9 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
         expect(screen.getByText('This node has 2 outputs.')).toBeTruthy();
 
         // Confirming does what it said it would.
-        fireEvent.click(screen.getByRole('button', { name: 'One output' }));
+        await userEvent.click(screen.getByRole('radio', { name: 'One output' }));
         fireEvent.click(screen.getByText('Remove them anyway'));
-        expect(screen.getByText('This node has 1 output.')).toBeTruthy();
+        expect(screen.getByText('This node has 1 output plus “Otherwise”.')).toBeTruthy();
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
@@ -238,11 +251,11 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
         expect(patch.expr).toBe('a > 10');
     });
 
-    it('collapsing costs nothing when the extra outputs are unwired — no warning, no click', () => {
+    it('collapsing costs nothing when the extra outputs are unwired — no warning, no click', async () => {
         renderForm(TWO_OUTPUT_SWITCH, { wiredCaseNames: new Set(['big']) });
-        fireEvent.click(screen.getByRole('button', { name: 'One output' }));
+        await userEvent.click(screen.getByRole('radio', { name: 'One output' }));
         expect(screen.queryByText(/Going back to one output removes/)).toBeNull();
-        expect(screen.getByText('This node has 1 output.')).toBeTruthy();
+        expect(screen.getByText('This node has 1 output plus “Otherwise”.')).toBeTruthy();
     });
 });
 
@@ -269,7 +282,7 @@ describe('SettingsForm — Filter: fan-out is opt-in per node (BFSF-356)', () =>
 
     it('a router BUILT here fans out — that is the semantic the ticket describes', async () => {
         const { onPatch } = renderForm(IF_STEP);
-        fireEvent.click(screen.getByRole('button', { name: 'Several outputs' }));
+        await userEvent.click(screen.getByRole('radio', { name: 'Several outputs' }));
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].matchMode).toBe('all');

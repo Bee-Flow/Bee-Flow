@@ -19,6 +19,7 @@ import { useTranslation } from '@/core/i18n';
 import { resolveElementSample } from '@/features/flow-editor/bindings';
 import { RowsEditor, SelectField } from '@/features/flow-editor/components/fields';
 import { VariablePickerProvider } from '@/features/flow-editor/components/variables';
+import { buildStepTypeMap } from '@/features/flow-editor/model';
 
 import { JsonExtract } from './JsonExtract';
 import { baseColumnsOf, type SetOp } from './setModel';
@@ -44,6 +45,8 @@ function Source({ editor, hint }: { editor: StepEditorProps; hint: string }) {
             onMaxItems={(maxItems) => set('maxItems', maxItems)}
             groups={ctx.groups}
             sampleRoot={ctx.sampleRoot}
+            stepLabelById={ctx.stepLabelById}
+            stepTypeById={buildStepTypeMap(ctx.definition)}
             disabled={ctx.disabled}
         />
     );

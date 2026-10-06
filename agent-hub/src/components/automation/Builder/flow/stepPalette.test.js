@@ -83,7 +83,7 @@ describe('stepPalette — buildStepGroups', () => {
         // reaching for one has to see the other to pick the right one.
         // `slide` and `presentation` follow as the third artefact pair — one
         // page, then the deck those pages go into.
-        expect(ids).toEqual(['datatable', 'knowledge_write', 'set', 'datetime', 'generate_document', 'fill_document', 'slide', 'presentation', 'limit', 'dedupe', 'aggregate', 'summarize']);
+        expect(ids).toEqual(['datatable', 'knowledge_write', 'set', 'datetime', 'generate_document', 'fill_document', 'slide', 'presentation', 'filter_list', 'flatten', 'limit', 'dedupe', 'aggregate', 'summarize']);
     });
 
     it('omits the Steps group while building a Step (isBlockRoot)', () => {
