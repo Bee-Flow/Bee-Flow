@@ -303,9 +303,11 @@ export default function NodeDetailView({
                                 {/* "runs 4× · one per bank" (artboard 2b): a step in a loop runs once per item. */}
                                 {loopContext && (
                                     <span className="shrink-0 px-[7px] rounded-full text-[11px] font-semibold leading-[18px] bg-[color-mix(in_srgb,var(--type-loop)_16%,transparent)] text-[var(--type-loop)]" data-testid="ndv-runs-pill">
-                                        {loopContext.listLabel
-                                            ? t('automations.ndv.runs_n_times_per', 'runs {n}× · one per {list}', { n: loopContext.runs, list: loopContext.listLabel })
-                                            : t('automations.ndv.runs_n_times', 'runs {n}×', { n: loopContext.runs })}
+                                        {loopContext.itemNoun
+                                            ? t('automations.ndv.runs_n_times_per_item', 'runs {n}× · once per {item}', { n: loopContext.runs, item: loopContext.itemNoun })
+                                            : loopContext.listLabel
+                                                ? t('automations.ndv.runs_n_times_per', 'runs {n}× · one per {list}', { n: loopContext.runs, list: loopContext.listLabel })
+                                                : t('automations.ndv.runs_n_times', 'runs {n}×', { n: loopContext.runs })}
                                     </span>
                                 )}
                                 {onModeChange && !isTrigger && <FormModeToggle mode={effectiveMode} onChange={onModeChange} size="sm" />}

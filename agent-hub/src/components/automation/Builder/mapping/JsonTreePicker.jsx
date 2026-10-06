@@ -1,21 +1,21 @@
+import { appendKey, appendWildcard } from '@shared/expr/path.mjs';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
-import { previewValue } from '../../../../utils/bindingHelpers';
 import { joinKeyPath, keyPickable } from './keyPath';
+import { mergeElements } from './upstream/fieldTree';
+import { previewValue } from '../../../../utils/bindingHelpers';
 
 /**
  * JsonTreePicker — a recursive, arbitrary-depth JSON tree whose rows emit
  * RELATIVE extraction paths (the parse_json field-path dialect resolved by
- * walkRelativePath on both client and server). Deliberately NOT built on
- * upstream.js sampleToFields, which stops at one level — this picker exists
- * so users can click into deeply nested payloads.
+ * walkRelativePath on both client and server). Not built on the upstream
+ * field tree: its paths are RELATIVE to the value, and each list carries its
+ * own "first item / each item" choice.
  *
- * Path building mirrors the server tokenizer's quoting rules:
+ * Paths are written by the runtime grammar's own writer (keyPath.js →
+ * shared/expr/path.mjs):
  *   - identifier-safe object key      → `.key`
- *   - anything else                   → `["key"]` (or `['key']` when the key
- *                                       itself contains a double quote — the
- *                                       tokenizer accepts both, but supports
- *                                       no escapes)
+ *   - anything else                   → `["key"]`, JSON-escaped
  *   - array element                   → `[0]` or, when the array's toggle is
  *                                       set to "each item", `[*]` (flatten)
  * Root arrays are supported: paths then START with `[0]`/`[*]`.
@@ -46,8 +46,10 @@ export default function JsonTreePicker({ value, onPick, maxDepth = 20, maxChildr
 /** Rows for the members of one object/array value. */
 function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable = true }) {
     // One toggle per ARRAY node: pick from the first item ([0]) or from each
-    // item ([*], flattens). The first element's subtree is rendered once —
-    // the toggle only changes which index the emitted paths carry.
+    // item ([*], flattens). "Each item" shows the UNION of the elements' keys
+    // (upstream/fieldTree mergeElements), so a key only a later element has,
+    // or a list that starts with null, is still there to pick; "first item"
+    // shows exactly element 0, the only thing `[0]` reads.
     const [each, setEach] = useState(false);
 
     if (Array.isArray(value)) {
@@ -74,8 +76,8 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
                 </div>
                 <TreeNode
                     nodeKey={`[${idx}]`}
-                    value={value[0]}
-                    path={`${path}[${idx}]`}
+                    value={each ? mergeElements(value) : value[0]}
+                    path={each ? appendWildcard(path) : appendKey(path, 0)}
                     pickable={pickable}
                     depth={depth}
                     onPick={onPick}

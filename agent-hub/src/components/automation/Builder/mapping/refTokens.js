@@ -9,59 +9,64 @@
  * text. `serializeRefTokens(parseRefTokens(x)) === x` for any input.
  *
  * Three ref sources are recognised, matching the runtime paths:
- *   steps.<id>.output[.<field>]   → keyed by step id (resolvable to a label)
- *   trigger[.output][.<field>]    → the automation trigger
- *   loop.<itemVar>[.<field>]      → the current forEach/loop item
+ *   steps.<id>.output[<field path>]   → keyed by step id (resolvable to a label)
+ *   trigger[.output][<field path>]    → the automation trigger
+ *   loop.<itemVar>[<field path>]      → the current forEach/loop item
  *
- * The path regexes mirror the canonical ones in server/automation/portability.js
- * (PATH_HEAD_DOT_RE / EXPR_STEPS_DOT_RE) and the canvas humanizer in
- * flow/displayHelpers.js, with an added `loop.` branch the canvas lacks.
+ * WHAT counts as one reference is the runtime's own path grammar
+ * (shared/expr/path.mjs, through bindingHelpers): a bracket straight after
+ * `output` (`steps.g.output["@odata.nextLink"]`, `steps.l.output[0].id`), a
+ * quoted key holding `}` or `]`, a match segment
+ * (`headers[name="Subject"].value`). The pill used to stop at the first
+ * segment its own regex did not know, which left half a reference as loose
+ * text and made re-picking through the pill keep the stale half.
  */
-import { TEMPLATE_RE } from '../../../../utils/bindingHelpers';
+import { formatPath, readPath, scanTemplate } from '@shared/expr/path.mjs';
+import { detectTemplate, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers';
+import { humanizeFieldTail } from '../flow/displayHelpers';
 
-// Identifier (step id / itemVar) and a dotted/bracketed field path tail.
-const IDENT = '[A-Za-z_$][A-Za-z0-9_$]*';
-// A step id. Inside an expanded flowlet a sub-step's id is namespaced
-// `<callId>/<subId>` (flow/inlineFlowlets.js INLINE_SEP, nested: `a/b/c`); the
-// prefix is stripped again on save, but while it is on screen it is one id.
-const STEP_ID = `${IDENT}(?:/${IDENT})*`;
-// Field path: first segment then any number of `.seg` or `[idx]` / `[*]` parts.
-const FIELD = '[A-Za-z0-9_$]+(?:\\.[A-Za-z0-9_$]+|\\[[^\\]]*\\])*';
+// The roots a pill can name.
+const REF_ROOTS = ['steps', 'trigger', 'loop'];
 
-// Scans an EXPRESSION/ref string for the three ref kinds. The negative
-// lookbehind rejects lookalikes (`mysteps.x`, `vars.trigger`, `x.loop.y`)
-// without consuming a prefix char, so the gaps between matches are exactly
-// the literal spans — which is what keeps the round-trip byte-faithful.
-const SCAN_RE = new RegExp(
-    `(?<![A-Za-z0-9_$.])steps\\.(${STEP_ID})\\.output(?:\\.(${FIELD}))?` +
-    `|(?<![A-Za-z0-9_$.])trigger(?:\\.output)?(?:\\.(${FIELD}))?` +
-    `|(?<![A-Za-z0-9_$.])loop\\.(${IDENT})(?:\\.(${FIELD}))?`,
-    'g',
-);
-
-// Anchored variants used to classify the inside of a `{{ … }}` interpolation.
-const STEPS_ANCHOR = new RegExp(`^steps\\.(${STEP_ID})\\.output(?:\\.(${FIELD}))?$`);
-const TRIGGER_ANCHOR = new RegExp(`^trigger(?:\\.output)?(?:\\.(${FIELD}))?$`);
-const LOOP_ANCHOR = new RegExp(`^loop\\.(${IDENT})(?:\\.(${FIELD}))?$`);
+/** A path's field part, after its head, in canonical spelling ('' for none). */
+function tailOf(tokens) {
+    return tokens.length ? formatPath(tokens) : '';
+}
 
 /**
- * Classify a bare path string (no `{{}}`, already trimmed) as a ref.
+ * Classify a bare path string (no `{{}}`) as a ref.
  * Returns `{ source, stepId?, itemVar?, fieldPath }` or null.
  */
 export function classifyRef(path) {
     if (typeof path !== 'string') return null;
-    const text = path.trim();
-    let m;
-    if ((m = STEPS_ANCHOR.exec(text))) {
-        return { source: 'steps', stepId: m[1], fieldPath: m[2] || '' };
+    const tokens = refPathTokens(path);
+    if (!tokens) return null;
+    const [head, second, third] = tokens;
+    const named = (t) => t?.type === 'prop' && typeof t.key === 'string';
+    if (head.key === 'steps') {
+        if (named(second) && named(third) && third.key === 'output') {
+            return { source: 'steps', stepId: second.key, fieldPath: tailOf(tokens.slice(3)) };
+        }
+        return null;
     }
-    if ((m = LOOP_ANCHOR.exec(text))) {
-        return { source: 'loop', itemVar: m[1], fieldPath: m[2] || '' };
+    if (head.key === 'loop') {
+        return named(second) ? { source: 'loop', itemVar: second.key, fieldPath: tailOf(tokens.slice(2)) } : null;
     }
-    if ((m = TRIGGER_ANCHOR.exec(text))) {
-        return { source: 'trigger', fieldPath: m[1] || '' };
+    if (head.key === 'trigger') {
+        const rest = named(second) && second.key === 'output' ? tokens.slice(2) : tokens.slice(1);
+        return { source: 'trigger', fieldPath: tailOf(rest) };
     }
     return null;
+}
+
+/**
+ * The name a pill shows after its source — displayHelpers.humanizeFieldTail,
+ * so every surface that names a field reads it the way its pill does:
+ * `fields["Story Points"]` "Story points", `from.emailAddress.address`
+ * "From ▸ Address", `items[0]` "Items ▸ 1st".
+ */
+export function fieldTailLabel(fieldPath) {
+    return humanizeFieldTail(fieldPath);
 }
 
 /**
@@ -73,7 +78,7 @@ export function classifyRef(path) {
  *
  * `raw` is the exact original substring (including `{{ }}` and any internal
  * spacing when `wrapped`), so serialize round-trips verbatim. `path` is the
- * inner dotted path without braces.
+ * inner path without braces.
  *
  * Mode semantics mirror bindingHelpers:
  *   - a value containing `{{…}}` is a template — only the `{{…}}` insides are
@@ -84,47 +89,145 @@ export function classifyRef(path) {
 export function parseRefTokens(text, { mode = 'expression' } = {}) {
     const s = text == null ? '' : String(text);
     if (!s) return [];
-    if (TEMPLATE_RE.test(s)) return tokenizeTemplate(s);
+    if (detectTemplate(s)) return tokenizeTemplate(s);
     if (mode === 'fixed') return [{ type: 'literal', text: s }];
     return tokenizeExpression(s);
 }
 
 function tokenizeTemplate(s) {
-    const tokens = [];
-    const TPL = /\{\{([^}]*)\}\}/g;
-    let last = 0;
-    let m;
-    while ((m = TPL.exec(s))) {
-        if (m.index > last) tokens.push({ type: 'literal', text: s.slice(last, m.index) });
-        const full = m[0];
-        const inner = m[1].trim();
-        const ref = classifyRef(inner);
-        if (ref) tokens.push({ type: 'ref', raw: full, path: inner, wrapped: true, ...ref });
-        else tokens.push({ type: 'literal', text: full });
-        last = m.index + full.length;
-    }
-    if (last < s.length) tokens.push({ type: 'literal', text: s.slice(last) });
-    return tokens;
+    // The runtime's quote-aware placeholder scan: `{{ x["a}}b"] }}` is ONE
+    // placeholder, exactly as bind.js interpolateTemplate reads it.
+    return scanTemplate(s).map((p) => {
+        if (p.type === 'text') return { type: 'literal', text: p.value };
+        const ref = classifyRef(p.inner);
+        return ref ? { type: 'ref', raw: p.raw, path: p.inner, wrapped: true, ...ref } : { type: 'literal', text: p.raw };
+    });
 }
 
 function tokenizeExpression(s) {
-    const tokens = [];
-    SCAN_RE.lastIndex = 0;
-    let last = 0;
-    let m;
-    while ((m = SCAN_RE.exec(s))) {
-        if (m.index > last) tokens.push({ type: 'literal', text: s.slice(last, m.index) });
-        const full = m[0];
-        let ref;
-        if (m[1] != null) ref = { source: 'steps', stepId: m[1], fieldPath: m[2] || '' };
-        else if (m[4] != null) ref = { source: 'loop', itemVar: m[4], fieldPath: m[5] || '' };
-        else ref = { source: 'trigger', fieldPath: m[3] || '' };
-        tokens.push({ type: 'ref', raw: full, path: full, wrapped: false, ...ref });
-        last = m.index + full.length;
-        if (SCAN_RE.lastIndex === m.index) SCAN_RE.lastIndex++; // zero-width guard
+    // A value that IS one reference (a stored ref, which may spell a key the
+    // way the runtime reads but a formula would not, `headers.content-type`)
+    // is one pill, whatever surrounds it.
+    const trimmed = s.trim();
+    if (isCleanPath(trimmed)) {
+        const ref = classifyRef(trimmed);
+        if (ref) {
+            const lead = s.slice(0, s.length - s.trimStart().length);
+            const trail = s.slice(s.trimEnd().length);
+            return [
+                ...(lead ? [{ type: 'literal', text: lead }] : []),
+                { type: 'ref', raw: trimmed, path: trimmed, wrapped: false, ...ref },
+                ...(trail ? [{ type: 'literal', text: trail }] : []),
+            ];
+        }
     }
-    if (last < s.length) tokens.push({ type: 'literal', text: s.slice(last) });
+    const tokens = [];
+    for (const part of scanExprPaths(s, REF_ROOTS)) {
+        const ref = part.path != null ? classifyRef(part.path) : null;
+        const text = part.path ?? part.text;
+        if (ref) tokens.push({ type: 'ref', raw: text, path: text, wrapped: false, ...ref });
+        else if (tokens.length && tokens[tokens.length - 1].type === 'literal') tokens[tokens.length - 1].text += text;
+        else tokens.push({ type: 'literal', text });
+    }
     return tokens;
+}
+
+// ── The expression engine's path grammar, for scanning formulas ─────────
+// Inside a formula a path is what the ENGINE reads as one (engine.mjs
+// tokenize): the shared path grammar (path.mjs readPath: `[*]`, `[n]`,
+// `["key"]`, `[key="value"]`, digits and accents after a dot, `items.0.price`)
+// minus the two name characters that are operators or nothing to the engine,
+// `-` (a minus: `total-1`, `a.total-b.tax`) and `@`. A computed index (`[i]`)
+// ends the path. A whole value that is one stored ref keeps its dashed key
+// (tokenizeExpression asks isCleanPath first).
+const IDENT_START = /[\p{L}_$]/u;
+const IDENT_CHAR = /[\p{L}\p{N}\p{M}_$]/u;
+// What may sit right before a reference: anything but a name or member access.
+const GLUED = /[\p{L}\p{N}\p{M}_$.]/u;
+// An expanded flowlet's sub-step id (`steps.<call>/<sub>.output`), one id.
+const INLINE_HEAD = /steps\.[A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]*)+\.output/y;
+const MARK = /\p{M}/u;
+
+function identEnd(s, i) {
+    if (!IDENT_START.test(s[i] || '')) return -1;
+    let j = i + 1;
+    while (j < s.length && IDENT_CHAR.test(s[j])) j++;
+    return j;
+}
+
+/** Just past the closing quote of the string starting at `i`, or -1 when it never closes. */
+function stringEnd(s, i) {
+    const q = s[i];
+    for (let j = i + 1; j < s.length; j++) {
+        if (s[j] === '\\') { j++; continue; }
+        if (s[j] === q) return j + 1;
+    }
+    return -1;
+}
+
+/**
+ * Where the engine stops inside `s.slice(from, to)`, a span readPath read as
+ * one path: at a `-` or `@` outside brackets (and before the dot that led
+ * to it), or at a dot followed by a combining mark, which no engine name
+ * starts with.
+ */
+function engineCut(s, from, to) {
+    let depth = 0;
+    for (let j = from; j < to; j++) {
+        const c = s[j];
+        if (c === '"' || c === "'") { j = stringEnd(s, j) - 1; continue; }
+        if (c === '[') depth++;
+        else if (c === ']') depth--;
+        else if (depth === 0 && (c === '-' || c === '@')) return s[j - 1] === '.' ? j - 1 : j;
+        else if (depth === 0 && c === '.' && MARK.test(s[j + 1] || '')) return j;
+    }
+    return to;
+}
+
+/** Where the engine's reading of a path that starts with the name at `i` ends. */
+function exprPathEnd(s, i) {
+    INLINE_HEAD.lastIndex = i;
+    if (INLINE_HEAD.test(s)) {
+        // The sub-step id is one key no grammar reads; the rest is a path
+        // tail, read with a stand-in head in its place.
+        const head = INLINE_HEAD.lastIndex;
+        if (s[head] !== '.' && s[head] !== '[') return head;
+        const tail = `$${s.slice(head)}`;
+        const r = readPath(tail, 0);
+        return head + engineCut(tail, 1, r.end) - 1;
+    }
+    const r = readPath(s, i);
+    return r ? engineCut(s, i, r.end) : -1;
+}
+
+/**
+ * Split a formula into text and the paths that start at one of `roots`:
+ * `[{ text }, { path }, …]`, in order, concatenating back to the input. Text
+ * inside string literals is never a path.
+ */
+export function scanExprPaths(text, roots = REF_ROOTS) {
+    const s = String(text ?? '');
+    const rootSet = new Set(roots);
+    const out = [];
+    let last = 0;
+    let i = 0;
+    while (i < s.length) {
+        const c = s[i];
+        if (c === '"' || c === "'") {
+            const e = stringEnd(s, i);
+            i = e < 0 ? s.length : e;
+            continue;
+        }
+        const wordEnd = identEnd(s, i);
+        if (wordEnd < 0) { i++; continue; }
+        if ((i > 0 && GLUED.test(s[i - 1])) || !rootSet.has(s.slice(i, wordEnd))) { i = wordEnd; continue; }
+        const end = exprPathEnd(s, i);
+        if (i > last) out.push({ text: s.slice(last, i) });
+        out.push({ path: s.slice(i, end) });
+        last = i = end;
+    }
+    if (last < s.length) out.push({ text: s.slice(last) });
+    return out;
 }
 
 /** Concatenate tokens back into the original string (round-trip safe). */

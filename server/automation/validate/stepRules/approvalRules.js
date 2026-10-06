@@ -160,7 +160,7 @@ function checkApproval(ctx, step, at) {
                         }
                     }
                     if (st.when !== undefined && st.when !== null && typeof st.when !== 'string') {
-                        pushE({ code: 'approval.stages_invalid', severity: 'error', path: sp + '.when', message: `Step ${step.id}: ${label}'s condition must be text.`, hint: 'Write a condition like {{steps.invoice.output.amount}} > 5000 — the stage is skipped when it is not met.' });
+                        pushE({ code: 'approval.stages_invalid', severity: 'error', path: sp + '.when', message: `Step ${step.id}: ${label}'s condition must be text.`, hint: 'Write a condition like steps.invoice.output.amount > 5000 (an expression: no {{ }}) — the stage is skipped when it is not met.' });
                     }
                 });
                 if (totalSeats > MAX_TOTAL_SEATS) {

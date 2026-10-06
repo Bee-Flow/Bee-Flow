@@ -32,8 +32,9 @@ describe('sectionKeyForKind', () => {
         expect(sectionKeyForKind('approval')).toBe('people');
         expect(sectionKeyForKind('wait')).toBe('people');
         expect(sectionKeyForKind('set')).toBe('data');
-        expect(sectionKeyForKind('http_request')).toBe('integrations');
-        expect(sectionKeyForKind('code')).toBe('integrations');
+        // Call a web service and Code are your own logic: Flow control, the ribbon's Logic tab.
+        expect(sectionKeyForKind('http_request')).toBe('flow_control');
+        expect(sectionKeyForKind('code')).toBe('flow_control');
         expect(sectionKeyForKind('ai_step')).toBe('ai');
     });
 
@@ -81,6 +82,18 @@ describe('originKeysFor', () => {
         // An app the catalog does not list has no category to fall back on.
         expect(originKeysFor({ type: 'integration_action', appId: 'gmail' }, nextcloudCatalog))
             .toEqual(['app:gmail', 'tabs', 'ribbon']);
+    });
+
+    it('a Bee Flow tool departs from the tab of its job, catalog or not', () => {
+        expect(originKeysFor({ type: 'integration_action', appId: 'memory', tool: 'memory_search' }))
+            .toEqual(['app:memory', 'section:ai', 'tabs', 'ribbon']);
+        // agent_search resolves to the `web_search` integration; it is the same tool.
+        expect(originKeysFor({ type: 'integration_action', tool: 'agent_search' }))
+            .toEqual(['app:web_search', 'app:web-search', 'section:ai', 'tabs', 'ribbon']);
+        expect(originKeysFor({ type: 'integration_action', appId: 'kb-ingest' }))
+            .toEqual(['app:kb-ingest', 'app:kb_ingest', 'section:data', 'tabs', 'ribbon']);
+        expect(originKeysFor({ type: 'integration_action', appId: 'automation-evolution' }))
+            .toEqual(['app:automation-evolution', 'app:automation_evolution', 'section:flow_control', 'tabs', 'ribbon']);
     });
 });
 

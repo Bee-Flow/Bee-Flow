@@ -8,31 +8,23 @@
  * autoMapStep.ts); pinned by autoMap.lockstep.test.ts.
  */
 
+import { firstKeyIsDiagnostic, sampleType, typeCompatible } from './autoMapIteration';
+import { listColumnPatch } from './autoMapListInput';
+import { ownItemIdPatch } from './autoMapOwnItem';
+import { foldKey, groupListSources, groupValueFields, isRecord } from './deepFields';
 import { isEmptyBinding } from './partitionInputs';
+import { matchSchema } from './schemaMatch';
 import type { Binding, Catalog, JsonSchema, VariableField, VariableGroup } from './types';
+import { isDiagnosticOutputKey } from './upstream/stepPayload';
 
+
+/** A key as a person means it: case, separators and accents do not count (deepFields.foldKey). */
 export function normalizeKey(name: unknown): string {
-    return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-export function sampleType(v: unknown): string {
-    if (v === null || v === undefined) return 'null';
-    if (Array.isArray(v)) return 'array';
-    return typeof v;
+    return foldKey(name);
 }
 
 export function isSecretLikeKey(key: unknown): boolean {
     return /(password|passwd|secret|token|apikey|api[_-]?key|credential|client[_-]?secret|private[_-]?key)/i.test(String(key || ''));
-}
-
-/** JSON-Schema property type vs an upstream sample's type. Permissive when unknown. */
-export function typeCompatible(propType: unknown, candType: string): boolean {
-    if (!propType || !candType || candType === 'null') return true;
-    let pt = propType;
-    if (Array.isArray(pt)) pt = pt.find((x) => x !== 'null') || pt[0];
-    if (pt === 'integer') pt = 'number';
-    if (pt === 'string') return ['string', 'number', 'boolean'].includes(candType);
-    return pt === candType;
 }
 
 /** A tool's inputSchema from the catalog. */
@@ -49,39 +41,34 @@ interface Candidate {
     key: string;
     path: string;
     type: string;
+    sample?: unknown;
+    groupLabel?: string;
     groupIndex: number;
     fieldIndex: number;
+    weight: number;
 }
 
-function pushField(out: Candidate[], f: VariableField, gi: number, fi: number): number {
-    out.push({ key: f.key, path: f.path, type: sampleType(f.sample), groupIndex: gi, fieldIndex: fi++ });
-    for (const c of f.children || []) {
-        // `[*]` children resolve to an ARRAY at run time — never a scalar param.
-        if (/\[\*\]/.test(c.path)) continue;
-        out.push({ key: c.key, path: c.path, type: sampleType(c.sample), groupIndex: gi, fieldIndex: fi++ });
-    }
-    return fi;
-}
-
-/** Upstream groups (and one nesting level) as candidates; per-iteration fields skipped (BFSF-369). */
+/**
+ * Every one-value field of every upstream group, at ANY depth (deepFields):
+ * never a list column and never a per-iteration field (BFSF-369). A column
+ * reaches a LIST input through autoMapListInput.ts.
+ */
 function flattenCandidates(groups: VariableGroup[] | null | undefined): Candidate[] {
     const out: Candidate[] = [];
     (groups || []).forEach((g, gi) => {
-        let fi = 0;
-        for (const f of g.fields || []) {
-            if (f.perIteration) fi++;
-            else fi = pushField(out, f, gi, fi);
-        }
+        groupValueFields(g).forEach((f, fi) => {
+            out.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel: g.label, groupIndex: gi, fieldIndex: fi, weight: f.weight });
+        });
     });
     return out;
 }
 
-/** Nearest = highest groupIndex, then earliest field; unused paths first. */
+/** Nearest = highest groupIndex, then the field least deep (wrappers do not count), then data order; unused paths first. */
 function chooseNearest(list: Candidate[], used: Set<string>): Candidate | null {
     if (!list.length) return null;
     const unused = list.filter((c) => !used.has(c.path));
     const pool = unused.length ? unused : list;
-    return pool.slice().sort((a, b) => b.groupIndex - a.groupIndex || a.fieldIndex - b.fieldIndex)[0] ?? null;
+    return pool.slice().sort((a, b) => b.groupIndex - a.groupIndex || a.weight - b.weight || a.fieldIndex - b.fieldIndex)[0] ?? null;
 }
 
 function bestCandidate(key: string, propType: unknown, candidates: Candidate[], used: Set<string>): Candidate | null {
@@ -92,17 +79,31 @@ function bestCandidate(key: string, propType: unknown, candidates: Candidate[], 
     return chooseNearest(candidates.filter((c) => normalizeKey(c.key) === nkey && typeCompatible(propType, c.type)), used);
 }
 
-const ARRAY_NAME_RE = /items|results|rows|records|data|list|messages|emails|events|files|entries/i;
+const ARRAY_NAME_RE = /items|results|rows|records|data|list|messages|emails|events|files|entries|value/i;
 
-/** Nearest upstream array-typed field path (a loop's overRef, a list op's arrayRef). */
+type OwnFlag = { ownItem?: boolean };
+
+/**
+ * The nearest upstream list (a loop's overRef, a list op's arrayRef), at any
+ * depth: a plain list before a column of a list inside a list, records before
+ * plain values, a list-like name, then the shallowest. A Code step's `logs`
+ * and `httpCalls` are never the list; a step's own item is not a source for itself.
+ */
 export function nearestArrayRef(groups: VariableGroup[] | null | undefined): string | null {
     const list = groups || [];
     for (let gi = list.length - 1; gi >= 0; gi--) {
-        const fields = ((list[gi] as VariableGroup).fields || []).filter((f) => !f.perIteration);
-        const preferred = fields.find((f) => sampleType(f.sample) === 'array' && ARRAY_NAME_RE.test(f.key));
-        if (preferred) return preferred.path;
-        const anyArr = fields.find((f) => sampleType(f.sample) === 'array');
-        if (anyArr) return anyArr.path;
+        const g = list[gi] as VariableGroup & OwnFlag;
+        if (g.ownItem) continue;
+        const sources = groupListSources(g).filter((s) => !firstKeyIsDiagnostic(g, s.path, isDiagnosticOutputKey));
+        if (!sources.length) continue;
+        const rank = (s: (typeof sources)[number]) => [s.chain.length, isRecord(s.element) ? 0 : 1, ARRAY_NAME_RE.test(s.key) ? 0 : 1, s.weight, s.depth];
+        const best = sources
+            .map((s, i) => ({ s, r: [...rank(s), i] }))
+            .sort((a, b) => {
+                for (let k = 0; k < a.r.length; k++) if (a.r[k] !== b.r[k]) return (a.r[k] as number) - (b.r[k] as number);
+                return 0;
+            })[0];
+        if (best) return best.s.path;
     }
     return null;
 }
@@ -155,6 +156,18 @@ function mapOne(key: string, pass: MapPass): Binding | null {
     return { kind: 'ref', path: match.path };
 }
 
+/** What names alone did not settle: schema matching (schemaMatch.ts), into `patch`. */
+function schemaPass(keys: string[], patch: Record<string, Binding>, pass: MapPass, maxPerStep: number): void {
+    const rest = keys.filter((k) => !patch[k] && isEmptyBinding(pass.existing[k]) && !isSecretLikeKey(k));
+    if (!rest.length || Object.keys(patch).length >= maxPerStep) return;
+    const params = rest.map((k) => ({ key: k, ...((pass.properties?.[k] as Record<string, unknown>) || {}) }));
+    for (const r of matchSchema(params, pass.candidates, pass.used)) {
+        if (Object.keys(patch).length >= maxPerStep) break;
+        patch[r.key] = { kind: 'ref', path: r.path };
+        pass.used.add(r.path);
+    }
+}
+
 /**
  * Only NEW `{kind:'ref'}` bindings for still-empty keys. Without a schema only
  * the step's existing keys are considered — never invented.
@@ -163,12 +176,11 @@ export function autoMapInputs(
     targetInputSchema: JsonSchema | null | undefined,
     existingInputs: Record<string, unknown> | null | undefined,
     upstreamGroups: VariableGroup[] | null | undefined,
-    opts: { maxPerStep?: number } = {},
+    opts: { maxPerStep?: number; listColumns?: boolean } = {},
 ): Record<string, Binding> {
     const maxPerStep = opts.maxPerStep ?? 12;
     const properties = targetInputSchema?.properties || null;
     const candidates = flattenCandidates(upstreamGroups);
-    if (!candidates.length) return {};
     const pass: MapPass = { properties, candidates, existing: existingInputs || {}, used: new Set() };
     const keys = requiredFirst(properties ? Object.keys(properties) : Object.keys(pass.existing), new Set(targetInputSchema?.required || []));
     const patch: Record<string, Binding> = {};
@@ -177,5 +189,9 @@ export function autoMapInputs(
         const binding = mapOne(key, pass);
         if (binding) patch[key] = binding;
     }
+    // A list input of the schema takes a column of an upstream list (`results[*].id`).
+    listColumnPatch({ keys, schema: targetInputSchema, existing: pass.existing, groups: upstreamGroups, used: pass.used, maxPerStep, off: opts.listColumns === false }, patch);
+    schemaPass(keys, patch, pass, maxPerStep);
+    if (properties && Object.keys(patch).length < maxPerStep) ownItemIdPatch({ keys, schema: targetInputSchema, existing: pass.existing, groups: upstreamGroups }, patch);
     return patch;
 }

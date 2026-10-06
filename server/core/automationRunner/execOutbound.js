@@ -6,7 +6,7 @@
  */
 
 const notificationStore = require('../../stores/notificationStore');
-const { resolveInputs, interpolateTemplate } = require('../../automation/bind');
+const { resolveInputs, interpolateTemplate, interpolateJsonBody } = require('../../automation/bind');
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 const sandbox = require('../../automation/codeSandbox');
 const { prepareCodeRun } = require('./codeStepGuard');
@@ -223,14 +223,17 @@ function parseHttpBody(text, contentType, mode, truncated) {
 async function execHttpRequest(step, ctx, runState, mode) {
     // A request carries DATA, not prose: lists stay JSON here (listAs 'json').
     const asData = { listAs: 'json' };
-    const url = interpolateTemplate(step.url || '', runState, asData);
+    const url = interpolateTemplate(step.url || '', runState, { ...asData, field: 'url' });
     const method = (step.method || 'GET').toUpperCase();
     const headers = {};
     for (const [k, v] of Object.entries(step.headers || {})) {
-        headers[k] = interpolateTemplate(typeof v === 'string' ? v : '', runState, asData);
+        headers[k] = interpolateTemplate(typeof v === 'string' ? v : '', runState, { ...asData, field: `headers.${k}` });
     }
     const isWrite = HTTP_REQUEST_WRITE_METHODS.has(method);
-    const body = isWrite && step.body ? interpolateTemplate(step.body, runState, asData) : undefined;
+    // A JSON body stays JSON whatever the mapped values hold (bind.js
+    // interpolateJsonBody); a form or text body keeps the plain templating.
+    const contentType = Object.entries(headers).find(([k]) => k.toLowerCase() === 'content-type')?.[1];
+    const body = isWrite && step.body ? interpolateJsonBody(step.body, runState, { contentType, field: 'body' }) : undefined;
     // Feature C — optional saved-credential reference. Absent/null auth keeps
     // the pre-existing path byte-for-byte (no store call, no decryption).
     const authConnectionId = (step.auth && typeof step.auth === 'object'

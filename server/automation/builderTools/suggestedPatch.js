@@ -17,8 +17,11 @@
  * the same order or not — a raw JSON.stringify signature misses a resend
  * whose only difference is key order.
  *
- * Path grammar: dotted keys with `[i]` indexes — `steps[1].spec.inputs.path`,
- * `inputs.path`, `forEach.itemVar`. `steps[?]` means "the entry whose
+ * Path grammar: the run's (shared/expr/path.mjs) — `steps[1].spec.inputs.path`,
+ * `inputs.path`, `forEach.itemVar`, `values["e.mail"]` — addressing ONE slot,
+ * so `[*]`, `[k="v"]` and negative indexes are refused; a dotted key may also
+ * hold what the shared grammar reads only in brackets (`values.Story Points`,
+ * the older spelling). `steps[?]` means "the entry whose
  * canonicalJson equals the op's entrySig": a batch resent with only the
  * entries that failed has shifted every index, and the signature is what
  * still finds the entry. A concrete index on an op that carries an entrySig
@@ -28,6 +31,8 @@
  */
 
 'use strict';
+
+const { readPath } = require('../expr');
 
 function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
@@ -67,29 +72,78 @@ function describeType(v) {
 
 // ── Paths ────────────────────────────────────────────────────────────────
 
-// One dotted segment: an optional key followed by any number of `[i]` / `[?]`.
-const SEG_RX = /^([^.[\]]+)?((?:\[(?:\d+|\?)\])*)$/;
+/** A shared-grammar token as a patch token; null for one that selects rather than addresses. */
+function patchToken(t) {
+    if (t.type !== 'prop') return null;                  // [*], [k="v"]
+    if (typeof t.key === 'number') return t.key >= 0 ? { index: t.key } : null;
+    return { key: t.key };
+}
 
-/** `steps[1].spec.x` → [{key:'steps'},{index:1},{key:'spec'},{key:'x'}]; null when malformed. */
+/** The key of a lenient dotted segment: up to the next `.` or `[`; null when empty or stray `]`. */
+function lenientKey(path, from) {
+    let j = from;
+    while (j < path.length && path[j] !== '.' && path[j] !== '[') j++;
+    const key = path.slice(from, j);
+    return key && !key.includes(']') ? { key, end: j } : null;
+}
+
+/**
+ * `steps[1].spec.x` → [{key:'steps'},{index:1},{key:'spec'},{key:'x'}]; null
+ * when malformed. Runs of segments are read by the shared reader (`$` stands
+ * in for a root so a path may start with an index or a quoted key); where it
+ * stops inside a dotted name, the old grammar's reading takes over: the key
+ * runs to the next `.` or `[`.
+ */
 function parsePath(path) {
     if (typeof path !== 'string') return null;
     if (path === '') return [];
+    if (path[0] === '.') return null;
     const tokens = [];
-    for (const seg of path.split('.')) {
-        const m = SEG_RX.exec(seg);
-        if (!m || (!m[1] && !m[2])) return null;
-        if (m[1]) tokens.push({ key: m[1] });
-        for (const idx of m[2].match(/\[(\d+|\?)\]/g) || []) {
-            const inner = idx.slice(1, -1);
-            tokens.push({ index: inner === '?' ? '?' : Number(inner) });
+    let i = 0;
+    while (i < path.length) {
+        if (path.startsWith('[?]', i)) { tokens.push({ index: '?' }); i += 3; continue; }
+        const c = path[i];
+        if (i > 0 && c !== '.' && c !== '[') {
+            // The shared reader stopped inside a dotted name (`Story Points`).
+            const prev = tokens[tokens.length - 1];
+            const more = prev && typeof prev.key === 'string' && path[i - 1] !== ']' ? lenientKey(path, i) : null;
+            if (!more) return null;
+            prev.key += more.key;
+            i = more.end;
+            continue;
         }
+        const src = i === 0 && c !== '[' ? `$.${path}` : `$${path.slice(i)}`;
+        const offset = src.length - (path.length - i);
+        const run = readPath(src, 0);
+        if (run && run.tokens.length > 1 && run.end > offset) {
+            for (const t of run.tokens.slice(1)) {
+                const tok = patchToken(t);
+                if (!tok) return null;
+                tokens.push(tok);
+            }
+            i += run.end - offset;
+            continue;
+        }
+        // `.` before what no name starts with in the shared grammar (`.(EUR)`).
+        const seg = c === '.' ? lenientKey(path, i + 1) : null;
+        if (!seg) return null;
+        tokens.push({ key: seg.key });
+        i = seg.end;
     }
     return tokens;
 }
 
+// A key written dotted reads back as itself (see parsePath); anything with a
+// separator or a quote in it is written in brackets, JSON-quoted.
+const DOTTED_KEY_RE = /^[^.[\]"']+$/;
+
 function renderPath(tokens) {
     let s = '';
-    for (const t of tokens) s += ('key' in t) ? `${s ? '.' : ''}${t.key}` : `[${t.index}]`;
+    for (const t of tokens) {
+        if (!('key' in t)) s += `[${t.index}]`;
+        else if (DOTTED_KEY_RE.test(String(t.key))) s += `${s ? '.' : ''}${t.key}`;
+        else s += `[${JSON.stringify(String(t.key))}]`;
+    }
     return s;
 }
 

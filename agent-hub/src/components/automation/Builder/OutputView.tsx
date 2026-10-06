@@ -3,7 +3,7 @@ import { Braces, List, Maximize2, Table2, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import OutputFieldsViewJs from './mapping/OutputFieldsView';
 import TruncatedOutput from './TruncatedOutput';
-import FriendlyValue, { isTruncatedOutput } from './output/FriendlyValue';
+import FriendlyValue, { isTruncatedOutput, shownAs } from './output/FriendlyValue';
 import { expandEnabled, type MapCtx } from './output/mapAttrs';
 import { JsonTree, Scalar } from './output/ScalarValue';
 import SmartOutput, { smartRowsOf } from './output/SmartOutput';
@@ -76,15 +76,21 @@ const NO_ROWS: unknown[] = [];
 const NO_FIELDS: readonly string[] = [];
 
 function OutputBody({
-    value, emptyMessage = 'No output.', basePath = '', onCopyPath = null,
+    value: raw, emptyMessage = 'No output.', basePath = '', onCopyPath = null,
     fill = false, enableDrag = false, onPickPath = null, allowExpand = null,
     fieldsView = false, smartTable = false, columnsKey = null, usedFields = NO_FIELDS, stepLabel = null,
 }: OutputViewProps) {
     const { t } = useTranslation();
+    // An output that is JSON text (an AI answer in a ```json fence, a body
+    // that came back as text) is shown as the record or list it encodes; its
+    // paths need no parse step, the runtime reads through the text.
+    const value = useMemo(() => shownAs(raw), [raw]);
     const structured = value !== null && typeof value === 'object';
     const smartRows = useMemo(() => (smartTable ? smartRowsOf(value) : null), [smartTable, value]);
     const cols = useOutputColumns(smartRows ?? NO_ROWS, smartRows ? columnsKey : null, usedFields);
-    const [wide, setWide] = useState<{ row: number | null } | null>(null);
+    // The large view: on one row's details, or (`open`) straight on the list
+    // that row holds in that column.
+    const [wide, setWide] = useState<{ row: number | null; open?: string } | null>(null);
     const plainRecord = fieldsView && structured && !Array.isArray(value);
     // The user's choice, or the default for this shape until they make one.
     // A record that is really one list opens on its table.
@@ -132,13 +138,22 @@ function OutputBody({
                     // defaults (BFSF-434).
                     <JsonTree value={value} basePath={basePath} onCopyPath={onCopyPath} emptyMessage={emptyMessage} />
                 ) : smartMode && smartRows ? (
-                    <SmartOutput value={value} rows={smartRows} cols={cols} onExpand={(row) => setWide({ row: row ?? null })} />
+                    <SmartOutput value={value} rows={smartRows} cols={cols} onExpand={(row, open) => setWide({ row: row ?? null, open })} />
                 ) : (
                     <FriendlyValue value={value} emptyMessage={emptyMessage} map={map} allowExpand={canExpand} />
                 )}
             </div>
             {wide && smartRows && (
-                <WideOutputView rows={smartRows} cols={cols} stepLabel={stepLabel} initialRow={wide.row} onClose={() => setWide(null)} />
+                <WideOutputView
+                    rows={smartRows}
+                    cols={cols}
+                    stepLabel={stepLabel}
+                    initialRow={wide.row}
+                    initialOpen={wide.open}
+                    columnsKey={columnsKey}
+                    source={value}
+                    onClose={() => setWide(null)}
+                />
             )}
         </div>
     );

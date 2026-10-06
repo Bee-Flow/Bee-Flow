@@ -1,5 +1,4 @@
-import { humanizeFieldTail } from '../flow/displayHelpers';
-import { parseRefTokens, resolveChipLabel } from './refTokens';
+import { fieldTailLabel, parseRefTokens, resolveChipLabel } from './refTokens';
 import { stepFamily } from '../flow/nodeDefs';
 import { typeColorVar } from '../flow/nodeTypeColors';
 
@@ -87,8 +86,10 @@ export function buildPill(token, { stepLabelById = null, stepTypeById = null, do
 
     // The FIELD's name, not its path: "gmail read ▸ Output" tells an author
     // where the value comes from; "gmail read ▸ results[0].output" does not.
-    // The exact path is one hover away.
-    const tail = suffix ? humanizeFieldTail(suffix) : '';
+    // The name is the field's own key (`fields["Story Points"]` reads "Story
+    // points", `headers[name="Subject"].value` "Subject"). The exact path is
+    // one hover away.
+    const tail = suffix ? fieldTailLabel(suffix) : '';
     if (tail) {
         const suffixEl = doc.createElement('span');
         suffixEl.className = 'opacity-70';

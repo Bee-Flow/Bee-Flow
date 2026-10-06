@@ -71,14 +71,28 @@ export const FOREACH_FORM_TYPES: ReadonlySet<string> = new Set([
     'datatable', 'knowledge_write', 'data_extraction',
 ]);
 
-/** Normalise when on; an explicit null clears an existing one when switched off. */
+/** The well-formed `{ itemVar, overRef }` entries of a forEach's `parents`. */
+function forEachParents(parents: unknown): { itemVar: string; overRef: string }[] {
+    if (!Array.isArray(parents)) return [];
+    return parents
+        .filter((p): p is { itemVar: string; overRef: string } => !!p && typeof p.itemVar === 'string' && !!p.itemVar && typeof p.overRef === 'string' && !!p.overRef)
+        .map((p) => ({ itemVar: p.itemVar, overRef: p.overRef }));
+}
+
+/**
+ * Normalise when on; an explicit null clears an existing one when switched
+ * off. `parents` (the outer lists a step over a list inside a list keeps,
+ * bindings/deepenForEach.ts) survive, or the fields reading them unbind.
+ */
 export function applyForEachPatch(patch: StepPatch, step: Step, draft: FormDraft): void {
     const fe = draft.forEach as Record<string, unknown> | null | undefined;
     if (fe) {
+        const parents = forEachParents(fe.parents);
         patch.forEach = {
             overRef: fe.overRef || '',
             itemVar: fe.itemVar || 'item',
             maxIterations: clamp(Number(fe.maxIterations) || 100, 1, 1000),
+            ...(parents.length ? { parents } : {}),
         };
     } else if (step.forEach) {
         patch.forEach = null;

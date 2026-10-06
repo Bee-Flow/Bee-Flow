@@ -10,9 +10,13 @@
 // `groups`, and an `onChange(nextInputs)` writer; it returns
 // `{ setInput, onAutoMap }`. The shared renderer lives in CallContractFields.
 
+import { paramsFromContract } from '../mapping/aiAutoMap';
 import { autoMapInputs } from '../mapping/autoMapInputs';
+import useAiAutoMap from '../mapping/useAiAutoMap';
 
-export default function useInputMapping({ inputs, contract, groups, onChange }) {
+export default function useInputMapping({ inputs, contract, groups, onChange, api = null }) {
+    // Auto-map's AI fallback (mapping/useAiAutoMap.ts); `api` is for tests.
+    const askAi = useAiAutoMap({ inputs, api });
     // Set or clear the binding for a single param. A missing binding or a
     // blank literal counts as "unset" so the key doesn't linger in the map.
     const setInput = (name, binding) => {
@@ -30,7 +34,15 @@ export default function useInputMapping({ inputs, contract, groups, onChange }) 
             required: contract.filter(p => p.required).map(p => p.name),
         };
         const patch = autoMapInputs(schema, inputs, groups || []);
-        if (Object.keys(patch).length) onChange({ ...inputs, ...patch });
+        const next = { ...inputs, ...patch };
+        if (Object.keys(patch).length) onChange(next);
+        // Required params still empty: ask the AI for those, on this click
+        // only. Silent when it is not available; the result above stands.
+        askAi({
+            params: paramsFromContract(contract), inputs: next, groups: groups || [],
+            deterministicCount: Object.keys(patch).length,
+            write: (fill, latest) => onChange(fill(latest)),
+        });
     };
 
     return { setInput, onAutoMap };

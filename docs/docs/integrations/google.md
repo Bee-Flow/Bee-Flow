@@ -27,7 +27,7 @@ For org-wide Workspace deployments, register Bee Flow as an internal app in the 
 
 | Integration ID | Scope(s) | Tools |
 |----------------|----------|-------|
-| `gmail` | `gmail.readonly`, `gmail.compose`, `gmail.send` | `gmail_search`, `gmail_read`, `gmail_read_attachment`, `gmail_compose`, `gmail_send`, `gmail_reply` |
+| `gmail` | `gmail.readonly`, `gmail.compose`, `gmail.send` | `gmail_search`, `gmail_read`, `gmail_read_many`, `gmail_read_attachment`, `gmail_compose`, `gmail_create_draft`, `gmail_list_labels`, `gmail_modify_labels`, `gmail_bulk_modify`, `gmail_mark_read`, `gmail_mark_unread`, `gmail_archive`, `gmail_trash` |
 | `google-calendar` | `calendar` | `gcal_list`, `gcal_search`, `gcal_create_event`, `gcal_update_event`, `gcal_delete_event` |
 | `google-drive` | `drive.readonly`, `drive.file` | `gdrive_list`, `gdrive_search`, `gdrive_read`, `gdrive_upload` |
 | `google-docs` | `documents.readonly` | `gdocs_read`, `gdocs_create`, `gdocs_update` |
@@ -45,6 +45,8 @@ The minimum-scope principle applies: Bee Flow asks only for what's needed by the
 - **Reading** — `gmail_search` accepts the same query syntax as the Gmail UI (`from:alice subject:invoice newer_than:7d`).
 - **Composing** — `gmail_compose` creates a draft. Sending requires `gmail.send` scope and an explicit `gmail_send` call. This split is intentional — agents can suggest replies without auto-sending.
 - **Replies** — `gmail_reply` preserves `In-Reply-To` and `References` headers so threading works.
+- **Many emails at once** — in an automation, read a whole search result with `gmail_read_many` (up to 100 emails, sent to Gmail as [batches](https://developers.google.com/workspace/gmail/api/guides/batch) of 50) and change them with `gmail_bulk_modify` (labels, read/unread, archive: up to 1,000 emails in one request), instead of one call per email in a *for each*. Every email still counts toward Gmail's per-user quota, but the round trips drop from one per email to one or two per list. Label names are looked up once a minute per run, not once per email.
+- **Rate limits** — when Google says a mailbox is over its rate limit (429, or 403 `userRateLimitExceeded` / `rateLimitExceeded`), Bee Flow waits (its `Retry-After` when given, otherwise about 1, 2 and 4 seconds) and tries again. A request that sends an email is never repeated.
 
 ### Calendar
 

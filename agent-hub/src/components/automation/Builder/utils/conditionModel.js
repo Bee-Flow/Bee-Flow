@@ -17,7 +17,7 @@
  * anything it can't recognise returns null and the caller falls back to the
  * raw-expression textarea.
  */
-import { renderBindingValue, isCleanPath, bindingFromInput } from '../../../../utils/bindingHelpers';
+import { renderBindingValue, isCleanPath, bindingFromInput, canonicalRefPath } from '../../../../utils/bindingHelpers';
 import { ISO_DATE_RE } from '../mapping/fieldKinds';
 
 // ── Datatype inference ─────────────────────────────────
@@ -258,39 +258,64 @@ function fieldFromLeft(left) {
     // reject it here (it lands in raw mode) even though isCleanPath now treats
     // `[*]` as a valid ref path for binding fields elsewhere.
     if (t.includes('[*]')) return null;
-    return isCleanPath(t) ? { kind: 'ref', path: t } : null;
+    return isCleanPath(t) ? { kind: 'ref', path: canonicalRefPath(t) } : null;
 }
 
-// fn(LEFT, RHS) — LEFT and RHS contain no top-level comma in generated exprs.
-const FN_RE = /^(contains|startsWith|endsWith)\(\s*([^,]+?)\s*,\s*(.+?)\s*\)$/;
-// [!]isAbout(LEFT, "topic"[, 0.7]) — the topic is a quoted literal, the
-// threshold an optional plain number.
-const TOPIC_RE = /^(!\s*)?isAbout\(\s*([^,]+?)\s*,\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*(?:,\s*(\d*\.?\d+)\s*)?\)$/;
+// `[!]name(arg, …)` as a whole fragment: the arguments split on top-level
+// commas only, outside strings, brackets and parens, so a field like
+// `headers[name="a,b"]` or a text like "a, b" stays one argument.
+const CALL_HEAD_RE = /^(!\s*)?(isEmpty|isAbout|contains|startsWith|endsWith)\(/;
+/** The arguments from `from` up to the call's own `)` (`{ args, end }`), or null when unclosed. */
+function splitArgs(text, from) {
+    const args = [];
+    let depth = 0;
+    let str = null;
+    for (let i = from; i < text.length; i++) {
+        const c = text[i];
+        if (str) { if (c === '\\') i++; else if (c === str) str = null; continue; }
+        if (c === '"' || c === "'") str = c;
+        else if (c === '(' || c === '[') depth++;
+        else if (depth > 0 && (c === ')' || c === ']')) depth--;
+        else if (depth === 0 && c === ',') { args.push(text.slice(from, i).trim()); from = i + 1; }
+        else if (c === ')') return { args: [...args, text.slice(from, i).trim()], end: i };
+    }
+    return null;
+}
+function parseCall(text) {
+    const head = CALL_HEAD_RE.exec(text);
+    const inner = head && splitArgs(text, head[0].length);
+    // The call's own `)` must end the fragment (`contains(a, b) + 1` is a formula).
+    if (!inner || inner.end !== text.length - 1) return null;
+    return { negate: !!head[1], fn: head[2], args: inner.args };
+}
+
+const QUOTED_RE = /^("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')$/;
+const THRESHOLD_RE = /^\d*\.?\d+$/;
+
+/** [!]isAbout(LEFT, "topic"[, 0.7]): a quoted topic, an optional plain-number threshold. */
+function topicRow(field, negate, [, topic = '', cut, ...rest]) {
+    if (rest.length || !QUOTED_RE.test(topic) || (cut !== undefined && !THRESHOLD_RE.test(cut))) return null;
+    const row = { field, op: negate ? 'notAbout' : 'isAbout', value: valueRawToBinding(topic) };
+    return cut ? { ...row, threshold: Number(cut) } : row;
+}
+
+/** A row for a recognised helper call (is empty, is about, contains, …), or null. */
+function rowFromCall({ negate, fn, args }) {
+    const f = fieldFromLeft(args[0]);
+    if (!f) return null;
+    if (fn === 'isEmpty') return args.length === 1 ? { field: f, op: negate ? 'isNotEmpty' : 'isEmpty', value: { kind: 'literal', value: '' } } : null;
+    if (fn === 'isAbout') return topicRow(f, negate, args);
+    // contains/startsWith/endsWith(LEFT, RHS); only contains has a negated operator.
+    if (args.length !== 2 || !args[1] || (negate && fn !== 'contains')) return null;
+    return { field: f, op: negate ? 'notContains' : fn, value: valueRawToBinding(args[1]) };
+}
 
 /** Parse one fragment into a row, or null if it isn't a recognised shape. */
 function parseFragment(part) {
     const text = part.trim();
     if (!text) return null;
-    // !isEmpty(LEFT)
-    let m = /^!\s*isEmpty\(\s*(.+?)\s*\)$/.exec(text);
-    if (m) { const f = fieldFromLeft(m[1]); return f && { field: f, op: 'isNotEmpty', value: { kind: 'literal', value: '' } }; }
-    // isEmpty(LEFT)
-    m = /^isEmpty\(\s*(.+?)\s*\)$/.exec(text);
-    if (m) { const f = fieldFromLeft(m[1]); return f && { field: f, op: 'isEmpty', value: { kind: 'literal', value: '' } }; }
-    // [!]isAbout(LEFT, "topic"[, threshold]) — "is (not) about".
-    m = TOPIC_RE.exec(text);
-    if (m) {
-        const f = fieldFromLeft(m[2]);
-        if (!f) return null;
-        const row = { field: f, op: m[1] ? 'notAbout' : 'isAbout', value: valueRawToBinding(m[3]) };
-        return m[4] ? { ...row, threshold: Number(m[4]) } : row;
-    }
-    // !contains(LEFT, RHS) — the "does not contain" operator's emitted form.
-    m = /^!\s*contains\(\s*([^,]+?)\s*,\s*(.+?)\s*\)$/.exec(text);
-    if (m) { const f = fieldFromLeft(m[1]); return f && { field: f, op: 'notContains', value: valueRawToBinding(m[2]) }; }
-    // contains/startsWith/endsWith(LEFT, RHS)
-    m = FN_RE.exec(text);
-    if (m) { const f = fieldFromLeft(m[2]); return f && { field: f, op: m[1], value: valueRawToBinding(m[3]) }; }
+    const call = parseCall(text);
+    if (call) return rowFromCall(call);
     // comparator: LEFT <op> RHS — reuse the symbol scan via a small parse.
     const cmp = parseComparator(text);
     if (cmp) {
@@ -310,7 +335,7 @@ function parseFragment(part) {
     // is a trivial "not configured yet" placeholder — ConditionBuilder
     // handles that case separately, opening an empty row instead).
     if (!/^(true|false|null)$/.test(text) && isCleanPath(text)) {
-        return { field: { kind: 'ref', path: text }, op: 'truthy', value: { kind: 'literal', value: '' } };
+        return { field: { kind: 'ref', path: canonicalRefPath(text) }, op: 'truthy', value: { kind: 'literal', value: '' } };
     }
     return null;
 }

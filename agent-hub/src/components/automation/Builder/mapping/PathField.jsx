@@ -9,7 +9,7 @@ import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { walkPath, previewValue, getAutocompleteTokenFromPrefix } from '../../../../utils/bindingHelpers';
+import { walkPath, previewValue, getAutocompleteTokenFromPrefix, canonicalRefPath } from '../../../../utils/bindingHelpers';
 import { humanizeExpression } from '../flow/displayHelpers';
 import FieldHint from '../flow/FieldHint';
 import { denseInputClass, AMBER_NOTE } from '../flow/settings/formStyles';
@@ -66,19 +66,31 @@ export default function PathField({
     const stepLabelById = pickerCtx.stepLabelById;
     const stepTypeById = pickerCtx.stepTypeById;
 
+    // What we last stored. The parent echoes it back; it is the TRIMMED text,
+    // so re-syncing on that echo would snap the field under the caret.
+    const lastStored = useRef(null);
+
     // Sync from outside (AI patch / undo / load).
     useEffect(() => {
+        if (lastStored.current !== null && String(value ?? '') === lastStored.current) return;
+        lastStored.current = null;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setText(String(value ?? ''));
     }, [value]);
 
+    // Store exactly what the footer previews: the trimmed path. The run reads
+    // the stored string as a path, and a trailing space or a pasted newline
+    // made it resolve to nothing while the example showed "2 items".
     const emit = (next) => {
         setText(next);
-        onChange?.(next);
+        const stored = String(next ?? '').trim();
+        lastStored.current = stored;
+        onChange?.(stored);
     };
 
+    // A pick or a drop writes the canonical spelling (`["content-type"]`).
     const replaceWith = (path) => {
-        const cleaned = String(path || '').trim();
+        const cleaned = canonicalRefPath(path);
         if (!cleaned) return;
         emit(cleaned);
     };
@@ -223,7 +235,7 @@ export default function PathField({
                         {quickPicksLabel || t('automations.builder.lists_detected', 'Lists found in previous steps')}
                     </div>
                     {quickPicks.map(q => {
-                        const selected = trimmed === q.path;
+                        const selected = canonicalRefPath(trimmed) === canonicalRefPath(q.path);
                         // Column paths read as "step ▸ Field (inside each row)"
                         // and count via walkPath — q.sample for a [*] path is
                         // the first ELEMENT, so its length lied about the list.

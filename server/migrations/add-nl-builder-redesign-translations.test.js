@@ -36,11 +36,15 @@ const OWNED_PREFIXES = [
 // key, one owner, so boot order cannot decide the wording.
 // Handoff 5 (2026-09-28) added keys under these prefixes; their Dutch ships in
 // add-nl-builder-handoff5-translations, for the same reason.
+// The nested-data mapping work (2026-10-05) did the same; its Dutch ships in
+// add-nl-builder-mapping-translations.
 const handoff5 = require('./add-nl-builder-handoff5-translations');
+const mapping = require('./add-nl-builder-mapping-translations');
 const OWNED_ELSEWHERE = new Set([
     'automations.kind.choice',
     ...Object.keys(handoff5.NL_TRANSLATIONS),
     ...handoff5.SAME_AS_ENGLISH,
+    ...Object.keys(mapping.NL_TRANSLATIONS),
 ]);
 
 function owned(key) {

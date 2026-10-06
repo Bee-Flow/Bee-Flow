@@ -521,6 +521,10 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
                     // Tools an AI step was not given, each with its reason
                     // ('permission' | 'confirm' | 'unavailable'), for the
                     // Runs tab (handoff 5). Null for every other step.
+                    // Mappings that found nothing while the step ran
+                    // (execution.js dispatchStep, bindingMisses.js).
+                    bindingWarnings: Array.isArray(dispatched.bindingWarnings) && dispatched.bindingWarnings.length
+                        ? dispatched.bindingWarnings : null,
                     toolsWithheld: Array.isArray(dispatched.toolsWithheld) && dispatched.toolsWithheld.length
                         ? [...new Set(dispatched.toolsWithheld)].map((name) => ({
                             name, reason: dispatched.toolsWithheldReasons?.[name] || 'unavailable',

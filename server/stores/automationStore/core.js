@@ -117,6 +117,9 @@ const MIGRATIONS = [
     // keys, so a replayed or resumed run rebuilt runState with the author's
     // key order lost. Probe-only once converted.
     'automation-run-step-json-order-2026-10',
+    // binding_warnings JSONB on run steps: the mappings that found nothing
+    // while the step ran (the runner's binding log). Additive, no backfill.
+    'automation-run-step-binding-warnings-2026-10',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

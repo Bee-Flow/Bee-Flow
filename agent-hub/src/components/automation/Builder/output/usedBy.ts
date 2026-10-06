@@ -1,12 +1,14 @@
-import { humanizeFieldTail as humanizeFieldTailJs } from '../flow/displayHelpers';
+import { humanizeFieldKey as humanizeFieldKeyJs, humanizeFieldTail as humanizeFieldTailJs } from '../flow/displayHelpers';
 import { stepNumbers as stepNumbersJs } from '../flow/flowOrder';
 import { isInlineId, parseInlineId } from '../flow/inlineFlowlets';
 import { stepFamily as stepFamilyJs } from '../flow/nodeDefs';
 import type { FlowDefinition } from '../flow/types';
 import { usedPathsIn as usedPathsInJs } from '../mapping/boundPaths';
+import { lastPathKey } from '../mapping/upstream/fieldTree';
 
 const usedPathsIn = usedPathsInJs as (step: unknown) => Set<string>;
 const humanizeFieldTail = humanizeFieldTailJs as (path: string) => string;
+const humanizeFieldKey = humanizeFieldKeyJs as (key: string) => string;
 const stepFamily = stepFamilyJs as (type: string | undefined) => string | null;
 const stepNumbers = stepNumbersJs as (
     definition: FlowDefinition | null | undefined,
@@ -35,9 +37,11 @@ function fieldsReadBy(st: unknown, prefix: RegExp): { fields: string[]; leaves: 
         if (!m) continue;
         const rest = m[1].replace(/^\./, '');
         if (!rest) { whole = true; continue; }
-        const name = humanizeFieldTail(rest);
+        // The key the path ENDS in, read as the runtime reads it:
+        // `verdict["reason code"]` is "Reason code", not "Verdict".
+        const leaf = lastPathKey(rest);
+        const name = leaf ? humanizeFieldKey(leaf) : humanizeFieldTail(rest);
         if (name && !fields.includes(name)) fields.push(name);
-        const leaf = rest.replace(/\[[^\]]*\]/g, '').split('.').filter(Boolean).pop() || '';
         if (leaf && !leaves.includes(leaf)) leaves.push(leaf);
     }
     return { fields, leaves, whole };

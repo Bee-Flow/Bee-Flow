@@ -149,9 +149,18 @@ describe('overlayGroupWithReal', () => {
         ],
     };
 
-    it('keeps curated fields whose paths regeneration does not cover', () => {
+    it('keeps a curated field the real output has, once', () => {
+        const out = overlayGroupWithReal(group, { results: ROWS, matchesByCase: { vip: [] } });
+        expect(out.fields.filter(f => f.path === 'steps.s1.output.matchesByCase.vip')).toHaveLength(0);
+        const all = [];
+        const walk = (fs) => fs.forEach(f => { all.push(f.path); walk(f.children || []); });
+        walk(out.fields);
+        expect(all.filter(p => p === 'steps.s1.output.matchesByCase.vip')).toHaveLength(1);
+    });
+
+    it('drops a curated field the real output does not have (a guess is not data)', () => {
         const out = overlayGroupWithReal(group, { results: ROWS });
-        expect(out.fields.some(f => f.path === 'steps.s1.output.matchesByCase.vip')).toBe(true);
+        expect(out.fields.some(f => f.path === 'steps.s1.output.matchesByCase.vip')).toBe(false);
     });
 
     it('reuses real row references (no cloning of big outputs)', () => {

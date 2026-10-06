@@ -31,7 +31,7 @@ export default function ColumnPicker({ cols, shown }: ColumnPickerProps) {
 
     const row = (c: OutputColumn, on: boolean, i: number) => <PickerRow key={c.key} col={c} on={on} pinned={on && i === 0} cols={cols} shown={shown} />;
 
-    const techNames = cols.columns.filter(c => c.technical).slice(0, 4).map(c => c.key).join(', ');
+    const techNames = cols.columns.filter(c => c.technical).slice(0, 4).map(c => c.label.toLowerCase()).join(', ');
     return (
         <div
             role="dialog"
@@ -85,11 +85,16 @@ export default function ColumnPicker({ cols, shown }: ColumnPickerProps) {
 
 interface PickerRowProps { col: OutputColumn; on: boolean; pinned: boolean; cols: OutputColumnsState; shown: string[] }
 
-/** One column in the picker: its checkbox, and split / keep together for a group. */
+/**
+ * One column in the picker: its checkbox, and split / keep together for a
+ * group. A per-item step's columns are already one per output field, so they
+ * never split.
+ */
 function PickerRow({ col: c, on, pinned, cols, shown }: PickerRowProps) {
     const { t } = useTranslation();
     const Box = on ? SquareCheck : Square;
-    const firstOfSplit = c.parent && shown.find(k => k.startsWith(`${c.parent}.`)) === c.key;
+    const canSplit = c.kind === 'group' && !c.parent && !c.perItem;
+    const firstOfSplit = !!c.parent && !c.perItem && shown.find(k => k.startsWith(`${c.parent}.`)) === c.key;
     return (
         <div className={`flex items-center gap-2 px-3 py-[5px] ${on ? '' : 'text-[var(--text-secondary)]'}`}>
             <button
@@ -106,12 +111,12 @@ function PickerRow({ col: c, on, pinned, cols, shown }: PickerRowProps) {
                 <span className="text-[var(--text-tertiary)] shrink-0">{t('automations.output.group_n', 'group · {count}', { count: c.groupSize })}</span>
             )}
             {pinned && <Pin size={12} className="ml-auto shrink-0 text-[var(--text-tertiary)]" aria-label={t('automations.output.pinned', 'Pinned on the left')} />}
-            {c.kind === 'group' && !c.parent && (
+            {canSplit && (
                 <button type="button" onClick={() => cols.splitGroup(c.key, shown)} className="ml-auto shrink-0 font-semibold text-[var(--type-ai)] hover:underline">
                     {t('automations.output.split', 'split')}
                 </button>
             )}
-            {firstOfSplit && c.parent && (
+            {firstOfSplit && (
                 <button type="button" onClick={() => cols.joinGroup(c.parent as string, shown)} className="ml-auto shrink-0 font-semibold text-[var(--type-ai)] hover:underline">
                     {t('automations.output.join', 'keep together')}
                 </button>

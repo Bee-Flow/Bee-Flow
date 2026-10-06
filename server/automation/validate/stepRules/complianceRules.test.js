@@ -337,3 +337,17 @@ test('an automation that touches no personal data gets neither warning', () => {
     assert.ok(codesOf(control).includes('ai_step.personal_data_unguarded'), JSON.stringify(codesOf(control)));
     assert.ok(codesOf(control).includes('http_request.personal_data_outbound'), JSON.stringify(codesOf(control)));
 });
+
+// ── Paths are read with the runner's grammar ───────────────────────────────
+
+test('a personal field behind a bracketed key is seen like a dotted one', () => {
+    // The old dotted-identifier scan stopped at `[`, so a key the picker has to
+    // bracket (a hyphen, a space) was invisible to this rule.
+    for (const body of ['x {{trigger.output["e-mail"]}}', 'x {{ trigger.output.contact["customer name"] }}', 'x {{trigger.output.people[0].phone-number}}']) {
+        const r = validateDefinition(def([post('t1', body)]));
+        assert.ok(codesOf(r).includes('http_request.personal_data_outbound'), `${body}: ${JSON.stringify(codesOf(r))}`);
+    }
+    // Control: a member CALLED trigger is not a root.
+    const member = validateDefinition(def([post('t1', 'x {{vars.trigger.output.total}}')]));
+    assert.ok(!codesOf(member).includes('http_request.personal_data_outbound'), JSON.stringify(codesOf(member)));
+});

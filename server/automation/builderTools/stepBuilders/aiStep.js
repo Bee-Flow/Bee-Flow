@@ -5,7 +5,7 @@
  */
 
 const { newId, appendAfter } = require('../draftGraph');
-const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
+const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError, checkTextPlaceholders, checkLoopBindings } = require('../bindings');
 const { AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS } = require('../../validate/constants');
 // Pure module, no I/O at load: the runner and the builder share one sanitiser.
 const { sanitizeDisabledAgentSkillIds } = require('../../../core/automationRunner/aiStepSkills');
@@ -143,12 +143,23 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
 function applyAddAi(draft, args, draftWrap) {
     const tierErr = modelTierGateError(args.modelTier, draftWrap);
     if (tierErr) return tierErr;
-    const { inputs, error } = validateAndFixBindings(args.inputs || {}, draft);
-    if (error) return { error };
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+    const bound = validateAndFixBindings(args.inputs || {}, draft, { draftWrap });
+    if (bound.error) return { error: bound.error, ...(bound._suggestedPatch ? { _suggestedPatch: bound._suggestedPatch } : {}) };
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
-    const loopErr = unboundLoopVarError(inputs, forEach);
+    const loopErr = unboundLoopVarError(bound.inputs, forEach);
     if (loopErr) return loopErr;
+    // The prompt is a template the run interpolates: its {{…}} paths get the
+    // same check as an input; loop.<var> paths, in both, are checked against
+    // what the forEach iterates.
+    const prompt = checkTextPlaceholders(args.prompt, draft, { draftWrap, label: 'prompt' });
+    if (prompt.error) return { error: prompt.error };
+    const loopInputs = checkLoopBindings(bound.inputs, draft, forEach, draftWrap);
+    if (loopInputs.error) return { error: loopInputs.error };
+    const loopPrompt = checkLoopBindings(prompt.text, draft, forEach, draftWrap, { label: 'prompt' });
+    if (loopPrompt.error) return { error: loopPrompt.error };
+    const inputs = loopInputs.value;
+    const warnings = [...(bound.notes || []), ...(feNotes || []), ...prompt.notes, ...loopInputs.notes, ...loopPrompt.notes];
     const agentId = sanitizeAgentId(args.agentId);
     const skillIds = sanitizeSkillIds(args.skillIds);
     const permBlock = agentPermissionsBlock(args.agentPermissions, agentId, { hasSkills: skillIds.length > 0 });
@@ -159,7 +170,7 @@ function applyAddAi(draft, args, draftWrap) {
     const step = {
         id: newId('ai'),
         type: 'ai_step',
-        prompt: args.prompt,
+        prompt: loopPrompt.value,
         // Optional override of the runner's default system prompt. When
         // omitted we use the safe baseline ("You are a step inside a
         // no-code automation..."). The user can edit this from the
@@ -200,7 +211,7 @@ function applyAddAi(draft, args, draftWrap) {
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
 module.exports = {

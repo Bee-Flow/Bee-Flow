@@ -244,11 +244,69 @@ async function loadDraft(automationId, userId) {
         }
         draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
     } catch (_) { /* permissive, as before */ }
+    // What the draft's tools really returned on this user's last live run, for
+    // the builder's path checks — the same read the chat route makes per turn.
+    draftWrap._runtimeShapes = await loadRuntimeShapes(draftWrap.def, userId);
     // The chat's "inspect before you bind" gate remembers inspections for one SSE
     // turn. Every MCP call is its own turn, so an inspect could never count and a
     // partial add would be refused forever: the gate stays off here.
     draftWrap._inspectGate = false;
     return { draftWrap };
+}
+
+// ── Runtime shapes ──────────────────────────────────────────────────────────
+
+const RUNTIME_SHAPE_MAX_TOOLS = 40;
+const RUNTIME_SHAPE_TIMEOUT_MS = 1500;
+
+/** The distinct integration_action tools of a definition: loop bodies, parallel branches and layers included. */
+function draftToolNames(def) {
+    const names = new Set();
+    const walk = (steps) => {
+        for (const s of (Array.isArray(steps) ? steps : [])) {
+            if (!s || typeof s !== 'object') continue;
+            if (s.type === 'integration_action' && typeof s.tool === 'string' && s.tool) names.add(s.tool);
+            walk(s.body);
+            for (const b of (Array.isArray(s.branches) ? s.branches : [])) walk(Array.isArray(b) ? b : b?.steps);
+        }
+    };
+    walk(def?.steps);
+    for (const layer of Object.values(def?.layers && typeof def.layers === 'object' ? def.layers : {})) walk(layer?.steps);
+    return [...names].slice(0, RUNTIME_SHAPE_MAX_TOOLS);
+}
+
+/**
+ * `{ [tool]: descriptor }` for the integration_action tools of a draft: what
+ * each one really returned on this user's last live run (shapeCache.js). Set
+ * as `draftWrap._runtimeShapes` at the start of a builder turn — here and by
+ * the chat route — and read by builderTools/refCheck.js and outputFields.js,
+ * which prefer it to the curated shape, so a path into a field only the real
+ * output has is not refused as unknown.
+ *
+ * Cheap and failure-tolerant: one cache read per distinct tool (capped), all
+ * in parallel, under a deadline. A read that throws or has not answered by
+ * then only means that tool has no runtime shape this turn; this never
+ * throws. `getShape` is injectable for tests.
+ */
+async function loadRuntimeShapes(def, userId, {
+    getShape = (args) => require('./shapeCache').getShape(args),
+    timeoutMs = RUNTIME_SHAPE_TIMEOUT_MS,
+} = {}) {
+    const found = {};
+    const tools = draftToolNames(def);
+    if (!tools.length) return found;
+    const reads = Promise.all(tools.map(async (toolName) => {
+        try {
+            const shape = await getShape({ userId, toolName });
+            if (shape) found[toolName] = shape;
+        } catch { /* no runtime shape for this tool this turn */ }
+    }));
+    // Cleared as soon as the reads are in, so it holds nothing open longer.
+    let timer;
+    const deadline = new Promise((resolve) => { timer = setTimeout(resolve, timeoutMs); });
+    try { await Promise.race([reads, deadline]); } finally { clearTimeout(timer); }
+    // A snapshot: a read that answers after the deadline changes nothing.
+    return { ...found };
 }
 
 // ── The MCP-only tools ──────────────────────────────────────────────────────
@@ -456,6 +514,7 @@ module.exports = {
     buildToolList,
     callTool,
     loadDraft,
+    loadRuntimeShapes,
     TOOL_NAMES,
     ROUTE_ONLY_TOOLS,
     AUTOMATIONLESS_TOOLS,

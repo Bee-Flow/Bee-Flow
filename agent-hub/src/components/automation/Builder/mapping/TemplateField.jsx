@@ -1,3 +1,4 @@
+import { replaceTemplate } from '@shared/expr/path.mjs';
 import { templateText } from '@shared/expr/templateText.mjs';
 import React, { useEffect, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
@@ -10,7 +11,7 @@ import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { walkPath, previewValue, getAutocompleteTokenFromPrefix } from '../../../../utils/bindingHelpers';
+import { walkPath, previewValue, getAutocompleteTokenFromPrefix, detectTemplate, formatPathForInsert } from '../../../../utils/bindingHelpers';
 import { denseInputClass } from '../flow/settings/formStyles';
 
 /**
@@ -119,7 +120,11 @@ export default function TemplateField({
         }
     };
 
-    const insertPath = (path) => { inputRef.current?.insertSnippet(`{{${path}}}`); noteFit(path); };
+    // Every insertion writes the canonical `{{path}}` (formatPathForInsert): a
+    // key with `-`, a space or a `}` in it is bracket-quoted, so the run's
+    // quote-aware scan reads exactly the path that was picked.
+    const tokenFor = (path) => formatPathForInsert(path, 'fixed');
+    const insertPath = (path) => { const tok = tokenFor(path); if (tok) inputRef.current?.insertSnippet(tok); noteFit(path); };
     // A clicked pill: the picker opens on that pill's STEP and the answer
     // replaces the pill (user request 2026-09-03).
     const pillTarget = useRef(null);
@@ -143,7 +148,7 @@ export default function TemplateField({
     const onDrop = (e) => {
         const path = getBindingDropPath(e);
         // Land where the author DROPPED, not where the caret last was.
-        if (path) { inputRef.current?.insertSnippetAt(`{{${path}}}`, { x: e.clientX, y: e.clientY }); noteFit(path); }
+        if (path && tokenFor(path)) { inputRef.current?.insertSnippetAt(tokenFor(path), { x: e.clientX, y: e.clientY }); noteFit(path); }
     };
 
     const { t } = useTranslation();
@@ -154,8 +159,8 @@ export default function TemplateField({
         autocompleteLength.current = 0;
         const pill = pillTarget.current;
         pillTarget.current = null;
-        if (pill) inputRef.current?.replacePill(pill, `{{${path}}}`);
-        else if (swallow) inputRef.current?.replacePartial(swallow, `{{${path}}}`);
+        if (pill) inputRef.current?.replacePill(pill, tokenFor(path));
+        else if (swallow) inputRef.current?.replacePartial(swallow, tokenFor(path));
         else insertPath(path);
         if (pill || swallow) noteFit(path);
         picker.closePicker();
@@ -268,11 +273,12 @@ export default function TemplateField({
  */
 function renderPreview(text, sampleRoot, listAs = 'text') {
     if (!text) return null;
-    if (!/\{\{[^}]+\}\}/.test(text)) return null; // no interpolation, no preview
+    if (!detectTemplate(text)) return null; // no interpolation, no preview
     if (!sampleRoot) return { text, list: null };
     let list = null;
-    const filled = String(text).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (full, expr) => {
-        const path = expr.trim();
+    // The runtime's quote-aware placeholder scan and its walker
+    // (shared/expr/path.mjs), so `{{ x["a}b"] }}` previews what it runs.
+    const filled = replaceTemplate(String(text), (path, full) => {
         const v = walkPath(path, sampleRoot);
         if (v === undefined) return full;
         if (Array.isArray(v)) {

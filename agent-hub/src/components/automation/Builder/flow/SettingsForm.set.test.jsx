@@ -277,20 +277,21 @@ describe('SettingsForm — Edit data (set)', () => {
         expect(onPatch.mock.calls[0][0].forEach).toBeNull();
     });
 
-    it('JSON text in the row offers "Pick fields from it" and a pick adds a parseJson expr field', async () => {
+    it('JSON text in the row offers "Pick fields from it" and a pick adds a plain path into it', async () => {
         const { onPatch } = renderForm(LIST_STEP);
         fireEvent.click(screen.getByText('Pick fields from it'));
         // The tree shows the parsed body of the current row: order → total.
         const total = await screen.findByText('total');
         fireEvent.click(total);
-        // The new field reads as a chip in the user's words — the parseJson
-        // call it actually stores is never shown as text.
-        expect(screen.getByText('· from the JSON: order.total')).toBeTruthy();
+        // The run reads JSON text as the value it encodes, so the pick is an
+        // ordinary path — one chip in the user's words, no parseJson call
+        // (which used to break on any key holding a quote).
+        expect(screen.getByText('▸ Total')).toBeTruthy();
         expect(screen.queryByText(/parseJson/)).toBeNull();
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
-        expect(patch.fields.total).toEqual({ kind: 'expr', value: 'parseJson(item.body, "order.total")' });
+        expect(patch.fields.total).toEqual({ kind: 'ref', path: 'item.body.order.total' });
     });
 
     it('no JSON-looking sample → the affordance stays away entirely', () => {

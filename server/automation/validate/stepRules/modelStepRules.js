@@ -13,14 +13,56 @@
 const {
     isObject, collectRefPaths, rootOf, secondSegment,
 } = require('../helpers');
+const { hasPlaceholder, isBareRefString } = require('../refPaths');
 const {
     AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS,
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE,
     DATA_EXTRACTION_MAX_FIELDS, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS,
 } = require('../constants');
 
+// ── Showing a schema to a person ──────────────────────────────────────────
+
+const MAX_SHAPE_CHARS = 400;
+const MAX_SCHEMA_HINT_CHARS = 600;
+
+/** A key as the shape writes it: bare when it reads as a name, else quoted. */
+const shapeKey = (k) => (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) ? k : JSON.stringify(k));
+
+/**
+ * A JSON Schema as a person reads it: `{customer: {contacts: [{email:
+ * string}]}, line_items: [{sku: string}]}`. Capped, so a huge inferred schema
+ * cannot swamp the message.
+ */
+function schemaShape(schema) {
+    const walk = (s, depth) => {
+        if (!isObject(s) || depth > 6) return 'string';
+        if (s.type === 'array') return s.items ? `[${walk(s.items, depth + 1)}]` : '[]';
+        if (s.type === 'object' && isObject(s.properties)) {
+            return `{${Object.entries(s.properties).map(([k, v]) => `${shapeKey(k)}: ${walk(v, depth + 1)}`).join(', ')}}`;
+        }
+        return typeof s.type === 'string' ? s.type : 'string';
+    };
+    const out = walk(schema, 0);
+    return out.length > MAX_SHAPE_CHARS ? `${out.slice(0, MAX_SHAPE_CHARS - 1)}…` : out;
+}
+
+/** `outputSchema: {…}` for the hint: the inferred schema itself, or its first fields when it is long. */
+function explicitSchemaHint(schema) {
+    let json = JSON.stringify(schema);
+    if (json.length > MAX_SCHEMA_HINT_CHARS && isObject(schema.properties)) {
+        const first = Object.fromEntries(Object.entries(schema.properties).slice(0, 3));
+        json = JSON.stringify({ type: 'object', properties: first });
+    }
+    return `outputSchema: ${json}. Numbers as {"type":"number"}.`;
+}
+
+/** The flat example for fields the runner cannot infer a shape for. */
+function flatSchemaHint(fields) {
+    return `outputSchema: {"type":"object","properties":{${fields.slice(0, 3).map(f => `${JSON.stringify(f)}:{"type":"string"}`).join(',')}}}. Numbers as {"type":"number"}.`;
+}
+
 function checkAiStep(ctx, step, at) {
-    const { pushE, pushW, trigger, refIds, availableAgents, fieldsReadFromStep } = ctx;
+    const { pushE, pushW, trigger, refIds, availableAgents, fieldsReadFromStep, inferredOutputOf } = ctx;
     if (step.type === 'ai_step') {
         if (!step.prompt || typeof step.prompt !== 'string') pushE({ code: 'ai_step.prompt_missing', severity: 'error', path: at + '.prompt', message: `Step ${step.id}: ai_step requires \`prompt\`.`, hint: 'Provide a non-empty prompt string.' });
         // An ai_step with NO outputSchema returns free-form TEXT. Every
@@ -38,43 +80,57 @@ function checkAiStep(ctx, step, at) {
         // question this pass cannot answer, so it warns instead of blocking.
         const hasStepSkills = Array.isArray(step.skillIds) && step.skillIds.some((id) => typeof id === 'string' && id);
         if (!declaredFields.length) {
-            const { all: wanted, viaLoop } = fieldsReadFromStep(step.id);
-            const example = (fields) => `outputSchema: {"type":"object","properties":{${fields.slice(0, 3).map(f => `"${f}":{"type":"string"}`).join(',')}}}. Numbers as {"type":"number"}.`;
-            if (viaLoop.length && hasStepSkills) {
+            // What the runner will ask for: execAi infers the schema from how
+            // later steps read this step (aiOutputInference.js) — direct reads,
+            // the fan-out's `loop.<e>.output.<f>`, nested records, lists, bracket
+            // keys. The finding shows that schema, so the author sees what the
+            // model will be asked for instead of a flat `{x: string}` guess.
+            const inferred = inferredOutputOf(step.id);
+            const fields = inferred.fields;
+            const shown = inferred.schema ? schemaShape(inferred.schema) : '';
+            const explicit = inferred.schema ? explicitSchemaHint(inferred.schema) : '';
+            if (fields.length && hasStepSkills) {
                 pushW({
                     code: 'ai_step.output_schema_from_skill',
                     severity: 'warning',
                     path: at + '.outputSchema',
-                    message: `Step ${step.id}: later steps read ${wanted.map(f => `\`${f}\``).join(', ')} from this step, which has no outputSchema of its own. It answers in the output fields of its leading skill; any of these fields that skill does not declare stays empty.`,
-                    hint: `Check the leading skill's output fields, or give the step its own schema, e.g. ${example(wanted)}`,
+                    message: `Step ${step.id}: later steps read ${fields.map(f => `\`${f}\``).join(', ')} from this step, which has no outputSchema of its own. It answers in the output fields of its leading skill; a field the skill does not declare is added as the runner infers it from those reads: ${shown}.`,
+                    hint: `Check the leading skill's output fields, or give the step its own schema: ${explicit}`,
                 });
-            } else if (viaLoop.length) {
-                // The fan-out shape is the one the runner's safety net
-                // does NOT cover: execAi.js infers a schema from direct
-                // `steps.<id>.output.<f>` refs only, so a
-                // `loop.<v>.output.<f>` read really does resolve to
-                // nothing. Completeness-listed: warn at draft, block
-                // activation (see completenessCodes.js).
-                pushE({
-                    code: 'ai_step.output_schema_missing',
-                    severity: 'error',
-                    path: at + '.outputSchema',
-                    message: `Step ${step.id}: later steps read ${wanted.map(f => `\`${f}\``).join(', ')} from this step, but it declares no outputSchema — without one it answers free-form text and every one of those references resolves to nothing.`,
-                    hint: `Give it those fields, e.g. ${example(wanted)}`,
-                });
-            } else if (wanted.length) {
-                // Direct refs only: the runner infers { <fields>: string }
-                // from exactly these refs and wraps a prose answer under
-                // the first field (execAi.js collectAiStepOutputFields),
-                // so the automation runs — this was an ERROR that 400'd every
-                // save of a working automation (a label edit PUTs the whole
-                // definition) and refused to re-activate it.
+            } else if (fields.length) {
+                // The runner serves these reads, so the automation runs — an
+                // ERROR here once 400'd every save of a working automation (a
+                // label edit PUTs the whole definition) and refused to
+                // re-activate it. A warning, because an inferred schema is a
+                // guess at types: an explicit one is tighter.
                 pushW({
                     code: 'ai_step.output_schema_inferred',
                     severity: 'warning',
                     path: at + '.outputSchema',
-                    message: `Step ${step.id}: later steps read ${wanted.map(f => `\`${f}\``).join(', ')} from this step and it declares no outputSchema — the runner infers {${wanted.map(f => `${f}: string`).join(', ')}} from those references and wraps a prose answer under \`${wanted[0]}\`.`,
-                    hint: `An explicit schema gives tighter, typed output: ${example(wanted)}`,
+                    message: `Step ${step.id}: later steps read ${fields.map(f => `\`${f}\``).join(', ')} from this step and it declares no outputSchema — the runner infers ${shown} from those references${inferred.textField ? ` and wraps a prose answer under \`${inferred.textField}\`` : ''}.`,
+                    hint: `An explicit schema gives tighter, typed output: ${explicit}`,
+                });
+            }
+            // Reads the runner cannot serve from any schema it infers.
+            // Completeness-listed: warn at draft, block activation (see
+            // completenessCodes.js). The usual one: a field read straight off
+            // a PER-ITEM step, whose output is the list of answers — reported
+            // even next to reads that ARE inferred, since no schema fixes it.
+            const { all: wanted, viaLoop } = fieldsReadFromStep(step.id);
+            const perItem = isObject(step.forEach) && typeof step.forEach.overRef === 'string' && !!step.forEach.overRef;
+            const unserved = perItem ? wanted.filter(f => !viaLoop.includes(f)) : (fields.length ? [] : wanted);
+            if (unserved.length) {
+                const f0 = unserved[0];
+                pushE({
+                    code: 'ai_step.output_schema_missing',
+                    severity: 'error',
+                    path: at + '.outputSchema',
+                    message: perItem
+                        ? `Step ${step.id}: later steps read ${unserved.map(f => `\`${f}\``).join(', ')} straight off this step, but it runs once per item — its output is the list of answers, so those references resolve to nothing.`
+                        : `Step ${step.id}: later steps read ${unserved.map(f => `\`${f}\``).join(', ')} from this step, but it declares no outputSchema — without one it answers free-form text and every one of those references resolves to nothing.`,
+                    hint: perItem
+                        ? `Read every answer's ${f0} as steps.${step.id}.output.results[*].output.${f0}, or run the next step once per answer over steps.${step.id}.output.results and read loop.<item>.output.${f0}.`
+                        : `Give it those fields, e.g. ${flatSchemaHint(unserved)}`,
                 });
             }
         }
@@ -271,7 +327,7 @@ function checkDataExtraction(ctx, step, at) {
         if (src === undefined || src === null || bindingBlank || emptyScaffold) {
             pushE({ code: 'data_extraction.source_missing', severity: 'error', path: at + '.source', message: `Step ${step.id}: there is no text to read yet.`, hint: 'Bind `source` to the text an earlier step produced, e.g. {kind:"ref", path:"steps.read.output.content"} — or loop.<item>.output.content inside a fan-out.' });
         } else if (typeof src === 'string') {
-            pushW({ code: 'data_extraction.source_bare_string', severity: 'warning', path: at + '.source', message: `Step ${step.id}: source is a bare string; it is read as a ${/\{\{[^}]+\}\}/.test(src) ? 'template' : (/^\s*(trigger|steps|vars|loop)\./.test(src) ? 'reference path' : 'LITERAL text, not a reference')}.`, hint: 'Prefer a binding: {kind:"ref", path:"steps.<id>.output.<field>"}.' });
+            pushW({ code: 'data_extraction.source_bare_string', severity: 'warning', path: at + '.source', message: `Step ${step.id}: source is a bare string; it is read as a ${hasPlaceholder(src) ? 'template' : (isBareRefString(src) ? 'reference path' : 'LITERAL text, not a reference')}.`, hint: 'Prefer a binding: {kind:"ref", path:"steps.<id>.output.<field>"}.' });
         } else if (!isBinding) {
             pushE({ code: 'data_extraction.source_invalid', severity: 'error', path: at + '.source', message: `Step ${step.id}: source must be a binding ({kind:"ref", path:"…"}), not a bare value.`, hint: 'Point it at an upstream value: {kind:"ref", path:"steps.<id>.output.<field>"}.' });
         } else if (src.kind === 'ref' && /\.(path|fileId|file_id|size|modified|contentType|mimeType|href|url)\s*$/.test(src.path)) {

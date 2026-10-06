@@ -10,10 +10,13 @@
  * pinned by mapping.lockstep.test.ts.
  */
 
+import { formatPath, parsePath } from '@/shared/expr';
+
 import { summariseData } from './flowDeps/dataSummary';
 import type { StepLabelMap } from './refTokens';
 import type { Binding, ForEach, Translate, VariableField } from './types';
 import { humanizeFieldTail } from '../model/displayHelpers';
+import { lastPathKey } from './upstream/fieldTree';
 import { suggestItemVar } from './upstream/loops';
 import { describeDataPath, escapeExprString } from './valueParts';
 import { walkPath, walkRelativePath } from './walkPath';
@@ -35,9 +38,22 @@ export interface ListShape {
     explainEn: string;
 }
 
-/** Split a column path on its FIRST `[*]`; the tail is kept verbatim. */
+/**
+ * Split a column path on its FIRST `[*]`; the tail is kept verbatim. The
+ * wildcard is found in the PARSED path, so a quoted key that merely contains
+ * `[*]` is not one; a path the grammar cannot read falls back to the text.
+ */
 export function splitColumnPath(path: unknown): { arrayPath: string; tail: string } {
     const s = String(path || '');
+    const tokens = parsePath(s);
+    if (tokens) {
+        const i = tokens.findIndex((t) => t.type === 'wild');
+        if (i < 0) return { arrayPath: s, tail: '' };
+        const arrayPath = formatPath(tokens.slice(0, i));
+        const head = `${arrayPath}${WILDCARD}`;
+        if (s.startsWith(head)) return { arrayPath, tail: s.slice(head.length) };
+        return { arrayPath, tail: formatPath([{ type: 'prop', key: '$' }, ...tokens.slice(i + 1)]).slice(1) };
+    }
     const i = s.indexOf(WILDCARD);
     if (i < 0) return { arrayPath: s, tail: '' };
     return { arrayPath: s.slice(0, i), tail: s.slice(i + WILDCARD.length) };
@@ -129,7 +145,7 @@ export function forEachPickFor(
     { itemVar }: { itemVar?: string } = {},
 ): { forEach: ForEach; binding: Binding; itemVar: string } {
     const { arrayPath, tail } = splitColumnPath(String(path || '').trim());
-    const lastSeg = arrayPath.replace(/\[[^\]]*\]/g, '').split('.').filter(Boolean).pop() || 'item';
+    const lastSeg = lastPathKey(arrayPath) || 'item';
     const v = (itemVar || suggestItemVar(lastSeg) || 'item').replace(/[^A-Za-z0-9_]/g, '') || 'item';
     return {
         forEach: { overRef: arrayPath, itemVar: v, maxIterations: 100 },

@@ -121,6 +121,12 @@ const EXPRS = [
     'len(item.a) > 2', '(a > 1', '"unterminated', 'a == "x\\"y"', 'item.a == \'it\'s\'', 'a > 1 && contains(b, "c, d")',
     'a[0].b == vars.limit', 'a == ', 'isEmpty(len(x))', 'contains(len(x), 1)', '!contains(len(x), 1)', 'weird(a, b)',
     'a == {{x}}',
+    // The runtime's path grammar: a match segment holding a comma is one
+    // field, and a quoted key comes back in the canonical spelling.
+    'contains(steps.m.output.h[name="a,b"].value, "x")', '!contains(steps.m.output.h[name="a,b"].value, "x, y")',
+    'isEmpty(steps.m.output.h[name="a,b"])', '!isEmpty(steps.m.output.h[name="a,b"])', 'endsWith(steps.m.output.h[name="a,b"].value, "7")',
+    "steps.j.output.fields['Story Points'] > 3", "trigger.output['x-y']", 'trigger.output.headers["content-type"] == "json"',
+    'contains(a.b, "x", "y")', 'contains(a.b, "x") + 1', '!startsWith(a.b, "x")',
 ];
 
 describe('conditionModel', () => {
@@ -176,7 +182,9 @@ describe('conditionModel', () => {
 
 describe('binding helpers the condition model writes with', () => {
     const texts = [undefined, null, 5, '', '  ', 'steps.a.output.b', 'loop.item', 'vars.x', 'secrets.k', 'item.a', 'foo.bar',
-        'a[*].b', 'a + b', '{{steps.a.output}}', 'Hi {{trigger.output.name}}', '1abc', 'x y'];
+        'a[*].b', 'a + b', '{{steps.a.output}}', 'Hi {{trigger.output.name}}', '1abc', 'x y',
+        'steps.a.output["Story Points"]', "steps.a.output['x-y']", 'trigger.output.headers.content-type', 'total-1',
+        'steps.a.output[name="a,b"].value', '{{steps.a.output["x}}y"]}}', 'Hi {{ steps.a.output["b c"] }}!', '{{a + 1}}'];
     it.each(texts.map((t) => [String(t), t] as const))('%s', (_label, text) => {
         expect(isCleanPath(text)).toBe(webBinding.isCleanPath(text));
         expect(detectTemplate(text)).toBe(webBinding.detectTemplate(text));

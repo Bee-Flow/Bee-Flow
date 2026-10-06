@@ -1,47 +1,32 @@
 /**
  * The sample → field vocabulary every describer in this folder shares: one
- * sample object in, bindable `{ key, path, sample }` fields out — with the
- * path-segment escaping that keeps paths inside the RUNTIME's ref grammar.
- * Port of agent-hub `Builder/mapping/upstream/sampleFields.js`; pinned by
- * upstream.lockstep.test.ts.
+ * sample in, a tree of bindable `{ key, path, sample, children? }` fields out,
+ * built by fieldTree.ts (every level, list columns from the union of the rows,
+ * JSON text opened, each path in the RUNTIME's grammar). Port of agent-hub
+ * `Builder/mapping/upstream/sampleFields.js`; pinned by upstream.lockstep.test.ts.
  */
+
+import { formatKey } from '@/shared/expr';
 
 import type { VariableField, VariableGroup } from '../types';
 import { walkPath } from '../walkPath';
+import { eachField, isRecord, mergeElements, recordFields } from './fieldTree';
+import { overlayGroupWithReal } from './realOverlay';
 
-/**
- * Append ONE object key to a ref path, bracket-quoting it when it isn't a bare
- * identifier: `…output["line-items"]` resolves at run time, `…output.line-items`
- * does not (server bind.js REF_RE).
- */
-export const seg = (k: string): string => (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) ? `.${k}` : `[${JSON.stringify(k)}]`);
+/** The path segment for ONE key (`.key`, `[3]`, `["line-items"]`): the runtime grammar's writer. */
+export const seg = (k: string): string => formatKey(k);
 
-/**
- * A sample object as a field list: top-level keys become leaves, nested
- * objects one level of children. Arrays are not expanded (their element
- * shape is a loop variable's business).
- */
+/** A record's fields, every level of it; anything else has none. */
 export function sampleToFields(sample: unknown, basePath: string): VariableField[] {
-    if (sample == null || typeof sample !== 'object') return [];
-    const out: VariableField[] = [];
-    for (const [k, v] of Object.entries(sample)) {
-        const path = `${basePath}${seg(k)}`;
-        if (v && typeof v === 'object' && !Array.isArray(v)) {
-            const children = Object.entries(v).map(([ck, cv]) => ({ key: ck, path: `${path}${seg(ck)}`, sample: cv }));
-            out.push({ key: k, path, sample: v, children });
-        } else {
-            out.push({ key: k, path, sample: v });
-        }
-    }
-    return out;
+    return recordFields(sample, basePath);
 }
 
-/** The sample of ONE element of the array `arrayRef` points at, or null. */
+/** ONE element standing for the array `arrayRef` points at (its rows' keys merged), or null. */
 export function resolveElementSample(arrayRef: unknown, sampleRoot: unknown): unknown {
     if (typeof arrayRef !== 'string' || !arrayRef.trim() || !sampleRoot) return null;
     const v = walkPath(arrayRef.trim(), sampleRoot);
     if (!Array.isArray(v) || v.length === 0) return null;
-    return v[0] ?? null;
+    return mergeElements(v);
 }
 
 /** Top-level field options of an array element — the only level collection ops address. */
@@ -50,34 +35,32 @@ export function elementFieldOptions(elementSample: unknown): { key: string; samp
     return Object.entries(elementSample).map(([key, sample]) => ({ key, sample }));
 }
 
-function realArrays(group: VariableGroup, previewSample: unknown, push: (k: string, p: string, s: unknown) => void): void {
-    const actual = walkPath(group.basePath, previewSample);
-    if (!actual || typeof actual !== 'object' || Array.isArray(actual)) return;
-    for (const [k, v] of Object.entries(actual)) {
-        if (Array.isArray(v)) push(k, `${group.basePath}${seg(k)}`, v);
-    }
+/**
+ * The fields of a group's REAL value: exactly what overlayGroupWithReal
+ * offers (a per-item step's forEach envelope, a Code step's data, never its logs).
+ */
+export function realFieldsOf(group: VariableGroup, actual: unknown): VariableField[] {
+    return overlayGroupWithReal(group, actual).fields || [];
 }
 
 /**
- * Every ARRAY-valued path reachable from the groups — fields, one level of
- * children, and arrays only the real-run overlay (`previewSample`) has.
+ * Every LIST reachable from the groups, at any depth — fields and their
+ * children, plus lists only the real-run overlay (`previewSample`) has.
  */
 export function collectArrayPaths(groups: VariableGroup[] | null | undefined, previewSample: unknown = null): VariableField[] {
     const out: VariableField[] = [];
     const seen = new Set<string>();
-    const push = (key: string, path: string, sample: unknown) => {
-        if (!path || seen.has(path)) return;
-        seen.add(path);
-        out.push({ key, path, sample });
-    };
+    const visit = (fields: VariableField[] | undefined) => eachField(fields, (f) => {
+        if (!Array.isArray(f.sample) || !f.path || seen.has(f.path)) return;
+        seen.add(f.path);
+        out.push({ key: f.key, path: f.path, sample: f.sample });
+    });
     for (const g of groups || []) {
-        for (const f of g.fields || []) {
-            if (Array.isArray(f.sample)) push(f.key, f.path, f.sample);
-            for (const c of f.children || []) {
-                if (Array.isArray(c.sample)) push(c.key, c.path, c.sample);
-            }
+        visit(g.fields);
+        if (previewSample && g.basePath) {
+            const actual = walkPath(g.basePath, previewSample);
+            if (actual !== undefined) visit(realFieldsOf(g, actual));
         }
-        if (previewSample && g.basePath) realArrays(g, previewSample, push);
     }
     return out;
 }
@@ -99,6 +82,32 @@ export function samplePlaceholderFor(type: unknown): unknown {
         default:
             return '<string>';
     }
+}
+
+/**
+ * A declared schema as a sample with the same shape: an object's properties,
+ * an array's items as one element, a type list's first non-null type, the
+ * first non-null branch of an anyOf / oneOf. A bare type name is its placeholder.
+ */
+export function schemaToSample(schema: unknown, depth = 0): unknown {
+    if (typeof schema === 'string') return samplePlaceholderFor(schema);
+    if (!isRecord(schema)) return samplePlaceholderFor('string');
+    const branch = [schema.anyOf, schema.oneOf].find(Array.isArray) as unknown[] | undefined;
+    if (branch && !schema.type && !schema.properties) {
+        return schemaToSample(branch.find((b) => isRecord(b) && b.type !== 'null') || branch[0], depth);
+    }
+    const type = schemaType(schema);
+    if (depth >= 8) return samplePlaceholderFor(type);
+    if ((type === 'object' || !type) && isRecord(schema.properties)) {
+        return Object.fromEntries(Object.entries(schema.properties).filter(([k]) => k).map(([k, v]) => [k, schemaToSample(v, depth + 1)]));
+    }
+    if (type === 'array') return isRecord(schema.items) ? [schemaToSample(schema.items, depth + 1)] : [];
+    return samplePlaceholderFor(typeof type === 'string' ? type : 'string');
+}
+
+/** A schema's one type: the first non-null of a type list. */
+function schemaType(schema: Record<string, unknown>): unknown {
+    return Array.isArray(schema.type) ? (schema.type.find((x) => x !== 'null') || schema.type[0]) : schema.type;
 }
 
 /** A group's name and kind. */

@@ -1,3 +1,4 @@
+import { appendKey } from '@shared/expr/path.mjs';
 import { Check, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Search } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { summariseData } from '../flow/dataSummary';
@@ -264,9 +265,9 @@ function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPa
                 )}
             </div>
             {open && shown.map(([k, v]) => {
-                const childPath = isArr
-                    ? `${path}[${k}]`
-                    : (path ? `${path}.${k}` : String(k));
+                // Written by the runtime grammar's writer: `headers["content-type"]`
+                // is a path the run reads; `headers.content-type` was not.
+                const childPath = appendKey(path, isArr ? Number(k) : k);
                 return (
                     <TreeNode
                         key={k}

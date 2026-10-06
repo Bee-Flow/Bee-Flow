@@ -175,17 +175,17 @@ describe('a group whose keys are not identifiers (the webhook case)', () => {
         expect(byId['field:ok'].binding).toEqual({ kind: 'ref', path: 'trigger.output.body.ok' });
     });
 
-    it('does not offer a key that has no path at all', () => {
-        // The dialect supports no escapes, so a key containing `]` cannot be
-        // written down. A button for it could only ever write a blank binding,
-        // which is worse than the key simply not being on the menu — the rest
-        // of the group, and the summary, still are.
+    it('offers a key holding `]` too, with a path the run resolves', () => {
+        // The shared grammar (shared/expr/path.mjs) reads JSON-escaped quoted
+        // keys, so `["a]b"]` is a path like any other. It used to be left off
+        // the menu because the old tokenizer split on the first `]`.
         const odd = { trigger: { output: { body: { 'a]b': 1, plain: 2 } } } };
         const r = remediesFor('trigger.output.body', odd, { actualKind: 'group' });
-        const ids = [...r.primary, ...r.more].map(x => x.id);
-        expect(ids).toContain('field:plain');
-        expect(ids).not.toContain('field:a]b');
-        expect(ids).toContain('summary');
+        const byId = Object.fromEntries([...r.primary, ...r.more].map(x => [x.id, x]));
+        expect(byId['field:plain']).toBeTruthy();
+        expect(byId['field:a]b'].binding).toEqual({ kind: 'ref', path: 'trigger.output.body["a]b"]' });
+        expect(walkRelativePath(byId['field:a]b'].binding.path, odd)).toBe(1);
+        expect(byId.summary).toBeTruthy();
     });
 
     it('the summary and the whole-group answers are unaffected — they never name a key', () => {

@@ -8,38 +8,56 @@
  * mapping.lockstep.test.ts.
  */
 
-import { tryEvaluate } from '@/shared/expr';
+import { isScalarList, replaceTemplate, templateText, tryEvaluate } from '@/shared/expr';
 
 import type { BindingValue, Binding } from './types';
 import { previewValue, walkPath } from './walkPath';
 
-function previewRef(b: Binding, sampleRoot: unknown, raw: boolean): string | null {
+interface PreviewOpts {
+    raw: boolean;
+    listAs: SlotListAs;
+    maxLen: number;
+}
+
+/** A ref's sample; a list of plain values reads as its values ("a, b"), as on the web. */
+function previewRef(b: Binding, sampleRoot: unknown, { raw, listAs, maxLen }: PreviewOpts): string | null {
     if (!b.path) return null;
     if (!sampleRoot) return raw ? b.path : null;
     const v = walkPath(b.path, sampleRoot);
     if (v === undefined) return raw ? `(no sample for ${b.path})` : null;
-    return previewValue(v, 60);
+    if (isScalarList(v) && (v as unknown[]).length) return previewValue(templateText(v, { lists: listAs === 'json' ? 'json' : 'join' }), maxLen);
+    return previewValue(v, maxLen);
 }
 
-function previewTemplate(b: Binding, sampleRoot: unknown, raw: boolean): string | null {
+/**
+ * A template filled the way the run fills it (server/automation/bind.js
+ * interpolateTemplate): the runtime's quote-aware scan, walker and
+ * templateText — "a, b" for a list of plain values, "name: Ann" for a record,
+ * JSON in a slot that carries data (`listAs: 'json'`).
+ */
+function previewTemplate(b: Binding, sampleRoot: unknown, { raw, listAs, maxLen }: PreviewOpts): string | null {
     if (!b.value) return null;
     if (!sampleRoot) return raw ? (b.value as string) : null;
     let resolvedAny = false;
-    const filled = String(b.value).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (full, expr: string) => {
-        const v = walkPath(expr.trim(), sampleRoot);
+    const lists = listAs === 'json' ? 'json' : 'join';
+    const filled = replaceTemplate(String(b.value), (inner, full) => {
+        const v = walkPath(inner, sampleRoot);
         if (v === undefined) return raw ? full : '…';
         resolvedAny = true;
-        return previewValue(v, 24);
+        return templateText(v, { lists }).replace(/\n/g, ' · ');
     });
     if (!raw && !resolvedAny) return null;
-    return previewValue(filled, 60);
+    return previewValue(filled, maxLen);
 }
 
-function previewExpr(b: Binding, sampleRoot: unknown, raw: boolean): string | null {
+/** How a slot's run writes a list into text: prose, or JSON for data slots. */
+export type SlotListAs = 'text' | 'json';
+
+function previewExpr(b: Binding, sampleRoot: unknown, { raw, maxLen }: PreviewOpts): string | null {
     if (!b.value) return null;
     if (sampleRoot) {
         const { value, error } = tryEvaluate(b.value as string, sampleRoot);
-        if (!error && value !== undefined) return previewValue(value, 60);
+        if (!error && value !== undefined) return previewValue(value, maxLen);
     }
     return raw ? `expr: ${b.value as string}` : null;
 }
@@ -48,16 +66,17 @@ function previewExpr(b: Binding, sampleRoot: unknown, raw: boolean): string | nu
 export function previewBinding(
     binding: BindingValue,
     sampleRoot: unknown,
-    { raw = true }: { raw?: boolean } = {},
+    { raw = true, listAs = 'text', maxLen = 60 }: { raw?: boolean; listAs?: SlotListAs; maxLen?: number } = {},
 ): string | null {
     if (!binding || typeof binding !== 'object') return null;
+    const opts: PreviewOpts = { raw, listAs, maxLen };
     if (binding.kind === 'literal') {
         if (binding.value == null || binding.value === '') return null;
-        return previewValue(binding.value, 60);
+        return previewValue(binding.value, maxLen);
     }
-    if (binding.kind === 'ref') return previewRef(binding, sampleRoot, raw);
-    if (binding.kind === 'template') return previewTemplate(binding, sampleRoot, raw);
-    if (binding.kind === 'expr') return previewExpr(binding, sampleRoot, raw);
+    if (binding.kind === 'ref') return previewRef(binding, sampleRoot, opts);
+    if (binding.kind === 'template') return previewTemplate(binding, sampleRoot, opts);
+    if (binding.kind === 'expr') return previewExpr(binding, sampleRoot, opts);
     return null;
 }
 

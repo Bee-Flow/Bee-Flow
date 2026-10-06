@@ -143,7 +143,7 @@ export function JsonExtract({
             customSource={customSource}
             setCustomSource={setCustomSource}
             sampleRoot={sampleRoot}
-            onPick={(source, rel) => onFields(addJsonField(fields, source, rel))}
+            onPick={(source, rel) => onFields(addJsonField(fields, source, rel, sampleRoot ? walkPath(source, sampleRoot) : undefined))}
             onHide={() => setOpen(false)}
         />
     );

@@ -12,7 +12,6 @@ import { View, type ViewStyle } from 'react-native';
 
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import { suggestItemVar } from '@/features/flow-editor/bindings';
 import { BindingInput, NumberField } from '@/features/flow-editor/components/fields';
 import { Button, Icon, OptionRow, Text, TextField } from '@/shared/ui';
 
@@ -20,7 +19,7 @@ import { Band } from '../shared/Band';
 import { Note } from '../shared/Note';
 import type { StepEditorProps } from '../types';
 import { LoopBodyList } from './LoopBodyList';
-import { friendlyPath, loopLists, pickLoopList, typedItemVar } from './loopModel';
+import { friendlyPath, loopLists, pickLoopListFull, typedItemVar } from './loopModel';
 
 /** What an item is called until someone names it. */
 const DEFAULT_ITEM_VAR = 'item';
@@ -30,6 +29,13 @@ function LoopOver(editor: StepEditorProps) {
     const styles = useThemedStyles(makeStyles);
     const { draft, setMany, ctx } = editor;
     const [advanced, setAdvanced] = useState(false);
+    // Steps inside that read a field the newly picked list's item lacks.
+    const [orphans, setOrphans] = useState<string[]>([]);
+    const pick = (path: string) => {
+        const r = pickLoopListFull(draft, path, ctx.sampleRoot);
+        setMany(r.patch);
+        setOrphans(r.orphans);
+    };
     const overRef = typeof draft.overRef === 'string' ? draft.overRef : '';
     const itemVar = typeof draft.itemVar === 'string' && draft.itemVar ? draft.itemVar : 'item';
     const lists = loopLists(ctx.groups, ctx.sampleRoot, ctx.stepLabelById, t);
@@ -49,7 +55,7 @@ function LoopOver(editor: StepEditorProps) {
             {lists.length ? (
                 <View style={styles.lists}>
                     <Text variant="label" tone="tertiary">
-                        {t('mobile.flow.loop.lists', 'Lists you can repeat over')}
+                        {t('automations.builder.lists_to_repeat_over', 'Lists you can repeat over')}
                     </Text>
                     {lists.map((l) => (
                         <OptionRow
@@ -57,7 +63,7 @@ function LoopOver(editor: StepEditorProps) {
                             label={l.label}
                             description={l.preview}
                             selected={overRef === l.path}
-                            onPress={() => setMany(pickLoopList(draft, l.path, suggestItemVar(l.key)))}
+                            onPress={() => pick(l.path)}
                             disabled={ctx.disabled}
                         />
                     ))}
@@ -65,8 +71,11 @@ function LoopOver(editor: StepEditorProps) {
             ) : (
                 <Note>{t('mobile.flow.loop.no_lists', 'No upstream lists detected — open Advanced to enter one by hand.')}</Note>
             )}
+            {orphans.length ? (
+                <Note>{t('mobile.flow.loop.list_changed_orphans', 'The new item has nothing for {fields} — pick them again.', { fields: orphans.join(', ') })}</Note>
+            ) : null}
             <TextField
-                label={t('mobile.flow.loop.name_each', 'Name each item')}
+                label={t('automations.builder.name_each_item', 'Name each item')}
                 // What is typed, even nothing: snapping an emptied box back to
                 // "item" made retyping the name produce "itemorder". The save
                 // still stores "item" for an empty name.
@@ -85,7 +94,7 @@ function LoopOver(editor: StepEditorProps) {
                     list
                     value={overRef}
                     onChange={(v) => setMany({ overRef: String(v), itemVar })}
-                    label={t('mobile.flow.loop.list_path', 'List path (expression)')}
+                    label={t('automations.builder.list_path_expression', 'List path (expression)')}
                     prompt={t('mobile.flow.loop.list_path_prompt', 'Tap Insert data to pick a list')}
                     disabled={ctx.disabled}
                 />

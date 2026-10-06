@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { discoverColumns, isTechnicalKey, nameColumn, resolveShown, suggestColumns } from './columns';
+import { discoverColumns, isAside, isTechnicalKey, keptChoice, nameColumn, resolveShown, suggestColumns } from './columns';
+import { columnsOf } from './perItem';
 import { rowMatches, summariseCell } from './cellSummary';
 
 const INVOICES = [
@@ -61,6 +62,71 @@ describe('the column model', () => {
         const cols = discoverColumns(INVOICES);
         expect(resolveShown(cols, { shown: ['status', 'gone', 'total'], split: [] })).toEqual(['status', 'total']);
         expect(resolveShown(cols, { shown: ['gone'], split: [] }, { max: 3 })).toHaveLength(3);
+    });
+});
+
+/** Two invented per-item rows: a mail read for each search result. */
+const PER_ITEM = [0, 1].map(index => ({
+    index,
+    item: { id: `m${index}`, subject: 'Je Fabrikam factuur' },
+    output: { id: `m${index}`, from: 'Fabrikam <no-reply@fabrikam.example>', subject: 'Je Fabrikam factuur', date: '2026-09-29', body: 'Factuur' },
+    status: 'success',
+}));
+
+describe('the columns of a per-item step', () => {
+    it('drop a choice saved before the rows were flattened', () => {
+        const cols = columnsOf(PER_ITEM, []);
+        const shown = resolveShown(cols, { shown: ['status', 'index', 'item', 'output'], split: [] });
+        expect(shown).toEqual(suggestColumns(cols));
+        expect(shown[0]).toBe('output.subject');
+    });
+
+    it('drop an old envelope choice that still holds the error column', () => {
+        const rows = [
+            { index: 0, item: { filename: 'Factuur.pdf', size: 48213 }, output: { filename: 'Factuur.pdf', content: 'Factuur' }, status: 'success' },
+            { index: 1, item: { filename: 'Fabrikam_logo.png', size: 1571 }, output: null, status: 'error', error: 'tool failed: no OCR', errorClass: 'IntegrationError', attempts: 1 },
+        ];
+        const cols = columnsOf(rows, []);
+        const prefs = { shown: ['index', 'item', 'output', 'status', 'error'], split: [] };
+        expect(keptChoice(cols, prefs)).toBeNull();
+        expect(resolveShown(cols, prefs).slice(0, 2)).toEqual(['output.filename', 'error']);
+    });
+
+    it('drop an old envelope choice when the output has nothing to name its rows by', () => {
+        const rows = [0, 1].map(index => ({
+            index, item: { subject: 'Je Fabrikam factuur' }, output: { summary: 'Factuur van Fabrikam', sentiment: 'neutral' }, status: 'success',
+        }));
+        const cols = columnsOf(rows, []);
+        const prefs = { shown: ['status', 'index', 'item', 'output'], split: [] };
+        expect(keptChoice(cols, prefs)).toBeNull();
+        expect(resolveShown(cols, prefs)).toEqual(suggestColumns(cols));
+        expect(resolveShown(cols, prefs)).not.toContain('item');
+    });
+
+    it('drop a choice of only Incoming and Problem, which shows none of what the step returned', () => {
+        const cols = columnsOf(PER_ITEM, []);
+        expect(keptChoice(cols, { shown: ['item'], split: [] })).toBeNull();
+        expect(keptChoice(cols, { shown: ['output.subject', 'item'], split: [] })).toEqual(['output.subject', 'item']);
+    });
+
+    it('keep a choice made on the flattened columns, an old split of the output ignored', () => {
+        const cols = columnsOf(PER_ITEM, ['output']);
+        expect(resolveShown(cols, { shown: ['output.subject', 'output.from'], split: ['output'] })).toEqual(['output.subject', 'output.from']);
+    });
+
+    it('keep the item aside: listed, never pinned or suggested', () => {
+        const cols = columnsOf(PER_ITEM, []);
+        const item = cols.find(c => c.key === 'item');
+        expect(item && isAside(item)).toBe(true);
+        expect(nameColumn(cols)?.key).toBe('output.subject');
+        expect(suggestColumns(cols, { max: 20 })).not.toContain('item');
+        const onlyItem = cols.filter(c => c.key === 'item' || c.key === 'output.body');
+        expect(nameColumn(onlyItem)?.key).toBe('output.body');
+    });
+
+    it('lets the item lead when it is the only name the rows have', () => {
+        const named = { ...columnsOf(PER_ITEM, []).find(c => c.key === 'item')!, role: 'name' as const };
+        expect(isAside(named)).toBe(false);
     });
 });
 

@@ -138,10 +138,19 @@ describe('inserting several references in a row', () => {
         expect(onChange).toHaveBeenLastCalledWith(`Hello${A}`);
     });
 
-    it('leaves a single-reference (binding) field alone', () => {
-        const { ref, onChange } = setup({ mode: 'binding', value: 'x' });
+    it('never fuses a reference into the name before it in a formula either', () => {
+        // Formula fields used to skip the spacing, so a second pick right after
+        // a reference glued into one bogus path (`…output.emailsteps.b…`) that
+        // looked valid and resolved to nothing. A separate operand is flagged
+        // by the formula check until an operator goes in between.
+        const { ref, onChange } = setup({ mode: 'expression', value: 'steps.act_f9aaff0e.output.x' });
         ref.current.insertSnippet('steps.act_f9aaff0e.output.a');
-        expect(onChange.mock.calls.at(-1)[0]).not.toContain(' steps');
+        expect(onChange.mock.calls.at(-1)[0]).not.toContain('xsteps');
+        // …while a data slot that asks for no spacing still gets none.
+        cleanup();
+        const { ref: raw, onChange: rawChange } = setup({ mode: 'expression', value: 'x', spaced: false });
+        raw.current.insertSnippet('steps.act_f9aaff0e.output.a');
+        expect(rawChange.mock.calls.at(-1)[0]).not.toContain(' steps');
     });
 });
 

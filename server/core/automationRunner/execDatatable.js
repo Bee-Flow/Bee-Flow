@@ -70,6 +70,7 @@
 'use strict';
 
 const { resolveValue, resolveInputs } = require('../../automation/bind');
+const { hasPlaceholder } = require('../../automation/validate/refPaths');
 const {
     DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT,
 } = require('../../automation/validate/constants');
@@ -159,10 +160,15 @@ const VALUELESS_OPS = new Set(['isNull', 'isNotNull']);
  * The keyset cursor a `find_rows` step was given — a binding like every other
  * field, so `{{steps.page1.output.nextCursor}}` is how a loop walks a table
  * bigger than one page. Anything that is not a non-empty string is page 1.
+ *
+ * A bare STRING with a placeholder is that template (the AI builder used to
+ * store the cursor that way, and the validator and portability read it so);
+ * resolveValue would take it for a literal and hand the query the braces.
  */
 function readCursor(binding, runState) {
     if (binding === undefined || binding === null || binding === '') return null;
-    const v = resolveValue(binding, runState, { allowSecrets: false });
+    const asBinding = typeof binding === 'string' && hasPlaceholder(binding) ? { kind: 'template', value: binding } : binding;
+    const v = resolveValue(asBinding, runState, { allowSecrets: false });
     return typeof v === 'string' && v ? v : null;
 }
 
@@ -544,4 +550,4 @@ async function execDatatable(step, ctx, runState, mode) {
         : { output: { updated: n, truncated, ...(warning ? { warning } : {}) } };
 }
 
-module.exports = { execDatatable, MIRROR_WRITE_MAX_PER_STEP, NC_WRITE_MAX_PER_STEP };
+module.exports = { execDatatable, MIRROR_WRITE_MAX_PER_STEP, NC_WRITE_MAX_PER_STEP, _test: { readCursor } };

@@ -11,8 +11,11 @@
  *   list   all of them         {{p}}          "red, green, blue" (templateText)
  *          only the first      {{p[0]}}
  *          how many            {{p.length}}
- *   table  one column          {{p[*].key}}   "A1, B2"
- *          how many rows       {{p.length}}
+ *   table  one column          {{p[*].key}}   "A1, B2"  (mismatch.columnPath:
+ *                                             `{{p.key}}` when p is itself a
+ *                                             column, `value[*].from`)
+ *          how many rows       {{p.length}}   (not for a column: `.length`
+ *                                             would count per row)
  *          the whole table     {{p}}          JSON
  *   group  a field inside it   {{p.key}}
  *          the whole group     {{p}}          JSON
@@ -22,12 +25,12 @@
  *
  * Pure and React-free.
  */
-import { kindAtPath } from './mismatch';
-import { forEachPickFor } from './listShape';
-import { joinKeyPath, keyPickable } from './keyPath';
-import { humanizeFieldTail } from '../flow/displayHelpers';
-import { walkPath } from '../../../../utils/bindingHelpers';
+import { appendKey, parsePath, scanTemplate } from '@shared/expr/path.mjs';
 import { templateText } from '@shared/expr/templateText.mjs';
+import { columnPath, kindAtPath } from './mismatch';
+import { forEachPickFor } from './listShape';
+import { humanizeFieldKey } from '../flow/displayHelpers';
+import { canonicalRefPath, walkPath } from '../../../../utils/bindingHelpers';
 
 export type TemplateShape = 'list' | 'table' | 'group';
 
@@ -83,25 +86,26 @@ export function templateRemediesFor(
     sampleRoot: unknown,
     { allowForEach = false }: { allowForEach?: boolean } = {},
 ): TemplateRemedies | null {
-    const p = String(path || '').trim();
+    const p = canonicalRefPath(String(path || '').trim());
     const shape = templateShapeAt(p, sampleRoot);
     if (!shape) return null;
     const value = walkPath(p, sampleRoot);
     // A column (`a[*].b`) is already one value per row: `[0]` and `.length`
-    // would apply per row there, so it only gets "all" and "for each".
-    const isColumn = p.includes('[*]');
+    // would apply per row there, so it gets neither.
+    const isColumn = (parsePath(p) || []).some(t => t.type === 'wild');
+    const fieldName = (key: string) => humanizeFieldKey(key) || key;
 
     if (shape === 'group') {
         const obj = (value && typeof value === 'object' && !Array.isArray(value) ? value : {}) as Record<string, unknown>;
-        const keys = Object.keys(obj).filter(keyPickable).slice(0, MAX_FIELDS);
+        const keys = Object.keys(obj).slice(0, MAX_FIELDS);
         return {
             shape, count: Object.keys(obj).length, currentId: 'whole',
             choices: [
                 ...keys.map((key): TemplateRemedy => {
-                    const kp = joinKeyPath(p, key);
+                    const kp = appendKey(p, key);
                     return {
                         id: `field:${key}`, token: tok(kp),
-                        labelKey: 'automations.template_fit.field', labelEn: '{field}', labelParams: { field: humanizeFieldTail(key) || key },
+                        labelKey: 'automations.template_fit.field', labelEn: '{field}', labelParams: { field: fieldName(key) },
                         preview: previewOf(kp, sampleRoot),
                     };
                 }),
@@ -128,24 +132,24 @@ export function templateRemediesFor(
 
     if (shape === 'table') {
         const first = list.find((r) => r && typeof r === 'object') as Record<string, unknown> | undefined;
-        const cols = first ? Object.keys(first).filter(keyPickable).slice(0, MAX_COLUMNS) : [];
+        const cols = first ? Object.keys(first).slice(0, MAX_COLUMNS) : [];
         return {
             shape, count: list.length, currentId: 'whole',
             choices: [
                 ...forEach(),
                 ...cols.map((key): TemplateRemedy => {
-                    const cp = joinKeyPath(`${p}[*]`, key);
+                    const cp = columnPath(p, key, sampleRoot);
                     return {
                         id: `column:${key}`, token: tok(cp),
-                        labelKey: 'automations.template_fit.column', labelEn: 'Only “{field}”, from every row', labelParams: { field: humanizeFieldTail(key) || key },
+                        labelKey: 'automations.template_fit.column', labelEn: 'Only “{field}”, from every row', labelParams: { field: fieldName(key) },
                         preview: previewOf(cp, sampleRoot),
                     };
                 }),
-                {
-                    id: 'count', token: tok(`${p}.length`),
+                ...(isColumn ? [] : [{
+                    id: 'count', token: tok(appendKey(p, 'length')),
                     labelKey: 'automations.template_fit.count_rows', labelEn: 'How many rows ({n})', labelParams: { n: list.length },
                     preview: String(list.length),
-                },
+                }]),
                 {
                     id: 'whole', token: tok(p),
                     labelKey: 'automations.template_fit.whole_table', labelEn: 'The whole table, as data',
@@ -165,12 +169,12 @@ export function templateRemediesFor(
             },
             ...(isColumn ? [] : [
                 {
-                    id: 'first', token: tok(`${p}[0]`),
+                    id: 'first', token: tok(appendKey(p, 0)),
                     labelKey: 'automations.template_fit.first', labelEn: 'Only the first',
-                    preview: previewOf(`${p}[0]`, sampleRoot),
+                    preview: previewOf(appendKey(p, 0), sampleRoot),
                 },
                 {
-                    id: 'count', token: tok(`${p}.length`),
+                    id: 'count', token: tok(appendKey(p, 'length')),
                     labelKey: 'automations.template_fit.count', labelEn: 'How many ({n})', labelParams: { n: list.length },
                     preview: String(list.length),
                 },
@@ -181,22 +185,29 @@ export function templateRemediesFor(
 }
 
 /**
- * Replace the LAST `{{path}}` in `text` with `token` — the occurrence the
- * author just inserted. Whitespace inside the braces is tolerated, as the
- * runtime does. Unchanged when it is not there (the author edited it away).
+ * The placeholders in `text` that read `path` — found with the runtime's own
+ * quote-aware scan, and compared by MEANING (canonical spelling), so
+ * `{{ a['x'] }}` is the same placeholder as `{{a["x"]}}`.
  */
-const tokenRe = (path: string) => new RegExp(`\\{\\{\\s*${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\}\\}`, 'g');
+function tokensFor(text: string, path: string) {
+    const want = canonicalRefPath(path);
+    return (scanTemplate(String(text || '')) as Array<{ type: string; inner?: string; start?: number; end?: number }>)
+        .filter(p => p.type === 'ref' && canonicalRefPath(p.inner) === want);
+}
 
 /** Does `text` still hold `{{path}}`? */
 export function hasToken(text: string, path: string): boolean {
-    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the path is escaped before it goes into the pattern; no nested repeat: linear
-    return tokenRe(path).test(String(text || ''));
+    return tokensFor(text, path).length > 0;
 }
 
+/**
+ * Replace the LAST `{{path}}` in `text` with `token` — the occurrence the
+ * author just inserted. Unchanged when it is not there (the author edited it
+ * away).
+ */
 export function replaceLastToken(text: string, path: string, token: string): string {
-    const re = tokenRe(path);
-    let last: RegExpExecArray | null = null;
-    for (let m = re.exec(text); m; m = re.exec(text)) last = m;
+    const found = tokensFor(text, path);
+    const last = found[found.length - 1];
     if (!last) return text;
-    return text.slice(0, last.index) + token + text.slice(last.index + last[0].length);
+    return text.slice(0, last.start) + token + text.slice(last.end);
 }

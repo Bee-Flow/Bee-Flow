@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { fitsAfterCards, mergeFrequentKeys, outputShapeOf, resolveFrequent, stepOutputIsArray } from './fitsAfter';
 import { addOptionsFor, ribbonAnchor } from './ribbonAnchor';
 import { expandQuery, searchRibbon } from './ribbonSearch';
-import { availableCategories, presentingCategory, ribbonSections } from './ribbonCategories';
+import { NATIVE_APP_HOME, availableCategories, presentingCategory, ribbonSections } from './ribbonCategories';
+import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
+import { resolveIntegrationFromTool } from '../../../../../utils/integrationIcons';
 import { planBlocksRow, planRow } from './ribbonRows';
 import type { SegmentPlan } from './ribbonRows';
 import { normaliseUsageRows } from '../../../../../api/queries/automation/usage';
@@ -120,17 +122,79 @@ describe('ribbonCategories', () => {
         const none = ribbonSections({ catalog: { apps: [], steps: [], flags: {} } });
         // 'suggested' is switched off by design (SUGGESTED_TAB_ENABLED); it only
         // appears when the flag is passed on.
-        expect(availableCategories(none).map(c => c.id)).toEqual(['ai', 'logic', 'people', 'data', 'other_apps', 'blocks']);
-        expect(availableCategories(none, true).map(c => c.id)).toEqual(['suggested', 'ai', 'logic', 'people', 'data', 'other_apps', 'blocks']);
-        expect(presentingCategory(availableCategories(none))).toBe('other_apps');
+        // No apps at all: no app tab, not even Other apps (Call a web service is on Logic).
+        expect(availableCategories(none).map(c => c.id)).toEqual(['ai', 'logic', 'people', 'data', 'blocks']);
+        expect(availableCategories(none, true).map(c => c.id)).toEqual(['suggested', 'ai', 'logic', 'people', 'data', 'blocks']);
+        expect(presentingCategory(availableCategories(none))).toBe('ai');
         const nc = ribbonSections({
             catalog: { steps: [], flags: {}, apps: [{ id: 'nextcloud-talk', label: 'Nextcloud Talk', available: true, actions: [{ name: 'nextcloud_talk_send_message', integrationId: 'nextcloud-talk' }] }] },
         });
-        expect(nc.nextcloudApps.map(a => a.id)).toEqual(['nextcloud-talk']);
+        expect(nc.suiteApps.nextcloud.map(a => a.id)).toEqual(['nextcloud-talk']);
         expect(nc.otherAppCategories).toEqual([]);
         expect(presentingCategory(availableCategories(nc))).toBe('nextcloud');
     });
 
+    it('gives Google Workspace and Microsoft 365 a tab of their own, like Nextcloud', () => {
+        const app = (id: string, label: string, tool: string) => ({ id, label, available: true, actions: [{ name: tool, integrationId: id }] });
+        const s = ribbonSections({
+            catalog: { steps: [], flags: {}, apps: [
+                app('gmail', 'Gmail', 'gmail_search'),
+                app('google-drive', 'Google Drive', 'drive_list_files'),
+                app('outlook', 'Outlook', 'outlook_search'),
+                app('onedrive', 'OneDrive', 'onedrive_list_files'),
+                app('fireflies', 'Fireflies', 'fireflies_list_transcripts'),
+            ] },
+        });
+        expect(s.suiteApps.google.map(a => a.id)).toEqual(['google-drive', 'gmail']);
+        expect(s.suiteApps.microsoft.map(a => a.id)).toEqual(['onedrive', 'outlook']);
+        expect(s.otherAppCategories.flatMap(c => c.apps.map(a => a.id))).toEqual(['fireflies']);
+        const tabs = availableCategories(s);
+        expect(tabs.map(c => c.id)).toEqual(['ai', 'logic', 'people', 'data', 'google', 'microsoft', 'other_apps', 'blocks']);
+        expect(tabs.find(c => c.id === 'google')?.origin).toBe('cat:Google Workspace');
+        expect(tabs.find(c => c.id === 'microsoft')?.origin).toBe('cat:Microsoft 365');
+        // The build film presents on the first suite tab there is.
+        expect(presentingCategory(tabs)).toBe('google');
+    });
+
+    it('puts Bee Flow\'s own tools on the tab of their job, not under Other apps', () => {
+        const app = (id: string, label: string, tool: string) => ({ id, label, available: true, actions: [{ name: tool, integrationId: id }] });
+        const s = ribbonSections({
+            catalog: { steps: [], flags: { code: true }, apps: [
+                app('agent-search', 'Web Search', 'agent_search'),
+                app('memory', 'Memory', 'memory_search'),
+                app('transcription', 'Transcription', 'transcribe_audio'),
+                app('kb-ingest', 'Knowledge Base Ingest', 'knowledge_base_ingest'),
+                app('webpages', 'Webpages', 'webpages_list'),
+                app('automation-evolution', 'Automation evolution', 'automation_runs_summary'),
+                app('elevenlabs', 'ElevenLabs', 'generate_tts'),
+                app('fireflies', 'Fireflies', 'fireflies_list_transcripts'),
+            ] },
+        });
+        expect(s.nativeApps.ai.map(a => a.id).sort()).toEqual(['agent-search', 'memory', 'transcription']);
+        expect(s.nativeApps.data.map(a => a.id).sort()).toEqual(['kb-ingest', 'webpages']);
+        expect(s.nativeApps.logic.map(a => a.id)).toEqual(['automation-evolution']);
+        // Outside apps stay where they were; Code and Call a web service are on Logic.
+        expect(s.otherAppCategories.flatMap(c => c.apps.map(a => a.id)).sort()).toEqual(['elevenlabs', 'fireflies']);
+        expect(s.logic.map(i => i.id)).toEqual(expect.arrayContaining(['code', 'http_request']));
+        expect(presentingCategory(availableCategories(s))).toBe('other_apps');
+    });
+
+});
+
+describe('Bee Flow tool marks', () => {
+    // Bee Flow's own tools sit on the AI, Logic and Data & documents tabs
+    // beside steps that each have an icon; one of them falling back to the
+    // ribbon's puzzle piece (Memory, Knowledge Base Ingest and Automation
+    // evolution did) reads as a broken entry.
+    it('has a mark for every Bee Flow tool the ribbon places on a step tab', () => {
+        expect(Object.keys(NATIVE_APP_HOME).filter(id => !getIntegrationLogo(id))).toEqual([]);
+    });
+
+    it('finds that mark from the tool name too, for a step the AI builder added without an app id', () => {
+        for (const tool of ['memory_search', 'knowledge_base_ingest', 'automation_propose_evolution', 'webpage_db_query', 'kb_fetch', 'agent_search']) {
+            expect(getIntegrationLogo(resolveIntegrationFromTool(tool)), tool).not.toBeNull();
+        }
+    });
 });
 
 describe('ribbonRows (one row of pills per tab)', () => {
@@ -160,8 +224,11 @@ describe('ribbonRows (one row of pills per tab)', () => {
 
     it('Logic, People and AI: the AI step keeps its own stamp; the form pages share one pill', () => {
         expect(shape(planRow(plain.logic, 'logic', 'section:flow_control', t))).toEqual([
-            ['route', 'loop'], ['privacy_shield'], ['End the run ▾ [stop_error, return_to_app]', 'note'],
+            ['route', 'loop'], ['http_request'], ['privacy_shield'], ['End the run ▾ [stop_error, return_to_app]', 'note'],
         ]);
+        // Code, when the server can run it, joins Call a web service: the logic you write yourself.
+        const withCode = ribbonSections({ catalog: { apps: [], steps: [], flags: { code: true } } });
+        expect(shape(planRow(withCode.logic, 'logic', 'section:flow_control', t)).slice(0, 2)).toEqual([['route', 'loop'], ['code', 'http_request']]);
         expect(shape(planRow(plain.people, 'people', 'section:people', t))).toEqual([
             ['approval', 'notification', 'wait'], ['Form pages ▾ [form_page, form_ending]'],
         ]);
@@ -173,7 +240,7 @@ describe('ribbonRows (one row of pills per tab)', () => {
     it('a group left with one command is that command\'s pill, and an unknown step is never lost', () => {
         // Inside a flowlet "Back to the app" is filtered away, so "End the run" has one command left.
         const inLayer = ribbonSections({ catalog: { apps: [], steps: [], flags: {} }, inLayer: true });
-        expect(shape(planRow(inLayer.logic, 'logic', null, t))).toEqual([['route', 'loop'], ['privacy_shield'], ['stop_error', 'note']]);
+        expect(shape(planRow(inLayer.logic, 'logic', null, t))).toEqual([['route', 'loop'], ['http_request'], ['privacy_shield'], ['stop_error', 'note']]);
         const extra = { id: 'brand_new', label: 'Brand new', payload: { kind: 'brand_new' } };
         expect(shape(planRow([...plain.ai, extra], 'ai', null, t))).toEqual([['ai_step', 'data_extraction'], ['brand_new']]);
     });

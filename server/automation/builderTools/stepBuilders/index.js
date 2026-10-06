@@ -54,7 +54,7 @@ const {
     translateDataExtractionVocabulary,
 } = require('./dataExtractionStep');
 const {
-    sanitizeDatatableBindings, DATATABLE_WRITE_OPS, readOnlyTableError, coerceSortList,
+    sanitizeDatatableBindings, sanitizeDatatableCursor, DATATABLE_WRITE_OPS, readOnlyTableError, coerceSortList,
     resolveDatatableColumns, checkExtractionFieldRefs, applyAddDatatable,
 } = require('./datatableStep');
 const {
@@ -92,6 +92,7 @@ module.exports = {
     applyAddKnowledgeWrite,
     bindingToTemplate,
     sanitizeDatatableBindings,
+    sanitizeDatatableCursor,
     coerceSortList,
     resolveDatatableColumns,
     checkExtractionFieldRefs,

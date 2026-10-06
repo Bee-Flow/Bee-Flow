@@ -1,109 +1,48 @@
 /**
- * The path tokenizer/resolver, ported from agent-hub `utils/bindingHelpers.js`
- * (§WS4.1), which in turn mirrors the SERVER runtime
- * (server/automation/bind.js tokenizePath/resolveTokens) in semantics. Keeping
- * the three in lock-step is what makes a preview on the phone match what the
- * automation actually sees — `[*]` flatten, quoted keys, and no walking of the
- * prototype chain. Pinned by bindingHelpers.lockstep.test.ts.
+ * Reading paths, ported from agent-hub `utils/bindingHelpers.js`, over the
+ * ONE path grammar the runtime resolves (shared/expr path.mjs, vendored
+ * byte for byte in `@/shared/expr`). server/automation/bind.js walks every
+ * ref and `{{ }}` placeholder with the same functions, so a preview on the
+ * phone is exactly what the run will see: `["Story Points"]`, `[name="Subject"]`,
+ * `[-1]`, JSON text read as the value it encodes, and the same `[*]` rules.
+ * This file used to carry its own laxer tokenizer, which previewed spellings
+ * (`fields.Story Points`, `value[0x1]`) the run never resolved. Pinned by
+ * bindingHelpers.lockstep.test.ts.
  */
 
-type Token = { type: 'prop'; key: string | number } | { type: 'wild' };
+import { getRelativePath, walkTokens, type PathToken } from '@/shared/expr';
 
-/** One `[...]` segment, from the character after `[` up to `]`. */
-function bracketToken(raw: string): Token {
-    if (raw === '*') return { type: 'wild' };
-    if (raw.startsWith('"') && raw.endsWith('"')) return { type: 'prop', key: raw.slice(1, -1) };
-    if (raw.startsWith("'") && raw.endsWith("'")) return { type: 'prop', key: raw.slice(1, -1) };
-    return { type: 'prop', key: parseInt(raw, 10) };
-}
+import { pathTokensOf as anyPathTokens } from '../model/pathGrammar';
 
-function tokenizePath(path: string): Token[] | null {
-    const tokens: Token[] = [];
-    let i = 0;
-    let buf = '';
-    const flush = () => {
-        if (buf.length) {
-            tokens.push({ type: 'prop', key: buf });
-            buf = '';
-        }
-    };
-    while (i < path.length) {
-        const c = path.charAt(i);
-        if (c === '.') {
-            flush();
-            i++;
-            continue;
-        }
-        if (c === '[') {
-            flush();
-            const close = path.indexOf(']', i);
-            if (close < 0) return null;
-            tokens.push(bracketToken(path.slice(i + 1, close)));
-            i = close + 1;
-            continue;
-        }
-        buf += c;
-        i++;
-    }
-    flush();
-    return tokens;
-}
+// Which text is a path, its canonical spelling and what it is named after
+// live one layer down, where the condition model (model/route/) and the
+// display helpers (model/displayHelpers) use them too.
+export {
+    canonicalRefPath, detectTemplate, isCleanPath, leafOf, pathLabelParts, pathLeafKey, refPathTokens,
+} from '../model/pathGrammar';
 
-function resolveWild(rest: Token[], cur: unknown): unknown {
-    if (!Array.isArray(cur)) return undefined;
-    const out: unknown[] = [];
-    for (const el of cur) {
-        const m = resolveTokens(rest, el);
-        if (m === undefined) continue;
-        if (Array.isArray(m)) out.push(...m);
-        else out.push(m);
-    }
-    return out;
-}
-
-function resolveTokens(tokens: Token[], start: unknown): unknown {
-    let cur = start;
-    for (let t = 0; t < tokens.length; t++) {
-        const tok = tokens[t] as Token;
-        if (tok.type === 'wild') return resolveWild(tokens.slice(t + 1), cur);
-        if (cur == null) return undefined;
-        // Never walk the prototype chain — mirrors server bind.js: a path like
-        // "constructor" previews as undefined, exactly as it resolves at run time.
-        if (!Object.prototype.hasOwnProperty.call(cur, tok.key)) return undefined;
-        cur = (cur as Record<string | number, unknown>)[tok.key];
-    }
-    return cur;
+/** The tokens of any path the builder holds (exported for the name helpers). */
+export function pathTokensOf(text: unknown): PathToken[] | null {
+    return anyPathTokens(text);
 }
 
 /**
- * Walk a dotted/bracketed path on an object (`steps.s1.output.results[0].subject`,
- * `…results[*].output.field`, `obj["quoted key"]`). Undefined when any segment
- * is missing — never throws.
+ * Walk a dotted/bracketed path on an object — the runtime's own walker.
+ * Undefined when any segment is missing; never throws.
  */
 export function walkPath(path: unknown, root: unknown): unknown {
     if (!path || root == null) return undefined;
-    const tokens = tokenizePath(String(path));
-    if (!tokens) return undefined;
-    return resolveTokens(tokens, root);
+    const tokens = anyPathTokens(String(path));
+    return tokens ? walkTokens(tokens, root) : undefined;
 }
 
-// Mirrors server bind.js REF_RE — walkRelativePath enforces it so a relative
-// path resolves IDENTICALLY at design time and at run time.
-const REF_RE = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[(?:[0-9]+|\*|"[^"]*"|'[^']*')\])*$/;
-
 /**
- * Walk a path RELATIVE to an arbitrary value — byte-for-byte mirror of
- * server/automation/bind.js walkRelativePath. `''`/`'$'`/nullish returns the
- * whole value.
+ * Walk a path RELATIVE to an arbitrary value — the runtime's getRelativePath
+ * (server/automation/bind.js walkRelativePath). `''`/`'$'`/nullish returns
+ * the whole value.
  */
 export function walkRelativePath(path: unknown, value: unknown): unknown {
-    if (path === '' || path === '$' || path == null) return value;
-    const p = String(path);
-    const abs = p.startsWith('[') ? `$${p}` : `$.${p}`;
-    if (!REF_RE.test(abs)) return undefined;
-    const tokens = tokenizePath(abs);
-    if (!tokens) return undefined;
-    return resolveTokens(tokens, { $: value });
+    return getRelativePath(value, path);
 }
 
 /**

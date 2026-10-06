@@ -6,6 +6,7 @@ import { Repeat, RotateCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { walkPath } from '../../../../../utils/bindingHelpers';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
+import { applyStepBindings, stepBindings } from '../../mapping/forEachBindings';
 import LoopOverPicker from '../../mapping/LoopOverPicker';
 import PathField from '../../mapping/PathField';
 import ToolInputForm from '../../mapping/ToolInputForm';
@@ -60,9 +61,14 @@ function ForEachSection({ draft, set, groups, onFocusField }) {
                     <LoopOverPicker
                         overRef={fe.overRef || ''}
                         itemVar={fe.itemVar || 'item'}
+                        parents={fe.parents}
                         onChange={(patch) => set('forEach', { ...fe, ...patch })}
                         groups={groups}
                         onFocusField={onFocusField}
+                        // Another list: the step's fields follow the item (or
+                        // are named when the new item lacks them), with Undo.
+                        bindings={stepBindings(draft)}
+                        onRebind={(next) => applyStepBindings(draft, next, set)}
                     />
                     <FormRow label="Max iterations" hint="Safety cap. 1–1000.">
                         <input

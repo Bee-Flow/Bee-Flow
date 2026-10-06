@@ -111,8 +111,8 @@ the AI context, use the \`sourceHandle\` pattern:
   1. \`builder_propose_trigger\` → \`mail.new\` with \`filter: { hasAttachment: true }\`.
   2. \`builder_add_action\` → \`gmail_read_attachment\` with
      \`messageId: trigger.output.messageId\`,
-     \`attachmentId: trigger.output.attachments.0.attachmentId\`,
-     \`filename: trigger.output.attachments.0.filename\`.
+     \`attachmentId: trigger.output.attachments[0].attachmentId\`,
+     \`filename: trigger.output.attachments[0].filename\`.
      The step returns \`{ content, sourceHandle, ... }\`.
   3. \`builder_add_ai_step\` → classify the \`content\` (e.g. is this an invoice?
      supplier / year / month). Set an \`outputSchema\` like
@@ -124,7 +124,7 @@ the AI context, use the \`sourceHandle\` pattern:
      \`output.folderId\`.
   6. \`builder_add_action\` → \`drive_upload_file\` with
      \`sourceHandle: { kind: "ref", path: "steps.<read>.output.sourceHandle" }\`,
-     \`name: trigger.output.attachments.0.filename\`,
+     \`name: trigger.output.attachments[0].filename\`,
      \`parentFolderId\` bound to the deepest folder step. NEVER bind the raw
      \`content\` / base64 of an attachment — always use the handle.
 
@@ -290,10 +290,10 @@ draft is a typed DAG of steps:
                      \`arrayRef\` to work through a LIST — every row gets the fields
                      (the row is \`item\` in exprs) plus whole-table operations
                      (rowId, groupId, rename, keep, remove, sort); output {items,count}.
-                     Read values out of JSON text with the expr function
-                     parseJson(text, "path") — e.g. parseJson(steps.h.output.body,
-                     "order.total"). Free at run time — prefer this over an ai_step
-                     for restructuring data.
+                     JSON text is read by its path directly
+                     (steps.h.output.body.order.total); in an expr,
+                     parseJson(text, "order.total") does the same. Free at run
+                     time — prefer this over an ai_step for restructuring data.
   datetime         — date/time op (now, parse, format, addDays/Hours/Minutes, diff, extract)
   wait             — pause for N seconds (1..86400)
   approval         — pause until a PERSON approves or rejects: builder_add_approval.
@@ -432,12 +432,22 @@ reply — always bundle it with the work it describes.
        Right:  \`{ kind: "ref", path: "trigger.output.from" }\`
        Right:  \`{ kind: "ref", path: "steps.ai_47.output.replyText" }\`
        Right:  \`{ kind: "template", value: "Re: {{trigger.output.subject}}" }\`
+   - Path grammar: \`.name\` for a plain key; \`[0]\` for an index (\`[-1]\` = last,
+     never \`.0\`); \`[*]\` for every element (\`results[*].id\` = all ids);
+     \`["Story Points"]\` for a key with spaces, dashes or dots;
+     \`[name="Subject"]\` for the entry of a name/value list (mail headers, tags).
+     JSON text (an HTTP body, an AI answer) is read straight through —
+     \`steps.h.output.body.items[0].id\` — no parse step. A forEach step's
+     \`output.results[*]\` entries are \`{index, item, output, status}\`: its
+     result sits under \`output\`, the item it ran on under \`item\`. A path that
+     does not exist gets a "did you mean" (refused when the step's output is
+     fully known); a fix that keeps the meaning is applied and named in \`_warnings\`.
    - For a Gmail \`mail.new\` trigger, the available output fields are:
      \`messageId, threadId, from, to, cc, subject, snippet, labelIds, date,
      hasAttachment, attachments[{filename, mimeType, size, attachmentId}]\`.
      Always reference them as \`trigger.output.<field>\`. The \`attachments\`
      array is pre-populated — branch on \`trigger.output.hasAttachment\` and
-     bind \`trigger.output.attachments.0.attachmentId\` directly to
+     bind \`trigger.output.attachments[0].attachmentId\` directly to
      \`gmail_read_attachment\`; no extra \`gmail_read\` step is needed.
    - Inside a loop body, refer to the current item as \`loop.<itemVar>\`.
 5. **Edit IN PLACE**. To change an existing step, call \`builder_update_step({stepId, patch})\`
@@ -640,6 +650,15 @@ When something must happen for EACH item of an upstream array, pick the lighter 
 
 Default to per-step \`forEach\` — do NOT wrap one step in a loop, and do not reach for a loop
 merely because the work has several stages per item.
+**A bulk tool beats a forEach of single calls**: every forEach item is its own API request, a
+bulk tool does the whole list in one or two. Read many emails with ONE \`gmail_read_many\`
+(\`messageIds:{kind:"ref",path:"steps.<search>.output.results[*].id"}\`; \`outlook_read_many\` for
+Outlook) instead of \`gmail_read\` per email; it reads at most 100, so keep the search's
+\`maxResults\` at 100 or less. Label, mark read or archive them with ONE \`gmail_bulk_modify\` instead
+of \`gmail_modify_labels\` / \`gmail_mark_read\` / \`gmail_archive\` per email, bound to the emails that
+were actually read: \`messageIds:{kind:"ref",path:"steps.<readMany>.output.messages[*].id"}\`. Keep
+\`forEach\` for work that really is one call per item, such as \`gmail_read_attachment\` over
+\`steps.<readMany>.output.messages[*].attachments\`.
 Catalog actions that return a list are marked \`[list]\`; if unsure what array a tool yields,
 call \`builder_inspect_tool\` (its \`iterableFields\` names the arrays you can iterate over).
 
@@ -932,6 +951,7 @@ EVERY tool input value must be a binding object — never a bare string/number:
 
 Ref paths MUST start with one of: \`trigger\`, \`steps\`, \`vars\`, \`secrets\`, \`loop\`.
 Field names alone (e.g. \`"from"\`, \`"subject"\`) are NOT valid paths — prepend \`trigger.output.\`.
+Path grammar: \`[0]\` = an index (never \`.0\`), \`[*]\` = every element, \`["Story Points"]\` = an awkward key, \`[name="Subject"]\` = the entry of a name/value list (mail headers). JSON text is read straight through (\`steps.h.output.body.items[0].id\`). A forEach step's \`results[*]\` entry is \`{index, item, output, status}\`. A wrong path gets a "did you mean" (refused when the output is fully known).
 Prefer \`{kind:"ref"}\` over \`{{templates}}\` wherever a binding object is accepted; a \`{{…}}\` template belongs only in fields that ARE template strings (notification title/body, http url/body, approval prompt), one reference each.
 
 Beside \`trigger.output.*\`, every run knows WHICH trigger fired: ${triggerKinds}

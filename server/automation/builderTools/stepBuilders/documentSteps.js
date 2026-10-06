@@ -192,7 +192,7 @@ function slideVisualFields(args) {
  * The default label MUST stay in step with nodeDefs.js's `defaultLabel` for
  * this type — nodeDefs.serverLabels.test.js reads both and compares them.
  */
-function applyAddSlide(draft, args) {
+function applyAddSlide(draft, args, draftWrap) {
     const title = typeof args.title === 'string' ? args.title : '';
     const content = typeof args.content === 'string' ? args.content : '';
     const image = typeof args.image === 'string' ? args.image.trim() : '';
@@ -200,7 +200,7 @@ function applyAddSlide(draft, args) {
     if (!title.trim() && !content.trim() && !image && !visuals.chart && !visuals.stats) {
         return { error: 'A slide needs a title or some content — e.g. title:"{{steps.extract.output.name}}", content:"- {{steps.extract.output.point}}".' };
     }
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
     const step = {
         id: newId('slide'),
@@ -215,7 +215,7 @@ function applyAddSlide(draft, args) {
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(feNotes && feNotes.length ? { _warnings: feNotes } : {}) };
 }
 
 /**

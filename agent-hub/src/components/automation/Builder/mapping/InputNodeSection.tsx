@@ -4,7 +4,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
-import { pathInUse } from './boundPaths';
+import { fieldInUse } from './fieldInUse';
 import { planIncomingFields, technicalPreview } from './incomingFields';
 import { FieldRow as FieldRowJs, startPathDrag } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -62,7 +62,7 @@ export default function InputNodeSection({
     const fields = group.fields || [];
     const isItem = String(group.basePath || '').startsWith('loop.');
     const Icon = (family && FAMILY_ICON[family]) || Workflow;
-    const isUsed = (p: string) => (usedPaths ? (pathInUse as (p: string, s: Set<string>) => boolean)(p, usedPaths) : false);
+    const isUsed = (p: string) => fieldInUse(p, usedPaths);
     // A search already narrowed the list: show every match, fold nothing.
     const plan = planIncomingFields(fields, isUsed, showAll || searching);
     const meta = [

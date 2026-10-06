@@ -1,4 +1,5 @@
 import type { DragEvent, MouseEvent } from 'react';
+import { appendKey } from '@shared/expr/path.mjs';
 
 /** The drag/click-to-map context an output view threads down its tree. */
 export interface MapCtx {
@@ -28,13 +29,24 @@ export function expandEnabled(allowExpand: boolean | null | undefined, map: MapC
     return allowExpand == null ? !!map : !!allowExpand;
 }
 
-// Build draggable/clickable attrs for an element. `segment` is appended to the
-// map's absolute base so callers pass only the RELATIVE step from where they
-// are (`[*].content`, `[2].subject`, or `''`) and always get an ABSOLUTE
-// binding path. Returns {} when mapping is disabled.
-export function mapAttrs(map: MapCtx | null, segment = ''): MapAttrs {
+/**
+ * An absolute path plus a RELATIVE one (`[2].subject`, `[*]["content-type"]`,
+ * `subject`, `''`), the relative part written by the runtime grammar's
+ * writers (appendKey / appendWildcard with an empty prefix).
+ */
+export function joinPath(base: string, rel: string): string {
+    if (!rel) return base;
+    if (!base) return rel;
+    return rel.startsWith('[') ? `${base}${rel}` : `${base}.${rel}`;
+}
+
+// Build draggable/clickable attrs for an element. `rel` is the RELATIVE path
+// from where the caller is (`[*].content`, `[2]["Story Points"]`, or `''`),
+// joined onto the map's absolute base, so callers always hand out an ABSOLUTE
+// binding path the runtime reads. Returns {} when mapping is disabled.
+export function mapAttrs(map: MapCtx | null, rel = ''): MapAttrs {
     if (!map) return {};
-    const path = `${map.path}${segment}`;
+    const path = joinPath(map.path, rel);
     if (!path) return {};
     const onPick = map.onPick;
     return {
@@ -53,8 +65,10 @@ export function mapAttrs(map: MapCtx | null, segment = ''): MapAttrs {
     };
 }
 
-// Descend the map context to a child path (object key / array index).
-export function childMap(map: MapCtx | null, segment: string): MapCtx | null {
+// Descend the map context to a child (an object key or an array index),
+// quoted the way the runtime reads it: `headers["content-type"]`, never
+// `headers.content-type`.
+export function childMap(map: MapCtx | null, key: string | number): MapCtx | null {
     if (!map) return null;
-    return { ...map, path: `${map.path}${segment}` };
+    return { ...map, path: appendKey(map.path, key) };
 }

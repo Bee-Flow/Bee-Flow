@@ -1,5 +1,6 @@
 import React from 'react';
 import { sampleToFields } from './upstream';
+import { fieldFor } from './upstream/fieldTree';
 import { FieldRow } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -23,9 +24,11 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  */
 export default function OutputFieldsView({ value, basePath = '', onInsert = null }) {
     const { t } = useTranslation();
+    // A record lists its own fields, every level of them; a list or a value is
+    // one row that still opens into the list's columns (or the text's JSON).
     const fields = value && typeof value === 'object' && !Array.isArray(value)
         ? sampleToFields(value, basePath)
-        : [{ key: t('automations.ndv.output_word', 'output'), path: basePath, sample: value }];
+        : [fieldFor(t('automations.ndv.output_word', 'output'), basePath, value)];
     if (!fields.length) {
         return <div className="px-3 py-4 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.ndv.output_empty_record', 'An empty record — no fields came out.')}</div>;
     }

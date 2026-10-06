@@ -5,6 +5,7 @@ import React, { useMemo, useState } from 'react';
 import ActionCard from './ActionCard';
 import { buildParamSuggestions } from './paramSuggestions';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { essentialFromSchema, paramsFromSchema } from '../../../mapping/aiAutoMap';
 import { autoMapInputs } from '../../../mapping/autoMapInputs';
 import ToolInputForm from '../../../mapping/ToolInputForm';
 import AccordionSection from '../../AccordionSection';
@@ -15,6 +16,10 @@ import { runStepProblem } from '../runProblem';
 import { isTablesRowTool, withoutValuesInput } from '../tablesRowValues';
 import TablesRowValuesEditor from '../TablesRowValuesEditor';
 import { AskOnceRow, askOnceAvailability } from './askOnceRow';
+import { deepenedForEach, findNestedColumn, nestedListPick, rebindToNewItem } from '../../../mapping/deepenForEach';
+import { expectedShapeFor } from '../../../mapping/listShape';
+import { isEmptyBinding } from '../../../mapping/partitionInputs';
+import useAiAutoMap from '../../../mapping/useAiAutoMap';
 
 /**
  * Where the last run's error points (round 4, artboard 4a; see ../runProblem).
@@ -33,7 +38,11 @@ function runProblem(runStep, t) {
     };
 }
 
-function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFocusField, previewSample, errorSections = new Set(), runStep = null }) {
+/** The outer items a per-item step keeps (`forEach.parents`), by name. */
+const outerItemVars = (fe) => (Array.isArray(fe?.parents) ? fe.parents.map(p => p?.itemVar) : []);
+
+// `mappingApi` ({ suggestMappings }) replaces the API client in tests.
+function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFocusField, previewSample, errorSections = new Set(), runStep = null, mappingApi = null }) {
     const { t } = useTranslation();
     // Track the live tool from the draft so switching operation updates the
     // inputs form immediately (before the patch round-trips and step.tool
@@ -44,9 +53,68 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
         [catalog, currentTool, draft.appId, step.appId],
     );
     const inputSchema = action?.inputSchema || null;
+    // What the form shows: a Tables row's `values` map has its own editor and
+    // is never something to fill with one field.
+    const formSchema = isTablesRowTool(currentTool) ? withoutValuesInput(inputSchema) : inputSchema;
+    const askAi = useAiAutoMap({ inputs: draft.inputs || {}, api: mappingApi });
+    // Inputs the wand filled get the same small "auto" pill a connect-time
+    // auto-map leaves (step.autoMapped) until the author edits them. Local:
+    // the form re-keys per step, and a reload shows plain values again.
+    const [wandMapped, setWandMapped] = useState([]);
+    // The subset the AI filled: those carry "auto · AI" so the author checks them.
+    const [aiMapped, setAiMapped] = useState([]);
+    const markMapped = (keys) => { if (keys.length) setWandMapped(prev => [...new Set([...prev, ...keys])]); };
+    const autoMappedKeys = useMemo(() => [...new Set([...(step.autoMapped || []), ...wandMapped])], [step.autoMapped, wandMapped]);
     const onAutoMap = () => {
-        const patch = autoMapInputs(inputSchema, draft.inputs || {}, groups || []);
-        if (Object.keys(patch).length) set('inputs', { ...(draft.inputs || {}), ...patch });
+        const before = draft.inputs || {};
+        const patch = autoMapInputs(inputSchema, before, groups || []);
+        let next = { ...before, ...patch };
+        let deepened = false;
+        // A step that runs per item: a required input still empty may live in a
+        // list inside that item (a mail's attachments). Same move as dragging
+        // that column: the step runs per attachment, the other fields follow.
+        // Only for an input that takes ONE value, as a pick does (and as the
+        // phone's nestedColumnPatch does): a list parameter is never a reason
+        // to change how often the step runs.
+        const fe = draft.forEach;
+        if (fe?.overRef) {
+            const itemVar = fe.itemVar || 'item';
+            const item = (groups || []).find(g => g.basePath === `loop.${itemVar}`)?.sample;
+            const required = new Set(inputSchema?.required || []);
+            const empty = Object.keys(inputSchema?.properties || {})
+                .filter(k => isEmptyBinding(next[k]) && expectedShapeFor(inputSchema.properties[k]) === 'scalar')
+                .sort((a, b) => (required.has(b) ? 1 : 0) - (required.has(a) ? 1 : 0));
+            const hit = findNestedColumn(empty, item, itemVar);
+            // The new item is never named like an outer item the step keeps.
+            const plan = hit ? nestedListPick(hit.path, itemVar, outerItemVars(fe)) : null;
+            if (plan) {
+                next[hit.key] = { kind: 'ref', path: `loop.${plan.itemVar}${plan.fieldTail}` };
+                next = rebindToNewItem(next, plan, hit.element, fe).inputs;
+                set('forEach', deepenedForEach(fe, plan, previewSample));
+                deepened = true;
+            }
+        }
+        const filled = Object.keys(next).filter(k => isEmptyBinding(before[k]) && !isEmptyBinding(next[k]));
+        if (filled.length) set('inputs', next);
+        markMapped(filled);
+        // Then the AI, for the required inputs still empty — on this click
+        // only, never on connect. Its bindings land only in inputs that are
+        // still empty when it answers, and only for the same operation. Not
+        // after the step just moved to a deeper list: the upstream fields it
+        // would be shown are the ones the step no longer runs over.
+        const tool = currentTool;
+        askAi({
+            params: deepened ? [] : paramsFromSchema(formSchema),
+            essential: essentialFromSchema(formSchema, next),
+            inputs: next,
+            groups: groups || [],
+            step: { label: draft.label || step.label || '', tool: tool || '' },
+            deterministicCount: filled.length,
+            write: (fill) => set('inputs', (cur, d) => ((d?.tool || step.tool) === tool ? fill(cur || {}) : cur)),
+        }).then(({ aiKeys }) => {
+            markMapped(aiKeys);
+            if (aiKeys.length) setAiMapped(prev => [...new Set([...prev, ...aiKeys])]);
+        });
     };
     // "Run once per item" from a field lands here. Advanced stays closed: the
     // field itself says the step now runs per item, with Undo, and Advanced
@@ -54,6 +122,27 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
     const requestForEach = React.useCallback((fe) => {
         set('forEach', fe ? { itemVar: 'item', maxIterations: 100, ...(draft.forEach || {}), ...fe } : null);
     }, [draft.forEach, set]);
+    // While the step runs per item: a value from a list INSIDE that item
+    // (Attachments ▸ Attachment id while it runs per email) moves the run to
+    // that list, and the fields that read the old item move to the new one.
+    // Both writes are updaters, so they land after the field's own change.
+    // `forEach` lets a column picked by its full path (`orders[*].line_items[*].sku`
+    // while the step runs per order) move the step down too; the preview data
+    // settles how the levels join (deepenForEach.deepenedForEach).
+    const deepenForEach = React.useMemo(() => ({
+        itemVar: draft.forEach?.itemVar || 'item',
+        forEach: draft.forEach || null,
+        apply: (plan, newItem) => {
+            const before = { forEach: draft.forEach, inputs: draft.inputs };
+            set('forEach', (fe) => deepenedForEach(fe, plan, previewSample));
+            set('inputs', (cur) => rebindToNewItem(cur, plan, newItem, draft.forEach).inputs);
+            // What cannot move is known from the fields as they are now: the
+            // field just picked already reads the new item.
+            const { orphans } = rebindToNewItem(draft.inputs, plan, newItem, draft.forEach);
+            const undo = () => { set('forEach', before.forEach); set('inputs', before.inputs); };
+            return { undo, runs: null, orphans };
+        },
+    }), [draft.forEach, draft.inputs, set, previewSample]);
     // Same app = one node with a switchable operation (n8n-style). Keep the
     // inputs that also exist in the new operation; drop the rest.
     const onChangeOperation = (newTool) => {
@@ -106,14 +195,16 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                     // The generic form can only offer it as raw JSON, which
                     // nobody can fill in; the column-aware editor below takes
                     // it over, so hide it here or the map is offered twice.
-                    inputSchema={isTablesRowTool(currentTool) ? withoutValuesInput(inputSchema) : inputSchema}
+                    inputSchema={formSchema}
                     onFocusField={onFocusField}
                     previewSample={previewSample}
-                    autoMappedKeys={step.autoMapped || []}
+                    autoMappedKeys={autoMappedKeys}
+                    aiMappedKeys={aiMapped}
                     onAutoMap={onAutoMap}
                     // Not while the step already runs per item: a second list would orphan
                     // every field that reads the current one.
                     onRequestForEach={draft.forEach?.overRef ? null : requestForEach}
+                    deepenForEach={draft.forEach?.overRef ? deepenForEach : null}
                     // Only let the user add ad-hoc fields when the tool can
                     // actually accept them: a fixed schema (gmail_search etc.)
                     // doesn't, so hide "Add custom field"; a tool with no

@@ -48,6 +48,8 @@ const BINDINGS: unknown[] = [
 const TEXTS = [
     '', 'steps.a.output.x', '  trigger.output.y ', 'vars.k', 'secrets.api', 'loop.item.x', 'item.x', 'x + 1',
     'hello {{trigger.output.name}}', '{{ }}', 'a.b[*].c', '$var', '1abc', 'steps.a.output.results[*].x',
+    // A map keyed by a snowflake id: the key stays a key (quoted), never a lossy index.
+    'steps.d.output.users.12345678901234567890.name', 'steps.d.output.users["12345678901234567890"]', 'steps.d.output.list.1',
 ];
 
 describe('walkPath / walkRelativePath / previewValue', () => {
@@ -92,6 +94,22 @@ describe('mode <-> binding', () => {
 
     it.each(BINDINGS.map((b) => [JSON.stringify(b) ?? String(b), b]))('inputFromBinding(%s)', (_label, b) => {
         expect(port.inputFromBinding(b as never)).toStrictEqual(web.inputFromBinding?.(b));
+    });
+
+    // A structured value (a bare map of bindings, a list, an object literal)
+    // is edited as JSON and parsed back into the same shape, on both sides.
+    it.each([
+        ...BINDINGS, [], [{ kind: 'ref', path: 'x' }], { Datum: { kind: 'ref', path: 'steps.a.output.d' } }, { kind: 'literal', value: [1] },
+    ].map((b) => [JSON.stringify(b) ?? String(b), b]))('isStructuredBinding / structuredFromText(%s)', (_label, b) => {
+        expect(port.isStructuredBinding(b)).toBe(web.isStructuredBinding?.(b));
+        for (const text of ['{"a":1}', '[1, 2]', '{"a":', '5', '"x"', 'null', '', ' {"b":{"kind":"ref","path":"y"}} ']) {
+            expect(port.structuredFromText(text, b)).toStrictEqual(web.structuredFromText?.(text, b));
+        }
+    });
+
+    it('a big numeric key is written quoted', () => {
+        expect(port.canonicalRefPath('steps.d.output.users.12345678901234567890.name')).toBe('steps.d.output.users["12345678901234567890"].name');
+        expect(port.bindingFromInput('steps.d.output.users[12345678901234567890]', 'expression')).toEqual({ kind: 'ref', path: 'steps.d.output.users["12345678901234567890"]' });
     });
 
     it('inputFromBinding survives a value JSON cannot encode', () => {

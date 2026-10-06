@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { getJSON, setJSON } from '../../../../utils/scopedStorage';
-import { EMPTY_PREFS, discoverColumns, resolveShown, suggestColumns, type ColumnPrefs, type OutputColumn } from './columns';
+import { EMPTY_PREFS, keptChoice, suggestColumns, type ColumnPrefs, type OutputColumn } from './columns';
+import { columnsOf } from './perItem';
 
 /** How many columns the drawer's narrow table suggests; the large view takes 7. */
 const NARROW_MAX = 4;
@@ -20,6 +22,21 @@ function readPrefs(key: string | null): ColumnPrefs {
     } catch {
         return EMPTY_PREFS;
     }
+}
+
+/**
+ * The words of a per-item step's own columns. Set once, here, so every reader
+ * (headers, the picker and its search, the technical hint, the details, the
+ * crumbs) reads `c.label`.
+ */
+function withLabels(cols: OutputColumn[], t: TranslateFn): OutputColumn[] {
+    if (!cols.some(c => c.perItem && c.perItem !== 'output')) return cols;
+    const labels = {
+        item: t('automations.ndv.incoming', 'Incoming'),
+        result: t('automations.output.col_result', 'Result'),
+        problem: t('automations.output.col_problem', 'Problem'),
+    };
+    return cols.map(c => (c.perItem && c.perItem !== 'output' ? { ...c, label: labels[c.perItem] } : c));
 }
 
 export interface OutputColumnsState {
@@ -43,6 +60,7 @@ export interface OutputColumnsState {
  * viewer's own storage (scopedStorage). `storageKey` null keeps it in memory.
  */
 export default function useOutputColumns(rows: unknown[], storageKey: string | null, usedFields: readonly string[] = []): OutputColumnsState {
+    const { t } = useTranslation();
     const [prefs, setPrefs] = useState<ColumnPrefs>(() => readPrefs(storageKey));
     const commit = useCallback((next: ColumnPrefs) => {
         setPrefs(next);
@@ -51,12 +69,11 @@ export default function useOutputColumns(rows: unknown[], storageKey: string | n
         }
     }, [storageKey]);
 
-    const columns = useMemo(() => discoverColumns(rows, prefs.split), [rows, prefs.split]);
-    const wide = useMemo(() => resolveShown(columns, prefs, { max: WIDE_MAX, usedFields }), [columns, prefs, usedFields]);
-    const narrow = useMemo(
-        () => (prefs.shown ? wide : suggestColumns(columns, { max: NARROW_MAX, usedFields })),
-        [prefs.shown, wide, columns, usedFields],
-    );
+    const columns = useMemo(() => withLabels(columnsOf(rows, prefs.split), t), [rows, prefs.split, t]);
+    // A choice the data no longer supports (or a stale per-item one) counts as no choice.
+    const kept = useMemo(() => keptChoice(columns, prefs), [columns, prefs]);
+    const wide = useMemo(() => kept ?? suggestColumns(columns, { max: WIDE_MAX, usedFields }), [kept, columns, usedFields]);
+    const narrow = useMemo(() => kept ?? suggestColumns(columns, { max: NARROW_MAX, usedFields }), [kept, columns, usedFields]);
 
     const setShown = useCallback((keys: string[]) => commit({ ...prefs, shown: keys }), [commit, prefs]);
     const toggle = useCallback((key: string, from: string[]) => {
@@ -64,7 +81,7 @@ export default function useOutputColumns(rows: unknown[], storageKey: string | n
         commit({ ...prefs, shown: next.length ? next : from });
     }, [commit, prefs]);
     const splitGroup = useCallback((key: string, from: string[]) => {
-        const children = discoverColumns(rows, [...prefs.split, key]).filter(c => c.parent === key).map(c => c.key);
+        const children = columnsOf(rows, [...prefs.split, key]).filter(c => c.parent === key).map(c => c.key);
         const at = from.indexOf(key);
         const shown = at >= 0 ? [...from.slice(0, at), ...children, ...from.slice(at + 1)] : from;
         commit({ shown, split: [...prefs.split, key] });
@@ -79,7 +96,7 @@ export default function useOutputColumns(rows: unknown[], storageKey: string | n
     const reset = useCallback(() => commit(EMPTY_PREFS), [commit]);
 
     return {
-        columns, wide, narrow, customised: !!prefs.shown, split: prefs.split,
+        columns, wide, narrow, customised: !!kept, split: prefs.split,
         setShown, toggle, splitGroup, joinGroup, showAll, reset,
     };
 }

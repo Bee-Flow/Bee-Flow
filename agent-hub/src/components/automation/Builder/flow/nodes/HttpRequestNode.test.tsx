@@ -35,7 +35,8 @@ describe('HttpRequestNode — summary', () => {
 
     it('names a reference in the url the way the chip does', () => {
         renderNode({ url: { kind: 'template', value: 'https://example.com/{{steps.code_1.output.result.id}}' } }, new Map([['code_1', 'Code']]));
-        expect(screen.getByTestId('node-sub').textContent).toBe('GET https://example.com/Code ▸ Id');
+        // A generic key says whose it is, as on its pill (refTokens.fieldTailLabel).
+        expect(screen.getByTestId('node-sub').textContent).toBe('GET https://example.com/Code ▸ Result ▸ Id');
     });
 
     it('still reads a plain string url', () => {

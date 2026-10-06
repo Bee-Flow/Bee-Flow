@@ -85,7 +85,7 @@ const llmClient = require('../../../core/llm/llmClient');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { routeRulesRateLimit } = require('./rateLimits');
-const { parseExpr, TOPIC_HOST_SPEC } = require('../../../automation/expr');
+const { parseExpr, TOPIC_HOST_SPEC, parsePath, formatPath, appendKey } = require('../../../automation/expr');
 
 const MAX_ROUTE_RULES_DESCRIPTION_CHARS = 500;
 /** A key the model is shown. A longer one is left out, never cut (header). */
@@ -192,8 +192,12 @@ function collectFieldPaths(node, out = new Set()) {
             // `item.size` → "item.size"; a bare `size` → "size"; `item` alone
             // → "item", which is a rule about the whole row and is refused
             // below for the same reason a bare field name that is not
-            // declared is.
-            out.add(next && next.kind === 'name' ? `${head.v}.${next.v}` : head.v);
+            // declared is. A quoted key is a field too, written the way the
+            // editor writes its paths (shared appendKey): `item["Story
+            // Points"]`, and `item["name"]` is `item.name`.
+            const key = next && next.kind === 'name' ? next.v
+                : (next && next.kind === 'index' && next.expr && next.expr.kind === 'str' ? next.expr.v : null);
+            out.add(key !== null ? appendKey(head.v, key) : head.v);
         }
     }
     for (const key of ['a', 'b', 'cond', 'expr']) if (node[key]) collectFieldPaths(node[key], out);
@@ -259,11 +263,20 @@ function verifyRouteRules(rawRules, { fields = [], itemVar = 'item', topics = fa
         // spell it) gets the scoped spellings added, and both of them: `item`
         // is what the prompt names whatever the loop variable is called, so a
         // correct rule must not be dropped over a variable rename.
-        declared.add(f.key);
-        if (!f.key.includes('.')) {
-            declared.add(`${itemVar}.${f.key}`);
-            declared.add(`item.${f.key}`);
+        //
+        // A scoped key is a path of two or more segments (`item.name`,
+        // `item["Story Points"]`) and is declared in its canonical spelling,
+        // which is what collectFieldPaths produces whichever quotes the model
+        // used; anything else is one field name, declared under the scopes
+        // with appendKey, so a name with a space reads `item["Story Points"]`.
+        const tokens = parsePath(f.key);
+        if (tokens && tokens.length > 1) {
+            declared.add(f.key);
+            declared.add(formatPath(tokens));
+            continue;
         }
+        declared.add(f.key);
+        for (const scope of [itemVar, ...ALLOWED_EXPR_ROOTS]) declared.add(appendKey(scope, f.key));
     }
     const out = [];
     const seen = new Set();
@@ -284,12 +297,9 @@ function verifyRouteRules(rawRules, { fields = [], itemVar = 'item', topics = fa
         // everything or nothing regardless of the data, which is never what
         // the author described.
         if (!paths.length) continue;
-        const ok = paths.every((p) => {
-            if (declared.has(p)) return true;
-            // A root on its own ("item") is a rule about the whole row.
-            const root = p.split('.')[0];
-            return declared.has(p) && ALLOWED_EXPR_ROOTS.includes(root);
-        });
+        // A root on its own ("item") is a rule about the whole row: it counts
+        // only when it was declared, like any other path.
+        const ok = paths.every((p) => declared.has(p));
         if (!ok) continue;
         seen.add(key);
         out.push({ name, expr });

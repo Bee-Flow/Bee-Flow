@@ -34,7 +34,7 @@ describe('IntegrationLogo', () => {
     });
 
     it('falls back to the caller\'s icon for an app with no mark at all', () => {
-        const { container } = render(<IntegrationLogo integrationId="kb-ingest" size={16} fallback={<i data-fb="" />} />);
+        const { container } = render(<IntegrationLogo integrationId="no-such-app" size={16} fallback={<i data-fb="" />} />);
         expect(container.querySelector('[data-fb]')).toBeTruthy();
     });
 });

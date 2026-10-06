@@ -21,6 +21,8 @@
 const { interpolateTemplate, walkPath, resolveValue } = require('../../automation/bind');
 const { normalizeDeck, normalizeSlide } = require('../documents/deckModel');
 const { collectDeck } = require('../documents/deckCollect');
+// A string that is exactly one `{{path}}`: the rule fill_document applies, shared.
+const { soleTemplatePath } = require('./execFillDocument');
 const {
     safeDocumentName, keepGeneratedFile, resolveDocumentMarking, markingOutcome, orgOf,
     DOCUMENT_TTL_MIN_DAYS, DOCUMENT_TTL_MAX_DAYS, DOCUMENT_TTL_DEFAULT_DAYS,
@@ -39,8 +41,6 @@ const LOOK_TEMPLATE_FIELDS = ['accent', 'background', 'logo', 'footerText'];
 /** The look fields that are closed choices — passed as-is when set. */
 const LOOK_CHOICE_FIELDS = ['preset', 'font', 'titleFont', 'coverStyle', 'tableStyle', 'logoPlacement', 'template'];
 
-/** A string that is exactly one `{{path}}` and nothing else. */
-const SOLE_TOKEN_RE = /^\s*\{\{\s*([^{}]+?)\s*\}\}\s*$/;
 
 /**
  * One bound value: a sole `{{path}}` keeps its real type, a binding wrapper
@@ -50,8 +50,8 @@ function resolveBound(raw, runState) {
     if (raw === null || raw === undefined) return raw;
     if (typeof raw === 'object' && !Array.isArray(raw) && typeof raw.kind === 'string') return resolveValue(raw, runState);
     if (typeof raw !== 'string') return raw;
-    const sole = SOLE_TOKEN_RE.exec(raw);
-    if (sole) return walkPath(sole[1], runState);
+    const sole = soleTemplatePath(raw);
+    if (sole !== null) return walkPath(sole, runState);
     return interpolateTemplate(raw, runState);
 }
 

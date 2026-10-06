@@ -12,15 +12,53 @@
  */
 
 import type { BindingValue } from './types';
+import { canonicalRefPath, leafOf, pathTokensOf } from './walkPath';
 
-export { walkPath, walkRelativePath, previewValue } from './walkPath';
-
-// The binding <-> text core (clean paths, templates, which kind a typed value
-// means) is shared with the Condition node's model, which owns it; the chip
-// layer (refTokens.ts) reads the same TEMPLATE_RE.
-export { bindingFromInput, detectTemplate, isCleanPath, TEMPLATE_RE } from '../model/route/bindingText';
+export {
+    canonicalRefPath, detectTemplate, isCleanPath, pathLeafKey, previewValue, refPathTokens, walkPath, walkRelativePath,
+} from './walkPath';
 
 export type BindingMode = 'fixed' | 'expression';
+
+// A cheap "might hold {{…}}" probe, kept for older callers; detectTemplate is
+// the real (quote-aware) answer.
+export const TEMPLATE_RE = /\{\{[^}]+\}\}/;
+// One copy of the typed-value → binding rule, beside the condition model
+// that writes with it (it sits below this layer).
+export { bindingFromInput } from '../model/route/bindingText';
+
+const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
+
+/**
+ * A value the text editor can only show as JSON — a bare map of bindings, an
+ * array, an object/array literal. The runtime resolves these as a STRUCTURE,
+ * so edited text must never be stored as one string in their place.
+ */
+export function isStructuredBinding(b: unknown): boolean {
+    if (b == null || typeof b !== 'object') return false;
+    if (Array.isArray(b)) return true;
+    const kind = (b as { kind?: unknown }).kind;
+    if (typeof kind === 'string' && BINDING_KINDS.has(kind)) {
+        const v = (b as { value?: unknown }).value;
+        return kind === 'literal' && v !== null && typeof v === 'object';
+    }
+    return true;
+}
+
+/** Edited JSON text back into the shape of the structured value it came from; null while not JSON. */
+export function structuredFromText(text: unknown, original: unknown): unknown {
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(String(text ?? ''));
+    } catch {
+        return null;
+    }
+    if (parsed === null || typeof parsed !== 'object') return null;
+    if (original && typeof original === 'object' && !Array.isArray(original) && (original as { kind?: unknown }).kind === 'literal') {
+        return { kind: 'literal', value: parsed };
+    }
+    return parsed;
+}
 
 function jsonText(v: unknown): string {
     try {
@@ -144,20 +182,31 @@ export function getAutocompleteToken(
     return hit ? { start: at - hit.length, end: at, query: hit.query } : null;
 }
 
-/** A field NAME from a picked path: `trigger.output.subject` → `subject`. */
+/**
+ * A field NAME from a picked path, read from its KEYS: `trigger.output.subject`
+ * → `subject`, `fields["Story Points"]` → `Story_Points`,
+ * `headers[name="Subject"].value` → `Subject`.
+ */
 export function suggestKeyFromPath(path: unknown): string {
-    const cleaned = String(path || '').trim().replace(/\[(?:\*|\d+)\]/g, '');
-    const segs = cleaned.split('.').filter(Boolean);
-    let seg = segs.pop() || '';
-    if (seg === 'output' && segs.length) seg = segs.pop() as string;
-    const key = seg.replace(/[^A-Za-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+    const tokens = pathTokensOf(String(path || ''));
+    let seg = '';
+    if (tokens) {
+        seg = leafOf(tokens);
+        if (seg === 'output' && tokens.length > 1) seg = leafOf(tokens.slice(0, -1));
+    } else {
+        const segs = String(path || '').trim().replace(/\[(?:\*|\d+)\]/g, '').split('.').filter(Boolean);
+        seg = segs.pop() || '';
+        if (seg === 'output' && segs.length) seg = segs.pop() as string;
+    }
+    const key = String(seg).replace(/[^A-Za-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
     return key || 'field';
 }
 
-/** `{{path}}` in fixed mode, the bare path in expression mode. */
+/** `{{path}}` in fixed mode, the bare path in expression mode — always the canonical spelling. */
 export function formatPathForInsert(path: unknown, mode: string): string {
     const cleaned = String(path || '').trim();
     if (!cleaned) return '';
-    if (mode === 'fixed') return `{{${cleaned}}}`;
-    return cleaned;
+    const canonical = canonicalRefPath(cleaned);
+    if (mode === 'fixed') return `{{${canonical}}}`;
+    return canonical;
 }

@@ -8,6 +8,8 @@ import { smartRowsOf } from '../output/SmartOutput';
 import UsedBy, { type NextSuggestion } from '../output/UsedBy';
 import { looksLikeFileRows, type UsedByEntry } from '../output/usedBy';
 import WithheldTools, { withheldRunTools } from '../output/WithheldTools';
+import BindingWarnings from '../runs/BindingWarnings';
+import { bindingWarningsOf } from '../runs/bindingMisses';
 
 export interface StepOutputTabProps {
     /** Current step id (the base of every copied path). */
@@ -39,6 +41,10 @@ export interface StepOutputTabProps {
     columnsKey?: string | null;
     /** The run-step row's `toolsWithheld`: tools this AI step was not given. */
     toolsWithheld?: unknown;
+    /** The run-step row's `bindingWarnings`: the mappings that found nothing while it ran. */
+    bindingWarnings?: unknown;
+    /** Step id → label, so a warning names the step it read from, not its id. */
+    stepLabelById?: Map<string, string> | null;
 }
 
 /**
@@ -50,7 +56,8 @@ export interface StepOutputTabProps {
 export default function StepOutputTab({
     stepId = null, stepLabel = null, liveOutput, error = null, errorInfo = null, remediation = null,
     onCopyPath = null, compact = false, describedSample = null, usedBy, onAddAfter = null,
-    onRetry = null, onFix = null, columnsKey = null, toolsWithheld = null,
+    onRetry = null, onFix = null, columnsKey = null, toolsWithheld = null, bindingWarnings = null,
+    stepLabelById = null,
 }: StepOutputTabProps) {
     const { t } = useTranslation();
     const basePath = stepId ? `steps.${stepId}.output` : '';
@@ -60,6 +67,7 @@ export default function StepOutputTab({
     const usedFields = useMemo(() => (usedBy || []).flatMap(e => e.leaves), [usedBy]);
     const showExpected = !hasOutput && describedSample != null;
     const withheld = useMemo(() => withheldRunTools(toolsWithheld), [toolsWithheld]);
+    const misses = useMemo(() => bindingWarningsOf(bindingWarnings), [bindingWarnings]);
 
     // `flex-1` so this sizes as a flex ITEM of its (flex) parent: in the
     // compact dialog that parent only carries a max-height, so `h-full` alone
@@ -70,6 +78,9 @@ export default function StepOutputTab({
                 {failed && (
                     <ErrorCard info={errorInfo} error={error} remediation={remediation} onRetry={onRetry} onFix={onFix} />
                 )}
+                {/* Above the output: an input that came up empty explains an
+                    output that looks wrong, and often the error above it. */}
+                <BindingWarnings warnings={misses} labelById={stepLabelById} />
                 {hasOutput && (
                     <div className="flex-1 min-h-[160px] flex flex-col">
                         <OutputView

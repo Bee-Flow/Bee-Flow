@@ -165,6 +165,7 @@ const NL_TRANSLATIONS = [
     'add-nl-vplan-translations',           // vPlan-integratiekaart
     'add-nl-builder-redesign-translations', // builder-canvas, stappenlade, mismatch-vragen (Track R)
     'add-nl-builder-values-translations',  // de waarde-editor: lijstkeuze, slotchrome, invoegen (Track R)
+    'add-nl-builder-mapping-translations', // geneste data: per item binnen een lijst, AI-koppelen, lege koppelingen in een run
     'add-nl-solution-install-wizard-translations', // de installatiewizard: inhoud, koppelen, toegang (Track O)
     'add-nl-solution-overview-translations', // het Solutions-overzicht: tabs, kaarten, wat niet gelezen kon worden (Track O)
     'add-nl-solution-overview-2-translations', // het Solutions-overzicht, vervolg: zoeken en filteren, lege staat, skills en sjablonen tellen

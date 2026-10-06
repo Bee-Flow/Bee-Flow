@@ -29,6 +29,16 @@ const { validateMapJsonRequest, verifyMappedFields, verifyMapJsonItemsRef, MAP_J
         const big = { blob: 'x'.repeat(200_001) };
         assert.ok(/too large/.test(validateMapJsonRequest({ sample: big, instruction: 'the id' }).error), 'oversized sample rejected');
     }
+    // An oversized TEXT sample is refused on its length, before any parse: the
+    // lenient JSON-in-prose scan restarts at every `{`, and only the 20 MB body
+    // limit stood in front of it (a truncated AI answer full of `{"a":`).
+    {
+        const text = `Here is the data: ${'{"a":'.repeat(50_000)}`;
+        const t0 = Date.now();
+        const r = validateMapJsonRequest({ sample: text, instruction: 'get the id' });
+        assert.ok(/too large/.test(r.error), `oversized text sample refused for its size, got: ${r.error}`);
+        assert.ok(Date.now() - t0 < 1000, 'refused without scanning it');
+    }
 
     // string samples parse (whitespace tolerated); object/array pass through
     {
@@ -192,6 +202,19 @@ const { validateMapJsonRequest, verifyMappedFields, verifyMapJsonItemsRef, MAP_J
 
     // itemsRef is offered to the model
     assert.ok(MAP_JSON_FIELDS_TOOL.function.parameters.properties.itemsRef, 'tool exposes itemsRef');
+
+    // A sample the way an AI step wrote it parses, as the runtime step reads it
+    // (execData.parseParseJsonSource): a ```json fence, a sentence around the
+    // JSON, JSON encoded twice. Plain JSON.parse refused exactly these.
+    {
+        const ORDER = { order: { id: '#1001', lines: [{ sku: 'a' }] } };
+        const ask = (sample) => validateMapJsonRequest({ sample, instruction: 'the order id' });
+        assert.deepStrictEqual(ask('```json\n' + JSON.stringify(ORDER, null, 2) + '\n```').sample, ORDER, 'fenced sample parses');
+        assert.deepStrictEqual(ask(`Here is the extracted order:\n\`\`\`json\n${JSON.stringify(ORDER)}\n\`\`\``).sample, ORDER, 'fence after a sentence parses');
+        assert.deepStrictEqual(ask(`Sure: ${JSON.stringify(ORDER)} Anything else?`).sample, ORDER, 'JSON inside prose parses');
+        assert.deepStrictEqual(ask(JSON.stringify(JSON.stringify(ORDER))).sample, ORDER, 'double-encoded sample is unwrapped');
+        assert.ok(/not valid JSON/.test(ask('no data here').error), 'text without JSON is still refused');
+    }
 
     console.log('automationBuilder.mapJson.test.js: all helper tests passed');
     process.exit(0);

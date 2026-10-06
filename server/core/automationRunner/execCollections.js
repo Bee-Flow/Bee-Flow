@@ -15,7 +15,7 @@ const { parseTopicExpr, prepareTopics } = require('./topicHost');
 // stub instead of crashing the run.
 
 function resolveArrayRef(step, runState, { enforceCap = true } = {}) {
-    const v = require('../../automation/bind').walkPath(step.arrayRef || '', runState);
+    const v = require('../../automation/bind').walkList(step.arrayRef || '', runState);
     if (!Array.isArray(v)) return null;
     // Input cap (WS5.4): min(step.maxItems, global) — a step can tighten the
     // platform ceiling but never raise it. Throwing (vs truncating) keeps the

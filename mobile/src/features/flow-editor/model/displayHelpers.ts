@@ -10,6 +10,7 @@
 
 import { humanizeFieldKey, humanizeToolName } from '@/shared/lib/humanizeKey';
 
+import { pathLabelParts } from './pathGrammar';
 import { isUnaryOp, labelFor } from './route/conditionModel';
 import type { ConditionRow } from './route/conditionModel';
 import { parseExprToRows } from './route/conditionParse';
@@ -36,11 +37,37 @@ export function actionDisplayLabel(tool: unknown, catalog: CatalogLike | null = 
     return humanizeToolName(name);
 }
 
-/** The last named segment of a path, humanised: `results[*].from_email` → "From email". */
-export function humanizeFieldTail(fieldPath: unknown): string {
-    const cleaned = String(fieldPath || '').replace(/\[[^\]]*\]/g, '');
-    const seg = cleaned.split('.').filter(Boolean).pop();
+/** "1st", "2nd", "last" — an index the way a person counts. */
+function ordinalLabel(index: number): string {
+    if (index === -1) return 'last';
+    const n = Math.abs(index < 0 ? index : index + 1);
+    const v = n % 100;
+    const ends: Record<number, string> = { 1: 'st', 2: 'nd', 3: 'rd' };
+    const suffix = v >= 11 && v <= 13 ? 'th' : ends[n % 10] || 'th';
+    return index < 0 ? `${n}${suffix} from last` : `${n}${suffix}`;
+}
+
+/** Text that is no path: its last dotted segment, brackets dropped. */
+function lastSegmentLabel(text: string): string {
+    const seg = text.replace(/\[[^\]]*\]/g, '').split('.').filter(Boolean).pop();
     return seg ? humanizeFieldKey(seg) : '';
+}
+
+/**
+ * The readable name of a field path, the way its pill names it (the pills
+ * call this too, through bindings/refTokens fieldTailLabel): the field's own
+ * key, humanised; a generic key with whose it is (`from.emailAddress.address`
+ * → "From ▸ Address"); an index right after the key with which one
+ * (`items[0]` → "Items ▸ 1st"). Wildcards and indexes further up are dropped.
+ */
+export function humanizeFieldTail(fieldPath: unknown): string {
+    const tail = String(fieldPath ?? '').trim();
+    if (!tail) return '';
+    const parts = pathLabelParts(tail);
+    if (!parts || !parts.leaf) return parts?.index != null ? ordinalLabel(parts.index) : lastSegmentLabel(tail);
+    const name = humanizeFieldKey(parts.leaf) || parts.leaf;
+    const head = parts.parent ? `${humanizeFieldKey(parts.parent) || parts.parent} ▸ ${name}` : name;
+    return parts.index == null ? head : `${head} ▸ ${ordinalLabel(parts.index)}`;
 }
 
 /**

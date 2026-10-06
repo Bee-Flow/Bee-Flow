@@ -29,6 +29,9 @@
 
 'use strict';
 
+const { replaceTemplate } = require('./expr');
+const { refHead, splitPathHead } = require('./validate/refPaths');
+
 // ── Layout ───────────────────────────────────────────────────────────────
 
 const LAYOUT_NODE_KEYS = Object.freeze(['position', 'size', 'width', 'height', 'color', 'icon', 'iconManual', 'labelManual']);
@@ -256,20 +259,26 @@ const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 function isBinding(v) { return isObject(v) && BINDING_KINDS.has(v.kind) && ('value' in v || 'path' in v); }
 
 function makeRenderer({ labels = new Map(), names = {} } = {}) {
+    // Read with the runner's grammar (validate/refPaths.js), so `steps["read"]…`
+    // and a `}` inside a quoted key render like any other path; the part
+    // after the step is shown exactly as the author wrote it.
     const refText = (raw) => {
         const p = String(raw || '').trim();
-        let m = /^trigger\.output\.?(.*)$/.exec(p);
-        if (m) return m[1] ? `Start › ${m[1]}` : 'Start';
-        m = /^steps\.([^.]+)\.output\.?(.*)$/.exec(p) || /^steps\.([^.]+)\.?(.*)$/.exec(p);
-        if (m) {
-            const who = labels.get(m[1]) || m[1];
-            return m[2] ? `${who} › ${m[2]}` : who;
+        const { root, tokens } = refHead(p);
+        const tail = (n, label) => {
+            const split = splitPathHead(p, n);
+            return split && split.rest ? `${label} › ${split.rest}` : label;
+        };
+        const isOutput = (t) => t && t.type === 'prop' && t.key === 'output';
+        if (root === 'trigger' && isOutput(tokens[1])) return tail(2, 'Start');
+        if (root === 'steps' && tokens[1]?.type === 'prop') {
+            const id = String(tokens[1].key);
+            return tail(isOutput(tokens[2]) ? 3 : 2, labels.get(id) || id);
         }
-        m = /^loop\.[^.]+\.?(.*)$/.exec(p);
-        if (m) return m[1] ? `Current item › ${m[1]}` : 'Current item';
+        if (root === 'loop' && tokens.length > 1) return tail(2, 'Current item');
         return p;
     };
-    const templateText = (s) => String(s).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, inner) => `‹${refText(inner)}›`);
+    const templateText = (s) => replaceTemplate(String(s), (inner) => `‹${refText(inner)}›`);
 
     const render = (v, key) => {
         if (v === undefined || v === null || v === '') return null;
@@ -280,8 +289,7 @@ function makeRenderer({ labels = new Map(), names = {} } = {}) {
             if (key === 'agentId' && names.agent?.[v]) return names.agent[v];
             if (key === 'datatableId' && names.datatable?.[v]) return names.datatable[v];
             if (key === 'knowledgeBaseId' && names.knowledgeBase?.[v]) return names.knowledgeBase[v];
-            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored alternation, no repeat: linear
-            if ((key === 'overRef' || key === 'sourceRef' || key === 'arrayRef') && /^(trigger|steps|loop)\./.test(v)) return cut(refText(v));
+            if ((key === 'overRef' || key === 'sourceRef' || key === 'arrayRef') && ['trigger', 'steps', 'loop'].includes(refHead(v).root)) return cut(refText(v));
             return cut(templateText(v));
         }
         if (isBinding(v)) {

@@ -72,10 +72,13 @@ test('a fan-out reading fields off a skill step warns instead of blocking activa
     });
     const errs = (d) => (validateDefinition(d, {}).errors || []).map((e) => e.code);
     const warns = (d) => (validateDefinition(d, {}).warnings || []).map((e) => e.code);
-    assert.ok(errs(fanOut({})).includes('ai_step.output_schema_missing'), 'precondition: the plain step is refused');
+    // Precondition: the plain step runs on the schema the runner infers from
+    // the read (aiOutputInference.js) and says so.
+    assert.ok(warns(fanOut({})).includes('ai_step.output_schema_inferred'));
     const withSkill = fanOut({ skillIds: ['sk_quote'] });
     assert.ok(!errs(withSkill).includes('ai_step.output_schema_missing'));
     assert.ok(warns(withSkill).includes('ai_step.output_schema_from_skill'));
+    assert.ok(!warns(withSkill).includes('ai_step.output_schema_inferred'), 'one warning, the skill one');
 });
 
 test('the builder writes disabledAgentSkillIds only on an agent step with something in it', () => {

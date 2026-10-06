@@ -41,6 +41,7 @@
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { resolveValue, interpolateTemplate } = require('../../automation/bind');
+const { hasPlaceholder, isBareRefString } = require('../../automation/validate/refPaths');
 const { parseJsonish, stripFence } = require('../../automation/jsonRepair');
 const {
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE, DATA_EXTRACTION_MAX_SOURCE_CHARS,
@@ -139,9 +140,11 @@ function truncateMiddle(text, cap = DATA_EXTRACTION_MAX_SOURCE_CHARS) {
 function resolveSourceText(source, runState) {
     if (source === null || source === undefined) return '';
     if (typeof source === 'string') {
-        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a constant pattern with one negated-class repeat between fixed braces: linear
-        if (/\{\{[^}]+\}\}/.test(source)) return sourceToText(interpolateTemplate(source, { ...runState, secrets: {} }, { listAs: 'json' }));
-        if (/^(trigger|steps|vars|loop)\./.test(source.trim())) {
+        // The validator's own two readers (refPaths.js), so a source it calls
+        // a template or a reference is resolved as one: quote-aware
+        // placeholders (`{{ x["a}b"] }}`), a data root followed by a path.
+        if (hasPlaceholder(source)) return sourceToText(interpolateTemplate(source, { ...runState, secrets: {} }, { listAs: 'json' }));
+        if (isBareRefString(source)) {
             return sourceToText(resolveValue({ kind: 'ref', path: source.trim() }, runState, { allowSecrets: false }));
         }
         return source;

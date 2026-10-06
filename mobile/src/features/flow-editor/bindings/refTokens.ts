@@ -7,24 +7,13 @@
  */
 
 import { translate as t } from '@/core/i18n';
+import { formatPath, readPath, scanTemplate, type PathToken } from '@/shared/expr';
 
-import { TEMPLATE_RE } from './bindingHelpers';
+import { detectTemplate, isCleanPath, refPathTokens } from './walkPath';
+import { humanizeFieldTail } from '../model/displayHelpers';
 
-const IDENT = '[A-Za-z_$][A-Za-z0-9_$]*';
-const FIELD = '[A-Za-z0-9_$]+(?:\\.[A-Za-z0-9_$]+|\\[[^\\]]*\\])*';
-
-// The lookbehind rejects lookalikes (`mysteps.x`) without consuming a prefix
-// character, so the gaps between matches are exactly the literal spans.
-const SCAN_RE = new RegExp(
-    `(?<![A-Za-z0-9_$.])steps\\.(${IDENT})\\.output(?:\\.(${FIELD}))?` +
-        `|(?<![A-Za-z0-9_$.])trigger(?:\\.output)?(?:\\.(${FIELD}))?` +
-        `|(?<![A-Za-z0-9_$.])loop\\.(${IDENT})(?:\\.(${FIELD}))?`,
-    'g',
-);
-
-const STEPS_ANCHOR = new RegExp(`^steps\\.(${IDENT})\\.output(?:\\.(${FIELD}))?$`);
-const TRIGGER_ANCHOR = new RegExp(`^trigger(?:\\.output)?(?:\\.(${FIELD}))?$`);
-const LOOP_ANCHOR = new RegExp(`^loop\\.(${IDENT})(?:\\.(${FIELD}))?$`);
+// The roots a pill can name.
+const REF_ROOTS = ['steps', 'trigger', 'loop'];
 
 export interface RefInfo {
     source: 'steps' | 'trigger' | 'loop';
@@ -37,57 +26,173 @@ export type RefToken =
     | { type: 'literal'; text: string }
     | ({ type: 'ref'; raw: string; path: string; wrapped: boolean } & RefInfo);
 
-/** A bare, trimmed path as a ref — or null. */
+const tailOf = (tokens: PathToken[]) => (tokens.length ? formatPath(tokens) : '');
+const named = (tok: PathToken | undefined): tok is { type: 'prop'; key: string } => tok?.type === 'prop' && typeof tok.key === 'string';
+
+/**
+ * A bare path as a ref — or null. WHAT counts as one reference is the
+ * runtime's path grammar: a bracket right after `output`, a quoted key holding
+ * `}` or `]`, a match segment (`headers[name="Subject"].value`).
+ */
 export function classifyRef(path: unknown): RefInfo | null {
     if (typeof path !== 'string') return null;
-    const text = path.trim();
-    let m = STEPS_ANCHOR.exec(text);
-    if (m) return { source: 'steps', stepId: m[1] as string, fieldPath: m[2] || '' };
-    m = LOOP_ANCHOR.exec(text);
-    if (m) return { source: 'loop', itemVar: m[1] as string, fieldPath: m[2] || '' };
-    m = TRIGGER_ANCHOR.exec(text);
-    if (m) return { source: 'trigger', fieldPath: m[1] || '' };
+    const tokens = refPathTokens(path);
+    if (!tokens) return null;
+    const [head, second, third] = tokens;
+    const headKey = (head as { key?: unknown }).key;
+    if (headKey === 'steps') {
+        if (named(second) && named(third) && third.key === 'output') {
+            return { source: 'steps', stepId: second.key, fieldPath: tailOf(tokens.slice(3)) };
+        }
+        return null;
+    }
+    if (headKey === 'loop') return named(second) ? { source: 'loop', itemVar: second.key, fieldPath: tailOf(tokens.slice(2)) } : null;
+    if (headKey === 'trigger') {
+        const rest = named(second) && second.key === 'output' ? tokens.slice(2) : tokens.slice(1);
+        return { source: 'trigger', fieldPath: tailOf(rest) };
+    }
     return null;
 }
 
-function tokenizeTemplate(s: string): RefToken[] {
-    const tokens: RefToken[] = [];
-    const TPL = /\{\{([^}]*)\}\}/g;
-    let last = 0;
-    let m: RegExpExecArray | null;
-    while ((m = TPL.exec(s))) {
-        if (m.index > last) tokens.push({ type: 'literal', text: s.slice(last, m.index) });
-        const full = m[0];
-        const inner = (m[1] as string).trim();
-        const ref = classifyRef(inner);
-        if (ref) tokens.push({ type: 'ref', raw: full, path: inner, wrapped: true, ...ref });
-        else tokens.push({ type: 'literal', text: full });
-        last = m.index + full.length;
-    }
-    if (last < s.length) tokens.push({ type: 'literal', text: s.slice(last) });
-    return tokens;
+/**
+ * The name a pill shows after its source — model/displayHelpers
+ * humanizeFieldTail, so every label reads a path the way its pill does.
+ */
+export function fieldTailLabel(fieldPath: unknown): string {
+    return humanizeFieldTail(fieldPath);
 }
 
-function refFromScan(m: RegExpExecArray): RefInfo {
-    if (m[1] != null) return { source: 'steps', stepId: m[1], fieldPath: m[2] || '' };
-    if (m[4] != null) return { source: 'loop', itemVar: m[4], fieldPath: m[5] || '' };
-    return { source: 'trigger', fieldPath: m[3] || '' };
+function tokenizeTemplate(s: string): RefToken[] {
+    return scanTemplate(s).map((p): RefToken => {
+        if (p.type === 'text') return { type: 'literal', text: p.value };
+        const ref = classifyRef(p.inner);
+        return ref ? { type: 'ref', raw: p.raw, path: p.inner, wrapped: true, ...ref } : { type: 'literal', text: p.raw };
+    });
 }
 
 function tokenizeExpression(s: string): RefToken[] {
-    const tokens: RefToken[] = [];
-    SCAN_RE.lastIndex = 0;
-    let last = 0;
-    let m: RegExpExecArray | null;
-    while ((m = SCAN_RE.exec(s))) {
-        if (m.index > last) tokens.push({ type: 'literal', text: s.slice(last, m.index) });
-        const full = m[0];
-        tokens.push({ type: 'ref', raw: full, path: full, wrapped: false, ...refFromScan(m) });
-        last = m.index + full.length;
-        if (SCAN_RE.lastIndex === m.index) SCAN_RE.lastIndex++; // zero-width guard
+    const trimmed = s.trim();
+    if (isCleanPath(trimmed)) {
+        const ref = classifyRef(trimmed);
+        if (ref) {
+            const lead = s.slice(0, s.length - s.trimStart().length);
+            const trail = s.slice(s.trimEnd().length);
+            return [
+                ...(lead ? [{ type: 'literal' as const, text: lead }] : []),
+                { type: 'ref', raw: trimmed, path: trimmed, wrapped: false, ...ref },
+                ...(trail ? [{ type: 'literal' as const, text: trail }] : []),
+            ];
+        }
     }
-    if (last < s.length) tokens.push({ type: 'literal', text: s.slice(last) });
+    const tokens: RefToken[] = [];
+    for (const part of scanExprPaths(s, REF_ROOTS)) {
+        const text = 'path' in part ? part.path : part.text;
+        const ref = 'path' in part ? classifyRef(part.path) : null;
+        const prev = tokens[tokens.length - 1];
+        if (ref) tokens.push({ type: 'ref', raw: text, path: text, wrapped: false, ...ref });
+        else if (prev?.type === 'literal') prev.text += text;
+        else tokens.push({ type: 'literal', text });
+    }
     return tokens;
+}
+
+// ── The expression engine's path grammar, for scanning formulas ─────────
+// What the ENGINE reads as one path (engine.mjs tokenize): the shared path
+// grammar (readPath: brackets, digits and accents after a dot) minus `-`
+// (a minus) and `@`. A computed index (`[i]`) ends the path; a whole stored
+// ref keeps its dashed key (tokenizeExpression asks isCleanPath first).
+const IDENT_START = /[\p{L}_$]/u;
+const IDENT_CHAR = /[\p{L}\p{N}\p{M}_$]/u;
+const GLUED = /[\p{L}\p{N}\p{M}_$.]/u;
+const INLINE_HEAD = /steps\.[A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]*)+\.output/y;
+const MARK = /\p{M}/u;
+
+function identEnd(s: string, i: number): number {
+    if (!IDENT_START.test(s.charAt(i))) return -1;
+    let j = i + 1;
+    while (j < s.length && IDENT_CHAR.test(s.charAt(j))) j++;
+    return j;
+}
+
+function stringEnd(s: string, i: number): number {
+    const q = s.charAt(i);
+    for (let j = i + 1; j < s.length; j++) {
+        if (s.charAt(j) === '\\') {
+            j++;
+            continue;
+        }
+        if (s.charAt(j) === q) return j + 1;
+    }
+    return -1;
+}
+
+/** Where the engine stops inside a span readPath read as one path: a `-` or `@` outside brackets, a dot before a combining mark. */
+function engineCut(s: string, from: number, to: number): number {
+    let depth = 0;
+    for (let j = from; j < to; j++) {
+        const c = s.charAt(j);
+        if (c === '"' || c === "'") {
+            j = stringEnd(s, j) - 1;
+            continue;
+        }
+        if (c === '[') depth++;
+        else if (c === ']') depth--;
+        else if (depth === 0 && (c === '-' || c === '@')) return s.charAt(j - 1) === '.' ? j - 1 : j;
+        else if (depth === 0 && c === '.' && MARK.test(s.charAt(j + 1))) return j;
+    }
+    return to;
+}
+
+function exprPathEnd(s: string, i: number): number {
+    INLINE_HEAD.lastIndex = i;
+    if (INLINE_HEAD.test(s)) {
+        // The sub-step id is one key; the rest is a path tail behind a stand-in head.
+        const head = INLINE_HEAD.lastIndex;
+        if (s.charAt(head) !== '.' && s.charAt(head) !== '[') return head;
+        const tail = `$${s.slice(head)}`;
+        const r = readPath(tail, 0);
+        return head + engineCut(tail, 1, r ? r.end : 1) - 1;
+    }
+    const r = readPath(s, i);
+    return r ? engineCut(s, i, r.end) : -1;
+}
+
+export type ExprPart = { text: string } | { path: string };
+
+/**
+ * Split a formula into text and the paths that start at one of `roots`, in
+ * order, concatenating back to the input. Text inside string literals is
+ * never a path.
+ */
+export function scanExprPaths(text: unknown, roots: readonly string[] = REF_ROOTS): ExprPart[] {
+    const s = String(text ?? '');
+    const rootSet = new Set(roots);
+    const out: ExprPart[] = [];
+    let last = 0;
+    let i = 0;
+    while (i < s.length) {
+        const c = s.charAt(i);
+        if (c === '"' || c === "'") {
+            const e = stringEnd(s, i);
+            i = e < 0 ? s.length : e;
+            continue;
+        }
+        const wordEnd = identEnd(s, i);
+        if (wordEnd < 0) {
+            i++;
+            continue;
+        }
+        if ((i > 0 && GLUED.test(s.charAt(i - 1))) || !rootSet.has(s.slice(i, wordEnd))) {
+            i = wordEnd;
+            continue;
+        }
+        const end = exprPathEnd(s, i);
+        if (i > last) out.push({ text: s.slice(last, i) });
+        out.push({ path: s.slice(i, end) });
+        last = i = end;
+    }
+    if (last < s.length) out.push({ text: s.slice(last) });
+    return out;
 }
 
 /**
@@ -98,7 +203,7 @@ function tokenizeExpression(s: string): RefToken[] {
 export function parseRefTokens(text: unknown, { mode = 'expression' }: { mode?: string } = {}): RefToken[] {
     const s = text == null ? '' : String(text);
     if (!s) return [];
-    if (TEMPLATE_RE.test(s)) return tokenizeTemplate(s);
+    if (detectTemplate(s)) return tokenizeTemplate(s);
     if (mode === 'fixed') return [{ type: 'literal', text: s }];
     return tokenizeExpression(s);
 }
@@ -129,7 +234,7 @@ export type StepLabelMap = Pick<Map<string, string>, 'has' | 'get'> | null | und
  */
 function loopChipName(itemVar: string | undefined): string {
     return itemVar
-        ? t('mobile.flow.ref.each_item_named', 'Each {name}', { name: itemVar })
+        ? t('automations.builder.each_named', 'Each {name}', { name: itemVar })
         : t('automations.canvas.loop_each_item', 'Each item');
 }
 

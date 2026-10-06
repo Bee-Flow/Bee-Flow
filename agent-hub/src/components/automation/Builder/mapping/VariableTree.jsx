@@ -1,16 +1,18 @@
 import { ChevronDown, ChevronRight, Database, Zap, Sparkles, GitBranch, Repeat, Code, Bell, Workflow, GripVertical, Globe, ClipboardList, FileText, FileSignature, ShieldCheck, Table2, BookOpen, ScanText, RectangleHorizontal, Presentation } from 'lucide-react';
 import React, { useState } from 'react';
 import { startPathDrag } from './bindingDnd';
-import { pathInUse } from './boundPaths';
+import { fieldInUse } from './fieldInUse';
 import FieldKindIcon from './FieldKindIcon';
 import { describeField } from './fieldKinds';
+import { jsonTextValue } from './upstream/fieldTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
 import { humanizeFieldKey } from '../flow/displayHelpers';
 
 // Resolve the value to SHOW for a path: prefer the real last-run / pinned
 // value (from previewSample) so the user sees actual data, falling back to the
-// typed sample placeholder when there's no run yet.
+// typed sample placeholder when there's no run yet. walkPath reads the
+// runtime's grammar, so what a row shows is what the run will read.
 function shownValue(path, sample, previewSample) {
     if (previewSample) {
         const v = walkPath(path, previewSample);
@@ -181,15 +183,26 @@ function GroupNode({ group, onInsert, previewSample }) {
 
 function valueLabel(desc, value) {
     switch (desc.kind) {
-        case 'text': return `“${previewValue(value, 40)}”`;
+        // JSON text is described ("JSON with 3 fields"), not quoted raw.
+        case 'text': return jsonTextValue(value) !== undefined ? '' : `“${previewValue(value, 40)}”`;
         case 'list': {
             const scalars = Array.isArray(value) ? value.filter(v => v != null && typeof v !== 'object') : [];
-            if (!scalars.length) return '';
+            // JSON texts are described ("list of 2 · JSON"), not quoted raw.
+            if (!scalars.length || scalars.some(v => jsonTextValue(v) !== undefined)) return '';
             return scalars.slice(0, 3).map(v => previewValue(v, 16)).join(' · ') + (scalars.length > 3 ? ' · …' : '');
         }
         case 'table': case 'group': case 'file': return '';
         default: return previewValue(value, 40);
     }
+}
+
+/**
+ * The short value a field row shows after its name ("a · b · c" for a
+ * column, “text” for text, nothing for a group): the tree's own wording, for
+ * the {} picker to show the same thing.
+ */
+export function fieldValueLabel(field, previewSample, t) {
+    return valueLabel(describeField(field, previewSample, t), shownValue(field.path, field.sample, previewSample));
 }
 
 /**
@@ -219,7 +232,8 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
     // Say what a value IS before it is picked — "list of 3 · text", "table ·
     // 14 rows · 4 columns" — in words, never in type names (fieldKinds.js).
     const desc = describeField(field, previewSample, t);
-    const used = inUse ? pathInUse(field.path, inUse) : false;
+    // Marked at every level the step reads, `[*]` rows included (fieldInUse).
+    const used = inUse ? fieldInUse(field.path, inUse) : false;
 
     return (
         <div>

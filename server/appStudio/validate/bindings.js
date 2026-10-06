@@ -7,6 +7,7 @@
 
 const { BINDING_KINDS, FORMULA_SCOPE_ROOTS } = require('../componentSpecs');
 const { pickClosestId } = require('../../automation/validate/helpers');
+const { relativePathTokens, suggestRelativeSpelling } = require('../../automation/validate/refPaths');
 const { FILTER_OPS } = require('../dataModel');
 const { isObject } = require('./shared');
 const { validateFormula } = require('./formulas');
@@ -19,9 +20,25 @@ const {
     checkFieldRef,
 } = require('./refs');
 
-// actionResult paths are dot-separated identifier/index segments — brackets
-// are not part of the grammar (use `items.0.name`, not `items[0].name`).
-const BINDING_PATH_RE = /^[a-zA-Z0-9_$]+(\.[a-zA-Z0-9_$]+)*$/;
+// actionResult and record paths are RELATIVE to the result / the row and use
+// the one path grammar the automation runtime and the app's resolver use
+// (shared/expr/path.mjs): `items.0.name` and `items[0].name` alike,
+// `body["@odata.nextLink"]`, `fields["Story Points"]`, `headers.Content-Type`,
+// `rows[*].title`, `headers[name="Subject"].value`. A dotted-identifier regex
+// here used to refuse what the live preview had just resolved (a 422 on save),
+// and left keys like `@odata.nextLink` unbindable.
+function checkBindingPath(p, at, ctx) {
+    if (p === undefined || p === null || p === '') return;
+    if (typeof p === 'string' && relativePathTokens(p) !== null) return;
+    const suggestion = typeof p === 'string' ? suggestRelativeSpelling(p) : null;
+    ctx.pushE({
+        code: 'binding.path_invalid', severity: 'error', path: at,
+        message: `Binding path ${JSON.stringify(p)} is invalid.`,
+        hint: suggestion
+            ? `Write it as ${suggestion} — a key with spaces or symbols goes in ["…"], a position in a list in [0] (or .0).`
+            : 'Use dots between names, [0] (or .0) for a position in a list and ["…"] around a key with spaces or symbols, e.g. items[0]["Story Points"].',
+    });
+}
 
 // ---------------------------------------------------------------------------
 // record/records binding filter & sort — the exact query-descriptor grammar
@@ -142,11 +159,7 @@ function validateBinding(key, value, path, ctx) {
             const suggestion = pickClosestId(value.actionId, Array.from(actionIds));
             pushE({ code: 'binding.action_unresolved', severity: 'error', path: `${path}.actionId`, message: `Binding references unknown action ${JSON.stringify(value.actionId)}.`, hint: suggestion ? `Did you mean "${suggestion}"?` : 'Add the action to definition.actions first.' });
         }
-        if (value.path !== undefined && value.path !== null && value.path !== '') {
-            if (typeof value.path !== 'string' || !BINDING_PATH_RE.test(value.path)) {
-                pushE({ code: 'binding.path_invalid', severity: 'error', path: `${path}.path`, message: `Binding path ${JSON.stringify(value.path)} is invalid.`, hint: 'Use dot-separated segments (letters, digits, _, $) — numeric indices as plain segments, no brackets: `items.0.name`.' });
-            }
-        }
+        checkBindingPath(value.path, `${path}.path`, ctx);
     }
     // v2 binding kinds
     if (value.kind === 'formula') {
@@ -171,11 +184,7 @@ function validateBinding(key, value, path, ctx) {
         }
     }
     if (value.kind === 'record') {
-        if (value.path !== undefined && value.path !== null && value.path !== '') {
-            if (typeof value.path !== 'string' || !BINDING_PATH_RE.test(value.path)) {
-                pushE({ code: 'binding.path_invalid', severity: 'error', path: `${path}.path`, message: `Binding path ${JSON.stringify(value.path)} is invalid.`, hint: 'Use dot-separated segments; numeric indices as plain segments (items.0.name), no brackets.' });
-            }
-        }
+        checkBindingPath(value.path, `${path}.path`, ctx);
     }
     if (value.kind === 'aggregate') {
         const { AGG_FNS, DATE_BUCKETS } = require('../dataModel');

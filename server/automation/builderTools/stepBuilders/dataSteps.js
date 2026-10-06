@@ -7,7 +7,7 @@
 
 const crypto = require('crypto');
 const { newId, appendAfter } = require('../draftGraph');
-const { validateAndFixBindings, sanitizeForEach } = require('../bindings');
+const { validateAndFixBindings, sanitizeForEach, sanitizeArrayRef, checkLoopBindings } = require('../bindings');
 
 // ── n8n-style utility step appliers ─────────────────────
 
@@ -66,18 +66,25 @@ function sanitizeSetOperations(raw) {
     return { operations };
 }
 
-function applyAddSet(draft, args) {
-    const { inputs: fields, error } = validateAndFixBindings(args.fields || {}, draft);
-    if (error) return { error };
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+function applyAddSet(draft, args, draftWrap) {
+    const { inputs: fields, error, notes: bindNotes, _suggestedPatch: fieldPatch } = validateAndFixBindings(args.fields || {}, draft, { draftWrap });
+    if (error) return { error, ...(fieldPatch ? { _suggestedPatch: { ops: fieldPatch.ops.map(o => ({ ...o, path: o.path.replace(/^inputs\./, 'fields.') })) } } : {}) };
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
+    const loopFields = checkLoopBindings(fields, draft, forEach, draftWrap, { label: 'fields' });
+    if (loopFields.error) return { error: loopFields.error };
+    const warnings = [...(bindNotes || []), ...(feNotes || [])].map(l => l.replace(/^inputs\./, 'fields.'));
+    warnings.push(...loopFields.notes);
     // List mode: presence of arrayRef = "work through this list" (each row is
     // `item` in the field bindings; output becomes {items, count}).
     const listMode = typeof args.arrayRef === 'string';
     if (listMode && forEach) return { error: 'arrayRef (list mode) and forEach cannot be combined — list mode already applies the fields to every row. Drop forEach.' };
-    if (listMode && args.arrayRef.trim()) {
-        const { error: arErr } = validateAndFixBindings({ arrayRef: { kind: 'ref', path: args.arrayRef.trim() } }, draft);
-        if (arErr) return { error: arErr };
+    let arrayRef = listMode ? args.arrayRef.trim() : undefined;
+    if (listMode && arrayRef) {
+        const ar = sanitizeArrayRef(arrayRef, draft, { draftWrap, strictRoot: true });
+        if (ar.error) return { error: ar.error.replace(/^arrayRef: /, 'inputs.arrayRef: ') };
+        arrayRef = ar.arrayRef;
+        warnings.push(...ar.notes);
     }
     let operations;
     if (args.operations !== undefined) {
@@ -88,14 +95,14 @@ function applyAddSet(draft, args) {
     }
     const maxItems = (typeof args.maxItems === 'number' && Number.isInteger(args.maxItems) && args.maxItems > 0) ? args.maxItems : undefined;
     const step = {
-        id: newId('set'), type: 'set', fields, label: args.label || 'Edit data',
-        ...(listMode ? { arrayRef: args.arrayRef.trim() } : {}),
+        id: newId('set'), type: 'set', fields: loopFields.value, label: args.label || 'Edit data',
+        ...(listMode ? { arrayRef } : {}),
         ...(operations && operations.length ? { operations } : {}),
         ...(listMode && maxItems ? { maxItems } : {}),
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
 // Lookahead bans prototype-plumbing names: `output[name] = v` on __proto__ etc.
@@ -213,11 +220,14 @@ function sanitizeCodeLimits(raw) {
     return { limits };
 }
 
-function applyAddCode(draft, args) {
-    const { inputs, error } = validateAndFixBindings(args.inputs || {}, draft);
-    if (error) return { error };
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+function applyAddCode(draft, args, draftWrap) {
+    const { inputs, error, notes: bindNotes, _suggestedPatch } = validateAndFixBindings(args.inputs || {}, draft, { draftWrap });
+    if (error) return { error, ...(_suggestedPatch ? { _suggestedPatch } : {}) };
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
+    const loopInputs = checkLoopBindings(inputs, draft, forEach, draftWrap);
+    if (loopInputs.error) return { error: loopInputs.error };
+    const warnings = [...(bindNotes || []), ...(feNotes || []), ...loopInputs.notes];
     const { limits, error: limErr } = sanitizeCodeLimits(args.limits);
     if (limErr) return { error: limErr };
     const step = {
@@ -226,7 +236,7 @@ function applyAddCode(draft, args) {
         language: 'javascript',
         code: args.code,
         codeHash: crypto.createHash('sha256').update(args.code || '').digest('hex'),
-        inputs,
+        inputs: loopInputs.value,
         outputSchema: args.outputSchema || null,
         allowedTools: Array.isArray(args.allowedTools) ? args.allowedTools : [],
         limits,
@@ -234,46 +244,67 @@ function applyAddCode(draft, args) {
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
-function applyAddFilter(draft, args) {
+/**
+ * The list a filter/limit/dedupe/aggregate/summarize works through: its
+ * arrayRef canonicalised and checked as a LIST (`steps.s.output` with one
+ * list in it → that list; `results.subject` → `results[*].subject`). An
+ * authoritative miss is refused; anything else rides back as a warning.
+ */
+function listStepArrayRef(draft, args, draftWrap) {
+    return sanitizeArrayRef(args.arrayRef, draft, { draftWrap });
+}
+const withWarnings = (result, notes) => (notes && notes.length ? { ...result, _warnings: notes } : result);
+
+function applyAddFilter(draft, args, draftWrap) {
+    const ar = listStepArrayRef(draft, args, draftWrap);
+    if (ar.error) return { error: ar.error };
     // The UI calls every deciding step (condition/switch/filter) "Condition";
     // an AI-added one must not be the odd node out on the canvas.
-    const step = { id: newId('filt'), type: 'filter', arrayRef: args.arrayRef, expr: args.expr, label: args.label || 'Condition' };
+    const step = { id: newId('filt'), type: 'filter', arrayRef: ar.arrayRef, expr: args.expr, label: args.label || 'Condition' };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return withWarnings({ added: step }, ar.notes);
 }
 
-function applyAddLimit(draft, args) {
+function applyAddLimit(draft, args, draftWrap) {
+    const ar = listStepArrayRef(draft, args, draftWrap);
+    if (ar.error) return { error: ar.error };
     const step = {
         id: newId('lim'),
         type: 'limit',
-        arrayRef: args.arrayRef,
+        arrayRef: ar.arrayRef,
         count: Math.max(0, Math.floor(Number(args.count) || 0)),
         mode: args.mode === 'last' ? 'last' : 'first',
         label: args.label || 'Shorten list',
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return withWarnings({ added: step }, ar.notes);
 }
 
-function applyAddDedupe(draft, args) {
-    const step = { id: newId('ded'), type: 'dedupe', arrayRef: args.arrayRef, keyField: typeof args.keyField === 'string' ? args.keyField : undefined, label: args.label || 'Remove duplicates' };
+function applyAddDedupe(draft, args, draftWrap) {
+    const ar = listStepArrayRef(draft, args, draftWrap);
+    if (ar.error) return { error: ar.error };
+    const step = { id: newId('ded'), type: 'dedupe', arrayRef: ar.arrayRef, keyField: typeof args.keyField === 'string' ? args.keyField : undefined, label: args.label || 'Remove duplicates' };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return withWarnings({ added: step }, ar.notes);
 }
 
-function applyAddAggregate(draft, args) {
-    const step = { id: newId('agg'), type: 'aggregate', arrayRef: args.arrayRef, field: args.field, label: args.label || 'Collect one field' };
+function applyAddAggregate(draft, args, draftWrap) {
+    const ar = listStepArrayRef(draft, args, draftWrap);
+    if (ar.error) return { error: ar.error };
+    const step = { id: newId('agg'), type: 'aggregate', arrayRef: ar.arrayRef, field: args.field, label: args.label || 'Collect one field' };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return withWarnings({ added: step }, ar.notes);
 }
 
-function applyAddSummarize(draft, args) {
-    const step = { id: newId('sum'), type: 'summarize', arrayRef: args.arrayRef, field: args.field, op: args.op, label: args.label || 'Add up or count' };
+function applyAddSummarize(draft, args, draftWrap) {
+    const ar = listStepArrayRef(draft, args, draftWrap);
+    if (ar.error) return { error: ar.error };
+    const step = { id: newId('sum'), type: 'summarize', arrayRef: ar.arrayRef, field: args.field, op: args.op, label: args.label || 'Add up or count' };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return withWarnings({ added: step }, ar.notes);
 }
 
 // Unified entry point for the five legacy array-op tools. Translates the
@@ -281,26 +312,26 @@ function applyAddSummarize(draft, args) {
 // into the per-op apply* call. Lets the LLM use a single tool name across
 // the array-handling cases — drops the tool-surface by 4 entries which
 // matters on weaker models that get overwhelmed by big tool menus.
-function applyAddArrayOp(draft, args) {
+function applyAddArrayOp(draft, args, draftWrap) {
     const op = args && typeof args.op === 'string' ? args.op : null;
     if (!op) return { error: 'op is required (filter|limit|dedupe|aggregate|summarize)' };
     const common = { afterStepId: args.afterStepId, arrayRef: args.arrayRef, label: args.label, branch: args.branch, caseName: args.caseName };
     switch (op) {
         case 'filter':
             if (typeof args.expr !== 'string') return { error: 'filter op requires expr (restricted JS, references item.<field>)' };
-            return applyAddFilter(draft, { ...common, expr: args.expr });
+            return applyAddFilter(draft, { ...common, expr: args.expr }, draftWrap);
         case 'limit':
             if (args.count === undefined || args.count === null) return { error: 'limit op requires count (integer)' };
-            return applyAddLimit(draft, { ...common, count: args.count, mode: args.mode });
+            return applyAddLimit(draft, { ...common, count: args.count, mode: args.mode }, draftWrap);
         case 'dedupe':
-            return applyAddDedupe(draft, { ...common, keyField: args.keyField });
+            return applyAddDedupe(draft, { ...common, keyField: args.keyField }, draftWrap);
         case 'aggregate':
             if (typeof args.field !== 'string') return { error: 'aggregate op requires field (the per-item field to pull)' };
-            return applyAddAggregate(draft, { ...common, field: args.field });
+            return applyAddAggregate(draft, { ...common, field: args.field }, draftWrap);
         case 'summarize':
             if (typeof args.field !== 'string') return { error: 'summarize op requires field (numeric per-item field)' };
             if (!args.fn) return { error: 'summarize op requires fn (sum|count|avg|min|max)' };
-            return applyAddSummarize(draft, { ...common, field: args.field, op: args.fn });
+            return applyAddSummarize(draft, { ...common, field: args.field, op: args.fn }, draftWrap);
         default:
             return { error: `Unknown array op "${op}". Use one of: filter, limit, dedupe, aggregate, summarize.` };
     }

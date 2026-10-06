@@ -3,6 +3,7 @@
  * Switch, Wait, Approval, and the Flowlet call whose output shape is the
  * flowlet's own declared contract.
  */
+import { appendKey } from '@shared/expr/path.mjs';
 import { sampleToFields, samplePlaceholderFor } from './sampleFields';
 
 export function describeCondition(node) {
@@ -38,9 +39,11 @@ export function describeSwitch(node) {
             { key: 'matched', path: `${base}.matched`, sample: sample.matched },
             { key: 'value', path: `${base}.value`, sample: null },
             { key: 'branch', path: `${base}.branch`, sample: sample.branch },
+            // A case is named in plain words ("High priority"): its path is
+            // built by the runtime grammar's writer, never by concatenation.
             ...[...caseNames, 'default'].map(n => ({
                 key: `matchesByCase.${n}`,
-                path: `${base}.matchesByCase.${n}`,
+                path: appendKey(appendKey(base, 'matchesByCase'), n),
                 sample: [],
             })),
         ],

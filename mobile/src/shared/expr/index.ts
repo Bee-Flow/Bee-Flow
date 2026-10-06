@@ -26,6 +26,37 @@ export {
 } from './vendor/index.mjs';
 export type { ExprFunction, ExprFunctionDoc, ExprNode, ExprPathSegment } from './vendor/index.mjs';
 
+// The value-path grammar the runtime resolves (vendor/path.mjs): build paths
+// with appendKey, read them with getPath, scan {{ }} with scanTemplate.
+export {
+    appendKey,
+    appendMatch,
+    appendWildcard,
+    canonicalPath,
+    extractJsonText,
+    formatKey,
+    formatPath,
+    getPath,
+    getRelativePath,
+    isIdentifierKey,
+    isValidPath,
+    parseJsonText,
+    parsePath,
+    pathKeys,
+    readPath,
+    replaceTemplate,
+    scanTemplate,
+    splitLast,
+    stepInto,
+    stepMatch,
+    walkTokens,
+} from './vendor/index.mjs';
+export type { PathToken, TemplatePart } from './vendor/index.mjs';
+
+// How a value reads inside a `{{ }}` placeholder (vendor/templateText.mjs):
+// a list of plain values joined, anything else as JSON — what the run writes.
+export { isScalarList, templateText } from './vendor/index.mjs';
+
 /** What `checkExpr` says about an expression, without running it. */
 export type ExprCheck =
     | { ok: true; refs: string[] }

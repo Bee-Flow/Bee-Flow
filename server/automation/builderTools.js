@@ -443,6 +443,62 @@ function rejectionLadder(name, args, result, draftWrap, { patched = false } = {}
     return result;
 }
 
+/**
+ * The `_hint` a dry-run step carries for the model: the output's type, its
+ * top-level keys and a DEEP one-line shape in the run's own path grammar
+ * (`messages[*]: { payload: { parts[*]: { body: { data } } } }`), the union
+ * of every list entry, JSON text shown as what it encodes. Keys and types,
+ * never values.
+ *
+ * An output over the 256 KB row cap is stored as a sentinel; its own keys
+ * (`__truncated__`, `headSample`) are not the step's fields, and hinting
+ * them taught the model to bind `steps.x.output.headSample`. The full copy
+ * kept beside the row is read instead (or the sentinel's shape-preserving
+ * preview when there is no copy). What the step really returned is also
+ * remembered on the draft wrap for the rest of the turn, so the binding
+ * checks of the next calls see this run's real shape (refCheck.js) — the
+ * preview as `partial`: it cut lists and wide records, so nothing it lacks
+ * is a reason to refuse, or even to doubt, a binding.
+ */
+async function dryRunHint(s, draftWrap, { readFullOutput = null } = {}) {
+    let out = s.output;
+    let note = null;
+    let partial = false;
+    const { isTruncatedOutput, fullOutputRefOf } = require('./payloadTruncation');
+    if (isTruncatedOutput(out)) {
+        const ref = fullOutputRefOf(out);
+        let full = null;
+        if (ref) {
+            const read = readFullOutput || require('../stores/automationStore/runFullOutputs').getRunFullOutput;
+            try { full = await read(ref.runId, ref.stepId, ref.attempts); }
+            catch { full = null; }
+        }
+        note = 'output over 256 KB: the shape is read from the full copy';
+        if (full === null || full === undefined) {
+            out = out.preview !== undefined ? out.preview : undefined;
+            partial = true;
+            note = out === undefined
+                ? 'output over 256 KB and not kept: its shape is unknown here — inspect the step\'s tool instead'
+                : 'output over 256 KB: the shape is read from a shortened preview (lists cut, keys kept)';
+        } else {
+            out = full;
+        }
+    }
+    const isObj = out && typeof out === 'object' && !Array.isArray(out);
+    const shapeCache = require('./shapeCache');
+    const shape = out !== undefined && out !== null && typeof out === 'object' ? shapeCache.shapeHintOf(out) : null;
+    if (out !== undefined && draftWrap && draftWrap.def) {
+        const found = findStepAnywhere(draftWrap.def, s.stepId);
+        if (found) require('./builderTools/refCheck').rememberStepShape(draftWrap, found.step, out, { partial });
+    }
+    return {
+        outputType: Array.isArray(out) ? 'array' : (out === null || out === undefined ? 'null' : typeof out),
+        topKeys: isObj ? Object.keys(out) : null,
+        shape,
+        ...(note ? { note } : {}),
+    };
+}
+
 async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
     const draft = draftWrap.def;
     // Central scope resolution (inline flowlets): scoped tools may pass
@@ -467,16 +523,16 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_add_action':         return applyAddAction(graph, args, draftWrap);
         case 'builder_add_ai_step':        return applyAddAi(graph, args, draftWrap);
         case 'builder_add_condition':      return applyAddCondition(graph, args);
-        case 'builder_add_loop':           return applyAddLoop(graph, args);
-        case 'builder_add_code_step':      return applyAddCode(graph, args);
-        case 'builder_add_notification':   return applyAddNotification(graph, args);
-        case 'builder_add_http_request':   return applyAddHttpRequest(graph, args);
-        case 'builder_add_generate_document': return applyAddGenerateDocument(graph, args);
+        case 'builder_add_loop':           return applyAddLoop(graph, args, draftWrap);
+        case 'builder_add_code_step':      return applyAddCode(graph, args, draftWrap);
+        case 'builder_add_notification':   return applyAddNotification(graph, args, draftWrap);
+        case 'builder_add_http_request':   return applyAddHttpRequest(graph, args, draftWrap);
+        case 'builder_add_generate_document': return applyAddGenerateDocument(graph, args, draftWrap);
         case 'builder_add_fill_document':  return applyAddFillDocument(graph, args, draftWrap);
-        case 'builder_add_slide':          return applyAddSlide(graph, args);
+        case 'builder_add_slide':          return applyAddSlide(graph, args, draftWrap);
         case 'builder_add_presentation':   return applyAddPresentation(graph, args);
         case 'builder_add_data_extraction': return applyAddDataExtraction(graph, args, draftWrap);
-        case 'builder_add_set':            return applyAddSet(graph, args);
+        case 'builder_add_set':            return applyAddSet(graph, args, draftWrap);
         case 'builder_add_call_layer':     return applyAddCallLayer(draft, args, { graph, scope });
         case 'builder_create_layer':       return applyCreateLayer(draft, args);
         case 'builder_set_layer_contract': return applySetLayerContract(draft, args);
@@ -486,17 +542,17 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_add_form_page':      return applyAddFormPage(graph, args);
         case 'builder_add_stop_error':     return applyAddStopError(graph, args);
         case 'builder_add_switch':         return applyAddSwitch(graph, args);
-        case 'builder_add_filter':         return applyAddFilter(graph, args);
-        case 'builder_add_limit':          return applyAddLimit(graph, args);
-        case 'builder_add_dedupe':         return applyAddDedupe(graph, args);
-        case 'builder_add_aggregate':      return applyAddAggregate(graph, args);
-        case 'builder_add_summarize':      return applyAddSummarize(graph, args);
-        case 'builder_add_array_op':       return applyAddArrayOp(graph, args);
+        case 'builder_add_filter':         return applyAddFilter(graph, args, draftWrap);
+        case 'builder_add_limit':          return applyAddLimit(graph, args, draftWrap);
+        case 'builder_add_dedupe':         return applyAddDedupe(graph, args, draftWrap);
+        case 'builder_add_aggregate':      return applyAddAggregate(graph, args, draftWrap);
+        case 'builder_add_summarize':      return applyAddSummarize(graph, args, draftWrap);
+        case 'builder_add_array_op':       return applyAddArrayOp(graph, args, draftWrap);
         case 'builder_add_datatable':      return applyAddDatatable(graph, args, draftWrap);
         // A table made at DESIGN time (a side effect outside the draft — never a
         // graph mutation): the catalog on draftWrap is refreshed in place.
         case 'builder_create_datatable':   return applyCreateDatatable(draftWrap, args);
-        case 'builder_add_knowledge_write': return applyAddKnowledgeWrite(graph, args);
+        case 'builder_add_knowledge_write': return applyAddKnowledgeWrite(graph, args, draftWrap);
         case 'builder_add_note':           return applyAddNote(graph, args);
         case 'builder_add_steps':          return applyAddSteps(graph, args, { draft, scope, sent }, draftWrap);
         case 'builder_wire_error_branch':  return applyWireErrorBranch(graph, args);
@@ -533,22 +589,8 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
                 : null;
             const run = await runner.executeAutomation(automation, { triggerKind: 'dry_run', triggerPayload: args.triggerPayload || null, mode: 'dry_run', rootStepId, onRunCreated });
             const steps = await automationStore.getRunSteps(run.id);
-            // Annotate each step with a top-level field hint so the AI
-            // immediately sees what keys are available for binding.
-            const shapeCache = require('./shapeCache');
-            const annotated = steps.map(s => {
-                const out = s.output;
-                const topKeys = (out && typeof out === 'object' && !Array.isArray(out)) ? Object.keys(out) : null;
-                const shapeHint = topKeys ? shapeCache.renderShapeHint(shapeCache.describeValue(out)) : null;
-                return {
-                    ...s,
-                    _hint: {
-                        outputType: Array.isArray(out) ? 'array' : (out === null ? 'null' : typeof out),
-                        topKeys,
-                        shape: shapeHint,
-                    },
-                };
-            });
+            const annotated = [];
+            for (const s of steps) annotated.push({ ...s, _hint: await dryRunHint(s, draftWrap) });
             return { run, steps: annotated };
         }
         case 'builder_finalize': {
@@ -577,6 +619,7 @@ module.exports = {
     generateLayerKey, makeLayerSkeleton, sanitizeLayerParams,
     TRIGGER_FIELDS_BY_EVENT, TRIGGER_OUTPUT_SAMPLES, buildTriggerOutputsCatalog,
     _test_validateAndFixBindings: validateAndFixBindings,
+    _test_dryRunHint: dryRunHint,
     // §A in-place-edit internals (exported for tests)
     findStepAnywhere, PATCHABLE_FIELDS,
     // The repeat ladder's signature (exported for tests)

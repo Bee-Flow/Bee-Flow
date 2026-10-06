@@ -28,6 +28,8 @@ export interface OutputColumn {
     groupSize: number | null;
     /** The group a split column came from. */
     parent: string | null;
+    /** A per-item step's column (perItem.ts): an output field, Result, Incoming or Problem. */
+    perItem?: 'output' | 'result' | 'item' | 'problem';
 }
 
 /** What the person chose in the column picker, remembered per step. */
@@ -41,7 +43,7 @@ export interface ColumnPrefs {
 export const EMPTY_PREFS: ColumnPrefs = { shown: null, split: [] };
 
 /** Rows sampled to learn the columns: enough for a shape, cheap on 5 000 rows. */
-const SAMPLE_ROWS = 200;
+export const SAMPLE_ROWS = 200;
 
 const norm = (k: string) => k.toLowerCase().replace(/[\s_\-.]/g, '');
 
@@ -91,7 +93,8 @@ function kindOfColumn(values: unknown[]): ColKind {
     return (best === 'choice' ? 'text' : best) as ColKind;
 }
 
-function keysInOrder(objects: Record<string, unknown>[]): string[] {
+/** Every key of these records, in the order the data first shows it. */
+export function keysInOrder(objects: Record<string, unknown>[]): string[] {
     const seen: string[] = [];
     const has = new Set<string>();
     for (const o of objects) for (const k of Object.keys(o)) if (!has.has(k)) { has.add(k); seen.push(k); }
@@ -136,10 +139,20 @@ export function discoverColumns(rows: unknown[], split: readonly string[] = []):
     return out;
 }
 
-/** The column that stays pinned on the left: a name, else a number, else the first text. */
+/** Listed in the picker, never pinned or suggested: a per-item step's item, unless it is the rows' name. */
+export function isAside(c: OutputColumn | undefined): boolean {
+    return !!c && c.perItem === 'item' && c.role !== 'name';
+}
+
+/**
+ * The column that stays pinned on the left: a name, else a number, else the
+ * first text. Never a per-item step's Problem column: it is empty on every
+ * row that worked, and the rows would be named "Row n".
+ */
 export function nameColumn(cols: OutputColumn[]): OutputColumn | null {
-    const pool = cols.filter(c => !c.technical);
-    const from = pool.length ? pool : cols;
+    const visible = cols.filter(c => !isAside(c) && c.perItem !== 'problem');
+    const pool = visible.filter(c => !c.technical);
+    const from = pool.length ? pool : (visible.length ? visible : cols);
     return from.find(c => c.role === 'name')
         || from.find(c => c.role === 'number')
         || from.find(c => c.kind === 'text')
@@ -150,38 +163,71 @@ export function nameColumn(cols: OutputColumn[]): OutputColumn | null {
 const leafOf = (key: string) => (key.split('.').pop() || key).replace(/\[[^\]]*\]/g, '');
 
 /**
+ * Who a record is from or about: the column a person looks for right after
+ * its name. APIs put it anywhere — Microsoft Graph lists a mail's `from` after
+ * a dozen flags and ids — so it is picked by name, not by position.
+ */
+const HEADLINE_KEYS = new Set(['from', 'sender', 'author', 'owner', 'customer', 'requester', 'assignee', 'organizer', 'createdby', 'contact', 'client', 'supplier', 'vendor']);
+
+/**
  * The default columns, at most `max`: the name or number column first, then
- * a date, an amount, a status and every field a next step uses, filled up
- * with the remaining readable columns in the data's own order. Technical
- * columns never make the suggestion.
+ * a per-item step's Problem column, a date, an amount, a status, every field
+ * a next step uses and who it is from or about, filled up with the remaining
+ * readable columns in the data's own order. Technical and aside columns
+ * never make the suggestion.
  */
 export function suggestColumns(cols: OutputColumn[], { max = 7, usedFields = [] }: { max?: number; usedFields?: readonly string[] } = {}): string[] {
     const first = nameColumn(cols);
     if (!first) return [];
-    const pool = cols.filter(c => !c.technical);
-    const readable = pool.length ? pool : cols;
+    const visible = cols.filter(c => !isAside(c));
+    const pool = visible.filter(c => !c.technical);
+    const readable = pool.length ? pool : visible;
     const picks = new Set<string>([first.key]);
     const used = new Set(usedFields.map(norm));
     const priority = [
+        readable.find(c => c.perItem === 'problem'),
         readable.find(c => c.role === 'date'),
         readable.find(c => c.role === 'amount'),
         readable.find(c => c.role === 'status'),
         ...readable.filter(c => used.has(norm(leafOf(c.key)))),
+        readable.find(c => HEADLINE_KEYS.has(norm(leafOf(c.key)))),
     ];
     for (const c of priority) if (c && picks.size < max) picks.add(c.key);
     for (const c of readable) if (picks.size < max) picks.add(c.key);
-    return [first.key, ...readable.filter(c => c.key !== first.key && picks.has(c.key)).map(c => c.key)];
+    const rest = readable.filter(c => c.key !== first.key && picks.has(c.key));
+    const problems = rest.filter(c => c.perItem === 'problem');
+    return [first, ...problems, ...rest.filter(c => c.perItem !== 'problem')].map(c => c.key);
+}
+
+/** Keys only the per-item envelope itself had: a flattened per-item table never has a column by these names. */
+const ENVELOPE_ONLY = new Set(['index', 'status', 'errorClass', 'attempts']);
+
+/**
+ * Was this choice saved before a per-item step's rows were flattened
+ * (`['status', 'index', 'item', 'output', 'error']`)? It names a key only the
+ * envelope had, or it keeps none of the step's own output columns: either
+ * way it would show just "Incoming" (and "Problem").
+ */
+function isEnvelopeChoice(shown: readonly string[], kept: readonly string[], byKey: Map<string, OutputColumn>): boolean {
+    const perItem = (k: string) => byKey.get(k)?.perItem;
+    if (!kept.some(k => perItem(k))) return false;
+    if (shown.some(k => ENVELOPE_ONLY.has(k))) return true;
+    return !kept.some(k => perItem(k) === 'output' || perItem(k) === 'result');
 }
 
 /**
- * The columns on screen: the person's own choice when there is one (minus
- * columns the data no longer has), else the suggestion.
+ * The person's own choice minus the columns the data no longer has; null when
+ * nothing of it is left, or when it is a per-item step's stale envelope
+ * choice (isEnvelopeChoice).
  */
+export function keptChoice(cols: OutputColumn[], prefs: ColumnPrefs): string[] | null {
+    if (!prefs.shown || !prefs.shown.length) return null;
+    const byKey = new Map(cols.map(c => [c.key, c]));
+    const kept = prefs.shown.filter(k => byKey.has(k));
+    return kept.length && !isEnvelopeChoice(prefs.shown, kept, byKey) ? kept : null;
+}
+
+/** The columns on screen: the person's own choice when there is one (keptChoice), else the suggestion. */
 export function resolveShown(cols: OutputColumn[], prefs: ColumnPrefs, opts: { max?: number; usedFields?: readonly string[] } = {}): string[] {
-    if (prefs.shown && prefs.shown.length) {
-        const known = new Set(cols.map(c => c.key));
-        const kept = prefs.shown.filter(k => known.has(k));
-        if (kept.length) return kept;
-    }
-    return suggestColumns(cols, opts);
+    return keptChoice(cols, prefs) ?? suggestColumns(cols, opts);
 }

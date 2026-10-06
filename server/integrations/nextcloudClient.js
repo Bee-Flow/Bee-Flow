@@ -246,15 +246,9 @@ async function resolveUid(session, baseUrl) {
     return uid;
 }
 
-// Parse Retry-After per RFC 7231: integer seconds, or HTTP-date. Returns ms.
-function parseRetryAfter(headerValue) {
-    if (!headerValue) return null;
-    const seconds = Number(headerValue);
-    if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
-    const dateMs = Date.parse(headerValue);
-    if (!Number.isNaN(dateMs)) return Math.max(0, dateMs - Date.now());
-    return null;
-}
+// Retry-After (integer seconds or HTTP-date) as ms, and whether a body can be
+// sent again: the same rules for every client (core/http/retryAfter.js).
+const { parseRetryAfter, isReplayableBody } = require('../core/http/retryAfter');
 
 const RETRY_STATUS = new Set([429, 503]);
 const MAX_RETRIES = 2;
@@ -274,7 +268,7 @@ const MAX_BACKOFF_MS = 30_000;
 // so retrying would silently send an empty payload — return the throttle
 // response instead and let the caller surface it.
 async function retryOnThrottle(initialResponse, doFetch, options = {}) {
-    if (isUnreplayableBody(options.body)) return initialResponse;
+    if (!isReplayableBody(options.body)) return initialResponse;
     let response = initialResponse;
     let attempt = 0;
     while (RETRY_STATUS.has(response.status) && attempt < MAX_RETRIES) {
@@ -290,13 +284,6 @@ async function retryOnThrottle(initialResponse, doFetch, options = {}) {
     return response;
 }
 
-function isUnreplayableBody(body) {
-    if (body == null) return false;
-    if (typeof body === 'string' || Buffer.isBuffer(body) || ArrayBuffer.isView(body)) return false;
-    if (body instanceof ArrayBuffer) return false;
-    // ReadableStream, Node stream, FormData with a stream part, …
-    return typeof body === 'object';
-}
 
 /**
  * Fetch wrapper: injects Bearer auth, retries once on 401 after refreshing,

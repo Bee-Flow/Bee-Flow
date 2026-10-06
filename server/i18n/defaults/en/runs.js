@@ -198,4 +198,6 @@ module.exports = {
     "runs.log.refresh": "Refresh",
     "runs.log.technical_tip": "Technical message: {message}",
     "runs.log.untitled": "Untitled",
+    "runs.timeline.binding_misses_one": "1 mapping found nothing",
+    "runs.timeline.binding_misses_many": "{n} mappings found nothing",
 };

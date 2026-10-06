@@ -12,7 +12,8 @@
 export type ExprPathSegment =
     | { kind: 'name'; v: string }
     | { kind: 'index'; expr: ExprNode }
-    | { kind: 'wildcard' };
+    | { kind: 'wildcard' }
+    | { kind: 'match'; key: string; value: string | number | boolean | null };
 
 /** The parsed expression tree `parseExpr` returns. */
 export type ExprNode =
@@ -92,3 +93,34 @@ export declare function isScalarList(v: unknown): boolean;
 
 /** How a value reads inside human text: '' for nothing, a joined list, else compact JSON. */
 export declare function templateText(v: unknown, opts?: { lists?: 'join' | 'json' }): string;
+
+// ── Value paths (path.mjs) ────────────────────────────────────────────────
+export type PathToken =
+    | { type: 'prop'; key: string | number }
+    | { type: 'wild' }
+    | { type: 'match'; key: string; value: string | number | boolean | null };
+export type TemplatePart =
+    | { type: 'text'; value: string }
+    | { type: 'ref'; raw: string; inner: string; start: number; end: number };
+export declare function isIdentifierKey(key: unknown): boolean;
+export declare function formatKey(key: string | number): string;
+export declare function appendKey(prefix: string, key: string | number): string;
+export declare function appendWildcard(prefix: string): string;
+export declare function formatPath(tokens: readonly PathToken[]): string;
+export declare function readPath(src: string, start?: number): { tokens: PathToken[]; end: number } | null;
+export declare function parsePath(path: unknown): PathToken[] | null;
+export declare function isValidPath(path: unknown): boolean;
+export declare function canonicalPath(path: unknown): string | null;
+export declare function pathKeys(path: unknown): Array<string | number> | null;
+export declare function splitLast(path: unknown): { parent: string; last: string | number; lastToken: PathToken } | null;
+export declare function parseJsonText(value: unknown): unknown;
+export declare function extractJsonText(text: unknown): unknown;
+export declare function stepInto(cur: unknown, key: string | number): unknown;
+export declare function walkTokens(tokens: readonly PathToken[], root: unknown): unknown;
+export declare function getPath(root: unknown, path: unknown): unknown;
+export declare function getRelativePath(value: unknown, path: unknown): unknown;
+export declare function scanTemplate(text: unknown): TemplatePart[];
+export declare function replaceTemplate(text: string, fn: (inner: string, raw: string) => string): string;
+export declare function appendMatch(prefix: string, key: string, value: string | number | boolean | null): string;
+export declare function stepMatch(cur: unknown, key: string, value: unknown): unknown;
+export declare function jsonCacheFor(root: unknown): Map<string, unknown> | null;

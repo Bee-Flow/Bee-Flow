@@ -97,11 +97,12 @@ describe('parseValue / buildValue', () => {
         const b = { kind: 'expr', value: 'parseJson(item.body, "order.total")' };
         expect(parseValue(b).parts).toEqual([{ type: 'json', path: 'item.body', jsonPath: 'order.total' }]);
         expect(roundTrip(b)).toEqual(b);
-        // Whole-document parse, and a path holding a double quote flips the
-        // quoting (the grammar has no escapes).
+        // Whole-document parse, and a path holding a double quote is written
+        // as an escaped literal (the engine decodes `\"`; flipping to single
+        // quotes broke the moment a key held both quote styles).
         expect(roundTrip({ kind: 'expr', value: 'parseJson(item.body)' })).toEqual({ kind: 'expr', value: 'parseJson(item.body)' });
         expect(buildValue([{ type: 'json', path: 'item.body', jsonPath: 'a"b' }]))
-            .toEqual({ kind: 'expr', value: "parseJson(item.body, 'a\"b')" });
+            .toEqual({ kind: 'expr', value: 'parseJson(item.body, "a\\"b")' });
     });
 
     it('leaves hand-written work alone instead of rewriting it', () => {

@@ -87,5 +87,7 @@ test('fullOutputMaxBytes: a default, an override, 0 to switch off, and junk fall
 
 test('truncatePayload itself is unchanged: the sentinel carries no ref of its own', () => {
     const r = truncatePayload({ blob: 'x'.repeat(DEFAULT_MAX_BYTES + 10) });
-    assert.deepStrictEqual(Object.keys(r.value).sort(), ['__truncated__', 'headSample', 'originalBytes']);
+    // `preview`/`previewCut` are the value's shape (payloadTruncation.preview.test.js).
+    assert.deepStrictEqual(Object.keys(r.value).sort(), ['__truncated__', 'headSample', 'originalBytes', 'preview', 'previewCut']);
+    assert.strictEqual(r.value[FULL_OUTPUT_REF], undefined);
 });

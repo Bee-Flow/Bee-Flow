@@ -20,7 +20,7 @@ import { View, type ViewStyle } from 'react-native';
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { transformLabel } from '@/features/flow-editor/bindings';
-import { Button, Segmented } from '@/shared/ui';
+import { Button, Segmented, Text } from '@/shared/ui';
 
 
 import { useVariablePicker } from '../variables';
@@ -30,7 +30,7 @@ import { FieldRow } from './FieldRow';
 import { JsonPickRow } from './JsonPickRow';
 import { PillTextInput } from './PillTextInput';
 import { useActiveField } from './useActiveField';
-import { useBindingText } from './useBindingText';
+import { useBindingText, type PickShaping } from './useBindingText';
 
 export interface BindingInputProps {
     value: unknown;
@@ -56,6 +56,12 @@ export interface BindingInputProps {
     literal?: 'url' | 'code';
     disabled?: boolean;
     testID?: string;
+    /**
+     * A slot that wants ONE value: a list, table or record picked into it while
+     * it is empty goes in shaped the way the web's value builder shapes it
+     * (pickShaping.ts). The slot is named after `label` unless it says otherwise.
+     */
+    shaping?: Omit<PickShaping, 'sampleRoot'> | null;
 }
 
 /** Text ⇄ Formula. Back to Text only when the formula is something the pill editor can show. */
@@ -74,6 +80,24 @@ function FormulaSwitch({ shown, emit }: { shown: EditableText; emit: (next: Edit
                     { value: 'formula', label: t('automations.builder.mode_formula_word', 'Formula') },
                 ]}
             />
+        </View>
+    );
+}
+
+/**
+ * Structured data (a map of bindings, an object) edited as JSON that is not
+ * valid yet: nothing is saved until it is (the web's JsonPendingNote).
+ */
+function JsonPendingNote({ pending, onClear, disabled }: { pending: boolean; onClear: () => void; disabled: boolean }) {
+    const t = useTranslation();
+    const styles = useThemedStyles(makeStyles);
+    if (!pending) return null;
+    return (
+        <View style={styles.pending}>
+            <Text variant="caption" tone="warning">
+                {t('automations.builder.json_not_saved', 'This value is structured data: your change is saved as soon as it is valid JSON again.')}
+            </Text>
+            <Button size="sm" variant="ghost" label={t('automations.builder.clear_it', 'Clear it')} onPress={onClear} disabled={disabled} />
         </View>
     );
 }
@@ -125,15 +149,17 @@ export function BindingInput(props: BindingInputProps) {
     const mode = props.mode ?? 'binding';
     const t = useTranslation();
     const picker = useVariablePicker();
-    const { shown, emit, insert, latestInsert, onSelection, caret } = useBindingText(value, mode, onChange);
     const name = label ?? t('automations.builder.value_word', 'Value');
+    const shaping = props.shaping ? { slot: label, ...props.shaping, sampleRoot: picker.sampleRoot } : null;
+    const { shown, emit, insert, latestInsert, onSelection, caret, structured, jsonPending, clearStructured } = useBindingText(value, mode, onChange, shaping);
     const onFocus = useActiveField(picker, name, latestInsert);
 
     const expression = shown.formula || mode === 'path' || mode === 'expression';
     const openPicker = () =>
         picker.open({ list: props.list, title: t('automations.builder.pick_data_for', 'Pick data for {field}', { field: name }), onPick: insert });
     const editable = !disabled;
-    const { formulaSwitch, adjustable, note } = chromeOf(mode, Boolean(props.textOnly), picker.simple, shown);
+    // Structured data is edited as its JSON, never as a formula (that would flatten it to one string).
+    const { formulaSwitch, adjustable, note } = chromeOf(mode, Boolean(props.textOnly) || structured, picker.simple, shown);
     const id = (suffix: string) => (testID ? `${testID}-${suffix}` : undefined);
 
     return (
@@ -172,6 +198,7 @@ export function BindingInput(props: BindingInputProps) {
                     testID={id('input')}
                 />
             )}
+            <JsonPendingNote pending={jsonPending} onClear={clearStructured} disabled={!editable} />
             {adjustable ? <AdjustRow adjust={shown.adjust ?? null} onChange={(adjust) => emit({ ...shown, adjust })} disabled={!editable} /> : null}
             {picker.enabled && editable ? <InsertData onPress={openPicker} testID={id('insert')} /> : null}
         </FieldRow>
@@ -181,4 +208,5 @@ export function BindingInput(props: BindingInputProps) {
 const makeStyles = (theme: Theme) => ({
     modes: { marginLeft: 'auto' } satisfies ViewStyle,
     actions: { flexDirection: 'row', justifyContent: 'flex-start', marginTop: -theme.spacing.xs } satisfies ViewStyle,
+    pending: { alignItems: 'flex-start', gap: theme.spacing.xs } satisfies ViewStyle,
 });

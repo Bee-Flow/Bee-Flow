@@ -18,6 +18,42 @@
  * functions; live reads and fan-out envelopes are shape-checked.
  */
 
+// The refusal the create-table example records (builder_add_steps, ex_c5):
+// the real builders' answer to a write that binds the extraction field
+// `total` where the extraction declares `totaal` — verbatim, ids mapped.
+const EX_C5_REFUSAL = {
+    error: 'steps[1] ($save): datatable values — values.totaal: "steps.ex_71a76c.output.total" does not resolve: steps.ex_71a76c.output has no "total". Did you mean steps.ex_71a76c.output.totaal? steps.ex_71a76c.output has: leverancier, factuurnummer, totaal.',
+    failedIndex: 1,
+    added: [{ tempId: 'extract', id: 'ex_71a76c', type: 'data_extraction' }],
+    resendFrom: 1,
+    lastAppliedId: 'ex_71a76c',
+    idMap: { extract: 'ex_71a76c' },
+    resendAs: {
+        tool: 'builder_add_steps',
+        args: {
+            steps: [{
+                tempId: 'save', type: 'datatable',
+                spec: {
+                    op: 'add_row', datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen',
+                    values: {
+                        leverancier: { kind: 'ref', path: 'steps.ex_71a76c.output.leverancier' },
+                        factuurnummer: { kind: 'ref', path: 'steps.ex_71a76c.output.factuurnummer' },
+                        totaal: { kind: 'ref', path: 'steps.ex_71a76c.output.total' },
+                    },
+                    label: 'Rij toevoegen',
+                    afterStepId: 'ex_71a76c',
+                },
+            }],
+        },
+    },
+    _fixHint: "Reject reason: entry 1 was refused — see the error. Entries 0..0 are built (ids ex_71a76c) and stay built. Fix entry 1 and resend ONLY entries 1.. — steps.$<tempId> of the built entries still resolves, and the first resent entry chains after \"ex_71a76c\" unless you set afterStepId. Resending the built entries again is harmless (they are not added twice).",
+    _draftSteps: [
+        { id: 'trg', type: 'trigger', kind: 'form' },
+        { id: 'ex_71a76c', type: 'data_extraction', label: 'Factuurvelden uitlezen', fields: ['leverancier', 'factuurnummer', 'totaal'] },
+    ],
+    _wiring: 'main: trg→ex_71a76c',
+};
+
 /**
  * Few-shot messages prepended to the conversation when the model profile
  * asks for them (small / mid / reasoning profiles set `fewShots: 1 or 2`).
@@ -165,7 +201,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                 ok: true,
                 note: 'Clean run: every step succeeded. Nothing to fix: finish with builder_finalize.',
                 steps: [
-                    { stepId: 'a_5e1c2b', stepType: 'integration_action', status: 'success', _hint: { outputType: 'object', topKeys: ['results', 'total'], shape: 'results: array of { id, from, to, subject, date, snippet }; total: integer' } },
+                    { stepId: 'a_5e1c2b', stepType: 'integration_action', status: 'success', _hint: { outputType: 'object', topKeys: ['results', 'total'], shape: 'results[*]: { id, from, to, subject, date, snippet }; total: integer' } },
                     { stepId: 'ai_9d4f7a', stepType: 'ai_step', status: 'success', _hint: { outputType: 'object', topKeys: ['digest'], shape: 'digest: string' } },
                     { stepId: 'a_3c8e6d', stepType: 'integration_action', status: 'success', _hint: { outputType: 'object', topKeys: ['sent', 'messageId', 'threadId', 'to', 'subject', 'message', '_dryRunSynthesised', '_dryRunFallback'], shape: 'sent: boolean; messageId: string; threadId: string; to: string; subject: string; message: string; _dryRunSynthesised: boolean; _dryRunFallback: null' } },
                 ],
@@ -364,10 +400,10 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                 ok: true,
                 note: 'Clean run: every step succeeded. Nothing to fix: finish with builder_finalize.',
                 steps: [
-                    { stepId: 'a_1f2e3d', stepType: 'integration_action', status: 'success', _hint: { outputType: 'object', topKeys: ['path', 'count', 'items'], shape: 'path: string; count: integer; items: array of { name, path, type, size, contentType, modified, fileId }' } },
-                    { stepId: 'a_4b5c6d', stepType: 'integration_action', status: 'success', _hint: { outputType: 'object', topKeys: ['iterations', 'succeeded', 'failed', 'results'], shape: 'iterations: integer; succeeded: integer; failed: integer; results: array of { index, item, output, status }' } },
-                    { stepId: 'ex_7a8b9c', stepType: 'data_extraction', status: 'success', _hint: { outputType: 'object', topKeys: ['iterations', 'succeeded', 'failed', 'results', '_dryRunSynthesised', '_dryRunFallback'], shape: 'iterations: integer; succeeded: integer; failed: integer; results: array of { index, item, output, status }; _dryRunSynthesised: boolean; _dryRunFallback: string' } },
-                    { stepId: 'dt_0d1e2f', stepType: 'datatable', status: 'success', _hint: { outputType: 'object', topKeys: ['iterations', 'succeeded', 'failed', 'results', '_dryRunSynthesised', '_dryRunFallback'], shape: 'iterations: integer; succeeded: integer; failed: integer; results: array of { index, item, output, status }; _dryRunSynthesised: boolean; _dryRunFallback: string' } },
+                    { stepId: 'a_1f2e3d', stepType: 'integration_action', status: 'success', _hint: { outputType: 'object', topKeys: ['path', 'count', 'items'], shape: 'path: string; count: integer; items[*]: { name, path, type, size, contentType, modified, fileId }' } },
+                    { stepId: 'a_4b5c6d', stepType: 'integration_action', status: 'success', _hint: { outputType: 'object', topKeys: ['iterations', 'succeeded', 'failed', 'results'], shape: 'iterations: integer; succeeded: integer; failed: integer; results[*]: { index, item: { name, path, type, size, contentType, modified, fileId }, output: { path, size, contentType, extractedVia, truncated, content, meta: { pages } }, status }' } },
+                    { stepId: 'ex_7a8b9c', stepType: 'data_extraction', status: 'success', _hint: { outputType: 'object', topKeys: ['iterations', 'succeeded', 'failed', 'results', '_dryRunSynthesised', '_dryRunFallback'], shape: 'iterations: integer; succeeded: integer; failed: integer; results[*]: { index, item: { index, item: { name, path, type, size, contentType, modified, fileId }, output: { path, size, contentType, extractedVia, truncated, content, meta: { pages } }, status }, output: { datum, leverancier, factuurnummer, excl_btw, btw, totaal }, status }; _dryRunSynthesised: boolean; _dryRunFallback: string' } },
+                    { stepId: 'dt_0d1e2f', stepType: 'datatable', status: 'success', _hint: { outputType: 'object', topKeys: ['iterations', 'succeeded', 'failed', 'results', '_dryRunSynthesised', '_dryRunFallback'], shape: 'iterations: integer; succeeded: integer; failed: integer; results[*]: { index, item: { index, item: { index, item: { name, path, type, size, contentType, modified, fileId }, output: { path, size, contentType, extractedVia, truncated, content, meta: { pages } }, status }, output: { datum, leverancier, factuurnummer, excl_btw, btw, totaal }, status }, output: { row: { datum, leverancier, factuurnummer, excl_btw, btw, totaal }, id, created, updated }, status }; _dryRunSynthesised: boolean; _dryRunFallback: string' } },
                 ],
             }),
         },
@@ -389,11 +425,12 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
     // datatable → add_row). Three things nothing else showed the small band:
     //   · builder_create_datatable at DESIGN time, then add_row with the id
     //     and key it RETURNED (the echo carries them and the column keys);
-    //   · reading a dry run as ground truth: the previewed row has no
-    //     `totaal` because the write bound `steps.<ex>.output.total` — the
-    //     extraction's _hint.topKeys say `totaal` — and the fix is ONE
-    //     builder_update_step with a per-key `values` patch, in the SAME
-    //     reply as the next dry run;
+    //   · reading a refusal as the answer: the write bound
+    //     `steps.<ex>.output.total`, the binding check knows the extraction
+    //     declares `totaal` and says "Did you mean …totaal?", entry 0 stays
+    //     built, and the fix is to resend ONLY the refused entry, corrected
+    //     (resendAs) — before 2026-10 this mistake surfaced only as a missing
+    //     column in the dry run;
     //   · a dry run of a form trigger has no submission, so the extraction
     //     returns the runner's typed samples; that is enough to prove the
     //     wiring and it is what the model will see live.
@@ -433,10 +470,33 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                 },
             }],
         },
+        // The binding check knows the extraction's output (its fields ARE the
+        // shape), so `output.total` is refused on the spot with the field
+        // that does exist; entry 0 stays built and `resendAs` is the call
+        // that continues.
         {
             role: 'tool', tool_call_id: 'ex_c5',
+            content: JSON.stringify(EX_C5_REFUSAL),
+        },
+        {
+            role: 'assistant',
+            content: 'Het extractieveld heet `totaal`, niet `total` — alleen de rij-stap opnieuw.',
+            tool_calls: [{
+                id: 'ex_c5b', type: 'function',
+                function: {
+                    name: 'builder_add_steps',
+                    arguments: JSON.stringify({
+                        steps: [
+                            { tempId: 'save', type: 'datatable', spec: { op: 'add_row', datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen', values: { leverancier: { kind: 'ref', path: 'steps.ex_71a76c.output.leverancier' }, factuurnummer: { kind: 'ref', path: 'steps.ex_71a76c.output.factuurnummer' }, totaal: { kind: 'ref', path: 'steps.ex_71a76c.output.totaal' } }, label: 'Rij toevoegen', afterStepId: 'ex_71a76c' } },
+                        ],
+                    }),
+                },
+            }],
+        },
+        {
+            role: 'tool', tool_call_id: 'ex_c5b',
             content: JSON.stringify({
-                added: [{ tempId: 'extract', id: 'ex_71a76c', type: 'data_extraction' }, { tempId: 'save', id: 'dt_b5b5c4', type: 'datatable' }],
+                added: [{ tempId: 'save', id: 'dt_b5b5c4', type: 'datatable' }],
                 idMap: { extract: 'ex_71a76c', save: 'dt_b5b5c4' },
                 _draftSteps: [
                     { id: 'trg', type: 'trigger', kind: 'form' },
@@ -457,50 +517,14 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
         },
         { role: 'tool', tool_call_id: 'ex_c6', content: JSON.stringify({ ok: true, todos: [{ i: 0, text: 'Formulier-trigger + tabel Inkomende facturen', done: true }, { i: 1, text: 'Extractie → rij toevoegen', done: true }, { i: 2, text: 'Testrun en afronden', done: false }], next: 'Testrun en afronden' }) },
         { role: 'tool', tool_call_id: 'ex_c7', content: JSON.stringify({ summary: '**Trigger:** On trigger (form).\n\n**Steps:**\n1. Extract 3 field(s) (leverancier, factuurnummer, totaal) from `trigger.output.tekst` — Factuurvelden uitlezen.\n2. Add a row to "Rij toevoegen".', hasSideEffects: true }) },
-        // The previewed row has leverancier and factuurnummer but NO totaal:
-        // the write bound `output.total`, and the extraction's topKeys say
-        // `totaal`. Status is 'success' either way — a missing column is
-        // read off the _hint's shape (`row: { leverancier, factuurnummer }`),
-        // not off an error: the dry-run echo carries shapes, never payloads
-        // (compactDryRunForModel, 2026-09-18).
+        // A dry run of a form trigger has no submission: the extraction
+        // returns the runner's typed samples, and the previewed row shows all
+        // three columns in its _hint shape — the dry-run echo carries shapes,
+        // never payloads (compactDryRunForModel, 2026-09-18).
         {
             role: 'tool', tool_call_id: 'ex_c8',
             content: JSON.stringify({
                 run: { id: 'r2', status: 'success', stepCount: 2 },
-                ok: true,
-                note: 'Clean run: every step succeeded. Nothing to fix: finish with builder_finalize.',
-                steps: [
-                    { stepId: 'ex_71a76c', stepType: 'data_extraction', status: 'success', _hint: { outputType: 'object', topKeys: ['leverancier', 'factuurnummer', 'totaal', '_dryRunSynthesised', '_dryRunFallback'], shape: 'leverancier: string; factuurnummer: string; totaal: number; _dryRunSynthesised: boolean; _dryRunFallback: null' } },
-                    { stepId: 'dt_b5b5c4', stepType: 'datatable', status: 'success', _hint: { outputType: 'object', topKeys: ['row', 'id', 'created', 'updated', '_dryRunSynthesised'], shape: 'row: { leverancier, factuurnummer }; id: null; created: boolean; updated: integer; _dryRunSynthesised: boolean' } },
-                ],
-            }),
-        },
-        {
-            role: 'assistant',
-            content: 'De rij mist `totaal`: het extractieveld heet `totaal`, niet `total`.',
-            tool_calls: [
-                { id: 'ex_c9', type: 'function', function: { name: 'builder_update_step', arguments: JSON.stringify({ stepId: 'dt_b5b5c4', patch: { values: { totaal: { kind: 'ref', path: 'steps.ex_71a76c.output.totaal' } } } }) } },
-                { id: 'ex_c10', type: 'function', function: { name: 'builder_request_dry_run', arguments: '{}' } },
-            ],
-        },
-        // applyUpdateStep: the whole step as it now stands (values merged per
-        // key — the two untouched bindings survive), then the digest.
-        {
-            role: 'tool', tool_call_id: 'ex_c9',
-            content: JSON.stringify({
-                updated: { id: 'dt_b5b5c4', type: 'datatable', label: 'Rij toevoegen', op: 'add_row', datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen', where: [], values: { leverancier: { kind: 'ref', path: 'steps.ex_71a76c.output.leverancier' }, factuurnummer: { kind: 'ref', path: 'steps.ex_71a76c.output.factuurnummer' }, totaal: { kind: 'ref', path: 'steps.ex_71a76c.output.totaal' } } },
-                _draftSteps: [
-                    { id: 'trg', type: 'trigger', kind: 'form' },
-                    { id: 'ex_71a76c', type: 'data_extraction', label: 'Factuurvelden uitlezen', fields: ['leverancier', 'factuurnummer', 'totaal'] },
-                    { id: 'dt_b5b5c4', type: 'datatable', label: 'Rij toevoegen', op: 'add_row', table: 'inkomende_facturen (tbl_7c2d9e)', values: ['leverancier', 'factuurnummer', 'totaal'] },
-                ],
-                _wiring: 'main: trg→ex_71a76c, ex_71a76c→dt_b5b5c4',
-            }),
-        },
-        {
-            role: 'tool', tool_call_id: 'ex_c10',
-            content: JSON.stringify({
-                run: { id: 'r3', status: 'success', stepCount: 2 },
                 ok: true,
                 note: 'Clean run: every step succeeded. Nothing to fix: finish with builder_finalize.',
                 steps: [
@@ -805,8 +829,8 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             tool: 'gmail_read_attachment',
                             inputs: {
                                 messageId: { kind: 'ref', path: 'trigger.output.messageId' },
-                                attachmentId: { kind: 'ref', path: 'trigger.output.attachments.0.attachmentId' },
-                                filename: { kind: 'ref', path: 'trigger.output.attachments.0.filename' },
+                                attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' },
+                                filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
                             },
                         }),
                     },
@@ -910,7 +934,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             afterStepId: 's_supp',
                             tool: 'drive_upload_file',
                             inputs: {
-                                name: { kind: 'ref', path: 'trigger.output.attachments.0.filename' },
+                                name: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
                                 parentFolderId: { kind: 'ref', path: 'steps.s_supp.output.folderId' },
                                 sourceHandle: { kind: 'ref', path: 'steps.s_read.output.sourceHandle' },
                             },

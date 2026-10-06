@@ -30,13 +30,16 @@ import {
     insertAtSelection,
     isDataPath,
     parseValue,
+    renderBindingValue,
+    scanExprPaths,
     type Binding,
     type BindingValue,
     type StepLabelMap,
     type TextEdit,
     type ValuePart,
 } from '@/features/flow-editor/bindings';
-import { renderBindingValue } from '@/features/flow-editor/model/route/bindingText';
+import { isStructuredBinding, structuredFromText } from '@/features/flow-editor/bindings/bindingHelpers';
+import { scanTemplate } from '@/shared/expr';
 
 export type BindingInputMode = 'binding' | 'template' | 'path' | 'expression';
 
@@ -66,7 +69,8 @@ export interface EditableText {
 /** What a value holds besides its text. */
 export type TextExtras = Pick<EditableText, 'adjust' | 'pick'>;
 
-const TOKEN_RE = /\{\{([^}]*)\}\}/g;
+// Placeholders are found with the runtime's quote-aware scan (scanTemplate):
+// `{{ x["a}}b"] }}` is ONE reference, exactly as the run reads it.
 
 function asText(value: unknown): string {
     if (value == null) return '';
@@ -84,16 +88,14 @@ export function partsToText(parts: readonly ValuePart[]): string {
  */
 export function textToParts(text: string): ValuePart[] | null {
     const parts: ValuePart[] = [];
-    let last = 0;
-    for (const m of text.matchAll(TOKEN_RE)) {
-        const inner = (m[1] as string).trim();
-        if (!isDataPath(inner)) return null;
-        const at = m.index as number;
-        if (at > last) parts.push({ type: 'text', text: text.slice(last, at) });
-        parts.push({ type: 'data', path: inner });
-        last = at + m[0].length;
+    for (const p of scanTemplate(text)) {
+        if (p.type === 'text') {
+            parts.push({ type: 'text', text: p.value });
+            continue;
+        }
+        if (!isDataPath(p.inner)) return null;
+        parts.push({ type: 'data', path: p.inner });
     }
-    if (last < text.length) parts.push({ type: 'text', text: text.slice(last) });
     return parts;
 }
 
@@ -119,6 +121,27 @@ export function bindingToText(value: unknown, mode: BindingInputMode): EditableT
     return { text, formula: inputMode === 'expression' };
 }
 
+/**
+ * A STRUCTURED value — a map of bindings (how the AI builder stores an object
+ * parameter), a list, an object literal — that a binding field can only show
+ * as its JSON text; null for anything else. The runtime resolves it as a
+ * structure, so an edit must go back into that structure
+ * (structuredTextToValue), never become one string of JSON.
+ */
+export function structuredOrigin(value: unknown, mode: BindingInputMode): unknown {
+    return mode === 'binding' && isStructuredBinding(value) ? value : null;
+}
+
+/**
+ * Edited JSON text back into the shape of the structured value it was opened
+ * from (a literal stays a literal, a map of bindings a map); null while the
+ * text is not a JSON object or list, and then nothing is saved — the web's
+ * BindingField rule.
+ */
+export function structuredTextToValue(text: string, origin: unknown): unknown {
+    return structuredFromText(text, origin);
+}
+
 /** Is the text exactly one picked value — the only shape an adjustment applies to? */
 export function canAdjust(text: string): boolean {
     const parts = textToParts(text);
@@ -142,7 +165,7 @@ function visualBinding(text: string, { adjust, pick }: TextExtras): Binding {
  * would look for a field literally called "{{steps…}}".
  */
 export function unwrapRefs(text: string): string {
-    return text.replace(TOKEN_RE, (whole, inner: string) => (isDataPath(inner.trim()) ? inner.trim() : whole));
+    return scanTemplate(text).map((p) => (p.type === 'text' ? p.value : isDataPath(p.inner) ? p.inner : p.raw)).join('');
 }
 
 /** A field whose text is an expression: a path, a formula, a raw condition. */
@@ -158,7 +181,10 @@ export function textToBinding(text: string, mode: BindingInputMode, formula = fa
 
 /**
  * A picked path into the text at the selection: `{{path}}` in text, the bare
- * path in a formula; a path field takes the path whole.
+ * path in a formula; a path field takes the path whole. Always the canonical
+ * spelling (`["content-type"]`). In a formula the pick is its own operand: put
+ * straight against a name or a closing bracket it would fuse into one bogus
+ * path (`…emailsteps.b…`) that resolves to nothing.
  */
 export function insertPath(
     text: string,
@@ -166,8 +192,21 @@ export function insertPath(
     path: string,
     { mode, formula = false }: { mode: BindingInputMode; formula?: boolean },
 ): TextEdit {
-    if (mode === 'path') return { value: path, caret: path.length };
-    const snippet = formatPathForInsert(path, formula || mode === 'expression' ? 'expression' : 'fixed');
+    if (mode === 'path') {
+        const whole = formatPathForInsert(path, 'expression');
+        return { value: whole, caret: whole.length };
+    }
+    const expression = formula || mode === 'expression';
+    let snippet = formatPathForInsert(path, expression ? 'expression' : 'fixed');
+    if (expression) {
+        const start = selection?.start ?? text.length;
+        const end = selection?.end ?? text.length;
+        const before = text.slice(0, start);
+        const after = text.slice(end);
+        const pre = /[A-Za-z0-9_$\])"']$/.test(before) ? ' ' : '';
+        const post = /^[A-Za-z0-9_$(["']/.test(after) ? ' ' : '';
+        snippet = `${pre}${snippet}${post}`;
+    }
     return insertAtSelection(text, selection, snippet);
 }
 
@@ -181,7 +220,8 @@ export interface TextChip {
     missing: boolean;
 }
 
-const BARE_PATH_RE = /(?<![\w$.])(?:steps|trigger|vars|loop|item)(?:\.[\w$]+|\[[^\]]*\])+|(?<![\w$.])_index\b/g;
+// The roots a formula's chips name; the paths are found the way the engine reads them.
+const CHIP_ROOTS = ['steps', 'trigger', 'vars', 'loop', 'item', '_index'];
 
 function chip(path: string, start: number, end: number, labels: StepLabelMap): TextChip {
     const { name, suffix, missing } = describeDataPath(path, labels);
@@ -192,16 +232,18 @@ function chip(path: string, start: number, end: number, labels: StepLabelMap): T
 export function chipsIn(text: string, expression: boolean, labels: StepLabelMap = null): TextChip[] {
     const out: TextChip[] = [];
     if (expression) {
-        for (const m of text.matchAll(BARE_PATH_RE)) {
-            const at = m.index as number;
-            if (isDataPath(m[0])) out.push(chip(m[0], at, at + m[0].length, labels));
+        let at = 0;
+        for (const part of scanExprPaths(text, CHIP_ROOTS)) {
+            const piece = 'path' in part ? part.path : part.text;
+            // A bare root (`item`, `trigger` alone) stays text, as it always did; `_index` is a value.
+            const named = 'path' in part && (part.path === '_index' || /[.[]/.test(part.path));
+            if (named && isDataPath(piece)) out.push(chip(piece, at, at + piece.length, labels));
+            at += piece.length;
         }
         return out;
     }
-    for (const m of text.matchAll(TOKEN_RE)) {
-        const inner = (m[1] as string).trim();
-        const at = m.index as number;
-        if (isDataPath(inner)) out.push(chip(inner, at, at + m[0].length, labels));
+    for (const p of scanTemplate(text)) {
+        if (p.type === 'ref' && isDataPath(p.inner)) out.push(chip(p.inner, p.start, p.end, labels));
     }
     return out;
 }

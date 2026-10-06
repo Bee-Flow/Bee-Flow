@@ -19,12 +19,16 @@
  *   decision reason prompt approvalId decidedBy decidedByName decidedAt
  *   requestedBy answers.<question> context.<key>
  * Non-string literals pass through unchanged.
+ *
+ * The scope is this hook's own, but a path into it is read with the one path
+ * grammar (shared/expr/path.mjs): `answers["Cost center"]`, `answers.po-number`
+ * and `answers.lines[0].sku` work, own fields only (never the prototype
+ * chain), and a placeholder that is not a path stays as written.
  */
 
 const automationStore = require('../stores/automationStore');
 const log = require('../telemetry/log');
-
-const TEMPLATE_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
+const { scanTemplate, parsePath, walkTokens } = require('./expr');
 
 function hookScope(approval) {
     return {
@@ -41,26 +45,21 @@ function hookScope(approval) {
     };
 }
 
-function lookupPath(scope, path) {
-    let cur = scope;
-    for (const part of String(path).split('.')) {
-        if (cur == null || typeof cur !== 'object') return undefined;
-        cur = cur[part];
-    }
-    return cur;
-}
-
 function resolveTemplate(value, scope) {
     if (typeof value !== 'string') return value;           // literal number/bool/null
-    const exact = value.match(/^\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}$/);
-    if (exact) {
-        const v = lookupPath(scope, exact[1]);
+    const parts = scanTemplate(value);
+    const tokensOf = (p) => (p.type === 'ref' ? parsePath(p.inner) : null);
+    if (parts.length === 1 && tokensOf(parts[0])) {
+        const v = walkTokens(tokensOf(parts[0]), scope);
         return v === undefined ? null : v;
     }
-    return value.replace(TEMPLATE_RE, (_, p) => {
-        const v = lookupPath(scope, p);
+    return parts.map((p) => {
+        if (p.type === 'text') return p.value;
+        const tokens = tokensOf(p);
+        if (!tokens) return p.raw;
+        const v = walkTokens(tokens, scope);
         return v === null || v === undefined ? '' : String(v);
-    });
+    }).join('');
 }
 
 /**

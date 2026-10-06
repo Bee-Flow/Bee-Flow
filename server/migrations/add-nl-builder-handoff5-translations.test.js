@@ -43,10 +43,14 @@ test('no Dutch value is blank or the English one copied over', () => {
     }
 });
 
+// Keys added later under these prefixes whose Dutch ships in another
+// catalogue: one key, one owner.
+const OWNED_ELSEWHERE = new Set(Object.keys(require('./add-nl-builder-mapping-translations').NL_TRANSLATIONS));
+
 test('every English key in the handoff 5 namespaces has Dutch (or is declared identical)', () => {
     const same = new Set(SAME_AS_ENGLISH);
     const untranslated = Object.keys(GUI_DEFAULTS)
-        .filter((k) => OWNED_PREFIXES.some((p) => k.startsWith(p)) && !(k in NL_TRANSLATIONS) && !same.has(k));
+        .filter((k) => OWNED_PREFIXES.some((p) => k.startsWith(p)) && !OWNED_ELSEWHERE.has(k) && !(k in NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);
 });
 

@@ -1,74 +1,51 @@
 /**
  * The sample → field vocabulary every describer in this folder shares.
  *
- * One sample object (what a node's output looks like) in, one list of
- * bindable `{ key, path, sample }` fields out — plus the path-segment
- * escaping that keeps those paths inside the RUNTIME's ref grammar, the
- * element-shape lookup collection steps resolve their `arrayRef` with, and
- * the declared-type → placeholder table the schema-driven describers use.
+ * One sample (what a node's output looks like) in, one tree of bindable
+ * `{ key, path, sample, children? }` fields out, built by fieldTree.ts: every
+ * level, list columns from the union of the rows, JSON text opened, each path
+ * written in the RUNTIME's grammar. Plus the element-shape lookup collection
+ * steps resolve their `arrayRef` with, the list-source scan, and the
+ * declared-type → placeholder table the schema-driven describers use.
  */
+import { formatKey } from '@shared/expr/path.mjs';
+import { eachField, isRecord, mergeElements, recordFields } from './fieldTree';
+import { overlayGroupWithReal } from './realOverlay';
 import { walkPath } from '../../../../../utils/bindingHelpers';
 
 /**
- * Append ONE object key to a ref path, quoting it when it isn't a bare JS
- * identifier.
+ * The path segment for ONE key: `.key`, `[3]` or `["line-items"]`.
  *
- * The builder used to concatenate `${base}.${key}` unconditionally. That is
- * fine for `results`, but a JSON key like "line-items" / "content-type" /
- * "2024 rows" produced `…output.line-items`, which the CLIENT walker happily
- * previews (bindingHelpers.walkPath deliberately skips the REF_RE check) while
- * the RUNTIME rejects it outright — server/automation/bind.js walkPath bails on
- * `!REF_RE.test(path)`, and REF_RE only accepts identifier segments after a
- * dot. Net effect: a Loop/Filter bound to such a list previewed perfectly at
- * design time and then failed every run with "arrayRef did not resolve to an
- * array". The bracket form `…output["line-items"]` IS accepted by REF_RE
- * (`\[(?:[0-9]+|\*|"[^"]*"|'[^']*')\]`) and by both tokenizers, so emit that.
- *
- * Keys containing a `"`, a backslash or a `]` stay unrepresentable in the
- * server's path grammar (REF_RE's `"[^"]*"` / tokenizePath's `indexOf(']')`) —
- * that is a pre-existing runtime limit, not something the builder can encode.
+ * Kept as a name for callers that append a single key; it is the runtime
+ * grammar's own writer (shared/expr/path.mjs formatKey). It used to quote
+ * with JSON.stringify against a runtime that knew no escapes, so a key with a
+ * quote or a backslash got a path nothing could resolve; the grammar now
+ * reads JSON escapes, and every key has a path.
  */
-export const seg = (k) => (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) ? `.${k}` : `[${JSON.stringify(k)}]`);
+export const seg = (k) => formatKey(k);
 
 /**
- * Translate a sample object into a flat-ish field list. Top-level keys
- * become leaves; nested objects become groups with their own fields one
- * level deep. Arrays are summarised as `[N items]` and not expanded
- * (their element shape is exposed via Loop's loop.<itemVar> instead).
+ * A record's fields, every level of it: keys, the columns of its lists
+ * (`results[*].subject`), and what its JSON text encodes. Anything that is
+ * not a record has no named fields ([]). See fieldTree.ts for the caps.
  */
 export function sampleToFields(sample, basePath) {
-    if (sample == null || typeof sample !== 'object') return [];
-    const out = [];
-    for (const [k, v] of Object.entries(sample)) {
-        const path = `${basePath}${seg(k)}`;
-        if (v && typeof v === 'object' && !Array.isArray(v)) {
-            // One level of nesting: surface child keys too so users can
-            // bind e.g. `trigger.output.organizer.email` without typing.
-            const children = Object.entries(v).map(([ck, cv]) => ({
-                key: ck,
-                path: `${path}${seg(ck)}`,
-                sample: cv,
-            }));
-            out.push({ key: k, path, sample: v, children });
-        } else {
-            out.push({ key: k, path, sample: v });
-        }
-    }
-    return out;
+    return recordFields(sample, basePath);
 }
 
 /**
- * Resolve an arrayRef path to the sample of ONE element of that array.
- * `sampleRoot` is either the accumulated design-time root (see
- * computeUpstreamGroups) or the NDV's previewSample (which overlays real
- * last-run / pinned outputs). Returns null when the path doesn't resolve
- * to a non-empty array.
+ * Resolve an arrayRef path to ONE element that stands for that array: the
+ * keys of its first rows merged (nulls skipped, records preferred), see
+ * fieldTree.mergeElements. `sampleRoot` is either the accumulated design-time
+ * root (see computeUpstreamGroups) or the NDV's previewSample (which overlays
+ * real last-run / pinned outputs). Null when the path doesn't resolve to a
+ * non-empty array.
  */
 export function resolveElementSample(arrayRef, sampleRoot) {
     if (typeof arrayRef !== 'string' || !arrayRef.trim() || !sampleRoot) return null;
     const v = walkPath(arrayRef.trim(), sampleRoot);
     if (!Array.isArray(v) || v.length === 0) return null;
-    return v[0] ?? null;
+    return mergeElements(v);
 }
 
 /**
@@ -82,36 +59,37 @@ export function elementFieldOptions(elementSample) {
 }
 
 /**
- * Every ARRAY-valued path reachable from the upstream groups — top-level
- * fields, one nesting level (children), plus arrays that only exist in the
- * real-run/pinned overlay (previewSample) and not in the schema sample.
- * Supersedes the top-level-only scans in LoopOverPicker and the old
- * CollectionArrayRefField. Returns [{ key, path, sample }].
+ * The fields of a group's REAL value: exactly what overlayGroupWithReal
+ * offers, so the two cannot drift. A step that runs once per item reads as
+ * its forEach envelope (`results[*].output.…`), a Code step as its own data
+ * (never its `logs`), a root list as one field.
+ */
+export function realFieldsOf(group, actual) {
+    return overlayGroupWithReal(group, actual).fields || [];
+}
+
+/**
+ * Every LIST reachable from the upstream groups, at any depth — the fields
+ * and their children, plus lists that only exist in the real-run/pinned
+ * overlay (previewSample) and not in the schema sample. One list per path;
+ * the first one found keeps its sample. Feeds the Loop picker and the
+ * collection steps' "which list" field. Returns [{ key, path, sample }].
  */
 export function collectArrayPaths(groups, previewSample = null) {
     const out = [];
     const seen = new Set();
-    const push = (key, path, sample) => {
-        if (!path || seen.has(path)) return;
-        seen.add(path);
-        out.push({ key, path, sample });
-    };
+    const visit = (fields) => eachField(fields, (f) => {
+        if (!Array.isArray(f.sample) || !f.path || seen.has(f.path)) return;
+        seen.add(f.path);
+        out.push({ key: f.key, path: f.path, sample: f.sample });
+    });
     for (const g of (groups || [])) {
-        for (const f of (g.fields || [])) {
-            if (Array.isArray(f.sample)) push(f.key, f.path, f.sample);
-            for (const c of (f.children || [])) {
-                if (Array.isArray(c.sample)) push(c.key, c.path, c.sample);
-            }
-        }
-        // Real-run overlay: arrays present in actual output but absent from
+        visit(g.fields);
+        // Real-run overlay: lists present in the actual output but absent from
         // the design-time sample (e.g. a tool with no curated outputSample).
         if (previewSample && g.basePath) {
             const actual = walkPath(g.basePath, previewSample);
-            if (actual && typeof actual === 'object' && !Array.isArray(actual)) {
-                for (const [k, v] of Object.entries(actual)) {
-                    if (Array.isArray(v)) push(k, `${g.basePath}${seg(k)}`, v);
-                }
-            }
+            if (actual !== undefined) visit(realFieldsOf(g, actual));
         }
     }
     return out;
@@ -128,4 +106,33 @@ export function samplePlaceholderFor(type) {
         case 'file': return { fileId: '<file-id>', name: 'document.pdf', mime: 'application/pdf', size: 12345, url: '<signed download url>' };
         default: return '<string>';
     }
+}
+
+/**
+ * A declared schema as a sample with the same shape: an object's properties,
+ * an array's items as one element, a type list's first non-null type, the
+ * first non-null branch of an anyOf / oneOf. A bare type name (the flat
+ * `{ field: 'type' }` dialect) is its placeholder.
+ * Before the first run, that nested sample is what makes
+ * `customer.address.city` and `items[*].sku` pickable.
+ */
+export function schemaToSample(schema, depth = 0) {
+    if (typeof schema === 'string') return samplePlaceholderFor(schema);
+    if (!isRecord(schema)) return samplePlaceholderFor('string');
+    const branch = [schema.anyOf, schema.oneOf].find(Array.isArray);
+    if (branch && !schema.type && !schema.properties) {
+        return schemaToSample(branch.find(b => isRecord(b) && b.type !== 'null') || branch[0], depth);
+    }
+    const type = schemaType(schema);
+    if (depth >= 8) return samplePlaceholderFor(type);
+    if ((type === 'object' || !type) && isRecord(schema.properties)) {
+        return Object.fromEntries(Object.entries(schema.properties).filter(([k]) => k).map(([k, v]) => [k, schemaToSample(v, depth + 1)]));
+    }
+    if (type === 'array') return isRecord(schema.items) ? [schemaToSample(schema.items, depth + 1)] : [];
+    return samplePlaceholderFor(typeof type === 'string' ? type : 'string');
+}
+
+/** A schema's one type: the first non-null of a type list. */
+function schemaType(schema) {
+    return Array.isArray(schema.type) ? (schema.type.find(t => t !== 'null') || schema.type[0]) : schema.type;
 }

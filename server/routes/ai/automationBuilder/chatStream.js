@@ -393,6 +393,11 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // that HAVE an input schema, so a parameterless tool would vanish.
         draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
         draftWrap._inspectedTools = new Set();
+        // What the draft's tools really returned on this user's last live run
+        // (shapeCache), read by the path checks (builderTools/refCheck.js,
+        // outputFields.js) before the curated shapes. One cache read per tool,
+        // under a deadline, never an error: the MCP surface does the same.
+        draftWrap._runtimeShapes = await require('../../../automation/mcpBuilder').loadRuntimeShapes(draftWrap.def, userId);
         // The datatables THIS user may address — rendered into the prompt as
         // the "Datatables you may use" block and read by builder_add_datatable
         // for its id/key/column check. Two absent shapes, two meanings:

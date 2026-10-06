@@ -585,10 +585,15 @@ describe('auto-map with real run/pinned data', () => {
             apps: [{ actions: [{ name: 'read_message', inputSchema: { properties: { messageId: { type: 'number' } }, required: ['messageId'] } }] }],
             triggerOutputs: {},
         };
-        const { step, forEachEnabled } = autoMapStep(def.steps[1], def, cat, { realOutputById });
+        // Real mails: a subject and a sender say each row IS a message, so its
+        // id is the messageId (autoMapEntity.ts). `{ id, subject }` alone could
+        // be a ticket's id, and is not guessed.
+        const mails = new Map([['s1', { results: [{ id: 7, subject: 'hi', from: 'a@b.nl' }] }]]);
+        const { step, forEachEnabled } = autoMapStep(def.steps[1], def, cat, { realOutputById: mails });
         expect(forEachEnabled).toBe(true);
         expect(step.forEach.overRef).toBe('steps.s1.output.results');
         expect(step.inputs.messageId).toEqual({ kind: 'ref', path: 'loop.result.id' });
+        expect(autoMapStep(def.steps[1], def, cat, { realOutputById }).forEachEnabled).toBeFalsy();
     });
 
     it('applyAutoMapToStep forwards realOutputById through opts', () => {

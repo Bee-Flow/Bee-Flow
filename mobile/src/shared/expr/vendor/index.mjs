@@ -30,3 +30,27 @@ export {
     makeTopicHost,
 } from './topics.mjs';
 export { templateText, isScalarList } from './templateText.mjs';
+export {
+    isIdentifierKey,
+    formatKey,
+    appendKey,
+    appendWildcard,
+    appendMatch,
+    formatPath,
+    readPath,
+    parsePath,
+    isValidPath,
+    canonicalPath,
+    pathKeys,
+    splitLast,
+    parseJsonText,
+    extractJsonText,
+    stepInto,
+    stepMatch,
+    jsonCacheFor,
+    walkTokens,
+    getPath,
+    getRelativePath,
+    scanTemplate,
+    replaceTemplate,
+} from './path.mjs';

@@ -17,6 +17,9 @@ const SIDE_EFFECT_VERBS = new Set([
     'send', 'compose', 'create', 'update', 'delete', 'post',
     'add', 'remove', 'move', 'share', 'set', 'reply', 'forward',
     'attach', 'write',
+    // gmail_modify_labels / gmail_bulk_modify, gmail_archive, gmail_mark_read. Not
+    // 'trash': nextcloud_list_trash only reads.
+    'modify', 'archive', 'mark',
 ]);
 export function looksLikeSideEffect(toolName) {
     if (!toolName) return false;

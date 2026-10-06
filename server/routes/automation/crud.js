@@ -790,11 +790,12 @@ router.get('/templates/:id', async (req, res) => {
  * what keeps Express from treating the literal "import" as an automation id.
  *
  * Flow: sanitizeImport (allowlist + format/schemaVersion gate) →
- * validateDefinition hard-fail → second, catalog-aware validation pass
- * (built exactly like /:id/activate builds it) whose findings are
+ * validateDefinition hard-fail (on the file as sent) → rekeyDefinition (fresh
+ * step ids per graph) → second, catalog-aware validation pass on the draft AS
+ * STORED (built exactly like /:id/activate builds it) whose findings are
  * NON-BLOCKING here — the draft lands inactive, and activate re-checks
- * hard — → rekeyDefinition (fresh step ids per graph) → createAutomation
- * (which already forces is_active=FALSE, is_draft=TRUE).
+ * hard — → createAutomation (which already forces is_active=FALSE,
+ * is_draft=TRUE).
  *
  * Rate-limited per user: imports validate against the full tool catalog and
  * write a row, so 10/min is plenty for legitimate use and starves bulk abuse.
@@ -814,26 +815,45 @@ router.post('/import', importLimiter, async (req, res) => {
     // as a draft to repair by hand. Only the caller's own tables are offered
     // to it, so a re-link cannot cross a scope boundary.
     const { entries: datatableEntries } = rebindDatatables(incoming.definition, await importableDatatables(req));
-    const datatableFindings = datatableEntries.map(e => ({
-        code: e.datatableId ? 'datatable.relinked' : 'datatable.unlinked',
-        severity: 'warning',
-        path: e.layerKey ? `layers.${e.layerKey}.steps.${e.stepId || ''}` : `steps.${e.stepId || ''}`,
-        message: e.message,
-        hint: e.datatableId ? 'A table key travels with an exported automation; the table it names here is yours.' : 'Open the step in the builder and pick a table.',
-    }));
+    const datatableFindings = (stepIdOf = (_layer, id) => id) => datatableEntries.map(e => {
+        const stepId = stepIdOf(e.layerKey, e.stepId) || '';
+        return {
+            code: e.datatableId ? 'datatable.relinked' : 'datatable.unlinked',
+            severity: 'warning',
+            path: e.layerKey ? `layers.${e.layerKey}.steps.${stepId}` : `steps.${stepId}`,
+            message: e.message,
+            hint: e.datatableId ? 'A table key travels with an exported automation; the table it names here is yours.' : 'Open the step in the builder and pick a table.',
+        };
+    });
 
     const v = validateDefinition(incoming.definition);
     // The datatable findings ride along on the failure too: without them a
     // automation that could not be re-linked is refused with "pick which
-    // datatable to use" and nothing that says which one it wanted.
-    if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: [...v.errors, ...datatableFindings] });
+    // datatable to use" and nothing that says which one it wanted. A refused
+    // file is reported in the ids the file itself uses.
+    if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: [...v.errors, ...datatableFindings()] });
+
+    // Fresh step ids per graph (root + each inline layer) so importing
+    // the same file twice never collides and crafted ids can't alias
+    // existing drafts' replay data. Done BEFORE the findings below, which
+    // describe the draft as it is STORED: a reference the rename missed used
+    // to land as a broken draft with nothing said, because only the
+    // pre-rename copy was ever validated.
+    const { definition, renameMap } = rekeyDefinition(incoming.definition);
+    const renamedId = (layerKey, id) => {
+        const map = layerKey ? renameMap?.layers?.[layerKey] : renameMap?.root;
+        return map && Object.prototype.hasOwnProperty.call(map, id) ? map[id] : id;
+    };
 
     // Catalog-aware pass — same construction as the activate route
     // (permission-based, fail-open). Because the catalog-free pass above
     // already succeeded, everything this pass flags is a tool-availability /
     // required-param / deliverability finding: surfaced as warnings so the
     // user knows which integrations they still need to connect.
-    let warnings = v.warnings || [];
+    // Fallback when the catalog cannot be built: the stored draft, catalog-free.
+    // Its errors are warnings here (the draft lands inactive; activate re-checks).
+    const stored = definition === incoming.definition ? v : validateDefinition(definition);
+    let warnings = [...(stored === v ? [] : stored.errors || []), ...(stored.warnings || [])];
     try {
         const { getUserPermittedApps } = require('../../core/integrations/integrationTools');
         const permitted = await getUserPermittedApps({ userId, session: req.session, isAdmin: !!req.session?.isAdmin });
@@ -849,7 +869,7 @@ router.post('/import', importLimiter, async (req, res) => {
                 if (Array.isArray(rq)) toolRequiredParams[name] = rq;
             }
         }
-        const v2 = validateDefinition(incoming.definition, {
+        const v2 = validateDefinition(definition, {
             availableTools, toolRequiredParams, deliverableEvents: getDeliverableEvents(),
         });
         warnings = [...(v2.errors || []), ...(v2.warnings || [])];
@@ -860,12 +880,8 @@ router.post('/import', importLimiter, async (req, res) => {
     // built. Non-blocking, like every other import finding: the draft lands
     // inactive and activate re-checks — but the author is told now, while
     // they still remember what the automation was supposed to read.
-    warnings = [...warnings, ...await kbFindingsFor(incoming.definition, req, req.session.user.id, 'draft')];
+    warnings = [...warnings, ...await kbFindingsFor(definition, req, req.session.user.id, 'draft')];
 
-    // Fresh step ids per graph (root + each inline layer) so importing
-    // the same file twice never collides and crafted ids can't alias
-    // existing drafts' replay data.
-    const { definition } = rekeyDefinition(incoming.definition);
     // En de back-pointer naar een app-knop eraf — DEZELFDE regel als bij
     // export, nu ook op de weg naar binnen. `buildExport` haalde hem weg,
     // dus een echt geëxporteerd bestand heeft er geen; een met de hand
@@ -916,7 +932,7 @@ router.post('/import', importLimiter, async (req, res) => {
     await syncKbSources(a.id, definition, { userId: req.session.user.id, title: a.title });
     // Appended LAST because the catalog pass above reassigns `warnings`
     // wholesale — pushing them earlier would drop every one of them.
-    res.json({ automation: a, warnings: [...warnings, ...datatableFindings] });
+    res.json({ automation: a, warnings: [...warnings, ...datatableFindings(renamedId)] });
 });
 
 // The caller's trash (handoff 5). A literal, so it sits above GET /:id.

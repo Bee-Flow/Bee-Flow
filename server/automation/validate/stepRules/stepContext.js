@@ -9,6 +9,7 @@
  */
 
 const { isObject } = require('../helpers');
+const { inferAiStepOutputSchema, collectAiStepOutputReads } = require('../../../core/automationRunner/aiOutputInference');
 
 /**
  * Build the context for ONE graph. The caller's bindings are carried through
@@ -32,61 +33,72 @@ function createStepContext({
             .map(s => [s.id, s]),
     );
 
-    /**
-     * Which FIELDS of `stepId`'s output other steps actually read. Two shapes
-     * count: a direct `steps.<id>.output.<field>`, and — the one that matters
-     * for a fan-out — `loop.<itemVar>.output.<field>` inside a step whose
-     * forEach iterates `steps.<id>.output.results`. The fan-out wrapper's own
-     * keys are not model fields and are filtered out.
-     */
+    // The fan-out wrapper's own keys: not model fields, never reported as a
+    // field read (see fieldsReadFromStep below).
     const FANOUT_KEYS = new Set(['results', 'iterations', 'succeeded', 'failed', 'truncated', 'totalItems', 'error', 'item', 'index', 'status']);
     // `loopVarsAbove` — for every step, the itemVars of the loops whose body
     // it sits in (outermost first). A top-level step has none; only its own
     // forEach binds a loop.<var> for it.
     const loopVarsAbove = new Map();
-    const flatSteps = (() => {
-        const out = [];
-        const walk = (list, above) => {
-            for (const s of (Array.isArray(list) ? list : [])) {
-                if (!isObject(s)) continue;
-                out.push(s);
-                loopVarsAbove.set(s, above);
-                if (Array.isArray(s.body)) walk(s.body, s.type === 'loop' && typeof s.itemVar === 'string' ? [...above, s.itemVar] : above);
-                // parallel.branches: each branch is a flat list of steps that
-                // inherits the loop vars of whatever body the parallel sits in.
-                if (Array.isArray(s.branches)) for (const b of s.branches) walk(Array.isArray(b) ? b : (Array.isArray(b?.steps) ? b.steps : []), above);
-            }
-        };
-        walk(graph?.steps, []);
-        return out;
-    })();
-    // The fields later steps read off a step's output, in two shapes: the
-    // direct `steps.<id>.output.<f>` reference (`all`) and, separately, the
-    // fan-out `loop.<itemVar>.output.<f>` read by a step iterating over its
-    // results (`viaLoop`, also in `all`). The two are told apart because
-    // execAi.js infers an ai_step's schema from the direct refs only
-    // (collectAiStepOutputFields has no `loop.` scan).
+    const walkLoopVars = (list, above) => {
+        for (const s of (Array.isArray(list) ? list : [])) {
+            if (!isObject(s)) continue;
+            loopVarsAbove.set(s, above);
+            if (Array.isArray(s.body)) walkLoopVars(s.body, s.type === 'loop' && typeof s.itemVar === 'string' ? [...above, s.itemVar] : above);
+            // parallel.branches: each branch is a flat list of steps that
+            // inherits the loop vars of whatever body the parallel sits in.
+            if (Array.isArray(s.branches)) for (const b of s.branches) walkLoopVars(Array.isArray(b) ? b : (Array.isArray(b?.steps) ? b.steps : []), above);
+        }
+    };
+    walkLoopVars(graph?.steps, []);
+    // The fields later steps read off a step's output, in two shapes: every
+    // field read straight off it (`all`) and, separately, the fields read
+    // through a fan-out's envelope (`viaLoop`, also in `all`):
+    // `loop.<item>.output.<f>` in a step iterating its `results`, or
+    // `results[*].output.<f>` / `results[0].output.<f>`. For a per-item step
+    // only the second shape is served — its output is the list of answers.
+    //
+    // The reads are the ones the runner infers a schemaless step's schema
+    // from (aiOutputInference.collectAiStepOutputReads), so a warning here and
+    // the schema the run asks for cannot disagree: the shared path grammar for
+    // paths and templates (`output["Total (EUR)"]`, `steps["ex1"]…`), the
+    // expression parser for formulas (`count-1` there reads `count`, minus
+    // one), and never a label, a description or a pinned sample. The step's
+    // own forEach is set aside for the read, so a field read straight off a
+    // per-item step is seen too; the envelope is unwrapped here.
+    const fieldsCache = new Map();
+    const firstField = (t) => (t && t.type === 'prop' && typeof t.key === 'string' && !/^-?[0-9]+$/.test(t.key) ? t.key : null);
+    const isElement = (t) => !!t && (t.type === 'wild' || t.type === 'match' || (t.type === 'prop' && (typeof t.key === 'number' || /^-?[0-9]+$/.test(t.key))));
     const fieldsReadFromStep = (stepId) => {
-        const esc = (t) => String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (fieldsCache.has(stepId)) return fieldsCache.get(stepId);
+        const asOneRun = {
+            ...graph,
+            steps: (Array.isArray(graph?.steps) ? graph.steps : []).map(s => (isObject(s) && s.id === stepId && s.forEach ? { ...s, forEach: undefined } : s)),
+        };
         const found = new Set();
         const viaLoop = new Set();
-        const scan = (text, prefix, into) => {
-            const re = new RegExp(`${esc(prefix)}\\.([A-Za-z_$][\\w$]*)`, 'g');
-            let m;
-            while ((m = re.exec(text)) !== null) if (!FANOUT_KEYS.has(m[1])) { found.add(m[1]); if (into) into.add(m[1]); }
-        };
-        for (const s of flatSteps) {
-            if (s.id === stepId) continue;
-            let text;
-            try { text = JSON.stringify(s); } catch (_) { continue; }
-            if (!text) continue;
-            scan(text, `steps.${stepId}.output`, null);
-            const over = isObject(s.forEach) ? s.forEach.overRef : null;
-            if (typeof over === 'string' && new RegExp(`^steps\\.${esc(stepId)}\\.output(\\.results)?$`).test(over.trim())) {
-                scan(text, `loop.${s.forEach.itemVar || 'item'}.output`, viaLoop);
+        for (const { tokens } of collectAiStepOutputReads(asOneRun, stepId)) {
+            const [r, el, out, f] = tokens;
+            if (firstField(r) === 'results' && isElement(el) && out && out.type === 'prop' && out.key === 'output' && firstField(f)) {
+                found.add(f.key);
+                viaLoop.add(f.key);
+                continue;
             }
+            const name = firstField(r);
+            if (name && !FANOUT_KEYS.has(name)) found.add(name);
         }
-        return { all: [...found], viaLoop: [...viaLoop] };
+        const res = { all: [...found], viaLoop: [...viaLoop] };
+        fieldsCache.set(stepId, res);
+        return res;
+    };
+
+    // The schema the RUNNER will ask a schemaless step for, inferred from how
+    // later steps read it (execAi uses the same function), so a finding can
+    // show the real nested shape instead of guessing it. Memoised per step.
+    const inferredCache = new Map();
+    const inferredOutputOf = (stepId) => {
+        if (!inferredCache.has(stepId)) inferredCache.set(stepId, inferAiStepOutputSchema(graph, stepId));
+        return inferredCache.get(stepId);
     };
 
     const outgoingLabelsFor = (stepId) => {
@@ -102,7 +114,7 @@ function createStepContext({
     return {
         graph, trigger, ids, seenSoFar, pushE, pushW,
         availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier, isContractScope,
-        stepsById, loopVarsAbove, fieldsReadFromStep, outgoingLabelsFor,
+        stepsById, loopVarsAbove, fieldsReadFromStep, inferredOutputOf, outgoingLabelsFor,
     };
 }
 
