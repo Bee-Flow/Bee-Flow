@@ -14,8 +14,9 @@
 
 import {
     aggregateSummary, approvalSummary, dataExtractionSummary, datatableSummary, dateTimeSummary, dedupeSummary,
-    fillDocumentSummary, generateDocumentSummary, humanizeExpression, humanizeToolName, knowledgeWriteSummary, limitSummary,
-    nodeDefaultLabel, presentationSummary, readRoute, ROUTE_STEP_NAME, SET_STEP_NAME, slideSummary, summarizeSummary, waitSummary,
+    fillDocumentSummary, flattenSummary, generateDocumentSummary, humanizeExpression, humanizeToolName,
+    knowledgeWriteSummary, limitSummary, nodeDefaultLabel, presentationSummary, readRoute, ROUTE_STEP_NAME, SET_STEP_NAME,
+    slideSummary, summarizeSummary, waitSummary,
     type AnyNode, type Summary, type Translate,
 } from '@/features/flow-editor/model';
 import { triggerName, triggerSummary } from '@/features/flow-editor/model/outline';
@@ -214,6 +215,7 @@ const SUMMARIES: Record<string, Summariser> = {
     dedupe: (s, ctx) => namedList(dedupeSummary(s, { stepLabelById: labels(ctx) }), s, ctx),
     aggregate: (s, ctx) => namedList(aggregateSummary(s, { stepLabelById: labels(ctx) }), s, ctx),
     summarize: (s, ctx) => namedList(summarizeSummary(s, { stepLabelById: labels(ctx) }), s, ctx),
+    flatten: (s, ctx) => flattenSummary(s, { stepLabelById: labels(ctx), t: ctx.t }),
     datatable: (s, ctx) => datatableSummary(s, { tableNameById: ctx.tableNameById ?? null }),
     knowledge_write: (s, ctx) => knowledgeWriteSummary(s, { kbNameById: ctx.kbNameById ?? null }),
     datetime: (s) => dateTimeSummary(s),

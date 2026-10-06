@@ -35,6 +35,11 @@ const VERBS: Readonly<Record<string, readonly [string, string]>> = {
     builder_propose_plan: ['automations.builder.act.plan', 'Updated the plan'],
 };
 
+/** `builder_add_array_op` ops with a word of their own while no step names them yet. */
+const ARRAY_OP_VERBS: Readonly<Record<string, readonly [string, string]>> = {
+    flatten: ['flatten_node.activity', 'Flattening a list'],
+};
+
 /** The app behind a tool ("Gmail"), or null when the caller cannot say. */
 export type AppLabel = (tool: string | null) => string | null;
 
@@ -78,11 +83,13 @@ function stepsOf(added: readonly BuilderAddedStep[], t: Translate, appLabel: App
     return added.map((s) => ({ id: s.id ?? null, type: str(s.type), tool: str(s.tool), family: typeGroupOf(str(s.type)), title: stepTitle(s, t, appLabel) }));
 }
 
-function titleFor(name: string, type: string | null, t: Translate): string {
+function titleFor(name: string, type: string | null, t: Translate, op: string | null = null): string {
     if (type) {
         const label = nodeTypeLabel(type, t);
         if (label) return label;
     }
+    const opVerb = name === 'builder_add_array_op' && op && Object.hasOwn(ARRAY_OP_VERBS, op) ? ARRAY_OP_VERBS[op] : undefined;
+    if (opVerb) return t(opVerb[0], opVerb[1]);
     const verb = VERBS[name];
     if (verb) return t(verb[0], verb[1]);
     // A tool added next month degrades to something readable, never a blank row.
@@ -111,7 +118,7 @@ export function describeToolCall(call: BuilderToolCall, t: Translate, appLabel: 
     const added = call.added?.[0] ?? null;
     const type = added ? str(added.type) : null;
     return {
-        title: titleFor(name, type, t),
+        title: titleFor(name, type, t, str(call.op)),
         detail: (added && str(added.label)) || '',
         type,
         family: type ? typeGroupOf(type) : null,

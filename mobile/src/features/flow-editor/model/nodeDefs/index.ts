@@ -45,7 +45,7 @@ const ORDER = [
     'trigger', 'ai_step', 'data_extraction', 'integration_action', 'condition', 'switch', 'filter', 'loop',
     'wait', 'stop_error', 'return_to_app', 'notification', 'form_page', 'guard', 'tokenize', 'untokenize',
     'set', 'datetime', 'http_request', 'generate_document', 'slide', 'presentation', 'fill_document',
-    'parse_json', 'code', 'limit', 'datatable', 'knowledge_write', 'dedupe', 'aggregate', 'summarize',
+    'parse_json', 'code', 'limit', 'datatable', 'knowledge_write', 'dedupe', 'flatten', 'aggregate', 'summarize',
     'note', 'call_layer', 'call_block', 'layer_output', 'approval', 'parallel',
     'loop_item', 'ai_tool', 'row_label', 'ghost_step',
 ] as const;

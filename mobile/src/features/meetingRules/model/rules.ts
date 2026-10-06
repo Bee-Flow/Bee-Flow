@@ -75,7 +75,7 @@ const DATATABLE_READ_OPS = new Set(['find_rows', 'count_rows']);
 /** Step kinds that change nothing outside the run (see the web file for each one's reason). */
 const NO_OUTWARD_EFFECT = new Set([
     'trigger', 'note',
-    'condition', 'switch', 'guard', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize',
+    'condition', 'switch', 'guard', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten',
     'set', 'datetime', 'parse_json', 'wait',
     'tokenize', 'untokenize',
     'loop', 'parallel', 'call_layer', 'layer_output',

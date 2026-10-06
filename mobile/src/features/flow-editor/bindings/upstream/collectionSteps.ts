@@ -10,7 +10,7 @@
 import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
 import { SET_STEP_NAME } from '@/features/flow-editor/model/stepDisplayName';
-import { appendKey } from '@/shared/expr';
+import { appendKey, flattenShape, type FlattenStepLike } from '@/shared/expr';
 
 import { datetimeTargetColumn, isDateTimeListMode } from '../flowDeps/datetimeTarget';
 import { applyOpsToSampleRow } from '../flowDeps/setOperations';
@@ -101,6 +101,19 @@ export function describeDedupe(node: FlowNode, sampleRoot: unknown = null): Vari
     const sample = { items: element != null ? [element] : [], removed: 0 };
     const label = node.label || nodeDefaultLabel('dedupe', t);
     return stepGroup(node, { label, kind: 'collection' }, sample, collectionItemsFields(node, element, sample));
+}
+
+/**
+ * Flatten a list (F46): one row per inner item, the merged row of the shared
+ * `flattenShape` (child fields, then the planned parent fields) under `items`,
+ * plus the three counts. Exactly what the runner's `flattenRows` makes.
+ */
+export function describeFlatten(node: FlowNode, sampleRoot: unknown = null): VariableGroup {
+    const row = node.arrayRef ? flattenShape(sampleRoot, { ...node, arrayRef: node.arrayRef } as FlattenStepLike) : null;
+    const hasRow = isObj(row) && Object.keys(row).length > 0;
+    const sample = { items: hasRow ? [row] : [], count: 0, inputCount: 0, emptyCount: 0 };
+    const label = node.label || nodeDefaultLabel('flatten', t);
+    return stepGroup(node, { label, kind: 'collection' }, sample, collectionItemsFields(node, hasRow ? row : null, sample));
 }
 
 export function describeAggregate(node: FlowNode, sampleRoot: unknown = null): VariableGroup {

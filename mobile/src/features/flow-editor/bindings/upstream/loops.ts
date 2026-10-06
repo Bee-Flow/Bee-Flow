@@ -11,7 +11,7 @@
  */
 
 import { translate as t } from '@/core/i18n';
-import { appendKey, appendWildcard, getPath, parsePath, walkTokens } from '@/shared/expr';
+import { appendKey, appendWildcard, getPath, listNounKey, parsePath, singularKey, walkTokens } from '@/shared/expr';
 
 import { asValue, firstItemOver, isRecord, mergeElementSamples } from '../deepFields';
 import type { FlowDefinition, FlowNode, ToolOutputMap, VariableField, VariableGroup } from '../types';
@@ -258,27 +258,22 @@ export function inferLoopItemSample(
 
 const RESERVED_VARS = new Set(['true', 'false', 'null', '_index']);
 
-function singular(s: string): string {
-    if (/ies$/.test(s)) return s.slice(0, -3) + 'y';
-    // "-es" is a plural ending only after s/x/z/ch/sh: "lines" → "line", not "lin".
-    if (/(ss|x|z|ch|sh)es$/.test(s)) return s.slice(0, -2);
-    if (/(ss|us|is)$/.test(s)) return s;
-    if (/s$/.test(s) && s.length > 2) return s.slice(0, -1);
-    return s;
-}
-
 /**
  * `results` → `result`, `categories` → `category`: a loop variable name, and
  * always an identifier (`line-items` / `Line Items` → `line_item`), because it
  * becomes `loop.<name>` and `loop.line-item` reads as nothing at run time.
+ * Given the `definition` and the list `path`, the rows of a step's `items` are
+ * named by what they are (listNounKey, F47): after a flatten, or a filter over
+ * one, `attachments` → `attachment`, not `item`.
  */
-export function suggestItemVar(key: unknown): string {
-    const s = String(key ?? '').trim();
+export function suggestItemVar(key: unknown, definition: FlowDefinition | null = null, path: string | null = null): string {
+    const noun = definition && path ? listNounKey(definition, path) : null;
+    const s = String(noun || (key ?? '')).trim();
     if (!s) return 'item';
     const words = s.split(/[^A-Za-z0-9_]+/).filter(Boolean);
     if (!words.length) return 'item';
     const plain = words.length === 1 && words[0] === s;
-    const last = singular(words[words.length - 1] as string);
+    const last = singularKey(words[words.length - 1] as string);
     let name = plain ? last : [...words.slice(0, -1), last].join('_').toLowerCase();
     name = name.replace(/^_+|_+$/g, '') || 'item';
     if (/^[0-9]/.test(name)) name = `item_${name}`;

@@ -196,6 +196,7 @@ const NL_TRANSLATIONS = [
     'add-nl-notebooks-as-documents-translations', // A notebook as a document type: in the Documents library, and the notebook workspace's header and sources rail
     'add-nl-spreadsheet-documents-translations', // Spreadsheets in Documents: the type in the library and gallery, the grid editor and its formula errors
     'add-nl-condition-node-translations', // Condition node: rule rows, File type, outputs and Otherwise, Suggest outputs, follow-the-route and whole-list notices, Filter a list
+    'add-nl-flatten-node-translations', // Flatten a list: the step card, Simple editor sentences, Choose fields, More options, run sentences
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

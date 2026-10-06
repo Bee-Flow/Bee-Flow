@@ -27,6 +27,10 @@ const {
     sanitizeAgentId, sanitizeSkillIds, sanitizeAgentPermissions, sanitizeDisabledAgentSkillIds, agentPermissionsBlock, unknownToolError,
     sanitizeSwitchCases,
 } = require('./stepBuilders');
+const { patchFlatten } = require('./stepBuilders/flattenStep');
+
+// A flatten's route and column plan: re-planned together, never merged key by key.
+const FLATTEN_PLANNED_KEYS = ['arrayRef', 'parents', 'childField', 'keepFields'];
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS } = require('../validate/constants');
 const { followAddedSteps, followPatchedRoute, followReplacedRoute } = require('./routeFollowDraft');
 const {
@@ -110,6 +114,9 @@ const PATCHABLE_FIELDS = {
     dedupe: ['arrayRef', 'keyField', 'label'],
     aggregate: ['arrayRef', 'field', 'label'],
     summarize: ['arrayRef', 'field', 'op', 'label'],
+    // childField and keepFields are the add tool's sugar: they re-plan the
+    // columns (flattenStep.patchFlatten) and are never stored.
+    flatten: ['arrayRef', 'parents', 'keepEmpty', 'maxItems', 'label', 'childField', 'keepFields'],
     call_layer: ['inputs', 'label'],   // layerKey change = builder_replace_step (recursion guard re-runs)
     // `datatableId` is patchable ONLY onto a step that has none — see the
     // fill-only guard in applyUpdateStep. Repointing a BOUND step at a
@@ -326,6 +333,10 @@ function normalizePatchField(type, key, value) {
         }
     }
     if (type === 'dedupe' && key === 'keyField') return typeof value === 'string' ? value : undefined;
+    if (type === 'flatten') {
+        if (key === 'keepEmpty') return value === true ? true : undefined;
+        if (key === 'maxItems') return (Number.isInteger(value) && value > 0) ? value : undefined;
+    }
     if (type === 'note') {
         // Same clamps applyAddNote uses, so a patched note is byte-identical
         // to a freshly-added one — text/size never land oversized, an unknown
@@ -781,10 +792,16 @@ function applyUpdateStep(graph, args, draftWrap) {
         if (step.type === 'set' && k === 'operations') continue; // handled wholesale above
         if (step.type === 'datatable' && (k === 'values' || k === 'where')) continue; // canonicalized above
         if (step.type === 'data_extraction' && k === 'source') continue; // canonicalized above
+        if (step.type === 'flatten' && FLATTEN_PLANNED_KEYS.includes(k)) continue; // patchFlatten below
         if (!(k in patch)) continue;
         const norm = normalizePatchField(step.type, k, k in checked ? checked[k] : patch[k]);
         if (norm === undefined) { if (k !== 'label') delete next[k]; }
         else next[k] = norm;
+    }
+
+    if (step.type === 'flatten') {
+        const err = patchFlatten(graph, next, { ...patch, ...('arrayRef' in checked ? { arrayRef: checked.arrayRef } : {}) }, draftWrap);
+        if (err) return { error: err };
     }
 
     // set cross-field integrity after the patch lands — the validator would

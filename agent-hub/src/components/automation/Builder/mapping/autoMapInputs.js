@@ -9,6 +9,7 @@
  * is trivially reversible — so a wrong guess is cheap, but we avoid them.
  */
 
+import { autoMapFlatten } from './autoMapFlatten';
 import { firstKeyIsDiagnostic, sampleType, tryIterationMapping, typeCompatible } from './autoMapIteration';
 import { listColumnPatch } from './autoMapListInput';
 import { ownItemIdPatch } from './autoMapOwnItem';
@@ -270,7 +271,7 @@ export function autoMapStep(step, definition, catalog, opts = {}) {
         // on each contact), so the columns come only when it runs once.
         const inputs = step.inputs || {};
         const single = autoMapInputs(schema, inputs, groups, { ...opts, listColumns: false });
-        const iter = step.forEach ? null : tryIterationMapping(schema, { ...inputs, ...single }, groups, isDiagnosticOutputKey);
+        const iter = step.forEach ? null : tryIterationMapping(schema, { ...inputs, ...single }, groups, { isDiagnostic: isDiagnosticOutputKey, definition });
         const patch = iter ? single : autoMapInputs(schema, inputs, groups, opts);
         let nextInputs = { ...inputs, ...patch };
         let keys = Object.keys(patch);
@@ -375,6 +376,7 @@ export function autoMapStep(step, definition, catalog, opts = {}) {
         return { step: { ...step, arrayRef: ref }, mappedKeys: ['arrayRef'] };
     }
 
+    if (type === 'flatten') return autoMapFlatten(step, groups);
     if (['filter', 'limit', 'dedupe', 'aggregate', 'summarize'].includes(type)) {
         // Scaffold-aware like the loop branch above: the old `if (step.arrayRef)`
         // guard bailed on ANY truthy value, and the palette always seeded the

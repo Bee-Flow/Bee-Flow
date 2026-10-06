@@ -39,6 +39,7 @@ export * from './stepDisplayName';
 export * from './waitDuration';
 export * from './schedule';
 export * from './nodeSummaries';
+export * from './flattenStep';
 export {
     actionDisplayLabel, buildStepLabelMap, buildStepTypeMap, describeRuleExpr, humanizeExpression, humanizeFieldKey, humanizeFieldTail, humanizeToolName, ruleSentence,
 } from './displayHelpers';

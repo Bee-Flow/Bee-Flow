@@ -54,6 +54,8 @@ export interface OutputViewProps {
     usedFields?: readonly string[];
     /** The step's name, for the large view's title. */
     stepLabel?: string | null;
+    /** Columns the suggestion shows after the name although no step reads them yet. */
+    promote?: readonly string[];
 }
 
 export default function OutputView(props: OutputViewProps) {
@@ -78,7 +80,7 @@ const NO_FIELDS: readonly string[] = [];
 function OutputBody({
     value: raw, emptyMessage = 'No output.', basePath = '', onCopyPath = null,
     fill = false, enableDrag = false, onPickPath = null, allowExpand = null,
-    fieldsView = false, smartTable = false, columnsKey = null, usedFields = NO_FIELDS, stepLabel = null,
+    fieldsView = false, smartTable = false, columnsKey = null, usedFields = NO_FIELDS, stepLabel = null, promote = NO_FIELDS,
 }: OutputViewProps) {
     const { t } = useTranslation();
     // An output that is JSON text (an AI answer in a ```json fence, a body
@@ -87,7 +89,7 @@ function OutputBody({
     const value = useMemo(() => shownAs(raw), [raw]);
     const structured = value !== null && typeof value === 'object';
     const smartRows = useMemo(() => (smartTable ? smartRowsOf(value) : null), [smartTable, value]);
-    const cols = useOutputColumns(smartRows ?? NO_ROWS, smartRows ? columnsKey : null, usedFields);
+    const cols = useOutputColumns(smartRows ?? NO_ROWS, smartRows ? columnsKey : null, usedFields, promote);
     // The large view: on one row's details, or (`open`) straight on the list
     // that row holds in that column.
     const [wide, setWide] = useState<{ row: number | null; open?: string } | null>(null);

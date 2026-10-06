@@ -527,6 +527,18 @@ export const NODE_DEFS = {
             map: { label: FLAT, arrayRef: 'config', field: 'config', keyField: 'config', maxItems: 'config' },
         },
     },
+    flatten: {
+        family: 'data',
+        typeLabel: 'Flatten a list', defaultLabel: 'Flatten a list',
+        label: 'Flatten a list', desc: 'One row for every item of a list inside a list, such as one row per attachment with its email\'s details.',
+        help: 'Turns a list inside a list into one table. Each row is one inner item, such as an attachment, with the details of the item it came from, such as the email.',
+        sectionKeys: ['config', 'more'],
+        simpleSections: ['config'],
+        issueSections: {
+            fallback: 'config',
+            map: { label: FLAT, arrayRef: 'config', parents: 'config', keepEmpty: 'more', maxItems: 'more' },
+        },
+    },
     aggregate: {
         family: 'data',
         typeLabel: 'Collect one field', defaultLabel: 'Collect one field',
@@ -669,21 +681,25 @@ const read = (type, field, t) => {
 };
 
 /** What KIND of node this is — the node editor's heading. */
+/** @param {string | null | undefined} type @param {any} [t] */
 export function nodeTypeLabel(type, t = null) {
     return read(type, 'typeLabel', t);
 }
 
 /** The name a freshly dropped node of this type gets. */
+/** @param {string | null | undefined} type @param {any} [t] */
 export function nodeDefaultLabel(type, t = null) {
     return read(type, 'defaultLabel', t);
 }
 
 /** One or two plain sentences: what does this node do? */
+/** @param {string | null | undefined} type @param {any} [t] */
 export function nodeHelp(type, t = null) {
     return read(type, 'help', t);
 }
 
 /** The palette's invitation to pick this node (absent for types you can't add). */
+/** @param {string | null | undefined} type @param {any} [t] */
 export function nodeLabel(type, t = null) {
     return read(type, 'label', t);
 }

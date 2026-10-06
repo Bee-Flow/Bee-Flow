@@ -1,3 +1,4 @@
+import { childNounOf, joinKey, normalizeFlattenRoute } from '@shared/expr/flatten.mjs';
 import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';
 import { kindOfValue as kindOfValueJs } from '../mapping/fieldKinds';
 import { isPlainObject } from './valueHelpers';
@@ -169,20 +170,29 @@ const leafOf = (key: string) => (key.split('.').pop() || key).replace(/\[[^\]]*\
  */
 const HEADLINE_KEYS = new Set(['from', 'sender', 'author', 'owner', 'customer', 'requester', 'assignee', 'organizer', 'createdby', 'contact', 'client', 'supplier', 'vendor']);
 
+export interface SuggestOptions {
+    max?: number;
+    usedFields?: readonly string[];
+    /** Keys shown right after the name even when technical: a flatten's ids (F50). */
+    promote?: readonly string[];
+}
+
 /**
  * The default columns, at most `max`: the name or number column first, then
- * a per-item step's Problem column, a date, an amount, a status, every field
- * a next step uses and who it is from or about, filled up with the remaining
- * readable columns in the data's own order. Technical and aside columns
- * never make the suggestion.
+ * the promoted columns, a per-item step's Problem column, a date, an amount,
+ * a status, every field a next step uses and who it is from or about, filled
+ * up with the remaining readable columns in the data's own order. Technical
+ * and aside columns never make the suggestion unless promoted.
  */
-export function suggestColumns(cols: OutputColumn[], { max = 7, usedFields = [] }: { max?: number; usedFields?: readonly string[] } = {}): string[] {
+export function suggestColumns(cols: OutputColumn[], { max = 7, usedFields = [], promote = [] }: SuggestOptions = {}): string[] {
     const first = nameColumn(cols);
     if (!first) return [];
     const visible = cols.filter(c => !isAside(c));
     const pool = visible.filter(c => !c.technical);
     const readable = pool.length ? pool : visible;
+    const promoted = promote.map(k => visible.find(c => c.key === k)).filter((c): c is OutputColumn => !!c && c.key !== first.key);
     const picks = new Set<string>([first.key]);
+    for (const c of promoted) if (picks.size < max) picks.add(c.key);
     const used = new Set(usedFields.map(norm));
     const priority = [
         readable.find(c => c.perItem === 'problem'),
@@ -194,9 +204,28 @@ export function suggestColumns(cols: OutputColumn[], { max = 7, usedFields = [] 
     ];
     for (const c of priority) if (c && picks.size < max) picks.add(c.key);
     for (const c of readable) if (picks.size < max) picks.add(c.key);
-    const rest = readable.filter(c => c.key !== first.key && picks.has(c.key));
+    const ordered = [...promoted, ...readable.filter(c => !promoted.includes(c))];
+    const rest = ordered.filter(c => c.key !== first.key && picks.has(c.key));
     const problems = rest.filter(c => c.perItem === 'problem');
     return [first, ...problems, ...rest.filter(c => c.perItem !== 'problem')].map(c => c.key);
+}
+
+/**
+ * The columns a flatten's table shows by default although they look
+ * technical (F50): `<child>Id` and each parent's own id (the planned `to` of
+ * its `id`), so Attachment id and Message id are on screen. Other ids, such
+ * as Thread id, are left to the ordinary suggestion: they would push the
+ * readable mail fields off a narrow table. Empty for any other step.
+ */
+export function flattenPromotedKeys(step: { type?: unknown; arrayRef?: unknown; parents?: unknown } | null | undefined): string[] {
+    if (!step || step.type !== 'flatten') return [];
+    const route = normalizeFlattenRoute(step.arrayRef);
+    if (!route) return [];
+    const levels = Array.isArray(step.parents) ? step.parents : [];
+    const tos = levels.flatMap(p => (Array.isArray(p?.fields) ? p.fields : []))
+        .filter(f => f?.from === 'id' && typeof f?.to === 'string')
+        .map(f => f.to as string);
+    return [...new Set([joinKey(childNounOf(route), 'id'), ...tos])];
 }
 
 /** Keys only the per-item envelope itself had: a flattened per-item table never has a column by these names. */
@@ -228,6 +257,6 @@ export function keptChoice(cols: OutputColumn[], prefs: ColumnPrefs): string[] |
 }
 
 /** The columns on screen: the person's own choice when there is one (keptChoice), else the suggestion. */
-export function resolveShown(cols: OutputColumn[], prefs: ColumnPrefs, opts: { max?: number; usedFields?: readonly string[] } = {}): string[] {
+export function resolveShown(cols: OutputColumn[], prefs: ColumnPrefs, opts: SuggestOptions = {}): string[] {
     return keptChoice(cols, prefs) ?? suggestColumns(cols, opts);
 }

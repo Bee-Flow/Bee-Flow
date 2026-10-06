@@ -56,6 +56,7 @@ const NAMESPACES = {
     "egress_map":      require('./egress_map.js'),
     "encryption":      require('./encryption.js'),
     "error":           require('./error.js'),
+    "flatten_node":    require('./flatten_node.js'),
     "forms":           require('./forms.js'),
     "greet":           require('./greet.js'),
     "integ":           require('./integ.js'),

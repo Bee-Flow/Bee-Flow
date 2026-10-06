@@ -121,6 +121,45 @@ export type { RouteDefinition, RouteRebound } from './vendor/index.mjs';
 
 // A path as a person reads it (vendor/pathLabel.mjs), shared with the web builder.
 export { listPathLabel } from './vendor/index.mjs';
+// Lists inside lists (vendor/nested.mjs) and "Flatten a list" (vendor/flatten.mjs):
+// the levels a list holds, the rows of a route, and a flatten's column plan,
+// rows and run sentence, exactly as the server runs them.
+export {
+    GENERIC_KEYS,
+    LONG_TEXT_CHARS,
+    LONG_TEXT_KEYS,
+    RESERVED_VARS,
+    asRows,
+    checkFlattenParents,
+    childNounOf,
+    childVarOf,
+    defaultParents,
+    flattenPlan,
+    flattenRows,
+    flattenSentenceParts,
+    flattenShape,
+    itemVarFor,
+    joinKey,
+    lastKey,
+    listNounKey,
+    nestedRows,
+    normalizeFlattenRoute,
+    routeFromParts,
+    routeLevels,
+    splitRoute,
+} from './vendor/index.mjs';
+export type {
+    FlattenField,
+    FlattenFieldMode,
+    FlattenOutput,
+    FlattenParent,
+    FlattenPlan,
+    FlattenSentenceParts,
+    FlattenStepLike,
+    NestedRow,
+    NestedRows,
+    RouteLevel,
+} from './vendor/index.mjs';
 
 /** What `checkExpr` says about an expression, without running it. */
 export type ExprCheck =

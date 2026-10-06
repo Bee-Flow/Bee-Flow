@@ -16,7 +16,7 @@ describe('stepPalette — Filter a list', () => {
     it('is the first of the list operations', () => {
         expect(COLLECTION_ITEMS[0]).toBe(FILTER_LIST_ITEM);
         const ids = dataSection().items.map(i => i.id);
-        expect(ids.indexOf('filter_list')).toBe(ids.indexOf('limit') - 1);
+        expect(ids.indexOf('filter_list')).toBe(ids.indexOf('flatten') - 1);
     });
 
     it('says what it does in its own words', () => {

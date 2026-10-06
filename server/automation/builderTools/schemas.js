@@ -1170,7 +1170,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_array_op',
-            description: `Append an array operation step. Single entry point for filter / limit / dedupe / aggregate / summarize — pick \`op\` and supply the matching fields. This is the ONLY array tool in the menu.
+            description: `Append an array operation step. Single entry point for filter / limit / dedupe / aggregate / summarize / flatten — pick \`op\` and supply the matching fields. This is the ONLY array tool in the menu.
 
 OPS:
   - filter:    keep items matching expr.    Required: arrayRef, expr.        Output: { items, count }.
@@ -1178,6 +1178,7 @@ OPS:
   - dedupe:    drop duplicates.             Required: arrayRef.               Optional: keyField (dedup by that field; else deep equality). Output: { items, removed }.
   - aggregate: pull one field across items. Required: arrayRef, field.       Output: { values, count }.
   - summarize: numeric stats over a field.  Required: arrayRef, field, fn.   fn ∈ sum|count|avg|min|max. Output: { result, op, count }.
+  - flatten:   one row per item of a list inside each item, with the outer item's fields on every row. Required: arrayRef (the outer list), childField (the list inside each item). Optional: keepFields (outer fields to copy; default: the short ones), keepEmpty. Output: { items, count, inputCount, emptyCount }.
 
 arrayRef is a path string (e.g. "steps.search.output.results"), NOT a binding object. EXAMPLE: {op:"filter",arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}.
 
@@ -1185,7 +1186,7 @@ FILTER RULES: ${CONDITION_RULES_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
-                    op: { type: 'string', enum: ['filter', 'limit', 'dedupe', 'aggregate', 'summarize'] },
+                    op: { type: 'string', enum: ['filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten'] },
                     afterStepId: { type: 'string' },
                     splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string', description: 'Dotted path to an upstream array, e.g. "steps.search.output.results".' },
@@ -1195,6 +1196,9 @@ FILTER RULES: ${CONDITION_RULES_HINT}`,
                     keyField: { type: 'string', description: 'dedupe only: field to dedup by; omit for deep-equality dedup.' },
                     field: { type: 'string', description: 'aggregate and summarize: field name on each item.' },
                     fn: { type: 'string', enum: ['sum', 'count', 'avg', 'min', 'max'], description: 'summarize only: which statistic to compute.' },
+                    childField: { type: 'string', description: 'flatten only: the list inside each item of arrayRef, e.g. "attachments".' },
+                    keepFields: { type: 'array', items: { type: 'string' }, description: 'flatten only: the outer item\'s fields to copy onto each row; omit for the short ones.' },
+                    keepEmpty: { type: 'boolean', description: 'flatten only: keep an outer item with an empty inner list as one row; default false.' },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins. Omit to auto-fill (then first, else second).' },
                     caseName: { type: 'string', description: 'When afterStepId is a switch: the case name (or "default") this step begins.' },
                     label: { type: 'string' },
@@ -1465,7 +1469,7 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
                             additionalProperties: false,
                             properties: {
                                 tempId: { type: 'string', description: 'Handle for THIS TURN ([A-Za-z][A-Za-z0-9_]*): a handle names ONE step for the whole turn — pick a fresh one for every new step, also in a later builder_add_steps call (re-using a handle for a different step is refused). Reference from later entries as steps.$<tempId>.output.<field> or "$<tempId>" in wiring fields — the $ is REQUIRED; steps.<tempId> without it is stored verbatim and dangles. After a partial batch you may keep using steps.$<tempId> for entries that were built; across turns use the real id.' },
-                                type: { type: 'string', enum: ['integration_action', 'ai_step', 'data_extraction', 'condition', 'switch', 'notification', 'set', 'http_request', 'datatable', 'generate_document', 'fill_document', 'slide', 'presentation', 'array_op', 'code', 'datetime', 'wait', 'stop_error', 'form_page', 'approval', 'call_layer', 'knowledge_write', 'loop', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize'] },
+                                type: { type: 'string', enum: ['integration_action', 'ai_step', 'data_extraction', 'condition', 'switch', 'notification', 'set', 'http_request', 'datatable', 'generate_document', 'fill_document', 'slide', 'presentation', 'array_op', 'code', 'datetime', 'wait', 'stop_error', 'form_page', 'approval', 'call_layer', 'knowledge_write', 'loop', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten'] },
                                 spec: { type: 'object', description: 'EXACTLY the fields the matching single-step tool takes (tool/inputs, prompt/outputSchema, expr, op, afterStepId, branch:"then"|"else"|"error", caseName, label, …). Put ALL step fields inside spec — never at the entry level. PER-ITEM WORK is forEach:{overRef,itemVar} INSIDE spec — the default, also for MULTI-STEP per-item work: chain the next entry\'s forEach over the previous one\'s output.results. EXAMPLE — read every listed file, extract from each, then save one row per file: [{tempId:"list",type:"integration_action",spec:{tool:"nextcloud_list_files",inputs:{path:{kind:"literal",value:"/Invoices"}}}},{tempId:"read",type:"integration_action",spec:{tool:"nextcloud_read_file",inputs:{path:{kind:"ref",path:"loop.f.path"}},forEach:{overRef:"steps.$list.output.items",itemVar:"f"}}},{tempId:"extract",type:"data_extraction",spec:{source:{kind:"ref",path:"loop.r.output.content"},fields:[{name:"vendor",type:"string",description:"Supplier name"},{name:"amount",type:"number",description:"Total including VAT"},{name:"due_date",type:"date",description:"Payment due date"}],forEach:{overRef:"steps.$read.output.results",itemVar:"r"}}},{tempId:"save",type:"datatable",spec:{op:"add_row",datatableId:"<id from the Datatables block>",values:{vendor:{kind:"ref",path:"loop.x.output.vendor"}},forEach:{overRef:"steps.$extract.output.results",itemVar:"x"}}}]. Extraction is a data_extraction step (fields = output shape, runs on the admin\'s extraction model); an ai_step is for judgement and writing. A type:"loop" entry is RARE (only when a body must branch); its spec.body steps are FLAT step objects ({id, type, tool|prompt, inputs}) with no nested spec wrapper.' },
                             },
                             required: ['type', 'spec'],
@@ -1485,7 +1489,7 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
                 type: 'object',
                 properties: {
                     stepId: { type: 'string' },
-                    newType: { type: 'string', enum: ['integration_action', 'ai_step', 'data_extraction', 'condition', 'switch', 'notification', 'set', 'http_request', 'datatable', 'generate_document', 'fill_document', 'slide', 'presentation', 'code', 'datetime', 'wait', 'stop_error', 'form_page', 'approval', 'call_layer', 'knowledge_write', 'loop', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize'] },
+                    newType: { type: 'string', enum: ['integration_action', 'ai_step', 'data_extraction', 'condition', 'switch', 'notification', 'set', 'http_request', 'datatable', 'generate_document', 'fill_document', 'slide', 'presentation', 'code', 'datetime', 'wait', 'stop_error', 'form_page', 'approval', 'call_layer', 'knowledge_write', 'loop', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten'] },
                     spec: { type: 'object', description: 'Full field set for the new type (same shape as the matching builder_add_<type> args, excluding afterStepId/branch/caseName/scope).' },
                 },
                 required: ['stepId', 'newType', 'spec'],

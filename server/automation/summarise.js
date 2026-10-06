@@ -8,6 +8,7 @@
  */
 
 const { isSideEffect } = require('./sideEffectMap');
+const { flattenSentenceParts } = require('./expr');
 
 function describeTrigger(trigger) {
     if (!trigger) return 'When triggered';
@@ -148,6 +149,10 @@ function describeStep(step, idx) {
                 ? ' (replacing its own earlier version)'
                 : ' (a new document each run)';
             return `${n} Save${title || ' text'} into a knowledge base${repeats}.`;
+        }
+        case 'flatten': {
+            const sentence = flattenSentence(step);
+            return `${n} ${sentence ? `Make ${sentence}` : 'Flatten a list (the list inside each item is not picked yet)'}.`;
         }
         default:
             return `${n} ${step.type} step (${step.id}).`;
@@ -319,6 +324,7 @@ function renderStepState(step, opts = {}) {
         case 'knowledge_write':    detail = ` → kb \`${step.knowledgeBaseId || 'not picked'}\` from \`${step.content || ''}\`${step.sourceUri ? ` src=\`${step.sourceUri}\`` : ' (no sourceUri — a new document each run)'}`; break;
         case 'filter': case 'limit': case 'dedupe': case 'aggregate': case 'summarize':
             detail = ` over \`${step.arrayRef || ''}\`${step.field ? ` field=${step.field}` : ''}${step.op ? ` op=${step.op}` : ''}`; break;
+        case 'flatten':            detail = describeFlatten(step); break;
         // A canvas annotation — never runs, never wired. Shown so the agent
         // can see (and edit) it without mistaking it for a step it could
         // chain something after.
@@ -329,6 +335,21 @@ function renderStepState(step, opts = {}) {
     const label = step.label ? `  — ${step.label}` : '';
     const inLine = inputs && inputs !== '∅' ? `  ← inputs ${inputs}` : '';
     return `  - ${id} ${step.type}${detail}${label}${fe}${inLine}`;
+}
+
+/** "one row per attachment of messages (copies from, to, subject, date)", or null before the inner list is picked. */
+function flattenSentence(step) {
+    const parts = flattenSentenceParts({}, step);
+    if (!parts.child) return null;
+    const copies = (Array.isArray(step.parents) ? step.parents : []).slice().reverse()
+        .flatMap(p => (Array.isArray(p?.fields) ? p.fields : []).filter(f => f && f.mode === 'copy').map(f => f.to));
+    const keep = step.keepEmpty ? ', keeps items without one' : '';
+    return `one row per ${parts.child} of ${parts.parents} (copies ${copies.length ? copies.join(', ') : 'nothing yet'}${keep})`;
+}
+
+function describeFlatten(step) {
+    const sentence = flattenSentence(step);
+    return sentence ? ` ${sentence} over \`${step.arrayRef}\`` : ` over \`${step.arrayRef || ''}\` (the list inside each item is not picked yet)`;
 }
 
 function renderGraphState(graph, out, opts = {}) {

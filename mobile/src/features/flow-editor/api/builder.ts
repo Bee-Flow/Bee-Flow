@@ -36,6 +36,8 @@ export interface BuilderToolCall {
     added?: BuilderAddedStep[];
     /** The call reported its steps as a LIST (builder_add_steps), even a list of one. */
     batch?: boolean;
+    /** builder_add_array_op's `op` (`flatten`, …): its row's word while no step names it. */
+    op?: string;
 }
 
 export interface BuilderMessage {
@@ -87,10 +89,12 @@ export function readToolCall(raw: unknown): BuilderToolCall {
     const added = pick(result, 'added');
     const steps = (Array.isArray(added) ? added : isRecord(added) ? [added] : []).filter(isRecord).map(readAddedStep);
     const hint = field.strOrNull(pick(result, '_fixHint'));
+    const op = field.strOrNull(pick(pick(raw, 'arguments'), 'op'));
     return {
         name: field.str('')(pick(raw, 'name')),
         error: field.strOrNull(pick(result, 'error')),
         ...(hint ? { hint } : {}),
+        ...(op ? { op } : {}),
         ...(steps.length ? { added: steps, batch: Array.isArray(added) } : {}),
     };
 }

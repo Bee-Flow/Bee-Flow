@@ -315,7 +315,7 @@ export default function NodeDetailView({
                             </NdvColumnHeader>
                         )}
                         <FormDensityContext.Provider value={densityValue}>
-                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById}>
+                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById} definition={definition}>
                                 <SettingsHost
                                     key={step.id}
                                     footerLeft={footerInfo}

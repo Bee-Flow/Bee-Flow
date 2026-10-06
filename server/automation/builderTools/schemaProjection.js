@@ -259,7 +259,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_array_op: {
-        description: 'Append a list operation over an upstream array (arrayRef is a path string, not a binding). op: filter (expr over `item`) | limit (count, mode) | dedupe (keyField?) | aggregate (field → {values}) | summarize (field + fn sum|count|avg|min|max → {result}). Output {items, count}. filter rules: contains(item.subject, "invoice"), equals(item.status, "open"), item.amount > 1000, anyOf(item.attachments[*].filename, "endsWith", ".pdf"); never lower()/upper(). Drop failed forEach items with {op:"filter",arrayRef:"steps.<prev>.output.results",expr:"equals(item.status, \\"success\\")"}.',
+        description: 'Append a list operation over an upstream array (arrayRef is a path string, not a binding). op: filter (expr over `item`) | limit (count, mode) | dedupe (keyField?) | aggregate (field → {values}) | summarize (field + fn sum|count|avg|min|max → {result}) | flatten (childField: one row per item of that inner list, outer fields copied on). Output {items, count}. filter rules: contains(item.subject, "invoice"), equals(item.status, "open"), item.amount > 1000, anyOf(item.attachments[*].filename, "endsWith", ".pdf"); never lower()/upper(). Drop failed forEach items with {op:"filter",arrayRef:"steps.<prev>.output.results",expr:"equals(item.status, \\"success\\")"}.',
         props: {
             arrayRef: { description: 'Path to the upstream array, e.g. "steps.s1.output.results".' },
             expr: { description: 'filter only: expression over item.<field>.' },
@@ -268,6 +268,9 @@ const LEAN = Object.freeze({
             keyField: { description: 'dedupe only: field to dedupe by.' },
             field: { description: 'aggregate/summarize: field name on each item.' },
             fn: { description: 'summarize only.' },
+            childField: { description: 'flatten only: the list inside each item, e.g. "attachments".' },
+            keepFields: { description: 'flatten only: outer fields to copy.' },
+            keepEmpty: { description: 'flatten only.' },
         },
     },
     builder_add_steps: {

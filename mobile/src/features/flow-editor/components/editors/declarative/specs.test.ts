@@ -36,7 +36,7 @@ describe('the spec registry', () => {
     it('has a spec for every type this lane edits declaratively', () => {
         expect(Object.keys(SPECS).sort()).toEqual(
             [
-                'aggregate', 'call_block', 'call_layer', 'data_extraction', 'datetime', 'dedupe', 'fill_document', 'generate_document',
+                'aggregate', 'call_block', 'call_layer', 'data_extraction', 'datetime', 'dedupe', 'fill_document', 'flatten', 'generate_document',
                 'guard', 'integration_action', 'knowledge_write', 'layer_output', 'limit', 'note', 'notification', 'presentation',
                 'return_to_app', 'slide', 'stop_error', 'summarize', 'tokenize', 'untokenize', 'wait',
             ].sort(),

@@ -72,6 +72,7 @@ function listFieldsOfStep(step) {
     if (step.forEach && typeof step.forEach === 'object' && typeof step.forEach.overRef === 'string') return ['results'];
     if (step.type === 'integration_action') return typeof step.tool === 'string' ? iterableFieldsOf(step.tool) : [];
     if (['filter', 'limit', 'dedupe', 'set'].includes(step.type) && typeof step.arrayRef === 'string') return ['items'];
+    if (step.type === 'flatten') return ['items'];
     return [];
 }
 

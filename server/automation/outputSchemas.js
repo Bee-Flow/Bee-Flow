@@ -214,13 +214,14 @@ const OUTPUT_SCHEMAS = {
         },
         sample: {
             id: 'msg-1', from: 'Sender <sender@example.com>', to: 'Me <me@example.com>', cc: '', subject: 'Sample',
-            date: new Date().toISOString(), body: 'Email body…', conversationId: 'conv-1', hasAttachments: false,
+            date: new Date().toISOString(), body: 'Email body…', conversationId: 'conv-1', hasAttachments: true,
+            attachments: [{ id: 'att-1', filename: 'offerte-q4.pdf', mimeType: 'application/pdf', size: 48213, canOCR: true }],
         },
     },
     outlook_read_many: {
         // `messages` is the first array: it is the list a "for each" binds to.
         shape: {
-            messages: 'array of { id, from, to, cc, subject, date, body, conversationId, hasAttachments, attachments } (each exactly as outlook_read returns it; body cut at 20,000 characters)',
+            messages: 'array of { id, from, to, cc, subject, date, body, conversationId, hasAttachments, attachments: array of { id, filename, mimeType, size, canOCR } } (each exactly as outlook_read returns it; body cut at 20,000 characters; attachments only when the email has any)',
             count: 'integer (messages read)',
             notFound: 'array of string (ids Outlook does not know)',
             failed: 'array of { id, error }',
@@ -230,7 +231,8 @@ const OUTPUT_SCHEMAS = {
         sample: {
             messages: [{
                 id: 'msg-1', from: 'Sender <sender@example.com>', to: 'Me <me@example.com>', cc: '', subject: 'Sample',
-                date: new Date().toISOString(), body: 'Email body…', conversationId: 'conv-1', hasAttachments: false,
+                date: new Date().toISOString(), body: 'Email body…', conversationId: 'conv-1', hasAttachments: true,
+                attachments: [{ id: 'att-1', filename: 'offerte-q4.pdf', mimeType: 'application/pdf', size: 48213, canOCR: true }],
             }],
             count: 1, notFound: [], failed: [],
         },

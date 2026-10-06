@@ -97,3 +97,36 @@ export {
 } from './routeFollow.mjs';
 export { isWholeRunRoute, wholeRunListReads, loopsAfterWholeRun } from './wholeRun.mjs';
 export { listPathLabel } from './pathLabel.mjs';
+export {
+    listOf,
+    walkTrail,
+    sameToken,
+    parentDepths,
+    isRecord,
+    asRows,
+    RESERVED_VARS,
+    itemVarFor,
+    withSuffix,
+    splitRoute,
+    nestedRows,
+    lastKey,
+    isScalar,
+    routeLevels,
+} from './nested.mjs';
+export {
+    LONG_TEXT_KEYS,
+    LONG_TEXT_CHARS,
+    GENERIC_KEYS,
+    normalizeFlattenRoute,
+    routeFromParts,
+    joinKey,
+    childVarOf,
+    childNounOf,
+    defaultParents,
+    flattenPlan,
+    flattenRows,
+    flattenShape,
+    checkFlattenParents,
+    listNounKey,
+    flattenSentenceParts,
+} from './flatten.mjs';

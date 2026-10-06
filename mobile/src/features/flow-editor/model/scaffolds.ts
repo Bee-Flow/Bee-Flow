@@ -96,6 +96,7 @@ const SCAFFOLDS: Record<string, Scaffold> = {
     limit: (p) => ({ arrayRef: '', count: 10, mode: 'first', label: p.label || 'Limit' }),
     dedupe: (p) => ({ arrayRef: '', label: p.label || 'Remove duplicates' }),
     aggregate: (p) => ({ arrayRef: '', field: '', label: p.label || 'Aggregate' }),
+    flatten: (p) => ({ arrayRef: '', keepEmpty: false, label: p.label || 'Flatten a list' }),
     summarize: (p) => ({ arrayRef: '', field: '', op: 'sum', label: p.label || 'Summarize' }),
     call_layer: (p) => ({ layerKey: p.layerKey || '', label: p.label || 'Flowlet', inputs: {} }),
     call_block: (p) => ({ blockId: p.blockId || '', label: p.label || 'Step', ...(p.icon ? { icon: p.icon } : null), inputs: {} }),

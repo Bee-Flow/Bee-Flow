@@ -45,12 +45,14 @@ const MATRIX: Record<string, unknown>[] = [
     { prompt: '' }, { prompt: 'Approve the invoice?\nMore context' }, { prompt: 'x'.repeat(80) },
     { approval: { expiresInHours: 0 } }, { approval: { expiresInHours: 5 } }, { approval: { expiresInHours: 1 } }, { expiresInHours: 48 },
     { approval: { expiresInHours: 'x' } }, { approval: { expiresInHours: 24 } },
+    { arrayRef: 's1.output.messages[*].attachments' }, { arrayRef: 'steps.s1.output.messages[*].attachments', parents: [{ overRef: 'steps.s1.output.messages' }] },
+    { arrayRef: 'steps.s1.output.messages', parents: [] },
 ];
 
 const FNS = [
     'limitSummary', 'dedupeSummary', 'aggregateSummary', 'datatableSummary', 'knowledgeWriteSummary', 'summarizeSummary',
     'dateTimeSummary', 'generateDocumentSummary', 'slideSummary', 'presentationSummary', 'fillDocumentSummary',
-    'dataExtractionSummary', 'waitSummary', 'approvalSummary', 'approvalDeadline',
+    'dataExtractionSummary', 'waitSummary', 'approvalSummary', 'approvalDeadline', 'flattenSummary',
 ] as const;
 
 describe('node summaries', () => {

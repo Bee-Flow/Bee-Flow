@@ -36,4 +36,11 @@ describe('loopModel: the list a Loop repeats over', () => {
         // Without steps inside, a named item keeps its name.
         expect(pickLoopListFull({ overRef: '', itemVar: 'row' }, 'steps.b.output.orders').patch).toEqual({ overRef: 'steps.b.output.orders', itemVar: 'row' });
     });
+
+    it('picking a flatten\'s rows names the item after its inner list when the definition is known', () => {
+        const definition = { steps: [{ id: 'flat', type: 'flatten', arrayRef: 'steps.g.output.messages[*].attachments' }] };
+        const draft = { overRef: 'steps.a.output.rows', itemVar: 'row', body: [{ id: 'n1', type: 'notification', title: '{{ loop.row.filename }}' }] };
+        expect(pickLoopListFull(draft, 'steps.flat.output.items', null, definition).patch.itemVar).toBe('attachment');
+        expect(pickLoopListFull(draft, 'steps.flat.output.items').patch.itemVar).toBe('item');
+    });
 });

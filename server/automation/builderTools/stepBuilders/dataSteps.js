@@ -1,13 +1,14 @@
 /**
  * Builder tools — the steps that reshape data already in the run: set ("Edit
  * data") with its whole-table operations, the five list ops behind
- * builder_add_array_op, date arithmetic, a sandboxed code snippet, and the
+ * builder_add_array_op (flatten lives in flattenStep.js), date arithmetic, a sandboxed code snippet, and the
  * parse_json row sanitizer the set step retired but still patches.
  */
 
 const crypto = require('crypto');
 const { newId, appendAfter } = require('../draftGraph');
 const { validateAndFixBindings, sanitizeForEach, sanitizeArrayRef, checkLoopBindings } = require('../bindings');
+const { applyAddFlatten } = require('./flattenStep');
 
 // ── n8n-style utility step appliers ─────────────────────
 
@@ -314,7 +315,7 @@ function applyAddSummarize(draft, args, draftWrap) {
 // matters on weaker models that get overwhelmed by big tool menus.
 function applyAddArrayOp(draft, args, draftWrap) {
     const op = args && typeof args.op === 'string' ? args.op : null;
-    if (!op) return { error: 'op is required (filter|limit|dedupe|aggregate|summarize)' };
+    if (!op) return { error: 'op is required (filter|limit|dedupe|aggregate|summarize|flatten)' };
     // `splice` travels too: the schema offers it, and a filter spliced
     // between a list and the step reading it is the W8 insert.
     const common = { afterStepId: args.afterStepId, arrayRef: args.arrayRef, label: args.label, branch: args.branch, caseName: args.caseName, splice: args.splice };
@@ -334,8 +335,10 @@ function applyAddArrayOp(draft, args, draftWrap) {
             if (typeof args.field !== 'string') return { error: 'summarize op requires field (numeric per-item field)' };
             if (!args.fn) return { error: 'summarize op requires fn (sum|count|avg|min|max)' };
             return applyAddSummarize(draft, { ...common, field: args.field, op: args.fn }, draftWrap);
+        case 'flatten':
+            return applyAddFlatten(draft, { ...common, childField: args.childField, keepFields: args.keepFields, keepEmpty: args.keepEmpty }, draftWrap);
         default:
-            return { error: `Unknown array op "${op}". Use one of: filter, limit, dedupe, aggregate, summarize.` };
+            return { error: `Unknown array op "${op}". Use one of: filter, limit, dedupe, aggregate, summarize, flatten.` };
     }
 }
 

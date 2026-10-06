@@ -18,6 +18,8 @@ import {
     DateTimeFields, WaitFields, LimitFields, DedupeFields, AggregateFields, SummarizeFields,
 } from './settings/collectionEditors';
 import DatatableFields from './settings/datatableEditors';
+import { sampleFromRunOf } from './settings/flattenEditorModel';
+import FlattenFields from './settings/FlattenFields';
 import { useFormDensity, useFormMode } from './settings/formDensity';
 import { inputClass, controlSurfaceClass, hintTextClass, FormRow, ValidationLine } from './settings/formPrimitives';
 import { defaultLabelPlaceholder, extractFormState, buildPatch, deepEqual, carryPendingRows } from './settings/formState';
@@ -473,6 +475,9 @@ export default function SettingsForm({
                 )}
                 {step.type === 'dedupe' && (
                     <DedupeFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
+                )}
+                {step.type === 'flatten' && (
+                    <FlattenFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} sampleFromRun={sampleFromRunOf(groups, draft.arrayRef)} errorSections={errorSections} />
                 )}
                 {step.type === 'datatable' && (
                     <DatatableFields

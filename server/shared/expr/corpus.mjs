@@ -451,3 +451,192 @@ export const HOST_REJECT = [
     'isAbout(item.region, "a region", 0.5, 1)',      // too many arguments
     'isAbout(isAbout(item.region, "a"), "b")',       // nested host call
 ];
+
+// ── Flatten a list (flatten.mjs) ─────────────────────────────────────────
+// Each case runs `flattenRows(root, step, opts)`; every key of `expect` is
+// compared with the output (`keys` is the first row's keys, `first`/`last`
+// the first and last row). Demo data is invented (Fabrikam, Contoso).
+
+const LOGOS = ['logo-header.png', 'icon-facebook.png', 'icon-linkedin.png', 'icon-x.png', 'icon-instagram.png',
+    'icon-youtube.png', 'badge-iso.png', 'badge-thuiswinkel.png', 'banner-q4.png', 'spacer.png', 'footer-logo.png',
+    'qr-pay.png', 'stars.png', 'app-store.png'];
+const MAILS = [
+    ['19a01f3c7d2e4b10', 'Fabrikam Facturen <facturen@fabrikam.example>', 'Je Fabrikam factuur F-2026-1001', 'F-2026-1001'],
+    ['19a06b2e91c4d877', 'Fabrikam Facturen <facturen@fabrikam.example>', 'Je Fabrikam factuur F-2026-1002', 'F-2026-1002'],
+    ['19a0c4d1a8e35f02', 'Fabrikam Facturen <facturen@fabrikam.example>', 'Je Fabrikam factuur F-2026-1003', 'F-2026-1003'],
+    ['19a11e7b3f0c6a59', 'Contoso Billing <billing@contoso.example>', 'Invoice C-77012', 'C-77012'],
+];
+
+function mailAttachment(id, thread, filename, n) {
+    const ext = filename.slice(filename.lastIndexOf('.') + 1);
+    const mimeType = { png: 'image/png', pdf: 'application/pdf', xml: 'application/xml' }[ext];
+    const size = { png: 1000 + n * 500, pdf: 80000 + n * 1000, xml: 10000 + n * 300 }[ext];
+    return { attachmentId: `att_${id.slice(-4)}_${n}`, filename, mimeType, size, canOCR: ext !== 'xml', messageId: id, threadId: thread };
+}
+
+/** Four invoice mails with sixteen attachments each (14 logos, a PDF and an XML). */
+export function flattenMailRoot() {
+    const messages = MAILS.map(([id, from, subject, invoice], i) => {
+        const thread = `t${id.slice(1)}`;
+        const names = [...LOGOS, `${invoice}.pdf`, `${invoice}.xml`];
+        return {
+            id, threadId: thread, from, to: 'crediteuren@contoso.example', subject, date: `2026-09-0${i + 2}T09:15:00Z`,
+            body: `Beste klant, hierbij de factuur ${invoice}. `.repeat(36),
+            attachments: names.map((name, n) => mailAttachment(id, thread, name, n)),
+        };
+    });
+    return { steps: { g_read_many: { output: { messages, count: messages.length } } } };
+}
+
+const MAIL_ROUTE = 'steps.g_read_many.output.messages[*].attachments';
+
+/** The stored step auto-map writes for the mail table (J1). */
+export const FLATTEN_MAIL_STEP = Object.freeze({
+    id: 'mf_flatten', type: 'flatten', label: 'One row per attachment', arrayRef: MAIL_ROUTE,
+    parents: [{
+        overRef: 'steps.g_read_many.output.messages', itemVar: 'message', auto: true,
+        fields: [
+            { from: 'id', to: 'messageId', mode: 'fill' },
+            { from: 'threadId', to: 'threadId', mode: 'fill' },
+            { from: 'from', to: 'from', mode: 'copy' },
+            { from: 'to', to: 'to', mode: 'copy' },
+            { from: 'subject', to: 'subject', mode: 'copy' },
+            { from: 'date', to: 'date', mode: 'copy' },
+        ],
+    }],
+});
+
+const LINE = (id, sku, quantity, price, extra = {}) => ({ id, sku, description: `Item ${sku}`, quantity, price, status: 'open', ...extra });
+
+/** Five Contoso webshop orders: one without lines, one with its line as an object. */
+export function flattenOrdersRoot({ taxes = false, asText = false } = {}) {
+    const tax = (rate) => (taxes ? { taxes: [{ rate, amount: rate * 10 }] } : {});
+    const orders = [
+        { id: 'o1', number: 'CO-2026-0410', customer: 'Fabrikam BV', status: 'paid', total: 120, shipping: { city: 'Delft' }, notes: 'Leave at reception',
+            lines: [LINE('l1', 'FB-100', 2, 30, tax(21)), LINE('l2', 'FB-200', 1, 60, tax(9))] },
+        { id: 'o2', number: 'CO-2026-0411', customer: 'Northwind Traders', status: 'paid', total: 75, shipping: { city: 'Gouda' }, notes: '',
+            lines: [LINE('l3', 'NW-1', 1, 25, tax(21)), LINE('l4', 'NW-2', 1, 25, tax(21)), LINE('l5', 'NW-3', 1, 25, tax(21))] },
+        { id: 'o3', number: 'CO-2026-0412', customer: 'Contoso Retail', status: 'shipped', total: 40, shipping: { city: 'Breda' }, notes: 'Gift wrap',
+            lines: [LINE('l6', 'CR-7', 1, 20, tax(9)), LINE('l7', 'CR-8', 1, 20, tax(9))] },
+        { id: 'o4', number: 'CO-2026-0413', customer: 'Fabrikam BV', status: 'open', total: 0, shipping: { city: 'Delft' }, notes: '', lines: [] },
+        { id: 'o5', number: 'CO-2026-0414', customer: 'Northwind Traders', status: 'paid', total: 15, shipping: { city: 'Gouda' }, notes: '',
+            lines: LINE('l8', 'NW-9', 1, 15, tax(21)) },
+    ];
+    const body = { orders };
+    return { steps: { http: { output: { status: 200, body: asText ? JSON.stringify(body) : body } } } };
+}
+
+const ORDER_ROUTE = 'steps.http.output.body.orders[*].lines';
+
+export const FLATTEN_CASES = [
+    {
+        name: 'Gmail: 4 mails × 16 attachments, the stored plan',
+        root: flattenMailRoot(),
+        step: FLATTEN_MAIL_STEP,
+        expect: {
+            count: 64, inputCount: 4, emptyCount: 0, dead: false, over: false,
+            keys: ['attachmentId', 'filename', 'mimeType', 'size', 'canOCR', 'messageId', 'threadId', 'from', 'to', 'subject', 'date'],
+            first: { attachmentId: 'att_4b10_0', filename: 'logo-header.png', mimeType: 'image/png', size: 1000, canOCR: true,
+                messageId: '19a01f3c7d2e4b10', threadId: 't9a01f3c7d2e4b10', from: 'Fabrikam Facturen <facturen@fabrikam.example>',
+                to: 'crediteuren@contoso.example', subject: 'Je Fabrikam factuur F-2026-1001', date: '2026-09-02T09:15:00Z' },
+            last: { attachmentId: 'att_6a59_15', filename: 'C-77012.xml', mimeType: 'application/xml', size: 14500, canOCR: false,
+                messageId: '19a11e7b3f0c6a59', threadId: 't9a11e7b3f0c6a59', from: 'Contoso Billing <billing@contoso.example>',
+                to: 'crediteuren@contoso.example', subject: 'Invoice C-77012', date: '2026-09-05T09:15:00Z' },
+        },
+    },
+    {
+        name: 'Outlook: the attachment has its own id, so the mail id is copied as messageId',
+        root: { steps: { o: { output: { messages: [
+            { id: 'AAMk1', subject: 'Offerte Q4', from: 'sales@fabrikam.example', attachments: [{ id: 'AT1', filename: 'offerte-q4.pdf', size: 48213 }] },
+        ] } } } },
+        step: { type: 'flatten', arrayRef: 'steps.o.output.messages[*].attachments' },
+        expect: { count: 1, items: [{ id: 'AT1', filename: 'offerte-q4.pdf', size: 48213, messageId: 'AAMk1', subject: 'Offerte Q4', from: 'sales@fabrikam.example' }] },
+    },
+    {
+        name: 'orders: generic status, an object line, an empty order left out',
+        root: flattenOrdersRoot(),
+        step: { type: 'flatten', arrayRef: ORDER_ROUTE },
+        expect: {
+            count: 8, inputCount: 5, emptyCount: 1,
+            keys: ['id', 'sku', 'description', 'quantity', 'price', 'status', 'orderId', 'number', 'customer', 'orderStatus', 'total', 'notes'],
+            last: { id: 'l8', sku: 'NW-9', description: 'Item NW-9', quantity: 1, price: 15, status: 'open', orderId: 'o5',
+                number: 'CO-2026-0414', customer: 'Northwind Traders', orderStatus: 'paid', total: 15, notes: '' },
+        },
+    },
+    {
+        name: 'orders with keepEmpty: the empty order gets one row with empty line fields',
+        root: flattenOrdersRoot(),
+        step: { type: 'flatten', arrayRef: ORDER_ROUTE, keepEmpty: true },
+        expect: {
+            count: 9, inputCount: 5, emptyCount: 1,
+            row7: { id: null, sku: null, description: null, quantity: null, price: null, status: null, orderId: 'o4',
+                number: 'CO-2026-0413', customer: 'Fabrikam BV', orderStatus: 'open', total: 0, notes: '' },
+        },
+    },
+    {
+        name: 'three levels: one row per tax, with its line and its order',
+        root: flattenOrdersRoot({ taxes: true }),
+        step: { type: 'flatten', arrayRef: 'steps.http.output.body.orders[*].lines[*].taxes' },
+        expect: {
+            count: 8, inputCount: 5, emptyCount: 0,
+            first: { rate: 21, amount: 210, lineId: 'l1', sku: 'FB-100', quantity: 2, price: 30, lineStatus: 'open',
+                orderId: 'o1', number: 'CO-2026-0410', customer: 'Fabrikam BV', orderStatus: 'paid', total: 120, notes: 'Leave at reception' },
+        },
+    },
+    {
+        name: 'a list of plain values: labelIds gives one labelId per row',
+        root: { steps: { g: { output: { messages: [{ id: 'm1', labelIds: ['INBOX', 'UNREAD'] }, { id: 'm2', labelIds: ['INBOX'] }] } } } },
+        step: { type: 'flatten', arrayRef: 'steps.g.output.messages[*].labelIds' },
+        expect: { count: 3, items: [{ labelId: 'INBOX', messageId: 'm1' }, { labelId: 'UNREAD', messageId: 'm1' }, { labelId: 'INBOX', messageId: 'm2' }] },
+    },
+    {
+        name: 'a child list called data: each value is called value',
+        root: { steps: { s: { output: { records: [{ name: 'Fabrikam', data: [1, 2] }] } } } },
+        step: { type: 'flatten', arrayRef: 'steps.s.output.records[*].data' },
+        expect: { count: 2, items: [{ value: 1, recordName: 'Fabrikam' }, { value: 2, recordName: 'Fabrikam' }] },
+    },
+    {
+        name: 'a JSON text body flattens like the parsed one',
+        root: flattenOrdersRoot({ asText: true }),
+        step: { type: 'flatten', arrayRef: ORDER_ROUTE },
+        expect: { count: 8, inputCount: 5, emptyCount: 1 },
+    },
+    {
+        name: 'a route that fits nothing is dead',
+        root: flattenMailRoot(),
+        step: { type: 'flatten', arrayRef: 'steps.g_read_many.output.messages[*].files' },
+        expect: { count: 0, inputCount: 4, emptyCount: 4, dead: true, items: [] },
+    },
+    {
+        name: 'the limit stops the walk and says it is over',
+        root: flattenMailRoot(),
+        step: FLATTEN_MAIL_STEP,
+        opts: { limit: 10 },
+        expect: { count: 10, inputCount: 4, over: true },
+    },
+    {
+        name: 'the stored plan keeps its keys on other data (attachments without messageId)',
+        root: { steps: { g_read_many: { output: { messages: [
+            { id: 'm9', threadId: 't9', from: 'facturen@fabrikam.example', to: 'crediteuren@contoso.example', subject: 'F-2026-1009', date: '2026-09-20',
+                attachments: [{ attachmentId: 'a9', filename: 'F-2026-1009.pdf', mimeType: 'application/pdf', size: 90000, canOCR: true }] },
+        ] } } } },
+        step: FLATTEN_MAIL_STEP,
+        expect: {
+            keys: ['attachmentId', 'filename', 'mimeType', 'size', 'canOCR', 'messageId', 'threadId', 'from', 'to', 'subject', 'date'],
+            first: { attachmentId: 'a9', filename: 'F-2026-1009.pdf', mimeType: 'application/pdf', size: 90000, canOCR: true,
+                messageId: 'm9', threadId: 't9', from: 'facturen@fabrikam.example', to: 'crediteuren@contoso.example', subject: 'F-2026-1009', date: '2026-09-20' },
+        },
+    },
+    {
+        name: 'run-time clash: the attachment has its own subject, which moves aside',
+        root: { steps: { g_read_many: { output: { messages: [
+            { id: 'm1', threadId: 't1', from: 'a@fabrikam.example', to: 'b@contoso.example', subject: 'Mail', date: '2026-09-01',
+                attachments: [{ attachmentId: 'a1', subject: 'Own' }, { attachmentId: 'a2' }] },
+        ] } } } },
+        step: FLATTEN_MAIL_STEP,
+        expect: {
+            warning: '1 rows had a field called subject on the item itself; it is kept as attachmentSubject.',
+            first: { attachmentId: 'a1', subject: 'Mail', attachmentSubject: 'Own', messageId: 'm1', threadId: 't1', from: 'a@fabrikam.example', to: 'b@contoso.example', date: '2026-09-01' },
+        },
+    },
+];

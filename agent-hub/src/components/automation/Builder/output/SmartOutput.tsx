@@ -33,7 +33,7 @@ export function smartRowsOf(value: unknown): unknown[] | null {
 const RUN_KEYS = new Set(['iterations', 'succeeded', 'failed', 'truncated', 'totalItems']);
 
 /** The numbers of a filter that the route sentence ("Kept 3 of 4 messages", RunNote) says in words. */
-const ROUTE_KEYS = new Set(['count', 'inputCount', 'rejectedCount']);
+const ROUTE_KEYS = new Set(['count', 'inputCount', 'rejectedCount', 'emptyCount']);
 
 /** The keys whose chips say again what a sentence already says. */
 function sentenceKeys(value: unknown): Set<string> | null {

@@ -83,6 +83,30 @@ const ARRAY_NAME_RE = /items|results|rows|records|data|list|messages|emails|even
 
 type OwnFlag = { ownItem?: boolean };
 
+/** One group's list sources, best first (the order nearestArrayRef picks by). */
+function rankedSources(g: VariableGroup): string[] {
+    const sources = groupListSources(g).filter((s) => !firstKeyIsDiagnostic(g, s.path, isDiagnosticOutputKey));
+    const rank = (s: (typeof sources)[number]) => [s.chain.length, isRecord(s.element) ? 0 : 1, ARRAY_NAME_RE.test(s.key) ? 0 : 1, s.weight, s.depth];
+    return sources
+        .map((s, i) => ({ s, r: [...rank(s), i] }))
+        .sort((a, b) => {
+            for (let k = 0; k < a.r.length; k++) if (a.r[k] !== b.r[k]) return (a.r[k] as number) - (b.r[k] as number);
+            return 0;
+        })
+        .map((x) => x.s.path);
+}
+
+/** Every upstream list, nearest step first and best first within a step (Flatten's candidates, F45). */
+export function rankedArrayRefs(groups: VariableGroup[] | null | undefined): string[] {
+    const list = groups || [];
+    const out: string[] = [];
+    for (let gi = list.length - 1; gi >= 0; gi--) {
+        const g = list[gi] as VariableGroup & OwnFlag;
+        if (!g.ownItem) out.push(...rankedSources(g));
+    }
+    return out;
+}
+
 /**
  * The nearest upstream list (a loop's overRef, a list op's arrayRef), at any
  * depth: a plain list before a column of a list inside a list, records before
@@ -90,22 +114,7 @@ type OwnFlag = { ownItem?: boolean };
  * and `httpCalls` are never the list; a step's own item is not a source for itself.
  */
 export function nearestArrayRef(groups: VariableGroup[] | null | undefined): string | null {
-    const list = groups || [];
-    for (let gi = list.length - 1; gi >= 0; gi--) {
-        const g = list[gi] as VariableGroup & OwnFlag;
-        if (g.ownItem) continue;
-        const sources = groupListSources(g).filter((s) => !firstKeyIsDiagnostic(g, s.path, isDiagnosticOutputKey));
-        if (!sources.length) continue;
-        const rank = (s: (typeof sources)[number]) => [s.chain.length, isRecord(s.element) ? 0 : 1, ARRAY_NAME_RE.test(s.key) ? 0 : 1, s.weight, s.depth];
-        const best = sources
-            .map((s, i) => ({ s, r: [...rank(s), i] }))
-            .sort((a, b) => {
-                for (let k = 0; k < a.r.length; k++) if (a.r[k] !== b.r[k]) return (a.r[k] as number) - (b.r[k] as number);
-                return 0;
-            })[0];
-        if (best) return best.s.path;
-    }
-    return null;
+    return rankedArrayRefs(groups)[0] ?? null;
 }
 
 // Where a person's free text lives, ORDERED: long-form fields first.

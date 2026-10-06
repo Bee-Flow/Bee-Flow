@@ -275,3 +275,123 @@ export declare function listPathLabel(
         humanize?: (key: string) => string;
     },
 ): string;
+// ── Lists inside lists (nested.mjs) ───────────────────────────────────────
+/** One element of a forEach trail walk, with the values passed on the way to it. */
+export interface TrailEntry {
+    value: unknown;
+    trail: unknown[];
+}
+/** One row of a list inside a list: the innermost item and the element of each level. */
+export interface NestedRow {
+    item: unknown;
+    parents: unknown[];
+    empty: boolean;
+}
+export interface NestedRows {
+    rows: NestedRow[];
+    inputCount: number;
+    emptyCount: number;
+    dead: boolean;
+    over: boolean;
+}
+/** A level a person can make rows from (`routeLevels`). */
+export interface RouteLevel {
+    path: string;
+    key: string;
+    itemVar: string;
+    count: number;
+    outerCount: number | null;
+    depth: number;
+    records: boolean;
+}
+export declare function listOf(cur: unknown, cache?: Map<string, unknown> | null): unknown[] | null;
+export declare function walkTrail(
+    tokens: readonly PathToken[],
+    root: unknown,
+): { entries: TrailEntry[] | null; dead: boolean } | undefined;
+export declare function sameToken(a: PathToken | undefined, b: PathToken | undefined): boolean;
+export declare function parentDepths(
+    parents: unknown,
+    tokens: readonly PathToken[],
+    itemVar: string,
+): Array<{ itemVar: string; at: number }>;
+export declare function isRecord(v: unknown): v is Record<string, unknown>;
+export declare function asRows(value: unknown, cache?: Map<string, unknown> | null): unknown[] | null;
+export declare const RESERVED_VARS: readonly string[];
+export declare function itemVarFor(key: unknown, taken?: readonly string[]): string;
+export declare function withSuffix(base: string, isTaken: (name: string) => boolean): string;
+export declare function splitRoute(path: unknown): { segments: PathToken[][]; levels: number } | null;
+export declare function nestedRows(
+    root: unknown,
+    route: string,
+    opts?: { keepEmpty?: boolean; limit?: number },
+): NestedRows | null;
+export declare function lastKey(path: string | readonly PathToken[]): string;
+export declare function isScalar(v: unknown): boolean;
+export declare function routeLevels(source: string, root: unknown, opts?: { maxDepth?: number }): RouteLevel[];
+
+// ── Flatten a list (flatten.mjs) ──────────────────────────────────────────
+export type FlattenFieldMode = 'copy' | 'fill';
+export interface FlattenField {
+    from: string;
+    to: string;
+    mode: FlattenFieldMode;
+}
+/** One level of a flatten step's stored `parents`, outermost first. */
+export interface FlattenParent {
+    overRef: string;
+    itemVar: string;
+    auto?: boolean;
+    fields?: FlattenField[];
+}
+/** The parts of a flatten step the shared helpers read. */
+export interface FlattenStepLike {
+    arrayRef?: string;
+    parents?: readonly FlattenParent[] | null;
+    keepEmpty?: boolean;
+    maxItems?: number;
+}
+export interface FlattenPlan {
+    parents: Array<Required<FlattenParent>>;
+    left: Array<{ level: number; key: string; reason: 'long_text' | 'object' | 'list' }>;
+    clashes: Array<{ level: number; from: string; to: string }>;
+    unknown: string[];
+}
+export interface FlattenOutput {
+    items: Array<Record<string, unknown>>;
+    count: number;
+    inputCount: number;
+    emptyCount: number;
+    warning?: string;
+    dead: boolean;
+    over: boolean;
+}
+export interface FlattenSentenceParts {
+    kind: 'made' | 'empty' | 'no_match';
+    count: number;
+    inputCount: number;
+    emptyCount: number;
+    keepEmpty: boolean;
+    parents: string;
+    children: string;
+    child: string;
+}
+export declare const LONG_TEXT_KEYS: ReadonlySet<string>;
+export declare const LONG_TEXT_CHARS: number;
+export declare const GENERIC_KEYS: ReadonlySet<string>;
+export declare function normalizeFlattenRoute(path: unknown): string | null;
+export declare function routeFromParts(arrayRef: unknown, childField: unknown): string | null;
+export declare function joinKey(prefix: string, key: string): string;
+export declare function childVarOf(route: string): string;
+export declare function childNounOf(route: string): string;
+export declare function defaultParents(route: string): Array<{ overRef: string; itemVar: string }>;
+export declare function flattenPlan(
+    root: unknown,
+    route: string,
+    opts?: { keepFields?: readonly string[] | null; prior?: readonly FlattenParent[] | null },
+): FlattenPlan;
+export declare function flattenRows(root: unknown, step: FlattenStepLike, opts?: { limit?: number }): FlattenOutput | null;
+export declare function flattenShape(root: unknown, step: FlattenStepLike): Record<string, unknown>;
+export declare function checkFlattenParents(step: FlattenStepLike): 'count' | 'overRef' | 'itemVar' | 'fields' | null;
+export declare function listNounKey(definition: RouteDefinition | null | undefined, path: string): string | null;
+export declare function flattenSentenceParts(output: unknown, step: FlattenStepLike): FlattenSentenceParts;

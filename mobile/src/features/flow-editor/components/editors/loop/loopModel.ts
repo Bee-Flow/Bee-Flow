@@ -89,13 +89,13 @@ export interface LoopListPick {
  * the new one. A list inside the current one keeps nothing to rename. Without
  * steps inside, a named item keeps its name.
  */
-export function pickLoopListFull(draft: FormDraft, path: string, sampleRoot: unknown = null): LoopListPick {
+export function pickLoopListFull(draft: FormDraft, path: string, sampleRoot: unknown = null, definition: unknown = null): LoopListPick {
     const itemVar = typeof draft.itemVar === 'string' && draft.itemVar ? draft.itemVar : 'item';
     const scope = { overRef: typeof draft.overRef === 'string' ? draft.overRef : '', itemVar };
     const body = Array.isArray(draft.body) ? (draft.body as unknown[]) : undefined;
     const fromRoot = sampleRoot ? walkPath(path, sampleRoot) : undefined;
     const element = Array.isArray(fromRoot) ? mergeElementSamples(fromRoot) : null;
-    const r = rebaseForEach(scope, { path, element }, body ?? [], { strings: true, container: true });
+    const r = rebaseForEach(scope, { path, element }, body ?? [], { strings: true, container: true, definition });
     const keepName = !body && itemVar !== 'item';
     const patch: FormDraft = { overRef: path, itemVar: keepName ? itemVar : r.forEach.itemVar };
     if (body && r.bindings !== body) patch.body = r.bindings;

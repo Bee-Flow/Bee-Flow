@@ -33,7 +33,7 @@ function LoopOver(editor: StepEditorProps) {
     // Steps inside that read a field the newly picked list's item lacks.
     const [orphans, setOrphans] = useState<string[]>([]);
     const pick = (path: string) => {
-        const r = pickLoopListFull(draft, path, ctx.sampleRoot);
+        const r = pickLoopListFull(draft, path, ctx.sampleRoot, ctx.definition);
         setMany(r.patch);
         setOrphans(r.orphans);
     };

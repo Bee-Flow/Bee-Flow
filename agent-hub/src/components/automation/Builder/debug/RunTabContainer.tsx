@@ -13,6 +13,7 @@ import type { NextSuggestion } from '../output/UsedBy';
 import { usedByDownstream } from '../output/usedBy';
 import { runStepTypeMap } from '../runs/bindingMisses';
 import { routeContextOf, routeSummaryOf, type RouteContext } from '../output/routeNote';
+import { flattenPromotedKeys } from '../output/columns';
 
 const deepEqual = deepEqualJs as (a: unknown, b: unknown) => boolean;
 const summariseData = summariseDataJs as (value: unknown) => { label: string } | null;
@@ -86,7 +87,8 @@ function RunTabContainer({
     const labelById = useMemo(() => buildRunStepLabelMap(definition) as Map<string, string>, [definition]);
     const typeById = useMemo(() => runStepTypeMap(definition), [definition]);
     // A filter or list switch: "Kept 3 of 4 messages" above its output (P1-P3).
-    const route = useMemo(() => routeContextOf(step, t), [step, t]);
+    const route = useMemo(() => routeContextOf(step, t, definition), [step, t, definition]);
+    const promote = useMemo(() => flattenPromotedKeys(step), [step]);
     const onAddAfter = useMemo(
         () => (onAddAfterStep && stepId ? (s: NextSuggestion) => onAddAfterStep(stepId, s) : null),
         [onAddAfterStep, stepId],
@@ -125,6 +127,7 @@ function RunTabContainer({
             stepLabelById={labelById}
             stepTypeById={typeById}
             route={route}
+            promote={promote}
         />
     );
 

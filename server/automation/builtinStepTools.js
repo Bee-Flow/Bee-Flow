@@ -39,7 +39,7 @@ const STEP_TYPES = new Set([
     // to builder_add_data_extraction rather than told about permissions.
     'data_extraction',
     'datetime', 'wait', 'stop_error', 'form_page', 'approval', 'filter',
-    'limit', 'dedupe', 'aggregate', 'summarize', 'call_layer', 'loop',
+    'limit', 'dedupe', 'aggregate', 'summarize', 'flatten', 'call_layer', 'loop',
     'datatable', 'knowledge_write',
 ]);
 
@@ -61,6 +61,7 @@ const TOOL_NAME_OVERRIDES = {
     dedupe: 'builder_add_array_op',
     aggregate: 'builder_add_array_op',
     summarize: 'builder_add_array_op',
+    flatten: 'builder_add_array_op',
 };
 
 /** Names a model reaches for that are not step types either, but mean one. */

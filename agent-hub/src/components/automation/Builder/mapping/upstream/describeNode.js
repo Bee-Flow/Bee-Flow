@@ -26,6 +26,7 @@ import {
     describeDedupe, describeAggregate, describeSummarize,
 } from './collectionSteps';
 import { describeDatatable, describeKnowledgeWrite } from './dataSteps';
+import { describeFlatten } from './flattenStep';
 
 /**
  * Translate one upstream node into the tree-display shape.
@@ -100,6 +101,7 @@ export function describeNode(node, definition, toolToOutput, triggerOutputs, sam
     if (node.type === 'dedupe')     return describeDedupe(node, sampleRoot);
     if (node.type === 'aggregate')  return describeAggregate(node, sampleRoot);
     if (node.type === 'summarize')  return describeSummarize(node);
+    if (node.type === 'flatten')    return describeFlatten(node, sampleRoot);
     // A type missing from this chain contributes NO group to the variable
     // picker — nothing downstream can bind to it, through any picker, drag or
     // auto-map, and nothing errors.

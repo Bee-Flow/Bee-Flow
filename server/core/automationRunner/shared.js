@@ -277,7 +277,7 @@ const PARALLEL_ROOT_ID = '__parallel_root__';
 // producing, by construction, the same finding the source step already
 // recorded. Anything that can INTRODUCE new content (ai_step, code,
 // integration_action, http_request, parse_json, …) is deliberately absent.
-const PII_RESCAN_EXEMPT_TYPES = new Set(['limit', 'filter', 'dedupe', 'aggregate', 'set']);
+const PII_RESCAN_EXEMPT_TYPES = new Set(['limit', 'filter', 'dedupe', 'aggregate', 'set', 'flatten']);
 
 // ── Dry-run synthetic-input taint tracking ──────────────
 //

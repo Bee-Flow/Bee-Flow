@@ -55,11 +55,17 @@ export interface OutputColumnsState {
     reset: () => void;
 }
 
+const NO_KEYS: readonly string[] = [];
+
 /**
  * The column choice for one step's output table, remembered per step in the
  * viewer's own storage (scopedStorage). `storageKey` null keeps it in memory.
+ * `promote` names columns the suggestion shows after the name although they
+ * look technical (columns.ts flattenPromotedKeys: a flatten's ids).
  */
-export default function useOutputColumns(rows: unknown[], storageKey: string | null, usedFields: readonly string[] = []): OutputColumnsState {
+export default function useOutputColumns(
+    rows: unknown[], storageKey: string | null, usedFields: readonly string[] = NO_KEYS, promote: readonly string[] = NO_KEYS,
+): OutputColumnsState {
     const { t } = useTranslation();
     const [prefs, setPrefs] = useState<ColumnPrefs>(() => readPrefs(storageKey));
     const commit = useCallback((next: ColumnPrefs) => {
@@ -72,8 +78,8 @@ export default function useOutputColumns(rows: unknown[], storageKey: string | n
     const columns = useMemo(() => withLabels(columnsOf(rows, prefs.split), t), [rows, prefs.split, t]);
     // A choice the data no longer supports (or a stale per-item one) counts as no choice.
     const kept = useMemo(() => keptChoice(columns, prefs), [columns, prefs]);
-    const wide = useMemo(() => kept ?? suggestColumns(columns, { max: WIDE_MAX, usedFields }), [kept, columns, usedFields]);
-    const narrow = useMemo(() => kept ?? suggestColumns(columns, { max: NARROW_MAX, usedFields }), [kept, columns, usedFields]);
+    const wide = useMemo(() => kept ?? suggestColumns(columns, { max: WIDE_MAX, usedFields, promote }), [kept, columns, usedFields, promote]);
+    const narrow = useMemo(() => kept ?? suggestColumns(columns, { max: NARROW_MAX, usedFields, promote }), [kept, columns, usedFields, promote]);
 
     const setShown = useCallback((keys: string[]) => commit({ ...prefs, shown: keys }), [commit, prefs]);
     const toggle = useCallback((key: string, from: string[]) => {

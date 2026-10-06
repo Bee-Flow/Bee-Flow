@@ -100,7 +100,7 @@ describe('buildOutlineRows', () => {
         const out = lines(buildOutlineRows(tangled));
         expect(out).toContain('J back to y');
         expect(out.filter((l) => l === 'S y')).toHaveLength(1);
-        expect(out.slice(-3)).toEqual(['# Not connected', 'S loose', '+ after loose (end)']);
+        expect(out.slice(-5)).toEqual(['# Not connected', 'S loose', '+ after loose (end)', 'S mf_flatten', '+ after mf_flatten (end)']);
     });
 
     it('offers only a trigger slot on a graph without one', () => {

@@ -1,4 +1,4 @@
-import { Check, CircleAlert, Filter } from 'lucide-react';
+import { Check, CircleAlert, Filter, Rows3 } from 'lucide-react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { runNoteOf, type RunNote as RunNoteData } from './perItem';
 import { routeNoteOf, routeSentence, type RouteContext } from './routeNote';
@@ -19,10 +19,12 @@ function RouteLine({ value, route }: { value: unknown; route: RouteContext }) {
     const { t } = useTranslation();
     const note = routeNoteOf(value, route);
     if (!note) return null;
-    const text = routeSentence(note, route.unit, t);
+    const text = routeSentence(note, route.unit, t, route.flatten ?? null);
     return (
         <span data-testid="output-route-note" className="inline-flex items-center gap-1 min-w-0 text-[var(--text-tertiary)]" title={text}>
-            <Filter size={12} aria-hidden className="shrink-0" />
+            {note.kind === 'flatten'
+                ? <Rows3 size={12} aria-hidden className="shrink-0" />
+                : <Filter size={12} aria-hidden className="shrink-0" />}
             <span className="truncate">{text}</span>
         </span>
     );
@@ -36,7 +38,8 @@ function RouteLine({ value, route }: { value: unknown; route: RouteContext }) {
  *
  * Given `route` (the step works through a list as a Condition), it says what
  * the Condition kept or how it split the list instead, and nothing for an
- * output without those numbers.
+ * output without those numbers. For a flatten it says how many rows it made
+ * from how many items ("Made 64 rows from 4 messages.").
  */
 export default function RunNote({ value, route = null }: { value: unknown; route?: RouteContext | null }) {
     if (route) return <RouteLine value={value} route={route} />;

@@ -19,8 +19,10 @@ const VENDOR = path.join(__dirname, 'vendor');
 const ENGINE_FILES = [
     'engine.mjs',
     'fileTypes.mjs',
+    'flatten.mjs',
     'functions.mjs',
     'index.mjs',
+    'nested.mjs',
     'path.mjs',
     'pathLabel.mjs',
     'routeFollow.mjs',

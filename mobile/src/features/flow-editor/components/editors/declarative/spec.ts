@@ -35,6 +35,9 @@ export interface ContractParam {
     label?: string;
 }
 
+/** The translator a `display` field words its sentence with. */
+export type SpecTranslate = (key: string, fallback: string, params?: Record<string, string | number>) => string;
+
 export type When = (draft: FormDraft, ctx: SpecContext) => boolean;
 
 /** Words that depend on the draft ("What to scan" vs "What to restore"). */
@@ -102,8 +105,8 @@ export type FieldSpec =
     | (FieldBase & { kind: 'forEach' | 'retry' | 'askOnce' })
     /** A standing sentence: `hint` is the text. */
     | (FieldBase & { kind: 'note'; tone?: 'info' | 'warning' })
-    /** A read-only value. */
-    | (FieldBase & { kind: 'display'; show: (draft: FormDraft, ctx: SpecContext) => string });
+    /** A read-only value; `t` lets a sentence built from several keys be worded at render. */
+    | (FieldBase & { kind: 'display'; show: (draft: FormDraft, ctx: SpecContext, t: SpecTranslate) => string });
 
 export type FieldKind = FieldSpec['kind'];
 

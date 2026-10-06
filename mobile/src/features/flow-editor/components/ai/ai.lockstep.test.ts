@@ -47,6 +47,9 @@ const CALLS: unknown[] = [
     { name: 'builder_add_step', result: { added: { type: 'no_such_type' } } },
     { name: '', result: 'text' },
     { name: 'builder_set_plan' },
+    { name: 'builder_add_array_op', arguments: { op: 'flatten' }, result: { error: 'No list called attachments' } },
+    { name: 'builder_add_array_op', arguments: { op: 'flatten' }, result: { added: { id: 'f1', type: 'flatten', label: 'One row per attachment' } } },
+    { name: 'builder_add_array_op', arguments: { op: 'limit' }, result: { error: 'x' } },
 ];
 
 describe('the activity rows', () => {

@@ -211,7 +211,7 @@ describe('ribbonRows (one row of pills per tab)', () => {
             [
                 'Tables ▾ [datatable, knowledge_write]',
                 'Documents ▾ [generate_document, fill_document, slide, presentation]',
-                'Lists ▾ [filter_list, limit, dedupe, aggregate, summarize]',
+                'Lists ▾ [filter_list, flatten, limit, dedupe, aggregate, summarize]',
             ],
         ]);
         // A group pill carries the tab's section stamp; a plain command has none of its own.

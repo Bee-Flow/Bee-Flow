@@ -53,6 +53,11 @@ const VERBS = {
     builder_propose_plan: { key: 'automations.builder.act.plan', en: 'Updated the plan' },
 };
 
+/** `builder_add_array_op` ops with a word of their own while no step names them yet. */
+const ARRAY_OP_VERBS = {
+    flatten: { key: 'flatten_node.activity', en: 'Flattening a list' },
+};
+
 /** Model-facing echoes of the whole draft — noise in a per-call detail view. */
 const ECHO_KEYS = ['_draftSteps', '_stepIds', '_fixHint', '_needsInspect'];
 
@@ -126,13 +131,16 @@ function stepsOf(raw, t) {
 }
 
 /** The title for a call, in the order of how much the source really knows. */
-function titleFor(name, type, t) {
+function titleFor(name, type, t, tc = null) {
+    const args = tc?.arguments;
     // The step's own type first: that is the builder's answer, not a guess
     // from the tool's name, and it is the same word the canvas shows.
     if (type) {
         const label = nodeTypeLabel(type, t);
         if (label) return label;
     }
+    const opVerb = name === 'builder_add_array_op' && isPlainObject(args) ? ARRAY_OP_VERBS[args.op] : null;
+    if (opVerb) return t ? t(opVerb.key, opVerb.en) : opVerb.en;
     const verb = VERBS[name];
     if (verb) return t ? t(verb.key, verb.en) : verb.en;
     // A builder tool added next month must degrade to something readable
@@ -184,7 +192,7 @@ export function describeToolCall(tc, t = null) {
     const added = raw[0] || null;
     const type = added ? str(added.type) : null;
     return {
-        title: titleFor(name, type, t),
+        title: titleFor(name, type, t, tc),
         detail: (added && str(added.label)) || str(result?.step?.label) || str(tc?.arguments?.stepId) || '',
         type,
         family: type ? typeGroupOf(type) : null,

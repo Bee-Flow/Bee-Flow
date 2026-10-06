@@ -63,12 +63,12 @@ function ListChoice({ choice, selected, onPick, previewSample, stepLabelById, st
  *   by name, plain strings too, and it keeps no outer items)
  */
 /** Picking a list, its note and its Undo (the fields follow when they are given). */
-function useListPick({ overRef, itemVar, parents, bindings, onRebind, container, onChange, previewSample }) {
+function useListPick({ overRef, itemVar, parents, bindings, onRebind, container, onChange, previewSample, definition }) {
     // What the last pick changed, for its note and Undo.
     const [note, setNote] = useState(null);
     const canRebind = !!onRebind && bindings !== undefined;
     const pick = (path, sample) => {
-        const r = pickLoopList({ overRef, itemVar, parents }, { path, sample }, { previewSample, bindings: canRebind ? bindings : undefined, container });
+        const r = pickLoopList({ overRef, itemVar, parents }, { path, sample }, { previewSample, bindings: canRebind ? bindings : undefined, container, definition });
         onChange?.(r.patch);
         if (r.bindings !== undefined) onRebind(r.bindings);
         setNote(r.note ? { ...r.note, undo: { overRef, itemVar, parents, bindings } } : null);
@@ -94,11 +94,11 @@ export default function LoopOverPicker({
     onRebind = null,
     container = false,
 }) {
-    const { stepLabelById, stepTypeById, previewSample } = useVariablePickerContext();
+    const { stepLabelById, stepTypeById, previewSample, definition } = useVariablePickerContext();
     const { t } = useTranslation();
     const arrayFields = useMemo(() => loopListChoices(groups, previewSample), [groups, previewSample]);
     const [advanced, setAdvanced] = useState(false);
-    const { note, pick, undo } = useListPick({ overRef, itemVar, parents, bindings, onRebind, container, onChange, previewSample });
+    const { note, pick, undo } = useListPick({ overRef, itemVar, parents, bindings, onRebind, container, onChange, previewSample, definition });
     const onTypedPath = (e) => onChange?.({ overRef: e.target.value, itemVar });
     const onTypedVar = (e) => onChange?.({ overRef, itemVar: e.target.value.replace(/[^A-Za-z0-9_]/g, '') || 'item' });
 

@@ -53,7 +53,7 @@ const PROPER_CASE = {
     tts: 'TTS',
     sfx: 'SFX',
     ai: 'AI',
-    pdf: 'PDF',
+    pdf: 'PDF', ocr: 'OCR',
 };
 
 function pretty(token) {

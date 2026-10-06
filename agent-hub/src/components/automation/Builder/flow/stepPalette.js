@@ -2,7 +2,7 @@ import {
     Sparkles, Repeat, Code, Bell, Webhook, Clock, MousePointer2, Zap, Bot, AppWindow,
     Pencil, Hourglass, OctagonX, Split, ChevronsDown, Copy, Layers, Sigma, LogOut, Box, Globe,
     ClipboardList, CheckCircle2, ShieldAlert, ShieldCheck, FileText, FileSignature, Table2, StickyNote, BookOpen, ScanText,
-    RectangleHorizontal, Presentation, ListFilter } from 'lucide-react';
+    RectangleHorizontal, Presentation, ListFilter, Rows3 } from 'lucide-react';
 import { STEP_ICON_MAP } from './stepIcons';
 import { nodeLabel, nodeDesc, nodeDefaultLabel } from './nodeDefs';
 import {
@@ -202,12 +202,14 @@ export const FILTER_LIST_ITEM = {
 
 export const COLLECTION_ITEMS = [
     FILTER_LIST_ITEM,
+    stepItem('flatten', 'flatten', Rows3,
+        'flatten split out unnest expand explode one row per each inside nested attachments line items lines table rows'),
     stepItem('limit', 'limit', ChevronsDown,
         'limit take first last slice top head tail trim shorten cap fewer'),
     stepItem('dedupe', 'dedupe', Copy,
         'dedupe duplicates unique distinct same repeated identical once'),
     stepItem('aggregate', 'aggregate', Layers,
-        'aggregate collect pluck pick field values flatten column extract list of'),
+        'aggregate collect pluck pick field values column extract list of'),
     stepItem('summarize', 'summarize', Sigma,
         'summarize summarise sum count avg average min max statistics aggregate total add up how many'),
 ];

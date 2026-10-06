@@ -126,9 +126,11 @@ export const FILTER_LIST_ITEM: PaletteItem = {
 
 export const COLLECTION_ITEMS: readonly PaletteItem[] = [
     FILTER_LIST_ITEM,
+    stepItem('flatten', 'flatten', 'Rows3',
+        'flatten split out unnest expand explode one row per each inside nested attachments line items lines table rows'),
     stepItem('limit', 'limit', 'ChevronsDown', 'limit take first last slice top head tail trim shorten cap fewer'),
     stepItem('dedupe', 'dedupe', 'Copy', 'dedupe duplicates unique distinct same repeated identical once'),
-    stepItem('aggregate', 'aggregate', 'Layers', 'aggregate collect pluck pick field values flatten column extract list of'),
+    stepItem('aggregate', 'aggregate', 'Layers', 'aggregate collect pluck pick field values column extract list of'),
     stepItem('summarize', 'summarize', 'Sigma', 'summarize summarise sum count avg average min max statistics aggregate total add up how many'),
 ];
 

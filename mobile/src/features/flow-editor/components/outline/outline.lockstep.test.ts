@@ -35,6 +35,11 @@ const webAiTools = loadWebModule<{ aiStepVariant: (step: unknown) => string }>('
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const read = (rel: string) => fs.readFileSync(path.join(FLOW, rel), 'utf8');
+/** A node component's source, written in JS or (newer cards) TypeScript. */
+const readNode = (component: string) => {
+    const jsx = path.join(FLOW, `nodes/${component}.jsx`);
+    return fs.readFileSync(fs.existsSync(jsx) ? jsx : path.join(FLOW, `nodes/${component}.tsx`), 'utf8');
+};
 
 describe('the Edit-data summary', () => {
     const OPS: unknown[] = [
@@ -85,7 +90,7 @@ describe('the card glyphs', () => {
     it.each(Object.entries(TYPE_ICON).filter(([type]) => type !== 'datatable'))('%s draws %s, as its node component does', (type, icon) => {
         const component = componentFor(type);
         expect(component).toBeTruthy();
-        expect(iconLine(read(`nodes/${component}.jsx`))).toMatch(new RegExp(`\\b${icon}\\b`));
+        expect(iconLine(readNode(String(component)))).toMatch(new RegExp(`\\b${icon}\\b`));
     });
 
     // Handoff 5 split the AI step card into three variants, each with its own

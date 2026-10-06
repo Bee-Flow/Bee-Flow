@@ -1,7 +1,9 @@
 import { parsePath } from '@shared/expr/path.mjs';
+import { listNounKey } from '@shared/expr/flatten.mjs';
 import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { DataSummary } from '../flow/types';
+import { flattenSentence } from './flattenNote';
 import { isPlainObject, type PlainObject } from './valueHelpers';
 
 const humanizeFieldKey = humanizeFieldKeyJs as (key: string) => string;
@@ -13,11 +15,13 @@ const humanizeFieldKey = humanizeFieldKeyJs as (key: string) => string;
  *  - `kept`: a filter (one output) kept `kept` of `total` items;
  *  - `split`: a list switch sent `count` items down each output, in case
  *    order, then Otherwise.
+ *  - `flatten`: a flatten made rows from a list inside a list (F49).
  * Pure; routeSentence turns it into words for RunNote.
  */
 export type RouteNote =
     | { kind: 'kept'; kept: number; total: number }
-    | { kind: 'split'; parts: RoutePart[]; total: number; fanOut: boolean };
+    | { kind: 'split'; parts: RoutePart[]; total: number; fanOut: boolean }
+    | { kind: 'flatten'; output: PlainObject };
 
 export interface RoutePart {
     name: string;
@@ -37,6 +41,8 @@ export interface RouteNoteOptions {
 export interface RouteContext extends RouteNoteOptions {
     /** "messages", "attachments", or "items" when unknown (P3). */
     unit: string;
+    /** A flatten step: its sentence names its own levels (flattenNote.ts). */
+    flatten?: PlainObject | null;
 }
 
 const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0;
@@ -46,6 +52,12 @@ function keptNote(o: PlainObject): RouteNote | null {
     if (!Array.isArray(o.items) || !isCount(o.inputCount) || !isCount(o.rejectedCount)) return null;
     // From the counts, not items.length: a stored output may hold a cut list.
     return { kind: 'kept', kept: Math.max(0, o.inputCount - o.rejectedCount), total: o.inputCount };
+}
+
+/** A flatten's output: `{ items, count, inputCount, emptyCount }` (F25), also when skipped. */
+function flattenNote(o: PlainObject): RouteNote | null {
+    if (!Array.isArray(o.items) || !isCount(o.inputCount) || !isCount(o.emptyCount)) return null;
+    return { kind: 'flatten', output: o };
 }
 
 /** Per output: `counts`, else the length of each `matchesByCase` list. */
@@ -75,7 +87,7 @@ function splitNote(o: PlainObject, { caseOrder = [], fanOut = false }: RouteNote
 /** The route note of a step's recorded output, or null when it is not a filter or list-switch output. */
 export function routeNoteOf(value: unknown, options: RouteNoteOptions = {}): RouteNote | null {
     if (!isPlainObject(value)) return null;
-    return keptNote(value) ?? splitNote(value, options);
+    return keptNote(value) ?? splitNote(value, options) ?? flattenNote(value);
 }
 
 /**
@@ -95,32 +107,39 @@ export function listUnitKey(arrayRef: unknown): string | null {
     return last ? (last.key as string) : null;
 }
 
-/** P3: the unit a route note counts in, "messages", or "items" when the list has no name. */
-export function routeUnit(arrayRef: unknown, t: TranslateFn): string {
-    const key = listUnitKey(arrayRef);
+/**
+ * P3: the unit a route note counts in, "messages", or "items" when the list
+ * has no name. Given the `definition`, a step's `items` is named by what its
+ * rows are (listNounKey, F47): "attachments" after a flatten.
+ */
+export function routeUnit(arrayRef: unknown, t: TranslateFn, definition?: unknown): string {
+    const noun = definition && typeof arrayRef === 'string' ? listNounKey(definition, arrayRef) : null;
+    const key = noun || listUnitKey(arrayRef);
     const word = key ? humanizeFieldKey(key).toLowerCase() : '';
     return word || t('condition_node.run.unit_items', 'items');
 }
 
 /**
- * The route context of a step that works through a list (a filter, or a
- * switch with `arrayRef`), or null for any other step.
+ * The route context of a step that works through a list (a filter, a
+ * switch with `arrayRef`, or a flatten), or null for any other step.
  */
-export function routeContextOf(step: PlainObject | null | undefined, t: TranslateFn): RouteContext | null {
+export function routeContextOf(step: PlainObject | null | undefined, t: TranslateFn, definition?: unknown): RouteContext | null {
     if (!step || typeof step.arrayRef !== 'string') return null;
+    if (step.type === 'flatten') return { unit: routeUnit(step.arrayRef, t, definition), flatten: step };
     if (step.type !== 'filter' && step.type !== 'switch') return null;
     const cases = Array.isArray(step.cases) ? step.cases : [];
     const caseOrder = cases
         .map(c => (isPlainObject(c) && typeof c.name === 'string' ? c.name : ''))
         .filter(Boolean);
-    return { unit: routeUnit(step.arrayRef, t), caseOrder, fanOut: step.matchMode === 'all' };
+    return { unit: routeUnit(step.arrayRef, t, definition), caseOrder, fanOut: step.matchMode === 'all' };
 }
 
 /**
  * A Condition's route in words (P1/P2): "Kept 3 of 4 messages", or
  * "pdf 4 · word 2 · Otherwise 4 (11 attachments in all)".
  */
-export function routeSentence(note: RouteNote, unit: string, t: TranslateFn): string {
+export function routeSentence(note: RouteNote, unit: string, t: TranslateFn, step: PlainObject | null = null): string {
+    if (note.kind === 'flatten') return flattenSentence(note.output, step, t);
     if (note.kind === 'kept') {
         return note.kept === 0
             ? t('condition_node.run.kept_none', 'Kept none of {total} {unit}', { total: note.total, unit })

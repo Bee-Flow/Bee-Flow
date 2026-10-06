@@ -29,6 +29,8 @@ const VALID_STEP_TYPES = new Set([
     // n8n-style utility nodes (Phase A: data + control flow, Phase B: collection ops)
     'set', 'datetime', 'wait', 'stop_error', 'switch',
     'filter', 'limit', 'dedupe', 'aggregate', 'summarize',
+    // One row per item of a list inside a list (shared/expr/flatten.mjs).
+    'flatten',
     // Scan a value for personal data with the Privacy Shield's detector and
     // branch on the answer.
     'guard',

@@ -1,6 +1,6 @@
 import {
     AppWindow, Bell, BookOpen, Box, Braces, ChevronsDown, Clock, Code2, Copy, FileSignature, FileText, Globe,
-    Hourglass, Layers, LogOut, OctagonX, Pencil, Presentation, RectangleHorizontal, Repeat, ScanText,
+    Hourglass, Layers, LogOut, OctagonX, Pencil, Presentation, RectangleHorizontal, Repeat, Rows3, ScanText,
     ShieldCheck, Sparkles, Split, Table2, VenetianMask, Workflow, Wrench, Zap, ClipboardList,
     type LucideIcon,
 } from 'lucide-react';
@@ -19,7 +19,7 @@ const IntegrationLogo = IntegrationLogoJs as unknown as ComponentType<Record<str
  */
 const TYPE_ICON: Record<string, LucideIcon> = {
     trigger: Zap, ai_step: Sparkles, approval: ShieldCheck, fill_document: FileSignature,
-    dedupe: Copy, knowledge_write: BookOpen, layer_output: LogOut, call_step: Box,
+    dedupe: Copy, flatten: Rows3, knowledge_write: BookOpen, layer_output: LogOut, call_step: Box,
     aggregate: Layers, return_to_app: AppWindow, datetime: Clock, stop_error: OctagonX,
     set: Pencil, datatable: Table2, switch: Split, parse_json: Braces, presentation: Presentation,
     call_layer: Layers, slide: RectangleHorizontal, tokenize: VenetianMask, untokenize: VenetianMask,

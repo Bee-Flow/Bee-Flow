@@ -2,7 +2,7 @@ import {
     AppWindow, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight,
     Sparkles, Zap, GitBranch, Split, Repeat, Hourglass, OctagonX, Bell,
     Pencil, Clock, Filter, ChevronsDown, Copy, Layers, Sigma, Code, Box, Globe,
-    ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation } from 'lucide-react';
+    ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation, Rows3 } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { loopBodyPreview } from './loopBodyPreview';
 import { computeLoopBodyGroups } from './upstream';
@@ -19,7 +19,7 @@ const FORCED_ADVANCED = { density: 'full', mode: 'advanced', onHiddenSection: nu
 const TYPE_ICON = {
     ai_step: Sparkles, integration_action: Zap, condition: GitBranch, switch: Split,
     loop: Repeat, wait: Hourglass, stop_error: OctagonX, return_to_app: AppWindow, notification: Bell,
-    set: Pencil, datetime: Clock, filter: Filter, limit: ChevronsDown, dedupe: Copy,
+    set: Pencil, datetime: Clock, filter: Filter, limit: ChevronsDown, dedupe: Copy, flatten: Rows3,
     aggregate: Layers, summarize: Sigma, code: Code, call_layer: Layers, call_block: Box,
     http_request: Globe,
     form_page: ClipboardList,

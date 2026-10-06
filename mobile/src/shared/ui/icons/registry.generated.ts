@@ -220,6 +220,7 @@ import Repeat from 'lucide-react-native/dist/esm/icons/repeat.js';
 import Rocket from 'lucide-react-native/dist/esm/icons/rocket.js';
 import RotateCcw from 'lucide-react-native/dist/esm/icons/rotate-ccw.js';
 import RotateCw from 'lucide-react-native/dist/esm/icons/rotate-cw.js';
+import Rows3 from 'lucide-react-native/dist/esm/icons/rows-3.js';
 import Rss from 'lucide-react-native/dist/esm/icons/rss.js';
 import Save from 'lucide-react-native/dist/esm/icons/save.js';
 import Scale from 'lucide-react-native/dist/esm/icons/scale.js';
@@ -519,6 +520,7 @@ export const ICON_REGISTRY = {
     Rocket,
     RotateCcw,
     RotateCw,
+    Rows3,
     Rss,
     Save,
     Scale,

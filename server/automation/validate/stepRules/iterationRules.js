@@ -2,7 +2,7 @@
  * Running the same work more than once, or beside itself: the `loop` and its
  * body, the `parallel` and its branches, the per-step `forEach` fan-out any
  * leaf step may carry, and the collection ops (`filter`, `limit`, `dedupe`,
- * `aggregate`, `summarize`) that each take an upstream list as `arrayRef`.
+ * `aggregate`, `summarize`, and `flatten` in flattenRules.js) that each take an upstream list as `arrayRef`.
  *
  * The steps INSIDE a body or a branch are validated by the nested walker in
  * validate/graph.js, which calls the same checker again; what is checked here
@@ -14,6 +14,7 @@ const { isObject, collectRefPaths } = require('../helpers');
 const { fieldsAtRef, checkLoopRef, itemFieldsOf, topLevelFieldsOf } = require('../../builderTools/outputFields');
 const { checkMaxItems } = require('../fieldChecks');
 const { SUMMARIZE_OPS, LIMIT_MODES } = require('../constants');
+const { checkFlatten } = require('./flattenRules');
 
 function checkLoop(ctx, step, at) {
     const { pushE } = ctx;
@@ -264,6 +265,7 @@ function checkCollectionOps(ctx, step, at) {
     if (step.type === 'aggregate' || (step.type === 'summarize' && step.op !== 'count')) {
         if (!step.field || typeof step.field !== 'string') pushE({ code: `${step.type}.field_missing`, severity: 'error', path: at + '.field', message: `Step ${step.id}: ${step.type} requires \`field\` name to read from each item.`, hint: 'e.g. "amount" or "email".' });
     }
+    checkFlatten(ctx, step, at);
     if (step.type === 'summarize') {
         if (!step.op || !SUMMARIZE_OPS.has(step.op)) pushE({ code: 'summarize.op_invalid', severity: 'error', path: at + '.op', message: `Step ${step.id}: summarize requires \`op\` in ${Array.from(SUMMARIZE_OPS).join('/')}.`, hint: 'Pick the aggregation operator.' });
     }

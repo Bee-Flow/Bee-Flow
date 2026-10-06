@@ -4,6 +4,7 @@
 import { impliedListMode } from '../datetimeTarget';
 import { ROUTE_STEP_TYPES, readRoute, writeRoute } from '../routeModel';
 import { PRIVACY_STEP_TYPES, readPrivacy, writePrivacy } from '../privacyModel';
+import { flattenDraft, flattenPatch } from './flattenEditorModel';
 import { defaultTriggerLabel } from '../triggerLabels';
 import { paramsToSchema, schemaToParams } from '../triggerSchemaUtils';
 
@@ -567,6 +568,7 @@ function extractTypeFormState(step) {
     const maxItems = typeof step.maxItems === 'number' ? step.maxItems : '';
     if (step.type === 'limit')        return { ...base, arrayRef: step.arrayRef || '', count: typeof step.count === 'number' ? step.count : 10, mode: step.mode || 'first', maxItems };
     if (step.type === 'dedupe')       return { ...base, arrayRef: step.arrayRef || '', keyField: step.keyField || '', maxItems };
+    if (step.type === 'flatten')      return { ...base, ...flattenDraft(step), maxItems };
     if (step.type === 'aggregate')    return { ...base, arrayRef: step.arrayRef || '', field: step.field || '', maxItems };
     if (step.type === 'summarize')    return { ...base, arrayRef: step.arrayRef || '', field: step.field || '', op: step.op || 'sum', maxItems };
     // `where` and `values` are cloned, not shared: the editor edits the draft in
@@ -1074,6 +1076,10 @@ export function buildPatch(step, draft) {
     if (step.type === 'dedupe') {
         patch.arrayRef = draft.arrayRef || '';
         patch.keyField = draft.keyField?.trim() ? draft.keyField.trim() : undefined;
+        applyMaxItemsPatch(patch, draft);
+    }
+    if (step.type === 'flatten') {
+        Object.assign(patch, flattenPatch(draft));
         applyMaxItemsPatch(patch, draft);
     }
     if (step.type === 'aggregate') {

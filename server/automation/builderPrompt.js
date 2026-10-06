@@ -327,7 +327,7 @@ draft is a typed DAG of steps:
                      inside a loop, a parallel branch or a flowlet. Like stop_error, NOTHING
                      after it ever runs — do not wire anything to its output.
   switch           — multi-way branch by case name (preferred over chained conditions)
-  array_op         — filter/limit/dedupe/aggregate/summarize over an upstream array
+  array_op         — filter/limit/dedupe/aggregate/summarize/flatten over an upstream array
   datatable        — read or write rows of an organisation-scoped DATATABLE: WORKING DATA a
                      automation leaves behind for a later run or for a different automation
                      (knowledge_write below also outlives the run, but stores TEXT an agent
@@ -660,6 +660,10 @@ of \`gmail_modify_labels\` / \`gmail_mark_read\` / \`gmail_archive\` per email, 
 were actually read: \`messageIds:{kind:"ref",path:"steps.<readMany>.output.messages[*].id"}\`. Keep
 \`forEach\` for work that really is one call per item, such as \`gmail_read_attachment\` over
 \`steps.<readMany>.output.messages[*].attachments\`.
+A table of attachments WITH their email's fields (one row per attachment, its sender and subject on
+every row): \`builder_add_array_op({op:"flatten", arrayRef:"steps.<readMany>.output.messages", childField:"attachments"})\`,
+then \`forEach\` over \`steps.<flat>.output.items\` (the item has \`attachmentId\`, \`messageId\`, \`filename\`,
+\`from\`, \`subject\`). Google Sheets append still needs \`forEach\` per row.
 Catalog actions that return a list are marked \`[list]\`; if unsure what array a tool yields,
 call \`builder_inspect_tool\` (its \`iterableFields\` names the arrays you can iterate over).
 
@@ -966,7 +970,7 @@ Forwarding a mail attachment to Drive? Pass the \`sourceHandle\` returned by \`g
 
 ## Placing steps
 
-\`afterStepId\` = the anchor (default: the last step; in a batch, the previous entry). \`branch\`: "then" | "else" on a condition, "error" = runs only when afterStepId fails. \`splice:true\` inserts between the anchor and its successor instead of beside it. \`forEach:{overRef, itemVar}\` runs the step per item; the item is \`loop.<itemVar>\`. Grow a condition branch by appending with \`afterStepId\` = the condition id (auto-labels "then" first, "else" second); pass \`branch\` to override.${switchRule} A condition decides ONCE for the whole run; to keep the matching items of a list use \`builder_add_array_op({op:"filter"})\` and continue on its \`output.items\`. Rules: contains(item.subject, "invoice"), equals(item.status, "open"), anyOf(item.attachments[*].filename, "endsWith", ".pdf"); text helpers ignore upper/lower case, never lower()/upper().
+\`afterStepId\` = the anchor (default: the last step; in a batch, the previous entry). \`branch\`: "then" | "else" on a condition, "error" = runs only when afterStepId fails. \`splice:true\` inserts between the anchor and its successor instead of beside it. \`forEach:{overRef, itemVar}\` runs the step per item; the item is \`loop.<itemVar>\`. Grow a condition branch by appending with \`afterStepId\` = the condition id (auto-labels "then" first, "else" second); pass \`branch\` to override.${switchRule} A condition decides ONCE for the whole run; to keep the matching items of a list use \`builder_add_array_op({op:"filter"})\` and continue on its \`output.items\`. One row per item of a list inside each item (an attachment with its email's fields) is \`op:"flatten"\` with \`childField\`. Rules: contains(item.subject, "invoice"), equals(item.status, "open"), anyOf(item.attachments[*].filename, "endsWith", ".pdf"); text helpers ignore upper/lower case, never lower()/upper().
 
 ${renderTriggerBlockLean()}
 

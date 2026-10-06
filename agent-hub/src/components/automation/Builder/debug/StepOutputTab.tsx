@@ -37,6 +37,8 @@ export interface StepOutputTabProps {
     describedSample?: unknown;
     /** Later steps reading this output; undefined = do not show "Used by". */
     usedBy?: UsedByEntry[];
+    /** Columns the table suggests by default (a flatten's ids). */
+    promote?: readonly string[];
     onAddAfter?: ((suggestion: NextSuggestion) => void) | null;
     onRetry?: (() => void) | null;
     onFix?: ((fix: ErrorFix, info: StepErrorInfo | null) => boolean | void) | null;
@@ -77,7 +79,7 @@ export default function StepOutputTab({
     stepId = null, stepLabel = null, liveOutput, error = null, errorInfo = null, remediation = null,
     onCopyPath = null, compact = false, describedSample = null, usedBy, onAddAfter = null,
     onRetry = null, onFix = null, columnsKey = null, toolsWithheld = null, bindingWarnings = null,
-    stepLabelById = null, stepTypeById = null, route,
+    stepLabelById = null, stepTypeById = null, route, promote,
 }: StepOutputTabProps) {
     const { t } = useTranslation();
     const basePath = stepId ? `steps.${stepId}.output` : '';
@@ -120,6 +122,7 @@ export default function StepOutputTab({
                             onCopyPath={onCopyPath}
                             columnsKey={columnsKey}
                             usedFields={usedFields}
+                            promote={promote}
                             stepLabel={stepLabel}
                             emptyMessage={t('automations.output.none_recorded', 'No output recorded yet. Run or dry-run this step to capture one.')}
                         />
