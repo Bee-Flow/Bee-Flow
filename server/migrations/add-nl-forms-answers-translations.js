@@ -245,6 +245,19 @@ const NL_TRANSLATIONS = {
     'forms.answers.no_table_title': 'Geen antwoordentabel',
     'forms.answers.no_table_body': 'Dit formulier start een automatisering en verzamelt zijn antwoorden niet in een tabel.',
 
+    // ── a form's closing page: keep the result (BFSF-419) ───────────────
+    'forms.result.download_txt': 'Downloaden als .txt',
+    'forms.result.download_docx': 'Downloaden als Word',
+    'forms.result.download_pdf': 'Downloaden als PDF',
+    'forms.result.preparing': 'Wordt voorbereid…',
+    'forms.result.copy': 'Tekst kopiëren',
+    'forms.result.copied': 'Gekopieerd',
+    'forms.result.save_notebook': 'Opslaan in een notitieboek',
+    'forms.result.save_webpage': 'Opslaan als webpagina',
+    'forms.result.saving': 'Wordt opgeslagen…',
+    'forms.result.failed': 'Dat is niet gelukt. Probeer het opnieuw.',
+    'forms.result.start_again': 'Opnieuw beginnen',
+
     // ── the Datatables side (`datatables.frm_*`) ────────────────────────
     'datatables.frm_kindchip': 'antwoorden van een formulier',
     'datatables.frm_open_form': 'Formulier openen',
