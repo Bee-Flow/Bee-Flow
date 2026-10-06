@@ -168,7 +168,6 @@ export const INTEGRATION_CATALOG: CatalogEntry[] = [
     { id: 'afas-profit', label: 'AFAS Profit', description: 'Query AFAS Profit business data', category: 'Productivity' },
     { id: 'nmbrs', label: 'NMBRS', description: 'Read NMBRS payroll and HR data', category: 'Productivity' },
     { id: 'vplan', label: 'vPlan', description: 'Read vPlan planning and time tracking', category: 'Productivity' },
-    { id: 'scaleway-billing', label: 'Scaleway Billing', description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', category: 'Productivity' },
 
     { id: 'withings', label: 'Withings', description: 'Weight, blood pressure, sleep and activity', category: 'Health' },
 
