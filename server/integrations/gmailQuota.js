@@ -69,6 +69,16 @@ async function take(session, method) {
 /**
  * The Gmail client with every `users.*` method going through the bucket first.
  * `gmail.users.messages.get(...)` stays exactly what callers write.
+ *
+ * The outer Proxy stands on an empty object that inherits from the client, not
+ * on the client itself: `google.gmail()` hands back a FROZEN object
+ * (googleapis-common's getAPI ends in Object.freeze), so `users` is a
+ * read-only, non-configurable own property, and a Proxy over it must return
+ * exactly that value from `get` (a JavaScript invariant). Returning the wrapped
+ * resource there threw "'get' on proxy: property 'users' is a read-only and
+ * non-configurable data property" on every Gmail call. The stand-in owns
+ * nothing, so it has nothing to be invariant about; every other property
+ * still reads straight from the client.
  */
 function withQuota(gmail, session) {
     const wrap = (obj, path) => new Proxy(obj, {
@@ -85,9 +95,9 @@ function withQuota(gmail, session) {
             return v && typeof v === 'object' ? wrap(v, here) : v;
         },
     });
-    return new Proxy(gmail, {
-        get(target, prop, receiver) {
-            const v = Reflect.get(target, prop, receiver);
+    return new Proxy(Object.create(gmail), {
+        get(_standIn, prop) {
+            const v = Reflect.get(gmail, prop);
             return prop === 'users' && v && typeof v === 'object' ? wrap(v, '') : v;
         },
     });

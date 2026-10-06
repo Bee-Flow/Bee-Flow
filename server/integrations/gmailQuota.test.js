@@ -43,3 +43,29 @@ test('withQuota passes calls through unchanged, charging the method\'s units', a
     // 20 + 20 units spent from this account's burst.
     assert.equal(quota._buckets.get(quota.accountKey(session)).units <= quota.BURST - 40 + 1, true);
 });
+
+test('withQuota works on the real, frozen client google.gmail() returns', async () => {
+    // googleapis freezes the client, so `users` is a read-only,
+    // non-configurable property. A Proxy over the client itself that hands
+    // back a wrapped `users` breaks a JavaScript invariant and threw
+    // "'get' on proxy: property 'users' is a read-only and non-configurable
+    // data property" on every Gmail call.
+    // Only the Gmail API: all of `googleapis` takes ~20 s to load.
+    const { gmail } = require('googleapis/build/src/apis/gmail');
+    const real = gmail({ version: 'v1' });
+    assert.equal(Object.isFrozen(real), true);
+    const g = quota.withQuota(real, { refreshToken: 'rt-frozen' });
+    assert.equal(typeof g.users.messages.get, 'function');
+    assert.equal(typeof g.users.messages.attachments.get, 'function');
+    assert.equal(g.context, real.context);
+
+    // And a call still goes through the bucket on a frozen client.
+    quota._buckets.clear();
+    const calls = [];
+    const frozen = Object.freeze({ users: { messages: { get(args) { calls.push(args.id); return Promise.resolve({ data: { id: args.id } }); } } } });
+    const session = { refreshToken: 'rt-frozen-fake' };
+    const wrapped = quota.withQuota(frozen, session);
+    assert.deepEqual((await wrapped.users.messages.get({ id: 'm9' })).data, { id: 'm9' });
+    assert.deepEqual(calls, ['m9']);
+    assert.ok(quota._buckets.get(quota.accountKey(session)).units <= quota.BURST - 20 + 1);
+});
