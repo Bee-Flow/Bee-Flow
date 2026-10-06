@@ -129,9 +129,7 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
         render(<PublicFormPage token={TOKEN} authenticated />);
         await finishTheForm();
 
-        // The session is already gone from the URL by now — the save still
-        // has to reach the right journey.
-        expect(new URLSearchParams(window.location.search).get('s')).toBeNull();
+        // The journey is over by now; the save still has to reach it.
         fireEvent.click(screen.getByTestId('form-export-notebook'));
 
         await waitFor(() => expect(posted).not.toBeNull());

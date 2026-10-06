@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react';
 import useFormResultActions from './useFormResultActions';
 import PublicFormRenderer, { FormEndingView, FormWaitingView } from '../components/forms/PublicFormRenderer';
+import useTranslation from '../hooks/useTranslation';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/automation/form';
 
@@ -35,6 +36,12 @@ const POLL_CEILING_MS = 5 * 60 * 1000;
  * rendered here. The session id is mirrored into `?s=…` so a reload resumes
  * the journey instead of restarting it at page one.
  *
+ * The closing page KEEPS `?s=` (BFSF-419). Its result (a blog post, a summary)
+ * often exists nowhere else the visitor can reach, so a reload, the back
+ * button or the browser history has to bring it back for as long as the
+ * session lives (the server refreshes it on every read). "Start again" is the
+ * explicit way to a fresh journey, and the one place that drops `?s=`.
+ *
  * `authenticated` says whether the caller already knows this visitor is a
  * signed-in Bee Flow member — today that is always true, because /f/<token>
  * redirects into the workspace (App.jsx) and this page only ever renders
@@ -64,12 +71,15 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
     // the closing page built no link at all.
     const fileSidRef = useRef(sessionRef.current);
 
-    const setSession = useCallback((sid) => {
+    const setSession = useCallback((sid, { keepUrl = false } = {}) => {
         sessionRef.current = sid;
         if (sid) fileSidRef.current = sid;
         setSessionId(sid);
-        writeSessionToUrl(sid);
+        if (!keepUrl) writeSessionToUrl(sid);
     }, []);
+    // Bumped by "Start again" to load page one afresh.
+    const [restart, setRestart] = useState(0);
+    const { t } = useTranslation();
 
     // ── Page one, or resume an in-flight session after a reload ────────────
     useEffect(() => {
@@ -95,7 +105,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
             }
         })();
         return () => { alive = false; };
-    }, [token, setSession]);
+    }, [token, setSession, restart]);
 
     // ── Poll while the automation is working ─────────────────────────────────
     useEffect(() => {
@@ -269,6 +279,14 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
 
     const retry = useCallback(() => setState(s => ({ ...s, status: 'working' })), []);
 
+    /** Leave the finished journey for a fresh one: the only place that drops `?s=` after the closing page. */
+    const startAgain = useCallback(() => {
+        setSession(null);
+        fileSidRef.current = null;
+        setState(s => ({ status: 'loading', form: null, csrf: null, issuedAt: 0, ending: null, theme: s.theme || null }));
+        setRestart(n => n + 1);
+    }, [setSession]);
+
     return (
         <div className="min-h-screen w-full flex items-start justify-center px-4 py-10 sm:py-16 bg-[var(--bg-primary)]">
             <div className="w-full max-w-xl">
@@ -331,6 +349,16 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
                             onSaveAsWebpage={saveAsWebpage}
                             onDownloadAs={downloadAs}
                         />
+                        <div className="mt-4 text-center">
+                            <button
+                                type="button"
+                                onClick={startAgain}
+                                data-testid="form-start-again"
+                                className="px-3 py-1.5 text-sm rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                            >
+                                {t('forms.result.start_again', 'Start again')}
+                            </button>
+                        </div>
                     </>
                 )}
                 {state.status === 'form' && (
@@ -385,9 +413,10 @@ function applySessionState(payload, setState, setSession) {
             }));
             break;
         case 'done':
-            // The journey is over — drop `?s=` so a reload starts a fresh one
-            // rather than landing on a session that no longer leads anywhere.
-            setSession(null);
+            // The journey is over, so nothing polls or posts to it any more,
+            // but `?s=` stays: a reload shows this result again instead of
+            // losing it (BFSF-419). "Start again" is the way to a fresh journey.
+            setSession(null, { keepUrl: true });
             setState(s => ({
                 status: 'done', form: null, csrf: null, issuedAt: 0,
                 ending: payload.ending || null, theme: payload.ending?.theme || s.theme || null,

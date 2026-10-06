@@ -7027,6 +7027,7 @@ const EN_DEFAULTS = {
     "forms.result.save_webpage": "Save as Webpage",
     "forms.result.saving": "Saving…",
     "forms.result.failed": "That did not work. Please try again.",
+    "forms.result.start_again": "Start again",
     "forms.status.live": "Live",
     "forms.status.live_hint": "Colleagues in your organisation can fill this in after signing in.",
     "forms.status.off": "Not live",
