@@ -15,20 +15,28 @@ const { GOOGLE_RETRY_CONFIG, shouldRetryGoogleRequest, isRateLimitError } = requ
 const rateLimited = { error: { code: 403, message: 'User rate limit exceeded', errors: [{ reason: 'userRateLimitExceeded' }] } };
 const forbidden = { error: { code: 403, message: 'Insufficient permission', errors: [{ reason: 'insufficientPermissions' }] } };
 
-/** A server that answers from a script, then 200 {}, counting hits. */
-async function fakeGoogle(script) {
+/** A server that answers from a script, then 200 {}, counting hits (token refreshes apart). */
+async function fakeGoogle(script, { refreshToken = null } = {}) {
     const hits = [];
+    const refreshes = [];
     const server = http.createServer((req, res) => {
+        if (req.url.startsWith('/token')) {
+            refreshes.push(req.url);
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ access_token: 'refreshed', expires_in: 3600 }));
+            return;
+        }
         hits.push(`${req.method} ${req.url.split('?')[0]}`);
         const step = script[hits.length - 1] || { status: 200, body: {} };
         res.writeHead(step.status, { 'content-type': 'application/json', ...(step.headers || {}) });
         res.end(JSON.stringify(step.body));
     });
     await new Promise(r => server.listen(0, '127.0.0.1', r));
-    const auth = new OAuth2Client('id', 'secret');
-    auth.setCredentials({ access_token: 'token' });
-    const client = gmail({ version: 'v1', auth, rootUrl: `http://127.0.0.1:${server.address().port}/`, retryConfig: { ...GOOGLE_RETRY_CONFIG } });
-    return { client, hits, close: () => new Promise(r => server.close(r)) };
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const auth = new OAuth2Client({ clientId: 'id', clientSecret: 'secret', endpoints: { oauth2TokenUrl: `${base}/token` } });
+    auth.setCredentials({ access_token: 'token', ...(refreshToken ? { refresh_token: refreshToken } : {}) });
+    const client = gmail({ version: 'v1', auth, rootUrl: `${base}/`, retryConfig: { ...GOOGLE_RETRY_CONFIG } });
+    return { client, hits, refreshes, close: () => new Promise(r => server.close(r)) };
 }
 
 const zero = { 'retry-after': '0' };
@@ -39,6 +47,16 @@ test('a rate-limit 403 is retried until Google lets the call through', async () 
         const res = await g.client.users.labels.list({ userId: 'me' });
         assert.equal(res.status, 200);
         assert.equal(g.hits.length, 3);
+    } finally { await g.close(); }
+});
+
+test('a mailbox that stays over its limit: four sends, no token refresh, and the error says 429', async () => {
+    const limited = { status: 403, body: rateLimited, headers: zero };
+    const g = await fakeGoogle(Array(10).fill(limited), { refreshToken: 'refresh' });
+    try {
+        await assert.rejects(g.client.users.labels.list({ userId: 'me' }), (e) => e.status === 429 && /User rate limit exceeded/.test(e.message));
+        assert.equal(g.hits.length, 4, 'one send and three retries, not a second round after a refresh');
+        assert.deepEqual(g.refreshes, [], 'a rate limit is not an expired token');
     } finally { await g.close(); }
 });
 

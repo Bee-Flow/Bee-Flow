@@ -121,14 +121,40 @@ test('graphRequest: a 503 is sent again for a GET, never for a POST that may hav
     assert.equal(calls.length, 3, 'the POST went out once');
 });
 
-test('graphRequest: three retries at most, the wait is clamped, and the last answer comes back untouched', async () => {
-    world.answers.push(throttled('86400'), throttled(), throttled(), new Response('still busy', { status: 429 }));
+test('graphRequest: a read retries three times at most, and the last answer comes back untouched', async () => {
+    world.answers.push(throttled('1'), throttled('1'), throttled('1'), new Response('still busy', { status: 429 }));
     const res = await graphRequest('/me/messages', { accessToken: 'at' });
     assert.equal(res.status, 429);
     assert.equal(await res.text(), 'still busy');
     assert.equal(calls.length, 4);
-    assert.equal(waits[0], 30_000, 'a day-long Retry-After is clamped');
-    assert.equal(waits.length, 3);
+    assert.deepEqual(waits, [1000, 1000, 1000]);
+});
+
+test('graphRequest: a read waits 30 seconds in all; a day-long Retry-After is clamped, then it gives up', async () => {
+    world.answers.push(throttled('86400'), throttled('86400'));
+    const res = await graphRequest('/me/messages', { accessToken: 'at' });
+    assert.equal(res.status, 429);
+    assert.deepEqual(waits, [30_000]);
+    assert.equal(calls.length, 2);
+});
+
+test('graphRequest: a write waits once at most, and only for a short Retry-After (a person may click Send again)', async () => {
+    world.answers.push(throttled('10'));
+    assert.equal((await graphRequest('/me/sendMail', { accessToken: 'at' }, { method: 'POST', body: '{}' })).status, 429);
+    assert.equal(calls.length, 1, 'ten seconds is too long to make a sender wait');
+    world.answers.push(throttled('1'), throttled('1'));
+    assert.equal((await graphRequest('/me/sendMail', { accessToken: 'at' }, { method: 'POST', body: '{}' })).status, 429);
+    assert.equal(calls.length, 3, 'one retry, not three');
+    assert.deepEqual(waits, [1000]);
+});
+
+test('graphRequest: a token that runs out during the wait is refreshed, once', async () => {
+    world.answers.push(throttled('1'), new Response('', { status: 401 }), new Response('{"id":"m"}', { status: 200 }));
+    const session = { accessToken: 'at_old', refreshToken: 'rt_old' };
+    const res = await graphRequest('/me/messages/m', session);
+    assert.equal(res.status, 200);
+    assert.equal(session.accessToken, 'at_new');
+    assert.equal(calls.filter(c => c.url.includes('login.microsoftonline.com')).length, 1);
 });
 
 test('graphRequest: a stream body is not sent again (the first attempt consumed it)', async () => {

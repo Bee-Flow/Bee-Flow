@@ -50,6 +50,10 @@ test('message ids from whatever a step binds: ids, search results, JSON text or 
     assert.deepEqual(messageIdList('m1, m2\nm3'), ['m1', 'm2', 'm3']);
     assert.deepEqual(messageIdList(null), []);
     assert.deepEqual(messageIdList('single'), ['single']);
+    // A forEach's results carry their ids under `output`: a mis-bound list is
+    // an error, never a green "nothing to change".
+    assert.throws(() => messageIdList([{ index: 0, output: { id: 'm1' }, status: 'success' }]), /1 of the 1 entries has no id/);
+    assert.throws(() => messageIdList([{ id: 'a' }, { subject: 'no id' }]), /1 of the 2 entries has no id/);
 });
 
 test('gmail_read_many: one batch for many ids, every message shaped exactly like gmail_read', async () => {

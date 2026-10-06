@@ -179,3 +179,37 @@ test('beforePart is called for every part that is sent, again on a resend', asyn
     });
     assert.deepEqual(charged, ['a', 'b', 'b']);
 });
+
+test('a dropped connection: reads are sent again, and when it stays down the parts read so far are kept', async () => {
+    let posts = 0;
+    const flaky = async (_url, init) => {
+        posts++;
+        if (posts === 1) throw new TypeError('fetch failed');
+        return batchAnswer(sentParts(init).map(p => ({ id: p.id, status: 200, body: { id: p.id } })));
+    };
+    const ok = await googleBatch({ accessToken: 't' }, [{ id: 'a', path: '/a' }], { fetchImpl: flaky, sleepImpl: noSleep });
+    assert.equal(ok.get('a').status, 200);
+    assert.equal(posts, 2);
+
+    // Two chunks: the first is read, the second never gets an answer.
+    let calls = 0;
+    const downAfterOne = async (_url, init) => {
+        calls++;
+        if (calls > 1) throw new TypeError('fetch failed');
+        return batchAnswer(sentParts(init).map(p => ({ id: p.id, status: 200, body: { id: p.id } })));
+    };
+    const out = await googleBatch({ accessToken: 't' }, [{ id: 'a', path: '/a' }, { id: 'b', path: '/b' }], {
+        fetchImpl: downAfterOne, sleepImpl: noSleep, partsPerBatch: 1, maxAttempts: 2,
+    });
+    assert.equal(out.get('a').status, 200);
+    assert.equal(out.get('b').status, 0);
+    assert.equal(partError(out.get('b')), 'no answer from Google: fetch failed');
+
+    // A batch with a write in it is never sent again: it may have arrived.
+    let writes = 0;
+    await assert.rejects(googleBatch({ accessToken: 't' }, [{ id: 'm', method: 'POST', path: '/gmail/v1/users/me/messages/batchModify', body: {} }], {
+        fetchImpl: async () => { writes++; throw new TypeError('fetch failed'); }, sleepImpl: noSleep,
+    }), /fetch failed/);
+    assert.equal(writes, 1);
+});
+

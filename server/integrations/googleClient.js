@@ -175,16 +175,33 @@ function isRateLimitError(data) {
     return Array.isArray(error.errors) && error.errors.some(e => RATE_LIMIT_REASONS.has(e?.reason));
 }
 
+/**
+ * A rate-limit 403 we give up on leaves as the 429 it is. Left a 403, the
+ * OAuth client takes it for an expired token: it refreshes the token and
+ * runs the whole request again, retries and all (measured: 8 sends and a
+ * token refresh for one call while a mailbox stayed over its limit). A 403
+ * that really is about access keeps its status, and its refresh.
+ */
+function reportRateLimitAs429(err) {
+    if (err?.response?.status === 403 && isRateLimitError(err.response.data)) {
+        // gaxios hands over a fetch Response, whose `status` is a read-only
+        // getter: an own property shadows it.
+        Object.defineProperty(err.response, 'status', { value: 429, configurable: true, enumerable: true });
+        err.status = 429;
+    }
+    return false;
+}
+
 /** gaxios `shouldRetry`: the default rules, plus rate-limit 403s. */
 function shouldRetryGoogleRequest(err) {
     const config = err?.config || {};
     if (err?.code === 'AbortError' || (config.signal?.aborted && err?.code !== 'TimeoutError')) return false;
     const method = String(config.method || 'GET').toUpperCase();
-    if (!RETRY_METHODS.has(method)) return false;
+    if (!RETRY_METHODS.has(method)) return reportRateLimitAs429(err);
     const attempt = config.retryConfig?.currentRetryAttempt || 0;
     const status = err?.response?.status;
     if (!status) return attempt < GOOGLE_NO_RESPONSE_RETRIES;
-    if (attempt >= GOOGLE_MAX_RETRIES) return false;
+    if (attempt >= GOOGLE_MAX_RETRIES) return reportRateLimitAs429(err);
     if (status === 403) return isRateLimitError(err.response.data);
     return status === 408 || status === 429 || (status >= 500 && status <= 599);
 }

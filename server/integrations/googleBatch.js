@@ -158,6 +158,16 @@ function parseBatchResponse(contentType, text) {
 }
 
 /**
+ * Only GETs: safe to send again when the connection dropped and nobody knows
+ * whether the batch arrived.
+ * @param {BatchRequest[]} requests
+ * @returns {boolean}
+ */
+function onlyReads(requests) {
+    return requests.every(r => String(r.method || 'GET').toUpperCase() === 'GET');
+}
+
+/**
  * A part worth sending again: throttled (429 or a rate-limit 403) or a
  * server error. A plain 403 (no scope, no access) or a 404 is final.
  * @param {BatchPart | undefined} part
@@ -219,7 +229,18 @@ async function googleBatch(session, requests, opts = {}) {
         for (let attempt = 0; pending.length > 0; attempt++) {
             if (signal?.aborted) throw new Error('Run cancelled');
             if (beforePart) for (const r of pending) await beforePart(r);
-            const parts = await send(pending);
+            let parts;
+            try {
+                parts = await send(pending);
+            } catch (err) {
+                // The connection kept failing for reads: those parts get no answer
+                // and the chunks already read stay read. A batch with a write in
+                // it cannot be judged (did it arrive?), so that is an error.
+                if (!(/** @type {any} */ (err)).transport || !onlyReads(pending)) throw err;
+                const message = `no answer from Google: ${/** @type {Error} */ (err).message}`;
+                for (const r of pending) results.set(r.id, { status: 0, headers: {}, body: { error: { message } } });
+                return;
+            }
             const again = [];
             let expired = false;
             let throttled = false;
@@ -259,23 +280,37 @@ async function googleBatch(session, requests, opts = {}) {
 
     /**
      * One batch POST. A 401 on the whole request refreshes once; a throttled
-     * or failing whole request is retried with backoff; anything else is an
-     * error with Google's own message.
+     * or failing whole request, or (for reads) a dropped connection, is
+     * retried with backoff; anything else is an error with Google's own
+     * message. A connection that keeps failing throws an error marked
+     * `transport`.
      * @param {BatchRequest[]} pending
      * @returns {Promise<Map<string, BatchPart>>}
      */
     async function send(pending) {
         for (let attempt = 0; ; attempt++) {
             const boundary = `batch_${crypto.randomUUID()}`;
-            const response = await fetchImpl(endpoint, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${session.accessToken}`,
-                    'Content-Type': `multipart/mixed; boundary=${boundary}`,
-                },
-                body: buildBatchBody(pending, boundary),
-                signal: signal || undefined,
-            });
+            let response;
+            try {
+                response = await fetchImpl(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${session.accessToken}`,
+                        'Content-Type': `multipart/mixed; boundary=${boundary}`,
+                    },
+                    body: buildBatchBody(pending, boundary),
+                    signal: signal || undefined,
+                });
+            } catch (err) {
+                if (signal?.aborted) throw new Error('Run cancelled');
+                if (onlyReads(pending) && attempt + 1 < maxAttempts) {
+                    await sleepImpl(backoffDelay(attempt), signal);
+                    continue;
+                }
+                const failure = /** @type {Error & { transport?: boolean }} */ (new Error(/** @type {Error} */ (err)?.message || 'network error'));
+                failure.transport = true;
+                throw failure;
+            }
             if (response.ok) return parseBatchResponse(response.headers.get('content-type'), await response.text());
             const text = await response.text().catch(() => '');
             if (response.status === 401 && !state.refreshed) {

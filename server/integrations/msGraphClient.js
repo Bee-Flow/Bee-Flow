@@ -25,8 +25,15 @@ const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 // processed, so sending it again is safe for every method, a sendMail too.
 // A 503 or 504 may have been: those are only sent again for GET and HEAD,
 // never for a POST that sends mail, books a meeting or deletes a row.
+//
+// How long to wait is bounded by who may still be waiting. A read waits at
+// most 30 seconds in all. A write waits at most once, and only when Graph asks
+// for 5 seconds or less: a person who clicked Send and saw nothing for a
+// minute clicks again, and the first mail, still waiting here, would then go
+// out as a second one.
 const GRAPH_MAX_RETRIES = 3;
 const GRAPH_MAX_WAIT_MS = 30_000;
+const GRAPH_WRITE_MAX_WAIT_MS = 5_000;
 const RESENDABLE_ON_5XX = new Set(['GET', 'HEAD']);
 let wait = sleep;
 
@@ -129,28 +136,39 @@ async function graphRequest(path, session, options = {}) {
         return fetch(url, { ...options, headers });
     };
 
-    // First attempt
-    let response = await doFetch(session.accessToken);
-
-    // Retry with refreshed token on 401
-    if (response.status === 401) {
+    // One refresh-and-retry on 401 per call, wherever the 401 comes.
+    let refreshed = false;
+    const refreshAndResend = async () => {
+        refreshed = true;
         try {
             const newToken = await refreshAccessToken(session);
-            response = await doFetch(newToken);
+            return await doFetch(newToken);
         } catch (refreshErr) {
             log.error('[MSGraph] Token refresh failed:', refreshErr.message);
             throw new Error('NOT_CONNECTED');
         }
-    }
+    };
 
-    // Throttled: wait as long as Graph asks (capped), then send again. The last
-    // answer comes back untouched either way: callers read 412/423/429 off it.
+    // First attempt
+    let response = await doFetch(session.accessToken);
+    if (response.status === 401) response = await refreshAndResend();
+
+    // Throttled: wait as long as Graph asks (within the bounds above), then
+    // send again. The last answer comes back untouched either way: callers
+    // read 412/423/429 off it.
     const method = String(options.method || 'GET').toUpperCase();
+    const isRead = RESENDABLE_ON_5XX.has(method);
+    let waited = 0;
     for (let attempt = 0; attempt < GRAPH_MAX_RETRIES && isThrottled(response.status, method) && isReplayableBody(options.body); attempt++) {
         const delay = backoffDelay(attempt, { retryAfterMs: parseRetryAfter(response.headers?.get?.('retry-after')), maxMs: GRAPH_MAX_WAIT_MS });
+        if (!isRead && (attempt > 0 || delay > GRAPH_WRITE_MAX_WAIT_MS)) break;
+        if (waited + delay > GRAPH_MAX_WAIT_MS) break;
+        waited += delay;
         await response.body?.cancel?.().catch(() => {});
         await wait(delay, options.signal || null);
         response = await doFetch(session.accessToken);
+        // The token may have run out while we waited.
+        if (response.status === 401 && !refreshed) response = await refreshAndResend();
     }
 
     return response;
