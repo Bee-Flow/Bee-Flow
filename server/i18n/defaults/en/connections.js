@@ -4,6 +4,8 @@
 module.exports = {
     'connections.field_vplan_key': 'API key',
     'connections.field_vplan_env': 'API env',
+    'connections.field_scaleway_billing_key': 'Secret key',
+    'connections.field_scaleway_billing_org': 'Organization ID',
 
     // ── Settings → Connections (named credentials + lending) ────
     'connections.title': 'Connections',

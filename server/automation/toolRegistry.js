@@ -60,6 +60,7 @@ const TOOL_REGISTRY = [
     { app: 'afas-profit',             label: 'AFAS Profit',            module: '../integrations/afasTools',                 arrayName: 'AFAS_TOOLS',                 enabledKey: 'afas-profit' },
     { app: 'nmbrs',                   label: 'NMBRS',                  module: '../integrations/nmbrsTools',                arrayName: 'NMBRS_TOOLS',                enabledKey: 'nmbrs' },
     { app: 'vplan',                   label: 'vPlan',                  module: '../integrations/vplanTools',                arrayName: 'VPLAN_TOOLS',                enabledKey: 'vplan' },
+    { app: 'scaleway-billing',        label: 'Scaleway Billing',       module: '../integrations/scalewayBillingTools',      arrayName: 'SCALEWAY_BILLING_TOOLS',     enabledKey: 'scaleway-billing' },
     { app: 'agent-search',            label: 'Web Search',             module: '../integrations/agentSearchTools',          arrayName: 'AGENT_SEARCH_TOOLS',         enabledKey: 'agent-search',         availableTo: ['agent', 'automation_step'] },
     { app: 'maps',                    label: 'Google Maps',            module: '../integrations/mapsTools',                 arrayName: 'MAPS_TOOLS',                 enabledKey: 'google-maps' },
     { app: 'linkedin',                label: 'LinkedIn',               module: '../integrations/linkedinTools',             arrayName: 'LINKEDIN_TOOLS',             enabledKey: 'linkedin' },

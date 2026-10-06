@@ -39,6 +39,7 @@ export const INTEGRATION_CATALOG = [
     { id: 'afas-profit', label: 'AFAS Profit', description: 'Query AFAS Profit business data (read-only)', category: 'Productivity' },
     { id: 'nmbrs', label: 'NMBRS', description: 'Read NMBRS payroll & HR data (read-only)', category: 'Productivity' },
     { id: 'vplan', label: 'vPlan', description: 'Read vPlan planning, capacity & time tracking (read-only)', category: 'Productivity' },
+    { id: 'scaleway-billing', label: 'Scaleway Billing', description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', category: 'Productivity' },
     { id: 'n8n', label: 'n8n', description: 'Workflow automation', category: 'Automation' },
     { id: 'linkedin', label: 'LinkedIn', description: 'Post to LinkedIn', category: 'Social' },
     { id: 'withings', label: 'Withings', description: 'Read weight, blood pressure, sleep & activity from Withings Health Mate', category: 'Health' },

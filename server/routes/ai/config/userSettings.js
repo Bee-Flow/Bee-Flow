@@ -45,6 +45,7 @@ const configStore = require('../../../stores/configStore');
 const { normalizeAfasToken } = require('../../../integrations/afasTools');
 const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NMBRS_EMAIL_RE } = require('../../../integrations/nmbrsTools');
 const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
+const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
 const { sanitizeLearningProgress, mergeLearningProgress } = require('../../../learning/progressValidation');
 const { readServerProgress } = require('../../../learning/certificates');
 const { requireAuth } = require('../../../auth/permissions');
@@ -115,6 +116,11 @@ const UserSettingsBody = z.object({
     // X-Api-Env), so the shape check is the header-injection guard.
     vplanApiKey: shaped(VPLAN_API_KEY_RE, 'vPlan API key is invalid — paste the key from vPlan → Settings → Developers, with no spaces.'),
     vplanApiEnv: shaped(VPLAN_API_ENV_RE, 'vPlan environment is invalid — paste the API env shown next to the key in vPlan, with no spaces.'),
+    // Scaleway Billing (read-only). The secret key travels in X-Auth-Token and
+    // the organization id in a query string; both are UUIDs.
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the string is a validation message, not a key
+    scalewayBillingSecretKey: shaped(SCALEWAY_SECRET_KEY_RE, 'Scaleway secret key is invalid. Paste the secret key of the IAM API key, with no spaces.'),
+    scalewayBillingOrgId: shaped(SCALEWAY_ORG_ID_RE, 'Scaleway Organization ID is invalid. Paste the ID from Organization settings, a UUID like 11111111-2222-3333-4444-555555555555.'),
     enabledApps: z.array(z.string({ invalid_type_error: APPS_TEXT }).trim().min(1, APPS_TEXT).max(100, APPS_TEXT),
         { invalid_type_error: APPS_TEXT }).max(500, APPS_TEXT).nullable(),
     simpleMode: flag('simpleMode'),
@@ -276,6 +282,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         hasAfasConfig: !!(await configStore.getSecret(`afas_token_user_${userId}`)) && !!(await configStore.getSecret(`afas_member_number_user_${userId}`)),
         hasNmbrsConfig: !!(await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`)),
         hasVplanConfig: !!(await configStore.getSecret(`vplan_api_key_user_${userId}`)) && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`)),
+        hasScalewayBillingConfig: !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`)),
         // Non-secret NMBRS fields so the settings form can pre-fill (the token is never returned).
         nmbrsApiMode: (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) || 'soap',
         nmbrsSubdomain: (await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) || '',
@@ -345,6 +352,8 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
         nmbrsEnv: 'nmbrs_env',
         vplanApiKey: 'vplan_api_key',
         vplanApiEnv: 'vplan_api_env',
+        scalewayBillingSecretKey: 'scaleway_billing_secret_key',
+        scalewayBillingOrgId: 'scaleway_billing_org_id',
     };
     for (const [field, key] of Object.entries(SECRETS)) {
         if (req.body[field] !== undefined) {

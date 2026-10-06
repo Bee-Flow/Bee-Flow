@@ -340,7 +340,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     const [agents, setAgents] = useState([]);
     const [statuses, setStatuses] = useState({
         hasFirefliesKey: false, hasYouTrackConfig: false, hasGammaKey: false, hasAfasConfig: false,
-        hasVplanConfig: false,
+        hasVplanConfig: false, hasScalewayBillingConfig: false,
         hasNmbrsConfig: false, nmbrsApiMode: 'soap', nmbrsSubdomain: '', nmbrsEmail: '', nmbrsEnv: 'production',
         hasN8nConfig: false, linkedInConnected: false, linkedInName: null, hasLinkedInConfig: false,
         hasNextcloudAppPassword: false, isNextcloudUser: false,
@@ -448,11 +448,12 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
         } catch (e) { /* non-critical */ }
     };
     const fetchSettingsStatuses = async () => {
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed status fetch; nothing reaches another user or a response
         try {
             const res = await authFetch(`${API_BASE}/ai/user-settings`);
             if (res.ok) {
                 const data = await res.json();
-                setStatuses({ hasFirefliesKey: !!data.hasFirefliesKey, hasYouTrackConfig: !!data.hasYouTrackConfig, hasGammaKey: !!data.hasGammaKey, hasAfasConfig: !!data.hasAfasConfig, hasVplanConfig: !!data.hasVplanConfig, hasNmbrsConfig: !!data.hasNmbrsConfig, nmbrsApiMode: data.nmbrsApiMode || 'soap', nmbrsSubdomain: data.nmbrsSubdomain || '', nmbrsEmail: data.nmbrsEmail || '', nmbrsEnv: data.nmbrsEnv || 'production', hasN8nConfig: !!data.hasN8nConfig, hasLinkedInConfig: !!data.hasLinkedInConfig });
+                setStatuses({ hasFirefliesKey: !!data.hasFirefliesKey, hasYouTrackConfig: !!data.hasYouTrackConfig, hasGammaKey: !!data.hasGammaKey, hasAfasConfig: !!data.hasAfasConfig, hasVplanConfig: !!data.hasVplanConfig, hasScalewayBillingConfig: !!data.hasScalewayBillingConfig, hasNmbrsConfig: !!data.hasNmbrsConfig, nmbrsApiMode: data.nmbrsApiMode || 'soap', nmbrsSubdomain: data.nmbrsSubdomain || '', nmbrsEmail: data.nmbrsEmail || '', nmbrsEnv: data.nmbrsEnv || 'production', hasN8nConfig: !!data.hasN8nConfig, hasLinkedInConfig: !!data.hasLinkedInConfig });
             }
         } catch (e) { console.error(e); }
         try {
@@ -480,6 +481,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
         // disconnect, or after a token-only save that isn't fully configured).
         if (key === 'afas-profit') fetchSettingsStatuses();
         if (key === 'vplan') fetchSettingsStatuses();
+        if (key === 'scaleway-billing') fetchSettingsStatuses();
         if (key === 'nmbrs') fetchSettingsStatuses();
         if (key === 'linkedin') fetchSettingsStatuses();
         if (key === 'nextcloud') fetchSettingsStatuses();

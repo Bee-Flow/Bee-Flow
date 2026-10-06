@@ -73,6 +73,9 @@ const READ_ONLY = new Set([
     'vplan_list_activities', 'vplan_list_collections', 'vplan_get_collection', 'vplan_list_cards',
     'vplan_get_card', 'vplan_list_orders', 'vplan_get_order', 'vplan_list_time_tracking',
     'vplan_time_tracking_summary', 'vplan_get_capacity', 'vplan_list_master_data',
+    // Scaleway Billing (read-only by design; the download keeps the PDF for the
+    // run and writes nowhere outside Bee Flow)
+    'scaleway_list_invoices', 'scaleway_download_invoice',
     // Maps / Search / KB
     'maps_search_places', 'maps_geocode', 'maps_directions',
     'agent_search', 'kb_search',
@@ -365,6 +368,10 @@ const NEVER_MEMO = new Set([
     'n8n_execution_list',
     'n8n_execution_get',
     'n8n_execution_get_detail',
+    // Its answer is a generated_file handle scoped to the run that kept the
+    // PDF; a durable (acrossRuns) hit would hand a later run a fileId its
+    // upload step cannot resolve.
+    'scaleway_download_invoice',
 ]);
 
 /**

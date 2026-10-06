@@ -38,6 +38,7 @@ const {
     getAIConfig,
     saveAIConfig,
     ensureScalewayProvider,
+    ensureEuGptProvider,
     getProviders,
     addProvider,
     updateProvider,
@@ -52,6 +53,7 @@ test.beforeEach(() => {
     store.failing = false;
     delete process.env.SCALEWAY_API_KEY;
     delete process.env.SCALEWAY_URL;
+    delete process.env.EUGPT_API_KEY;
 });
 
 const ai = () => store.config.get('ai');
@@ -170,6 +172,32 @@ test('ensureScalewayProvider derives the row from the shared Scaleway secret and
 test('ensureScalewayProvider does nothing without a key', async () => {
     await ensureScalewayProvider();
     assert.strictEqual(ai(), undefined);
+});
+
+// ─── ensureEuGptProvider ─────────────────────────────────────────────────────
+
+test('ensureEuGptProvider seeds the API host, not the chat web app', async () => {
+    store.secrets.set('eugpt_api_key', 'eugpt_k');
+    await ensureEuGptProvider();
+    const row = ai().providers.find(p => p.id === 'eugpt-default');
+    assert.strictEqual(row.url, 'https://api.eugpt.ai/v1');
+    assert.strictEqual(row.apiKey, 'eugpt_k');
+});
+
+test('ensureEuGptProvider moves a row saved with the old chat.eugpt.ai URL, and only that one', async () => {
+    store.secrets.set('eugpt_api_key', 'eugpt_k');
+    store.config.set('ai', { providers: [{ id: 'eugpt-default', type: 'eugpt', url: 'https://chat.eugpt.ai/v1/', apiKey: 'eugpt_k' }] });
+    await ensureEuGptProvider();
+    assert.strictEqual(ai().providers[0].url, 'https://api.eugpt.ai/v1');
+
+    const writesBefore = store.writes.length;
+    await ensureEuGptProvider();
+    assert.strictEqual(store.writes.length, writesBefore, 'a moved row is not rewritten on every read');
+
+    // A URL the admin chose is theirs.
+    store.config.set('ai', { providers: [{ id: 'eugpt-default', type: 'eugpt', url: 'https://proxy.example/v1', apiKey: 'eugpt_k' }] });
+    await ensureEuGptProvider();
+    assert.strictEqual(ai().providers[0].url, 'https://proxy.example/v1');
 });
 
 // ─── getProviders / CRUD ─────────────────────────────────────────────────────
