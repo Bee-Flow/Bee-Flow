@@ -393,5 +393,9 @@ export function buildSettingsBody(form) {
 /** True when the group's framework is off for this org (the page folds it shut). */
 export function groupIsInactive(group, frameworks) {
     if (!group.framework || !frameworks || typeof frameworks.isEnabled !== 'function') return false;
+    // Not loaded (or failed) is "unknown", never "off": before this guard every
+    // group, GDPR and the AI Act included, read "This framework is off" while
+    // the framework list was still on its way.
+    if (!Array.isArray(frameworks.frameworks)) return false;
     return !frameworks.isEnabled(group.framework);
 }

@@ -50,7 +50,7 @@ export default function useAiActAssessment(kind, target, opts = {}) {
     const id = target?.id ?? null;
     const [state, setState] = useState({ loading: false, error: null, absent: false, assessment: null, serverSignals: null });
     const alive = useRef(true);
-    useEffect(() => () => { alive.current = false; }, []);
+    useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
     const fallback = useMemo(() => fallbackSignals(kind, target), [kind, target]);
 

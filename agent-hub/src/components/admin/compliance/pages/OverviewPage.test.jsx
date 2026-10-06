@@ -155,9 +155,13 @@ describe('OverviewPage — status tab', () => {
 
     it('lays the attention list beside a 380px clock column and prints the score formula', () => {
         const { container } = renderPage();
-        const grid = container.querySelector('.grid-cols-\\[1fr_380px\\]');
+        const grid = container.querySelector('.grid-cols-\\[minmax\\(0\\,1fr\\)_380px\\]');
         expect(grid).toBeTruthy();
-        expect(grid.className).toContain('@max-[1180px]/cpage:grid-cols-1');
+        // Side by side down to a 960px page: a 1440px laptop with the 300px rail
+        // leaves ~1140px, which used to stack everything and push the list below the fold.
+        expect(grid.className).toContain('@max-[960px]/cpage:grid-cols-1');
+        expect(container.querySelector('[data-testid="overview-scores"]').className).toContain('grid-cols-3');
+        expect(container.querySelector('[data-testid="overview-scores"]').className).toContain('@max-[880px]/cpage:grid-cols-2');
         expect(screen.getByTestId('attention-list')).toBeInTheDocument();
         expect(screen.getByTestId('deadlines-card')).toBeInTheDocument();
         expect(screen.getByTestId('upcoming-dates')).toBeInTheDocument();

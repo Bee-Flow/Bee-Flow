@@ -35,7 +35,7 @@ import SetupCard from './overview/SetupCard';
 export const FRAMEWORK_CARDS = Object.freeze([
     Object.freeze({ fw: 'gdpr', section: 'gdpr', legacy: 'gdpr', law: 'UAVG', unit: 'checks' }),
     Object.freeze({ fw: 'aia', section: 'aia', legacy: 'aia', law: null, unit: 'checks' }),
-    Object.freeze({ fw: 'iso27001', section: 'iso', legacy: 'iso', law: 'ISO/IEC 27001:2022', unit: 'controls' }),
+    Object.freeze({ fw: 'iso27001', section: 'iso', legacy: 'iso', law: 'ISO/IEC 27001:2022 + Amd 1:2024', unit: 'controls' }),
 ]);
 
 export default function OverviewPage({
@@ -160,7 +160,10 @@ export default function OverviewPage({
                 />
             ) : null}
 
-            <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-3 @max-[1180px]/cpage:grid-cols-1'}`} data-testid="overview-scores">
+            {/* Three across down to an 880px page: at 1180 the cards stacked on every
+                1440px laptop (a 300px rail leaves ~1140) and pushed "Needs attention"
+                below the fold. Below 880 two across, below 600 one. */}
+            <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-3 @max-[880px]/cpage:grid-cols-2 @max-[600px]/cpage:grid-cols-1'}`} data-testid="overview-scores">
                 {FRAMEWORK_CARDS.map(card => {
                     const meta = sectionById(card.section);
                     const fwRecord = frameworks.byId?.(card.fw) || null;
@@ -210,11 +213,11 @@ export default function OverviewPage({
             ) : null}
 
             {setupNeeded ? (
-                <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 @max-[1180px]/cpage:grid-cols-1'}`} data-testid="overview-clocks">
+                <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 @max-[960px]/cpage:grid-cols-1'}`} data-testid="overview-clocks">
                     {clockCards}
                 </div>
             ) : (
-                <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_380px] @max-[1180px]/cpage:grid-cols-1'}`}>
+                <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_380px] @max-[960px]/cpage:grid-cols-1'}`}>
                     <AttentionList
                         attention={attention.attention ?? null}
                         items={attention.items ?? null}

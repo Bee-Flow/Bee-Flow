@@ -10,7 +10,7 @@ import { TableRow, TableCell } from '../../../../shared/DataTable';
 import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { sectionById } from '../../sections';
-import ArticleRef, { formatRef } from '../../shared/ArticleRef';
+import ArticleRef, { formatArticleRef, formatRef } from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
 import VerificationChip from '../../shared/VerificationChip';
 
@@ -171,6 +171,7 @@ export default function CheckRow({
     // back to the id would print `CUSTOM-ACME-3` where a sentence belongs.
     const title = check.titleKey ? t(check.titleKey, check.check_id) : (check.title || check.check_id);
     const others = otherFrameworkRefs(check, regulation);
+    const alsoText = others.map(r => formatArticleRef(r?.regulation, r?.ref, t)).filter(Boolean).join(' · ');
     const article = articleForRegulation(check, regulation);
     const rem = open ? resolveRemediation(check.remediationLink) : null;
     const remLabel = rem && canOpenLink(rem) && typeof onOpenLink === 'function' ? remediationLabel(rem, t) : null;
@@ -228,8 +229,13 @@ export default function CheckRow({
                     )}
                     {others.length > 0 && (
                         <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1 min-w-0" data-testid={testId ? `${testId}-also` : 'check-also-counts'}>
-                            <span>· {t('compliance.tbl_also_counts', 'also counts for')}</span>
-                            <ArticleRef refs={others} className="!text-[10px] !text-[var(--text-tertiary)]" testId={testId ? `${testId}-also-ref` : 'check-also-ref'} />
+                            {/* One line that ends in an ellipsis: a check that counts for six
+                                frameworks used to wrap the label and run the refs over the
+                                Article column. The full list is the tooltip. */}
+                            <span className="shrink-0 whitespace-nowrap">· {t('compliance.tbl_also_counts', 'also counts for')}</span>
+                            <span className="block min-w-0 truncate" title={alsoText}>
+                                <ArticleRef refs={others} className="!text-[10px] !text-[var(--text-tertiary)]" testId={testId ? `${testId}-also-ref` : 'check-also-ref'} />
+                            </span>
                         </div>
                     )}
                     {check.details && (

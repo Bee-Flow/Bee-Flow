@@ -26,7 +26,7 @@ export default function SettingsGroup({
 
     return (
         <section
-            className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden"
+            className="shrink-0 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden"
             style={{ boxShadow: 'var(--shadow-sm)' }}
             data-testid={`settings-group-${group.id}`}
             data-inactive={inactive ? 'true' : 'false'}

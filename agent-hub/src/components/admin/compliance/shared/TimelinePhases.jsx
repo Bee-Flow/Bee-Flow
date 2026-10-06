@@ -33,6 +33,12 @@ import { parseDay, resolveNow } from './calendarMath';
  * under its marker with `translateX(-50%)` — so the end labels never hang
  * outside the card. A single phase, or phases on one date, all sit at 0.
  *
+ * Labels of phases that sit close together drop to a second (or third) row
+ * instead of printing over each other: the AI Act's six phases put Art. 4/5
+ * and GPAI 14% apart and Art. 50 and the marking transition 10% apart, and
+ * on one row their titles overlapped into an unreadable smear. The track
+ * grows by one label row per extra row.
+ *
  * `state` is the CALLER's word (the server knows whether a passed phase was
  * met); this component never derives done/missed from the date alone.
  *
@@ -46,10 +52,10 @@ export default function TimelinePhases({ phases, now, className = '', testId = '
 
     const layout = useMemo(() => layoutPhases(phases, nowMs), [phases, nowMs]);
     if (!layout) return null;
-    const { items, todayPct } = layout;
+    const { items, todayPct, rows } = layout;
 
     return (
-        <div className={`relative h-[72px] ${className}`} data-testid={testId} role="list">
+        <div className={`relative ${TRACK_HEIGHT[rows - 1]} ${className}`} data-testid={testId} role="list" data-rows={rows}>
             <div className="absolute left-0 right-0 top-[9px] h-[2px] bg-[var(--bg-tertiary)]" aria-hidden="true" />
             <div
                 className="absolute left-0 top-[9px] h-[2px] bg-[var(--text-primary)]"
@@ -78,7 +84,7 @@ export default function TimelinePhases({ phases, now, className = '', testId = '
                         data-pct={p.pct}
                     >
                         <Marker state={p.state} />
-                        <span className="text-[10px] leading-[13px] text-[var(--text-secondary)] whitespace-nowrap">
+                        <span className={`text-[10px] leading-[13px] text-[var(--text-secondary)] whitespace-nowrap ${LABEL_OFFSET[p.row]}`} data-row={p.row}>
                             <b className="font-semibold text-[var(--text-primary)]">{p.title}</b>
                             {p.subtitle ? <><br />{p.subtitle}</> : null}
                             {p.daysLeft !== undefined && p.daysLeft !== null ? (
@@ -110,6 +116,16 @@ export default function TimelinePhases({ phases, now, className = '', testId = '
 }
 
 const GLYPH = { width: 11, height: 11, color: 'var(--bg-card)' };
+
+/** Labels closer than this (in % of the track) go to separate rows. */
+const MIN_LABEL_GAP_PCT = 22;
+/** How far a first-row label keeps from the "today" word. */
+const TODAY_GAP_PCT = 9;
+const MAX_LABEL_ROWS = 3;
+// One label row is two 13px lines plus breathing room (30px). Literal classes
+// so Tailwind sees them: the track grows by a row, a label drops by its row.
+const TRACK_HEIGHT = Object.freeze(['h-[72px]', 'h-[102px]', 'h-[132px]']);
+const LABEL_OFFSET = Object.freeze(['', 'mt-[30px]', 'mt-[60px]']);
 
 function Marker({ state }) {
     const base = 'grid place-items-center w-5 h-5 rounded-full box-border shrink-0';
@@ -143,8 +159,21 @@ export function layoutPhases(phases, nowMs) {
         if (span <= 0) return 0;
         return Math.round(Math.max(0, Math.min(1, (ms - t0) / span)) * 1000) / 10;
     };
-    return {
-        items: dated.map(p => ({ ...p, pct: pctOf(p.ms) })),
-        todayPct: pctOf(parseDay(nowMs) ?? nowMs),
-    };
+    const todayPct = pctOf(parseDay(nowMs) ?? nowMs);
+    // Greedy rows: each label takes the first row where it keeps
+    // MIN_LABEL_GAP_PCT from every label already there. The "today" word sits
+    // at the height of the first row, so that row also keeps TODAY_GAP_PCT
+    // from today. MAX_LABEL_ROWS caps the height; a label that fits in no row
+    // goes to the last one.
+    const placed = [];
+    const fits = (row, pct) => (placed[row] || []).every(q => Math.abs(pct - q) >= MIN_LABEL_GAP_PCT)
+        && (row !== 0 || Math.abs(pct - todayPct) >= TODAY_GAP_PCT);
+    const items = dated.map((p) => {
+        const pct = pctOf(p.ms);
+        let row = 0;
+        while (row < MAX_LABEL_ROWS - 1 && !fits(row, pct)) row += 1;
+        (placed[row] = placed[row] || []).push(pct);
+        return { ...p, pct, row };
+    });
+    return { items, todayPct, rows: Math.max(1, placed.length) };
 }

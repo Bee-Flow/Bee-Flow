@@ -48,6 +48,9 @@ function pageProps(over = {}) {
             core: { settings: SETTINGS, saveSettings: vi.fn().mockResolvedValue({}), ...core },
             orgUsers: USERS,
             frameworks: {
+                // The hook's shape: `frameworks` is the loaded list (null while loading).
+                frameworks: ['gdpr', 'aia', 'iso27001', 'nis2', 'cra', 'data_act', 'pld', 'eaa', 'dora', 'machinery']
+                    .map(id => ({ id, enabled: ['gdpr', 'aia', 'nis2'].includes(id) })),
                 isEnabled: (id) => ['gdpr', 'aia', 'nis2'].includes(id),
                 byId: (id) => ({ id, relevance: id === 'dora' ? 'relevant' : 'unknown' }),
                 setRelevance: vi.fn(),
@@ -134,6 +137,13 @@ describe('SettingsPage', () => {
         for (const g of SETTINGS_GROUPS) expect(screen.getByTestId(`settings-group-${g.id}`)).toBeTruthy();
         expect(screen.getByTestId('settings-group-cra').getAttribute('data-inactive')).toBe('true');
         expect(screen.getByTestId('settings-group-nis2').getAttribute('data-inactive')).toBe('false');
+    });
+
+    it('a framework list that has not loaded yet marks no group as off', () => {
+        render(<SettingsPage {...pageProps({ frameworks: { frameworks: null } })} />);
+        for (const g of SETTINGS_GROUPS) {
+            expect(screen.getByTestId(`settings-group-${g.id}`).getAttribute('data-inactive')).toBe('false');
+        }
     });
 
     it('fills the general group from the loaded settings', () => {

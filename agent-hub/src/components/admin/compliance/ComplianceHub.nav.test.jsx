@@ -174,6 +174,11 @@ describe('ComplianceHub navigation contract', () => {
         try {
             render(<ComplianceHub onNavigate={vi.fn()} onBack={onBack} />);
             await waitFor(() => expect(screen.getByTestId('compliance-hub').dataset.layout).toBe('mobile'));
+            // The lazy phone chunk must actually RENDER: its default export is a
+            // function, and handing it to setState unwrapped made React call it
+            // as an updater with no props — the hub threw on every phone while
+            // `data-layout` (set before the chunk resolves) still read 'mobile'.
+            await waitFor(() => expect(screen.getByTestId('compliance-mobile')).toBeInTheDocument());
         } finally { viewport.isMobile = false; }
     });
 });

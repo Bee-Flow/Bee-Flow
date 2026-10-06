@@ -38,7 +38,9 @@ export function checkColumns(t) {
         { id: 'article', width: '84px', label: t('compliance.tbl_col_article', 'Article') },
         { id: 'verification', width: '150px', label: t('compliance.tbl_col_verification', 'Verification') },
         { id: 'last_run', width: '84px', label: t('compliance.tbl_col_last_run', 'Last run'), foldBelow: 1180 },
-        { id: 'actions', width: '170px', label: '', align: 'right' },
+        // Room for the widest pair a row can carry ("Open fix ↗" + "Auto-fix ·
+        // n") plus the chevron: at 170px that pair ran over the Verification chip.
+        { id: 'actions', width: '204px', label: '', align: 'right' },
     ];
 }
 

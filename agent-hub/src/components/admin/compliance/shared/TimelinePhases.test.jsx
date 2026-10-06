@@ -14,6 +14,38 @@ const AIA_PHASES = [
     { date: '2027-08-02', title: '2 Aug 2027', subtitle: 'Annex III', state: 'future' },
 ];
 
+describe('TimelinePhases.layoutPhases — label rows', () => {
+    const SIX = [
+        { date: '2025-02-02', title: 'Art. 4 literacy · Art. 5 prohibited', state: 'done' },
+        { date: '2025-08-02', title: 'GPAI rules', state: 'done' },
+        { date: '2026-08-02', title: 'Art. 50 transparency', state: 'done' },
+        { date: '2026-12-02', title: 'marking of existing systems', state: 'upcoming' },
+        { date: '2027-12-02', title: 'high risk Annex III', state: 'future' },
+        { date: '2028-08-02', title: 'high risk Annex I', state: 'future' },
+    ];
+    it('puts close neighbours on different rows so their labels never overlap', () => {
+        const { items, rows } = layoutPhases(SIX, NOW);
+        expect(rows).toBeGreaterThan(1);
+        for (let i = 0; i < items.length; i++) {
+            for (let j = i + 1; j < items.length; j++) {
+                if (items[i].row === items[j].row) expect(Math.abs(items[j].pct - items[i].pct)).toBeGreaterThanOrEqual(22);
+            }
+        }
+    });
+    it('keeps far-apart phases on one row', () => {
+        const two = [SIX[0], SIX[5]];
+        expect(layoutPhases(two, NOW).rows).toBe(1);
+        expect(layoutPhases(two, NOW).items.map(p => p.row)).toEqual([0, 0]);
+    });
+    it('grows the track by one label row per extra row', () => {
+        render(<TimelinePhases phases={SIX} now={NOW} />);
+        const track = screen.getByTestId('timeline-phases');
+        expect(Number(track.dataset.rows)).toBeGreaterThan(1);
+        expect(track.className).not.toContain('h-[72px]');
+        expect(track.className).toMatch(/h-\[(102|132)px\]/);
+    });
+});
+
 describe('TimelinePhases.layoutPhases — proportional positions', () => {
     it('positions each phase between the first (0) and last (100) date and puts today on the same scale', () => {
         const { items, todayPct } = layoutPhases(AIA_PHASES, NOW);
@@ -53,7 +85,8 @@ describe('TimelinePhases — the 72px track (artboard 1e)', () => {
     it('draws the base line, the progressed segment up to today and the today marker in the kind colour', () => {
         render(<TimelinePhases phases={AIA_PHASES} now={NOW} />);
         const root = screen.getByTestId('timeline-phases');
-        expect(root.className).toContain('h-[72px]');
+        // 72px per artboard, plus one 30px label row for every extra row of labels.
+        expect(root.className).toContain(['h-[72px]', 'h-[102px]', 'h-[132px]'][Number(root.dataset.rows) - 1]);
         expect(root.querySelector('.bg-\\[var\\(--bg-tertiary\\)\\].top-\\[9px\\]')).not.toBeNull();
 
         const progress = screen.getByTestId('timeline-phases-progress');

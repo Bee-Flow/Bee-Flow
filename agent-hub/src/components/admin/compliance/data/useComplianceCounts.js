@@ -52,7 +52,7 @@ export default function useComplianceCounts({ enabled = true, poll = true, keys 
     const [counts, setCounts] = useState(null);
     const [failed, setFailed] = useState(false);
     const alive = useRef(true);
-    useEffect(() => () => { alive.current = false; }, []);
+    useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
     const url = keys && keys.length ? `${API}/counts?keys=${encodeURIComponent(keys.join(','))}` : `${API}/counts`;
 

@@ -180,7 +180,10 @@ function ComplianceMobileGate({ props, fallback }) {
     React.useEffect(() => {
         let alive = true;
         import('./ComplianceMobile')
-            .then((m) => { if (alive) setResolved(m?.default || null); })
+            // Wrapped in an updater: the module's default export IS a function,
+            // and setState(fn) would call it as an updater — ComplianceMobile(prev)
+            // with no props, which threw on every phone.
+            .then((m) => { if (alive) setResolved(() => m?.default || null); })
             .catch(() => { if (alive) setResolved(null); });
         return () => { alive = false; };
     }, []);
