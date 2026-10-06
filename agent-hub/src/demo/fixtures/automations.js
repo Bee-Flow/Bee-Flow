@@ -19,6 +19,7 @@ import { recordRun, runRoutes, seedRuns } from './automationsRuns';
 import { SETTINGS_LIBRARY_ROUTES, SETTINGS_ROUTES, seedFolders, seedShares, seedTrash, seedWebhooks } from './automationsSettings';
 import { TEMPLATE_ROUTES } from './automationsTemplates';
 import { CODE_ROUTES, CODE_STEP } from './automationsCode';
+import { MAIL_FANOUT_CATALOG_APP, MAIL_FANOUT_STEP_RESULTS, mailFanoutAutomationFields, seedMailFanoutRuns } from './automationsMailFanout';
 import { NESTED_CATALOG_APPS, NESTED_STEP_RESULTS, nestedAutomationFields, seedNestedRuns } from './automationsNested';
 import { VERSION_ROUTES, recordSave, seedVersions } from './automationsVersions';
 
@@ -307,6 +308,8 @@ const AUTOMATIONS = () => ([
     }),
     // Graph-shaped mail, JSON text and fenced AI JSON (automationsNested.ts).
     automationRow(nestedAutomationFields()),
+    // Gmail per-item fan-out: 4 mails × 16 attachments, 3 list levels (automationsMailFanout.ts).
+    automationRow(mailFanoutAutomationFields()),
 ]);
 
 const TASKS = () => ([
@@ -399,7 +402,7 @@ export function createState() {
         agents: AGENTS(),
         // The Runs tab, the Versions tab and Settings (handoff 5): each in
         // its own module, all reading this one state.
-        runs: [...seedRuns(), ...seedNestedRuns()],
+        runs: [...seedRuns(), ...seedNestedRuns(), ...seedMailFanoutRuns()],
         versions: seedVersions(automations),
         aiAct: seedAiAct(),
         shares: seedShares(),
@@ -511,6 +514,7 @@ const STEP_RESULTS = {
         output: { delivered: false, to: 'finance@example.com', subject: 'Weekly AI/SaaS spend — 27 Jul 2026', demo: 'No email was sent — the demo has no network access.' },
     },
     ...NESTED_STEP_RESULTS,
+    ...MAIL_FANOUT_STEP_RESULTS,
 };
 
 /** Execution order, so `mode: 'from'` can run the tail of the graph. */
@@ -550,7 +554,7 @@ export const ROUTES = {
     ...TEMPLATE_ROUTES,
     // Literal paths under /api/automation, so ahead of `/:id` like the rest.
     ...CODE_ROUTES,
-    'GET /api/automation/catalog': ({ state }) => ({ tools: [], apps: NESTED_CATALOG_APPS, steps: state.steps, flags: { code: true, codeReason: null } }),
+    'GET /api/automation/catalog': ({ state }) => ({ tools: [], apps: [...NESTED_CATALOG_APPS, MAIL_FANOUT_CATALOG_APP], steps: state.steps, flags: { code: true, codeReason: null } }),
 
     // ── Scheduled agent work (Cowork items that run as an agent) ──
     'GET /api/cowork': ({ state }) => ({ schedules: state.tasks, maxSchedules: 25 }),

@@ -1,8 +1,11 @@
 import { render, screen, within, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setCurrentUser } from '../../../../utils/scopedStorage';
 import OutputView from '../OutputView';
+import RunNote from './RunNote';
+import SmartOutput, { smartRowsOf } from './SmartOutput';
+import useOutputColumns from './useOutputColumns';
 
 const files = Array.from({ length: 23 }, (_, i) => ({
     id: i + 1,
@@ -46,9 +49,14 @@ describe('the drawer table (artboard 4b)', () => {
         render(<OutputView fill fieldsView smartTable value={FILES_OUTPUT} columnsKey="a.s1" />);
         const all = within(screen.getByTestId('output-smart-table')).getAllByRole('columnheader');
         const wideOnly = all.filter(th => th.hasAttribute('data-wide-only'));
-        // A container query shows them from 860px of table width up.
+        // A container query shows them from 1100px of table width up, where they fit.
         expect(wideOnly.length).toBeGreaterThan(0);
-        expect(wideOnly.every(th => th.className.includes('@min-[860px]/smt:table-cell'))).toBe(true);
+        expect(wideOnly.every(th => th.className.includes('@min-[1100px]/smt:table-cell'))).toBe(true);
+        // The pinned column keeps a width of its own beside them, never squeezed to nothing.
+        expect(all[0].className).toContain('min-w-[120px]');
+        // The other cells give way below 620px, so four columns fit a 500px drawer without scrolling sideways.
+        const otherCell = within(screen.getByTestId('output-smart-table')).getAllByRole('row')[1].querySelectorAll('td')[1];
+        expect(otherCell.className).toContain('max-w-[110px]');
         expect(all.length).toBeLessThanOrEqual(7);
         expect(all.map(th => th.textContent)).not.toContain('Etag');
     });
@@ -65,6 +73,19 @@ describe('the drawer table (artboard 4b)', () => {
         render(<OutputView smartTable value={invoices} />);
         const table = screen.getByTestId('output-smart-table');
         expect(table.textContent).not.toContain('[object Object]');
+    });
+
+    it('lines a pinned number up under its header, on the left; other numbers stay right', async () => {
+        const taxes = [{ rate: 21, amount: 545.16 }, { rate: 9, amount: 12.5 }];
+        const user = userEvent.setup();
+        render(<OutputView smartTable value={taxes} />);
+        const alignOf = (cell: HTMLElement) => (cell.querySelector('span')?.className.includes('text-right') ? 'right' : 'left');
+        const [rate, amount] = within(within(screen.getByTestId('output-smart-table')).getAllByRole('row')[1]).getAllByRole('cell');
+        expect([alignOf(rate), alignOf(amount)]).toEqual(['left', 'right']);
+        await user.click(screen.getByRole('button', { name: /Expand/ }));
+        const [wideRate, wideAmount] = within(within(screen.getByTestId('output-wide-grid')).getAllByRole('row')[1]).getAllByRole('cell');
+        expect(wideRate.textContent).toBe('21');
+        expect([alignOf(wideRate), alignOf(wideAmount)]).toEqual(['left', 'right']);
     });
 
     it('leaves callers without smartTable on the classic table', () => {
@@ -95,7 +116,8 @@ describe('the large view (artboard 4d)', () => {
         const heads = within(grid).getAllByRole('columnheader');
         expect(heads[0].textContent).toContain('Invoice number');
         expect(heads.length).toBeLessThanOrEqual(7);
-        expect(grid.textContent).toContain('2 lines');
+        expect(grid.textContent).toContain('2 rows');
+        expect(grid.textContent).not.toContain('lines');
         expect(grid.textContent).toContain('+3');
         expect(screen.getByRole('button', { name: /Columns · \d+ of 8/ })).toBeTruthy();
     });
@@ -151,5 +173,112 @@ describe('the large view (artboard 4d)', () => {
         await user.click(screen.getByRole('button', { name: /Expand/ }));
         await user.click(screen.getByRole('button', { name: 'Back to the drawer' }));
         expect(screen.queryByTestId('output-wide-view')).toBeNull();
+    });
+});
+
+/**
+ * A Gmail "Read" step that ran once per search result: invented Fabrikam
+ * mails, with 16, 1, 3 and no attachments.
+ */
+const attachment = (m: number, n: number) => ({
+    filename: `Invoice_${m}_${n}.pdf`, mimeType: 'application/pdf', size: 48213, attachmentId: `att-${m}-${n}`,
+    canOCR: true, messageId: `msg-${m}`, threadId: `thr-${m}`,
+});
+const mailRow = (count: number, index: number) => {
+    const m = index + 1;
+    const from = 'Fabrikam Billing <billing@fabrikam.example>';
+    return {
+        index,
+        item: { id: `msg-${m}`, to: 'finance@contoso.example', from, subject: `Fabrikam invoice ${m}`, snippet: 'Your invoice' },
+        output: {
+            id: `msg-${m}`, threadId: `thr-${m}`, from, to: 'finance@contoso.example', subject: `Fabrikam invoice ${m}`,
+            date: `2026-09-2${m}T08:00:00Z`, body: `Invoice F-2026-00${m} is ready.`,
+            attachments: Array.from({ length: count }, (_, n) => attachment(m, n)),
+        },
+        status: 'success',
+    };
+};
+const MAIL_RUN = { iterations: 4, succeeded: 4, failed: 0, results: [16, 1, 3, 0].map(mailRow) };
+
+/** A "Read attachment" step: the PDF worked, the logos had no OCR. */
+const logoRow = (index: number, filename: string) => ({
+    index, item: { filename, mimeType: 'image/png' }, output: null,
+    error: `gmail_read_attachment failed: Could not extract text from ${filename} (image/png): image attachment, no OCR provider configured.`,
+    errorClass: 'IntegrationError', attempts: 1, status: 'error',
+});
+const ATTACHMENT_RUN = {
+    iterations: 3, succeeded: 1, failed: 2,
+    results: [
+        { index: 0, item: { filename: 'Invoice_1.pdf', mimeType: 'application/pdf' }, output: { filename: 'Invoice_1.pdf', mimeType: 'application/pdf', content: 'Invoice', charCount: 7 }, status: 'success' },
+        logoRow(1, 'Fabrikam_logo.png'),
+        logoRow(2, 'Contoso_icon.png'),
+    ],
+};
+
+/** The drawer's table on its own, with the large view's opener as a spy. */
+function Drawer({ value, onExpand }: { value: unknown; onExpand: (row?: number, key?: string) => void }) {
+    const rows = smartRowsOf(value) ?? [];
+    const cols = useOutputColumns(rows, null, ['attachments']);
+    return <SmartOutput value={value} rows={rows} cols={cols} onExpand={onExpand} />;
+}
+
+describe('the drawer table of a step that ran once per item', () => {
+    it('shows what each run returned, and says in one line how the runs went', () => {
+        render(<OutputView fill fieldsView smartTable value={MAIL_RUN} columnsKey="a.mf_read" usedFields={['attachments']} />);
+        const table = screen.getByTestId('output-smart-table');
+        const heads = within(table).getAllByRole('columnheader').map(th => th.textContent);
+        expect(heads[0]).toBe('Subject');
+        expect(heads).toContain('Attachments');
+        for (const gone of ['Status', 'Index', 'Item', 'Output', 'Incoming']) expect(heads).not.toContain(gone);
+        expect(table.textContent).not.toContain('lines');
+        expect(screen.getByText(/technical columns hidden \(id, thread id…\)/)).toBeTruthy();
+        expect(screen.getByTestId('output-run-note').textContent).toBe('Ran 4 times · all worked');
+        expect(screen.queryByTestId('output-smart-scalars')).toBeNull();
+    });
+
+    it('makes a list in a cell a button that opens it, and leaves the row alone', async () => {
+        const user = userEvent.setup();
+        const onExpand = vi.fn();
+        render(<Drawer value={MAIL_RUN} onExpand={onExpand} />);
+        const open = screen.getByRole('button', { name: 'Open 16 rows' });
+        expect(open.textContent).toBe('16 rows');
+        expect(open.getAttribute('data-open-key')).toBe('0:output.attachments');
+        await user.click(open);
+        expect(onExpand).toHaveBeenCalledTimes(1);
+        expect(onExpand).toHaveBeenCalledWith(0, 'output.attachments');
+        expect(screen.getByRole('button', { name: 'Open 1 row' }).textContent).toBe('1 row');
+
+        // An empty list reads "0 rows" and opens nothing; a plain cell still opens its row.
+        const lastRow = within(screen.getByTestId('output-smart-table')).getAllByRole('row')[4];
+        expect(within(lastRow).getByText('0 rows')).toBeTruthy();
+        expect(within(lastRow).queryByRole('button')).toBeNull();
+        await user.click(within(lastRow).getByText('Fabrikam invoice 4'));
+        expect(onExpand).toHaveBeenLastCalledWith(3);
+    });
+
+    it('shows a failed item\'s problem next to its name, without the tool in front', () => {
+        render(<OutputView fill fieldsView smartTable value={ATTACHMENT_RUN} />);
+        const table = screen.getByTestId('output-smart-table');
+        const heads = within(table).getAllByRole('columnheader').map(th => th.textContent);
+        expect(heads.slice(0, 2)).toEqual(['Filename', 'Problem']);
+        const logo = within(table).getAllByRole('row')[2];
+        expect(within(logo).getByText('Fabrikam_logo.png')).toBeTruthy();
+        const problem = within(logo).getByText(/^Could not extract text from Fabrikam_logo\.png/);
+        expect(problem.getAttribute('title')).toBe(problem.textContent);
+        expect(table.textContent).not.toContain('gmail_read_attachment failed');
+        expect(screen.getByTestId('output-run-note').textContent).toBe("Ran 3 times · 2 didn't work");
+    });
+
+    it('says when a run stopped at its limit, and keeps a Loop container\'s own numbers', () => {
+        const rows = [{ index: 0, item: { n: 1 }, output: { ok: true }, status: 'success' }];
+        const { rerender } = render(<RunNote value={{ iterations: 1, succeeded: 1, failed: 0, results: rows }} />);
+        expect(screen.getByTestId('output-run-note').textContent).toBe('Ran once · it worked');
+        rerender(<RunNote value={{ iterations: 100, succeeded: 100, failed: 0, truncated: true, totalItems: 250, results: rows }} />);
+        expect(screen.getByTestId('output-run-note').textContent).toBe('Ran 100 times · all worked · Stopped at the limit: 100 of 250 done');
+        cleanup();
+
+        render(<OutputView fill fieldsView smartTable value={{ iterations: 1, results: [{ index: 0, item: { n: 1 }, output: { total: 3 } }] }} />);
+        expect(screen.queryByTestId('output-run-note')).toBeNull();
+        expect(within(screen.getByTestId('output-smart-scalars')).getByText('Iterations')).toBeTruthy();
     });
 });

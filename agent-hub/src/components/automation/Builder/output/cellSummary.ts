@@ -6,7 +6,7 @@ import { isPlainObject, scalarText, type PlainObject } from './valueHelpers';
  * One table cell, summarised so a nested value reads as a short phrase and
  * never as `[object Object]` or clipped JSON (artboard 4d):
  *   group → its first value + "+2"
- *   table → "5 lines"
+ *   table → "5 rows"
  *   list  → its first label + "+3" (both labels when there are only two)
  */
 
@@ -23,14 +23,19 @@ export type CellSummary =
     | { type: 'list'; chips: string[]; more: number }
     | { type: 'status'; text: string; tone: Tone };
 
-/** The first readable value of a group: a name when it has one. */
-function firstValueOf(obj: PlainObject): string {
-    const entries = Object.entries(obj);
-    const named = entries.find(([k, v]) => /^(name|title|label|displayname|subject)$/i.test(k) && v != null && typeof v !== 'object');
-    const first = named || entries.find(([, v]) => v != null && v !== '' && typeof v !== 'object');
+/**
+ * What a record is called: its name, title or subject when it has one, else
+ * its first readable value. A plain value reads as itself; a list as nothing.
+ * Also the pinned cell of a per-item row that failed (perItem.ts cellOf).
+ */
+export function recordName(v: unknown): string {
+    if (!isPlainObject(v)) return v == null || typeof v === 'object' ? '' : scalarText(v);
+    const entries = Object.entries(v);
+    const named = entries.find(([k, x]) => /^(name|title|label|displayname|subject)$/i.test(k) && x != null && typeof x !== 'object');
+    const first = named || entries.find(([, x]) => x != null && x !== '' && typeof x !== 'object');
     if (first) return scalarText(first[1]);
-    const nested = entries.find(([, v]) => isPlainObject(v));
-    return nested ? firstValueOf(nested[1] as PlainObject) : '';
+    const nested = entries.find(([, x]) => isPlainObject(x));
+    return nested ? recordName(nested[1]) : '';
 }
 
 function statusTone(text: string): Tone {
@@ -48,10 +53,13 @@ function formatDate(v: unknown): string {
     return d.toLocaleDateString(undefined, sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/** A field that holds a size in bytes, by its name: `size`, `fileSize`, `bytes`. */
+const BYTES_KEY = /(size|bytes)$/i;
+
 function formatNumber(v: unknown, col: OutputColumn | null): string {
     const n = Number(v);
     if (!Number.isFinite(n)) return scalarText(v);
-    if (col && /(size|bytes)$/i.test(col.key)) return formatBytes(n) || String(n);
+    if (col && BYTES_KEY.test(col.key)) return formatBytes(n) || String(n);
     return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
@@ -65,7 +73,7 @@ function summariseArray(value: unknown[]): CellSummary {
 
 function summariseGroup(value: PlainObject): CellSummary {
     if (looksLikeFile(value)) return { type: 'text', text: scalarText(value.name ?? value.filename) };
-    return { type: 'group', text: firstValueOf(value), more: Math.max(0, Object.keys(value).length - 1) };
+    return { type: 'group', text: recordName(value), more: Math.max(0, Object.keys(value).length - 1) };
 }
 
 export function summariseCell(value: unknown, col: OutputColumn | null = null): CellSummary {
@@ -89,6 +97,16 @@ export function cellText(value: unknown, col: OutputColumn | null = null): strin
     case 'list': return s.chips.join(', ');
     default: return s.text;
     }
+}
+
+/**
+ * One field's value on one line, read the way a table column of that name
+ * reads it: a size in bytes as "1.5 KB" in the row details and the nested
+ * preview, exactly as in the grid.
+ */
+export function fieldText(value: unknown, key: string): string {
+    if (!BYTES_KEY.test(key)) return cellText(value);
+    return cellText(value, { key, label: key, kind: 'number', technical: false, role: 'amount', groupSize: null, parent: null });
 }
 
 function collectValues(v: unknown, out: string[], depth: number): void {

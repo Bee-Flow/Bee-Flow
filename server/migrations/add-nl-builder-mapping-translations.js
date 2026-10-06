@@ -2,7 +2,8 @@
 /**
  * Dutch for the nested-data mapping work: per-item steps over lists inside
  * lists, the AI fallback of "Automatisch koppelen", JSON text read as the
- * structure it encodes, and the run's "koppelingen die niets vonden".
+ * structure it encodes, the run's "koppelingen die niets vonden", and the
+ * "Gaat verder" table that opens a nested list one level at a time.
  *
  * WHY THESE WORDS MATTER: two of these screens exist only to stop a silent
  * wrong mapping. The "nu één keer per {item}" note says that a step moved to
@@ -85,6 +86,20 @@ const NL_TRANSLATIONS = {
     'automations.output.binding_formula': 'Een formule',
     'runs.timeline.binding_misses_one': '1 koppeling vond niets',
     'runs.timeline.binding_misses_many': '{n} koppelingen vonden niets',
+
+    // ── "Gaat verder": een stap per item als tabel, en lijsten openen ───────
+    'automations.output.col_result': 'Resultaat',
+    'automations.output.col_problem': 'Probleem',
+    'automations.output.open_rows': '{count} rijen openen',
+    'automations.output.open_row_one': '1 rij openen',
+    'automations.output.show_all_rows': 'Alle {count} rijen tonen',
+    'automations.output.show_all_columns': 'Alle {count} kolommen tonen',
+    'automations.output.trail': 'Waar je bent',
+    'automations.output.crumb_row': '{title} (rij {n})',
+    'automations.output.each_all_worked': '{count} keer uitgevoerd · alles gelukt',
+    'automations.output.each_one_worked': '1 keer uitgevoerd · gelukt',
+    'automations.output.each_some_failed': '{count} keer uitgevoerd · {failed} niet gelukt',
+    'automations.output.each_capped': 'Gestopt bij de limiet: {done} van {total} gedaan',
 };
 
 // Words that are the same in Dutch: the product says "Trigger", "JSON" and
