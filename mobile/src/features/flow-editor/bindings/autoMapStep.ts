@@ -61,12 +61,16 @@ interface MapContext {
 
 function mapIntegration(step: FlowNode, { catalog, groups, opts }: MapContext): AutoMapResult {
     const schema = findInputSchemaForTool(catalog, step.tool);
-    const patch = autoMapInputs(schema, step.inputs || {}, groups, opts);
-    let nextInputs: Record<string, unknown> = { ...(step.inputs || {}), ...patch };
+    // Iteration fallback — never over a forEach the user set. Decided on the
+    // inputs WITHOUT list columns: a step that runs once per row never also
+    // gets every row's value, so the columns come only when it runs once.
+    const inputs = step.inputs || {};
+    const single = autoMapInputs(schema, inputs, groups, { ...opts, listColumns: false });
+    const iter = step.forEach ? null : tryIterationMapping(schema, { ...inputs, ...single }, groups, isDiagnosticOutputKey);
+    const patch = iter ? single : autoMapInputs(schema, inputs, groups, opts);
+    let nextInputs: Record<string, unknown> = { ...inputs, ...patch };
     let keys = Object.keys(patch);
     let forEach: ForEach | null = null;
-    // Iteration fallback — never over a forEach the user set.
-    const iter = step.forEach ? null : tryIterationMapping(schema, nextInputs, groups, isDiagnosticOutputKey);
     if (iter) {
         nextInputs = { ...nextInputs, ...iter.patch };
         keys = [...keys, ...Object.keys(iter.patch)];

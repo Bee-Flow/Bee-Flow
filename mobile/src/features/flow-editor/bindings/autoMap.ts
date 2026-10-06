@@ -9,6 +9,7 @@
  */
 
 import { firstKeyIsDiagnostic, sampleType, typeCompatible } from './autoMapIteration';
+import { listColumnPatch } from './autoMapListInput';
 import { ownItemIdPatch } from './autoMapOwnItem';
 import { foldKey, groupListSources, groupValueFields, isRecord } from './deepFields';
 import { isEmptyBinding } from './partitionInputs';
@@ -49,7 +50,8 @@ interface Candidate {
 
 /**
  * Every one-value field of every upstream group, at ANY depth (deepFields):
- * never a list column and never a per-iteration field (BFSF-369).
+ * never a list column and never a per-iteration field (BFSF-369). A column
+ * reaches a LIST input through autoMapListInput.ts.
  */
 function flattenCandidates(groups: VariableGroup[] | null | undefined): Candidate[] {
     const out: Candidate[] = [];
@@ -174,12 +176,11 @@ export function autoMapInputs(
     targetInputSchema: JsonSchema | null | undefined,
     existingInputs: Record<string, unknown> | null | undefined,
     upstreamGroups: VariableGroup[] | null | undefined,
-    opts: { maxPerStep?: number } = {},
+    opts: { maxPerStep?: number; listColumns?: boolean } = {},
 ): Record<string, Binding> {
     const maxPerStep = opts.maxPerStep ?? 12;
     const properties = targetInputSchema?.properties || null;
     const candidates = flattenCandidates(upstreamGroups);
-    if (!candidates.length) return {};
     const pass: MapPass = { properties, candidates, existing: existingInputs || {}, used: new Set() };
     const keys = requiredFirst(properties ? Object.keys(properties) : Object.keys(pass.existing), new Set(targetInputSchema?.required || []));
     const patch: Record<string, Binding> = {};
@@ -188,6 +189,8 @@ export function autoMapInputs(
         const binding = mapOne(key, pass);
         if (binding) patch[key] = binding;
     }
+    // A list input of the schema takes a column of an upstream list (`results[*].id`).
+    listColumnPatch({ keys, schema: targetInputSchema, existing: pass.existing, groups: upstreamGroups, used: pass.used, maxPerStep, off: opts.listColumns === false }, patch);
     schemaPass(keys, patch, pass, maxPerStep);
     if (properties && Object.keys(patch).length < maxPerStep) ownItemIdPatch({ keys, schema: targetInputSchema, existing: pass.existing, groups: upstreamGroups }, patch);
     return patch;

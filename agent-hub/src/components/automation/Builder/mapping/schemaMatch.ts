@@ -144,10 +144,11 @@ function namedKind(p: MatchParam, words: string[]): Kind | null {
 const TYPE_KIND: Record<string, Kind> = { number: 'number', integer: 'number', boolean: 'boolean', array: 'list', object: 'record', string: 'text' };
 
 function wantedKind(p: MatchParam, words: string[]): Kind {
-    const named = namedKind(p, words);
-    if (named) return named;
     const t = Array.isArray(p.type) ? p.type.find(x => x !== 'null') : p.type;
-    return (t && TYPE_KIND[t]) || 'unknown';
+    // A list input (`emails`, `fileUrls`) takes a list, never one address or
+    // link its name happens to describe.
+    if (t === 'array') return 'list';
+    return namedKind(p, words) || (t && TYPE_KIND[t]) || 'unknown';
 }
 
 /** May a value of kind `have` fill a parameter that wants `want`? */

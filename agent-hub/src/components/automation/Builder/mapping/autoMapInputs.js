@@ -10,6 +10,7 @@
  */
 
 import { firstKeyIsDiagnostic, sampleType, tryIterationMapping, typeCompatible } from './autoMapIteration';
+import { listColumnPatch } from './autoMapListInput';
 import { ownItemIdPatch } from './autoMapOwnItem';
 import { foldKey, groupListSources, groupValueFields, isRecord } from './deepFields';
 import { isEmptyBinding } from './partitionInputs';
@@ -53,8 +54,9 @@ export function findInputSchemaForTool(catalog, tool) {
  * name/value entries such as `headers[name="Subject"].value`, keys under
  * wrappers like `data.attributes`). Never a list column (`items[*].x` is one
  * value PER ROW, so it would put a list into a one-value parameter) and never
- * a per-iteration field (BFSF-369): those stay pickable by hand, and the
- * "run once per item" pass below is what maps a column.
+ * a per-iteration field (BFSF-369): those stay pickable by hand. A column
+ * reaches a LIST input through autoMapListInput.ts (`messageIds` ←
+ * `results[*].id`), and the "run once per item" pass maps one per item.
  */
 function flattenCandidates(groups) {
     const out = [];
@@ -155,7 +157,9 @@ export function nearestScannableRef(groups) {
  * @param {object|null} targetInputSchema  { properties, required } or null (generic)
  * @param {object} existingInputs          current inputs map (never overwritten)
  * @param {Array}  upstreamGroups          computeUpstreamGroups output (nearest last)
- * @param {object} opts                    { maxPerStep }
+ * @param {object} opts                    { maxPerStep, listColumns } — listColumns: false
+ *                                         leaves list inputs without a column (autoMapStep, while
+ *                                         it decides whether the step runs once per item)
  * @returns {object}  partial inputs patch — only NEW {kind:'ref'} bindings
  */
 export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups, opts = {}) {
@@ -163,7 +167,6 @@ export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups,
     const properties = targetInputSchema?.properties || null;
     const required = new Set(targetInputSchema?.required || []);
     const candidates = flattenCandidates(upstreamGroups);
-    if (!candidates.length) return {};
 
     // Generic (no schema): only consider keys that already exist on the step
     // (never invent keys); schema mode: all declared properties.
@@ -183,6 +186,8 @@ export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups,
         patch[key] = { kind: 'ref', path: match.path };
         used.add(match.path);
     }
+    // A list input of the schema takes a column of an upstream list (`results[*].id`).
+    listColumnPatch({ keys, schema: targetInputSchema, existing: existingInputs || {}, groups: upstreamGroups, used, maxPerStep, off: opts.listColumns === false }, patch);
     // What names alone did not settle: schema matching (schemaMatch.ts) —
     // synonyms, the step's entity for a generic `id`, value kinds, allowed
     // values. Conservative threshold, one field per parameter.
@@ -257,20 +262,23 @@ export function autoMapStep(step, definition, catalog, opts = {}) {
 
     if (type === 'integration_action') {
         const schema = findInputSchemaForTool(catalog, step.tool);
-        const patch = autoMapInputs(schema, step.inputs || {}, groups, opts);
-        let nextInputs = { ...(step.inputs || {}), ...patch };
-        let keys = Object.keys(patch);
-        let forEach = null;
         // Iteration fallback: a required input is still empty AND the nearest
         // upstream is an array of objects whose elements match → fan out once
-        // per item. Never override an existing forEach the user set.
-        if (!step.forEach) {
-            const iter = tryIterationMapping(schema, nextInputs, groups, isDiagnosticOutputKey);
-            if (iter) {
-                nextInputs = { ...nextInputs, ...iter.patch };
-                keys = [...keys, ...Object.keys(iter.patch)];
-                forEach = iter.forEach;
-            }
+        // per item. Never override an existing forEach the user set. Decided
+        // on the inputs WITHOUT list columns: a step that runs once per row
+        // must never also get every row's value (`emails ← contacts[*].email`
+        // on each contact), so the columns come only when it runs once.
+        const inputs = step.inputs || {};
+        const single = autoMapInputs(schema, inputs, groups, { ...opts, listColumns: false });
+        const iter = step.forEach ? null : tryIterationMapping(schema, { ...inputs, ...single }, groups, isDiagnosticOutputKey);
+        const patch = iter ? single : autoMapInputs(schema, inputs, groups, opts);
+        let nextInputs = { ...inputs, ...patch };
+        let keys = Object.keys(patch);
+        let forEach = null;
+        if (iter) {
+            nextInputs = { ...nextInputs, ...iter.patch };
+            keys = [...keys, ...Object.keys(iter.patch)];
+            forEach = iter.forEach;
         }
         if (!keys.length && !forEach) return { step, mappedKeys: [] };
         const nextStep = { ...step, inputs: nextInputs };
