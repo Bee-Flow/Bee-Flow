@@ -37,21 +37,30 @@ router.get('/session/:automationId', requireAuth, validate({ query: NoQuery }), 
     res.json({ snapshot });
 });
 
-// Review actions only clear the saved proposal/plan. Applying a definition
-// still goes through the ordinary automation editor's save and validation.
+// Review actions clear the saved proposal/plan and record what the user did
+// with it, so the agent's next turn is told (workMode.reviewStatusNote) instead
+// of guessing whether its staged changes went live (BFSF-486). Applying a
+// definition still goes through the ordinary automation editor's save and
+// validation; `applyProposal` only records that the user pressed Apply.
+const REVIEW_OUTCOMES = {
+    applyProposal: { key: 'proposal', kind: 'proposal', status: 'applied' },
+    discardProposal: { key: 'proposal', kind: 'proposal', status: 'discarded' },
+    rejectPlan: { key: 'reviewPlan', kind: 'plan', status: 'rejected' },
+};
 router.post('/session/:automationId/review', requireAuth, validate({ query: NoQuery, body: z.object({
-    action: z.enum(['discardProposal', 'rejectPlan']),
+    action: z.enum(Object.keys(REVIEW_OUTCOMES)),
     revisionId: z.string().min(1).max(200),
 }).strict() }), async (req, res, next) => {
     try {
         const userId = req.session.user.id;
         const snapshot = await automationStore.getBuilderSession(req.params.automationId, userId);
         if (!snapshot) return res.status(404).json({ error: 'No builder session for this automation' });
-        const key = req.body.action === 'rejectPlan' ? 'reviewPlan' : 'proposal';
+        const { key, kind, status } = REVIEW_OUTCOMES[req.body.action];
         if (snapshot[key]?.id !== req.body.revisionId) return res.status(409).json({ error: 'The review has changed. Reload the latest revision.' });
-        const result = await automationStore.setBuilderSession(req.params.automationId, userId, { ...snapshot, [key]: null }, { expectedVersion: snapshot.version });
+        const reviewOutcome = { kind, id: req.body.revisionId, status, at: new Date().toISOString() };
+        const result = await automationStore.setBuilderSession(req.params.automationId, userId, { ...snapshot, [key]: null, reviewOutcome }, { expectedVersion: snapshot.version });
         if (!result.ok) return res.status(409).json({ error: 'The builder session changed. Reload the latest revision.' });
-        res.json({ ok: true });
+        res.json({ ok: true, outcome: status });
     } catch (e) { next(e); }
 });
 

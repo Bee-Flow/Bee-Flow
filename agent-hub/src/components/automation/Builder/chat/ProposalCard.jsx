@@ -26,6 +26,7 @@ export default function ProposalCard({ proposal, running, onApply, onDiscard, on
                 })}
             </span></div>)}
             <p className="text-[var(--text-tertiary)] leading-4">{t('automations.assistant.preview_hint', 'Nothing has changed yet. The dashed cards on the canvas are a preview.')}</p>
+            <p className="text-[var(--text-tertiary)] leading-4">{t('automations.assistant.apply_hint', 'Saying yes in the chat does not apply this. Press Apply to make these changes live, or Discard to drop them. The assistant hears which one you chose.')}</p>
         </div>
         <div className="flex flex-wrap gap-1.5 px-3 pb-3">
             <button type="button" disabled={running} onClick={() => onApply(reviewedProposal(proposal, excluded))} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50"><Check size={12} />{t('automations.assistant.apply', 'Apply')}</button>

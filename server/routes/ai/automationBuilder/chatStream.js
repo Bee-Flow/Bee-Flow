@@ -55,6 +55,7 @@
 
 const express = require('express');
 const { randomUUID } = require('node:crypto');
+const { isDeepStrictEqual } = require('node:util');
 const log = require('../../../telemetry/log');
 const router = express.Router();
 
@@ -83,7 +84,8 @@ const { runDelegationTool } = require('./layerDelegation');
 const { streamWithRetry } = require('./modelStream');
 const { inferPlanProgress } = require('./planProgress');
 const { INSPECTION_NAMES, INSPECTION_TOOLS, inspect } = require('./inspectionTools');
-const { MODES, PLAN_TOOL, QUESTIONS_TOOL, writeQuestions, toolAllowed, modeInstruction, writePlan, changedSteps } = require('./workMode');
+const { MODES, PLAN_TOOL, QUESTIONS_TOOL, LARGE_CHANGE_STEPS, writeQuestions, toolAllowed, modeInstruction, writePlan, changedSteps,
+    isBlankDraft, pendingProposal, reviewStatusNote, withChangeStatus, markStagedView } = require('./workMode');
 const { createThoughtNarrator } = require('./thoughtNarrator');
 const { composeTurnMessages } = require('./turnMessages');
 const { scanToolDraft, deriveDraftKey, makeDraftThrottle, makeProgressThrottle } = require('./toolDraft');
@@ -337,7 +339,9 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             return res.end();
         }
         const turnMode = approvedPlan ? 'build' : workMode;
-        const bufferedBuild = turnMode === 'build' && alwaysPlanLarge && !approvedPlan;
+        // A new or empty draft is built directly: the size check is for
+        // changes to a flow that already exists (BFSF-486).
+        const bufferedBuild = turnMode === 'build' && alwaysPlanLarge && !approvedPlan && !isBlankDraft(draftWrap.def);
         const permissionMode = bufferedBuild ? 'approve' : turnMode;
         const isolated = turnMode !== 'build' || bufferedBuild;
         let pausedAfterStep = false;
@@ -347,6 +351,17 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // Preview mutations operate on their own copy; the persisted definition
         // and all runtime actions remain untouched until a human applies it.
         if (isolated) draftWrap.def = structuredClone(baseDraft);
+        // A proposal from an earlier turn that still waits for Apply. An
+        // isolated turn works ON it, so the agent's draft view shows what it
+        // staged and a follow-up adds to the proposal instead of starting over
+        // from the live draft (BFSF-486). The live draft stays the base.
+        const savedProposal = pendingProposal(snapshot?.proposal, baseDraft);
+        const reviewOutcome = snapshot?.reviewOutcome || null;
+        if (isolated && savedProposal) {
+            draftWrap.def = structuredClone(savedProposal.definition);
+            if (typeof savedProposal.title === 'string') draftWrap.title = savedProposal.title;
+            if (savedProposal.description != null) draftWrap.description = savedProposal.description;
+        }
         if (approvedPlan) reviewPlan = { ...reviewPlan, status: 'building', pauseAfterStep };
         if (reviewPlan) send('review_plan', { plan: reviewPlan });
         // Resume support — when the client asks (?resume=1), re-emit the
@@ -432,7 +447,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // Human-readable summary — seeds `lastSummary` (the "What this
         // automation does" panel + builder_session snapshot). User-facing, so
         // it stays prose without raw step IDs.
-        const summary = summariseDefinition(draftWrap.def).summary;
+        const summary = summariseDefinition(baseDraft).summary;
         // Agent context: a structured, ID-bearing view of the WHOLE draft
         // (main flow + every flowlet) with each step's settings and input
         // bindings, so the model reads real step IDs + current wiring instead
@@ -616,7 +631,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             },
         });
 
-        if (req.body.workMode) messages.push({ role: 'system', content: modeInstruction(turnMode, approvedPlan) + (bufferedBuild ? '\nChanges are being staged to check their size. Four or more changed steps require a human-reviewed plan before applying anything. Do not claim staged changes are applied. Do not test until staging is committed.' : '') + (approvedPlan && pauseAfterStep ? '\nPause after ONE step change. Avoid batches; the user must explicitly continue before the next step. Read the current draft to avoid repeating completed changes.' : '') + (selectedStepId ? `\nThe user's selected step is ${selectedStepId}. Resolve its label and settings from the draft above.` : '') });
+        if (req.body.workMode) messages.push({ role: 'system', content: modeInstruction(turnMode, approvedPlan) + (bufferedBuild ? `\nChanges are staged to check their size. Fewer than ${LARGE_CHANGE_STEPS} changed steps are applied at the end of this turn; ${LARGE_CHANGE_STEPS} or more become a proposal the user applies with one click. Do not claim staged changes are applied. Do not test until staging is committed.` : '') + reviewStatusNote({ outcome: reviewOutcome, pending: savedProposal, isolated }) + (approvedPlan && pauseAfterStep ? '\nPause after ONE step change. Avoid batches; the user must explicitly continue before the next step. Read the current draft to avoid repeating completed changes.' : '') + (selectedStepId ? `\nThe user's selected step is ${selectedStepId}. Resolve its label and settings from the draft above.` : '') });
 
         // Filter the tool schema set: by feature flag AND by profile.
         // The 'core' subset shrinks the tool menu from 26 to 13 for small
@@ -1045,6 +1060,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                     if (req.body.workMode && INSPECTION_NAMES.has(name)) {
                         try { toolResult = await inspect(name, args, draftWrap, { store: automationStore, pii: require('../../../core/privacy/piiDetection') }); }
                         catch (e) { toolResult = { error: e.message }; }
+                        markStagedView(toolResult, isolated && JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def));
                         send('tool_call', { name, arguments: args, result: toolResult });
                         messages.push({ role: 'tool', tool_call_id: tc.id, content: truncateToolResultJson(toolResult) });
                         acceptedThisIter = !toolResult.error;
@@ -1226,6 +1242,8 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                             };
                         }
                     }
+                    if (req.body.workMode && mutates(name)) withChangeStatus(toolResult, { isolated, buffered: bufferedBuild && !savedProposal });
+                    if (req.body.workMode && name === 'builder_summarise') markStagedView(toolResult, isolated && JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def));
                     send('tool_call', { name, arguments: args, result: toolResult });
                     // A rejected call, with the arguments that were rejected.
                     // The stored session keeps only the summary, so without
@@ -1554,18 +1572,27 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             }
         }
 
-        const proposal = turnMode === 'approve' && (JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def) || baseTitle !== draftWrap.title || baseDescription !== draftWrap.description)
-            ? { id: randomUUID(), definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description } : null;
-        if (proposal) send('proposal_preview', proposal);
+        const staged = JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def) || baseTitle !== draftWrap.title || baseDescription !== draftWrap.description;
+        // The same proposal keeps its id while the turn added nothing to it.
+        const stageProposal = () => (savedProposal && isDeepStrictEqual(savedProposal.definition, draftWrap.def)
+            && savedProposal.title === draftWrap.title && savedProposal.description === draftWrap.description)
+            ? savedProposal
+            : { id: randomUUID(), definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description };
+        let proposal = turnMode === 'approve' && staged ? stageProposal() : null;
         if (approvedPlan) {
             reviewPlan = { ...reviewPlan, status: reviewQuestions || pausedAfterStep ? 'paused' : 'built', baseDefinition: structuredClone(draftWrap.def) };
             send('review_plan', { plan: reviewPlan });
         }
         if (bufferedBuild) {
             const changes = changedSteps(baseDraft, draftWrap.def);
-            if (changes.length >= 4) {
-                reviewPlan = { ...writePlan({ title: draftWrap.title || 'Automation changes', goal: message || 'Update this automation', steps: changes, tests: ['Validate the flow and check the field mappings before a test run.'] }, reviewPlan), baseDefinition: structuredClone(baseDraft) };
-                send('review_plan', { plan: reviewPlan });
+            // A large change becomes the same one-click proposal approve mode
+            // makes (Apply / Discard on the card). It used to become a plan
+            // listing the changes, and approving that plan threw the staged
+            // definition away and had the agent build it all again (BFSF-486).
+            // A turn that worked on a waiting proposal never commits by
+            // itself: that proposal's changes have not been approved.
+            if (changes.length >= LARGE_CHANGE_STEPS || (savedProposal && staged)) {
+                proposal = stageProposal();
             } else if ((changes.length || baseTitle !== draftWrap.title || baseDescription !== draftWrap.description) && !reviewQuestions) {
                 await persistDraftWrap(draftWrap);
                 send('draft', { definition: draftWrap.def, automationId: draftWrap.automationId });
@@ -1575,6 +1602,10 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                 baseTitle = draftWrap.title; baseDescription = draftWrap.description;
             }
         }
+        // A waiting proposal nothing replaced stays waiting, as long as the
+        // live draft it was staged against is unchanged.
+        if (!proposal && savedProposal && pendingProposal(savedProposal, isolated ? baseDraft : draftWrap.def)) proposal = savedProposal;
+        if (proposal) send('proposal_preview', proposal);
         if (isolated) { draftWrap.def = baseDraft; draftWrap.title = baseTitle; draftWrap.description = baseDescription; }
         // A new plan needs a document to own its saved conversation. Only the
         // original empty draft is saved here, never a proposed definition.
