@@ -1,4 +1,5 @@
 import { render, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ConditionField from './ConditionField';
 
@@ -34,18 +35,32 @@ describe('ConditionField — round-trip', () => {
         expect(getByRole('button', { name: /quantity/i })).toBeTruthy();
     });
 
-    it('re-serializes to an expression string when the operator changes', () => {
+    it('re-serializes to an expression string when the operator changes', async () => {
         const onChange = vi.fn();
         const { getAllByRole } = render(
             <ConditionField value="form.quantity > 0" onChange={onChange} definition={null} node={NODE} />,
         );
         // The operator is the row's own select; the field slot is a button now.
-        fireEvent.change(getAllByRole('combobox')[0], { target: { value: 'neq' } });
+        // App Studio shares the Condition node's menus: "is not" is `!equals()`,
+        // which the shared engine both runs evaluate the same way.
+        await userEvent.setup().selectOptions(getAllByRole('combobox')[0], 'isNot');
         expect(onChange).toHaveBeenCalled();
         const emitted = onChange.mock.calls.at(-1)[0];
         expect(typeof emitted).toBe('string');
-        expect(emitted).toContain('form.quantity');
-        expect(emitted).toContain('!=');
+        expect(emitted).toBe('!equals(form.quantity, 0)');
+    });
+
+    it('keeps a saved `!=` rule exactly as it was (old rules keep their meaning)', () => {
+        const onChange = vi.fn();
+        const { getAllByRole } = render(
+            <ConditionField value='form.note != "x"' onChange={onChange} definition={null} node={NODE} />,
+        );
+        // The legacy exact-case operator stays on that row's menu, named as such,
+        // and opening the rule never rewrites it.
+        const select = getAllByRole('combobox')[0];
+        expect(select.value).toBe('neq');
+        expect(select.selectedOptions[0].textContent).toMatch(/exactly/);
+        expect(onChange).not.toHaveBeenCalled();
     });
 
     it('offers the fields that actually exist in the app’s scope', () => {

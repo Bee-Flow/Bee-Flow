@@ -51,9 +51,11 @@ export const PALETTE_ABSENT = {
     // Reached by flow/routeModel.js, which swaps the ONE "Condition" node
     // between condition / switch / filter as its editor grows from a single
     // rule to many, or starts working through a list. Deliberately not
-    // separately addable — they are the same node to the user.
+    // separately addable — they are the same node to the user. The palette's
+    // "Filter a list" (BFSF-485) drops a `filter`, but as the Condition node
+    // already in list mode, with words of its own and the Condition's name.
     switch: 'runtime shape of the Condition node (many rules)',
-    filter: 'runtime shape of the Condition node (works through a list)',
+    filter: 'runtime shape of the Condition node (works through a list); "Filter a list" adds one under the Condition name',
     // Retired from the palette; its ability moved into Edit data. Existing
     // steps still load, render and run.
     parse_json: 'retired — absorbed by Edit data',

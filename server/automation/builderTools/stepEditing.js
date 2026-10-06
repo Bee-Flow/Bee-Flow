@@ -28,6 +28,7 @@ const {
     sanitizeSwitchCases,
 } = require('./stepBuilders');
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS } = require('../validate/constants');
+const { followAddedSteps, followPatchedRoute, followReplacedRoute } = require('./routeFollowDraft');
 const {
     translateDatatableVocabulary, resolveDatatableOp, resolveDatatableRef, mapColumnKeys,
 } = require('./datatableRefs');
@@ -64,7 +65,9 @@ const PATCHABLE_FIELDS = {
     // merged.
     ai_step: ['prompt', 'systemPrompt', 'inputs', 'outputSchema', 'modelTier', 'allowTools', 'tools', 'knowledgeBaseIds', 'useMemory', 'label', 'forEach', 'agentId', 'skillIds', 'agentPermissions', 'disabledAgentSkillIds'],
     condition: ['expr', 'label'],
-    switch: ['expr', 'cases', 'defaultBranch', 'label'],
+    // A switch that works through a list (A2): its list, whether one item may
+    // go down several outputs, and the input cap — all three the add path keeps.
+    switch: ['expr', 'cases', 'defaultBranch', 'label', 'arrayRef', 'matchMode', 'maxItems'],
     loop: ['overRef', 'itemVar', 'maxIterations', 'label'],   // body steps are edited by their own id
     // `limits` is patchable for the reason it became settable on the add path:
     // the sandbox clamps memoryMb/cpuMs/wallMs/httpBudget on every run, and
@@ -102,7 +105,7 @@ const PATCHABLE_FIELDS = {
     approval: ['prompt', 'approval', 'label'],
     stop_error: ['message', 'label'],
     form_page: ['mode', 'form', 'waitSeconds', 'label'],
-    filter: ['arrayRef', 'expr', 'label'],
+    filter: ['arrayRef', 'expr', 'label', 'maxItems'],
     limit: ['arrayRef', 'count', 'mode', 'label'],
     dedupe: ['arrayRef', 'keyField', 'label'],
     aggregate: ['arrayRef', 'field', 'label'],
@@ -267,6 +270,14 @@ function normalizePatchField(type, key, value) {
         // editor writes; see sanitizeSwitchCases for the full note.
         if (key === 'cases') return sanitizeSwitchCases(value);
         if (key === 'defaultBranch') return typeof value === 'string' ? value : null;
+        // Same rules as applyAddSwitch: 'all' or absent. A string list keeps
+        // or enters list mode ('' = source not picked yet, as the editor
+        // writes it); null takes the switch out of list mode.
+        if (key === 'matchMode') return value === 'all' ? 'all' : undefined;
+        if (key === 'arrayRef') return typeof value === 'string' ? value.trim() : undefined;
+    }
+    if ((type === 'switch' || type === 'filter') && key === 'maxItems') {
+        return (Number.isInteger(value) && value > 0) ? value : undefined;
     }
     // Rebuilt, never merged — the same discipline `approval` gets, and for the
     // same reason: a model reaching for this invents `ttl`, `cacheSeconds`,
@@ -394,7 +405,10 @@ function applyUpdateStep(graph, args, draftWrap) {
         // The move re-ordered the steps array, so the slot found above is stale.
         found = findStepAnywhere(graph, stepId);
         step = found.step;
-        if (!Object.keys(patch).length) return { updated: step, moved };
+        if (!Object.keys(patch).length) {
+            const notes = followAddedSteps(graph, [stepId]);
+            return { updated: findStepAnywhere(graph, stepId).step, moved, ...(notes.length ? { _warnings: notes } : {}) };
+        }
     }
 
     // A data_extraction patch in integration_action / ai_step vocabulary
@@ -815,8 +829,19 @@ function applyUpdateStep(graph, args, draftWrap) {
         }
     }
 
-    return { updated: next, ...(moved.length ? { moved } : {}), ...(patchNotes.length ? { _warnings: patchNotes } : {}) };
+    // Follow the route (W8): a moved step reads the output it now hangs off;
+    // a Condition whose outputs or list changed takes its readers along.
+    if (found.kind === 'graph') {
+        if (moved.length) patchNotes.push(...followAddedSteps(graph, [stepId]));
+        if (ROUTE_SHAPE_KEYS.some(k => k in patch)) patchNotes.push(...followPatchedRoute(graph, step, stepId));
+    }
+    const updated = found.kind === 'graph' ? findStepAnywhere(graph, stepId).step : next;
+    return { updated, ...(moved.length ? { moved } : {}), ...(patchNotes.length ? { _warnings: patchNotes } : {}) };
 }
+
+// The fields of a filter/switch whose change moves its outputs (and so what
+// the steps after it must read): its outputs, its list.
+const ROUTE_SHAPE_KEYS = ['cases', 'arrayRef'];
 
 /**
  * builder_update_steps — batch, all-or-nothing (snapshot + rollback).
@@ -834,6 +859,9 @@ function applyUpdateSteps(graph, args, draftWrap) {
     const snapEdges = structuredClone(graph.edges);
     const applied = [];
     const unchanged = [];
+    // Each entry's notes (repaired paths, re-pointed readers) ride along, as
+    // they do on a single builder_update_step.
+    const warnings = [];
     for (const u of updates) {
         const before = JSON.stringify(findStepAnywhere(graph, (u && u.stepId) || '')?.step ?? null);
         const r = applyUpdateStep(graph, u || {}, draftWrap);
@@ -842,6 +870,7 @@ function applyUpdateSteps(graph, args, draftWrap) {
             graph.edges = snapEdges;
             return { error: `update for "${u && u.stepId}": ${r.error}`, _rolledBack: true };
         }
+        for (const w of r._warnings || []) warnings.push(`${r.updated.id}: ${w}`);
         const after = JSON.stringify(findStepAnywhere(graph, r.updated.id)?.step ?? null);
         // A move re-wires edges without touching the step object, so it counts
         // as a change even when the step itself is byte-identical.
@@ -856,7 +885,8 @@ function applyUpdateSteps(graph, args, draftWrap) {
                 + 'Re-sending the same patch will not help — inspect the step, change something else, or move on.',
         };
     }
-    return unchanged.length ? { updated: applied, unchanged } : { updated: applied };
+    const out = unchanged.length ? { updated: applied, unchanged } : { updated: applied };
+    return warnings.length ? { ...out, _warnings: warnings } : out;
 }
 
 /**
@@ -900,11 +930,17 @@ function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) 
     built.id = oldStep.id;                       // keep id → every edge still targets it
 
     found.container[found.index] = built;
+    // A filter that became a list switch (or back) takes its readers along
+    // (W3) — before the edges are reconciled, so its kept connection is on
+    // the first output already.
+    const followed = followReplacedRoute(graph, oldStep, built.id);
     const rewired = reconcileOutgoingEdges(graph, oldStep, built);
     // The builder's tolerant reads (an op alias, a title-keyed column) are
     // said on the add path; a replace that swallowed them would leave the
     // model believing its spelling was stored as sent.
-    return { replaced: built, ...(rewired ? { rewired } : {}), ...(res._warnings ? { _warnings: res._warnings } : {}) };
+    const warnings = [...(res._warnings || []), ...followed];
+    const replaced = findStepAnywhere(graph, built.id).step;
+    return { replaced, ...(rewired ? { rewired } : {}), ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
 /**

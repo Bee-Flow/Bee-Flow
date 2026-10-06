@@ -282,3 +282,18 @@ describe('the drawer table of a step that ran once per item', () => {
         expect(within(screen.getByTestId('output-smart-scalars')).getByText('Iterations')).toBeTruthy();
     });
 });
+
+describe('a filter output (P1)', () => {
+    it('shows no Count / Input count / Rejected count chips: the route sentence says them', () => {
+        const kept = { items: invoices.slice(0, 3), count: 3, inputCount: 4, rejectedCount: 1, note: 'x' };
+        render(<OutputView fill fieldsView smartTable value={kept} columnsKey="a.filter" />);
+        const scalars = screen.getByTestId('output-smart-scalars');
+        expect(scalars.textContent).toContain('Note');
+        expect(scalars.textContent).not.toMatch(/Count|Input count|Rejected count/);
+    });
+
+    it('a plain list with a count keeps its chip', () => {
+        render(<OutputView fill fieldsView smartTable value={FILES_OUTPUT} columnsKey="a.files" />);
+        expect(screen.getByTestId('output-smart-scalars').textContent).toContain('Count');
+    });
+});

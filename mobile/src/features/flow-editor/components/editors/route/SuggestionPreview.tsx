@@ -1,8 +1,11 @@
 /**
  * What "Suggest outputs" would do, before it does it — the web's
- * SuggestionPreview (RouteAssist.jsx): every output read back as a sentence
- * (never the expression), how many of the sample rows each takes, what an
- * accept replaces and which wired connections it costs, then the accept.
+ * SuggestionPreview (RouteAssist.jsx): every output read back as the
+ * sentence the canvas shows (S3; "a custom rule" for a formula the rule rows
+ * cannot show, never the expression), how many of the sample rows each
+ * takes, where the rest goes (S5: “Otherwise”, or nowhere for one output
+ * without keep-rest), what an accept replaces and which wired
+ * connections it costs, then the accept.
  */
 
 import React from 'react';
@@ -10,9 +13,9 @@ import { View, type ViewStyle } from 'react-native';
 
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import { readableRule } from '@/features/flow-editor/components/outline/readableText';
 import { useVariablePicker } from '@/features/flow-editor/components/variables';
 import type { MatchCounts, Suggestion } from '@/features/flow-editor/formState';
+import { ruleSentence } from '@/features/flow-editor/model';
 import { Button, Text } from '@/shared/ui';
 
 import { previewHeading } from './assistModel';
@@ -24,13 +27,15 @@ export interface SuggestionPreviewProps {
     counts: MatchCounts | null;
     unit: string;
     existing: number;
+    /** One list output whose rest goes to “Otherwise”: the unmatched rows go there, not nowhere. */
+    keepRest?: boolean;
     losing: readonly string[];
     onApply: () => void;
     onReset: () => void;
     disabled: boolean;
 }
 
-function CountLine({ counts, unit, several }: { counts: MatchCounts | null; unit: string; several: boolean }) {
+function CountLine({ counts, unit, several, keepRest }: { counts: MatchCounts | null; unit: string; several: boolean; keepRest: boolean }) {
     const t = useTranslation();
     if (!counts) {
         return (
@@ -39,16 +44,23 @@ function CountLine({ counts, unit, several }: { counts: MatchCounts | null; unit
             </Note>
         );
     }
-    const none = t('mobile.flow.route.assist.match_none', '{unmatched} of {total} sample {unit} match none of these', { unmatched: counts.unmatched, total: counts.total, unit });
-    const then = several
-        ? t('mobile.flow.route.assist.take_otherwise', 'and would take the otherwise output.')
-        : t('mobile.flow.route.assist.stop_here', 'and would stop here.');
-    return <Note>{`${none} ${then}`}</Note>;
+    // S5: "0 of 4 … match none of these" says nothing: with every sample row placed, no line.
+    if (!counts.unmatched) return null;
+    const vars = { n: counts.unmatched, total: counts.total, unit };
+    return (
+        <Note>
+            {several
+                ? t('condition_node.suggest.unmatched_several', '{n} of {total} sample {unit} match none of these and go to “Otherwise”.', vars)
+                : keepRest
+                  ? t('condition_node.suggest.unmatched_one_keep', '{n} of {total} sample {unit} don’t match and go to “Otherwise”.', vars)
+                  : t('condition_node.suggest.unmatched_one', '{n} of {total} sample {unit} don’t match and stop here.', vars)}
+        </Note>
+    );
 }
 
-export function SuggestionPreview({ suggestion, counts, unit, existing, losing, onApply, onReset, disabled }: SuggestionPreviewProps) {
+export function SuggestionPreview({ suggestion, counts, unit, existing, keepRest = false, losing, onApply, onReset, disabled }: SuggestionPreviewProps) {
     const t = useTranslation();
-    // Each rule in the step names' words, as the cards say it ("‹Gmail Search ▸ Total› > 100").
+    // Each rule as the canvas card says it: "any attachment · File type is PDF".
     const known = useVariablePicker().stepLabelById;
     const labels = known instanceof Map ? known : null;
     const styles = useThemedStyles(makeStyles);
@@ -62,11 +74,11 @@ export function SuggestionPreview({ suggestion, counts, unit, existing, losing, 
                     <Text variant="caption" weight="medium">
                         {r.name}
                     </Text>
-                    {` — ${readableRule(r.expr, labels)}`}
+                    {` — ${ruleSentence(r.expr, labels, t) ?? t('condition_node.suggest.custom_rule', 'a custom rule')}`}
                     {counts ? ` · ${t('mobile.flow.route.assist.matched', '{matched} of {total} sample {unit}', { matched: counts.perRule[i]?.matched ?? 0, total: counts.total, unit })}` : ''}
                 </Text>
             ))}
-            <CountLine counts={counts} unit={unit} several={rules.length > 1} />
+            <CountLine counts={counts} unit={unit} several={rules.length > 1} keepRest={keepRest} />
             {existing > 0 ? <Warn>{t('mobile.flow.route.assist.replaces', 'Accepting replaces the {what} already set up below.', { what: outputs })}</Warn> : null}
             {losing.length ? (
                 <Warn>

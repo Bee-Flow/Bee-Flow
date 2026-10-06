@@ -120,9 +120,11 @@ describe('the card glyphs', () => {
 
 describe('the lane words', () => {
     it('are the port labels on the web cards', () => {
-        expect(read('nodes/ConditionNode.jsx')).toMatch(/\{ id: 'then', label: 'match'[^}]*\},\s*\{ id: 'else', label: 'otherwise'/);
+        expect(read('nodes/ConditionNode.jsx')).toMatch(
+            /\{ id: 'then', label: t\('condition_node\.port\.match', 'Match'\)[^}]*\},\s*\{ id: 'else', label: t\('condition_node\.otherwise\.label', 'Otherwise'\)/,
+        );
         expect(read('nodes/GuardNode.jsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
-        expect(read('nodes/SwitchNode.jsx')).toMatch(/\{ id: 'case:default', label: 'otherwise'/);
+        expect(read('nodes/SwitchNode.jsx')).toMatch(/\{ id: 'case:default', label: t\('condition_node\.otherwise\.label', 'Otherwise'\)/);
         expect(read('nodes/LoopNode.jsx')).toMatch(/t\('automations\.canvas\.loop_port_on_error', 'On error'\)/);
     });
 });

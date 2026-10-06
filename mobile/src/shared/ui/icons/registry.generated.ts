@@ -157,6 +157,7 @@ import Link2 from 'lucide-react-native/dist/esm/icons/link-2.js';
 import Linkedin from 'lucide-react-native/dist/esm/icons/linkedin.js';
 import List from 'lucide-react-native/dist/esm/icons/list.js';
 import ListChecks from 'lucide-react-native/dist/esm/icons/list-checks.js';
+import ListFilter from 'lucide-react-native/dist/esm/icons/list-filter.js';
 import ListOrdered from 'lucide-react-native/dist/esm/icons/list-ordered.js';
 import Loader from 'lucide-react-native/dist/esm/icons/loader.js';
 import LoaderCircle from 'lucide-react-native/dist/esm/icons/loader-circle.js';
@@ -452,6 +453,7 @@ export const ICON_REGISTRY = {
     Linkedin,
     List,
     ListChecks,
+    ListFilter,
     ListOrdered,
     Loader,
     LoaderCircle,

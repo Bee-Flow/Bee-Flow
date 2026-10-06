@@ -156,6 +156,14 @@ export interface VariableField {
     key: string;
     path: string;
     sample: unknown;
+    /**
+     * The name a person reads where `key` is an internal one: a Condition's
+     * `matchesByCase.<name>` reads as the output's name, `matchesByCase.default`
+     * as "Otherwise" (upstream/routeFieldLabel.ts). Absent: the key is shown.
+     */
+    label?: string;
+    /** `label`'s i18n key; the label is its English. */
+    labelKey?: string;
     children?: VariableField[];
     perIteration?: boolean;
 }

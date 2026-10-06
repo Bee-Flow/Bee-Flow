@@ -104,7 +104,10 @@ describe('the smaller exports', () => {
 
     it('element samples and field options', () => {
         const root = { steps: { s: { output: { list: [{ a: 1 }, { a: 2 }], empty: [], tags: [[1]] } } } };
-        for (const ref of ['steps.s.output.list', 'steps.s.output.empty', 'steps.s.output.tags', ' ', 5, 'steps.s.output.list[*].a']) {
+        root.steps.s.output = { ...root.steps.s.output, json: '[{"a": 3, "b": "x"}]', text: 'not a list' } as never;
+        (root.steps as Record<string, unknown>)['c/sub'] = { output: { rows: [{ z: 1 }] } };
+        for (const ref of ['steps.s.output.list', 'steps.s.output.empty', 'steps.s.output.tags', ' ', 5, 'steps.s.output.list[*].a',
+            'steps.s.output.json', 'steps.s.output.text', 'steps.c/sub.output.rows']) {
             expect(up.resolveElementSample(ref, root)).toStrictEqual(web.resolveElementSample?.(ref, root));
         }
         for (const el of [{ a: 1, b: [2] }, [1], null, 'x']) {
@@ -173,6 +176,39 @@ describe('the describer table', () => {
         const src = fs.readFileSync(webPath(`${BUILDER}/mapping/upstream/describeNode.js`), 'utf8');
         const webTypes = new Set([...src.matchAll(/node\.type === '([a-z_]+)'/g)].map((m) => m[1]));
         expect([...up.DESCRIBED_TYPES].sort()).toStrictEqual([...webTypes].sort());
+    });
+
+    it('a Condition with several outputs, working through a list or deciding once (W6)', () => {
+        const tools = up.buildToolOutputMap(CATALOG);
+        const mails = [{ subject: 'Hi', attachments: [{ filename: 'a.pdf' }] }, { subject: 'Yo', from: 'x@contoso.example', attachments: [] }];
+        const root = { steps: { rm: { output: { messages: mails, json: JSON.stringify(mails), names: ['a', 'b'] } } } };
+        const cases = [{ name: 'pdf', expr: 'a' }, { name: 'High priority', expr: 'b' }];
+        const nodes = [
+            { id: 'sw', type: 'switch', arrayRef: 'steps.rm.output.messages', cases },
+            { id: 'sw', type: 'switch', arrayRef: 'steps.rm.output.json', cases, label: 'Split' },
+            { id: 'sw', type: 'switch', arrayRef: 'steps.rm.output.messages[*].attachments', cases },
+            { id: 'sw', type: 'switch', arrayRef: 'steps.rm.output.names', cases },
+            { id: 'sw', type: 'switch', arrayRef: 'steps.rm.output.missing', cases },
+            { id: 'sw', type: 'switch', arrayRef: '', cases },
+            { id: 'sw', type: 'switch', expr: 'x', cases },
+            { id: 'sw', type: 'switch', arrayRef: 'steps.rm.output.messages' },
+        ] as FlowNode[];
+        for (const node of nodes) {
+            for (const sampleRoot of [root, null]) {
+                expect(up.describeNode(node, { definition: DEF, toolToOutput: tools, triggerOutputs: {}, sampleRoot })).toStrictEqual(
+                    web.describeNode?.(node, DEF, tools, {}, sampleRoot),
+                );
+            }
+        }
+        const listMode = up.describeNode(nodes[0] as FlowNode, { definition: DEF, toolToOutput: tools, triggerOutputs: {}, sampleRoot: root });
+        expect(listMode?.fields.map((f) => f.key)).not.toContain('value');
+        expect(listMode?.fields.map((f) => f.path)).toContain('steps.sw.output.matchesByCase["High priority"]');
+        // The picker reads an output by its name and "Otherwise", never `matchesByCase.<name>`.
+        expect(listMode?.fields.filter((f) => f.key.startsWith('matchesByCase.')).map((f) => [f.label, f.labelKey])).toEqual([
+            ['pdf', undefined],
+            ['High priority', undefined],
+            ['Otherwise', 'condition_node.otherwise.label'],
+        ]);
     });
 
     it('describeNode on its own', () => {

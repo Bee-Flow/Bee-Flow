@@ -13,6 +13,7 @@
 
 import {
     collectArrayPaths,
+    fieldLabelText,
     filterGroups,
     previewValue,
     walkPath,
@@ -52,6 +53,13 @@ export function fieldPreview(field: Pick<VariableField, 'path' | 'sample'>, samp
         if (v !== undefined) return previewValue(v, 60);
     }
     return previewValue(field.sample, 60);
+}
+
+type Translate = (key: string, fallback: string) => string;
+
+/** A field's name in the picker: its own label where the key is internal (a Condition's outputs: "pdf", "Otherwise"), else the key. */
+export function fieldName(field: Pick<VariableField, 'key' | 'label' | 'labelKey'>, t: Translate): string {
+    return fieldLabelText(field, t) || field.key;
 }
 
 interface RowOptions {

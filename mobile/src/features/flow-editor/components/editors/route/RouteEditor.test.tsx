@@ -55,12 +55,13 @@ describe('RouteEditor', () => {
         await fireEvent.changeText(screen.getByTestId('condition-row-1-expr-input'), 'trigger.output.subject');
         await fireEvent.changeText(screen.getByLabelText('Value'), 'urgent');
         // Was `"trigger.output.subject" == "urgent"`: two constants, never true.
-        expect(h.patch()).toMatchObject({ expr: 'trigger.output.subject == "urgent"' });
+        // Text "is" ignores upper/lower case (R7): equals().
+        expect(h.patch()).toMatchObject({ expr: 'equals(trigger.output.subject, "urgent")' });
         // Typed by hand it stays text under the caret, and is a pill once the field is left.
         await fireEvent(screen.getByTestId('condition-row-1-expr-input'), 'blur');
         expect(shownText(screen.getByTestId('condition-row-1-expr-input'))).toBe(' Trigger ▸ Subject ');
         await fireEvent.changeText(screen.getByTestId('condition-row-1-expr-input'), 'len(trigger.output.subject)');
-        expect(h.patch()).toMatchObject({ expr: 'len(trigger.output.subject) == "urgent"' });
+        expect(h.patch()).toMatchObject({ expr: 'equals(len(trigger.output.subject), "urgent")' });
     });
 
     it('builds a rule from a named field and saves it as the expression', async () => {
@@ -68,7 +69,7 @@ describe('RouteEditor', () => {
         await fireEvent.press(await screen.findByTestId('condition-row-1-field'));
         await fireEvent.press(screen.getByText('Subject'));
         await fireEvent.changeText(screen.getByLabelText('Value'), 'urgent');
-        expect(h.patch()).toMatchObject({ expr: 'trigger.output.subject == "urgent"' });
+        expect(h.patch()).toMatchObject({ expr: 'equals(trigger.output.subject, "urgent")' });
     });
 
     it('suggests outputs from plain words, counts them on the sample rows, and applies them on accept', async () => {
@@ -80,14 +81,28 @@ describe('RouteEditor', () => {
         const step = { id: 'c1', type: 'filter', label: 'Split', arrayRef: 'trigger.output.files', expr: '' } as unknown as FlowNode;
         const h = await renderEditor(step, { groups: fileGroups, sampleRoot: { trigger: { output: { files } } } });
         await fireEvent.changeText(await screen.findByTestId('route-assist-input'), 'split these files by pdf and word');
-        expect(screen.getByText(/Split by file type — 2 outputs, using/)).toBeTruthy();
-        expect(screen.getAllByText(/ · 1 of 3 sample items$/).length).toBe(2);
-        expect(screen.getByText(/1 of 3 sample items match none of these and would take the otherwise output\./)).toBeTruthy();
+        expect(screen.getByText('Split by file type — 2 outputs, using File type:')).toBeTruthy();
+        // Read back as the canvas says it (S3), counted in the list's own word (P3).
+        expect(screen.getAllByText(/File type is (PDF|Word) · 1 of 3 sample files$/).length).toBe(2);
+        expect(screen.getByText('1 of 3 sample files match none of these and go to “Otherwise”.')).toBeTruthy();
         await fireEvent.press(screen.getByTestId('route-assist-apply'));
         const patch = h.patch() as { type?: string; cases?: { name: string; expr: string }[] };
         expect(patch.type).toBe('switch');
         expect(patch.cases?.map((c) => c.name)).toEqual(['pdf', 'word']);
-        expect(patch.cases?.[1]?.expr).toBe('endsWith(item.name, ".doc") || endsWith(item.name, ".docx")');
+        expect(patch.cases?.[1]?.expr).toBe('equals(fileType(item), "word")');
+    });
+
+    it('says nothing about the rest when every sample row has an output (S5)', async () => {
+        const files = [{ name: 'a.pdf' }, { name: 'b.docx' }];
+        const fileGroups = [{
+            id: 'trg', label: 'Trigger', kind: 'trigger', basePath: 'trigger.output', sample: { files },
+            fields: [{ key: 'files', path: 'trigger.output.files', sample: files }],
+        }];
+        const step = { id: 'c1', type: 'filter', label: 'Split', arrayRef: 'trigger.output.files', expr: '' } as unknown as FlowNode;
+        await renderEditor(step, { groups: fileGroups, sampleRoot: { trigger: { output: { files } } } });
+        await fireEvent.changeText(await screen.findByTestId('route-assist-input'), 'split these files by pdf and word');
+        expect(screen.getAllByText(/File type is (PDF|Word) · 1 of 2 sample files$/).length).toBe(2);
+        expect(screen.queryByText(/match none of these/)).toBeNull();
     });
 
     it('says what it understands when a sentence is not something it can read', async () => {
@@ -117,7 +132,7 @@ describe('RouteEditor', () => {
         const definition = { trigger: { id: 'trg', type: 'trigger' }, steps: [step], edges: [{ from: 's1', to: 'x', label: 'case:b', caseName: 'b' }] };
         const h = await renderEditor(step, { groups, sampleRoot, definition: definition as never });
         await fireEvent.press(await screen.findByText('One output'));
-        expect(await screen.findByText(/Output B \(b\)/)).toBeTruthy();
+        expect(await screen.findByText(/removes b\. That output is wired on the canvas/)).toBeTruthy();
         await fireEvent.press(screen.getByText('Remove them anyway'));
         await waitFor(() => expect(h.patch()).toMatchObject({ type: 'condition', expr: 'trigger.output.subject == "a"' }));
     });

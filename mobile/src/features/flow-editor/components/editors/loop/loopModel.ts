@@ -26,10 +26,11 @@ export interface LoopList {
 /**
  * A path as a person reads it: the step's name and every key on the way
  * ("Inbox ▸ Value ▸ Attachments (inside each row)"), never `[*]` or a dot —
- * the web LoopOverPicker's label (listPathLabel).
+ * the web LoopOverPicker's label (listPathLabel). `stepTypeById` names
+ * what a Condition keeps by the Condition, never "Items".
  */
-export function friendlyPath(path: string, labels: StepLabelMap, t: Translate | null = null): string {
-    return listPathLabel(path, labels, t as Parameters<typeof listPathLabel>[2]);
+export function friendlyPath(path: string, labels: StepLabelMap, t: Translate | null = null, stepTypeById: StepLabelMap = null): string {
+    return listPathLabel(path, labels, t as Parameters<typeof listPathLabel>[2], { stepTypeById });
 }
 
 /**
@@ -62,11 +63,16 @@ function countLabel(n: number, t: Translate | null): string {
 }
 
 /** The lists a loop can repeat over, each with how many items the sample holds. */
-export function loopLists(groups: readonly VariableGroup[], sampleRoot: unknown, labels: StepLabelMap, t: Translate | null = null): LoopList[] {
+export function loopLists(
+    groups: readonly VariableGroup[],
+    sampleRoot: unknown,
+    labels: StepLabelMap,
+    { t = null, stepTypeById = null }: { t?: Translate | null; stepTypeById?: StepLabelMap } = {},
+): LoopList[] {
     return listChoices(groups, sampleRoot).map((f) => {
         const resolved = sampleRoot ? walkPath(f.path, sampleRoot) : undefined;
         const preview = Array.isArray(resolved) ? countLabel(resolved.length, t) : previewValue(resolved !== undefined ? resolved : f.sample, 24);
-        return { path: f.path, key: f.key, label: friendlyPath(f.path, labels, t), preview };
+        return { path: f.path, key: f.key, label: friendlyPath(f.path, labels, t, stepTypeById), preview };
     });
 }
 

@@ -22,7 +22,7 @@ function ListChangeNote({ note, onUndo, t }) {
 }
 
 /** One list to repeat over: its name in words, how many items it holds. */
-function ListChoice({ choice, selected, onPick, previewSample, stepLabelById, t }) {
+function ListChoice({ choice, selected, onPick, previewSample, stepLabelById, stepTypeById, t }) {
     // Counts resolve through the runtime's walker — a [*] path's sample is the
     // first ELEMENT, so its length was the first row's size, not the list's.
     const resolved = previewSample ? getPath(previewSample, choice.path) : undefined;
@@ -37,7 +37,7 @@ function ListChoice({ choice, selected, onPick, previewSample, stepLabelById, t 
             className={`w-full flex items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-[var(--bg-secondary)] ${selected ? 'bg-[var(--bg-secondary)]' : ''}`}
         >
             <Repeat size={12} className="shrink-0 text-[var(--text-tertiary)]" />
-            <span className="text-[var(--text-primary)] truncate">{listPathLabel(choice.path, stepLabelById, t)}</span>
+            <span className="text-[var(--text-primary)] truncate">{listPathLabel(choice.path, stepLabelById, t, { stepTypeById })}</span>
             <span className="ml-auto text-[10px] text-[var(--text-tertiary)] truncate max-w-[120px]">{preview}</span>
             {selected && <Check size={12} className="shrink-0 text-[var(--accent)]" />}
         </button>
@@ -94,7 +94,7 @@ export default function LoopOverPicker({
     onRebind = null,
     container = false,
 }) {
-    const { stepLabelById, previewSample } = useVariablePickerContext();
+    const { stepLabelById, stepTypeById, previewSample } = useVariablePickerContext();
     const { t } = useTranslation();
     const arrayFields = useMemo(() => loopListChoices(groups, previewSample), [groups, previewSample]);
     const [advanced, setAdvanced] = useState(false);
@@ -103,7 +103,7 @@ export default function LoopOverPicker({
     const onTypedVar = (e) => onChange?.({ overRef, itemVar: e.target.value.replace(/[^A-Za-z0-9_]/g, '') || 'item' });
 
     // The chosen list reads like the choices below it, never as a path.
-    const friendlyOver = overRef ? listPathLabel(overRef, stepLabelById, t) : '';
+    const friendlyOver = overRef ? listPathLabel(overRef, stepLabelById, t, { stepTypeById }) : '';
 
     return (
         <div className="space-y-3">
@@ -125,7 +125,7 @@ export default function LoopOverPicker({
                             {t('automations.builder.lists_to_repeat_over', 'Lists you can repeat over')}
                         </div>
                         {arrayFields.map(f => (
-                            <ListChoice key={f.path} choice={f} selected={overRef === f.path} onPick={pick} previewSample={previewSample} stepLabelById={stepLabelById} t={t} />
+                            <ListChoice key={f.path} choice={f} selected={overRef === f.path} onPick={pick} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById} t={t} />
                         ))}
                     </div>
                 ) : (

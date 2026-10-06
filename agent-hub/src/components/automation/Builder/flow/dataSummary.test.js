@@ -199,3 +199,20 @@ describe('a Code step\'s { result, logs, httpCalls } envelope', () => {
         expect(summariseEdgeData(other, run({ a: 1 }), edge)).toMatchObject({ label: '1 record' });
     });
 });
+
+describe('summariseEdgeData: a list split (Condition with several outputs)', () => {
+    it('a list split that also reports its routing (counts, total, branches) still counts per output', () => {
+        const step = { id: 'ms_split', type: 'switch', arrayRef: 'steps.ms_read_many.output.messages[*].attachments' };
+        const files = (n) => Array.from({ length: n }, (_, i) => ({ filename: `f${i}.pdf` }));
+        const run = {
+            status: 'success',
+            output: {
+                mode: 'collection', matchesByCase: { pdf: files(4), word: files(2), powerpoint: files(1), default: files(4) },
+                counts: { pdf: 4, word: 2, powerpoint: 1, default: 4 }, total: 11,
+                branches: ['case:pdf', 'case:word', 'case:powerpoint', 'case:default'], branch: 'case:pdf', matched: 'pdf',
+            },
+        };
+        expect(summariseEdgeData(step, run, { label: 'case:pdf' })).toMatchObject({ label: '4 records' });
+        expect(summariseEdgeData(step, run, { label: 'case:default' })).toMatchObject({ label: '4 records' });
+    });
+});

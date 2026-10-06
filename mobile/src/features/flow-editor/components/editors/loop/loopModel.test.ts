@@ -6,6 +6,12 @@ describe('loopModel: the list a Loop repeats over', () => {
             .toBe('Read the purchasing inbox ▸ Value ▸ Attachments (inside each row)');
     });
 
+    it('names what a Condition keeps by the Condition, not "Items"', () => {
+        const labels = new Map([['f', 'Only PDFs']]);
+        expect(friendlyPath('steps.f.output.items', labels, null, new Map([['f', 'filter']]))).toBe('Only PDFs');
+        expect(friendlyPath('steps.f.output.items', labels)).toBe('Only PDFs ▸ Items');
+    });
+
     it('offers lists at any depth, also inside JSON text, never a step\'s own item', () => {
         const groups = [
             { id: 'h', label: 'Graph', kind: 'http_request', basePath: 'steps.h.output', sample: { body: JSON.stringify({ value: [{ id: 'e1' }] }) }, fields: [] },

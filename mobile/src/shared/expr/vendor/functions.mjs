@@ -17,6 +17,7 @@
  */
 
 import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
+import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
 
 // ── Deterministic ISO date helpers (UTC-only) ──────────────────────────────
 // Dates are ISO strings. We parse to a UTC instant MANUALLY so a bare
@@ -263,12 +264,11 @@ function walkJsonPath(value, path) {
 export const FUNCTIONS = {
     // ── Original 7 (kept byte-identical to server/automation/expr.js) ──────
     contains: (a, b) => {
-        if (a == null) return false;
         if (Array.isArray(a)) return a.some((x) => x === b || (typeof x === 'string' && typeof b === 'string' && ci(x).includes(ci(b))));
-        return ci(a).includes(b == null ? '' : ci(b));
+        return textContains(a, b);
     },
-    startsWith: (a, b) => (a == null ? false : ci(a).startsWith(b == null ? '' : ci(b))),
-    endsWith: (a, b) => (a == null ? false : ci(a).endsWith(b == null ? '' : ci(b))),
+    startsWith: (a, b) => textStartsWith(a, b),
+    endsWith: (a, b) => textEndsWith(a, b),
     lower: (a) => (a == null ? '' : String(a).toLowerCase()),
     upper: (a) => (a == null ? '' : String(a).toUpperCase()),
     len: (a) => {
@@ -277,12 +277,14 @@ export const FUNCTIONS = {
         if (typeof a === 'object') return Object.keys(a).length;
         return 0;
     },
-    isEmpty: (a) => {
-        if (a == null) return true;
-        if (Array.isArray(a) || typeof a === 'string') return a.length === 0;
-        if (typeof a === 'object') return Object.keys(a).length === 0;
-        return false;
-    },
+    isEmpty: (a) => isEmptyValue(a),
+
+    // ── Rules (logic in rules.mjs, shared with the rule rows) ──────────────
+    equals: (a, b) => equalsValue(a, b),
+    fileType: (v) => fileTypeOf(v),
+    anyOf: (l, t, v) => quantify('any', l, t, v),
+    everyOf: (l, t, v) => quantify('every', l, t, v),
+    noneOf: (l, t, v) => quantify('none', l, t, v),
 
     // ── Numeric ────────────────────────────────────────────────────────────
     number: (x) => toNum(x),
@@ -676,6 +678,11 @@ export const EXPR_FUNCTIONS = [
     { name: 'upper', signature: 'upper(text)', description: 'Uppercase the text.' },
     { name: 'len', signature: 'len(value)', description: 'Length of text, a list, or an object.' },
     { name: 'isEmpty', signature: 'isEmpty(value)', description: 'True for missing values, empty text, lists or objects.' },
+    { name: 'equals', signature: 'equals(a, b)', description: 'True when a and b are the same: text ignores upper/lower case and surrounding spaces, "5" equals 5.' },
+    { name: 'fileType', signature: 'fileType(file)', description: 'The kind of a file (or of each file in a list): pdf, word, excel, powerpoint, image, text, archive, audio, video or other — from its MIME type, else its extension.' },
+    { name: 'anyOf', signature: 'anyOf(list, test, value)', description: 'True when at least one entry passes the test — anyOf(item.attachments[*].filename, "endsWith", ".pdf"). Tests: equals, !equals, contains, !contains, startsWith, endsWith, ==, !=, >, >=, <, <=, isEmpty, !isEmpty.' },
+    { name: 'everyOf', signature: 'everyOf(list, test, value)', description: 'True when the list is not empty and every entry passes the test.' },
+    { name: 'noneOf', signature: 'noneOf(list, test, value)', description: 'True when no entry passes the test (also for an empty list).' },
     { name: 'number', signature: 'number(value)', description: 'Convert to a number (or null if not numeric).' },
     { name: 'round', signature: 'round(value, places?)', description: 'Round to the given decimal places (default 0).' },
     { name: 'floor', signature: 'floor(value)', description: 'Round down to a whole number.' },

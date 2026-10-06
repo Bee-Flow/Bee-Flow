@@ -8,13 +8,15 @@
  * `steps.ai_a9afb3.output.urgency`.
  */
 
+import { fieldShape, formatPath, parsePath, singularKey, type PathToken } from '@/shared/expr';
 import { humanizeFieldKey, humanizeToolName } from '@/shared/lib/humanizeKey';
 
 import { pathLabelParts } from './pathGrammar';
-import { isUnaryOp, labelFor } from './route/conditionModel';
+import { inferType, isUnaryOp, labelFor } from './route/conditionModel';
 import type { ConditionRow } from './route/conditionModel';
 import { parseExprToRows } from './route/conditionParse';
-import type { DefinitionInput } from './types';
+import { fileTypeFieldLabel, fileTypeLabel, isFileTypeKey, isQuantifier, quantifierLabel, singularName } from './route/ruleLabels';
+import type { DefinitionInput, Translate } from './types';
 
 // Both live in shared/lib, where the run screens (features/automations) reach them too.
 export { humanizeFieldKey, humanizeToolName };
@@ -88,39 +90,108 @@ export function humanizeExpression(expr: unknown, stepLabelById: Map<string, str
         .replace(/\btrigger(?:\.([A-Za-z0-9_.[\]]+))?/g, (_m, path?: string) => (path ? `‹Trigger›.${path}` : '‹Trigger›'));
 }
 
-/** `steps.g1.output.results[*].subject` → `subject`. */
-function lastPathSegment(path: unknown): string {
-    const cleaned = String(path || '').replace(/\[(?:\*|\d+)\]/g, '');
-    return cleaned.split('.').filter(Boolean).pop() || '';
-}
+const TRIVIAL_RULES = new Set(['', 'true', 'false']);
+// Where the field's own part of a path starts, after the root that says whose it is.
+const ROOT_SKIP = new Map([['item', 1], ['loop', 2], ['vars', 1]]);
 
-function describeRow(row: ConditionRow): string | null {
-    const field = row.field as { kind?: string; path?: string } | null;
-    const path = field?.kind === 'ref' ? field.path : '';
-    if (!path) return null;
-    const name = humanizeFieldKey(lastPathSegment(path));
-    const op = labelFor(row.op, 'unknown');
-    if (isUnaryOp(row.op)) return `${name} ${op}`;
-    const v = row.value as { kind?: string; path?: string; value?: unknown } | null;
-    if (v?.kind === 'ref' && v.path) return `${name} ${op} ${humanizeFieldKey(lastPathSegment(v.path))}`;
-    const raw = v?.kind === 'literal' ? v.value : v?.value;
-    if (raw === '' || raw == null) return `${name} ${op}`;
-    return typeof raw === 'string' ? `${name} ${op} “${raw}”` : `${name} ${op} ${raw}`;
+type LabelMap = Pick<Map<string, string>, 'get'> | null;
+type RuleField = { name: string; list: string | null; file: boolean };
+const tokenKey = (tokens: readonly PathToken[], i: number): unknown => (tokens[i] as { key?: unknown } | undefined)?.key;
+
+function fieldStart(root: string, tokens: readonly PathToken[]): number {
+    if (root === 'steps') return tokenKey(tokens, 2) === 'output' ? 3 : 2;
+    if (root === 'trigger') return tokenKey(tokens, 1) === 'output' ? 2 : 1;
+    return ROOT_SKIP.get(root) ?? 0;
 }
 
 /**
- * A rule expression as a sentence: `contains(item.subject, "isv")` →
- * Subject contains “isv”. What the clickable model cannot parse falls back
- * to `humanizeExpression`.
+ * A rule's field the way the pills name it (humanizeFieldTail): the part
+ * after `item` ("From ▸ Email"), and for a whole-run rule the step's label in
+ * front ("Classify ▸ Urgency") when the map knows it.
  */
-export function describeRuleExpr(expr: unknown, stepLabelById: Map<string, string> | null = null): string {
-    const src = String(expr || '').trim();
-    if (!src) return '';
+function fieldName(path: string, stepLabelById: LabelMap): string {
+    const tokens = parsePath(path);
+    if (!tokens?.length) return humanizeFieldTail(path);
+    const root = String(tokenKey(tokens, 0));
+    const from = fieldStart(root, tokens);
+    const tail = tokens.length > from ? humanizeFieldTail(formatPath(tokens.slice(from))) : humanizeFieldKey(root);
+    const step = root === 'steps' ? stepLabelById?.get?.(String(tokenKey(tokens, 1) ?? '')) : null;
+    return step ? `${step} ▸ ${tail}` : tail;
+}
+
+/** `{ name, list, file }` for a row's left side, or null when it is no field (a formula). */
+function ruleField(path: string, stepLabelById: LabelMap, t: Translate | null): RuleField | null {
+    const shape = path ? fieldShape(path) : null;
+    // A path the shapes do not cover (a whole list, `results[*]`) still has a name.
+    if (!shape) return path && parsePath(path) ? { name: fieldName(path, stepLabelById), list: null, file: false } : null;
+    if (shape.kind === 'fileRecord' || shape.kind === 'fileList') {
+        return { name: fileTypeFieldLabel(t), list: shape.kind === 'fileList' ? shape.list : null, file: true };
+    }
+    if (shape.kind === 'column') return { name: humanizeFieldTail(shape.column), list: shape.list, file: false };
+    return { name: fieldName(shape.path, stepLabelById), list: null, file: false };
+}
+
+/** The value of a row: a file type's name, “quoted” text, a number bare, a field by its name. */
+function ruleValue(row: ConditionRow, field: RuleField, stepLabelById: LabelMap, t: Translate | null): string {
+    const v = row.value as { kind?: string; path?: string; value?: unknown } | null;
+    if (v?.kind === 'ref' && v.path) return fieldName(v.path, stepLabelById);
+    const raw = v?.kind === 'literal' ? v.value : v?.value;
+    if (raw === '' || raw == null) return '';
+    if (field.file && isFileTypeKey(raw)) return fileTypeLabel(raw, t);
+    return typeof raw === 'string' ? `“${raw}”` : String(raw);
+}
+
+// An emptiness test on a plural field (`attachments`) reads like the editor's list of
+// records ("has at least one"); a card has no sample, so the name is the evidence.
+function readsAsRecords(row: ConditionRow, path: string): boolean {
+    if (row.op !== 'isEmpty' && row.op !== 'isNotEmpty') return false;
+    const tokens = fieldShape(path)?.kind === 'plain' ? parsePath(path) : null;
+    const key = tokens && tokens.length > 1 ? tokenKey(tokens, tokens.length - 1) : null;
+    return typeof key === 'string' && singularKey(key) !== key;
+}
+
+/** The type that picks the operator's words (dates read "is after"); the value is a sentence's only evidence of it. */
+function sentenceType(row: ConditionRow, field: RuleField, path: string): string {
+    if (field.file) return 'fileType';
+    if (readsAsRecords(row, path)) return 'records';
+    const v = row.value as { kind?: string; value?: unknown } | null;
+    return v?.kind === 'literal' ? inferType(v.value) : 'unknown';
+}
+
+/** One row as words: "any attachment · File type is PDF", "Subject contains “isv”"; null when it names no field. */
+function rowSentence(row: ConditionRow, stepLabelById: LabelMap, t: Translate | null): string | null {
+    const f = row?.field as { kind?: string; path?: string } | null;
+    const path = f?.kind === 'ref' ? String(f.path || '') : '';
+    const field = ruleField(path, stepLabelById, t);
+    if (!field) return null;
+    const type = sentenceType(row, field, path);
+    const value = isUnaryOp(row.op) ? '' : ruleValue(row, field, stepLabelById, t);
+    const body = [field.name, labelFor(row.op, type, t), value].filter(Boolean).join(' ');
+    if (!row.quantifier || !field.list || !isQuantifier(row.quantifier)) return body;
+    return `${quantifierLabel(row.quantifier, singularName(field.list), t)} · ${body}`;
+}
+
+/**
+ * A rule as the sentence the canvas and the previews show: "any attachment ·
+ * File type is PDF", "Subject contains “isv” and Amount greater than 1000".
+ * '' for no rule yet (empty, `true`, `false`); null when the rule is a
+ * formula the rows cannot show — never the expression itself.
+ */
+export function ruleSentence(expr: unknown, stepLabelById: LabelMap = null, t: Translate | null = null): string | null {
+    const src = String(expr ?? '').trim();
+    if (TRIVIAL_RULES.has(src)) return '';
     const parsed = parseExprToRows(src);
-    if (!parsed?.rows?.length) return humanizeExpression(src, stepLabelById);
-    const joiner = parsed.join === '||' ? ' or ' : ' and ';
-    const parts = parsed.rows.map(describeRow).filter(Boolean);
-    return parts.length ? parts.join(joiner) : humanizeExpression(src, stepLabelById);
+    if (!parsed?.rows?.length) return null;
+    const parts = parsed.rows.map((r) => rowSentence(r, stepLabelById, t));
+    if (parts.some((p) => p == null)) return null;
+    const or = parsed.join === '||';
+    const [key, en] = or ? ['condition_node.join.or', 'or'] : ['condition_node.join.and', 'and'];
+    return parts.join(` ${t ? t(key, en) : en} `);
+}
+
+/** The rule for a card or a preview line: its sentence, and "Custom rule" for a formula the rows cannot show. */
+export function describeRuleExpr(expr: unknown, stepLabelById: LabelMap = null, t: Translate | null = null): string {
+    return ruleSentence(expr, stepLabelById, t) ?? (t ? t('condition_node.custom.title', 'Custom rule') : 'Custom rule');
 }
 
 /** id → label (or id) for the trigger and every step. */

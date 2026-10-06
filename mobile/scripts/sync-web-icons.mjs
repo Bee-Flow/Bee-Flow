@@ -85,8 +85,9 @@ export const FLOW_EDITOR_ICONS = [
     // Node cards and palette items.
     'Activity', 'AppWindow', 'Bell', 'BellRing', 'BookOpen', 'Bot', 'Box', 'Braces', 'Calendar', 'CheckCircle2',
     'ChevronsDown', 'ClipboardList', 'Clock', 'Code', 'Code2', 'Copy', 'Eye', 'FilePen', 'FilePlus', 'FileSignature',
-    'FileText', 'FileUp', 'GitFork', 'Globe', 'Hourglass', 'Layers', 'LogIn', 'LogOut', 'Mail', 'MousePointer2',
-    'OctagonX', 'Pencil', 'Plus', 'Presentation', 'RectangleHorizontal', 'RefreshCw', 'Repeat', 'ScanText', 'Search',
+    'FileText', 'FileUp', 'GitFork', 'Globe', 'Hourglass', 'Layers', 'ListFilter', 'LogIn', 'LogOut', 'Mail',
+    'MousePointer2', 'OctagonX', 'Pencil', 'Plus', 'Presentation', 'RectangleHorizontal', 'RefreshCw', 'Repeat',
+    'ScanText', 'Search',
     'Share2', 'ShieldAlert', 'ShieldCheck', 'Sigma', 'Sparkles', 'Split', 'StickyNote', 'Table2', 'Tag', 'Trash2',
     'VenetianMask', 'Webhook', 'Wrench', 'Zap',
     // The step-symbol picker (flow/stepIcons.jsx ICON_DEFS).

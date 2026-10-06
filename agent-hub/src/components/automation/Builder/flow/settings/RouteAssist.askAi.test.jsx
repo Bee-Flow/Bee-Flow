@@ -22,6 +22,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const api = { suggestRouteRules: vi.fn() };
@@ -150,6 +151,18 @@ describe('what comes back', () => {
         await screen.findByText('Escalations');
         type('actually never mind, something else entirely');
         expect(screen.queryByText('Escalations')).toBeNull();
+    });
+
+    it('reads a rule the rows cannot show as "a custom rule", never as code', async () => {
+        api.suggestRouteRules.mockResolvedValue({
+            rules: [{ name: 'loud', expr: 'lower(item.status) == "escalated"' }], problem: '',
+        });
+        setup();
+        type('route anything that smells like an escalation');
+        await userEvent.setup().click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await screen.findByText('loud');
+        expect(screen.getByText(/a custom rule/)).toBeTruthy();
+        expect(screen.queryByText(/lower\(/)).toBeNull();
     });
 
     it('passes the model\'s own sentence through when it could not answer', async () => {

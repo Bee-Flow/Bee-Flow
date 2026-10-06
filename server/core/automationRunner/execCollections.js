@@ -7,6 +7,7 @@
 const { evaluate } = require('../../automation/expr');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
+const { createRuleMissCounter } = require('./ruleMisses');
 
 // ── Phase B: collection operators ──────────────────────
 //
@@ -103,14 +104,20 @@ async function execFilter(step, ctx, runState) {
     const opts = host ? { host } : undefined;
     const out = [];
     let evalError = null;
+    // A rule path that finds nothing on any item goes to the binding log
+    // (ruleMisses.js), so a typo is named instead of keeping nothing silently.
+    const misses = createRuleMissCounter([{ ast }]);
     for (let i = 0; i < arr.length; i++) {
         let keep = false;
-        try { keep = !!evaluate(ast, scope(i), opts); } catch (e) {
+        const itemScope = scope(i);
+        try { keep = !!evaluate(ast, itemScope, opts); } catch (e) {
             if (e.topicFatal) throw e;
             keep = false; if (!evalError) evalError = e.message || String(e);
         }
+        misses.observe(itemScope);
         if (keep) out.push(arr[i]);
     }
+    misses.report(arr.length, null, { matched: out.length });
     // inputCount/rejectedCount: cheap numbers (never the dropped rows) so the
     // canvas can say "3 of 201 kept" on a filter's connection. Additive —
     // absent on rows recorded before this shipped.

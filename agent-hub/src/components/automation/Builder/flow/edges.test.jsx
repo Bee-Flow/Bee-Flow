@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { STATUS_COLORS } from '../../../../constants/palette';
 
@@ -336,6 +337,33 @@ describe('LabelledEdge — reaching the connection controls', () => {
         const container = renderEdge({ data: { dataSummary: { label: '201 records' } } });
         expect(band(container)).toBeTruthy();
         expect(screen.getByText('201 records')).toBeTruthy();
+    });
+
+    it('a chip on an edge out of named ports starts past the port pill, on the port\'s own line (C4)', () => {
+        // The cluster is chip + controls, so a CENTRED cluster put the chip on
+        // the port names; out of a named port it starts PORT_PILL_CLEAR past the
+        // handle, at the source's height, and grows rightwards.
+        const ported = { ...BASE, targetX: 300, targetY: 40 };
+        const { container } = render(<svg><LabelledEdge {...ported} data={{ fromPortLabels: true, dataSummary: { count: 4, label: '4 records' } }} /></svg>);
+        const cluster = container.querySelector('[data-edge-cluster]');
+        expect(cluster.style.transform).toContain('translate(0, -50%) translate(26px, 0px)');
+        expect(cluster.style.transformOrigin).toBe('left center');
+        expect(screen.getByText('4 records')).toBeTruthy();
+        cleanup();
+        const plain = render(<svg><LabelledEdge {...BASE} targetX={120} data={{ dataSummary: { label: '4 records' } }} /></svg>).container;
+        expect(plain.querySelector('[data-edge-cluster]').style.transform).toContain('translate(-50%, -50%) translate(60px, 0px)');
+    });
+
+    it('in a gap too narrow for the whole chip it shows the count; the label is its name and returns on hover', async () => {
+        const narrow = { ...BASE, targetX: 60 };
+        const { container } = render(<svg><LabelledEdge {...narrow} data={{ fromPortLabels: true, dataSummary: { count: 4, label: '4 records' } }} /></svg>);
+        const chip = screen.getByRole('button', { name: '4 records' });
+        expect(chip.textContent).toBe('4');
+        expect(chip.getAttribute('data-compact')).toBe('true');
+        // Its squeezed cluster lets clicks through to the card next to it.
+        expect(container.querySelector('[data-edge-cluster]').style.pointerEvents).toBe('none');
+        await userEvent.hover(band(container));
+        expect(screen.getByRole('button', { name: /4 records/ }).textContent).toBe('4 records');
     });
 
     it('a read-only edge with nothing to show gets no hit band', () => {

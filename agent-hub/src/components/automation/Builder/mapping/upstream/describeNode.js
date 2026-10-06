@@ -94,7 +94,7 @@ export function describeNode(node, definition, toolToOutput, triggerOutputs, sam
     // gedeelde lijst (flow/terminalSteps.js), niet door een type-literal —
     // anders krijgt de volgende eindstap wél een kaart en géén variabelengroep.
     if (isTerminalStepType(node.type)) return null;
-    if (node.type === 'switch')     return describeSwitch(node);
+    if (node.type === 'switch')     return describeSwitch(node, sampleRoot);
     if (node.type === 'filter')     return describeCollectionItems(node, ROUTE_STEP_NAME, sampleRoot);
     if (node.type === 'limit')      return describeCollectionItems(node, 'Limit', sampleRoot);
     if (node.type === 'dedupe')     return describeDedupe(node, sampleRoot);

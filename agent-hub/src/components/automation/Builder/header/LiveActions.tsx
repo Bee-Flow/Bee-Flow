@@ -59,6 +59,8 @@ interface LiveActionsProps {
 }
 
 const PRIMARY = 'flex items-center gap-1.5 h-8 px-3.5 rounded-lg text-[12px] font-semibold whitespace-nowrap bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:brightness-95 transition disabled:opacity-50';
+// On a phone-width bar the primary keeps only its icon; the word stays its accessible name.
+const PHONE_WORD = '@max-[640px]/bar:sr-only';
 const SECONDARY = 'flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium whitespace-nowrap text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition disabled:opacity-50';
 
 /**
@@ -87,7 +89,7 @@ export default function LiveActions({ live, busy = false, saving = false, canAct
         primary = (
             <button type="button" disabled className={PRIMARY} data-testid="managed-not-deployed"
                 title={t('managed_part.not_deployed', 'This part has not been deployed yet.')}>
-                <Power size={13} /> <span>{t('automations.header.activate', 'Activate')}</span>
+                <Power size={13} /> <span className={PHONE_WORD}>{t('automations.header.activate', 'Activate')}</span>
             </button>
         );
     } else if (live.primary === 'publish' && !live.managed) {
@@ -96,7 +98,7 @@ export default function LiveActions({ live, busy = false, saving = false, canAct
                 title={!canActivate
                     ? incomplete
                     : (saving ? waitTitle : t('automations.header.make_live_title', 'Runs use v{version} from now on', { version: n }))}>
-                <Upload size={13} /> <span>{makeLive}</span>
+                <Upload size={13} /> <span className={PHONE_WORD}>{makeLive}</span>
             </button>
         );
     } else if (live.primary === 'activate') {
@@ -109,7 +111,7 @@ export default function LiveActions({ live, busy = false, saving = false, canAct
                         ? t('automations.header.activate_first_title', 'Goes live with this version and starts listening for its trigger')
                         : t('automations.header.activate_paused_title', 'Switches the live version back on')))}>
                 {asMakeLive ? <Upload size={13} /> : <Power size={13} />}
-                <span>{asMakeLive ? makeLive : t('automations.header.activate', 'Activate')}</span>
+                <span className={PHONE_WORD}>{asMakeLive ? makeLive : t('automations.header.activate', 'Activate')}</span>
             </button>
         );
     }

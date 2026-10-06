@@ -5,7 +5,7 @@ const t = (_key: string, fallback: string) => fallback;
 describe("a line's chip", () => {
     it("speaks the port's words, and a case in its own", () => {
         expect(['then', 'else', 'default', 'pii_found', 'pii_clean', 'on_error', 'unrouted', 'vip'].map((k) => chipWords(k, t))).toEqual([
-            'match', 'otherwise', 'otherwise', 'personal data', 'clean', 'On error', 'never runs', 'vip',
+            'Match', 'Otherwise', 'Otherwise', 'personal data', 'clean', 'On error', 'never runs', 'vip',
         ]);
     });
 

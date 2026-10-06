@@ -28,6 +28,15 @@ export const SCOPE = {
     // of a second, independently invented truth.
     group: { customer_name: 'Alice', amount: 1500000, tags: ['a', 'b'], address: { city: 'Delft', zip: '2611' } },
     table: [{ bank: 'ING', ratio: 1.2 }, { bank: 'ABN | AMRO', ratio: 0.9, note: 'x' }],
+    // A mail with files, for the rule functions (equals, fileType, anyOf/everyOf/noneOf).
+    mail: {
+        none: [],
+        attachments: [
+            { filename: 'Factuur.pdf', mimeType: 'application/pdf' },
+            { filename: 'Tarieven.PPTX', mimeType: 'application/octet-stream' },
+            { filename: 'logo.png', mimeType: 'image/png' },
+        ],
+    },
 };
 
 export const CASES = [
@@ -345,6 +354,43 @@ export const CASES = [
     { expr: 'parseJson(rawJson, "missing.x")', expected: undefined },
     { expr: 'parseJson(rawJson, "user.constructor")', expected: undefined }, // proto gate holds inside parsed JSON
     { expr: 'default(parseJson(badJson), "fb")', expected: 'fb' },
+    // rules (rules.mjs): equals ignores case and surrounding spaces, "5" equals 5
+    { expr: 'equals("Open ", "open")', expected: true },
+    { expr: 'equals(5, "5")', expected: true },
+    { expr: 'equals("007", "7")', expected: false },
+    { expr: 'equals("0612345678", "612345678")', expected: false },
+    { expr: 'equals("1234567890123456789", "1234567890123456788")', expected: false },
+    { expr: 'equals(5, " 5 ")', expected: true },
+    { expr: 'equals(mail.none, "")', expected: false },
+    { expr: 'equals(null, "")', expected: false },
+    { expr: 'equals(true, "true")', expected: true },
+    { expr: 'equals("x,y", item.tags)', expected: false },
+    { expr: 'equals(item.region, " eu ")', expected: true },
+    { expr: '!equals(item.region, "us")', expected: true },
+    // fileType: MIME first, the name's extension when the MIME says nothing
+    { expr: 'fileType(mail.attachments[0])', expected: 'pdf' },
+    { expr: 'fileType(mail.attachments[1])', expected: 'powerpoint' },
+    { expr: 'fileType("report.xlsx")', expected: 'excel' },
+    { expr: 'fileType("image/png")', expected: 'image' },
+    { expr: 'fileType(mail.attachments)', expected: ['pdf', 'powerpoint', 'image'] },
+    { expr: 'fileType(mail.attachments[*])', expected: ['pdf', 'powerpoint', 'image'] },
+    { expr: 'fileType(null)', expected: null },
+    { expr: 'fileType(missing.file)', expected: null },
+    // anyOf / everyOf / noneOf: an explicit quantifier over a list
+    { expr: 'anyOf(item.tags, "equals", "X")', expected: true },
+    { expr: 'everyOf(item.tags, "contains", "x")', expected: false },
+    { expr: 'everyOf(item.tags, "!equals", "z")', expected: true },
+    { expr: 'noneOf(item.tags, "equals", "z")', expected: true },
+    { expr: 'anyOf(item.tags, "!isEmpty")', expected: true },
+    { expr: 'anyOf(mail.none, "equals", "x")', expected: false },
+    { expr: 'everyOf(mail.none, "isEmpty")', expected: false },
+    { expr: 'noneOf(mail.none, "isEmpty")', expected: true },
+    { expr: 'anyOf(missing.list, "equals", "x")', expected: false },
+    { expr: 'anyOf(fileType(mail.attachments[*]), "equals", "pdf")', expected: true },
+    { expr: 'noneOf(fileType(mail.attachments[*]), "equals", "word")', expected: true },
+    { expr: 'anyOf(mail.attachments[*].mimeType, "contains", "pdf")', expected: true },
+    { expr: 'everyOf(mail.attachments[*].filename, "endsWith", ".pdf")', expected: false },
+    { expr: 'anyOf(form.amount, ">", 100)', expected: true },
     // SECURITY: prototype access resolves to undefined, never leaks
     { expr: 'weird.constructor', expected: 'SHOULD_NOT_LEAK' }, // own prop is fine
     { expr: 'weird.poisoned', expected: undefined },            // inherited → undefined

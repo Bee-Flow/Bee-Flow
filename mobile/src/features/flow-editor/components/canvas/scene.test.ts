@@ -17,7 +17,7 @@ describe('the scene of an automation', () => {
         expect(trigger?.targetDy).toBeNull();
         const cond = scene.byKey.get('cond_1');
         expect(cond?.ports.map((p) => [p.id, p.wire, p.dy])).toEqual([['then', 'then', 24], ['else', 'else', 48]]);
-        expect(cond?.ports.map((p) => (p.text && 'key' in p.text ? p.text.fallback : null))).toEqual(['match', 'otherwise']);
+        expect(cond?.ports.map((p) => (p.text && 'key' in p.text ? p.text.fallback : null))).toEqual(['Match', 'Otherwise']);
         expect(scene.seeded).toBe(true);
     });
 

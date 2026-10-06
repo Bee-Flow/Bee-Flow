@@ -2,7 +2,7 @@ import {
     Sparkles, Repeat, Code, Bell, Webhook, Clock, MousePointer2, Zap, Bot, AppWindow,
     Pencil, Hourglass, OctagonX, Split, ChevronsDown, Copy, Layers, Sigma, LogOut, Box, Globe,
     ClipboardList, CheckCircle2, ShieldAlert, ShieldCheck, FileText, FileSignature, Table2, StickyNote, BookOpen, ScanText,
-    RectangleHorizontal, Presentation } from 'lucide-react';
+    RectangleHorizontal, Presentation, ListFilter } from 'lucide-react';
 import { STEP_ICON_MAP } from './stepIcons';
 import { nodeLabel, nodeDesc, nodeDefaultLabel } from './nodeDefs';
 import {
@@ -119,6 +119,8 @@ const stepItem = (kind, id, icon, keywords, payloadExtra = null) => ({
  */
 function localised(it, t) {
     if (!t) return it;
+    // An entry with words of its own (not its type's) names its keys itself.
+    if (it.i18n) return { ...it, label: t(it.i18n.label, it.label), desc: t(it.i18n.desc, it.desc) };
     const kind = it.payload?.kind;
     const canonicalLabel = kind ? nodeLabel(kind) : '';
     if (!canonicalLabel || it.label !== canonicalLabel) return it;
@@ -182,7 +184,24 @@ export const DATA_ITEMS = [
         'presentation presentatie powerpoint pptx deck slides slide pitch keynote impress export download house style huisstijl'),
 ];
 
+// "Filter a list" (BFSF-485 F1). Keeping the matching items of a list is the
+// Condition node working through that list, which nobody found under the name
+// "Condition". This entry drops the SAME node, already in list mode (a
+// `filter` with an empty `arrayRef`, which auto-map binds to the nearest list
+// exactly as it does for an inserted Condition), and the card keeps the one
+// node name. Its words are its own, not the `filter` type's (that type has no
+// palette words: nodeDefs' PALETTE_ABSENT), so it names its i18n keys itself.
+export const FILTER_LIST_ITEM = {
+    id: 'filter_list', icon: ListFilter,
+    keywords: 'filter keep where only matching items rows list drop exclude subset select',
+    label: 'Filter a list',
+    desc: 'Keep only the items of a list that match; the rest stop here.',
+    i18n: { label: 'condition_node.palette.filter_label', desc: 'condition_node.palette.filter_desc' },
+    payload: { kind: 'filter', label: nodeDefaultLabel('filter') },
+};
+
 export const COLLECTION_ITEMS = [
+    FILTER_LIST_ITEM,
     stepItem('limit', 'limit', ChevronsDown,
         'limit take first last slice top head tail trim shorten cap fewer'),
     stepItem('dedupe', 'dedupe', Copy,
@@ -691,10 +710,12 @@ export function itemForKey(key, { catalog = null, layers = [] } = {}) {
     if (type === 'trigger') return asResult(additionalTriggerItems().find(t => t.payload.triggerKind === rest));
 
     if (type === 'step') {
-        // The four merged deciding steps keep their recorded usage: whichever
-        // of them a user reached for, the one Filter item is what we
-        // now offer back.
-        if (rest === 'condition' || rest === 'switch' || rest === 'filter' || rest === 'filter_route') return asResult(ROUTE_ITEM);
+        // The merged deciding steps keep their recorded usage: whichever of
+        // them a user reached for, the one Condition item is what we now
+        // offer back, except a `filter`: that is what "Filter a list" drops,
+        // so its usage comes back as that entry (BFSF-485 F1).
+        if (rest === 'filter') return asResult(FILTER_LIST_ITEM);
+        if (rest === 'condition' || rest === 'switch' || rest === 'filter_route') return asResult(ROUTE_ITEM);
         // Parse JSON left the palette; its ability lives in Edit data now, so
         // recorded usage keeps resolving to something addable.
         if (rest === 'parse_json') return asResult(EDIT_DATA_ITEM);
@@ -797,7 +818,8 @@ export function buildSearchResults(query, { catalog = null, mode = 'step', layer
     for (const it of AI_ITEMS) pushItem(localised(it, t), 'AI');
     for (const it of DATA_ITEMS) pushItem(localised(it, t), 'Data');
     for (const it of INTEGRATION_ITEMS) pushItem(localised(it, t), 'Flow');
-    for (const it of COLLECTION_ITEMS) pushItem(localised(it, t), 'Collection');
+    // The browse group is called "Lists"; a search result names the same group.
+    for (const it of COLLECTION_ITEMS) pushItem(localised(it, t), 'Lists');
     for (const it of LOGIC_ITEMS) {
         if (inLayer && NOT_INSIDE_A_LAYER.has(it.payload.kind)) continue;
         pushItem(localised(gated(it, hasFormTrigger), t), 'Flow');

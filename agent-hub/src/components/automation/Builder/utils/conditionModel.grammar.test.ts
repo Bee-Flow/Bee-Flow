@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { evaluate } from '@shared/expr/engine.mjs';
 import { parseExprToRows, serializeRows } from './conditionModel';
 
-type Row = { field: { kind: string; path?: string }; op: string; value: { kind: string; value?: unknown }; threshold?: number };
+type Row = { field: { kind: string; path?: string }; op: string; value: { kind: string; value?: unknown }; threshold?: number; quantifier?: string };
 const parse = (e: string) => parseExprToRows(e) as { rows: Row[]; join: string } | null;
 
 const MATCH = 'steps.mail.output.headers[name="a,b"].value';
@@ -46,6 +46,23 @@ describe('a match segment holding a comma is one field', () => {
         expect(p?.rows[0]).toEqual({ field: { kind: 'ref', path: MATCH }, op: 'isAbout', value: { kind: 'literal', value: 'billing, invoices' }, threshold: 0.7 });
         expect(serializeRows(p!.rows, p!.join)).toBe(expr);
         expect(parse(`!isAbout(${MATCH}, "spam")`)?.rows[0]).toMatchObject({ op: 'notAbout', value: { value: 'spam' } });
+    });
+
+    it('is / is not (equals, any upper/lower case)', () => {
+        for (const [expr, op] of [[`equals(${MATCH}, "invoice 7")`, 'is'], [`!equals(${MATCH}, "Quote")`, 'isNot']]) {
+            const p = parse(expr);
+            expect(p?.rows).toEqual([{ field: { kind: 'ref', path: MATCH }, op, value: { kind: 'literal', value: expr.includes('Quote') ? 'Quote' : 'invoice 7' } }]);
+            expect(serializeRows(p!.rows, p!.join)).toBe(expr);
+            expect(evaluate(expr, ROOT)).toBe(true);
+        }
+    });
+
+    it('a quantified row over a list whose text holds a comma', () => {
+        const expr = 'anyOf(steps.mail.output.headers[*].name, "contains", "a,b")';
+        const p = parse(expr);
+        expect(p?.rows[0]).toMatchObject({ field: { path: 'steps.mail.output.headers[*].name' }, quantifier: 'any', op: 'contains', value: { value: 'a,b' } });
+        expect(serializeRows(p!.rows, p!.join)).toBe(expr);
+        expect(evaluate(expr, ROOT)).toBe(true);
     });
 
     it('a comma inside the compared text stays in the text', () => {

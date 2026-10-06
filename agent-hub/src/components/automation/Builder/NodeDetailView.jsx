@@ -51,6 +51,7 @@ export default function NodeDetailView({
     onRenameBinding = null,
     // (stepId, step) => boolean|undefined. The shell's edit (BuildTab.onInsertStepBefore).
     onInsertStepBefore = null,
+    onFollowRoute = null, // (routeId, stepIds) => void: BuildTab.onFollowRoute ("Use what this Condition keeps").
     validation, modelTiers = {}, onExecuteStep, onRetryFromStep,
     runInFlight = false, executingStep = false, onClose,
     // 'quick' | 'full': how BIG the window is. Owned by the shell.
@@ -80,10 +81,10 @@ export default function NodeDetailView({
     const {
         catalog, isSecondaryTrigger, wiredCaseNames, stepEdges, groups, previewSample,
         stepTypeById, stepNumberById, usedPaths, stepIssues,
-        describedSample, emptyFormAnswers, loopContext, inSummary, outSummary,
+        describedSample, emptyFormAnswers, loopContext, inSummary, outSummary, routeFollow, wholeRun,
     } = useNodeDetailData({
         step, runStep, runSteps, definition, rootDefinition, validation,
-        catalog: catalogProp, realOutputById,
+        catalog: catalogProp, realOutputById, onFollowRoute,
     });
     const stepLabelById = useMemo(() => buildStepLabelMap(definition), [definition]);
 
@@ -338,6 +339,7 @@ export default function NodeDetailView({
                                     onTestSubmit={onTestSubmit}
                                     onRenameField={onRenameField}
                                     onInsertUpstreamStep={onInsertUpstreamStep}
+                                    routeFollow={routeFollow} wholeRun={wholeRun}
                                     onExpandOnCanvas={onExpandOnCanvas}
                                     runStep={runStep}
                                 />

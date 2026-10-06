@@ -86,7 +86,7 @@ const PDF_AT = 5;
 const ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
 /** A long, opaque, deterministic id in Gmail's attachment-id alphabet (xorshift32). */
-function opaqueId(seed: number, length = 88): string {
+export function opaqueId(seed: number, length = 88): string {
     let x = (seed * 2_654_435_761) >>> 0 || 1;
     let out = '';
     for (let i = 0; i < length; i++) {

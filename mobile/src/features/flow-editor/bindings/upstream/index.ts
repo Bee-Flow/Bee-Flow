@@ -18,5 +18,6 @@ export { describeNode, DESCRIBED_TYPES } from './describeNode';
 export { collectArrayPaths, elementFieldOptions, realFieldsOf, resolveElementSample, sampleToFields, schemaToSample, seg } from './sampleFields';
 export { eachField, fieldFor, mergeElements, outputFields, recordFields } from './fieldTree';
 export { overlayGroupWithReal } from './realOverlay';
+export { fieldLabelText, routeFieldLabel, type FieldLabel } from './routeFieldLabel';
 export { describeTriggerMeta, triggerMetaSample } from './triggers';
 export { inferLoopItemSample, suggestItemVar } from './loops';

@@ -5,7 +5,9 @@
  *
  *   failed / error       → "failed"
  *   skipped              → "skipped"
- *   settled with output  → an array: "{n} items"; an object holding a list
+ *   settled with output  → a Condition that kept part of a list (the filter's
+ *                          `{ items, inputCount, rejectedCount }`): "3 of 4
+ *                          kept"; an array: "{n} items"; an object holding a list
  *                          under files/items/results/rows/events/entries:
  *                          "{n} files" | "{n} rows" | "{n} items"; an object
  *                          that reports appended/created/uploaded/sent: "done";
@@ -28,6 +30,12 @@ function listChip(key, n, t) {
     return t('automations.canvas.result.items', '{n} items', { n });
 }
 
+/** "3 of 4 kept": what a Condition that works through a list let through. */
+function keptChip(out, t) {
+    if (!Array.isArray(out.items) || typeof out.inputCount !== 'number' || typeof out.rejectedCount !== 'number') return null;
+    return t('condition_node.canvas.kept', '{kept} of {total} kept', { kept: out.items.length, total: out.inputCount });
+}
+
 export function describeStepResult(row, t) {
     if (!row || typeof t !== 'function') return null;
     const status = String(row.status || '').toLowerCase();
@@ -46,6 +54,8 @@ export function describeStepResult(row, t) {
     if (typeof out === 'object') {
         // A server-truncated output is a placeholder, not a shape to count.
         if (out.__truncated__ === true) return t('automations.canvas.result.ok', 'done');
+        const kept = keptChip(out, t);
+        if (kept) return kept;
         for (const key of LIST_KEYS) {
             if (Array.isArray(out[key])) return listChip(key, out[key].length, t);
         }

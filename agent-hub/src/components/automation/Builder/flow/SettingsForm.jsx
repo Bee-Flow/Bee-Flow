@@ -104,6 +104,13 @@ export default function SettingsForm({
     // and the control that offers it is simply not rendered when it is null
     // (Condition node → RouteFields → RouteAssist's semantic handoff).
     onInsertUpstreamStep = null,
+    // A Condition working through a list: the next steps that still read that
+    // list, and the fix that re-points them (useNodeDetailData's routeFollow;
+    // null everywhere else). Same reason as above: the fix rewrites the graph.
+    routeFollow = null,
+    // A Condition deciding once for the whole run that reads a list as a
+    // whole: the lists and the loops after it (useNodeDetailData's wholeRun).
+    wholeRun = null,
     // Optional host content for the left of the action bar. The quick NDV puts
     // its "In … → Out …" summary here so the dialog ends in one footer instead
     // of stacking a second chrome bar underneath this one. Null everywhere
@@ -343,6 +350,7 @@ export default function SettingsForm({
                         onFocusField={onFocusField} previewSample={previewSample}
                         errorSections={errorSections} wiredCaseNames={wiredCaseNames}
                         onInsertUpstreamStep={onInsertUpstreamStep}
+                        routeFollow={routeFollow} wholeRun={wholeRun}
                         topics={topicsCapability(catalog)}
                     />
                 )}
@@ -550,7 +558,7 @@ export default function SettingsForm({
                         disabled={!dirty || saving}
                         className="flex items-center gap-1.5 px-3 py-1 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
                     >
-                        <RotateCcw size={12} /> {t('automations.builder.undo_changes', 'Undo changes')}
+                        <RotateCcw size={12} /> <span className="@max-[480px]/ndvset:sr-only">{t('automations.builder.undo_changes', 'Undo changes')}</span>
                     </button>
                     <button
                         onClick={onSave}

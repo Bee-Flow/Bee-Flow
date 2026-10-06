@@ -105,6 +105,25 @@ describe('display helpers', () => {
         expect(display.describeRuleExpr(expr, LABELS)).toBe(webDisplay.describeRuleExpr(expr, LABELS));
     });
 
+    // Condition node: every row shape the builder writes reads as the same sentence.
+    const RULES = [
+        ...EXPRS, 'false', 'equals(item.status, "open")', '!equals(item.status, "Open")', 'item.status == "Open"',
+        'anyOf(item.attachments[*].filename, "endsWith", ".pdf")', 'everyOf(item.lines[*].qty, ">", 0)', 'noneOf(item.labels[*].name, "equals", "spam")',
+        'anyOf(item.attachments[*].name, "!isEmpty")', 'equals(fileType(item), "pdf")', '!equals(fileType(item), "word")',
+        'anyOf(fileType(item.attachments[*]), "equals", "pdf")', 'equals(fileType(item.name), "excel")', 'contains(item.attachments[*].mimeType, "pdf")',
+        '!contains(item.attachments[*].mimeType, "pdf")', 'isEmpty(item.attachments)', '!isEmpty(item.notes)', 'item.when > "2026-01-01"',
+        'contains(item.fields["Story Points"], "3")', 'item.headers[name="Subject"].value == "x"', 'steps.s1.output.urgency == "high"',
+        'trigger.output.ok == true', 'vars.limit > 3', 'loop.row.total >= 2', 'contains(item.from, "fabrikam") || equals(fileType(item), "pdf")',
+        'item.a == steps.s1.output.b', 'steps.s1.output.results[*]', 'len(item.a) > 1 && item.b',
+    ];
+    const t = (key: string, en: string, vars?: Record<string, unknown>) => `[${key}|${en}|${JSON.stringify(vars ?? {})}]`;
+    it.each(RULES.map((e) => [String(e), e] as const))('rule sentences %s', (_l, expr) => {
+        expect(display.ruleSentence(expr)).toBe(webDisplay.ruleSentence(expr));
+        expect(display.ruleSentence(expr, LABELS, t)).toBe(webDisplay.ruleSentence(expr, LABELS, t));
+        expect(display.describeRuleExpr(expr, LABELS)).toBe(webDisplay.describeRuleExpr(expr, LABELS));
+        expect(display.describeRuleExpr(expr, null, t)).toBe(webDisplay.describeRuleExpr(expr, null, t));
+    });
+
     it.each(DEFS.map((d, i) => [i, d] as const))('label map %i', (_i, def) => {
         expect([...display.buildStepLabelMap(def)]).toEqual([...webDisplay.buildStepLabelMap(def)]);
     });

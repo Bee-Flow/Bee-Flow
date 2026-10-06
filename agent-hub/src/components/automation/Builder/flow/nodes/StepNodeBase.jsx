@@ -48,6 +48,11 @@ export default function StepNodeBase({
     // what the retired summary-line component rendered), or a React node for the few cards
     // that show chips there (a schedule's cadence, a trigger's params).
     name = null, sub = null, subTitle = undefined,
+    // An optional SECOND summary line (same string / `{ muted }` shapes as
+    // `sub`), for a card whose one line would truncate the half that matters:
+    // a Condition's list on the first line, its rule on this one. With it the
+    // name keeps to one line, so the card keeps its 72px.
+    subDetail = null,
     // Deprecated: the pre-redesign free-form slot. Rendered in place of
     // name/sub while a node file has not been converted, so the migration can
     // land file by file.
@@ -245,6 +250,17 @@ export default function StepNodeBase({
 
     const subIsMuted = sub != null && typeof sub === 'object' && !React.isValidElement(sub) && 'muted' in sub;
     const subText = subIsMuted ? sub.muted : sub;
+    const detail = summaryLine(subDetail);
+    const nameClamp = detail ? 'line-clamp-1' : 'line-clamp-2';
+    const detailLine = (size) => (detail ? (
+        <div
+            className={`${size} leading-[14px] truncate ${detail.muted ? 'italic text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}`}
+            title={subTitle || (typeof detail.text === 'string' ? detail.text : undefined)}
+            data-testid="node-sub-detail"
+        >
+            {detail.text}
+        </div>
+    ) : null);
 
     const actionBtn = 'h-6 w-6 rounded-md flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:cursor-not-allowed';
 
@@ -522,7 +538,7 @@ export default function StepNodeBase({
                     // Middle distance: the name on up to two lines, the number to
                     // find it by, and the description in one line beneath.
                     <>
-                        <div className="text-[16px] font-semibold leading-5 text-[var(--text-primary)] line-clamp-2 break-words" data-testid="node-name">
+                        <div className={`text-[16px] font-semibold leading-5 text-[var(--text-primary)] ${nameClamp} break-words`} data-testid="node-name">
                             {name ?? typeLabel}
                             {stepNumber != null && <span className="ml-2 text-[12px] font-medium text-[var(--text-tertiary)]" data-testid="node-step-number">{stepNumber}</span>}
                         </div>
@@ -533,6 +549,7 @@ export default function StepNodeBase({
                                 </div>
                             ) : null,
                         )}
+                        {detailLine('text-[12px]')}
                     </>
                 ) : (
                     <>
@@ -543,7 +560,7 @@ export default function StepNodeBase({
                                 {isSource && <span className="shrink-0 text-[var(--text-tertiary)]" data-testid="node-source-tag">· {t('automations.card.source', 'source')}</span>}
                             </div>
                         )}
-                        <div className="text-[13px] font-semibold leading-[17px] text-[var(--text-primary)] line-clamp-2 break-words" data-testid="node-name">
+                        <div className={`text-[13px] font-semibold leading-[17px] text-[var(--text-primary)] ${nameClamp} break-words`} data-testid="node-name">
                             {name ?? typeLabel}
                         </div>
                         {(resultChip || (subText != null && subText !== '')) && withResultChip(
@@ -563,6 +580,7 @@ export default function StepNodeBase({
                                 </div>
                             ) : null,
                         )}
+                        {detailLine('text-[11px]')}
                     </>
                 )}
             </div>
@@ -698,4 +716,12 @@ function previewBinding(v) {
     if (v.kind === 'template') return `"${(v.value || '').slice(0, 40)}"`;
     if (v.kind === 'expr') return `expr: ${v.value || ''}`;
     return JSON.stringify(v).slice(0, 40);
+}
+
+/** A summary line's text and tone: a string, a React node, or `{ muted }`; null when empty. */
+function summaryLine(value) {
+    if (value == null || value === '') return null;
+    const muted = typeof value === 'object' && !React.isValidElement(value) && 'muted' in value;
+    const text = muted ? value.muted : value;
+    return text == null || text === '' ? null : { text, muted };
 }

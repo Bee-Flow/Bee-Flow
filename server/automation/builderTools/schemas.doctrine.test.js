@@ -60,7 +60,10 @@ test('add_condition: branch/caseName exist and functions are not forbidden', () 
     assert.ok(p.branch && Array.isArray(p.branch.enum));
     assert.ok(p.caseName);
     assert.ok(!/NO function calls/.test(tool('builder_add_condition').description));
-    assert.match(tool('builder_add_condition').description, /contains\(lower\(/);
+    // A3: rules are taught in the shapes the editor reopens as rows, never
+    // wrapped in lower()/upper() (the text helpers ignore case already).
+    assert.match(tool('builder_add_condition').description, /equals\(/);
+    assert.ok(!/contains\(lower\(/.test(tool('builder_add_condition').description));
 });
 
 test('update_step documents the move; update_steps carries the same rules', () => {

@@ -60,7 +60,7 @@ export const NODE_TYPE_KEYS: readonly string[] = Object.keys(NODE_DEFS);
 /** Runtime types with NO palette entry, each with the reason. */
 export const PALETTE_ABSENT: Readonly<Record<string, string>> = {
     switch: 'runtime shape of the Condition node (many rules)',
-    filter: 'runtime shape of the Condition node (works through a list)',
+    filter: 'runtime shape of the Condition node (works through a list); "Filter a list" adds one under the Condition name',
     parse_json: 'retired — absorbed by Edit data',
     parallel: 'engine-only; drawn on the canvas, but nothing builds `branches` yet',
 };

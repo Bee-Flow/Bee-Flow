@@ -30,6 +30,7 @@
  * row's children only when it is opened.
  */
 import { appendKey, appendMatch, appendWildcard, parseJsonText, parsePath } from '@shared/expr/path.mjs';
+import { routeFieldLabel } from './routeFieldLabel';
 
 export interface Field {
     key: string;
@@ -37,6 +38,10 @@ export interface Field {
     sample: unknown;
     children?: Field[];
     perIteration?: boolean;
+    /** The name a person gave this field when its key is the runner's (routeFieldLabel.ts). */
+    label?: string;
+    /** `label`'s i18n key; the label is its English. */
+    labelKey?: string;
 }
 
 type Obj = Record<string, unknown>;
@@ -114,7 +119,7 @@ function sampleOf(values: unknown[]): unknown {
 /** A field at `at` (whose children sit one level further down). */
 function fieldAt(key: string, values: unknown[], at: At, budget: Budget): Field {
     budget.left--;
-    const field: Field = { key, path: at.path, sample: sampleOf(values) };
+    const field: Field = { key, path: at.path, sample: sampleOf(values), ...routeFieldLabel(at.path) };
     const children = childrenAt(values, { ...at, level: at.level + 1 }, budget);
     if (children.length) field.children = children;
     return field;
@@ -275,7 +280,7 @@ export function positionChildren(values: unknown[], path: string): Field[] {
 
 /** One field for a value at `path`, with whatever opens under it. */
 export function fieldFor(key: string, path: string, value: unknown): Field {
-    const field: Field = { key, path, sample: value };
+    const field: Field = { key, path, sample: value, ...routeFieldLabel(path) };
     const children = valueChildren(value, path);
     if (children.length) field.children = children;
     return field;

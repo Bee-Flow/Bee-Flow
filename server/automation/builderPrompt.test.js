@@ -536,4 +536,25 @@ t('lean + dynamic placement: a different catalogue, datatables or documents → 
     assert.strictEqual(renderCatalogContextMessage({}), null);
 });
 
+// ─── BFSF-485 F4 + A3: a condition decides once; rules open as rows ──────────
+console.log('condition doctrine');
+
+t('both prompts say a condition decides ONCE and name the filter that keeps items', () => {
+    const full = buildFullSystemPrompt({ catalog: CATALOG, codeStepEnabled: false });
+    assert.ok(full.includes('A condition decides ONCE for the whole run; to keep the matching items\n  of a list use builder_add_filter'), 'full prompt doctrine line');
+    const lean = buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true });
+    assert.ok(lean.includes('A condition decides ONCE for the whole run; to keep the matching items of a list use `builder_add_array_op({op:"filter"})`'), 'lean prompt doctrine line');
+});
+
+t('the full prompt teaches the rule shapes; neither prompt filters with === or lower()', () => {
+    const { CONDITION_RULES_HINT } = require('./builderTools/ruleExamples');
+    const full = buildFullSystemPrompt({ catalog: CATALOG, codeStepEnabled: false });
+    assert.ok(full.includes(CONDITION_RULES_HINT));
+    for (const p of [full, buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false })]) {
+        assert.ok(!p.includes("item.status === 'success'"), 'the forEach-failure filter is a row shape now');
+        assert.ok(p.includes('expr:"equals(item.status, \\"success\\")"'));
+        assert.ok(!/(lower|upper)\((item|trigger|steps)\./.test(p), 'no rule wraps a field in lower()/upper()');
+    }
+});
+
 console.log(`\nbuilderPrompt.test.js: ${passed} assertions passed`);

@@ -5,6 +5,7 @@ import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';
 import { cellText } from './cellSummary';
 import { soleRecordListKey } from './envelope';
 import { runNoteOf } from './perItem';
+import { routeNoteOf } from './routeNote';
 import RunNote from './RunNote';
 import SmartTable from './SmartTable';
 import type { OutputColumnsState } from './useOutputColumns';
@@ -31,6 +32,15 @@ export function smartRowsOf(value: unknown): unknown[] | null {
 /** The numbers of a per-item step that the run sentence (RunNote) says in words. */
 const RUN_KEYS = new Set(['iterations', 'succeeded', 'failed', 'truncated', 'totalItems']);
 
+/** The numbers of a filter that the route sentence ("Kept 3 of 4 messages", RunNote) says in words. */
+const ROUTE_KEYS = new Set(['count', 'inputCount', 'rejectedCount']);
+
+/** The keys whose chips say again what a sentence already says. */
+function sentenceKeys(value: unknown): Set<string> | null {
+    if (runNoteOf(value) != null) return RUN_KEYS;
+    return routeNoteOf(value) != null ? ROUTE_KEYS : null;
+}
+
 interface SmartOutputProps {
     value: unknown;
     rows: unknown[];
@@ -46,14 +56,16 @@ interface SmartOutputProps {
  * A list in the drawer's "Continues on" column (artboard 4b): the table, and
  * under it the plain values that came with it ("Count 23", "Folder /"). A
  * step that ran once per item says how that went in one sentence instead of
- * its Iterations / Succeeded / Failed numbers.
+ * its Iterations / Succeeded / Failed numbers, and a filter's Count / Input
+ * count / Rejected count are left to the route sentence above the output.
  */
 export default function SmartOutput({ value, rows, cols, onExpand }: SmartOutputProps) {
     const listKey = soleRecordListKey(value);
     const ranPerItem = runNoteOf(value) != null;
+    const said = sentenceKeys(value);
     const plain = (k: string, v: unknown) => k !== listKey && (v === null || typeof v !== 'object');
     const scalars = listKey && isPlainObject(value)
-        ? Object.entries(value).filter(([k, v]) => plain(k, v) && !(ranPerItem && RUN_KEYS.has(k)))
+        ? Object.entries(value).filter(([k, v]) => plain(k, v) && !said?.has(k))
         : [];
     return (
         <div className="flex flex-col gap-2.5">

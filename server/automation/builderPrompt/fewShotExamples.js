@@ -863,7 +863,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                         name: 'builder_add_condition',
                         arguments: JSON.stringify({
                             afterStepId: 's_ai',
-                            expr: 'steps.s_ai.output.isInvoice === true',
+                            expr: 'steps.s_ai.output.isInvoice == true',
                         }),
                     },
                 }],

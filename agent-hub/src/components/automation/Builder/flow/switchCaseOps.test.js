@@ -44,11 +44,19 @@ describe('reconcileSwitchEdges — rename', () => {
         expect(next.edges).toContainEqual({ from: 'sw', to: 'other', label: 'case:later', caseName: 'later' });
     });
 
-    it('handles an A↔B swap in one pass without chaining', () => {
-        const next = reconcileSwitchEdges(def(), 'sw', cases('vip', 'normal'), cases('normal', 'vip'));
-        // vip-edge (→send) must now be normal; normal-edge (→other) must now be vip.
-        expect(next.edges).toContainEqual({ from: 'sw', to: 'send', label: 'case:normal', caseName: 'normal' });
-        expect(next.edges).toContainEqual({ from: 'sw', to: 'other', label: 'case:vip', caseName: 'vip' });
+    it('a reorder (A↔B) is not a rename: every edge stays on its own output', () => {
+        const d = def();
+        const next = reconcileSwitchEdges(d, 'sw', cases('vip', 'normal'), cases('normal', 'vip'));
+        expect(next).toBe(d);
+    });
+
+    it('removing the first case drops its edge and leaves the others on their own names', () => {
+        const d = def();
+        d.steps[0].cases = cases('vip', 'normal', 'excel');
+        d.edges.push({ from: 'sw', to: 'send', label: 'case:excel', caseName: 'excel' });
+        const next = reconcileSwitchEdges(d, 'sw', cases('vip', 'normal', 'excel'), cases('normal', 'excel'));
+        expect(next.edges.filter(e => e.from === 'sw').map(e => `${e.caseName}→${e.to}`))
+            .toEqual(['normal→other', 'default→other', 'excel→send']);
     });
 
     it('dedupes when a rename lands on an identically-wired name', () => {

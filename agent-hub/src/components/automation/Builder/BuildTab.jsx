@@ -1,6 +1,7 @@
 // §WS5 — BuildTab body, extracted verbatim from BuilderShell.jsx. The shell
 // keeps orchestration state; BuildTab is the build-tab UI (canvas, ribbon,
 // chat column, inspector overlay). Its prop list is fully explicit.
+import { followSuccessors } from '@shared/expr/routeFollow.mjs';
 import { Sparkles, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBuilderConfirm } from './BuilderConfirmContext';
@@ -32,6 +33,7 @@ import { applyDeleteNodes, applyDuplicateNode } from './flow/nodeOps';
 import { normalizeDefinitionShape, emptyGraph } from './flow/normalizeDefinition';
 import { renameFormField } from './flow/renameFormField';
 import { stepOutputIsArray } from './flow/ribbon/fitsAfter';
+import { followAfterAdd, followedMessages } from './flow/routeFollowNotes';
 import { isRouteStep, routePorts } from './flow/routeModel';
 import { insertStepBefore } from './flow/settings/routeHandoff';
 import { computeRunFocus } from './flow/runFocus';
@@ -369,6 +371,19 @@ export default function BuildTab({
         onVisualEditFlat?.(prefix ? prefixAddedStep(inserted, newStep.id, prefix) : inserted);
         return true;
     }, [flatDef, state.running, onVisualEditFlat]);
+
+    /**
+     * "Use what this Condition keeps": the Condition editor's notice about next
+     * steps that still read the list the Condition was given (W7). Re-points
+     * them at the Condition's output in one commit, so one Undo restores them.
+     */
+    const onFollowRoute = useCallback((routeId, stepIds) => {
+        if (!flatDef || state.running || !routeId) return;
+        const { definition: followed, rebound } = followSuccessors(flatDef, routeId, stepIds);
+        if (!rebound?.length) return;
+        onVisualEditFlat?.(followed);
+        for (const msg of followedMessages(rebound, followed, t)) toast.success(msg);
+    }, [flatDef, state.running, onVisualEditFlat, t]);
 
     // What each node ACTUALLY produced (pinned > last run, hygiene-filtered) —
     // the single map that makes auto-map, the pickers and the node editor see
@@ -762,6 +777,15 @@ export default function BuildTab({
                 if (!scopePrefix) pendingAutoMapRef.current.push(insertedId);
             }
         }
+        // Follow the route: a step wired next to a Condition that works through
+        // a list reads what that Condition KEEPS, not the list it was given —
+        // the step after an inserted Condition as much as a step added after
+        // one (shared/expr/routeFollow.mjs). Same commit, so one Undo.
+        if (sourceId && addedId) {
+            const followed = followAfterAdd(finalDef, addedId, t);
+            finalDef = followed.definition;
+            for (const msg of followed.messages) toast.success(msg);
+        }
         // Last: move the new step into the flowlet it was added to. Everything
         // above addressed it by its bare id (splice, auto-map), and the ids in
         // the bindings auto-map just wrote are flat ids that decompose turns
@@ -773,7 +797,7 @@ export default function BuildTab({
      
     // itself after the replace-trigger confirm resolves; listing it would be
     // circular, and the identity it closes over is the same one on both passes.
-    }, [flatDef, inlineSidecar, inlineShift, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot, autoMapEnabled, catalog, realOutputById, recordUsage, confirmAction]);
+    }, [flatDef, inlineSidecar, inlineShift, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot, autoMapEnabled, catalog, realOutputById, recordUsage, confirmAction, t]);
 
     // Latest scoped definition + real-output map for the catalog drain effect —
     // by the time the catalog arrives, `scopedDef` from the add-time closure
@@ -788,6 +812,7 @@ export default function BuildTab({
         let def = scopedDefRef.current;
         if (!def) return;
         let mappedAny = false, keysTotal = 0, anyForEach = false;
+        const messages = [];
         for (const id of ids) {
             const r = applyAutoMapToStep(def, id, catalog, { realOutputById: realOutputRef.current });
             if (r.mappedKeys.length || r.forEachEnabled) {
@@ -796,12 +821,15 @@ export default function BuildTab({
                 keysTotal += r.mappedKeys.length;
                 anyForEach = anyForEach || !!r.forEachEnabled;
             }
+            // The Condition only became a list Condition just now: follow it here too.
+            const followed = followAfterAdd(def, id, t);
+            def = followed.definition;
+            messages.push(...followed.messages);
         }
-        if (mappedAny) {
-            onVisualEditFlat?.(def);
-            toast.success(autoMapToastMessage(keysTotal, anyForEach));
-        }
-    }, [catalog, onVisualEditFlat]);
+        if (mappedAny || messages.length) onVisualEditFlat?.(def);
+        if (mappedAny) toast.success(autoMapToastMessage(keysTotal, anyForEach));
+        for (const msg of messages) toast.success(msg);
+    }, [catalog, onVisualEditFlat, t]);
 
     // The context popover's pick handler: run the insert with whatever target
     // that popover was opened for, then manage its own open/closed state.
@@ -1448,6 +1476,7 @@ export default function BuildTab({
                         onSaveStep={onSaveStepFlat}
                         onRenameBinding={onRenameBinding}
                         onInsertStepBefore={onInsertStepBefore}
+                        onFollowRoute={editsLocked ? null : onFollowRoute}
                         validation={state.validation}
                         modelTiers={modelTiers}
                         onExecuteStep={onExecuteStep}

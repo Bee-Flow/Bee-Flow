@@ -138,9 +138,11 @@ export function readRoute(step) {
         // The key's PRESENCE is the mode switch — '' means "list mode, source
         // not picked yet" (an amber warning), absent means branch mode.
         const listMode = typeof step.arrayRef === 'string';
+        const style = readStyle(step, cases);
         return {
             mode: listMode ? 'items' : 'branch',
-            style: readStyle(step, cases),
+            style,
+            keepRest: readKeepRest(listMode, style, cases),
             matchMode: readMatchMode(step),
             source: step.arrayRef || '',
             matchOn: step.expr || '',
@@ -160,6 +162,29 @@ export function readRoute(step) {
         rules: [{ name: 'rule1', expr: step?.expr || '', value: '' }],
         defaultBranch: '',
         maxItems: '',
+    };
+}
+
+/**
+ * BFSF-485: a list switch with exactly one rule case is "One output" whose
+ * non-matching items go to Otherwise (the "Send what doesn't match to
+ * “Otherwise”" box). Only list mode; a value switch never.
+ */
+function readKeepRest(listMode, style, cases) {
+    return listMode && style === 'rules' && cases.length === 1;
+}
+
+/** The one-output list route with the box ticked: a list switch with one case, so Otherwise is a port. */
+function writeKeepRest(route, first) {
+    return {
+        type: 'switch',
+        arrayRef: route.source || '',
+        expr: '',
+        cases: [{ name: first.name || 'Output 1', expr: first.expr || '' }],
+        defaultBranch: undefined,
+        routeStyle: 'rules',
+        matchMode: undefined,
+        maxItems: route.maxItems === '' || route.maxItems == null ? undefined : Number(route.maxItems),
     };
 }
 
@@ -217,6 +242,7 @@ export function writeRoute(route) {
         // shape, and the one whose `{items, count}` output every downstream
         // step already knows how to read. A second rule is what asks for an
         // "otherwise" output, so there is nothing to configure.
+        if (rules.length <= 1 && route.style === 'rules' && route.keepRest && first) return writeKeepRest(route, first);
         if (rules.length <= 1 && route.style === 'rules') {
             return {
                 type: 'filter',

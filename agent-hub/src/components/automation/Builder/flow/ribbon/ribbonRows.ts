@@ -78,7 +78,7 @@ export const TAB_ROWS: Record<RowTab, Slot[][]> = {
         [
             { menu: 'tables', titleKey: 'automations.ribbon.data_tables', fallback: 'Tables', Icon: Table2, ids: ['datatable', 'knowledge_write'] },
             { menu: 'documents', titleKey: 'automations.ribbon.data_documents', fallback: 'Documents', Icon: FileText, ids: ['generate_document', 'fill_document', 'slide', 'presentation'] },
-            { menu: 'lists', titleKey: 'automations.ribbon.data_lists', fallback: 'Lists', Icon: ListFilter, ids: ['limit', 'dedupe', 'aggregate', 'summarize'] },
+            { menu: 'lists', titleKey: 'automations.ribbon.data_lists', fallback: 'Lists', Icon: ListFilter, ids: ['filter_list', 'limit', 'dedupe', 'aggregate', 'summarize'] },
         ],
     ],
 };

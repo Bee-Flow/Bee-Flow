@@ -154,7 +154,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_condition: {
-        description: 'Append an if/else. expr is a restricted JS expression over trigger/steps/loop (comparisons, &&, ||, ?:, contains(), lower(), len(), isEmpty()). EXAMPLE: contains(lower(trigger.output.subject), "invoice"). Grow the branches by adding steps with afterStepId = this id and branch:"then" | "else".',
+        description: 'Append an if/else that decides ONCE for the whole run. expr reads trigger/steps/loop values: comparisons, && / ||, contains(), equals(), startsWith(), isEmpty(), len(). Text helpers ignore upper/lower case: never lower()/upper(). EXAMPLE: contains(trigger.output.subject, "invoice"). It does not filter a list: to keep the matching items use builder_add_array_op op:"filter" and read its output.items. Grow the branches by adding steps with afterStepId = this id and branch:"then" | "else".',
         props: {
             expr: { description: 'The expression; true takes the "then" branch.' },
             thenStepId: { description: 'Wire an EXISTING step onto the "then" branch.' },
@@ -259,7 +259,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_array_op: {
-        description: 'Append a list operation over an upstream array (arrayRef is a path string, not a binding). op: filter (expr over `item`) | limit (count, mode) | dedupe (keyField?) | aggregate (field → {values}) | summarize (field + fn sum|count|avg|min|max → {result}). Output {items, count}. Drop failed forEach items with {op:"filter",arrayRef:"steps.<prev>.output.results",expr:"item.status === \'success\'"}.',
+        description: 'Append a list operation over an upstream array (arrayRef is a path string, not a binding). op: filter (expr over `item`) | limit (count, mode) | dedupe (keyField?) | aggregate (field → {values}) | summarize (field + fn sum|count|avg|min|max → {result}). Output {items, count}. filter rules: contains(item.subject, "invoice"), equals(item.status, "open"), item.amount > 1000, anyOf(item.attachments[*].filename, "endsWith", ".pdf"); never lower()/upper(). Drop failed forEach items with {op:"filter",arrayRef:"steps.<prev>.output.results",expr:"equals(item.status, \\"success\\")"}.',
         props: {
             arrayRef: { description: 'Path to the upstream array, e.g. "steps.s1.output.results".' },
             expr: { description: 'filter only: expression over item.<field>.' },

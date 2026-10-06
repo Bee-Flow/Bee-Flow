@@ -5,7 +5,7 @@
  */
 
 const {
-    newId, appendAfter, branchEdgeFor, layerAwareAnchor, spliceSuccessors, isKnownNodeId,
+    newId, appendAfter, branchEdgeFor, layerAwareAnchor, spliceSuccessors, spliceCaseOf, isKnownNodeId,
 } = require('../draftGraph');
 const { TEMP_ID_RX, rewriteTempRefs } = require('../tempRefs');
 const { validateAndFixBindings, sanitizeArrayRef } = require('../bindings');
@@ -21,7 +21,23 @@ function applyAddCondition(draft, args) {
     draft.edges.push(incoming);
     if (args.thenStepId) draft.edges.push({ from: step.id, to: args.thenStepId, label: 'then' });
     if (args.elseStepId) draft.edges.push({ from: step.id, to: args.elseStepId, label: 'else' });
-    return { added: step };
+    const note = wholeListNote(step);
+    return { added: step, ...(note ? { _warnings: [note] } : {}) };
+}
+
+/**
+ * BFSF-485: a condition decides ONCE for the whole run. One that reads a list
+ * through `[*]` ("any sheet named Reiskosten") sends every item the same way,
+ * so the steps after it still process all of them. Built anyway (it can be
+ * meant), but the result says what it does and names the step that filters.
+ */
+function wholeListNote(step) {
+    const { wholeRunListReads } = require('../../expr');
+    const lists = [...new Set(wholeRunListReads(step).map(r => r.list))];
+    if (!lists.length) return null;
+    const list = lists[0];
+    return `${step.id} reads the whole list ${list} and decides ONCE for the whole run: every item still goes the same way, nothing is filtered. `
+        + `To keep only the matching items use builder_add_array_op({op:"filter", arrayRef:"${list}", expr:"<rule on item>"}) and continue on its output.items.`;
 }
 
 /**
@@ -192,20 +208,48 @@ function sanitizeSwitchCases(cases) {
     });
 }
 
-function applyAddSwitch(draft, args) {
-    // Refused BEFORE anything is mutated: a switch has no single successor to
-    // hand the anchor's old edge to (see draftGraph.spliceSuccessors).
-    if (args.splice === true) {
-        return { error: 'splice is not supported when the new step is a switch - add it with nextStepIds and remove the old edge instead.' };
+/**
+ * The list fields of a switch (A1): a switch with `arrayRef` works through a
+ * list like a filter does, so its list is checked by the same sanitizer
+ * (notes included). `matchMode` is kept only as 'all' (absent = first match
+ * wins), `maxItems` only as a positive integer on a list switch.
+ */
+function switchListFields(args, draft, draftWrap) {
+    if (typeof args.arrayRef !== 'string' || !args.arrayRef.trim()) return { fields: {}, notes: [] };
+    const ar = sanitizeArrayRef(args.arrayRef, draft, { draftWrap });
+    if (ar.error) return { error: ar.error };
+    const fields = { arrayRef: ar.arrayRef };
+    if (Number.isInteger(args.maxItems) && args.maxItems > 0) fields.maxItems = args.maxItems;
+    return { fields, notes: ar.notes };
+}
+
+function buildSwitchStep(args, list) {
+    const cases = sanitizeSwitchCases(args.cases);
+    const step = { id: newId('sw'), type: 'switch' };
+    if (typeof args.expr === 'string') step.expr = args.expr;
+    Object.assign(step, list);
+    step.cases = cases;
+    if (args.matchMode === 'all') step.matchMode = 'all';
+    // Every output carries its own rule: say so, as the canvas editor does
+    // (routeModel.js persists it rather than deriving it).
+    if (cases.length && cases.every(c => typeof c.expr === 'string')) step.routeStyle = 'rules';
+    step.defaultBranch = typeof args.defaultBranch === 'string' ? args.defaultBranch : null;
+    step.label = args.label || 'Condition';
+    return step;
+}
+
+function applyAddSwitch(draft, args, draftWrap) {
+    const list = switchListFields(args || {}, draft, draftWrap);
+    if (list.error) return { error: list.error };
+    const step = buildSwitchStep(args, list.fields);
+    // Refused BEFORE anything is mutated: only a switch that works through a
+    // list has an output (its first case) to hand the anchor's old edge to
+    // (see draftGraph.spliceSuccessors).
+    if (args.splice === true && !spliceCaseOf(step)) {
+        return { error: step.arrayRef
+            ? 'splice needs a first case to hand the old successor to — give the switch at least one case with a name.'
+            : 'splice is not supported when the new step is a switch without arrayRef - add it with nextStepIds and remove the old edge instead.' };
     }
-    const step = {
-        id: newId('sw'),
-        type: 'switch',
-        expr: args.expr,
-        cases: sanitizeSwitchCases(args.cases),
-        defaultBranch: typeof args.defaultBranch === 'string' ? args.defaultBranch : null,
-        label: args.label || 'Condition',
-    };
     const lastId = layerAwareAnchor(draft, args.afterStepId, step.id);
     draft.steps.push(step);
     // Route the incoming edge through branchEdgeFor so chaining a switch
@@ -221,7 +265,7 @@ function applyAddSwitch(draft, args) {
         const label = caseName === 'default' ? 'case:default' : `case:${caseName}`;
         draft.edges.push({ from: step.id, to: target, label, caseName });
     }
-    return { added: step };
+    return { added: step, ...(list.notes.length ? { _warnings: list.notes } : {}) };
 }
 
 function applyAddWait(draft, args) {

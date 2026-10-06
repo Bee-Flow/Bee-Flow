@@ -75,9 +75,13 @@ const LAYERS = [{ key: 'enrich', title: 'Enrich lead', params: [1, 2] }, { key: 
  */
 const t = (key: string, fallback: string) => (key.startsWith('automations.node.') ? `«${fallback}»` : fallback);
 
-/** The port's output without the i18n keys it adds; the web has none. */
+/**
+ * The output without the i18n keys: the port's own (labelKey, descKey) and the
+ * web's `i18n` of an entry with words of its own ("Filter a list"), compared
+ * key for key in 'the keys the phone adds'.
+ */
 const plain = <T,>(v: T): T =>
-    JSON.parse(JSON.stringify(v, (k, x) => (k === 'labelKey' || k === 'descKey' || k === 'disabledReasonKey' ? undefined : x)));
+    JSON.parse(JSON.stringify(v, (k, x) => (['labelKey', 'descKey', 'disabledReasonKey', 'i18n'].includes(k) ? undefined : x)));
 
 const SCOPES: Record<string, Record<string, unknown>> = {
     empty: {},
@@ -100,7 +104,7 @@ describe('static items', () => {
         'CODE_ITEM', 'CREATE_LAYER_ITEM', 'LAYER_OUTPUT_ITEM', 'CATEGORY_ORDER', 'NEEDS_FORM_TRIGGER_REASON', 'CODE_OFF_REASONS',
     ] as const;
     it.each(CONSTANTS)('%s is the web\'s, icons by name', (name) => {
-        expect(plain((palette as Record<string, unknown>)[name])).toEqual(web[name]);
+        expect(plain((palette as Record<string, unknown>)[name])).toEqual(plain(web[name]));
     });
 
     it('the sets and the additional-trigger list are the web\'s', () => {
@@ -125,7 +129,7 @@ describe('gating', () => {
 
 describe('groups', () => {
     it.each(Object.entries(SCOPES))('buildStepGroups(%s)', (_name, scope) => {
-        expect(plain(palette.buildStepGroups(scope))).toEqual(web.buildStepGroups(scope));
+        expect(plain(palette.buildStepGroups(scope))).toEqual(plain(web.buildStepGroups(scope)));
     });
 
     it('the builders and app grouping agree', () => {
@@ -223,6 +227,14 @@ describe('app naming and the integration catalogue', () => {
 
 describe('the keys the phone adds', () => {
     const shout = (key: string, fallback: string) => `${key}=${fallback}`;
+    it('"Filter a list" names the web\'s own keys and comes back for recorded filter usage', () => {
+        expect(palette.FILTER_LIST_ITEM.labelKey).toBe(web.FILTER_LIST_ITEM.i18n.label);
+        expect(palette.FILTER_LIST_ITEM.descKey).toBe(web.FILTER_LIST_ITEM.i18n.desc);
+        expect(palette.localised(palette.FILTER_LIST_ITEM, shout).label).toBe('condition_node.palette.filter_label=Filter a list');
+        expect(palette.itemForKey('step:filter')?.label).toBe('Filter a list');
+        expect(palette.itemForKey('step:filter')?.payload).toEqual({ kind: 'filter', label: web.FILTER_LIST_ITEM.payload.label });
+        expect(palette.itemForKey('step:switch')?.label).toBe(web.itemForKey('step:switch')?.label);
+    });
     it('translates the picker\'s own words, the group headings and the reasons', () => {
         const groups = palette.buildStepGroups({ catalog: { ...CATALOG, flags: { codeReason: 'runtime' } }, t: shout, hasFormTrigger: false });
         const triggers = groups[0] as { title: string; items: palette.PaletteItem[] };

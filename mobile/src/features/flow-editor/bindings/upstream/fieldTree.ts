@@ -34,6 +34,7 @@
 import { appendKey, appendMatch, appendWildcard, parseJsonText, parsePath } from '@/shared/expr';
 
 import type { VariableField } from '../types';
+import { routeFieldLabel } from './routeFieldLabel';
 
 export type Field = VariableField;
 
@@ -112,7 +113,7 @@ function sampleOf(values: unknown[]): unknown {
 /** A field at `at` (whose children sit one level further down). */
 function fieldAt(key: string, values: unknown[], at: At, budget: Budget): Field {
     budget.left--;
-    const field: Field = { key, path: at.path, sample: sampleOf(values) };
+    const field: Field = { key, path: at.path, sample: sampleOf(values), ...routeFieldLabel(at.path) };
     const children = childrenAt(values, { ...at, level: at.level + 1 }, budget);
     if (children.length) field.children = children;
     return field;
@@ -273,7 +274,7 @@ export function positionChildren(values: unknown[], path: string): Field[] {
 
 /** One field for a value at `path`, with whatever opens under it. */
 export function fieldFor(key: string, path: string, value: unknown): Field {
-    const field: Field = { key, path, sample: value };
+    const field: Field = { key, path, sample: value, ...routeFieldLabel(path) };
     const children = valueChildren(value, path);
     if (children.length) field.children = children;
     return field;

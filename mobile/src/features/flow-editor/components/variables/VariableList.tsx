@@ -13,10 +13,11 @@ import { FlatList, Pressable, View, type ListRenderItem, type TextStyle, type Vi
 
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { fieldLabelText } from '@/features/flow-editor/bindings';
 import { humanizeFieldKey } from '@/features/flow-editor/model';
 import { EmptyState, Icon, Text } from '@/shared/ui';
 
-import type { FieldRow, GroupRow, PickerRow } from './pickerModel';
+import { fieldName, type FieldRow, type GroupRow, type PickerRow } from './pickerModel';
 
 interface RowActions {
     onPick: (path: string) => void;
@@ -63,11 +64,11 @@ function FieldLine({ row, styles }: { row: FieldRow; styles: Styles }) {
                 style={styles.fieldBody}
                 onPress={() => onPick(row.field.path)}
                 accessibilityRole="button"
-                accessibilityLabel={`${humanizeFieldKey(row.field.key) || row.field.key}, ${row.preview}`}
+                accessibilityLabel={`${fieldLabelText(row.field, t) || humanizeFieldKey(row.field.key) || row.field.key}, ${row.preview}`}
                 accessibilityHint={t('automations.builder.insert_from_step', 'Insert data from a previous step')}
             >
                 <Text variant="caption" weight="medium" numberOfLines={1}>
-                    {row.field.key}
+                    {fieldName(row.field, t)}
                 </Text>
                 <Text variant="caption" tone="tertiary" numberOfLines={1} style={styles.preview}>
                     {row.preview}

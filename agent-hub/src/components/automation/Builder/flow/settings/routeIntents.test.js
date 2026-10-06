@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { describeRuleExpr } from '../displayHelpers';
+import { describeRuleExpr, ruleSentence } from '../displayHelpers';
 import { suggestOutputs, matchCounts, slugName } from './routeIntents';
 
 /**
@@ -19,6 +19,24 @@ const FILE_FIELDS = [
     { path: 'item.size', label: 'Size', sample: 20481 },
 ];
 
+// A mail with its attachments, and the rule menu shared ruleFieldOptions
+// builds for it: the attachments once as a list, then their own group.
+const MAIL = {
+    subject: 'Offer Fabrikam', from: 'sales@fabrikam.example',
+    attachments: [
+        { filename: 'offer.pdf', mimeType: 'application/pdf', size: 1200 },
+        { filename: 'logo.png', mimeType: 'image/png', size: 300 },
+    ],
+};
+const MAIL_FIELDS = [
+    { path: 'item.subject', label: 'Subject', sample: MAIL.subject, group: 'Fields of each message' },
+    { path: 'item.from', label: 'From', sample: MAIL.from, group: 'Fields of each message' },
+    { path: 'item.attachments', label: 'Attachments', sample: MAIL.attachments, group: 'Fields of each message', kind: 'records' },
+    { path: 'fileType(item.attachments[*])', label: 'File type', sample: 'pdf', group: 'Attachments of each message', quantified: true, kind: 'fileType' },
+    { path: 'item.attachments[*].filename', label: 'Filename', sample: 'offer.pdf', group: 'Attachments of each message', quantified: true },
+    { path: 'item.attachments[*].mimeType', label: 'Mime type', sample: 'application/pdf', group: 'Attachments of each message', quantified: true },
+];
+
 describe('routeIntents — file types (the example that motivated the feature)', () => {
     it('answers "split these files by pdf, word, powerpoint" with three named outputs', () => {
         const s = suggestOutputs('split these files by pdf, word, powerpoint', { fields: FILE_FIELDS });
@@ -26,13 +44,14 @@ describe('routeIntents — file types (the example that motivated the feature)',
         expect(s.rules.map(r => r.name)).toEqual(['pdf', 'word', 'powerpoint']);
         expect(s.field.path).toBe('item.name');
         expect(s.problem).toBeNull();
+        expect(s.filesInside).toBeNull();
     });
 
-    it('knows word is TWO extensions and powerpoint is two — the part nobody types by hand', () => {
+    it('checks the file type of a name field with fileType(), not a list of extensions', () => {
         const s = suggestOutputs('split by word and powerpoint', { fields: FILE_FIELDS });
         const byName = Object.fromEntries(s.rules.map(r => [r.name, r.expr]));
-        expect(byName.word).toBe('endsWith(item.name, ".doc") || endsWith(item.name, ".docx")');
-        expect(byName.powerpoint).toBe('endsWith(item.name, ".ppt") || endsWith(item.name, ".pptx")');
+        expect(byName.word).toBe('equals(fileType(item.name), "word")');
+        expect(byName.powerpoint).toBe('equals(fileType(item.name), "powerpoint")');
     });
 
     it('produces outputs in the order they were asked for', () => {
@@ -40,9 +59,69 @@ describe('routeIntents — file types (the example that motivated the feature)',
         expect(s.rules.map(r => r.name)).toEqual(['powerpoint', 'pdf']);
     });
 
+    it('names each output with the word the author used: csv is the excel type, named csv', () => {
+        const s = suggestOutputs('split by csv and pdf', { fields: FILE_FIELDS });
+        expect(s.rules).toEqual([
+            { name: 'csv', expr: 'equals(fileType(item.name), "excel")' },
+            { name: 'pdf', expr: 'equals(fileType(item.name), "pdf")' },
+        ]);
+    });
+
     it('reads back as a sentence through the canvas describer, never as code', () => {
         const s = suggestOutputs('keep only the pdf files', { fields: FILE_FIELDS });
-        expect(describeRuleExpr(s.rules[0].expr)).toBe('Name ends with “.pdf”');
+        expect(ruleSentence(s.rules[0].expr)).toBe('File type is PDF');
+    });
+
+    it('checks the item itself when each item is a file', () => {
+        const element = { name: 'Offerte 2026.pdf', mimeType: 'application/pdf', size: 20481 };
+        const s = suggestOutputs('split by pdf and word', { fields: FILE_FIELDS, element });
+        expect(s.rules).toEqual([
+            { name: 'pdf', expr: 'equals(fileType(item), "pdf")' },
+            { name: 'word', expr: 'equals(fileType(item), "word")' },
+        ]);
+        expect(s.field.path).toBe('fileType(item)');
+        expect(s.filesInside).toBeNull();
+    });
+
+    it('uses the File type entry the rule menu offers when there is no item sample', () => {
+        const fields = [{ path: 'fileType(item)', label: 'File type', sample: 'pdf', kind: 'fileType' }, ...FILE_FIELDS];
+        const s = suggestOutputs('keep the pdfs', { fields });
+        expect(s.rules).toEqual([{ name: 'pdfs', expr: 'equals(fileType(item), "pdf")' }]);
+        expect(s.field.label).toBe('File type');
+    });
+
+});
+
+describe('routeIntents — file types on mails (the files inside each item)', () => {
+    it('on mails, checks EVERY attachment and says the files sit inside each item', () => {
+        const s = suggestOutputs('split these by pdf, word and powerpoint', { fields: MAIL_FIELDS, element: MAIL });
+        expect(s.rules).toEqual([
+            { name: 'pdf', expr: 'anyOf(fileType(item.attachments[*]), "equals", "pdf")' },
+            { name: 'word', expr: 'anyOf(fileType(item.attachments[*]), "equals", "word")' },
+            { name: 'powerpoint', expr: 'anyOf(fileType(item.attachments[*]), "equals", "powerpoint")' },
+        ]);
+        expect(s.filesInside).toEqual({ listPath: 'item.attachments', listKey: 'attachments' });
+        expect(s.field.path).toBe('fileType(item.attachments[*])');
+        expect(ruleSentence(s.rules[0].expr)).toBe('any attachment · File type is PDF');
+    });
+
+    it('finds the attachments from the rule menu alone (ruleFieldOptions), without an item sample', () => {
+        const s = suggestOutputs('mails with a pdf', { fields: MAIL_FIELDS });
+        expect(s.rules).toEqual([{ name: 'pdf', expr: 'anyOf(fileType(item.attachments[*]), "equals", "pdf")' }]);
+        expect(s.filesInside).toEqual({ listPath: 'item.attachments', listKey: 'attachments' });
+    });
+
+    it('never compares a list column or a list of records directly', () => {
+        const s = suggestOutputs('subject contains "invoice"', { fields: MAIL_FIELDS, element: MAIL });
+        expect(s.rules).toEqual([{ name: 'invoice', expr: 'contains(item.subject, "invoice")' }]);
+    });
+
+    it('asks for the file types when a sentence is about files but names none', () => {
+        const s = suggestOutputs('split the attachments', { fields: MAIL_FIELDS, element: MAIL });
+        expect(s.rules).toEqual([]);
+        expect(s.problemCode).toBe('name_types');
+        expect(s.problem).toBe('Name the file types to split by, for example “pdf, word and powerpoint”.');
+        expect(s.filesInside).toEqual({ listPath: 'item.attachments', listKey: 'attachments' });
     });
 
     it('does NOT mistake an e-mail address for a file name — ".nl" is not an extension', () => {
@@ -61,6 +140,7 @@ describe('routeIntents — file types (the example that motivated the feature)',
             ],
         });
         expect(s.field.path).toBe('item.title');
+        expect(s.rules[0].expr).toBe('equals(fileType(item.title), "pdf")');
     });
 
     it('refuses to invent a path when there is no sample data at all', () => {
@@ -142,10 +222,29 @@ describe('routeIntents — counting against real sample rows', () => {
         const counts = matchCounts(s.rules, rows);
         expect(counts.total).toBe(6);
         expect(counts.perRule).toEqual([
-            { name: 'pdf', matched: 2, failed: 0 },   // ".PDF" too — endsWith ignores case
+            { name: 'pdf', matched: 2, failed: 0 },   // ".PDF" too — the extension ignores case
             { name: 'word', matched: 2, failed: 0 },
             { name: 'powerpoint', matched: 1, failed: 0 },
         ]);
+        expect(counts.unmatched).toBe(1);
+    });
+
+    it('counts a mail once per output however many of its attachments match', () => {
+        const mails = [
+            MAIL,
+            { subject: 'Contoso', attachments: [{ filename: 'notes.docx', mimeType: 'application/octet-stream' }] },
+            { subject: 'No files', attachments: [] },
+        ];
+        const s = suggestOutputs('split by pdf and word', { fields: MAIL_FIELDS, element: MAIL });
+        const counts = matchCounts(s.rules, mails);
+        // Gmail's octet-stream falls back to the extension: notes.docx is Word.
+        expect(counts.perRule.map(r => r.matched)).toEqual([1, 1]);
+        expect(counts.unmatched).toBe(1);
+    });
+
+    it('evaluates with the run\'s scope: the item and its position (_index)', () => {
+        const counts = matchCounts([{ name: 'first_two', expr: '_index < 2' }], ['a', 'b', 'c']);
+        expect(counts.perRule[0]).toEqual({ name: 'first_two', matched: 2, failed: 0 });
         expect(counts.unmatched).toBe(1);
     });
 

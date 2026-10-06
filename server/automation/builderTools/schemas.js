@@ -18,6 +18,19 @@ const { providerList: APP_EVENT_PROVIDERS, eventList: APP_EVENT_EVENTS } =
 const PICK_SOURCES = require('../formPickSources').catalog()
     .map(sc => `${sc.id} (${sc.label})`).join(', ');
 
+// The rule shapes a Condition may hold (filter, switch cases, condition):
+// only shapes the editor reopens as clickable rows. One list, shared with the
+// builder prompt and the Suggest-outputs prompt.
+const { CONDITION_RULES_HINT, SWITCH_RULES_EXAMPLE } = require('./ruleExamples');
+
+// BFSF-485: the one thing a condition does not do. A model asked to "only
+// process the sheets named X" reaches for builder_add_condition, and every
+// sheet is processed anyway.
+const WHOLE_RUN_DOCTRINE = 'A condition decides ONCE for the whole run: one that reads a list (`list[*]`) sends every item the same way. '
+    + 'To keep only the matching items of a list use builder_add_array_op({op:"filter"}) and continue on its output.items.';
+
+const SPLICE_DESCRIPTION = 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. A switch can only be spliced in when it has arrayRef (the old successor moves to its first case).';
+
 const TOOL_SCHEMAS = [
     {
         type: 'function',
@@ -337,7 +350,7 @@ leading search step just to look up data that's already in the payload.`,
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string', description: 'Insert after this step id. Default: last step.' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     tool: { type: 'string', description: 'Exact tool name from the catalog (e.g. gmail_search, gmail_compose, calendar_create_event).' },
                     inputs: { type: 'object', description: `Map of input-name to a binding object. ${BINDING_HINT}` },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins. Omit to auto-fill (then first, else second).' },
@@ -357,7 +370,7 @@ leading search step just to look up data that's already in the payload.`,
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     systemPrompt: { type: 'string', description: 'Optional. The role/persona/output-style instruction for the AI (the system prompt) — e.g. "You are a meticulous financial analyst. Always answer in Dutch." Put WHO the model is and HOW it should behave here; put WHAT to do this run (the task + data references) in `prompt`. Omit for trivial one-off transforms to use the default automation-step system prompt.' },
                     prompt: { type: 'string', description: 'The task instruction for this run. Reference the inputs by name. Put persona/tone/output-style in `systemPrompt`, not here.' },
                     inputs: { type: 'object', description: `Map of binding-name to a binding object. ${BINDING_HINT}` },
@@ -391,13 +404,13 @@ leading search step just to look up data that's already in the payload.`,
         type: 'function',
         function: {
             name: 'builder_add_condition',
-            description: 'Append an if/else branch. The expr is a restricted JS expression — member access, comparisons, &&, ||, ?:, math, and the whitelisted helpers (contains, startsWith, endsWith, lower, upper, len, isEmpty, round, coalesce, parseJson, …), e.g. contains(lower(trigger.output.subject), "invoice"). EXAMPLES: "steps.parse.output.amount > 1000", "steps.s1.output.count == 0", "loop.email.subject == \\"Urgent\\"". To grow a branch, call builder_add_action / builder_add_ai_step / builder_add_notification with afterStepId set to this condition\'s id — the edge is AUTO-labelled "then" on the first append and "else" on the second. Pass branch:"then"|"else" on that call to be explicit. Use thenStepId/elseStepId here only to wire EXISTING steps as branches.',
+            description: `Append an if/else branch. The expr reads the values of earlier steps (steps.<id>.output.<field>, trigger.output.<field>, loop.<var>.<field>) with comparisons, && / || and the rule helpers. EXAMPLES: "steps.parse.output.amount > 1000", "equals(trigger.output.status, \\"open\\")", "contains(steps.s1.output.subject, \\"invoice\\")", "isEmpty(steps.s1.output.results)". Use the rule shapes below with such a path in place of item.<field>. ${CONDITION_RULES_HINT} ${WHOLE_RUN_DOCTRINE} To grow a branch, call builder_add_action / builder_add_ai_step / builder_add_notification with afterStepId set to this condition\'s id — the edge is AUTO-labelled "then" on the first append and "else" on the second. Pass branch:"then"|"else" on that call to be explicit. Use thenStepId/elseStepId here only to wire EXISTING steps as branches.`,
             parameters: {
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
-                    expr: { type: 'string', description: 'Restricted JS expression — comparisons, &&/||, ?:, math and the whitelisted helper functions (contains, lower, len, isEmpty, …).' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
+                    expr: { type: 'string', description: 'The rule, true takes the "then" branch: comparisons, && / ||, and the helpers (contains, startsWith, endsWith, equals, isEmpty, anyOf, fileType, len, …). Never lower()/upper().' },
                     thenStepId: { type: 'string', description: 'Optional id of an existing step to wire as the "then" branch.' },
                     elseStepId: { type: 'string', description: 'Optional id of an existing step to wire as the "else" branch.' },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is itself a condition: which of ITS branches this nested condition begins. Omit to auto-fill (then first, else second).' },
@@ -419,7 +432,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     overRef: { type: 'string', description: 'Path to the array, e.g. steps.search.output.items.' },
                     itemVar: { type: 'string', description: 'Loop variable name; available inside body as loop.<itemVar>.' },
                     body: { type: 'array', description: 'Sub-DAG step objects (linear). Each must include "type". "id" is auto-assigned if missing.' },
@@ -456,7 +469,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     code: { type: 'string', description: 'JavaScript source: a JSDoc block (what the step does, then one `@param {type} inputs.<name> - <description>` per input), then `async function main(inputs, ctx) { ... return result; }`.' },
                     inputs: { type: 'object', description: 'One binding per declared @param, keyed by its name: {amount:{kind:"ref",path:"steps.<id>.output.total"}}. A param with a default may be left out.' },
                     outputSchema: { type: 'object' },
@@ -502,7 +515,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     title: { type: 'string', description: 'Template string. Supports {{steps.<id>.output.<path>}}.' },
                     body: { type: 'string', description: 'Template string. Supports {{steps.<id>.output.<path>}}.' },
                     channels: { type: 'array', items: { type: 'string' }, description: 'Default: ["notification"].' },
@@ -523,7 +536,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     url: { type: 'string', description: 'Full https/http URL. Template string — supports {{trigger.output.x}} / {{steps.<id>.output.<path>}}.' },
                     method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'], description: 'Default GET. Use POST for most webhooks.' },
                     headers: { type: 'object', description: 'Map of header name → template-string value, e.g. {"Content-Type":"application/json"}. Do NOT put API keys/tokens in headers — set `authConnectionId` to a saved HTTP credential id instead, or tell the user to add one in the step\'s Authentication settings.' },
@@ -551,7 +564,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     content: { type: 'string', description: 'The document text. Template string — normally a single reference like {{steps.<id>.output.<field>}}.' },
                     contentFormat: { type: 'string', enum: ['markdown', 'html'], description: 'How to read `content`. Default markdown, which is what AI steps produce. Use html only when the text upstream is already markup.' },
                     layout: { type: 'string', enum: ['document', 'slides'], description: 'Default document (linear print layout). "slides" renders the PDF as a landscape DECK: the h1 becomes the cover, every h2 becomes its own slide with a title band — the shape of an advisory/bank presentation. The author steers the deck with headings, so tell the writing step to keep each h2-section one page. Word output stays a linear document either way.' },
@@ -686,7 +699,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     source: { type: 'object', description: 'The text to read, as ONE binding: {kind:"ref", path:"steps.<id>.output.<field>"} or {kind:"template", value:"…{{steps.x.output.y}}…"}. Inside a forEach: {kind:"ref", path:"loop.<itemVar>.output.content"}. Never a literal.' },
                     fields: {
                         type: 'array',
@@ -722,7 +735,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     fields: { type: 'object', description: `Map of fieldName → binding. In list mode each binding is evaluated per row with the row as \`item\` (and \`_index\`). ${BINDING_HINT}` },
                     arrayRef: { type: 'string', description: 'Dotted path to an upstream ARRAY, e.g. "steps.<id>.output.items". Presence switches the step to list mode. Cannot be combined with forEach.' },
                     operations: {
@@ -876,7 +889,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     layerKey: { type: 'string', description: 'Key of the flowlet in definition.layers (create one via builder_create_layer).' },
                     inputs: { type: 'object', description: `Map of flowlet-param → binding. ${BINDING_HINT}` },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins. Omit to auto-fill (then first, else second).' },
@@ -896,7 +909,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     op: { type: 'string', enum: ['now', 'parse', 'format', 'addDays', 'addHours', 'addMinutes', 'diff', 'extract'] },
                     input: { type: 'string', description: 'Path to a date value (ISO string or epoch ms). Omit for op:now.' },
                     input2: { type: 'string', description: 'Second date path. Required for op:diff.' },
@@ -921,7 +934,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     seconds: { type: 'integer', description: 'Number of seconds to wait. Capped at 86400 (24h).' },
                     label: { type: 'string' },
                 },
@@ -938,7 +951,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     prompt: { type: 'string', description: 'The question the approver sees, e.g. "Send the {{steps.quote.output.total}} quote to {{trigger.output.client}}?". Supports {{...}} bindings.' },
                     expiresInHours: { type: 'integer', description: 'How long the approval may sit before the run is closed as expired, 0..720 (30 days). 0 = no deadline. Default 168 (7 days).' },
                     assignee: { type: 'object', description: 'Who decides: { userId: "..." } for one person or { groupId: "..." } for an org group (any member may decide, first decision wins). Must belong to the owner\'s organisation. Omit = the owner decides.' },
@@ -968,7 +981,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     mode: { type: 'string', enum: ['input', 'ending'], description: 'Default "input".' },
                     waitSeconds: { type: 'integer', description: 'mode=input only: how long to wait for the visitor, 60..604800 (1 minute … 7 days). Default 3600.' },
                     form: {
@@ -1030,7 +1043,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     message: { type: 'string', description: 'Template string surfaced as the run error.' },
                     label: { type: 'string' },
                 },
@@ -1042,19 +1055,22 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_switch',
-            description: 'Append a multi-way branch. A case is EITHER { name, value } — compared against the step-level expr — OR { name, expr }, carrying its own rule, which is what you want when the outputs test different things. Do not mix the two in one switch. Wire each case to its next step by passing nextStepIds: { "<caseName>": "<stepId>", "default": "<stepId>" }. EXAMPLE (value style): {expr:"trigger.output.priority",cases:[{name:"urgent",value:"high"},{name:"normal",value:"medium"}],defaultBranch:"fallback"}. EXAMPLE (rule style, one rule per output): {expr:"item",cases:[{name:"pdf",expr:"endsWith(lower(item.name),\'.pdf\')"},{name:"word",expr:"endsWith(lower(item.name),\'.doc\') || endsWith(lower(item.name),\'.docx\')"}]}. To grow a case branch by appending a NEW step, call an add tool with afterStepId set to this switch\'s id AND caseName set to the case it belongs to — otherwise the edge is unlabelled and that case dead-ends.',
+            description: `Append a Condition with several outputs. A case is EITHER { name, value } — compared against the step-level expr — OR { name, expr }, carrying its own rule, which is what you want when the outputs test different things. Do not mix the two in one switch. With arrayRef (a path to an upstream list) it works through that list: each case expr is a rule on \`item\`, every output publishes its items at steps.<id>.output.matchesByCase.<case> (Otherwise: matchesByCase.default), and no step-level expr is needed. Wire each case to its next step by passing nextStepIds: { "<caseName>": "<stepId>", "default": "<stepId>" }. EXAMPLE (value style): {expr:"trigger.output.priority",cases:[{name:"urgent",value:"high"},{name:"normal",value:"medium"}],defaultBranch:"fallback"}. EXAMPLE (a list split by file type): ${JSON.stringify(SWITCH_RULES_EXAMPLE)}. ${CONDITION_RULES_HINT} To grow a case branch by appending a NEW step, call an add tool with afterStepId set to this switch's id AND caseName set to the case it belongs to — otherwise the edge is unlabelled and that case dead-ends.`,
             parameters: {
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
-                    expr: { type: 'string', description: 'Restricted JS expression whose value gets matched.' },
-                    cases: { type: 'array', description: 'Match in order, first hit wins. Each entry is { name, value } (compared against the step-level expr) or { name, expr } (its own restricted-grammar rule). One output per entry.', items: { type: 'object', properties: { name: { type: 'string' }, value: {}, expr: { type: 'string', description: 'This output\'s own rule, restricted grammar. Inside a list the current row is `item`. When present, `value` is ignored for this case.' } }, required: ['name'] } },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
+                    arrayRef: { type: 'string', description: 'Optional path to an upstream list: the switch then routes each item of it (the rules read `item`). Its outputs are steps.<id>.output.matchesByCase.<case>.' },
+                    matchMode: { type: 'string', enum: ['first', 'all'], description: 'With arrayRef: "first" (default) sends an item down the first output it matches; "all" checks every output, so one item can go down several.' },
+                    maxItems: { type: 'integer', description: 'With arrayRef: optional cap on how many items are checked.' },
+                    expr: { type: 'string', description: 'Without arrayRef and with value-style cases: the expression whose value gets matched.' },
+                    cases: { type: 'array', description: 'Checked in order; the first match wins unless matchMode is \'all\'. Each entry is { name, value } (compared against the step-level expr) or { name, expr } (its own rule). One output per entry.', items: { type: 'object', properties: { name: { type: 'string' }, value: {}, expr: { type: 'string', description: 'This output\'s own rule. Inside a list the current item is `item`. When present, `value` is ignored for this case.' } }, required: ['name'] } },
                     defaultBranch: { type: 'string', description: 'Case name to route to when no case matches (otherwise dead-ends).' },
                     nextStepIds: { type: 'object', description: 'Map of case name → existing step id to wire as the branch target. Use this in one shot instead of calling builder_add_* with afterStepId per branch.' },
                     label: { type: 'string' },
                 },
-                required: ['expr', 'cases'],
+                required: ['cases'],
             },
         },
     },
@@ -1062,14 +1078,14 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_filter',
-            description: 'Append a collection filter — keeps array items matching expr. arrayRef points to an upstream array; expr is evaluated per element with the current element bound as `item`. Output is { items, count }. EXAMPLE: {arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}.',
+            description: `Append a Condition that works through a list — keeps the items matching expr. arrayRef points to an upstream array; expr is evaluated per element with the current element bound as \`item\`. Output is { items, count }: the steps after it read steps.<id>.output.items. EXAMPLE: {arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}. ${CONDITION_RULES_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
-                    expr: { type: 'string', description: 'Restricted JS expression referencing item.<field>.' },
+                    expr: { type: 'string', description: 'The rule on each item (item.<field>), in the shapes listed above.' },
                     label: { type: 'string' },
                 },
                 required: ['arrayRef', 'expr'],
@@ -1085,7 +1101,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
                     count: { type: 'integer', description: 'How many items to keep.' },
                     mode: { type: 'string', enum: ['first', 'last'], description: 'Default: first.' },
@@ -1104,7 +1120,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
                     keyField: { type: 'string', description: 'Optional. If set, items with the same value at this field are treated as duplicates.' },
                     label: { type: 'string' },
@@ -1122,7 +1138,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
                     field: { type: 'string', description: 'Field name to read from each item.' },
                     label: { type: 'string' },
@@ -1140,7 +1156,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
                     field: { type: 'string' },
                     op: { type: 'string', enum: ['sum', 'count', 'avg', 'min', 'max'] },
@@ -1163,15 +1179,17 @@ OPS:
   - aggregate: pull one field across items. Required: arrayRef, field.       Output: { values, count }.
   - summarize: numeric stats over a field.  Required: arrayRef, field, fn.   fn ∈ sum|count|avg|min|max. Output: { result, op, count }.
 
-arrayRef is a path string (e.g. "steps.search.output.results"), NOT a binding object. EXAMPLE: {op:"filter",arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}.`,
+arrayRef is a path string (e.g. "steps.search.output.results"), NOT a binding object. EXAMPLE: {op:"filter",arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}.
+
+FILTER RULES: ${CONDITION_RULES_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
                     op: { type: 'string', enum: ['filter', 'limit', 'dedupe', 'aggregate', 'summarize'] },
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string', description: 'Dotted path to an upstream array, e.g. "steps.search.output.results".' },
-                    expr: { type: 'string', description: 'filter only: restricted JS expression referencing item.<field>.' },
+                    expr: { type: 'string', description: 'filter only: the rule on each item (item.<field>), in the FILTER RULES shapes.' },
                     count: { type: 'integer', description: 'limit only: how many items to keep.' },
                     mode: { type: 'string', enum: ['first', 'last'], description: 'limit only: default "first".' },
                     keyField: { type: 'string', description: 'dedupe only: field to dedup by; omit for deep-equality dedup.' },
@@ -1223,7 +1241,7 @@ EXAMPLE: {op:"save_row",datatableId:"tbl_1a2b3c",matchColumn:"email",values:{ema
                     datatableId: { type: 'string', description: 'Id of an EXISTING datatable, from the catalog. Never invent one.' },
                     datatableKey: { type: 'string', description: 'That same table\'s `key`, copied EXACTLY as the catalog shows it beside the id. Advisory only — nothing reads it at run time; it is what lets an export/import re-link the step, because an exported automation never carries another workspace\'s table id. Leave it out if you do not have the key; never guess one, or an import re-links to the wrong table.' },
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     where: {
                         type: 'array',
                         description: 'Conditions. Each is {field, op, value}; op is one of eq, neq, gt, gte, lt, lte, contains, notContains, startsWith, endsWith, in, notIn, between, isNull, isNotNull. `in`/`notIn` take an ARRAY value; `between` takes [min, max].',

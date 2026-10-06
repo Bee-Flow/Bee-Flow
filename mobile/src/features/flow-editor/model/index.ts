@@ -40,7 +40,7 @@ export * from './waitDuration';
 export * from './schedule';
 export * from './nodeSummaries';
 export {
-    actionDisplayLabel, buildStepLabelMap, buildStepTypeMap, describeRuleExpr, humanizeExpression, humanizeFieldKey, humanizeFieldTail, humanizeToolName,
+    actionDisplayLabel, buildStepLabelMap, buildStepTypeMap, describeRuleExpr, humanizeExpression, humanizeFieldKey, humanizeFieldTail, humanizeToolName, ruleSentence,
 } from './displayHelpers';
 export * from './familyStyle';
 export { DEFAULT_DIMS, DEFAULT_SPACING, graphNodes, graphPositions, isFinitePos, runDagre, type Dims, type Spacing } from './layout';

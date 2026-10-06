@@ -15,7 +15,7 @@
 import {
     aggregateSummary, approvalSummary, dataExtractionSummary, datatableSummary, dateTimeSummary, dedupeSummary,
     fillDocumentSummary, generateDocumentSummary, humanizeExpression, humanizeToolName, knowledgeWriteSummary, limitSummary,
-    nodeDefaultLabel, presentationSummary, ROUTE_STEP_NAME, SET_STEP_NAME, slideSummary, summarizeSummary, waitSummary,
+    nodeDefaultLabel, presentationSummary, readRoute, ROUTE_STEP_NAME, SET_STEP_NAME, slideSummary, summarizeSummary, waitSummary,
     type AnyNode, type Summary, type Translate,
 } from '@/features/flow-editor/model';
 import { triggerName, triggerSummary } from '@/features/flow-editor/model/outline';
@@ -25,6 +25,8 @@ import { summariseSetStep } from './setSummary';
 
 export interface SummaryContext {
     stepLabelById?: Map<string, string> | null;
+    /** id → step type: tells which steps are Conditions, so the list one keeps reads as its name. */
+    stepTypeById?: Map<string, string> | null;
     tableNameById?: Record<string, string> | null;
     kbNameById?: Record<string, string> | null;
     t: Translate;
@@ -42,24 +44,55 @@ function aiSummary(step: Step): Summary {
     return preview || { muted: 'no prompt yet' };
 }
 
-function switchSummary(step: Step, ctx: SummaryContext): Summary {
-    const cases = Array.isArray(step.cases) ? step.cases : [];
-    const listMode = typeof step.arrayRef === 'string';
-    const friendly = listMode ? readablePath(step.arrayRef, labels(ctx), ctx.t) : readableText(step.expr, labels(ctx), { expression: true });
-    const rules = cases.length === 0 ? 'no rules' : `${plural(cases.length, 'rule')}${step.defaultBranch ? ' + otherwise' : ''}`;
-    return friendly ? `${friendly} · ${rules}` : { muted: `${listMode ? 'no source list' : 'no expression'} · ${rules}` };
+/**
+ * The web's SwitchNode switchSubtitle: "‹Read many ▸ Attachments› · 3 outputs
+ * + Otherwise" for a list Condition with several outputs, "3 outputs +
+ * Otherwise" for one deciding the whole run. "+ Otherwise" stays off when the
+ * catch-all is redirected into an output (`defaultBranch`); a list Condition
+ * with one output whose rest goes to Otherwise (keep-rest) reads like a filter
+ * card, its rule and then "+ Otherwise".
+ */
+function outputsWord(step: Step, cases: { expr?: unknown }[], ctx: SummaryContext): string | null {
+    const n = cases.length;
+    if (!n) return null;
+    if (step.defaultBranch) {
+        return n === 1 ? ctx.t('condition_node.canvas.output', '1 output') : ctx.t('condition_node.canvas.outputs', '{n} outputs', { n });
+    }
+    if (readRoute(step as Parameters<typeof readRoute>[0]).keepRest) {
+        const rule = readableRule(cases[0]?.expr, labels(ctx), ctx.t) || ctx.t('condition_node.canvas.no_rule', 'no rule yet');
+        return ctx.t('condition_node.canvas.rule_otherwise', '{rule} + Otherwise', { rule });
+    }
+    return n === 1
+        ? ctx.t('condition_node.canvas.output_otherwise', '1 output + Otherwise')
+        : ctx.t('condition_node.canvas.outputs_otherwise', '{n} outputs + Otherwise', { n });
 }
 
+/** The list a Condition works through, as its canvas card names it (listPathLabel's compact form). */
+function routeList(step: Step, ctx: SummaryContext): string {
+    return readablePath(step.arrayRef, labels(ctx), ctx.t, { compact: true, stepTypeById: ctx.stepTypeById ?? null });
+}
+
+function switchSummary(step: Step, ctx: SummaryContext): Summary {
+    const cases = (Array.isArray(step.cases) ? (step.cases as { name?: unknown; expr?: unknown }[]) : []).filter((c) => c && typeof c.name === 'string' && c.name);
+    const outputs = outputsWord(step, cases, ctx);
+    const listMode = typeof step.arrayRef === 'string';
+    const list = listMode ? routeList(step, ctx) : '';
+    const missing = listMode && !list ? ctx.t('condition_node.canvas.no_list', 'no list yet') : null;
+    const text = [list || missing, outputs || ctx.t('condition_node.canvas.no_rule', 'no rule yet')].filter(Boolean).join(' · ');
+    return !outputs || missing ? { muted: text } : text;
+}
+
+/** The web's FilterNode filterSubtitle: the list, then the rule; muted while either is not there yet. */
 function filterSummary(step: Step, ctx: SummaryContext): Summary {
-    const source = readablePath(step.arrayRef, labels(ctx), ctx.t);
-    const cond = readableRule(step.expr, labels(ctx));
-    if (!source && !cond) return { muted: 'no source, no condition' };
-    return [source || 'no source', cond || 'no condition'].join(' · ');
+    const list = routeList(step, ctx);
+    const rule = readableRule(step.expr, labels(ctx), ctx.t);
+    const text = `${list || ctx.t('condition_node.canvas.no_list', 'no list yet')} · ${rule || ctx.t('condition_node.canvas.no_rule', 'no rule yet')}`;
+    return list && rule ? text : { muted: text };
 }
 
 function loopSummary(step: Step, ctx: SummaryContext): Summary {
     const item = str(step.itemVar) || 'item';
-    const over = readablePath(step.overRef, labels(ctx), ctx.t);
+    const over = readablePath(step.overRef, labels(ctx), ctx.t, { stepTypeById: ctx.stepTypeById ?? null });
     const batch = Number(step.batchSize ?? 1);
     if (!over) return { muted: ctx.t('automations.canvas.loop_no_list', 'no list yet · as loop.{item}', { item }) };
     return batch > 1
@@ -154,7 +187,7 @@ type Summariser = (step: Step, ctx: SummaryContext) => Summary;
 const SUMMARIES: Record<string, Summariser> = {
     ai_step: aiSummary,
     integration_action: (s) => humanizeToolName(s.tool || 'unknown_tool'),
-    condition: (s, ctx) => readableRule(s.expr, labels(ctx)) || { muted: 'no expression' },
+    condition: (s, ctx) => readableRule(s.expr, labels(ctx), ctx.t) || { muted: 'no expression' },
     switch: switchSummary,
     filter: filterSummary,
     loop: loopSummary,

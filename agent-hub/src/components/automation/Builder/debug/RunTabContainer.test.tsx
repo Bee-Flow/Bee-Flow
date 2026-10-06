@@ -69,3 +69,50 @@ describe('the Continues-on column', () => {
         expect(screen.getByText(/No data yet/)).toBeTruthy();
     });
 });
+
+describe('a Condition that works through a list (P1-P3)', () => {
+    const mails = [{ subject: 'Invoice 1' }, { subject: 'Invoice 2' }, { subject: 'Invoice 3' }];
+    const filter = { id: 'cond', type: 'filter', label: 'Condition', arrayRef: 'steps.read.output.messages', expr: 'true' };
+    const split = {
+        id: 'split', type: 'switch', label: 'Condition', arrayRef: 'steps.read.output.messages[*].attachments', routeStyle: 'rules',
+        cases: [{ name: 'pdf', expr: 'a' }, { name: 'word', expr: 'b' }, { name: 'powerpoint', expr: 'c' }],
+    };
+
+    it('a filter opens its output with "Kept 3 of 4 messages" and no count chips', () => {
+        render(<RunTabContainer step={filter} runStep={{ status: 'success', output: { items: mails, count: 3, inputCount: 4, rejectedCount: 1 } }} />);
+        expect(screen.getByTestId('output-route-note').textContent).toBe('Kept 3 of 4 messages');
+        expect(screen.queryByText('Rejected count')).toBeNull();
+        expect(screen.queryByText('Input count')).toBeNull();
+    });
+
+    it('a list switch says how it split the attachments, in case order', () => {
+        const output = {
+            mode: 'collection', branch: 'case:pdf', branches: ['case:pdf'], matchesByCase: {},
+            counts: { word: 2, pdf: 4, powerpoint: 1, default: 4 }, total: 11, matched: 'pdf',
+        };
+        render(<RunTabContainer step={split} runStep={{ status: 'success', output }} />);
+        expect(screen.getByTestId('output-route-note').textContent).toBe('pdf 4 · word 2 · powerpoint 1 · Otherwise 4 (11 attachments in all)');
+    });
+
+    it('a list switch shows its outputs, by name, and counts the attachments in the strip', () => {
+        const att = (name: string) => ({ filename: name, mimeType: 'application/pdf' });
+        const output = {
+            mode: 'collection', branch: 'case:pdf', branches: ['case:pdf', 'case:default'],
+            matchesByCase: { default: [att('logo.png')], pdf: [att('a.pdf'), att('b.pdf')] },
+            counts: { pdf: 2, default: 1 }, total: 3, matched: 'pdf,default',
+        };
+        render(<RunTabContainer step={split} runStep={{ status: 'success', output }} />);
+        expect(screen.getByTestId('output-status-strip').textContent).toContain('3 attachments');
+        const fields = screen.getByTestId('output-fields');
+        expect(within(fields).getByText('pdf')).toBeTruthy();
+        expect(within(fields).getByText('Otherwise')).toBeTruthy();
+        for (const internal of ['mode', 'branch', 'branches', 'matchesByCase', 'counts', 'matched', 'default']) {
+            expect(within(fields).queryByText(internal)).toBeNull();
+        }
+    });
+
+    it('any other step has no route line', () => {
+        render(<RunTabContainer step={list} runStep={{ status: 'success', output: { items: mails, count: 3, inputCount: 4, rejectedCount: 1 } }} />);
+        expect(screen.queryByTestId('output-route-note')).toBeNull();
+    });
+});

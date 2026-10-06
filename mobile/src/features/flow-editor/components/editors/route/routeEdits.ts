@@ -18,16 +18,31 @@ export type RoutePatch = Partial<Route>;
 
 const rulesOf = (route: Partial<Route>): RouteRule[] => (Array.isArray(route.rules) ? route.rules : []);
 
-/** "Output A" … "Output Z", then "Output 27". */
-export function outputLetter(i: number): string {
-    return i < 26 ? String.fromCharCode(65 + i) : String(i + 1);
+/** An output's default name from its 1-based number: "Output 1" (O3, `condition_node.default_output_name`). */
+export type OutputName = (n: number) => string;
+
+// The names readRoute gives the one rule of a filter / an If: internal, never shown.
+const INTERNAL_FIRST = new Set(['keep', 'rule1']);
+
+/**
+ * The rules about to show their first name as a port label (a second output
+ * arrives, or the rest goes to Otherwise): an internal first name becomes
+ * "Output 1"; a name the author chose stays.
+ */
+export function withNamedFirst(rules: readonly RouteRule[], outputName: OutputName): RouteRule[] {
+    const first = outputName(1);
+    if (!rules.length) return [{ name: first, expr: '', value: '' }];
+    const [head, ...rest] = rules;
+    const keep = !head || !INTERNAL_FIRST.has(head.name) || rest.some((r) => r?.name === first);
+    return keep ? [...rules] : [{ ...head, name: first }, ...rest];
 }
 
-export function addRule(route: Partial<Route>): RoutePatch {
+export function addRule(route: Partial<Route>, outputName: OutputName): RoutePatch {
     const rules = rulesOf(route);
+    const named = rules.length === 1 ? withNamedFirst(rules, outputName) : rules;
     return {
-        rules: [...rules, { name: uniqueRuleName(rules, `rule${rules.length + 1}`), expr: '', value: '' }],
-        ...(rules.length <= 1 ? { matchMode: 'all' as const } : null),
+        rules: [...named, { name: uniqueRuleName(named, outputName(named.length + 1)), expr: '', value: '' }],
+        ...(rules.length <= 1 ? { matchMode: 'all' as const, keepRest: false } : null),
     };
 }
 
@@ -66,25 +81,33 @@ export function applySuggestion(route: Partial<Route>, suggested: readonly { nam
 }
 
 /** "Several outputs" lands on several — grown to two in one step, and fanning out. */
-export function chooseSeveral(route: Partial<Route>): RoutePatch | null {
+export function chooseSeveral(route: Partial<Route>, outputName: OutputName): RoutePatch | null {
     const rules = rulesOf(route);
     if (rules.length > 1) return null;
-    const grown = [...rules];
-    while (grown.length < 2) grown.push({ name: uniqueRuleName(grown, `rule${grown.length + 1}`), expr: '', value: '' });
-    return { rules: grown, matchMode: 'all' };
+    const grown = withNamedFirst(rules, outputName);
+    while (grown.length < 2) grown.push({ name: uniqueRuleName(grown, outputName(grown.length + 1)), expr: '', value: '' });
+    return { rules: grown, matchMode: 'all', keepRest: false };
+}
+
+/**
+ * One output in list mode, with or without "Send what doesn't match to
+ * “Otherwise”" (BFSF-485 F2): on, the one rule gets a port name (it is saved
+ * as a list switch with one case); off, it is a filter again.
+ */
+export function keepRestPatch(route: Partial<Route>, on: boolean, outputName: OutputName): RoutePatch {
+    return on ? { keepRest: true, rules: withNamedFirst(rulesOf(route), outputName) } : { keepRest: false };
 }
 
 export function collapseToOne(route: Partial<Route>): RoutePatch {
-    return { rules: rulesOf(route).slice(0, 1), defaultBranch: '', matchMode: 'first' };
+    return { rules: rulesOf(route).slice(0, 1), defaultBranch: '', matchMode: 'first', keepRest: false };
 }
 
-/** The outputs collapsing to one would cost a canvas connection: "Output B (invoices)". */
-export function losingOutputs(route: Partial<Route>, wired: ReadonlySet<string>): { letter: string; name: string }[] {
+/** The names of the outputs collapsing to one would cost a canvas connection. */
+export function losingOutputs(route: Partial<Route>, wired: ReadonlySet<string>): string[] {
     return rulesOf(route)
-        .map((r, i) => ({ r, i }))
         .slice(1)
-        .filter(({ r }) => !!r?.name && wired.has(r.name))
-        .map(({ r, i }) => ({ letter: outputLetter(i), name: r.name }));
+        .map((r) => r?.name)
+        .filter((name): name is string => !!name && wired.has(name));
 }
 
 /** A legacy value-matching switch as full conditions — lossless: `<value> == "<case value>"`. */

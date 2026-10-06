@@ -315,7 +315,9 @@ function applyAddSummarize(draft, args, draftWrap) {
 function applyAddArrayOp(draft, args, draftWrap) {
     const op = args && typeof args.op === 'string' ? args.op : null;
     if (!op) return { error: 'op is required (filter|limit|dedupe|aggregate|summarize)' };
-    const common = { afterStepId: args.afterStepId, arrayRef: args.arrayRef, label: args.label, branch: args.branch, caseName: args.caseName };
+    // `splice` travels too: the schema offers it, and a filter spliced
+    // between a list and the step reading it is the W8 insert.
+    const common = { afterStepId: args.afterStepId, arrayRef: args.arrayRef, label: args.label, branch: args.branch, caseName: args.caseName, splice: args.splice };
     switch (op) {
         case 'filter':
             if (typeof args.expr !== 'string') return { error: 'filter op requires expr (restricted JS, references item.<field>)' };
