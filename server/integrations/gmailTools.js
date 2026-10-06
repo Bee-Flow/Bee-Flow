@@ -228,7 +228,7 @@ const GMAIL_TOOLS = [
         type: 'function',
         function: {
             name: 'gmail_bulk_modify',
-            description: 'Change many Gmail emails in ONE request (up to 1000): add or remove labels, mark them read or unread, or archive them. In an automation, use this instead of running gmail_modify_labels, gmail_mark_read, gmail_mark_unread or gmail_archive once per email. Labels may be given by name ("Invoices") or ID ("Label_3", "STARRED").',
+            description: 'Change many Gmail emails in ONE request (up to 1000): add or remove labels, mark them read or unread, or archive them. In an automation, use this instead of running gmail_modify_labels, gmail_mark_read, gmail_mark_unread or gmail_archive once per email. Labels may be given by name ("Invoices") or ID ("Label_3", "STARRED"). It does not move emails to Trash or Spam: that is gmail_trash, one email at a time.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -355,6 +355,8 @@ const READ_MANY_MAX_CHARS = 20000;
 const READ_MANY_MAX = 100;
 /** Gmail's own limit for users.messages.batchModify. */
 const BULK_MODIFY_MAX = 1000;
+/** System labels gmail_bulk_modify will not add (see bulkModifyMessages). */
+const NOT_IN_BULK = new Set(['TRASH', 'SPAM']);
 /** What a Gmail message id looks like; anything else never reaches Gmail. */
 const GMAIL_MESSAGE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -446,6 +448,14 @@ async function bulkModifyMessages(gmail, args, labelCacheKey = null) {
     if (isOn(args.archive)) remove.push('INBOX');
     const addLabelIds = [...new Set(add)];
     const removeLabelIds = [...new Set(remove)];
+    // A thousand emails at once is fine for labels, read state and the archive,
+    // which are undone the same way. Not for Trash or Spam: in a chat, one
+    // instruction hidden in an email could otherwise bin a whole inbox in a
+    // single unconfirmed call. That stays gmail_trash, one email at a time.
+    const binned = addLabelIds.filter(id => NOT_IN_BULK.has(String(id).toUpperCase()));
+    if (binned.length > 0) {
+        throw new Error(`gmail_bulk_modify does not move emails to ${binned.join(' or ')}; use gmail_trash per email`);
+    }
     const both = addLabelIds.filter(id => removeLabelIds.includes(id));
     if (both.length > 0) throw new Error(`A label cannot be added and removed at once: ${both.join(', ')}`);
     if (addLabelIds.length === 0 && removeLabelIds.length === 0) {

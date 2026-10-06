@@ -152,6 +152,9 @@ test('gmail_bulk_modify: refuses what it cannot do in one honest request', async
     await assert.rejects(bulkModifyMessages(gmail, { messageIds: ['a'], markRead: true, markUnread: true }), /not both/);
     await assert.rejects(bulkModifyMessages(gmail, { messageIds: ['a'], addLabelIds: ['INBOX'], archive: true }), /added and removed at once: INBOX/);
     await assert.rejects(bulkModifyMessages(gmail, { messageIds: ['a b'], archive: true }), /Not Gmail message ids/);
+    // One unconfirmed call must not bin a whole inbox: by id or by name.
+    await assert.rejects(bulkModifyMessages(gmail, { messageIds: ['a'], addLabelIds: ['TRASH'] }), /does not move emails to TRASH; use gmail_trash/);
+    await assert.rejects(bulkModifyMessages(gmail, { messageIds: ['a'], addLabelIds: ['spam'] }), /does not move emails to spam/);
     const tooMany = Array.from({ length: 1001 }, (_, i) => `m${i}`);
     await assert.rejects(bulkModifyMessages(gmail, { messageIds: tooMany, archive: true }), /at most 1000/);
     assert.equal(calls.batchModify.length, 0);

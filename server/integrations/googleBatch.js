@@ -291,6 +291,7 @@ async function googleBatch(session, requests, opts = {}) {
         for (let attempt = 0; ; attempt++) {
             const boundary = `batch_${crypto.randomUUID()}`;
             let response;
+            let answer = '';
             try {
                 response = await fetchImpl(endpoint, {
                     method: 'POST',
@@ -301,6 +302,10 @@ async function googleBatch(session, requests, opts = {}) {
                     body: buildBatchBody(pending, boundary),
                     signal: signal || undefined,
                 });
+                // Inside the try: fifty full emails can be megabytes, and a
+                // connection that drops halfway through them is a dropped
+                // connection like any other.
+                if (response.ok) answer = await response.text();
             } catch (err) {
                 if (signal?.aborted) throw new Error('Run cancelled');
                 if (onlyReads(pending) && attempt + 1 < maxAttempts) {
@@ -311,7 +316,7 @@ async function googleBatch(session, requests, opts = {}) {
                 failure.transport = true;
                 throw failure;
             }
-            if (response.ok) return parseBatchResponse(response.headers.get('content-type'), await response.text());
+            if (response.ok) return parseBatchResponse(response.headers.get('content-type'), answer);
             const text = await response.text().catch(() => '');
             if (response.status === 401 && !state.refreshed) {
                 await refresh();

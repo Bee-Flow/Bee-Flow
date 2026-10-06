@@ -205,6 +205,20 @@ test('a dropped connection: reads are sent again, and when it stays down the par
     assert.equal(out.get('b').status, 0);
     assert.equal(partError(out.get('b')), 'no answer from Google: fetch failed');
 
+    // The connection drops while the answer is still coming in: same thing.
+    let reads = 0;
+    const cutOff = async (_url, init) => {
+        reads++;
+        if (reads === 1) {
+            const body = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('\r\n--batch_xyz\r\n')); c.error(new TypeError('terminated')); } });
+            return new Response(body, { status: 200, headers: { 'content-type': 'multipart/mixed; boundary=batch_xyz' } });
+        }
+        return batchAnswer(sentParts(init).map(p => ({ id: p.id, status: 200, body: { id: p.id } })));
+    };
+    const healed = await googleBatch({ accessToken: 't' }, [{ id: 'a', path: '/a' }], { fetchImpl: cutOff, sleepImpl: noSleep });
+    assert.equal(healed.get('a').status, 200);
+    assert.equal(reads, 2);
+
     // A batch with a write in it is never sent again: it may have arrived.
     let writes = 0;
     await assert.rejects(googleBatch({ accessToken: 't' }, [{ id: 'm', method: 'POST', path: '/gmail/v1/users/me/messages/batchModify', body: {} }], {
