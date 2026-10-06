@@ -1238,7 +1238,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             toast.error(t('automations.assistant.stale_proposal', 'The flow has changed since this proposal. Ask the assistant for an updated proposal.'));
             return;
         }
-        if (!await clearReview('discardProposal', proposal.id)) return;
+        if (!await clearReview('applyProposal', proposal.id)) return;
         onVisualEditRoot(reviewedDefinition?.steps ? reviewedDefinition : proposal.definition);
         if (proposal.title || proposal.description != null) await onSaveAutomation({ title: proposal.title || serverAutomation?.title, description: proposal.description || '' });
         toast.success(t('automations.assistant.applied', 'Proposal applied. Undo reverts the flow changes.'));
