@@ -57,7 +57,7 @@ const NEXTCLOUD_TOOLS = [
             description: 'Upload or overwrite a file in Nextcloud. Two content sources:\n'
                 + '  1) sourceHandle — opaque handle from another tool (e.g. the `sourceHandle` returned by gmail_read_attachment) pointing at bytes the server already has. PREFERRED for attachments and any binary: no base64 ever passes through the AI context.\n'
                 + '  2) content — inline text, or base64 when isBase64 is true.\n'
-                + 'Parent folders must already exist (create them with nextcloud_create_folder).',
+                + 'Missing parent folders are created.',
             parameters: {
                 type: 'object',
                 properties: {

@@ -116,6 +116,37 @@ const TEMPLATES = [
         },
     },
     {
+        id: 'scaleway-invoices-to-nextcloud',
+        title: 'Scaleway-facturen naar Nextcloud',
+        description: 'Bij elke nieuwe Scaleway-factuur de PDF ophalen en opslaan in Nextcloud onder /Facturen/Scaleway.',
+        category: 'Files',
+        icon: 'FileText',
+        tags: ['scaleway-billing', 'nextcloud'],
+        definition: {
+            trigger: { id: 'trg', type: 'trigger', kind: 'app_event', appEvent: { provider: 'scaleway-billing', event: 'invoice.new' } },
+            steps: [
+                step('download', 'integration_action', {
+                    tool: 'scaleway_download_invoice',
+                    label: 'Haal de factuur-PDF op',
+                    inputs: { invoiceId: { kind: 'ref', path: 'trigger.output.id' } },
+                }),
+                step('upload', 'integration_action', {
+                    tool: 'nextcloud_upload_file',
+                    label: 'Upload naar /Facturen/Scaleway',
+                    inputs: {
+                        path: { kind: 'template', value: '/Facturen/Scaleway/{{trigger.output.fileName}}' },
+                        sourceHandle: { kind: 'ref', path: 'steps.download.output.sourceHandle' },
+                    },
+                }),
+            ],
+            edges: [
+                { from: 'trg', to: 'download' },
+                // nextcloud_upload_file creates /Facturen/Scaleway when it is missing.
+                { from: 'download', to: 'upload' },
+            ],
+        },
+    },
+    {
         id: 'nc-pdf-summarise',
         title: 'PDF summary',
         description: 'When a PDF lands anywhere under /Documents, summarise it and post a Talk message.',
@@ -482,6 +513,7 @@ function coarseIntegrationFromTool(tool) {
     if (tool.startsWith('webpage')) return 'webpages';
     if (tool.startsWith('knowledge_base')) return 'kb-ingest';
     if (tool.startsWith('support_')) return 'support';
+    if (tool.startsWith('scaleway_')) return 'scaleway-billing';
     return String(tool).split('_')[0] || null;
 }
 

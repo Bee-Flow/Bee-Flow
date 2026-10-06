@@ -87,6 +87,7 @@ const INTEGRATION_CATALOG = [
     { id: 'afas-profit', label: 'AFAS Profit', description: 'Query AFAS Profit business data (read-only)', requiresKey: 'hasAfasConfig' },
     { id: 'nmbrs', label: 'NMBRS', description: 'Read NMBRS payroll & HR data (read-only)', requiresKey: 'hasNmbrsConfig' },
     { id: 'vplan', label: 'vPlan', description: 'Read vPlan planning, capacity & time tracking (read-only)', requiresKey: 'hasVplanConfig' },
+    { id: 'scaleway-billing', label: 'Scaleway Billing', description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', requiresKey: 'hasScalewayBillingConfig' },
     { id: 'linkedin', label: 'LinkedIn', description: 'Post and search on LinkedIn', requiresKey: 'hasLinkedInConfig' },
     { id: 'n8n', label: 'n8n', description: 'Run workflows', requiresKey: 'hasN8nConfig' },
     { id: 'web-search', label: 'Web Search', description: 'Search the web' },
@@ -158,6 +159,7 @@ async function getAvailableIntegrations(userId) {
         && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`).catch(() => null));
     const hasVplanConfig = !!(await configStore.getSecret(`vplan_api_key_user_${userId}`).catch(() => null))
         && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`).catch(() => null));
+    const hasScalewayBillingConfig = !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`).catch(() => null));
     const hasLinkedInConfig = !!(await configStore.getSecret('linkedin_client_id').catch(() => null));
     let hasN8nConfig = false;
     if (orgId) {
@@ -168,7 +170,7 @@ async function getAvailableIntegrations(userId) {
         } catch (_) { /* ignore */ }
     }
 
-    const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasLinkedInConfig, hasN8nConfig };
+    const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasScalewayBillingConfig, hasLinkedInConfig, hasN8nConfig };
 
     return INTEGRATION_CATALOG.filter(item => {
         if (orgEnabled && !orgEnabled.includes(item.id)) return false;

@@ -269,6 +269,16 @@ const VplanLogo = (p) => (
     </Wrap>
 );
 
+const ScalewayBillingLogo = (p) => (
+    <Wrap {...p} viewBox="0 0 24 24">
+        <rect x="2" y="2" width="20" height="20" rx="4" fill="#4F0599" />
+        <path d="M7 5.5h10v13l-1.7-1.2-1.6 1.2-1.7-1.2-1.7 1.2-1.6-1.2L7 18.5v-13z" fill="#fff" fillOpacity="0.95" />
+        <rect x="9" y="8.5" width="6" height="1.4" rx="0.7" fill="#4F0599" />
+        <rect x="9" y="11.3" width="6" height="1.4" rx="0.7" fill="#4F0599" fillOpacity="0.7" />
+        <rect x="9" y="14.1" width="3.5" height="1.4" rx="0.7" fill="#4F0599" fillOpacity="0.5" />
+    </Wrap>
+);
+
 const LinkedInLogo = (p) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="3" fill="#0A66C2" />
@@ -535,6 +545,7 @@ export const INTEGRATION_LOGOS = {
     afas_profit: AfasLogo,
     nmbrs: NmbrsLogo,
     vplan: VplanLogo,
+    scaleway_billing: ScalewayBillingLogo,
     linkedin: LinkedInLogo,
     github: GitHubLogo,
     signrequest: SignRequestLogo,

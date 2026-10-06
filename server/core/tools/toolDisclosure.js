@@ -80,6 +80,7 @@ const LAZY_GROUPS = [
     { key: 'signrequest',  label: 'SignRequest',  desc: 'send documents for e-signature, track status',   prefix: 'signrequest_' },
     { key: 'fireflies',    label: 'Fireflies',    desc: 'meeting transcripts',                            prefix: 'fireflies_' },
     { key: 'vplan',        label: 'vPlan',        desc: 'read planning: boards, cards, collections, resource availability, capacity, orders, time tracking', prefix: 'vplan_' },
+    { key: 'scaleway_billing', label: 'Scaleway Billing', desc: 'list Scaleway invoices; download the invoice PDF inside an automation', prefix: 'scaleway_' },
     { key: 'linkedin',     label: 'LinkedIn',     desc: 'create posts (approval before publishing)',      prefix: 'linkedin_' },
     { key: 'github',       label: 'GitHub',       desc: 'list repos, view code, manage branches',         prefix: 'github_' },
     { key: 'maps',         label: 'Google Maps',  desc: 'directions and place search with map embeds',    prefix: 'maps_' },

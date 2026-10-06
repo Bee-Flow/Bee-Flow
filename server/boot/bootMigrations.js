@@ -163,6 +163,7 @@ const NL_TRANSLATIONS = [
     'add-nl-gmeet-integrations-translations', // Google Meet-import bij Meeting Notes
     'add-nl-bfsf-sweep-translations',      // geconsolideerde BFSF-bugsweep-strings (2026-07)
     'add-nl-vplan-translations',           // vPlan-integratiekaart
+    'add-nl-scaleway-billing-translations', // Scaleway Billing integration card
     'add-nl-builder-redesign-translations', // builder-canvas, stappenlade, mismatch-vragen (Track R)
     'add-nl-builder-values-translations',  // de waarde-editor: lijstkeuze, slotchrome, invoegen (Track R)
     'add-nl-builder-mapping-translations', // geneste data: per item binnen een lijst, AI-koppelen, lege koppelingen in een run

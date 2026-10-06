@@ -24,6 +24,7 @@ const { GAMMA_TOOLS } = require('../../integrations/gammaTools');
 const { AFAS_TOOLS } = require('../../integrations/afasTools');
 const { NMBRS_TOOLS } = require('../../integrations/nmbrsTools');
 const { VPLAN_TOOLS } = require('../../integrations/vplanTools');
+const { SCALEWAY_BILLING_TOOLS } = require('../../integrations/scalewayBillingTools');
 const { buildN8nTools } = require('../../integrations/n8nTools');
 const { N8N_WORKFLOW_TOOLS, getN8nToolPermission } = require('../../integrations/n8nWorkflowTools');
 const { hasPermission } = require('../../auth/permissions');
@@ -519,6 +520,14 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, auto
         addTools(VPLAN_TOOLS);
     }
 
+    // Scaleway Billing — read-only invoices. The secret key is required; the
+    // organization id is optional. Bring-your-own (no isLentProvider clause):
+    // a lent key would show one org's Scaleway bill to another.
+    const hasScalewayBillingConfig = !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`));
+    if (hasScalewayBillingConfig && isAppOn('scaleway-billing')) {
+        addTools(SCALEWAY_BILLING_TOOLS);
+    }
+
     // N8N workflows — org-level config. Read/run tools are implicit for every
     // member once the org has n8n configured (umbrella 'n8n' toggle, handled by
     // AUTO_ENABLED_APPS so legacy users with stale enabledApps lists don't lose
@@ -1008,6 +1017,7 @@ async function buildToolHint(tools, _userId = null) {
     if (tools.some(t => t.function.name.startsWith('afas_'))) integrations.push('AFAS Profit (discover GetConnectors with afas_list_connectors, inspect fields with afas_describe_connector, then read data with afas_query; read-only)');
     if (tools.some(t => t.function.name.startsWith('nmbrs_'))) integrations.push('NMBRS payroll/HR (read-only: list debtors → companies → employees with nmbrs_list_*, then read an employee\'s contracts, salaries, wage components and payslips)');
     if (tools.some(t => t.function.name.startsWith('vplan_'))) integrations.push('vPlan (read-only planning: start with vplan_list_boards for board/stage/status/label IDs, then vplan_list_cards, vplan_list_collections, vplan_get_capacity, vplan_get_resource_availability and vplan_time_tracking_summary)');
+    if (tools.some(t => t.function.name.startsWith('scaleway_'))) integrations.push('Scaleway Billing (read-only invoices: scaleway_list_invoices lists them per billing period; inside an automation, scaleway_download_invoice fetches the PDF and returns a sourceHandle to pass to nextcloud_upload_file or drive_upload_file)');
     if (tools.some(t => t.function.name.startsWith('signrequest_'))) integrations.push('SignRequest (send documents for e-signature, check signing status, list documents, cancel requests)');
     if (tools.some(t => t.function.name.startsWith('fireflies_'))) integrations.push('Fireflies (meeting transcripts)');
     if (tools.some(t => t.function.name.startsWith('gamma_'))) integrations.push('Gamma (create presentations/documents/webpages/social posts, generate from templates using gammaId or a pasted gamma.app/docs URL, poll generation status, list themes/folders; create tools start asynchronous jobs and return generationId first, then use gamma_get_generation_status to retrieve gammaUrl/exportUrl; existing Gammas cannot be read by URL or edited in place via the public API. If the user asks to create/remix a new Gamma from a URL, call gamma_create_from_template instead of saying the URL cannot be used)');
