@@ -1,7 +1,7 @@
 {
   "en": {
     "compliance.check_cra_vuln_clocks_title": "Vulnerability reporting clocks operational",
-    "compliance.check_cra_vuln_clocks_desc": "Actively exploited vulnerabilities and severe incidents must be reported within 24 hours (early warning), 72 hours (notification) and 14 days (final report) via MijnNCSC / the ENISA single reporting platform (CRA Art. 14). The check reads the vulnerability register: every open CRA-regime record must carry its report stamps before each clock runs out, and the reporting channel, PSIRT contact and incident-response procedure must be in place.",
+    "compliance.check_cra_vuln_clocks_desc": "Actively exploited vulnerabilities and severe incidents must be reported within 24 hours (early warning) and 72 hours (notification), with a final report 14 days after a fix or mitigation is available (vulnerability) or one month after the notification (severe incident), via ENISA's single reporting platform to the CSIRT coordinator (in the Netherlands the NCSC) (CRA Art. 14). The check reads the vulnerability register: every open CRA-regime record must carry its report stamps before each clock runs out, and the reporting channel, PSIRT contact and incident-response procedure must be in place.",
     "compliance.check_cra_vuln_clocks_fix": "Set the reporting channel and PSIRT contact in Compliance → Settings, make sure the incident-response policy covers vulnerability handling, and stamp each report on the vulnerability record under Compliance → Vulnerabilities.",
 
     "compliance.check_cra_sbom_title": "Software bill of materials ships with this release",
@@ -22,7 +22,7 @@
   },
   "nl": {
     "compliance.check_cra_vuln_clocks_title": "Meldklokken voor kwetsbaarheden operationeel",
-    "compliance.check_cra_vuln_clocks_desc": "Actief uitgebuite kwetsbaarheden en ernstige incidenten moeten binnen 24 uur (vroegtijdige waarschuwing), 72 uur (melding) en 14 dagen (eindrapport) worden gemeld via MijnNCSC / het centrale meldplatform van ENISA (CRA art. 14). De controle leest het kwetsbaarhedenregister: elk open dossier onder het CRA-regime moet vóór het aflopen van elke klok zijn meldstempels dragen, en het meldkanaal, het PSIRT-contact en de incidentresponsprocedure moeten zijn ingericht.",
+    "compliance.check_cra_vuln_clocks_desc": "Actief uitgebuite kwetsbaarheden en ernstige incidenten moeten binnen 24 uur (vroegtijdige waarschuwing) en 72 uur (melding) worden gemeld, met een eindrapport 14 dagen nadat een oplossing of mitigatie beschikbaar is (kwetsbaarheid) of een maand na de melding (ernstig incident), via het centrale meldplatform van ENISA aan de CSIRT-coördinator (in Nederland het NCSC) (CRA art. 14). De controle leest het kwetsbaarhedenregister: elk open dossier onder het CRA-regime moet vóór het aflopen van elke klok zijn meldstempels dragen, en het meldkanaal, het PSIRT-contact en de incidentresponsprocedure moeten zijn ingericht.",
     "compliance.check_cra_vuln_clocks_fix": "Stel het meldkanaal en het PSIRT-contact in onder Compliance → Instellingen, zorg dat het incidentresponsbeleid de afhandeling van kwetsbaarheden dekt en stempel elke melding op het kwetsbaarheidsdossier onder Compliance → Kwetsbaarheden.",
 
     "compliance.check_cra_sbom_title": "Softwarestuklijst (SBOM) wordt met deze release meegeleverd",

@@ -25,11 +25,11 @@
     "compliance.check_nis2_board_approval_fix": "Publish the information-security policy and have every admin acknowledge it under Compliance → Policies; stamp the management training date under Compliance → Settings.",
 
     "compliance.check_nis2_early_warning_title": "24-hour early-warning path operational",
-    "compliance.check_nis2_early_warning_desc": "Significant incidents need an early warning within 24 hours, a notification within 72 hours and a final report within a month (Art. 23). The incident register tracks all three clocks; the platform never files on your behalf, so each report is recorded as a stamp.",
+    "compliance.check_nis2_early_warning_desc": "Significant incidents need an early warning within 24 hours, a notification within 72 hours and a final report within one month of that notification (Art. 23; in the Netherlands via MijnNCSC). The incident register tracks all three clocks; the platform never files on your behalf, so each report is recorded as a stamp.",
     "compliance.check_nis2_early_warning_fix": "Configure the authority channel, CSIRT contact and notification recipients under Compliance → Settings, and record each report on the incident under Compliance → Incidents.",
 
     "compliance.check_nis2_registration_title": "Entity registered with the authority",
-    "compliance.check_nis2_registration_desc": "Essential and important entities must register with the national authority. The registration lives outside the platform, so this check records your self-classification and the registration reference and date as an attestation.",
+    "compliance.check_nis2_registration_desc": "Essential and important entities register with the NCSC via MijnNCSC (Cyberbeveiligingswet, since 15 Aug 2026) and report changes within two weeks (cloud and managed service providers: three months, Art. 27). The registration lives outside the platform, so this check records your self-classification and the registration reference and date as an attestation.",
     "compliance.check_nis2_registration_fix": "Set your NIS2 classification and, when in scope, the registration reference and date under Compliance → Settings.",
 
     "compliance.check_nis2_questionnaire_pack_title": "Supplier questionnaire pack ready",
@@ -62,11 +62,11 @@
     "compliance.check_nis2_board_approval_fix": "Publiceer het informatiebeveiligingsbeleid en laat elke beheerder het bevestigen onder Compliance → Beleid; leg de datum van de directietraining vast onder Compliance → Instellingen.",
 
     "compliance.check_nis2_early_warning_title": "24-uurs vroegtijdige-waarschuwingsroute operationeel",
-    "compliance.check_nis2_early_warning_desc": "Significante incidenten vereisen een vroegtijdige waarschuwing binnen 24 uur, een melding binnen 72 uur en een eindverslag binnen een maand (art. 23). Het incidentenregister volgt alle drie de klokken; het platform meldt nooit namens u, dus elke melding wordt als stempel vastgelegd.",
+    "compliance.check_nis2_early_warning_desc": "Significante incidenten vereisen een vroegtijdige waarschuwing binnen 24 uur, een melding binnen 72 uur en een eindverslag binnen een maand na die melding (art. 23; in Nederland via MijnNCSC). Het incidentenregister volgt alle drie de klokken; het platform meldt nooit namens u, dus elke melding wordt als stempel vastgelegd.",
     "compliance.check_nis2_early_warning_fix": "Stel het meldkanaal bij de autoriteit, het CSIRT-contact en de ontvangers van meldingen in onder Compliance → Instellingen, en leg elke melding vast op het incident onder Compliance → Incidenten.",
 
     "compliance.check_nis2_registration_title": "Entiteit geregistreerd bij de autoriteit",
-    "compliance.check_nis2_registration_desc": "Essentiële en belangrijke entiteiten moeten zich registreren bij de nationale autoriteit. De registratie ligt buiten het platform; deze check legt uw zelfclassificatie en het registratiekenmerk met datum vast als verklaring.",
+    "compliance.check_nis2_registration_desc": "Essentiële en belangrijke entiteiten registreren zich bij het NCSC via MijnNCSC (Cyberbeveiligingswet, sinds 15 aug 2026) en melden wijzigingen binnen twee weken (cloud- en beheerde dienstverleners: drie maanden, art. 27). De registratie ligt buiten het platform; deze check legt uw zelfclassificatie en het registratiekenmerk met datum vast als verklaring.",
     "compliance.check_nis2_registration_fix": "Stel uw NIS2-classificatie in en, wanneer u binnen de reikwijdte valt, het registratiekenmerk en de datum onder Compliance → Instellingen.",
 
     "compliance.check_nis2_questionnaire_pack_title": "Leveranciersvragenlijstpakket gereed",

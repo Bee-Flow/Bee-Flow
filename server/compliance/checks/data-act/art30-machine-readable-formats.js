@@ -1,5 +1,5 @@
 /**
- * Data Act Art. 30(1)(3) — exports come in a structured, commonly used,
+ * Data Act Art. 30(5) — exports come in a structured, commonly used,
  * machine-readable format.
  *
  * Portability is only real when the receiving service can read what was
@@ -36,7 +36,7 @@ function _machineReadable(formats) {
 module.exports = {
     id: 'DATA_ACT-Art30-machine-readable-formats',
     regulation: 'DATA_ACT',
-    article: '30(3)',
+    article: '30(5)',
     frameworks: [
         { regulation: 'GDPR', ref: 'Art. 20' },
     ],

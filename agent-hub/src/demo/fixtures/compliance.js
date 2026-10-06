@@ -1115,6 +1115,37 @@ const frameworkRow = (f, state) => {
         score: detail ? detail.score : null,
         score_detail: detail,
         recently_in_force: recentlyInForce(f),
+        sources: f.sources || [],
+        legal_review: legalReview(f),
+    };
+};
+
+// The server's compliance/frameworks.js legalReview, for the demo clock: how
+// many days ago the catalogue entry was checked against its sources.
+const LEGAL_REVIEW_STALE_DAYS = 90;
+const legalReview = (f) => {
+    const verified = typeof f.legal_status_verified === 'string' ? f.legal_status_verified : null;
+    const ms = verified ? Date.parse(`${verified}T00:00:00Z`) : NaN;
+    const age = Number.isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 86400000)) : null;
+    return {
+        verified_on: Number.isFinite(ms) ? verified : null,
+        age_days: age,
+        stale: age === null || age > LEGAL_REVIEW_STALE_DAYS,
+        stale_after_days: LEGAL_REVIEW_STALE_DAYS,
+        sources: (f.sources || []).length,
+    };
+};
+
+const catalogueReview = () => {
+    const rows = FRAMEWORKS.map(f => ({ id: f.id, ...legalReview(f) }));
+    const dated = rows.filter(r => r.verified_on).sort((a, b) => a.verified_on.localeCompare(b.verified_on));
+    const unknown = rows.some(r => !r.verified_on);
+    return {
+        verified_on: unknown ? null : (dated[0]?.verified_on ?? null),
+        age_days: unknown ? null : (dated[0]?.age_days ?? null),
+        stale: rows.some(r => r.stale),
+        stale_ids: rows.filter(r => r.stale).map(r => r.id),
+        stale_after_days: LEGAL_REVIEW_STALE_DAYS,
     };
 };
 
@@ -1146,6 +1177,7 @@ const customFrameworkRow = (fw, state) => {
 const FRAMEWORKS_BODY = (state) => ({
     frameworks: FRAMEWORKS.map(f => frameworkRow(f, state)),
     custom: state.custom.frameworks.filter(f => f.status !== 'archived').map(f => customFrameworkRow(f, state)),
+    catalogue: catalogueReview(),
 });
 
 /* ── GET /calendar ───────────────────────────────────────────────────── */

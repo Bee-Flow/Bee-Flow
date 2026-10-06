@@ -51,12 +51,32 @@ export function SecondaryButton({ onClick, href, download, icon: Icon, children,
         </button>
     );
 }
-export function InfoChip({ icon: Icon, children, testId = 'header-info' }) {
+export function InfoChip({ icon: Icon, children, testId = 'header-info', title = undefined, tone = undefined }) {
     return (
-        <span className={INFO} data-testid={testId}>
+        <span className={tone === 'warning' ? `${INFO} text-[var(--warning-ink)]` : INFO} data-testid={testId} title={title} data-tone={tone}>
             {Icon && <Icon className="w-[13px] h-[13px]" aria-hidden="true" />}{children}
         </span>
     );
+}
+
+/**
+ * The date the legal register was last checked against the official texts —
+ * never today's date. The chip used to read "As of <today>", which presented
+ * a catalogue written weeks earlier as current. Without a review from the
+ * server (an older server) it falls back to that old wording.
+ */
+export function legalStatusChip(review, t) {
+    if (!review) {
+        return <InfoChip icon={Calendar}>{t('compliance.hdr_fw_asof', 'As of {date} · not legal advice', { date: new Date().toISOString().slice(0, 10) })}</InfoChip>;
+    }
+    const hint = t('compliance.hdr_fw_checked_hint', 'The frameworks, dates and milestones here were checked against the official texts. Each framework lists its sources under Timeline. Not legal advice.');
+    if (!review.verified_on) {
+        return <InfoChip icon={TriangleAlert} tone="warning" title={hint}>{t('compliance.hdr_fw_review_unknown', 'Legal status not recorded · due for review')}</InfoChip>;
+    }
+    if (review.stale) {
+        return <InfoChip icon={TriangleAlert} tone="warning" title={hint}>{t('compliance.hdr_fw_review_due', 'Legal status checked {date} · due for review', { date: review.verified_on })}</InfoChip>;
+    }
+    return <InfoChip icon={CalendarCheck} title={hint}>{t('compliance.hdr_fw_checked', 'Legal status checked {date} · not legal advice', { date: review.verified_on })}</InfoChip>;
 }
 
 const scoreHeadline = (t, score) => t(headlineKeyOfScore(score), HEADLINE_FALLBACK[headlineKeyOfScore(score)]);
@@ -120,7 +140,7 @@ export const HEADER_SPECS = {
             pill: typeof active === 'number' && typeof cand === 'number'
                 ? <StatusPill tone="neutral" testId="header-pill">{t('compliance.hdr_fw_summary', '{active} active · {candidates} candidates', { active, candidates: cand })}{typeof recent === 'number' && recent > 0 ? ` · ${t('compliance.hdr_fw_recent', '{n} just in force', { n: recent })}` : ''}</StatusPill>
                 : null,
-            infoChip: <InfoChip icon={Calendar}>{t('compliance.hdr_fw_asof', 'As of {date} · not legal advice', { date: new Date().toISOString().slice(0, 10) })}</InfoChip>,
+            infoChip: legalStatusChip(frameworks?.catalogue, t),
             secondary: null,
             primary: ctx.onAddFramework ? <PrimaryButton onClick={ctx.onAddFramework} icon={Plus}>{t('compliance.hdr_fw_add', 'Add framework')}</PrimaryButton> : null,
             tabCounts: { calendar: (ctx.calendar?.milestones || []).filter(m => m.date && new Date(m.date) > new Date()).length || undefined },

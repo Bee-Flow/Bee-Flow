@@ -218,7 +218,7 @@ jobs:
             server:
               - 'server/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
+              - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
               - 'scripts/rotate-master-key.js'
               - 'docs/docs/**'
               - 'components/**'
@@ -449,6 +449,13 @@ jobs:
       - name: Playwright lockstep between the server and pwt-runner
         working-directory: .
         run: node scripts/check-playwright-lockstep.mjs
+      # The legal register the Compliance Center scores against
+      # (server/compliance/frameworks.js) must name its sources and the day it
+      # was last checked. Malformed → fail; merely due for review → a warning
+      # annotation, so an unrelated PR never turns red because time passed.
+      - name: Legal catalogue sources and review dates
+        working-directory: .
+        run: node scripts/check-legal-catalogue.mjs
       # A test that reads a source file and matches a regex against it pins
       # the shape of the code, not what it does. Phase 2 is replacing them;
       # the count may only fall (server/.source-text-ratchet.json).

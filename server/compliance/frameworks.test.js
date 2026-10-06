@@ -131,9 +131,13 @@ test('inForceSince: the AI Act answers per article, everything else per framewor
     assert.equal(fw.inForceSince('AIA', 'annex_iii'), '2027-12-02');
     assert.equal(fw.inForceSince('AIA', 'Annex III'), '2027-12-02');
     assert.equal(fw.inForceSince('AIA', 'annex_i'), '2028-08-02');
-    // A paragraph of an article without its own override falls back to the article.
-    assert.equal(fw.inForceSince('AIA', '26(6)'), '2024-08-01', 'no override → the framework date');
-    assert.equal(fw.inForceSince('AIA', '13'), '2024-08-01');
+    // A paragraph of an article without its own override falls back to the
+    // article: Art. 26(6) logs follow Art. 26, a Chapter III high-risk duty
+    // that applies with Annex III (Reg. (EU) 2026/1744), not since 2024.
+    assert.equal(fw.inForceSince('AIA', '26(6)'), '2027-12-02', 'paragraph → its article');
+    assert.equal(fw.inForceSince('AIA', '13'), '2027-12-02');
+    // An article with no override at all → the framework date.
+    assert.equal(fw.inForceSince('AIA', '9'), '2024-08-01', 'no override → the framework date');
     // Non-staggered frameworks ignore the ref.
     assert.equal(fw.inForceSince('GDPR', '32'), '2018-05-25');
     assert.equal(fw.inForceSince('NIS2', 'Art. 21(2)(j)'), '2026-08-15');
@@ -200,10 +204,10 @@ test('id_pattern accepts the ids that ship and rejects foreign prefixes', () => 
     assert.doesNotMatch('NIS2-21-admin-mfa', fw.byId('nis2').id_pattern, 'an id needs the Art prefix');
 });
 
-test('MILESTONES: the 16 dated dates plus the 2 uncertain ones, each pointing at a known framework', () => {
+test('MILESTONES: the 20 dated dates plus the 2 uncertain ones, each pointing at a known framework', () => {
     const dated = fw.MILESTONES.filter(m => m.kind !== 'uncertain');
     const uncertain = fw.MILESTONES.filter(m => m.kind === 'uncertain');
-    assert.equal(dated.length, 16);
+    assert.equal(dated.length, 20);
     assert.deepEqual(uncertain.map(m => m.id), ['omnibus_data_part', 'nl_uitvoeringswet_ai']);
     assert.equal(new Set(fw.MILESTONES.map(m => m.id)).size, fw.MILESTONES.length, 'duplicate milestone id');
     const dates = dated.map(m => m.date);
@@ -221,6 +225,11 @@ test('MILESTONES: the 16 dated dates plus the 2 uncertain ones, each pointing at
     assert.equal(byId.cra_full.date, '2027-12-11');
     assert.equal(byId.aia_annex_i.date, '2028-08-02');
     assert.equal(byId.eaa_legacy_contracts_end.date, '2030-06-28');
+    // Added in the legal register review of 6 Oct 2026.
+    assert.equal(byId.cra_notified_bodies.date, '2026-06-11');
+    assert.equal(byId.data_act_connected_products.date, '2026-09-12');
+    assert.equal(byId.aia_gpai_legacy_models.date, '2027-08-02');
+    assert.equal(byId.data_act_chapter_iv_legacy_contracts.date, '2027-09-12');
     for (const m of fw.MILESTONES) {
         assert.ok(fw.byId(m.framework_id), `${m.id}: unknown framework ${m.framework_id}`);
         assert.ok(['in_force', 'phase', 'transition_end', 'uncertain'].includes(m.kind), `${m.id}: kind ${m.kind}`);
@@ -264,4 +273,52 @@ test('every name/description/affects/phase/milestone key has EN and NL copy', ()
             `${k} already exists in en.js with different English`);
         assert.ok(pending.en[k].trim() && pending.nl[k].trim(), `${k}: empty translation`);
     }
+});
+
+// ── Keeping the catalogue current ─────────────────────────────────────────
+
+test('every built-in framework names an official source and the day it was checked', () => {
+    const fw = require('./frameworks');
+    for (const f of fw.listBuiltin()) {
+        assert.ok(Array.isArray(f.sources) && f.sources.length > 0, `${f.id} has sources`);
+        for (const src of f.sources) {
+            assert.match(src.url, /^https:\/\//, `${f.id} source is https`);
+            assert.ok(src.label && src.label.length > 3, `${f.id} source has a label`);
+        }
+        assert.match(f.legal_status_verified, /^\d{4}-\d{2}-\d{2}$/, `${f.id} has an ISO verification date`);
+        assert.ok(Object.isFrozen(f.sources), `${f.id} sources are frozen`);
+    }
+});
+
+test('legalReview: fresh inside the window, stale after it, and stale when nobody recorded a check', () => {
+    const fw = require('./frameworks');
+    const day = (iso) => Date.parse(`${iso}T12:00:00Z`);
+    const entry = { legal_status_verified: '2026-10-01', sources: [{}] };
+    assert.deepEqual(fw.legalReview(entry, day('2026-10-06')), {
+        verified_on: '2026-10-01', age_days: 5, stale: false, stale_after_days: fw.LEGAL_REVIEW_STALE_DAYS, sources: 1,
+    });
+    assert.equal(fw.legalReview(entry, day('2026-12-30')).stale, false, 'day 90 is still inside');
+    assert.equal(fw.legalReview(entry, day('2026-12-31')).stale, true, 'day 91 is stale');
+    for (const bad of [{}, { legal_status_verified: 'last week' }, { legal_status_verified: '2026-13-45x' }, null]) {
+        const r = fw.legalReview(bad, day('2026-10-06'));
+        assert.equal(r.stale, true, JSON.stringify(bad));
+        assert.equal(r.verified_on, null);
+        assert.equal(r.age_days, null);
+    }
+});
+
+test('catalogueReview vouches only for the OLDEST check and names every stale entry', () => {
+    const fw = require('./frameworks');
+    const now = Date.parse('2026-10-06T00:00:00Z');
+    const list = [
+        { id: 'a', legal_status_verified: '2026-10-01' },
+        { id: 'b', legal_status_verified: '2026-06-01' },
+    ];
+    const r = fw.catalogueReview(now, list);
+    assert.equal(r.verified_on, '2026-06-01');
+    assert.equal(r.stale, true);
+    assert.deepEqual(r.stale_ids, ['b']);
+    const unknown = fw.catalogueReview(now, [...list, { id: 'c' }]);
+    assert.equal(unknown.verified_on, null, 'an unchecked entry means the catalogue cannot vouch for a date');
+    assert.deepEqual(unknown.stale_ids, ['b', 'c']);
 });

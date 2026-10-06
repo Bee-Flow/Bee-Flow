@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { CalendarClock } from 'lucide-react';
+import { BookOpen, CalendarClock, ExternalLink } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import TimelinePhases from '../../shared/TimelinePhases';
 import RegulatoryCalendar from '../../shared/RegulatoryCalendar';
@@ -104,6 +104,44 @@ export default function TimelineTab({ regulation, calendar, frameworks, now = un
                     <RegulatoryCalendar milestones={milestones} now={nowMs} variant="full" testId={`${testId}-calendar`} />
                 </section>
             )}
+            <SourcesBlock record={record} testId={`${testId}-sources`} />
         </div>
+    );
+}
+
+/**
+ * Where this framework's dates come from, and when they were last checked
+ * (catalogue `sources` + `legal_review`). Nothing renders for a record
+ * without sources, e.g. from an older server.
+ */
+export function SourcesBlock({ record, testId = 'timeline-sources' }) {
+    const { t } = useTranslation();
+    const sources = Array.isArray(record?.sources) ? record.sources.filter(s => s && typeof s.url === 'string' && s.url.startsWith('https://')) : [];
+    if (!sources.length) return null;
+    const review = record.legal_review || null;
+    return (
+        <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-4 flex flex-col gap-2 shadow-[var(--shadow-sm)]" data-testid={testId}>
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)]">
+                <BookOpen size={12} aria-hidden="true" />
+                <span>{t('compliance.tbl_timeline_sources', 'Sources')}</span>
+            </div>
+            <ul className="m-0 p-0 list-none flex flex-col gap-1">
+                {sources.map(src => (
+                    <li key={src.url} className="text-[12px]">
+                        <a href={src.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[var(--text-primary)] underline underline-offset-2 hover:text-[var(--accent-primary)]">
+                            {src.label}
+                            <ExternalLink size={11} aria-hidden="true" />
+                        </a>
+                    </li>
+                ))}
+            </ul>
+            {review?.verified_on && (
+                <p className={`m-0 text-[11px] ${review.stale ? 'text-[var(--warning-ink)]' : 'text-[var(--text-tertiary)]'}`} data-testid={`${testId}-checked`} data-stale={review.stale ? 'true' : 'false'}>
+                    {review.stale
+                        ? t('compliance.tbl_timeline_review_due', 'Checked {date}. Due for review: more than {days} days ago, so treat these dates as unconfirmed until Bee Flow is updated.', { date: review.verified_on, days: review.stale_after_days })
+                        : t('compliance.tbl_timeline_checked', 'Checked against these sources on {date}. Not legal advice.', { date: review.verified_on })}
+                </p>
+            )}
+        </section>
     );
 }

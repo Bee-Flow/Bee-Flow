@@ -37,6 +37,7 @@
     "lint:gitleaks": "./scripts/scan-secrets.sh",
     "lint:checks": "node scripts/check-required-checks.mjs",
     "lint:workflows": "node scripts/check-workflow-concurrency.mjs",
+    "lint:legal-catalogue": "node scripts/check-legal-catalogue.mjs",
     "i18n:gen": "node scripts/gen-i18n-defaults.mjs",
     "learn-media:fetch": "node scripts/learn-media-fetch.mjs",
     "gen:shared": "node scripts/gen-shared-mirror.mjs",

@@ -82,7 +82,7 @@
     "compliance.set_group_ai_act": "AI Act",
     "compliance.set_group_ai_act_desc": "AI literacy (Art. 4) and the marking of AI-generated content (Art. 50(2)).",
     "compliance.set_ai_marking": "Mark AI-generated content",
-    "compliance.set_ai_marking_hint": "Required from 2 December 2026 (AI Act Art. 50(2)): documents and pages the AI writes carry a machine-readable marking and a visible note.",
+    "compliance.set_ai_marking_hint": "Required by AI Act Art. 50(2) since 2 August 2026 (systems already on the market before then: by 2 December 2026): documents and pages the AI writes carry a machine-readable marking and a visible note.",
     "compliance.set_ai_marking_footer": "Visible footer text (optional)",
     "compliance.set_ai_marking_footer_hint": "Leave empty for the default sentence.",
 
@@ -239,7 +239,7 @@
     "compliance.set_group_ai_act": "AI-verordening",
     "compliance.set_group_ai_act_desc": "AI-geletterdheid (art. 4) en het markeren van AI-gegenereerde inhoud (art. 50(2)).",
     "compliance.set_ai_marking": "AI-gegenereerde inhoud markeren",
-    "compliance.set_ai_marking_hint": "Verplicht vanaf 2 december 2026 (AI-verordening art. 50(2)): documenten en pagina's die de AI schrijft krijgen een machineleesbare markering en een zichtbare vermelding.",
+    "compliance.set_ai_marking_hint": "Verplicht onder AI-verordening art. 50(2) sinds 2 augustus 2026 (systemen die daarvoor al op de markt waren: uiterlijk 2 december 2026): documenten en pagina's die de AI schrijft krijgen een machineleesbare markering en een zichtbare vermelding.",
     "compliance.set_ai_marking_footer": "Zichtbare voettekst (optioneel)",
     "compliance.set_ai_marking_footer_hint": "Laat leeg voor de standaardzin.",
 
