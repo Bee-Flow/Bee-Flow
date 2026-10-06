@@ -1,3 +1,4 @@
+import { BookPlus, Brain, Compass, Dna, Music, Presentation } from 'lucide-react';
 import React from 'react';
 
 /**
@@ -361,6 +362,30 @@ const ElevenLabsLogo = (p) => (
     </Wrap>
 );
 
+/**
+ * A Bee Flow tool's tile: the tool's own lucide glyph in white on a rounded
+ * square of its colour, the same shape as the Knowledge Base, Webpages and
+ * Transcription marks. For first-party tools that have no outside brand to
+ * borrow a mark from, so none of them falls back to a letter or a puzzle
+ * piece.
+ */
+function toolTile(Icon, fill) {
+    const Tile = (p) => (
+        <Wrap {...p} viewBox="0 0 24 24">
+            <rect width="24" height="24" rx="4" fill={fill} />
+            <Icon x={4} y={4} size={16} color="#fff" strokeWidth={2.25} aria-hidden="true" />
+        </Wrap>
+    );
+    return Tile;
+}
+
+const MemoryLogo = toolTile(Brain, '#8B5CF6');
+const KbIngestLogo = toolTile(BookPlus, '#10B981');
+const AutomationEvolutionLogo = toolTile(Dna, '#F59E0B');
+const BrowseWebLogo = toolTile(Compass, '#0EA5E9');
+const MusicGenLogo = toolTile(Music, '#0EA5E9');
+const PresentationsLogo = toolTile(Presentation, '#EA580C');
+
 const TranscriptionLogo = (p) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="4" fill="#0EA5E9" />
@@ -516,6 +541,15 @@ export const INTEGRATION_LOGOS = {
     n8n: N8nLogo,
     kb_search: KbSearchLogo,
     webpages: WebpagesLogo,
+
+    // Bee Flow's own tools (toolTile)
+    memory: MemoryLogo,
+    kb_ingest: KbIngestLogo,
+    automation_evolution: AutomationEvolutionLogo,
+    browser_fetch: BrowseWebLogo,
+    music_gen: MusicGenLogo,
+    presentations: PresentationsLogo,
+    presentation_builder: PresentationsLogo,
 
     // Service management
     jira: JiraLogo,

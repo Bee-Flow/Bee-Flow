@@ -25,7 +25,7 @@
 
 const READ_ONLY = new Set([
     // Gmail
-    'gmail_search', 'gmail_read', 'gmail_read_attachment', 'gmail_list_labels',
+    'gmail_search', 'gmail_read', 'gmail_read_attachment', 'gmail_list_labels', 'gmail_read_many',
     // Calendar
     'calendar_list_events', 'calendar_search_events', 'calendar_get_event',
     // Drive / Docs / Sheets / Slides
@@ -47,7 +47,7 @@ const READ_ONLY = new Set([
     'notebook_read',
     'regex_list_rules', 'regex_test_pattern',
     // Outlook / MS
-    'outlook_search', 'outlook_read', 'outlook_list_recent',
+    'outlook_search', 'outlook_read', 'outlook_list_recent', 'outlook_read_many',
     'ms_calendar_list_events', 'ms_calendar_search_events', 'ms_calendar_get_event',
     'onedrive_search', 'onedrive_list', 'onedrive_list_files', 'onedrive_list_recent', 'onedrive_get_file',
     'ms_contacts_search', 'ms_contacts_list',
@@ -158,7 +158,7 @@ const READ_ONLY = new Set([
 const SIDE_EFFECTS = new Set([
     // Gmail
     'gmail_compose', 'gmail_modify_labels', 'gmail_mark_read', 'gmail_mark_unread',
-    'gmail_archive', 'gmail_trash', 'gmail_create_draft',
+    'gmail_archive', 'gmail_trash', 'gmail_create_draft', 'gmail_bulk_modify',
     // Google Calendar / Drive / Docs / Sheets / Slides
     'calendar_create_event', 'calendar_update_event', 'calendar_delete_event',
     'drive_move_file', 'drive_create_folder', 'drive_upload_file',

@@ -108,6 +108,42 @@ const OUTPUT_SCHEMAS = {
         shape: { messageId: 'string', trashed: 'boolean', labelIds: 'array of string' },
         sample: { messageId: 'msg-1', trashed: true, labelIds: ['TRASH'] },
     },
+    gmail_read_many: {
+        // `messages` is the first array: it is the list a "for each" binds to.
+        shape: {
+            messages: 'array of { id, threadId, from, to, subject, date, body, attachments } (each exactly as gmail_read returns it; body cut at 20,000 characters)',
+            count: 'integer (messages read)',
+            notFound: 'array of string (ids Gmail does not know)',
+            failed: 'array of { id, error }',
+            truncated: 'boolean (only when more than 100 ids were given; the first 100 were read)',
+            error: 'string (only when not one message could be read)',
+        },
+        sample: {
+            messages: [
+                {
+                    id: 'msg-1', threadId: 'th-1', from: 'sender@example.com', to: 'me@example.com',
+                    subject: 'Sample invoice', date: 'Mon, 06 Apr 2026 08:23:19 -0700',
+                    body: 'Beste klant,\n\nHierbij ontvangt u onze factuur met nummer 2026-001.',
+                    attachments: [
+                        { attachmentId: 'attach-1', filename: 'invoice_2026-001.pdf', mimeType: 'application/pdf', size: 45678, canOCR: true, messageId: 'msg-1', threadId: 'th-1' },
+                    ],
+                },
+            ],
+            count: 1,
+            notFound: [],
+            failed: [],
+        },
+    },
+    gmail_bulk_modify: {
+        shape: {
+            modified: 'integer (messages changed)',
+            messageIds: 'array of string',
+            addLabelIds: 'array of string (label ids added)',
+            removeLabelIds: 'array of string (label ids removed; UNREAD = marked read, INBOX = archived)',
+            message: 'string (only when there was nothing to change)',
+        },
+        sample: { modified: 2, messageIds: ['msg-1', 'msg-2'], addLabelIds: ['Label_3'], removeLabelIds: ['UNREAD'] },
+    },
     gmail_create_draft: {
         shape: { draftId: 'string', messageId: 'string', threadId: 'string', to: 'string', subject: 'string', message: 'string' },
         sample: { draftId: 'draft-1', messageId: 'msg-draft-1', threadId: 'th-1', to: 'recipient@example.com', subject: 'Re: Sample subject', message: 'Draft saved.' },
@@ -168,9 +204,36 @@ const OUTPUT_SCHEMAS = {
         shape: { results: 'array of { id, from, subject, preview, receivedDateTime, hasAttachments }' },
         sample: { results: [{ id: 'msg-1', from: 'sender@example.com', subject: 'Sample', preview: '…', receivedDateTime: new Date().toISOString(), hasAttachments: false }] },
     },
+    // What integrations/outlookTools.js shapeOutlookMessage returns: `date`,
+    // not `receivedDateTime`, and `attachments` only when the email has any.
     outlook_read: {
-        shape: { id: 'string', from: 'string', subject: 'string', body: 'string', receivedDateTime: 'string' },
-        sample: { id: 'msg-1', from: 'sender@example.com', subject: 'Sample', body: 'Email body…', receivedDateTime: new Date().toISOString() },
+        shape: {
+            id: 'string', from: 'string', to: 'string', cc: 'string', subject: 'string',
+            date: 'string', body: 'string (plain text)', conversationId: 'string', hasAttachments: 'boolean',
+            attachments: 'array of { id, filename, mimeType, size, canOCR } (only when hasAttachments)',
+        },
+        sample: {
+            id: 'msg-1', from: 'Sender <sender@example.com>', to: 'Me <me@example.com>', cc: '', subject: 'Sample',
+            date: new Date().toISOString(), body: 'Email body…', conversationId: 'conv-1', hasAttachments: false,
+        },
+    },
+    outlook_read_many: {
+        // `messages` is the first array: it is the list a "for each" binds to.
+        shape: {
+            messages: 'array of { id, from, to, cc, subject, date, body, conversationId, hasAttachments, attachments } (each exactly as outlook_read returns it; body cut at 20,000 characters)',
+            count: 'integer (messages read)',
+            notFound: 'array of string (ids Outlook does not know)',
+            failed: 'array of { id, error }',
+            truncated: 'boolean (only when more than 100 ids were given; the first 100 were read)',
+            error: 'string (only when not one message could be read)',
+        },
+        sample: {
+            messages: [{
+                id: 'msg-1', from: 'Sender <sender@example.com>', to: 'Me <me@example.com>', cc: '', subject: 'Sample',
+                date: new Date().toISOString(), body: 'Email body…', conversationId: 'conv-1', hasAttachments: false,
+            }],
+            count: 1, notFound: [], failed: [],
+        },
     },
 
     // ── Microsoft Calendar ────────────────────────────────────────

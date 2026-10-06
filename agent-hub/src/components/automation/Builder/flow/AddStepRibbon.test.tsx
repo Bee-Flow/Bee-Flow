@@ -49,6 +49,9 @@ const menu = () => document.querySelector('[data-ribbon-dropdown]') as HTMLEleme
 /** The pills on the open tab's row, by their visible label. */
 const pillLabels = () => within(screen.getByTestId('ribbon-panel').querySelector('[data-ribbon-pill-row]') as HTMLElement)
     .getAllByRole('button').map(b => b.textContent);
+/** The same, from the label alone: a brand logo can carry text of its own (Calendar's "31", Outlook's "O"). */
+const pillNames = () => within(screen.getByTestId('ribbon-panel').querySelector('[data-ribbon-pill-row]') as HTMLElement)
+    .getAllByRole('button').map(b => b.querySelector('span.truncate')?.textContent ?? b.textContent);
 
 describe('AddStepRibbon (design 5a)', () => {
     beforeEach(() => { localStorage.clear(); setCurrentUser('user-1'); });
@@ -58,7 +61,8 @@ describe('AddStepRibbon (design 5a)', () => {
         renderRibbon();
         expect(screen.getByRole('combobox', { name: 'Add a step' })).toBeInTheDocument();
         expect(screen.getAllByRole('tab').map(el => el.getAttribute('aria-label'))).toEqual([
-            'AI', 'Logic', 'People', 'Data & documents', 'Nextcloud apps', 'Other apps', 'My building blocks',
+            // No outside app in this catalog, so no Other apps tab.
+            'AI', 'Logic', 'People', 'Data & documents', 'Nextcloud apps', 'Google Workspace', 'My building blocks',
         ]);
         expect(screen.getByTestId('ribbon-adds-after')).toHaveTextContent('Adds afterstep 2 · Mail the team');
         expect(screen.queryByTestId('ribbon-panel')).toBeNull();
@@ -71,9 +75,24 @@ describe('AddStepRibbon (design 5a)', () => {
         renderRibbon();
         const where = screen.getByTestId('ribbon-adds-after');
         expect(where.getAttribute('title')).toBe('Adds after step 2 · Mail the team');
-        // Both forms are rendered; the ribbon's own width picks one (no viewport breakpoint).
-        expect(within(where).getByText('step 2 · Mail the team').className).toContain('@max-[1440px]/ribbon:hidden');
-        expect(within(where).getByText('step 2').className).toContain('@max-[1440px]/ribbon:inline');
+        // Both forms are rendered; the ribbon's own width picks one (no viewport
+        // breakpoint). Two suite tabs (Nextcloud, Google Workspace) fold 150px
+        // sooner than one.
+        expect(within(where).getByText('step 2 · Mail the team').className).toContain('@max-[1590px]/ribbon:hidden');
+        expect(within(where).getByText('step 2').className).toContain('@max-[1590px]/ribbon:inline');
+        expect(tab('Logic').className).toContain('@max-[1330px]/ribbon:px-2');
+    });
+
+    it('folds by how many suite tabs the row carries', () => {
+        const nextcloudOnly = { ...catalog, apps: catalog.apps.filter(a => a.id !== 'gmail') };
+        renderRibbon({ scope: { ...scope, catalog: nextcloudOnly } });
+        expect(within(screen.getByTestId('ribbon-adds-after')).getByText('step 2').className).toContain('@max-[1440px]/ribbon:inline');
+        expect(tab('Logic').className).toContain('@max-[1180px]/ribbon:px-2');
+        cleanup();
+        const all = { ...catalog, apps: [...catalog.apps, ncApp('outlook', 'Outlook', [['outlook_search', 'Search email']])] };
+        renderRibbon({ scope: { ...scope, catalog: all } });
+        expect(within(screen.getByTestId('ribbon-adds-after')).getByText('step 2').className).toContain('@max-[1740px]/ribbon:inline');
+        expect(tab('Logic').className).toContain('@max-[1480px]/ribbon:px-2');
     });
 
     it('opens ONE category per tab click and folds again on a second click', async () => {
@@ -116,11 +135,11 @@ describe('AddStepRibbon (design 5a)', () => {
     describe('every tab is ONE row of pills, like the Nextcloud apps', () => {
         it.each([
             ['AI', ['AI step', 'Extract data', 'Use an agent', 'Apply a skill']],
-            ['Logic', ['Condition', 'Repeat for each', 'Privacy Shield', 'End the run', 'Note']],
+            ['Logic', ['Condition', 'Repeat for each', 'Call a web service', 'Privacy Shield', 'End the run', 'Note']],
             ['People', ['Ask someone to approve', 'Notification', 'Wait', 'Form pages']],
             ['Data & documents', ['Edit data', 'Date & time', 'Tables', 'Documents', 'Lists']],
             ['Nextcloud apps', ['Talk', 'Deck']],
-            ['Other apps', ['Call a web service', 'Gmail']],
+            ['Google Workspace', ['Gmail']],
             ['My building blocks', ['Create flowlet', 'Fast websearch']],
         ])('%s', async (name, pills) => {
             const user = userEvent.setup();
@@ -262,38 +281,88 @@ describe('AddStepRibbon (design 5a)', () => {
             expect(onAddNode).toHaveBeenLastCalledWith(expect.objectContaining({ tool: 'nextcloud_talk_send_message' }));
         });
 
-        it('Other apps: HTTP request first, then the apps outside Nextcloud', async () => {
+        it('Google Workspace and Microsoft 365: a tab each, every app a pill by its short name', async () => {
             const user = userEvent.setup();
-            renderRibbon();
-            await user.click(tab('Other apps'));
-            const panel = screen.getByTestId('ribbon-other-apps');
-            expect(within(panel).getByRole('button', { name: 'Call a web service' })).toBeInTheDocument();
-            expect(within(panel).getByRole('button', { name: 'Gmail' })).toHaveAttribute('data-ribbon-origin', 'app:gmail');
-            expect(within(panel).queryByRole('button', { name: /Talk/ })).toBeNull();
+            const suites = { ...catalog, apps: [
+                ncApp('google-calendar', 'Google Calendar', [['gcal_create', 'Create event'], ['gcal_list', 'List events']]),
+                ncApp('google-drive', 'Google Drive', [['gdrive_upload', 'Upload file']]),
+                ncApp('gmail', 'Gmail', [['gmail_send', 'Send email']]),
+                ncApp('outlook', 'Outlook', [['outlook_search', 'Search email']]),
+                ncApp('onedrive', 'OneDrive', [['onedrive_upload', 'Upload file']]),
+            ] };
+            const { onAddNode } = renderRibbon({ scope: { ...scope, catalog: suites } });
+            expect(tab('Google Workspace')).toHaveAttribute('data-ribbon-origin', 'cat:Google Workspace');
+            expect(tab('Microsoft 365')).toHaveAttribute('data-ribbon-origin', 'cat:Microsoft 365');
+            await user.click(tab('Google Workspace'));
+            expect(pillNames()).toEqual(['Calendar', 'Drive', 'Gmail']);
+            const google = screen.getByTestId('ribbon-google');
+            expect(within(google).getByRole('button', { name: 'Gmail' })).toHaveAttribute('data-ribbon-origin', 'app:gmail');
+            await user.click(within(google).getByRole('button', { name: 'Drive' }));
+            // The payload keeps the full name: a card on the canvas names its vendor.
+            expect(onAddNode).toHaveBeenLastCalledWith(expect.objectContaining({ tool: 'gdrive_upload', label: 'Google Drive' }));
+            await user.click(tab('Google Workspace'));
+            await user.click(within(screen.getByTestId('ribbon-google')).getByRole('button', { name: /Calendar/ }));
+            await user.click(screen.getByRole('button', { name: /List events/ }));
+            expect(onAddNode).toHaveBeenLastCalledWith(expect.objectContaining({ tool: 'gcal_list' }));
+            await user.click(tab('Microsoft 365'));
+            expect(pillNames()).toEqual(['OneDrive', 'Outlook']);
+            expect(within(screen.getByTestId('ribbon-microsoft')).getByRole('button', { name: /Outlook/ })).toHaveAttribute('data-ribbon-origin', 'app:outlook');
         });
 
-        it('Other apps: a suite is ONE pill listing its apps; an app of several actions opens them, with a way back', async () => {
+        it('Other apps: only the outside apps without a tab of their own, and no tab when there are none', async () => {
             const user = userEvent.setup();
-            const google = {
-                ...catalog,
-                apps: [
-                    ncApp('google-calendar', 'Google Calendar', [['gcal_create', 'Create event'], ['gcal_list', 'List events']]),
-                    ncApp('google-drive', 'Google Drive', [['gdrive_upload', 'Upload file']]),
-                    ncApp('google-docs', 'Google Docs', [['gdocs_create', 'Create document']]),
-                ],
-            };
-            const { onAddNode } = renderRibbon({ scope: { ...scope, catalog: google } });
+            renderRibbon();
+            expect(screen.queryByRole('tab', { name: 'Other apps' })).toBeNull();
+            cleanup();
+            const withOutside = { ...catalog, apps: [...catalog.apps, ncApp('youtrack', 'YouTrack', [['youtrack_create_issue', 'Create issue']])] };
+            renderRibbon({ scope: { ...scope, catalog: withOutside } });
             await user.click(tab('Other apps'));
-            const suite = within(screen.getByTestId('ribbon-other-apps')).getByRole('button', { name: 'Google Workspace' });
-            expect(suite).toHaveAttribute('data-ribbon-origin', 'cat:Google Workspace');
+            expect(pillNames()).toEqual(['YouTrack']);
+        });
+
+        it('Other apps: a category of three apps is ONE pill listing them; an app of several actions opens them, with a way back', async () => {
+            const user = userEvent.setup();
+            const productivity = { ...catalog, apps: [
+                ncApp('fireflies', 'Fireflies', [['fireflies_list', 'List transcripts'], ['fireflies_get', 'Get transcript']]),
+                ncApp('gamma', 'Gamma', [['gamma_create', 'Create presentation']]),
+                ncApp('signrequest', 'SignRequest', [['signrequest_send', 'Send for signing']]),
+            ] };
+            const { onAddNode } = renderRibbon({ scope: { ...scope, catalog: productivity } });
+            await user.click(tab('Other apps'));
+            const suite = within(screen.getByTestId('ribbon-other-apps')).getByRole('button', { name: 'Productivity' });
+            expect(suite).toHaveAttribute('data-ribbon-origin', 'cat:Productivity');
             await user.click(suite);
             const list = menu() as HTMLElement;
-            expect(within(list).getAllByRole('button').map(b => b.querySelector('.text-sm')?.textContent)).toEqual(['Calendar', 'Docs', 'Drive']);
-            await user.click(within(list).getByRole('button', { name: /Calendar/ }));
-            expect(within(menu() as HTMLElement).getByRole('button', { name: /List events/ })).toBeInTheDocument();
+            expect(within(list).getAllByRole('button').map(b => b.querySelector('.text-sm')?.textContent)).toEqual(['Fireflies', 'Gamma', 'SignRequest']);
+            await user.click(within(list).getByRole('button', { name: /Fireflies/ }));
+            expect(within(menu() as HTMLElement).getByRole('button', { name: /Get transcript/ })).toBeInTheDocument();
             await user.click(within(menu() as HTMLElement).getByRole('button', { name: 'Back' }));
-            await user.click(within(menu() as HTMLElement).getByRole('button', { name: /Drive/ }));
-            expect(onAddNode).toHaveBeenCalledWith(expect.objectContaining({ tool: 'gdrive_upload', label: 'Google Drive' }));
+            await user.click(within(menu() as HTMLElement).getByRole('button', { name: /Gamma/ }));
+            expect(onAddNode).toHaveBeenCalledWith(expect.objectContaining({ tool: 'gamma_create', label: 'Gamma' }));
+        });
+    });
+
+    describe('Bee Flow\'s own steps and tools', () => {
+        it('sit on the tab of their job: Code and Call a web service on Logic, the tools beside them', async () => {
+            const user = userEvent.setup();
+            const native = { ...catalog, flags: { code: true }, apps: [
+                ncApp('agent-search', 'Web Search', [['agent_search', 'Search the web']]),
+                ncApp('memory', 'Memory', [['memory_search', 'Search memory'], ['memory_remember', 'Remember']]),
+                ncApp('kb-ingest', 'Knowledge Base Ingest', [['knowledge_base_ingest', 'Add to knowledge base']]),
+                ncApp('automation-evolution', 'Automation evolution', [['automation_runs_summary', 'Runs summary'], ['automation_propose_evolution', 'Propose a change']]),
+                ncApp('fireflies', 'Fireflies', [['fireflies_list', 'List transcripts']]),
+            ] };
+            const { onAddNode } = renderRibbon({ scope: { ...scope, catalog: native } });
+            await user.click(tab('AI'));
+            expect(pillNames()).toEqual(['AI step', 'Extract data', 'Use an agent', 'Apply a skill', 'Web Search', 'Memory']);
+            await user.click(within(screen.getByTestId('ribbon-ai')).getByRole('button', { name: /Web Search/ }));
+            expect(onAddNode).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'integration_action', tool: 'agent_search' }));
+            await user.click(tab('Logic'));
+            expect(pillNames()).toEqual(['Condition', 'Repeat for each', 'Code', 'Call a web service', 'Privacy Shield', 'End the run', 'Note', 'Automation evolution']);
+            await user.click(tab('Data & documents'));
+            expect(pillNames()).toEqual(['Edit data', 'Date & time', 'Tables', 'Documents', 'Lists', 'Knowledge Base Ingest']);
+            await user.click(tab('Other apps'));
+            expect(pillNames()).toEqual(['Fireflies']);
         });
 
         it('My building blocks lists flowlets and reusable steps', async () => {

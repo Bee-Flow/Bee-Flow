@@ -12,6 +12,8 @@ describe('looksLikeSideEffect (fallback heuristic)', () => {
         expect(looksLikeSideEffect('gmail_search')).toBe(false);
         expect(looksLikeSideEffect('gmail_read')).toBe(false);
         expect(looksLikeSideEffect('gmail_list_labels')).toBe(false);
+        expect(looksLikeSideEffect('gmail_read_many')).toBe(false);
+        expect(looksLikeSideEffect('outlook_read_many')).toBe(false);
         expect(looksLikeSideEffect('nextcloud_list_trash')).toBe(false);
     });
 
@@ -20,6 +22,10 @@ describe('looksLikeSideEffect (fallback heuristic)', () => {
         expect(looksLikeSideEffect('drive_create_folder')).toBe(true);
         expect(looksLikeSideEffect('youtrack_update_issue')).toBe(true);
         expect(looksLikeSideEffect('webpage_set_metadata')).toBe(true);
+        expect(looksLikeSideEffect('gmail_bulk_modify')).toBe(true);
+        expect(looksLikeSideEffect('gmail_modify_labels')).toBe(true);
+        expect(looksLikeSideEffect('gmail_archive')).toBe(true);
+        expect(looksLikeSideEffect('gmail_mark_read')).toBe(true);
     });
 
     it('handles empty / undefined input', () => {
