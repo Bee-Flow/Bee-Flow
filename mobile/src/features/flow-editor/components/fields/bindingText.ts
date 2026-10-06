@@ -201,7 +201,9 @@ export function insertPath(
     if (expression) {
         const start = selection?.start ?? text.length;
         const end = selection?.end ?? text.length;
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- before is only tested by /[A-Za-z0-9_$\])"']$/, one character class anchored at $ with no quantifier: linear
         const before = text.slice(0, start);
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- after is only tested by /^[A-Za-z0-9_$(["']/, one character class anchored at ^ with no quantifier: constant time
         const after = text.slice(end);
         const pre = /[A-Za-z0-9_$\])"']$/.test(before) ? ' ' : '';
         const post = /^[A-Za-z0-9_$(["']/.test(after) ? ' ' : '';

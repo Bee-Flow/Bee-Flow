@@ -134,6 +134,7 @@ function readQuoted(src, i) {
         if (c === '\\') {
             const n = src[j + 1];
             if (n === undefined) return null;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored fixed count of one class, on a 4-character slice: linear
             if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(src.slice(j + 2, j + 6))) {
                 out += String.fromCharCode(parseInt(src.slice(j + 2, j + 6), 16));
                 j += 6;
@@ -171,6 +172,7 @@ function readLiteral(src, i) {
     const num = /^-?[0-9]+(?:\.[0-9]+)?/.exec(src.slice(i));
     if (num) return { value: Number(num[0]), end: i + num[0].length };
     for (const [word, value] of [['true', true], ['false', false], ['null', null]]) {
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NAME_CHAR_RE is a single character class, tested on one character: linear
         if (src.startsWith(word, i) && !NAME_CHAR_RE.test(src[i + word.length] || '')) return { value, end: i + word.length };
     }
     return null;
@@ -188,6 +190,7 @@ export function readPath(src, start = 0) {
     let i = start;
     const readName = () => {
         let j = i;
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NAME_CHAR_RE is a single character class, tested on one character: linear
         while (j < src.length && NAME_CHAR_RE.test(src[j])) j++;
         if (j === i) return null;
         const name = src.slice(i, j);
@@ -244,6 +247,7 @@ export function readPath(src, start = 0) {
                 }
                 else {
                     let k = j;
+                    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NAME_CHAR_RE is a single character class, tested on one character: linear
                     while (k < src.length && NAME_CHAR_RE.test(src[k])) k++;
                     if (k > j) { tok = { type: 'prop', key: src.slice(j, k), bare: true }; j = k; }
                 }
@@ -329,7 +333,6 @@ export function splitLast(path) {
 
 // ── JSON text ────────────────────────────────────────────────────────────
 
-const FENCE_RE = /^```[A-Za-z0-9_-]*[ \t]*\r?\n?([\s\S]*?)\r?\n?```\s*$/;
 const JSON_TEXT_MAX_CHARS = 8 * 1024 * 1024;
 const EXTRACT_MAX_CHARS = 1024 * 1024;
 const EXTRACT_SCAN_BUDGET = 2_000_000;
@@ -362,6 +365,32 @@ function cacheFor(root) {
     return c;
 }
 
+/** `[A-Za-z0-9_-]`: a character of a fence's language tag (```json). */
+function isFenceTagChar(code) {
+    return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
+        || code === 95 || code === 45;
+}
+
+/**
+ * The inside of a ``` fence that wraps ALL of `s` (already trimmed), or null.
+ * The same reading as /^```[A-Za-z0-9_-]*[ \t]*\r?\n?([\s\S]*?)\r?\n?```\s*$/,
+ * written out by hand: that regex backtracked quadratically on a fence that
+ * never closes ("```" + a few MB of letters or spaces), and this text can be
+ * any HTTP body or AI answer of up to JSON_TEXT_MAX_CHARS. One pass, no regex.
+ */
+function fenceBody(s) {
+    if (s.length < 6 || !s.startsWith('```') || !s.endsWith('```')) return null;
+    let start = 3;
+    while (isFenceTagChar(s.charCodeAt(start))) start++;
+    while (s[start] === ' ' || s[start] === '\t') start++;
+    if (s[start] === '\r') start++;
+    if (s[start] === '\n') start++;
+    let end = s.length - 3;
+    if (end > start && s[end - 1] === '\n') end--;
+    if (end > start && s[end - 1] === '\r') end--;
+    return s.slice(start, end);
+}
+
 /**
  * A string that IS a JSON object or array (optionally inside a ```json
  * fence, as language models answer, or encoded twice) → the parsed value;
@@ -374,8 +403,8 @@ export function parseJsonText(value, cache = null) {
     const cacheable = cache && value.length >= MIN_CACHED_CHARS;
     if (cacheable && cache.has(value)) return cache.get(value);
     let s = value.trim();
-    const fence = FENCE_RE.exec(s);
-    if (fence) s = fence[1].trim();
+    const fence = fenceBody(s);
+    if (fence !== null) s = fence.trim();
     let out;
     for (let depth = 0; depth < 2 && out === undefined; depth++) {
         const first = s[0];
@@ -477,11 +506,13 @@ export function extractJsonText(text) {
 /** `{"…` / `{}` or `[` + a JSON value: how an answer (or a cut-off one) starts, unlike `{name}`. */
 function looksLikeJsonStart(text, i) {
     let j = i + 1;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a single character class, tested on one character: linear
     while (j < text.length && /\s/.test(text[j])) j++;
     const c = text[j];
     if (c === undefined) return true;
     if (text[i] === '{') return c === '"' || c === '}';
     if (/[[{"\]0-9-]/.test(c)) return true;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an alternation of three literals, no repeat, on a 6-character slice: linear
     return /^(?:true|false|null)(?![A-Za-z0-9_])/.test(text.slice(j, j + 6));
 }
 
@@ -601,6 +632,22 @@ function walkWith(tokens, root, cache) {
 export function getPath(root, path) {
     const t = parsePath(path);
     return t ? walkTokens(t, root) : undefined;
+}
+
+/**
+ * The LIST a path names, read the way the run reads a step's list (a Loop's,
+ * a per-item step's or a Condition's source; the server's bind.walkList): an
+ * array, or JSON text that encodes one. Null for anything else, so an editor
+ * that previews a list shows exactly the rows the run will get.
+ */
+export function getList(root, path) {
+    const v = getPath(root, path);
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string') {
+        const parsed = parseJsonText(v, cacheFor(root));
+        if (Array.isArray(parsed)) return parsed;
+    }
+    return null;
 }
 
 /**

@@ -120,6 +120,7 @@ function findRefPaths(text, roots = REF_ROOTS) {
     for (const root of roots) {
         let i = text.indexOf(root);
         while (i >= 0) {
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NOT_A_START is one character class tested on a single character: linear
             if (i === 0 || !NOT_A_START.test(text[i - 1])) {
                 const r = readPath(text, i);
                 if (r && r.tokens[0].key === root && r.tokens.length > 1) out.push(r.tokens);

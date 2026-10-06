@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
     appendKey, appendMatch, formatKey, formatPath, parsePath, canonicalPath, getPath, getRelativePath,
-    parseJsonText, extractJsonText, scanTemplate, replaceTemplate, splitLast, isIdentifierKey,
+    parseJsonText, extractJsonText, scanTemplate, replaceTemplate, splitLast, isIdentifierKey, getList,
 } from './path.mjs';
 import { evaluate } from './engine.mjs';
 
@@ -264,6 +264,63 @@ test('extractJsonText stays fast on hostile text', () => {
     assert.equal(extractJsonText(big).rows.length, 20000, 'a large prose-wrapped answer still parses');
 });
 
+test('parseJsonText reads a ``` fence in one pass, also one that never closes', () => {
+    // The fence was a regex that backtracked quadratically when it did not
+    // close: "```" + 200k letters or spaces took about 6 s, 8 MB (the cap) hours.
+    for (const text of ['```' + 'a'.repeat(200000), '```' + ' '.repeat(200000) + 'x', '```' + '\t'.repeat(200000) + '{']) {
+        const t0 = Date.now();
+        assert.equal(parseJsonText(text), undefined);
+        assert.equal(extractJsonText(text), undefined);
+        assert.ok(Date.now() - t0 < 1500, `${JSON.stringify(text.slice(0, 4))}… x${text.length} took ${Date.now() - t0} ms`);
+    }
+    const huge = '```json\n' + JSON.stringify({ pad: 'p'.repeat(4_000_000) }) + '\n```';
+    assert.equal(parseJsonText(huge).pad.length, 4_000_000, 'a large closed fence still parses');
+    // The same reading as before: a tag, spaces, CR/LF, or none of them.
+    assert.deepEqual(parseJsonText('```json\n{"a": 1}\n```'), { a: 1 });
+    assert.deepEqual(parseJsonText('```JSON \t\r\n[1, 2]\r\n```'), [1, 2]);
+    assert.deepEqual(parseJsonText('```{"a":1}```'), { a: 1 });
+    assert.deepEqual(parseJsonText('```json{"a":1}```'), { a: 1 });
+    assert.deepEqual(parseJsonText('```js-x_1\n{"a":1}\n```'), { a: 1 });
+    assert.deepEqual(parseJsonText('  ```\n{"a":1}\n```  \n'), { a: 1 });
+    assert.deepEqual(parseJsonText('```json\n"{\\"a\\":1}"\n```'), { a: 1 }, 'double-encoded inside a fence');
+    // Only a fence around ALL of the text counts.
+    for (const text of ['```json\n{"a":1}\n``` trailing', '```json\n{"a":1}', '``````', '```1```']) {
+        assert.equal(parseJsonText(text), undefined, JSON.stringify(text));
+    }
+});
+
+test('a fence that never closes is linear: 4 MB of hostile text reads in well under 200 ms', () => {
+    // fenceBody makes one pass; the old regex needed hours on text this size.
+    const texts = [
+        '```' + 'a'.repeat(4_000_000),
+        '```' + ' '.repeat(4_000_000) + 'x',
+        '```json' + '\t'.repeat(4_000_000) + '{',
+        '```' + '-'.repeat(4_000_000) + '\r\n{"a":1}',
+    ];
+    for (const text of texts) {
+        const t0 = performance.now();
+        assert.equal(parseJsonText(text), undefined);
+        const ms = performance.now() - t0;
+        assert.ok(ms < 200, `${JSON.stringify(text.slice(0, 4))}… x${text.length} took ${ms.toFixed(1)} ms`);
+    }
+    // A fence that does close, around 4 MB of the same letters: still read.
+    const closed = '```json\r\n["' + 'a'.repeat(4_000_000) + '"]\r\n```';
+    const t0 = performance.now();
+    assert.equal(parseJsonText(closed)[0].length, 4_000_000);
+    assert.ok(performance.now() - t0 < 200, `closed 4 MB fence took ${(performance.now() - t0).toFixed(1)} ms`);
+});
+
+test('fence edge cases read as the old /^```tag[ \\t]*\\r?\\n?(body)\\r?\\n?```\\s*$/ did', () => {
+    assert.deepEqual(parseJsonText('```json\n{"a":1}\n```'), { a: 1 }, 'a json fence');
+    assert.deepEqual(parseJsonText('```my-tag_2 \t\n[1]\n```'), [1], 'any [A-Za-z0-9_-] tag, then spaces');
+    assert.deepEqual(parseJsonText('```\r\n{}\r\n```'), {}, 'CRLF on both sides');
+    assert.deepEqual(parseJsonText('```\n\n{"a":1}\n\n```'), { a: 1 }, 'blank lines are trimmed off the body');
+    assert.deepEqual(parseJsonText('```{"a":"```"}```'), { a: '```' }, 'backticks inside the body');
+    for (const text of ['```json\n{"a":1}', '```json\n{"a":1}\n``', '{"a":1}\n```', '``````', '```json\n```', '```a```', '`````']) {
+        assert.equal(parseJsonText(text), undefined, `${JSON.stringify(text)} is not a fenced JSON value`);
+    }
+});
+
 test('one parse per run: item scopes and binding copies share the cache', () => {
     const steps = { http: { output: { body: JSON.stringify({ data: { x: 1 }, pad: 'p'.repeat(400) }) } } };
     const a = getPath({ steps, loop: { item: 1 } }, 'steps.http.output.body.data');
@@ -363,3 +420,24 @@ test('a digit key beyond 2^53 is the key it spells, in a path and in a formula',
     assert.equal(evaluate('users[1234567890123456789]', root), 'snow');
     assert.equal(evaluate('list[1]', { list: [1, 2, 3] }), 2, 'small indexes still read as numbers');
 });
+
+test('getList reads a list the way the run does (bind.walkList): an array, or JSON text that encodes one', () => {
+    const rows = [{ id: 1 }, { id: 2 }];
+    const root = {
+        steps: {
+            s1: { output: { messages: rows, asText: JSON.stringify(rows), fenced: '```json\n[{"id":3}]\n```', record: '{"a":1}', prose: 'hello', count: 2 } },
+            s2: { output: { messages: [{ attachments: [{ f: 'a' }, { f: 'b' }] }, { attachments: [{ f: 'c' }] }] } },
+        },
+    };
+    assert.equal(getList(root, 'steps.s1.output.messages'), rows);
+    assert.deepEqual(getList(root, 'steps.s1.output.asText'), rows);
+    assert.deepEqual(getList(root, 'steps.s1.output.fenced'), [{ id: 3 }]);
+    // `[*]` maps and flattens, as everywhere else.
+    assert.deepEqual(getList(root, 'steps.s2.output.messages[*].attachments'), [{ f: 'a' }, { f: 'b' }, { f: 'c' }]);
+    // Anything that is not a list is null, never a guess.
+    for (const p of ['steps.s1.output.record', 'steps.s1.output.prose', 'steps.s1.output.count', 'steps.s1.output.missing', 'steps.nope.output', 'not a path!']) {
+        assert.equal(getList(root, p), null, p);
+    }
+    assert.equal(getList(null, 'steps.s1.output.messages'), null);
+});
+

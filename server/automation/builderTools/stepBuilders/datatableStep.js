@@ -84,6 +84,7 @@ function sanitizeDatatableCursor(raw, draft, draftWrap) {
     if (typeof raw === 'string') {
         const parts = scanTemplate(raw.trim());
         if (parts.length === 1 && parts[0].type === 'ref') candidate = { kind: 'ref', path: parts[0].inner };
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- /^\s*(steps|trigger|loop|vars)[.[]/ is anchored, one \s* run then fixed literals: linear
         else if (/^\s*(steps|trigger|loop|vars)[.[]/.test(raw) && !parts.some(p => p.type === 'ref')) candidate = { kind: 'ref', path: raw.trim() };
         else if (!parts.some(p => p.type === 'ref')) return { cursor: raw, notes: [], error: null };
     }

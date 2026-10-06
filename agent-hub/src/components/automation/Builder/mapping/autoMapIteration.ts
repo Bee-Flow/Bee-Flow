@@ -148,6 +148,7 @@ function better(a: Scored, b: Scored | null, order: Map<ListSource, number>): bo
     if (a.required !== b.required) return a.required > b.required;
     if (a.source.chain.length !== b.source.chain.length) return a.source.chain.length < b.source.chain.length;
     if (a.source.weight !== b.source.weight) return a.source.weight < b.source.weight;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- ARRAY_NAME_RE is an alternation of short literals with no quantifier: bounded work per position, linear
     const an = ARRAY_NAME_RE.test(a.source.key) ? 0 : 1;
     const bn = ARRAY_NAME_RE.test(b.source.key) ? 0 : 1;
     if (an !== bn) return an < bn;

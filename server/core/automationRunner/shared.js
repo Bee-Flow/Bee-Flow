@@ -359,6 +359,7 @@ function collectBindingPaths(value, out = []) {
                 // nothing): scan the text, erring toward synthesising.
                 const found = findRefPaths(value.value, TAINT_ROOTS);
                 for (const tokens of found) out.push(formatPath(tokens));
+                // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- BARE_TRIGGER_RE is a fixed literal between one-character lookbehind/lookahead classes, no repeats: linear
                 if (BARE_TRIGGER_RE.test(value.value) && !found.some(t => t[0].key === 'trigger')) out.push('trigger');
             }
         }

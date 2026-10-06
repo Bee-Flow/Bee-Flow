@@ -22,6 +22,7 @@ export function rewritePathsInText(text: string, fn: (tokens: Tok[]) => string |
     let i = 0;
     const re = /(^|[^A-Za-z0-9_$.\]"'])loop\./g;
     let m: RegExpExecArray | null;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- no quantifier (start or one character, then the literal loop.) and each exec resumes past the previous match: linear
     while ((m = re.exec(text)) !== null) {
         const start = m.index + (m[1] || '').length;
         const r = readPath(text, start) as { tokens: Tok[]; end: number } | null;

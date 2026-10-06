@@ -256,6 +256,7 @@ function objFromMembers(text, depth) {
 /** One curated description ('array of { id, name }', 'integer', 'object|undefined', …). */
 function fromDescription(desc, depth = 0) {
     if (typeof desc !== 'string' || depth > MAX_DEPTH) return ANY;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- /^array\s+of\s+/i is anchored, with the two \s+ runs separated by the literal "of": no overlapping repeats, linear
     const s = desc.trim();
     const arrOf = /^array\s+of\s+/i.exec(s);
     if (arrOf) {
