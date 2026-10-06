@@ -101,6 +101,9 @@ const EXPECTED = [
     // BFSF-419 Track 1's generic fallback: the closing page's OWN TEXT (no
     // generate_document step, so no fileId to key off), into a new notebook.
     'POST /form/:token/s/:sid/notebook',
+    // BFSF-419: the same result as a Word/PDF download, and as a new webpage.
+    'GET /form/:token/s/:sid/export/:format',
+    'POST /form/:token/s/:sid/webpage',
     'POST /form/:token/s/:sid',
     'USE:requireAuth',
     'USE:anonymous',

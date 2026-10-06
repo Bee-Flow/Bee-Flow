@@ -4,9 +4,10 @@
  *   DIFFERENTIAL  answersRange.js runs beside answersRange.ts; isBlankForm
  *                 (AiDraftPanel.jsx), formLiveness / publicFormPath /
  *                 canOpenAutomation / canOpenForm (FormsStudio.jsx) and
- *                 fileSize / fileKind / txtFilename / initialValues
- *                 (PublicFormRenderer.jsx) are cut out of their component
- *                 files and run beside the ports on the same inputs;
+ *                 fileSize / fileKind / initialValues (PublicFormRenderer.jsx)
+ *                 are cut out of their component files and run beside the
+ *                 ports on the same inputs, and resultFilename runs from
+ *                 resultFile.ts itself;
  *   TEXTUAL       the Form page's tabs, the poll's pacing, the closing
  *                 page's "long" threshold and the theme tables.
  *
@@ -17,7 +18,7 @@ import { isBlankForm } from './aiDraft';
 import { defaultRange, PRESETS, rangeToQuery, type AnswersRange } from './answersRange';
 import { initialValues } from './contract';
 import type { FillField } from './fillTypes';
-import { fileKind, fileSize, LONG_ENDING_CHARS, POLL_CEILING_MS, POLL_MAX_MS, POLL_MIN_MS, POLL_STEP_MS, SESSION_RE, txtFilename } from './fillValues';
+import { fileKind, fileSize, LONG_ENDING_CHARS, POLL_CEILING_MS, POLL_MAX_MS, POLL_MIN_MS, POLL_STEP_MS, resultFilename, SESSION_RE } from './fillValues';
 import { DENSITY_MULT, RADIUS_PX } from './formLook';
 import { canOpenForm, canOpenAutomation, formLiveness, publicFormPath, TABS_OWNER, TABS_VIEWER } from './formPage';
 import { readWeb, requireWeb, constText, functionText } from '../testing/sources';
@@ -90,7 +91,7 @@ describe('FormsStudio.jsx and FormPage.jsx', () => {
 
 describe('PublicFormRenderer.jsx and PublicFormPage.jsx', () => {
     const rendererSrc = readWeb('components/forms/PublicFormRenderer.jsx');
-    const web = cut('components/forms/PublicFormRenderer.jsx', ['fileSize', 'fileKind', 'txtFilename', 'initialValues'], `const DISPLAY_FIELD_TYPES = ['download', 'notebook']; const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);`);
+    const web = cut('components/forms/PublicFormRenderer.jsx', ['fileSize', 'fileKind', 'initialValues'], `const DISPLAY_FIELD_TYPES = ['download', 'notebook']; const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);`);
 
     it.each([[0], [-1], [512], [1023], [1024], [900 * 1024], [1024 * 1024], [5.55 * 1024 * 1024], ['12'], [null], ['x']])('fileSize(%s)', (bytes) => {
         expect(fileSize(bytes)).toBe(web.fileSize?.(bytes));
@@ -100,8 +101,9 @@ describe('PublicFormRenderer.jsx and PublicFormPage.jsx', () => {
         expect(fileKind(name)).toBe(web.fileKind?.(name));
     });
 
-    it.each([['Your summary'], ['  Ünïcode — title!  '], [''], [null], ['a'.repeat(80)], ['***']])('txtFilename(%s)', (title) => {
-        expect(txtFilename(title)).toBe(web.txtFilename?.(title));
+    const resultFile = requireWeb<{ resultFilename: Fn }>('components/forms/resultFile.ts');
+    it.each([['Your summary'], ['  Ünïcode — title!  '], [''], [null], ['a'.repeat(80)], ['***']])('resultFilename(%s)', (title) => {
+        for (const extension of ['txt', 'docx', 'pdf']) expect(resultFilename(title, extension)).toBe(resultFile.resultFilename(title, extension));
     });
 
     it('starts a page with the web’s empty answers', () => {
