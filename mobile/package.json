@@ -72,7 +72,7 @@
         "expo-task-manager": "~57.0.20",
         "expo-web-browser": "~57.0.3",
         "highlight.js": "11.11.1",
-        "lucide-react-native": "0.562.0",
+        "lucide-react-native": "1.50.0",
         "marked": "18.0.6",
         "mathjax-full": "3.2.2",
         "react": "19.2.3",
