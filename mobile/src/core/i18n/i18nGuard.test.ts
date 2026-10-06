@@ -421,7 +421,6 @@ const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.chat.skill_count', "automations.*_skills_plural are the plural halves of an AI step's skill count; this counts a chat's skills"],
     ['mobile.chat.trace_steps', OTHER_STEPS],
     ['mobile.compliance.check_history', "automations.versions.history is an automation's version history; this is a compliance check's"],
-    ['mobile.forms.fill.copied', OTHER_COPIED],
     ['mobile.forms.fill.untitled', VERSION_SETTING],
     ['mobile.forms.more', OTHER_MORE],
     ['mobile.kb_documents.title', OTHER_DOCUMENTS],

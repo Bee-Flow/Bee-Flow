@@ -304,7 +304,7 @@ jobs:
               - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{themeVars.js,uiBits.jsx}'
               - 'agent-hub/src/components/admin/security/guardrails/Info.jsx'
               - 'agent-hub/src/components/automation/Builder/BuilderConfirmContext.jsx'
-              - 'agent-hub/src/components/forms/PublicFormRenderer.jsx'
+              - 'agent-hub/src/components/forms/{PublicFormRenderer.jsx,resultFile.ts}'
               - 'agent-hub/src/components/shared/{AnchoredMenu.jsx,illustrations.tsx}'
               - 'agent-hub/src/hooks/{useAutomationApi.ts,useTranslation.tsx}'
               - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,helpers.js,sseStream.js,storageMigrations.js}'
