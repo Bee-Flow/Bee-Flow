@@ -1,5 +1,6 @@
 // The "Edit data" (set) editor with its JSON-extract footer, extracted
 // verbatim from SettingsForm.jsx.
+import { appendKey } from '@shared/expr/path.mjs';
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { walkPath } from '../../../../../utils/bindingHelpers';
@@ -7,6 +8,7 @@ import { skipGroupOfStep } from '../../../../shared/statusTokens';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
 import { sampleToFields } from '../../mapping/upstream';
+import { jsonPickBinding } from '../../mapping/valueParts';
 import { VariablePickerProvider, useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import AccordionSection from '../AccordionSection';
 import { humanizeFieldKey } from '../displayHelpers';
@@ -237,8 +239,10 @@ function sourceListUnresolved(arrayRef, runStep, previewSample, groups) {
  * "Some of this data is JSON text · Pick fields from it" — the Parse JSON
  * node's successor, folded into Edit data. Rendered only when an upstream
  * sample (or, in list mode, a field of the current row) is a string that
- * parses to a JSON object/array. A pick appends a computed field whose value
- * is a `parseJson(<source>, "<path>")` expression — deterministic, free at
+ * parses to a JSON object/array. A pick appends a field that reads it
+ * (valueParts.jsonPickBinding): a plain path into the JSON text, which the run
+ * reads as the value it encodes — one chip, any key — or, for JSON inside
+ * prose, a `parseJson(<source>, "<path>")` expression. Deterministic, free at
  * run time, and visible/editable like any other field.
  */
 function JsonExtractSection({ draft, set, listMode, elementSample, previewSample }) {
@@ -259,7 +263,9 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
         if (listMode) {
             if (elementSample && typeof elementSample === 'object' && !Array.isArray(elementSample)) {
                 for (const [k, v] of Object.entries(elementSample)) {
-                    if (jsonish(v)) found.push({ path: `item.${k}`, label: `each row · ${humanizeFieldKey(k)}`, preferred: PREFERRED.test(k) });
+                    // The row's key written canonically: `item["raw-json"]`, not
+                    // `item.raw-json`, which a formula reads as a subtraction.
+                    if (jsonish(v)) found.push({ path: appendKey('item', k), label: `each row · ${humanizeFieldKey(k)}`, preferred: PREFERRED.test(k) });
                 }
             }
         } else {
@@ -280,21 +286,15 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
 
     const sourcePath = customSource ?? candidates[0]?.path ?? '';
     const sourceLabel = candidates.find(c => c.path === sourcePath)?.label || sourcePath;
-    const parsed = useMemo(() => {
-        if (!sourcePath || !previewSample) return undefined;
-        return parseSampleSource(walkPath(sourcePath, previewSample));
-    }, [sourcePath, previewSample]);
+    const sourceValue = useMemo(() => (sourcePath && previewSample ? walkPath(sourcePath, previewSample) : undefined), [sourcePath, previewSample]);
+    const parsed = useMemo(() => (sourceValue === undefined ? undefined : parseSampleSource(sourceValue)), [sourceValue]);
 
     if (!candidates.length && customSource == null) return null;
 
     const addField = (relPath) => {
         const fields = draft.fields || {};
         const name = suggestFieldName(relPath, Object.keys(fields));
-        // The expr grammar has no backslash escapes — pick whichever quote
-        // style the path doesn't contain (a path needing both is unpickable
-        // upstream in JsonTreePicker for the same reason).
-        const quoted = relPath.includes('"') ? `'${relPath}'` : `"${relPath}"`;
-        set('fields', { ...fields, [name]: { kind: 'expr', value: `parseJson(${sourcePath}, ${quoted})` } });
+        set('fields', { ...fields, [name]: jsonPickBinding(sourcePath, relPath, sourceValue) });
     };
 
     if (!open) {

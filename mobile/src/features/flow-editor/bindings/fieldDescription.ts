@@ -8,6 +8,7 @@
 import { type FieldDescription, type FieldKind, formatBytes, KIND_WORD, kindOfValue, liveValue, translatorOr } from './fieldKinds';
 import { pathListShape } from './listShape';
 import type { Translate, VariableField } from './types';
+import { jsonTextValue } from './upstream/fieldTree';
 
 type Params = Record<string, string | number>;
 
@@ -15,9 +16,17 @@ function word(kind: FieldKind, tr: Translate): string {
     return tr(KIND_WORD[kind].key, KIND_WORD[kind].en);
 }
 
+/** Every key a table's first rows carry: a key only row 2 has is still a column. */
+function columnCount(rows: unknown[]): number {
+    const keys = new Set<string>();
+    for (const r of rows.slice(0, 50)) {
+        if (r && typeof r === 'object' && !Array.isArray(r)) for (const k of Object.keys(r)) keys.add(k);
+    }
+    return keys.size;
+}
+
 function tableDetail(value: unknown, count: number | null, tr: Translate): string {
-    const firstRow = Array.isArray(value) ? value.find((r) => r && typeof r === 'object') : undefined;
-    const cols = Array.isArray(value) && value.length ? Object.keys(firstRow || {}).length : null;
+    const cols = Array.isArray(value) && value.length ? columnCount(value) : null;
     const rowsText = count === 1
         ? tr('automations.kind.row', '{n} row', { n: 1 })
         : tr('automations.kind.rows', '{n} rows', { n: count ?? '?' } as Params);
@@ -48,7 +57,9 @@ function describeCollection(kind: 'list' | 'table', { value, field, sampleRoot }
     const first = Array.isArray(value) ? value.find((x) => x !== null && x !== undefined) : undefined;
     const elemKind = first === undefined ? null : kindOfValue(first);
     if (count === 0) return { kind, word: w, value, count, of: null, detail: tr('automations.kind.list_empty', '· empty') };
-    return { kind, word: w, value, count, of: elemKind, detail: listDetail(count, elemKind ? word(elemKind, tr) : null, tr) };
+    // A list of JSON texts reads "list of 2 · JSON", never as the raw text.
+    const elemWord = jsonTextValue(first) !== undefined ? tr('automations.kind.json', 'JSON') : (elemKind ? word(elemKind, tr) : null);
+    return { kind, word: w, value, count, of: elemKind, detail: listDetail(count, elemWord, tr) };
 }
 
 function longTextDetail(value: string, tr: Translate): string {
@@ -57,6 +68,15 @@ function longTextDetail(value: string, tr: Translate): string {
     return paragraphs > 1
         ? tr('automations.kind.paragraphs', '· {n} paragraphs', { n: paragraphs })
         : tr('automations.kind.words', '· {n} words', { n: words });
+}
+
+/** JSON text (a body, an AI answer): what it holds, never the raw text. */
+function jsonDetail(encoded: unknown, tr: Translate): string {
+    const n = Array.isArray(encoded) ? encoded.length : Object.keys(encoded as object).length;
+    if (Array.isArray(encoded)) return tr('automations.kind.json_list', '· JSON, a list of {n}', { n });
+    return n === 1
+        ? tr('automations.kind.json_record_one', '· JSON with 1 field')
+        : tr('automations.kind.json_record', '· JSON with {n} fields', { n });
 }
 
 function fileDetail(value: Record<string, unknown>): string | null {
@@ -82,9 +102,12 @@ export function describeField(
     const base = { kind, word: word(kind, tr), value, count: null, of: null };
     if (kind === 'group') {
         const n = Object.keys(value as object).length;
-        return { ...base, count: n, detail: tr('automations.kind.group_fields', '· {n} fields', { n }) };
+        const detail = n === 1 ? tr('automations.kind.group_field', '· 1 field') : tr('automations.kind.group_fields', '· {n} fields', { n });
+        return { ...base, count: n, detail };
     }
     if (kind === 'file') return { ...base, detail: fileDetail(value as Record<string, unknown>) };
+    const encoded = kind === 'text' ? jsonTextValue(value) : undefined;
+    if (encoded !== undefined) return { ...base, detail: jsonDetail(encoded, tr) };
     // "text · 2 paragraphs": a blob is not a value you read in a row.
     if (kind === 'text' && typeof value === 'string' && value.length > 120) return { ...base, detail: longTextDetail(value, tr) };
     return { ...base, detail: null };

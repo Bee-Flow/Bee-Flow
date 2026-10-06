@@ -15,11 +15,11 @@
  * listShape.js's whitelisted first/last/join/count calls, or a bare ref — so
  * nothing here can promise a transform the runtime lacks. Pure, React-free.
  */
+import { appendKey, appendWildcard, parsePath } from '@shared/expr/path.mjs';
 import { isScalarKind, kindOfValue, KIND_WORD } from './fieldKinds';
 import { bindingsForList, forEachPickFor, pathListShape, previewForEachPick } from './listShape';
-import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
-import { joinKeyPath, keyPickable } from './keyPath';
-import { humanizeFieldTail } from '../flow/displayHelpers';
+import { canonicalRefPath, previewValue, walkPath } from '../../../../utils/bindingHelpers';
+import { humanizeFieldKey } from '../flow/displayHelpers';
 
 export const NEWLINE = '\n';
 
@@ -66,7 +66,9 @@ export function detectMismatch({ actualKind, expectedKind }) {
  * @param {object} opts         { allowForEach, itemVar, actualKind }
  */
 export function remediesFor(path, sampleRoot, { allowForEach = false, itemVar = undefined, actualKind = undefined } = {}) {
-    const p = String(path || '').trim();
+    // Canonical: every remedy is a formula over this path (`join(p, …)`), and
+    // the engine only reads the canonical spelling as the same path.
+    const p = canonicalRefPath(String(path || '').trim());
     const kind = actualKind || kindAtPath(p, sampleRoot);
     if (kind === 'group') return groupRemedies(p, sampleRoot);
     if (kind === 'table') return tableRemedies(p, sampleRoot, { allowForEach, itemVar });
@@ -145,32 +147,25 @@ function groupRemedies(p, sampleRoot) {
     const obj = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
     // The keys are the payload's, not ours, and the payload this box exists
     // for is the one with awkward keys: an HTTP or webhook step's body, where
-    // `content-type`, `x-request-id` and `first-name` are the norm. Two rules,
-    // both from ./keyPath, and neither optional here:
-    //
-    //   - QUOTE. `${p}.content-type` previews the real value (the builder's
-    //     walkPath skips the syntax check on purpose) and resolves to
-    //     undefined in the run (the server's REF_RE rejects it), so the field
-    //     arrives EMPTY with no warning at save time or run time. Touching the
-    //     field afterwards re-parses it as an expression, where the hyphen is
-    //     a subtraction — a second, different silent failure for one key.
-    //     `${p}["content-type"]` resolves on both sides.
-    //   - REFUSE what cannot be expressed. A key holding `]` or both quote
-    //     styles has no path in this dialect; offering a button for it would
-    //     write a binding that can only ever be blank.
-    const keys = Object.keys(obj).filter(keyPickable);
+    // `content-type`, `x-request-id` and `first-name` are the norm. Every key
+    // is written with the shared canonical writer (appendKey): `.ok`, or
+    // `["content-type"]` with JSON escapes — a key holding `]` or both quote
+    // styles included — which the run, the preview and the expression engine
+    // all resolve to that key. A dotted `content-type` would be a subtraction
+    // the moment the field is touched in a formula.
+    const keys = Object.keys(obj);
     const show = (v) => previewValue(v, 40);
     const fieldRemedy = (key) => ({
         id: `field:${key}`,
-        binding: { kind: 'ref', path: joinKeyPath(p, key) },
-        labelKey: 'automations.mismatch.choice_field', labelEn: '{field}', labelParams: { field: humanizeFieldTail(key) },
+        binding: { kind: 'ref', path: appendKey(p, key) },
+        labelKey: 'automations.mismatch.choice_field', labelEn: '{field}', labelParams: { field: humanizeFieldKey(key) || key },
         preview: show(obj[key]),
     });
     const summary = {
         id: 'summary',
         binding: { kind: 'expr', value: `groupSummary(${p})` },
         labelKey: 'automations.mismatch.choice_summary', labelEn: 'The whole group, as a readable summary',
-        preview: keys.length ? `${humanizeFieldTail(keys[0])}: ${show(obj[keys[0]])}…` : null,
+        preview: keys.length ? `${humanizeFieldKey(keys[0]) || keys[0]}: ${show(obj[keys[0]])}…` : null,
     };
     const whole = {
         id: 'each',
@@ -205,7 +200,7 @@ function tableRemedies(p, sampleRoot, { allowForEach, itemVar }) {
         {
             id: 'table', binding: { kind: 'expr', value: `asTable(${p})` },
             labelKey: 'automations.mismatch.choice_as_table', labelEn: 'As a table',
-            preview: cols.length ? cols.slice(0, 4).map(humanizeFieldTail).join(' | ') : null,
+            preview: cols.length ? cols.slice(0, 4).map(c => humanizeFieldKey(c) || c).join(' | ') : null,
         },
         {
             id: 'count', binding: bindingsForList(p).count,
@@ -263,6 +258,27 @@ export function mismatchSentence({ actualKind, expectedKind, count }, t = null) 
         : tr('automations.mismatch.list_into_one', 'is a {actual}, this needs one {expected}. What do you want?', { actual: actualWord, expected: expectedWord });
 }
 
+/**
+ * The path of ONE column of the table at `path`, as the run reads it.
+ *
+ * `[*]` maps the REST of a path over every element, so a table reached
+ * through `[*]` — Graph's `value[*].from`, one record per message — gets its
+ * column by plain key (`value[*].from.emailAddress`); `[*].emailAddress`
+ * there would try to iterate each record and read nothing. When each element
+ * holds a list itself (`value[*].toRecipients`), or the path names the list
+ * directly (`lines`), the column goes through `[*]`. Decided on the sample,
+ * which is where the table was seen. Keys are written canonically.
+ */
+export function columnPath(path, key, sampleRoot) {
+    const p = canonicalRefPath(String(path || '').trim());
+    if ((parsePath(p) || []).some(t => t.type === 'wild')) {
+        const direct = appendKey(p, key);
+        const v = walkPath(direct, sampleRoot);
+        if (Array.isArray(v) && v.length) return direct;
+    }
+    return appendKey(appendWildcard(p), key);
+}
+
 /** The kind a picked path resolves to right now (for the gate). */
 export function kindAtPath(path, sampleRoot) {
     if (!path || !sampleRoot) return 'unknown';
@@ -286,7 +302,7 @@ export function columnForSlot(path, sampleRoot, { slot = null, expectedKind = 't
     const cols = Object.keys(first);
     const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const want = norm(slot);
-    const pickPath = (c) => joinKeyPath(`${path}[*]`, c);
+    const pickPath = (c) => columnPath(path, c, sampleRoot);
     if (want) {
         const exact = cols.find(c => norm(c) === want);
         if (exact) return pickPath(exact);
@@ -318,7 +334,7 @@ export function fieldForSlot(path, sampleRoot, { slot = null, expectedKind = 'te
     if (!keys.length) return null;
     const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const want = norm(slot);
-    const pick = (k) => joinKeyPath(String(path), k);
+    const pick = (k) => appendKey(canonicalRefPath(String(path)), k);
     if (want) {
         const exact = keys.find(k => norm(k) === want);
         if (exact) return pick(exact);

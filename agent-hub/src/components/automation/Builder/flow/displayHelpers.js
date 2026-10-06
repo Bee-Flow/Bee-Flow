@@ -4,8 +4,9 @@
  * the Condition node's field picker uses `humanizeFieldKey` in the inspector too,
  * because a non-technical author should read "Subject", never `item.subject`.
  */
-import { parseExprToRows, labelFor, isUnaryOp } from '../utils/conditionModel';
+import { pathLabelParts } from '../../../../utils/bindingHelpers';
 import { parseRefTokens, resolveChipLabel } from '../mapping/refTokens';
+import { parseExprToRows, labelFor, isUnaryOp } from '../utils/conditionModel';
 
 // Hand-curated proper-noun casing so 'gmail' renders as 'Gmail' instead
 // of 'Gmail' is fine but 'github' should render as 'GitHub', 'youtrack'
@@ -119,17 +120,40 @@ export function humanizeFieldKey(key) {
         .join(' ');
 }
 
+/** "1st", "2nd", "last" — an index the way a person counts. */
+function ordinalLabel(index) {
+    if (index === -1) return 'last';
+    const n = Math.abs(index < 0 ? index : index + 1);
+    const v = n % 100;
+    const suffix = (v >= 11 && v <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th';
+    return index < 0 ? `${n}${suffix} from last` : `${n}${suffix}`;
+}
+
+/** Text that is no path: its last dotted segment, brackets dropped. */
+function lastSegmentLabel(text) {
+    const seg = String(text).replace(/\[[^\]]*\]/g, '').split('.').filter(Boolean).pop();
+    return seg ? humanizeFieldKey(seg) : '';
+}
+
 /**
- * The readable tail of a field path: the last named segment, humanised.
- * `results[*].from_email` → "From email", `items[0].id` → "Id".
- * Indexes and wildcards are dropped — whoever needs the exact path finds it
- * in the chip's `title`, and `items[0].id` is not a name anyone reads
+ * The readable name of a field path, the way its pill names it (the pills
+ * call this too, through refTokens.fieldTailLabel): the field's own key,
+ * humanised — `fields["Story Points"]` reads "Story points",
+ * `headers[name="Subject"].value` "Subject". A generic key gets the key that
+ * says whose it is (`from.emailAddress.address` → "From ▸ Address", so a
+ * sender's and a recipient's address read differently), and an index right
+ * after the key says which one (`items[0]` → "Items ▸ 1st"). Wildcards and
+ * indexes further up are dropped; the exact path stays on the pill's tooltip
  * (BFSF-330).
  */
 export function humanizeFieldTail(fieldPath) {
-    const cleaned = String(fieldPath || '').replace(/\[[^\]]*\]/g, '');
-    const seg = cleaned.split('.').filter(Boolean).pop();
-    return seg ? humanizeFieldKey(seg) : '';
+    const tail = String(fieldPath ?? '').trim();
+    if (!tail) return '';
+    const parts = pathLabelParts(tail);
+    if (!parts || !parts.leaf) return parts?.index != null ? ordinalLabel(parts.index) : lastSegmentLabel(tail);
+    const name = humanizeFieldKey(parts.leaf) || parts.leaf;
+    const head = parts.parent ? `${humanizeFieldKey(parts.parent) || parts.parent} ▸ ${name}` : name;
+    return parts.index == null ? head : `${head} ▸ ${ordinalLabel(parts.index)}`;
 }
 
 /**

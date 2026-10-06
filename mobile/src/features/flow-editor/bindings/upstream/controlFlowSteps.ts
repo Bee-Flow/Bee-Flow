@@ -7,6 +7,7 @@
 
 import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
+import { appendKey } from '@/shared/expr';
 
 import { arr, isObj } from '../json';
 import type { FlowDefinition, FlowNode, RouteCase, VariableGroup } from '../types';
@@ -29,7 +30,8 @@ export function describeSwitch(node: FlowNode): VariableGroup {
         { key: 'matched', path: `${base}.matched`, sample: sample.matched },
         { key: 'value', path: `${base}.value`, sample: null },
         { key: 'branch', path: `${base}.branch`, sample: sample.branch },
-        ...all.map((n) => ({ key: `matchesByCase.${n}`, path: `${base}.matchesByCase.${n}`, sample: [] })),
+        // A case is named in plain words ("High priority"): the grammar's writer quotes it.
+        ...all.map((n) => ({ key: `matchesByCase.${n}`, path: appendKey(appendKey(base, 'matchesByCase'), n), sample: [] })),
     ]);
 }
 

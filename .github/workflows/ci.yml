@@ -158,6 +158,9 @@ jobs:
               # require()d by src/features/flow-editor/formState/settings.lockstep.test.ts,
               # and what that file requires in turn
               - 'server/automation/{diffSummary,fieldDiff}.js'
+              # fieldDiff.js reads paths with the shared grammar
+              - 'server/automation/expr.js'
+              - 'server/automation/validate/refPaths.js'
               - 'server/core/automationRunner/definitionForRun.js'
               - 'server/core/http/errors.js'
               # The mobile parity series (flow editor, access, compliance,

@@ -10,7 +10,7 @@ import TopicValueSlot from './TopicValueSlot';
 import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
-import { walkPath, insertAtCursor } from '../../../../utils/bindingHelpers';
+import { walkPath, insertAtCursor, formatPathForInsert } from '../../../../utils/bindingHelpers';
 import { denseInputClass } from '../flow/settings/formStyles';
 import {
     inferType,
@@ -387,8 +387,18 @@ function RawExpression({ value, context, onChange, onFocusField, canUseVisual, o
     const picker = useVariablePicker();
     const pickerCtx = useVariablePickerContext();
 
+    // A pick goes in as its own operand, in the canonical spelling the engine
+    // reads (`headers["content-type"]`, not a subtraction). Spliced straight
+    // against a name or a closing bracket it would fuse into one bogus path.
     const insertAt = (path) => {
-        const result = insertAtCursor(taRef.current, path);
+        const el = taRef.current;
+        const snippet = formatPathForInsert(path, 'expression');
+        if (!el || !snippet) return;
+        const before = el.value.slice(0, el.selectionStart ?? el.value.length);
+        const after = el.value.slice(el.selectionEnd ?? el.value.length);
+        const pre = /[A-Za-z0-9_$\])"']$/.test(before) ? ' ' : '';
+        const post = /^[A-Za-z0-9_$(["']/.test(after) ? ' ' : '';
+        const result = insertAtCursor(el, `${pre}${snippet}${post}`);
         if (result != null) onChange(result);
     };
 

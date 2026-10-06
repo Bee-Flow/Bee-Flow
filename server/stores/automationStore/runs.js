@@ -10,6 +10,7 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 const { redactForPersistence, safeOutputKeysForTool } = require('../../automation/runLogRedaction');
 const { truncatePayload } = require('../../automation/payloadTruncation');
 const { persistableOutput } = require('./runFullOutputs');
+const { persistableBindingWarnings } = require('./bindingWarnings');
 const log = require('../../telemetry/log');
 
 // ── Runs ───────────────────────────────────────────────
@@ -789,8 +790,16 @@ async function saveRunTokenMap(runId, tokenMap) {
     return rowCount > 0;
 }
 
-async function recordRunStep({ runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], toolName = null, toolsWithheld = null, errorInfo = null }) {
+async function recordRunStep(args) {
     await initDB();
+    return recordRunStepWith(run, args);
+}
+
+/**
+ * recordRunStep's body over an injected `run(sql, params)`, so a test can put
+ * its real SQL against an in-process Postgres without mocking the store's db.
+ */
+async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null }) {
     if (!runId || !stepId) {
         // Defensive: NOT NULL columns; skip rather than crash the whole run.
         log.warn(`[AutomationStore] recordRunStep called with null runId/stepId — skipping (runId=${runId}, stepId=${stepId})`);
@@ -850,9 +859,14 @@ async function recordRunStep({ runId, stepId, parentStepId = null, stepType, att
     // params quote the step's settings, so it gets the same pass as `error`.
     const withheldJson = toolsWithheld != null ? JSON.stringify(toolsWithheld) : null;
     const errorInfoJson = errorInfo != null ? JSON.stringify(stripNulDeep(redact(errorInfo))) : null;
+    // The mappings that found nothing while the step ran (bindingWarnings.js):
+    // paths and names, never the data, but a formula's text can quote a
+    // literal, so the same redaction pass as `error`. Null when none missed.
+    const warnings = persistableBindingWarnings(bindingWarnings, { clean: (v) => stripNulDeep(redact(v)) });
+    const warningsJson = warnings ? JSON.stringify(warnings) : null;
     await run(
-        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info, binding_warnings)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
          ON CONFLICT (run_id, step_id, attempts) DO UPDATE SET
             status = EXCLUDED.status,
             finished_at = EXCLUDED.finished_at,
@@ -872,7 +886,8 @@ async function recordRunStep({ runId, stepId, parentStepId = null, stepType, att
             -- about these (runDag flipping a row to handled_error) must not
             -- erase what the step recorded.
             tools_withheld = COALESCE(EXCLUDED.tools_withheld, automation_run_steps.tools_withheld),
-            error_info = COALESCE(EXCLUDED.error_info, automation_run_steps.error_info)`,
+            error_info = COALESCE(EXCLUDED.error_info, automation_run_steps.error_info),
+            binding_warnings = COALESCE(EXCLUDED.binding_warnings, automation_run_steps.binding_warnings)`,
         [
             runId, stepId, parentStepId || null, stepType, attempts, status,
             startedAt || null, finishedAt || null,
@@ -884,6 +899,7 @@ async function recordRunStep({ runId, stepId, parentStepId = null, stepType, att
             piiJson,
             withheldJson,
             errorInfoJson,
+            warningsJson,
         ],
     );
 }
@@ -991,4 +1007,4 @@ async function getRunStepsForRuns(runIds) {
     return rows.map(rowToRunStep);
 }
 
-module.exports = { createRun, getRun, getRunsForAutomation, getRecentRunsForUser, listRunsForUser, listRunsForOrg, listRunsForAutomation, getRunFacetsForUser, getRunFacetsForOrg, getRunFacetsForAutomation, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects, touchRunHeartbeat, getActiveRunsForUser, updateRun, requestCancelRun, recordRunStep, getRunSteps, getRunStepsForRuns, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunTokenMap, saveRunTokenMap, encodeRunCursor, decodeRunCursor, buildRunFilterWhere, rowToOrgRunRow, RUN_FACET_AUTOMATIONS_CAP };
+module.exports = { createRun, getRun, getRunsForAutomation, getRecentRunsForUser, listRunsForUser, listRunsForOrg, listRunsForAutomation, getRunFacetsForUser, getRunFacetsForOrg, getRunFacetsForAutomation, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects, touchRunHeartbeat, getActiveRunsForUser, updateRun, requestCancelRun, recordRunStep, recordRunStepWith, getRunSteps, getRunStepsForRuns, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunTokenMap, saveRunTokenMap, encodeRunCursor, decodeRunCursor, buildRunFilterWhere, rowToOrgRunRow, RUN_FACET_AUTOMATIONS_CAP };

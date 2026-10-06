@@ -75,7 +75,7 @@ function rowsCount(shape: Extract<ValueShape, { kind: 'rows' }>, t: TranslateFn)
     if (shape.total > shape.rows.length) {
         return t('mobile.automations.value.rows_clipped', 'Showing {shown} of {total} rows', { shown: shape.rows.length, total: shape.total });
     }
-    return shape.total === 1 ? t('mobile.automations.value.one_row', '1 row') : t('automations.canvas.result.rows', '{n} rows', { n: shape.total });
+    return shape.total === 1 ? t('automations.output.one_row', '1 row') : t('automations.canvas.result.rows', '{n} rows', { n: shape.total });
 }
 
 /**

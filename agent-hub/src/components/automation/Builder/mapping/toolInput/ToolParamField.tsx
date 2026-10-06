@@ -40,7 +40,8 @@ export default function ToolParamField({
     allowRaw: boolean;
     onFocusField?: unknown;
     previewSample?: unknown;
-    autoMapped: boolean;
+    /** true: the deterministic auto-mapper filled it; 'ai': the Auto-map wand's AI fallback did. */
+    autoMapped: boolean | 'ai';
     onRequestForEach?: unknown;
     deepenForEach?: unknown;
     suggestion?: ParamSuggestion | null;

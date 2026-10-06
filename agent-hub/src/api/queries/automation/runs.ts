@@ -59,6 +59,8 @@ export interface RunStepRecord {
     output?: unknown;
     error?: string | null;
     errorClass?: string | null;
+    /** Inputs whose mapping found nothing in this step (runs/bindingMisses.ts reads them). */
+    bindingWarnings?: unknown;
 }
 
 export interface RunStepsPayload {

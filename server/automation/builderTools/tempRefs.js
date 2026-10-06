@@ -9,7 +9,69 @@
  * resolver, so both places agree on what a handle is and how it fails.
  */
 
+const { readPath } = require('../expr');
+const { rewriteRefPath } = require('../stepIdRewrite');
+
 const TEMP_ID_RX = /^[A-Za-z][A-Za-z0-9_]{0,24}$/;
+
+const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+// What may sit right before `steps` for it to START a path rather than be the
+// tail of a longer name or a member (`vars.steps.x`, `my_steps.x`). A run of
+// `$` or `.` directly before `steps` is the model's own dialect
+// (`$steps.$calc…`, `.steps.$calc…`, which aiPaths.js strips) and is looked
+// past: the test applies to the character before that run.
+const NOT_A_START = /[\p{L}\p{N}\p{M}_$@.\-\]]/u;
+
+function startsAPath(text, i) {
+    let j = i;
+    while (j > 0 && (text[j - 1] === '$' || text[j - 1] === '.')) j--;
+    return j === 0 || !NOT_A_START.test(text[j - 1]);
+}
+
+/**
+ * Every step address in a piece of text (`steps.<id>`, `steps["<id>"]`,
+ * `steps['<id>']`), read with the runner's path reader wherever it sits — a
+ * ref path, a `{{ }}` placeholder, an expression, prose — and handed to
+ * `rename(id)`. A string it returns replaces the id; only that token changes
+ * (stepIdRewrite.rewriteRefPath keeps the spelling and the rest of the path).
+ *
+ * The handle resolver used to find `steps.$x` with a regex, so the bracket
+ * spelling of a handle was stored verbatim and dangled, and `vars.steps.$x`
+ * (a member called `steps`) was rewritten as if it addressed a step.
+ */
+function mapStepIds(text, rename) {
+    if (!text.includes('steps')) return text;
+    let out = '';
+    let last = 0;
+    let i = text.indexOf('steps');
+    while (i >= 0) {
+        let next = i + 5;
+        if (startsAPath(text, i)) {
+            // Read from `steps` itself: only the id token changes, a leading
+            // `$`/`.` stays for bindings and the template repair to strip.
+            const r = readPath(text, i);
+            const idTok = r && r.tokens[0].key === 'steps' ? r.tokens[1] : null;
+            if (idTok && idTok.type === 'prop') {
+                const id = String(idTok.key);
+                const to = rename(id);
+                if (typeof to === 'string' && to && to !== id) {
+                    const seg = text.slice(i, r.end);
+                    const map = Object.create(null);
+                    map[id] = to;
+                    const rewritten = rewriteRefPath(seg, map);
+                    if (rewritten !== seg) {
+                        out += text.slice(last, i) + rewritten;
+                        last = r.end;
+                    }
+                }
+                next = Math.max(next, r.end);
+            }
+        }
+        i = text.indexOf('steps', next);
+    }
+    return last ? out + text.slice(last) : text;
+}
 
 /**
  * Deep-rewrite `steps.$tempId` → `steps.<realId>` in every string of a spec
@@ -25,17 +87,15 @@ function rewriteTempRefs(value, idMap, onMissing, onBareTempId) {
         // and the dangling ref surfaced a round later as ref.unknown_step, far
         // from the call that caused it. The handles are right here in idMap, so
         // say so now.
-        if (onBareTempId) {
-            const bare = /\bsteps\.(?!\$)([A-Za-z][A-Za-z0-9_]*)/g;
-            let m;
-            while ((m = bare.exec(value))) {
-                if (Object.prototype.hasOwnProperty.call(idMap, m[1])) onBareTempId(m[1], idMap[m[1]]);
+        return mapStepIds(value, (id) => {
+            if (!id.startsWith('$')) {
+                if (onBareTempId && hasOwn(idMap, id)) onBareTempId(id, idMap[id]);
+                return null;
             }
-        }
-        return value.replace(/\bsteps\.\$([A-Za-z][A-Za-z0-9_]*)/g, (m, t) => {
-            const real = idMap[t];
-            if (!real) { onMissing(t); return m; }
-            return `steps.${real}`;
+            const t = id.slice(1);
+            const real = hasOwn(idMap, t) ? idMap[t] : null;
+            if (!real) onMissing(t);
+            return real;
         });
     }
     if (Array.isArray(value)) return value.map(v => rewriteTempRefs(v, idMap, onMissing, onBareTempId));
@@ -65,9 +125,10 @@ function rewriteTempRefs(value, idMap, onMissing, onBareTempId) {
  */
 function resolveHandlesForResend(value, idMap) {
     if (typeof value === 'string') {
-        return value.replace(/\bsteps\.\$?([A-Za-z][A-Za-z0-9_]*)/g, (m, t) => (
-            Object.prototype.hasOwnProperty.call(idMap, t) ? `steps.${idMap[t]}` : m
-        ));
+        return mapStepIds(value, (id) => {
+            const t = id.startsWith('$') ? id.slice(1) : id;
+            return hasOwn(idMap, t) ? idMap[t] : null;
+        });
     }
     if (Array.isArray(value)) return value.map(v => resolveHandlesForResend(v, idMap));
     if (value && typeof value === 'object') {
@@ -82,7 +143,7 @@ function resolveHandlesForResend(value, idMap) {
 function resolveAnchor(anchor, idMap) {
     if (typeof anchor !== 'string' || !anchor) return anchor;
     const bare = anchor.startsWith('$') ? anchor.slice(1) : anchor;
-    return Object.prototype.hasOwnProperty.call(idMap, bare) ? idMap[bare] : anchor;
+    return hasOwn(idMap, bare) ? idMap[bare] : anchor;
 }
 
 module.exports = { TEMP_ID_RX, rewriteTempRefs, resolveHandlesForResend, resolveAnchor };

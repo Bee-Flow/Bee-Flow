@@ -55,11 +55,16 @@ const { resolveInputs, deriveRunOutcome } = actionExecutor;
 async function runBody(run) {
     // Final output only — never the step list (intermediate steps can carry
     // the owner's integration payloads).
-    const { output, appEffects, effectsUnknown } = await deriveRunOutcome(run);
+    const { output, appEffects, effectsUnknown, outputTooLarge } = await deriveRunOutcome(run);
     return {
         runId: run.id,
         status: run.status,
         output,
+        // The run succeeded but its answer was too large to keep in full, so
+        // `output` is null. Without this flag that is indistinguishable from
+        // "the automation returned nothing" and a bound list just stays empty.
+        // Present only when it applies, like `_appEffectsUnknown` below.
+        ...(outputTooLarge ? { _outputTooLarge: true } : {}),
         ...(appEffects ? { _appEffects: appEffects } : {}),
         // `_appEffectsUnknown` is de derde stand, en hij bestaat omdat de
         // andere twee anders samenvallen: de stappenlees kán omvallen (een

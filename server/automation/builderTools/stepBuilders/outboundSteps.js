@@ -5,7 +5,7 @@
  */
 
 const { newId, appendAfter } = require('../draftGraph');
-const { sanitizeForEach } = require('../bindings');
+const { sanitizeForEach, checkTextPlaceholders, checkLoopBindings } = require('../bindings');
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES } = require('../../validate/constants');
 const { bindingToTemplate } = require('./inputBindings');
 
@@ -54,19 +54,29 @@ function normalizeCacheInto(value) {
     };
 }
 
-function applyAddHttpRequest(draft, args) {
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+function applyAddHttpRequest(draft, args, draftWrap) {
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
     if (!args.url || typeof args.url !== 'string') return { error: 'url is required (may contain {{...}} template values)' };
+    // url and body are templates the run interpolates: their {{…}} paths get
+    // the check an input binding gets.
+    const url = checkTextPlaceholders(args.url, draft, { draftWrap, label: 'url' });
+    if (url.error) return { error: url.error };
+    const body = checkTextPlaceholders(typeof args.body === 'string' ? args.body : '', draft, { draftWrap, label: 'body' });
+    if (body.error) return { error: body.error };
+    const loopUrl = checkLoopBindings(url.text, draft, forEach, draftWrap, { label: 'url' });
+    const loopBody = checkLoopBindings(body.text, draft, forEach, draftWrap, { label: 'body' });
+    if (loopUrl.error || loopBody.error) return { error: loopUrl.error || loopBody.error };
+    const warnings = [...(feNotes || []), ...url.notes, ...body.notes, ...loopUrl.notes, ...loopBody.notes];
     const method = String(args.method || 'GET').toUpperCase();
     const headers = (args.headers && typeof args.headers === 'object' && !Array.isArray(args.headers)) ? args.headers : {};
     const step = {
         id: newId('http'),
         type: 'http_request',
-        url: args.url,
+        url: loopUrl.value,
         method,
         headers,
-        body: typeof args.body === 'string' ? args.body : '',
+        body: loopBody.value,
         timeoutMs: typeof args.timeoutMs === 'number' ? args.timeoutMs : 10000,
         // blockPrivateTargets defaults TRUE (safe): only reaches localhost /
         // private-network / cloud-metadata targets when the caller explicitly
@@ -94,23 +104,31 @@ function applyAddHttpRequest(draft, args) {
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
-function applyAddNotification(draft, args) {
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+function applyAddNotification(draft, args, draftWrap) {
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
+    const title = checkTextPlaceholders(args.title, draft, { draftWrap, label: 'title' });
+    if (title.error) return { error: title.error };
+    const body = checkTextPlaceholders(args.body || '', draft, { draftWrap, label: 'body' });
+    if (body.error) return { error: body.error };
+    const loopTitle = checkLoopBindings(title.text, draft, forEach, draftWrap, { label: 'title' });
+    const loopBody = checkLoopBindings(body.text, draft, forEach, draftWrap, { label: 'body' });
+    if (loopTitle.error || loopBody.error) return { error: loopTitle.error || loopBody.error };
+    const warnings = [...(feNotes || []), ...title.notes, ...body.notes, ...loopTitle.notes, ...loopBody.notes];
     const step = {
         id: newId('notif'),
         type: 'notification',
-        title: args.title,
-        body: args.body || '',
+        title: loopTitle.value,
+        body: loopBody.value,
         channels: Array.isArray(args.channels) ? args.channels : ['notification'],
         label: args.label || 'Notification',
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
 /**
@@ -132,8 +150,8 @@ function applyAddNotification(draft, args) {
  * DB-free like every other builder. The knowledge base is checked at save and
  * at activate (`core/kb/automationKbCheck`), and again at run time.
  */
-function applyAddKnowledgeWrite(draft, args) {
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+function applyAddKnowledgeWrite(draft, args, draftWrap) {
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
     const step = {
         id: newId('kbw'),
@@ -151,7 +169,7 @@ function applyAddKnowledgeWrite(draft, args) {
         step.nearDuplicateStrategy = args.nearDuplicateStrategy;
     }
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(feNotes && feNotes.length ? { _warnings: feNotes } : {}) };
 }
 
 module.exports = {

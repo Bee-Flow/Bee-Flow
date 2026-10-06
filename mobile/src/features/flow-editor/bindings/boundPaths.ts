@@ -1,15 +1,47 @@
 /**
  * Which upstream paths a step already uses ("2 fields · 1 already in use"),
- * and how many of its declared slots are still empty. Deliberately syntactic:
- * it reads the text the server's binder reads. Port of agent-hub
+ * and how many of its declared slots are still empty. It reads every string
+ * with the runtime's grammar, the way the server's binder reads it. Port of agent-hub
  * `Builder/mapping/boundPaths.js`; pinned by mapping.lockstep.test.ts.
  */
 
+import { scanTemplate } from '@/shared/expr';
+
+import { classifyRef, scanExprPaths } from './refTokens';
 import type { FlowNode, JsonSchema, VariableField } from './types';
+import { canonicalRefPath, detectTemplate, isCleanPath } from './walkPath';
 
-const REF_RE = /(?:steps\.[A-Za-z0-9_-]+\.output|trigger\.output|loop\.[A-Za-z0-9_]+)(?:\.[A-Za-z0-9_]+|\[\*\]|\[\d+\]|\["[^"]*"\])*/g;
+const USE_ROOTS = ['steps', 'trigger', 'loop'];
 
-/** Every reference path written anywhere in `step` (not its id, position or label). */
+/** A reference to an upstream value (not the bare `trigger` root), canonical; null otherwise. */
+function referenceOf(path: string): string | null {
+    const ref = classifyRef(path);
+    if (!ref || (ref.source === 'trigger' && !/^\s*trigger\s*(?:\.\s*output|\[)/.test(path))) return null;
+    return canonicalRefPath(path);
+}
+
+/** Every reference one string holds: a template's placeholders, a whole path, or the paths in a formula. */
+function referencesIn(text: string, out: Set<string>): void {
+    const add = (p: string) => {
+        const c = referenceOf(p);
+        if (c) out.add(c);
+    };
+    if (detectTemplate(text)) {
+        for (const part of scanTemplate(text)) if (part.type === 'ref') add(part.inner);
+        return;
+    }
+    if (isCleanPath(text.trim())) {
+        add(text);
+        return;
+    }
+    for (const part of scanExprPaths(text, USE_ROOTS)) if ('path' in part) add(part.path);
+}
+
+/**
+ * Every reference path written anywhere in `step` (not its id, position or
+ * label), read with the runtime's grammar and kept CANONICAL, so a field
+ * counts as in use whichever spelling the binding and the tree use.
+ */
 export function usedPathsIn(step: unknown): Set<string> {
     const out = new Set<string>();
     if (!step || typeof step !== 'object') return out;
@@ -17,21 +49,27 @@ export function usedPathsIn(step: unknown): Set<string> {
     delete rest.id;
     delete rest.position;
     delete rest.label;
-    let text = '';
-    try {
-        text = JSON.stringify(rest) || '';
-    } catch {
-        return out;
-    }
-    for (const m of text.matchAll(REF_RE)) out.add(m[0]);
+    const seen = new WeakSet<object>();
+    const walk = (v: unknown): void => {
+        if (typeof v === 'string') {
+            referencesIn(v, out);
+            return;
+        }
+        if (!v || typeof v !== 'object' || seen.has(v)) return;
+        seen.add(v);
+        for (const child of Array.isArray(v) ? v : Object.values(v)) walk(child);
+    };
+    walk(rest);
     return out;
 }
 
-/** Is `path` (or one of its children) among the used paths? */
+/** Is `path` (or one of its children) among the used paths? Spelling-agnostic. */
 export function pathInUse(path: string | null | undefined, used: Set<string> | null | undefined): boolean {
     if (!used || !path) return false;
     if (used.has(path)) return true;
-    for (const p of used) if (p.startsWith(`${path}.`) || p.startsWith(`${path}[`)) return true;
+    const c = canonicalRefPath(path);
+    if (used.has(c)) return true;
+    for (const p of used) if (p.startsWith(`${c}.`) || p.startsWith(`${c}[`)) return true;
     return false;
 }
 

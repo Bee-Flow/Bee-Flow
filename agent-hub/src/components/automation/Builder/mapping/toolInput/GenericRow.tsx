@@ -4,11 +4,13 @@ import { suggestKeyFromPath } from '../../../../../utils/bindingHelpers';
 import { rowInputClass, cardClass, subLabelClass } from '../../flow/settings/formStyles';
 import BindingFieldJs from '../BindingField';
 import { onBindingDragOver, getBindingDropPath } from '../bindingDnd';
+import { AutoMappedPill as AutoMappedPillJs } from '../fieldChrome';
 import ValueBuilderJs from '../ValueBuilder';
 
 // The two value editors are untyped JS; their props are checked there.
 const BindingField = BindingFieldJs as unknown as ComponentType<Record<string, unknown>>;
 const ValueBuilder = ValueBuilderJs as unknown as ComponentType<Record<string, unknown>>;
+const AutoMappedPill = AutoMappedPillJs as unknown as ComponentType<{ kind: boolean | 'ai'; title?: string }>;
 const toKey = suggestKeyFromPath as (path: string) => string;
 const dropPath = getBindingDropPath as (e: unknown) => string | null;
 const rowInput = rowInputClass as (extra?: string, opts?: { invalid?: boolean }) => string;
@@ -99,7 +101,8 @@ export interface GenericRowProps {
     onRemove: () => void;
     onFocusField?: unknown;
     previewSample?: unknown;
-    autoMapped?: boolean;
+    /** true: the auto-mapper filled it; 'ai': the Auto-map wand's AI fallback did. */
+    autoMapped?: boolean | 'ai';
     visual?: boolean;
     nameLabel?: string | null;
     valueLabel?: string | null;
@@ -133,9 +136,7 @@ export default function GenericRow({
                         placeholder={namePlaceholder}
                         autoFocus={autoFocusName}
                     />
-                    {autoMapped && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] uppercase tracking-wide" title="Auto-mapped">auto</span>
-                    )}
+                    {autoMapped && <AutoMappedPill kind={autoMapped} title="Auto-mapped" />}
                     <button
                         type="button"
                         onClick={onRemove}

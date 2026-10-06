@@ -150,8 +150,16 @@ export function nameColumn(cols: OutputColumn[]): OutputColumn | null {
 const leafOf = (key: string) => (key.split('.').pop() || key).replace(/\[[^\]]*\]/g, '');
 
 /**
+ * Who a record is from or about: the column a person looks for right after
+ * its name. APIs put it anywhere — Microsoft Graph lists a mail's `from` after
+ * a dozen flags and ids — so it is picked by name, not by position.
+ */
+const HEADLINE_KEYS = new Set(['from', 'sender', 'author', 'owner', 'customer', 'requester', 'assignee', 'organizer', 'createdby', 'contact', 'client', 'supplier', 'vendor']);
+
+/**
  * The default columns, at most `max`: the name or number column first, then
- * a date, an amount, a status and every field a next step uses, filled up
+ * a date, an amount, a status, every field a next step uses and who it is
+ * from or about, filled up
  * with the remaining readable columns in the data's own order. Technical
  * columns never make the suggestion.
  */
@@ -167,6 +175,7 @@ export function suggestColumns(cols: OutputColumn[], { max = 7, usedFields = [] 
         readable.find(c => c.role === 'amount'),
         readable.find(c => c.role === 'status'),
         ...readable.filter(c => used.has(norm(leafOf(c.key)))),
+        readable.find(c => HEADLINE_KEYS.has(norm(leafOf(c.key)))),
     ];
     for (const c of priority) if (c && picks.size < max) picks.add(c.key);
     for (const c of readable) if (picks.size < max) picks.add(c.key);

@@ -545,9 +545,9 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
         try {
             if (e.type === 'integration_action') res = applyAddAction(graph, spec, draftWrap);
             else if (e.type === 'call_layer') res = applyAddCallLayer(draft, spec, { graph, scope });
-            else if (e.type === 'array_op') res = applyAddArrayOp(graph, spec);
-            // draftWrap flows to every builder; only action (gate) and
-            // ai_step (modelTier gate) read it — the rest ignore the extra arg.
+            else if (e.type === 'array_op') res = applyAddArrayOp(graph, spec, draftWrap);
+            // draftWrap flows to every builder: the gates read it, and every
+            // binding check reads the shapes a dry run left on it.
             else res = ADD_FOR_TYPE[e.type](graph, spec, draftWrap);
         } catch (err) { res = { error: err.message }; }
 

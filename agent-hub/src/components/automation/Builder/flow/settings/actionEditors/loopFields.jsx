@@ -22,6 +22,11 @@ function LoopFields({
                     }}
                     groups={groups}
                     onFocusField={onFocusField}
+                    // Another list: the steps inside follow the item by field
+                    // name, or are named when the new item lacks the field.
+                    bindings={draft.body || []}
+                    onRebind={(next) => set('body', next)}
+                    container
                 />
                 <FormRow label="Batch size" hint="Items per iteration. 1 = one at a time; higher values bind an ARRAY of that many items to loop.<name> instead of a single item.">
                     <input type="number" min={1} max={1000} value={draft.batchSize ?? 1} onChange={(e) => set('batchSize', Number(e.target.value))} className={inputClass()} />

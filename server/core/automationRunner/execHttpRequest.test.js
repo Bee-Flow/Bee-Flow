@@ -567,3 +567,33 @@ test('two calls differing only in a template-resolved URL do not share an answer
     assert.strictEqual(safeFetchCalls.length, 2);
     assert.notStrictEqual(a.output.body, b.output.body);
 });
+
+// ── A JSON body stays JSON (bind.interpolateJsonBody) ───────────────────────
+//
+// The editor teaches `{"key": "{{trigger.output.value}}"}`. Plain text
+// templating made that body invalid JSON for every value holding a quote, a
+// newline or a backslash, and for every empty value: an API refusing the call
+// for SOME records only. A JSON-shaped body is now filled by where each
+// placeholder stands; a non-JSON body, or a declared non-JSON Content-Type,
+// keeps the plain templating.
+
+const jsonBodyState = () => baseState({ trigger: { output: { summary: 'He said "ship it"\nline\\two', empty: null, list: ['a', 'b'] } } });
+async function sentBody(extra) {
+    safeFetchCalls.length = 0;
+    safeFetchImpl = async () => fakeResponse({ status: 200, body: 'ok' });
+    await execHttpRequest({ id: 'h1', type: 'http_request', method: 'POST', url: 'https://api.example.com/x', ...extra }, {}, jsonBodyState(), 'live');
+    return safeFetchCalls[0].opts.body;
+}
+
+test('JSON body: mapped text with quotes and newlines stays valid JSON; empty becomes null; a quoted list is the list', async () => {
+    const body = await sentBody({ body: '{"text":"{{trigger.output.summary}}","v":{{trigger.output.empty}},"to":"{{trigger.output.list}}"}' });
+    assert.deepStrictEqual(JSON.parse(body), { text: 'He said "ship it"\nline\\two', v: null, to: ['a', 'b'] });
+});
+
+test('JSON body: a declared text Content-Type and a form body keep the plain templating', async () => {
+    assert.strictEqual(
+        await sentBody({ headers: { 'Content-Type': 'text/plain' }, body: '{"text":"{{trigger.output.list}}"}' }),
+        '{"text":"["a","b"]"}',
+    );
+    assert.strictEqual(await sentBody({ body: 'a={{trigger.output.list}}&b=1' }), 'a=["a","b"]&b=1');
+});

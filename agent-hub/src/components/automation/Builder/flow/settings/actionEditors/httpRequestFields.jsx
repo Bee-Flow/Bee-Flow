@@ -103,15 +103,19 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                     <div className="text-xs text-[var(--text-tertiary)] italic mb-2">No headers set.</div>
                 )}
                 {headerEntries.map(([key, value]) => (
-                    <div key={key} className="flex items-start gap-2 mb-2">
+                    // Two columns that share the row: the name a bounded
+                    // third, the value (pills and all) the rest. As a flex row
+                    // the name input's own `w-full` won over its width and the
+                    // value field was squeezed off the edge.
+                    <div key={key} className="grid grid-cols-[minmax(6rem,32%)_minmax(0,1fr)_auto] items-start gap-2 mb-2" data-testid="http-header-row">
                         <input
                             type="text"
                             defaultValue={key}
                             onBlur={(e) => renameHeader(key, e.target.value)}
-                            className={inputClass() + ' w-36 shrink-0 font-mono'}
+                            className={inputClass() + ' min-w-0 font-mono'}
                             placeholder="Header-Name"
                         />
-                        <div className="flex-1">
+                        <div className="min-w-0" data-testid="http-header-value">
                             <TemplateField
                                 value={value}
                                 onChange={(next) => setHeaderValue(key, next)}

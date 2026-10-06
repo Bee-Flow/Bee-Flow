@@ -7,7 +7,7 @@ import ToolParamField from './toolInput/ToolParamField';
 import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
-import { suggestKeyFromPath } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath, suggestKeyFromPath } from '../../../../utils/bindingHelpers';
 import { useFormMode } from '../flow/settings/formDensity';
 import { actionButtonClass, subLabelClass } from '../flow/settings/formStyles';
 
@@ -79,6 +79,9 @@ export default function ToolInputForm({
     tool = null,
     problemKey = null,
     problemText = null,
+    // Keys the Auto-map wand's AI fallback filled (useAiAutoMap's aiKeys):
+    // their pill reads "auto · AI" instead of "auto".
+    aiMappedKeys = [],
 }) {
     const properties = inputSchema?.properties || null;
     const required = useMemo(() => new Set(inputSchema?.required || []), [inputSchema]);
@@ -98,7 +101,11 @@ export default function ToolInputForm({
     // Locally suppress the "auto" pill once the user edits that field. Resets
     // when the step changes (SettingsForm re-keys this subtree by step.id).
     const [consumed, setConsumed] = useState(() => new Set());
-    const isAuto = (key) => autoMappedKeys.includes(key) && !consumed.has(key);
+    const isAuto = (key) => {
+        if (consumed.has(key)) return false;
+        if (aiMappedKeys.includes(key)) return 'ai';
+        return autoMappedKeys.includes(key);
+    };
 
     // Newly-added custom rows are held LOCALLY until they have a name + value.
     // For tool/AI inputs (keepEmptyFields=false) `buildPatch`'s sanitizeInputs
@@ -148,7 +155,7 @@ export default function ToolInputForm({
     ));
 
     const updateField = (key, binding) => {
-        if (autoMappedKeys.includes(key)) setConsumed(s => new Set(s).add(key));
+        if (autoMappedKeys.includes(key) || aiMappedKeys.includes(key)) setConsumed(s => new Set(s).add(key));
         const next = { ...(inputs || {}) };
         if (isEmptyBinding(binding) && !keepEmptyFields) {
             delete next[key];
@@ -201,7 +208,7 @@ export default function ToolInputForm({
     const upstreamCtx = useVariablePickerContext();
     const addFieldFromUpstream = (path) => {
         const key = uniqueKey(suggestKeyFromPath(path));
-        onChange?.({ ...(inputs || {}), [key]: { kind: 'ref', path: String(path || '').trim() } });
+        onChange?.({ ...(inputs || {}), [key]: { kind: 'ref', path: canonicalRefPath(path) } });
         upstreamPicker.closePicker();
     };
     const AddFromStepButton = keepEmptyFields ? (
@@ -347,7 +354,7 @@ export default function ToolInputForm({
                         const cur = (inputs || {})[k];
                         const next = {};
                         for (const [ek, ev] of Object.entries(inputs || {})) {
-                            if (ek === k) next[nextKey] = isEmptyBinding(cur) ? { kind: 'ref', path } : ev;
+                            if (ek === k) next[nextKey] = isEmptyBinding(cur) ? { kind: 'ref', path: canonicalRefPath(path) } : ev;
                             else next[ek] = ev;
                         }
                         onChange?.(next);

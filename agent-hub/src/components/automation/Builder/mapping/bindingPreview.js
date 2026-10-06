@@ -1,5 +1,6 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
-import { templateText, isScalarList } from '@shared/expr/templateText.mjs';
+import { replaceTemplate } from '@shared/expr/path.mjs';
+import { isScalarList, templateText } from '@shared/expr/templateText.mjs';
 import { walkPath, previewValue } from '../../../../utils/bindingHelpers';
 
 /**
@@ -19,45 +20,61 @@ import { walkPath, previewValue } from '../../../../utils/bindingHelpers';
  * looking at the expression source) falls back to `expr: <source>`; the visual
  * ValueBuilder passes `raw: false` and shows nothing rather than leaking a
  * path with an internal step id in it.
+ *
+ * `listAs` is how the slot's RUN writes a list or a record into text
+ * (server/automation/bind.js interpolateTemplate): 'text' (the default) reads
+ * "red, green, blue" and "name: Ann, city: Utrecht"; 'json' — tool, AI, code
+ * and table inputs, which carry data — writes JSON. The template preview
+ * renders every value through the runtime's own templateText with that
+ * setting, so the example line says what the step will receive.
+ *
+ * A list of plain values reads as its values ("a@x.nl, b@x.nl") in a ref's
+ * example too — the "list of 2" badge beside it says it is a list. `maxLen`
+ * is how much text the line may hold (the visual editor wraps it).
  */
-export default function previewBinding(binding, sampleRoot, { raw = true } = {}) {
+export default function previewBinding(binding, sampleRoot, { raw = true, listAs = 'text', maxLen = 60 } = {}) {
     if (!binding) return null;
     if (binding.kind === 'literal') {
         if (binding.value == null || binding.value === '') return null;
-        return previewValue(binding.value, 60);
+        return previewValue(binding.value, maxLen);
     }
-    if (binding.kind === 'ref') {
-        if (!binding.path) return null;
-        if (!sampleRoot) return raw ? binding.path : null;
-        const v = walkPath(binding.path, sampleRoot);
-        if (v === undefined) return raw ? `(no sample for ${binding.path})` : null;
-        return previewValue(v, 60);
-    }
+    if (binding.kind === 'ref') return previewRef(binding.path, sampleRoot, { raw, listAs, maxLen });
     if (binding.kind === 'template') {
         if (!binding.value) return null;
         if (!sampleRoot) return raw ? binding.value : null;
         let resolvedAny = false;
-        const filled = String(binding.value).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (full, expr) => {
-            const v = walkPath(expr.trim(), sampleRoot);
+        const lists = listAs === 'json' ? 'json' : 'join';
+        // The runtime's placeholder scan, walker and text rendering — the
+        // three things interpolateTemplate does — so nothing here can show a
+        // value, or a shape of a value, the run would not write.
+        const filled = replaceTemplate(String(binding.value), (inner, full) => {
+            const v = walkPath(inner, sampleRoot);
             if (v === undefined) return raw ? full : '…';
             resolvedAny = true;
-            // A list of plain values is written "red, green, blue" in the
-            // text, as the runtime does (templateText) — not "[3 items]".
-            if (isScalarList(v) && v.length) return previewValue(templateText(v), 24);
-            return previewValue(v, 24);
+            return templateText(v, { lists }).replace(/\n/g, ' · ');
         });
         if (!raw && !resolvedAny) return null;
-        return previewValue(filled, 60);
+        return previewValue(filled, maxLen);
     }
     if (binding.kind === 'expr') {
         if (!binding.value) return null;
         if (sampleRoot) {
             const { value, error } = tryEvaluate(binding.value, sampleRoot);
-            if (!error && value !== undefined) return previewValue(value, 60);
+            if (!error && value !== undefined) return previewValue(value, maxLen);
         }
         return raw ? `expr: ${binding.value}` : null;
     }
     return null;
+}
+
+/** A ref's sample; a list of plain values reads as its values ("a, b"). */
+function previewRef(path, sampleRoot, { raw, listAs, maxLen }) {
+    if (!path) return null;
+    if (!sampleRoot) return raw ? path : null;
+    const v = walkPath(path, sampleRoot);
+    if (v === undefined) return raw ? `(no sample for ${path})` : null;
+    if (isScalarList(v) && v.length) return previewValue(templateText(v, { lists: listAs === 'json' ? 'json' : 'join' }), maxLen);
+    return previewValue(v, maxLen);
 }
 
 /**

@@ -13,8 +13,8 @@ export * from './types';
 export * from './json';
 export * from './walkPath';
 export {
-    AUTOCOMPLETE_ROOTS, bindingFromInput, detectTemplate, formatPathForInsert, getAutocompleteToken, getAutocompleteTokenFromPrefix,
-    inputFromBinding, insertAtSelection, isCleanPath, replaceRange, suggestKeyFromPath, TEMPLATE_RE,
+    AUTOCOMPLETE_ROOTS, bindingFromInput, formatPathForInsert, getAutocompleteToken, getAutocompleteTokenFromPrefix,
+    inputFromBinding, insertAtSelection, replaceRange, suggestKeyFromPath, TEMPLATE_RE,
     type BindingMode, type PrefixToken, type TextEdit,
 } from './bindingHelpers';
 export * from './conditionText';

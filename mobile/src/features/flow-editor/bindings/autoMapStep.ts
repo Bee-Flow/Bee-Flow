@@ -10,6 +10,7 @@ import { tryIterationMapping } from './autoMapIteration';
 import { getLayerContract } from './flowDeps/flowletScope';
 import type { Catalog, FlowDefinition, FlowNode, ForEach, JsonSchema, VariableGroup } from './types';
 import { computeUpstreamGroups } from './upstream';
+import { isDiagnosticOutputKey } from './upstream/stepPayload';
 import { reconcileRouteEdges } from '../model/route/routeEdges';
 
 export interface AutoMapOptions {
@@ -58,14 +59,14 @@ interface MapContext {
     opts: AutoMapOptions;
 }
 
-function mapIntegration(step: FlowNode, { definition, catalog, groups, opts }: MapContext): AutoMapResult {
+function mapIntegration(step: FlowNode, { catalog, groups, opts }: MapContext): AutoMapResult {
     const schema = findInputSchemaForTool(catalog, step.tool);
     const patch = autoMapInputs(schema, step.inputs || {}, groups, opts);
     let nextInputs: Record<string, unknown> = { ...(step.inputs || {}), ...patch };
     let keys = Object.keys(patch);
     let forEach: ForEach | null = null;
     // Iteration fallback — never over a forEach the user set.
-    const iter = step.forEach ? null : tryIterationMapping(schema, nextInputs, groups, { definition, catalog });
+    const iter = step.forEach ? null : tryIterationMapping(schema, nextInputs, groups, isDiagnosticOutputKey);
     if (iter) {
         nextInputs = { ...nextInputs, ...iter.patch };
         keys = [...keys, ...Object.keys(iter.patch)];

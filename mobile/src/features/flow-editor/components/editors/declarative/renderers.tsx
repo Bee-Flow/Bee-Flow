@@ -9,6 +9,8 @@ import React, { type ReactElement } from 'react';
 
 import type { TranslateFn } from '@/core/i18n';
 import { autoMapInputs, type ForEach } from '@/features/flow-editor/bindings';
+import type { ForEachConfig } from '@/features/flow-editor/bindings/deepenForEach';
+import { nestedColumnPatch } from '@/features/flow-editor/bindings/deepenInputs';
 import {
     BindingInput,
     ChipsField,
@@ -92,7 +94,15 @@ function renderSchema(p: RenderProps): ReactElement | null {
     const schema = p.field.schema(p.draft, p.ctx);
     const inputs = (p.value || {}) as Inputs;
     const autoMap = () => {
-        const patch = autoMapInputs(schema, inputs, [...p.ctx.groups]);
+        const patch: Record<string, unknown> = autoMapInputs(schema, inputs, [...p.ctx.groups]);
+        // A step that runs per item: an input still empty may live in a list
+        // inside that item (a mail's attachments); the spec's write moves the step.
+        const fe = p.draft.forEach as ForEach | null | undefined;
+        if (fe?.overRef) {
+            const itemVar = fe.itemVar || 'item';
+            const item = p.ctx.groups.find((g) => g.basePath === `loop.${itemVar}`)?.sample;
+            Object.assign(patch, nestedColumnPatch(schema, { ...inputs, ...patch }, item, itemVar));
+        }
         if (Object.keys(patch).length) p.set({ ...inputs, ...patch });
     };
     return (
@@ -106,6 +116,7 @@ function renderSchema(p: RenderProps): ReactElement | null {
                 onAutoMap={p.ctx.groups.length ? autoMap : undefined}
                 allowExtra={schema ? schema.additionalProperties === true : true}
                 disabled={p.disabled}
+                forEach={(p.draft.forEach as ForEachConfig | null | undefined) ?? null}
             />
         </>
     );

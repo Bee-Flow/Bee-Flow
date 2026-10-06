@@ -1153,16 +1153,30 @@ export const FOREACH_FORM_TYPES = new Set([
     'data_extraction',
 ]);
 
+/** The well-formed `{ itemVar, overRef }` entries of a forEach's `parents`. */
+function forEachParents(parents) {
+    if (!Array.isArray(parents)) return [];
+    return parents
+        .filter(p => p && typeof p.itemVar === 'string' && p.itemVar && typeof p.overRef === 'string' && p.overRef)
+        .map(p => ({ itemVar: p.itemVar, overRef: p.overRef }));
+}
+
 /**
  * One shared forEach persist rule: normalize when enabled, explicit null to
  * clear an existing one when the user toggles it off.
  */
 function applyForEachPatch(patch, step, draft) {
     if (draft.forEach) {
+        // `parents`: the outer lists a step over a list inside a list keeps
+        // (mapping/deepenForEach.ts; the runner binds each item's outer item
+        // under that name). Dropping them here unbound every field that still
+        // reads the outer item, the moment the form saved.
+        const parents = forEachParents(draft.forEach.parents);
         patch.forEach = {
             overRef: draft.forEach.overRef || '',
             itemVar: draft.forEach.itemVar || 'item',
             maxIterations: clamp(Number(draft.forEach.maxIterations) || 100, 1, 1000),
+            ...(parents.length ? { parents } : {}),
         };
     } else if (step.forEach) {
         patch.forEach = null;

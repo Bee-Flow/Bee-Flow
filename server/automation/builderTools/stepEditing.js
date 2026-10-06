@@ -11,7 +11,7 @@ const { isSideEffect } = require('../sideEffectMap');
 const {
     BRANCHING_TYPES, listStepIds, findStepAnywhere, reconcileOutgoingEdges, moveStepAfter,
 } = require('./draftGraph');
-const { validateAndFixBindings, sanitizeForEach } = require('./bindings');
+const { validateAndFixBindings, sanitizeForEach, checkTextPlaceholders, checkLoopBindings, sanitizeArrayRef } = require('./bindings');
 const { inspectGateError } = require('./inspection');
 const { checkLoopRef } = require('./outputFields');
 const { normalizeApprovalConfig } = require('./approval');
@@ -19,7 +19,7 @@ const {
     modelTierGateError, clampDocumentTtl, sanitizeSetOperations,
     sanitizeParseJsonFieldRows, sanitizeDatatableBindings, normalizeAskOnce,
     normalizeCacheInto,
-    resolveDatatableColumns, checkExtractionFieldRefs, readOnlyTableError, DATATABLE_WRITE_OPS,
+    resolveDatatableColumns, checkExtractionFieldRefs, readOnlyTableError, DATATABLE_WRITE_OPS, sanitizeDatatableCursor,
     PARSE_JSON_RETIRED_MSG, ADD_FOR_TYPE, bindingToTemplate,
     sanitizeDataExtractionFields, sanitizeDataExtractionSource, translateDataExtractionVocabulary,
     loopItemSourceError,
@@ -31,6 +31,14 @@ const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES, DATA_EXTRACTION_MAX_INSTRUCTIONS_C
 const {
     translateDatatableVocabulary, resolveDatatableOp, resolveDatatableRef, mapColumnKeys,
 } = require('./datatableRefs');
+
+// Step fields that hold TEXT with {{…}} placeholders the run interpolates —
+// patched through the same placeholder check the add tools use.
+const TEXT_TEMPLATE_FIELDS = Object.freeze({
+    ai_step: ['prompt'],
+    notification: ['title', 'body'],
+    http_request: ['url', 'body'],
+});
 
 // Position and wiring keys handled by applyUpdateStep BEFORE the per-type
 // allow-list: they change edges, not the step's own fields.
@@ -542,16 +550,17 @@ function applyUpdateStep(graph, args, draftWrap) {
             next.fields = fields;
         }
         if ('source' in patch) {
-            const src = sanitizeDataExtractionSource(patch.source, graph);
+            const src = sanitizeDataExtractionSource(patch.source, graph, draftWrap);
             if (src.error) return { error: src.error, ...(src._fixHint ? { _fixHint: src._fixHint } : {}) };
             next.source = src.source;
+            patchNotes.push(...(src.notes || []));
             // The same item-shape check the add path runs, against the forEach
             // the step will have once this patch lands (a forEach in the same
             // patch counts; an invalid one is left for the forEach block below
             // to refuse). A patch was the one way the measured `loop.r.content`
             // could still reach a step after the add path learned to repair it.
             const fe = 'forEach' in patch
-                ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph).forEach)
+                ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph, draftWrap).forEach)
                 : step.forEach;
             if (fe && next.source.kind === 'ref' && typeof next.source.path === 'string' && next.source.path.startsWith(`loop.${fe.itemVar}.`)) {
                 const chk = checkLoopRef(graph, next.source.path, fe, draftWrap);
@@ -599,7 +608,12 @@ function applyUpdateStep(graph, args, draftWrap) {
             return readOnlyTableError(table, opAfter);
         }
         if ('values' in patch || 'where' in patch) {
-            const merged = { values: step.values, where: step.where };
+            // Only what the patch sends is canonicalised and checked; the
+            // columns it leaves alone are the author's and stay byte-identical
+            // (a broken one is the validator's report, never a reason to
+            // refuse an unrelated patch).
+            const merged = { values: {}, where: [] };
+            let patchValues = null;
             if ('values' in patch) {
                 let raw = (patch.values && typeof patch.values === 'object' && !Array.isArray(patch.values)) ? patch.values : {};
                 // The PATCH keys are mapped before the merge, not the merged
@@ -612,12 +626,8 @@ function applyUpdateStep(graph, args, draftWrap) {
                 if (m.error) return m;
                 patchNotes.push(...m.notes);
                 raw = m.map;
-                if (args.inputsMode === 'replace') merged.values = raw;
-                else {
-                    const mm = { ...(step.values || {}) };
-                    for (const [k, v] of Object.entries(raw)) { if (v === null) delete mm[k]; else mm[k] = v; }
-                    merged.values = mm;
-                }
+                patchValues = raw;
+                merged.values = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null));
             }
             // `where` is a LIST — merging by index would silently keep a condition
             // the author meant to drop, so it is replaced wholesale like
@@ -629,11 +639,18 @@ function applyUpdateStep(graph, args, draftWrap) {
             // values", and the model re-sent the same patch (measured, four
             // rounds running, 2026-09-16).
             if ('where' in patch) merged.where = patch.where;
-            const bound = sanitizeDatatableBindings(merged, graph);
+            const bound = sanitizeDatatableBindings(merged, graph, draftWrap);
             if (bound.error) return { error: bound.error };
             patchNotes.push(...bound.repairs);
-            next.values = bound.values;
-            next.where = bound.where;
+            if (patchValues) {
+                if (args.inputsMode === 'replace') next.values = bound.values;
+                else {
+                    const mm = { ...(step.values || {}) };
+                    for (const [k, v] of Object.entries(patchValues)) { if (v === null) delete mm[k]; else mm[k] = bound.values[k]; }
+                    next.values = mm;
+                }
+            }
+            if ('where' in patch) next.where = bound.where;
         }
         if (table) {
             // Only what the patch touched: a stale column on a field the patch
@@ -656,7 +673,7 @@ function applyUpdateStep(graph, args, draftWrap) {
             // forEach the step will have once this patch lands (an invalid one
             // is left for the forEach block below to refuse).
             const fe = 'forEach' in patch
-                ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph).forEach)
+                ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph, draftWrap).forEach)
                 : step.forEach;
             if (fe) {
                 const ex = checkExtractionFieldRefs(graph, next.values, fe, draftWrap);
@@ -668,28 +685,80 @@ function applyUpdateStep(graph, args, draftWrap) {
     }
 
     // inputs / fields: merge-by-key (null deletes) unless inputsMode:'replace'.
+    // Only the keys the patch names are canonicalised and checked. The rest
+    // are the author's own mappings: they stay byte-identical. Re-running the
+    // whole merged map through the canonicaliser is how one AI edit of
+    // `subject` used to rewrite a hand-mapped `to` from value[0].from… to the
+    // unreadable value.0.from… (findings C1, 2026-10).
+    // The forEach the step will have once this patch lands (an invalid one is
+    // refused by the forEach block below): loop.<var> paths the patch sends
+    // are checked against what it iterates.
+    const feAfter = 'forEach' in patch
+        ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph, draftWrap).forEach)
+        : step.forEach;
     const bindKey = step.type === 'set' ? 'fields' : 'inputs';
     if (bindKey in patch) {
         const mode = args.inputsMode === 'replace' ? 'replace' : 'merge';
-        let raw = (patch[bindKey] && typeof patch[bindKey] === 'object') ? patch[bindKey] : {};
+        const raw = (patch[bindKey] && typeof patch[bindKey] === 'object') ? patch[bindKey] : {};
+        const sent = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null));
+        const bound = validateAndFixBindings(sent, graph, { draftWrap });
+        if (bound.error) {
+            return {
+                error: bound.error,
+                ...(bound._suggestedPatch ? { _suggestedPatch: { ops: bound._suggestedPatch.ops.map(o => ({ ...o, path: `patch.${bindKey}${o.path.slice('inputs'.length)}` })) } } : {}),
+            };
+        }
+        const loop = checkLoopBindings(bound.inputs, graph, feAfter, draftWrap, { label: bindKey });
+        if (loop.error) return { error: loop.error };
+        const inputs = loop.value;
+        const notes = [...(bound.notes || []), ...loop.notes];
         if (mode === 'merge') {
             const merged = { ...(step[bindKey] || {}) };
-            for (const [k, v] of Object.entries(raw)) { if (v === null) delete merged[k]; else merged[k] = v; }
-            raw = merged;
+            for (const k of Object.keys(raw)) { if (raw[k] === null) delete merged[k]; else merged[k] = inputs[k]; }
+            next[bindKey] = merged;
+        } else {
+            next[bindKey] = inputs;
         }
-        const { inputs, error } = validateAndFixBindings(raw, graph);
-        if (error) return { error };
-        next[bindKey] = inputs;
+        patchNotes.push(...notes.map(n => (bindKey === 'fields' ? n.replace(/^inputs\./, 'fields.') : n)));
     }
 
     // forEach: re-validate; null clears it.
     if ('forEach' in patch) {
         if (patch.forEach === null) { delete next.forEach; }
         else {
-            const { forEach, error } = sanitizeForEach(patch.forEach, graph);
+            const { forEach, error, notes } = sanitizeForEach(patch.forEach, graph, draftWrap);
             if (error) return { error };
             if (forEach) next.forEach = forEach; else delete next.forEach;
+            patchNotes.push(...(notes || []));
         }
+    }
+
+    // Text fields the run interpolates, and the list a step works through:
+    // the same path checks the add tools run (bindings.js). The checked
+    // values replace the patch's own in the scalar pass below (the patch
+    // object is the model's and is never mutated).
+    const checked = {};
+    for (const key of TEXT_TEMPLATE_FIELDS[step.type] || []) {
+        if (!(key in patch) || typeof patch[key] !== 'string') continue;
+        const t = checkTextPlaceholders(patch[key], graph, { draftWrap, label: key });
+        if (t.error) return { error: t.error };
+        const loop = checkLoopBindings(t.text, graph, feAfter, draftWrap, { label: key });
+        if (loop.error) return { error: loop.error };
+        checked[key] = loop.value;
+        patchNotes.push(...t.notes, ...loop.notes);
+    }
+    const listKey = step.type === 'loop' ? 'overRef' : 'arrayRef';
+    if (listKey in patch && typeof patch[listKey] === 'string' && patch[listKey].trim()) {
+        const ar = sanitizeArrayRef(patch[listKey], graph, { draftWrap, strictRoot: step.type === 'set' });
+        if (ar.error) return { error: ar.error.replace(/^arrayRef/, listKey) };
+        checked[listKey] = ar.arrayRef;
+        patchNotes.push(...ar.notes.map(n => n.replace(/^arrayRef/, listKey)));
+    }
+    if (step.type === 'datatable' && 'cursor' in patch) {
+        const c = sanitizeDatatableCursor(patch.cursor, graph, draftWrap);
+        if (c.error) return { error: c.error };
+        checked.cursor = c.cursor;
+        patchNotes.push(...c.notes);
     }
 
     // Scalar / structured fields.
@@ -699,7 +768,7 @@ function applyUpdateStep(graph, args, draftWrap) {
         if (step.type === 'datatable' && (k === 'values' || k === 'where')) continue; // canonicalized above
         if (step.type === 'data_extraction' && k === 'source') continue; // canonicalized above
         if (!(k in patch)) continue;
-        const norm = normalizePatchField(step.type, k, patch[k]);
+        const norm = normalizePatchField(step.type, k, k in checked ? checked[k] : patch[k]);
         if (norm === undefined) { if (k !== 'label') delete next[k]; }
         else next[k] = norm;
     }
@@ -853,22 +922,45 @@ function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) 
  * report-don't-block precedent for orphans.
  */
 function findDanglingRefs(graph, id) {
-    const { collectRefPaths } = require('../validate/helpers');
+    const { collectRefPaths, isObject } = require('../validate/helpers');
+    const { collectStepRefs } = require('../validate/stepRules/refSurfaces');
+    const { refHead, tryParseExpr, exprStepIds, findRefPaths } = require('../validate/refPaths');
+    const { TOPIC_HOST_SPEC } = require('../expr');
+    // One reference, read the way the runner reads it: a path by the shared
+    // grammar (dotted or bracketed id, never a prefix match), an expression
+    // by its parser (a quoted "read" is a value). A half-typed expression is
+    // still searched for the paths in it, so a typo does not hide a read.
+    const readsId = (r) => {
+        if (r.kind === 'ref') {
+            const h = refHead(r.path);
+            return h.root === 'steps' && h.second === id;
+        }
+        const { ast } = tryParseExpr(r.src, { host: TOPIC_HOST_SPEC });
+        if (ast) return exprStepIds(ast).includes(id);
+        return findRefPaths(r.src, ['steps']).some(t => t[1].type === 'prop' && String(t[1].key) === id);
+    };
+    // Every reference a step carries: binding objects anywhere in it, plus the
+    // surfaces that hold bare paths, templates and expressions (refSurfaces.js,
+    // the validator's list), for the step and every step nested in it.
+    const refsOf = (s) => {
+        const out = [];
+        collectRefPaths(s, out);
+        const walk = (st) => {
+            if (!isObject(st)) return;
+            out.push(...collectStepRefs(st));
+            for (const child of (Array.isArray(st.body) ? st.body : [])) walk(child);
+            for (const b of (Array.isArray(st.branches) ? st.branches : [])) {
+                for (const child of (Array.isArray(b) ? b : (Array.isArray(b?.steps) ? b.steps : []))) walk(child);
+            }
+        };
+        walk(s);
+        return out;
+    };
     const hits = new Set();
     const scan = (steps, scope) => {
         for (const s of (steps || [])) {
             if (!s || s.id === id) continue;
-            const out = [];
-            collectRefPaths(s, out);
-            for (const r of out) {
-                const src = r.path || r.src || '';
-                // `steps.<id>` followed by a boundary — never a prefix match
-                // (steps.a_12 must not match steps.a_1).
-                if (new RegExp(`\\bsteps\\.${id}(?![A-Za-z0-9_])`).test(src)) {
-                    hits.add(scope ? `${scope}/${s.id}` : s.id);
-                    break;
-                }
-            }
+            if (refsOf(s).some(readsId)) hits.add(scope ? `${scope}/${s.id}` : s.id);
         }
     };
     scan(graph?.steps, null);

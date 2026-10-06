@@ -4,12 +4,13 @@ import {
     Pencil, Clock, Filter, ChevronsDown, Copy, Layers, Sigma, Code, Box, Globe,
     ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
+import { loopBodyPreview } from './loopBodyPreview';
+import { computeLoopBodyGroups } from './upstream';
+import { VariablePickerProvider } from './VariablePickerContext';
+import { buildStepFromPayload } from '../DiagramPane';
 import AddStepMenu from '../flow/AddStepMenu';
 import { FormDensityContext } from '../flow/settings/formDensity';
 import SettingsForm from '../flow/SettingsForm';
-import { VariablePickerProvider } from './VariablePickerContext';
-import { computeLoopBodyGroups } from './upstream';
-import { buildStepFromPayload } from '../DiagramPane';
 
 // The nested SettingsForm always renders every section — see the comment at
 // its mount. Module-level so the provider value is referentially stable.
@@ -73,6 +74,13 @@ export default function LoopBodyEditor({
     // deleted id and always lands on the right row after a reorder.
     const bodyRef = useRef(body);
     bodyRef.current = body;
+    // What the body's steps preview against: the outer root plus this loop's
+    // own item (`loop.<itemVar>`), so its fields show data and a Loop inside
+    // this one resolves its list through it (loopBodyPreview.ts).
+    const bodyPreview = useMemo(
+        () => loopBodyPreview(loopStep, previewSample),
+        [loopStep, previewSample],
+    );
 
     const addStep = (payload) => {
         const scaffold = buildStepFromPayload(payload, { x: 0, y: 0 });
@@ -117,7 +125,7 @@ export default function LoopBodyEditor({
                 {body.map((step, i) => {
                     const Icon = TYPE_ICON[step.type] || Box;
                     const expanded = expandedId === step.id;
-                    const bodyGroups = computeLoopBodyGroups(loopStep, i, outerGroups, previewSample, catalog, rootDefinition);
+                    const bodyGroups = computeLoopBodyGroups(loopStep, i, outerGroups, bodyPreview, catalog, rootDefinition);
                     return (
                         <div key={step.id} className="rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 overflow-hidden">
                             <div className="flex items-center gap-1.5 px-2 py-1.5">
@@ -142,7 +150,7 @@ export default function LoopBodyEditor({
                             </div>
                             {expanded && (
                                 <div className="border-t border-[var(--border-default)] bg-[var(--bg-primary)]">
-                                    <VariablePickerProvider groups={bodyGroups} previewSample={previewSample} stepLabelById={new Map(bodyGroups.map(g => [g.id, g.label]))}>
+                                    <VariablePickerProvider groups={bodyGroups} previewSample={bodyPreview} stepLabelById={new Map(bodyGroups.map(g => [g.id, g.label]))}>
                                         {/* Inner steps are FORCED to All options: they have
                                             no mode toggle of their own, so inheriting
                                             Simple from the outer editor would hide
@@ -157,7 +165,7 @@ export default function LoopBodyEditor({
                                                 saveError={null}
                                                 onPatch={patchStepById(step.id)}
                                                 onFocusField={onFocusField}
-                                                previewSample={previewSample}
+                                                previewSample={bodyPreview}
                                                 catalog={catalog}
                                                 groups={bodyGroups}
                                                 rootDefinition={rootDefinition}

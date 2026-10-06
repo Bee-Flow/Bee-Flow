@@ -7,6 +7,7 @@
  * server/core/automationRunner/ — a field this file invents is a binding that
  * resolves to undefined at run time, which is how several of them were found.
  */
+import { outputFields } from './fieldTree';
 import { sampleToFields } from './sampleFields';
 
 export function describeIntegration(node, meta) {
@@ -17,7 +18,9 @@ export function describeIntegration(node, meta) {
         kind: 'integration_action',
         basePath: `steps.${node.id}.output`,
         sample,
-        fields: sampleToFields(sample, `steps.${node.id}.output`),
+        // A tool whose sample IS a list (a root array) offers that list, with
+        // its columns, at the base path.
+        fields: outputFields(sample, `steps.${node.id}.output`),
     };
 }
 

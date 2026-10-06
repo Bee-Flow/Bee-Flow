@@ -1,7 +1,6 @@
 import { Workflow, Zap, Repeat } from 'lucide-react';
 import React from 'react';
-import { humanizeFieldTail } from '../flow/displayHelpers';
-import { parseRefTokens, resolveChipLabel } from './refTokens';
+import { fieldTailLabel, parseRefTokens, resolveChipLabel } from './refTokens';
 
 /**
  * Read-only render of a bound-field value with step/trigger/loop references
@@ -44,7 +43,7 @@ export default function RefChips({ text, mode = 'expression', stepLabelById = nu
                             non-technical author nothing about where the value
                             comes from (BFSF-330). The exact path stays one
                             hover — or one click into the field — away. */}
-                        {suffix && <span className="opacity-70">▸ {humanizeFieldTail(suffix)}</span>}
+                        {suffix && <span className="opacity-70">▸ {fieldTailLabel(suffix)}</span>}
                     </span>
                 );
             })}

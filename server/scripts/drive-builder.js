@@ -63,9 +63,38 @@ function flag(name) { return process.argv.includes(`--${name}`); }
 
 // ── Expectation matching (pure) ─────────────────────────────────────────────
 
-// A string expectation that starts with one of these is a ref path; any other
-// string is a literal value. Same roots validateAndFixBindings accepts.
-const REF_ROOT_RE = /^(loop|steps|trigger|vars|secrets)\./;
+// A string expectation that starts with one of these roots and a segment
+// (`steps.x…`, `steps["x"]…`) is a ref path; any other string is a literal
+// value. Same roots validateAndFixBindings accepts.
+const REF_ROOTS = new Set(['loop', 'steps', 'trigger', 'vars', 'secrets']);
+
+// The run's path grammar (shared/expr/path.mjs, dependency-free). This file
+// runs from /tmp inside the container, where a relative require does not
+// reach the server: the checkout's copy first (tests), then the app's.
+let pathGrammarModule = null;
+function pathGrammar() {
+    if (pathGrammarModule) return pathGrammarModule;
+    for (const where of ['../shared/expr/path.mjs', `${APP}/shared/expr/path.mjs`]) {
+        try { pathGrammarModule = require(where); return pathGrammarModule; } catch { /* next */ }
+    }
+    throw new Error('cannot load shared/expr/path.mjs — set BEEFLOW_APP_DIR to the server directory');
+}
+
+function isRefExpectation(s) {
+    if (typeof s !== 'string') return false;
+    const read = pathGrammar().readPath(s, 0);
+    const root = read ? String(read.tokens[0].key) : '';
+    return REF_ROOTS.has(root) && (s[root.length] === '.' || s[root.length] === '[');
+}
+
+/** Two spellings of one path (`items.0` / `items[0]`, `['k']` / `["k"]`) are the same ref. */
+function samePath(a, b) {
+    if (a === b) return true;
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const { canonicalPath } = pathGrammar();
+    const ca = canonicalPath(a);
+    return ca !== null && ca === canonicalPath(b);
+}
 
 /**
  * Resolve the placeholders of an expected path: `$k` → the id of chain step
@@ -97,10 +126,10 @@ function describeBinding(b) {
 
 /** null when the stored binding is what the (resolved) expectation asks for. */
 function bindingMismatch(got, expected) {
-    const isRef = typeof expected === 'string' && REF_ROOT_RE.test(expected);
+    const isRef = isRefExpectation(expected);
     const want = isRef ? `ref ${expected}` : `literal ${JSON.stringify(expected)}`;
     const ok = isRef
-        ? !!(got && got.kind === 'ref' && got.path === expected)
+        ? !!(got && got.kind === 'ref' && samePath(got.path, expected))
         : !!(got && got.kind === 'literal' && isDeepStrictEqual(got.value, expected));
     return ok ? null : `expected ${want}, got ${describeBinding(got)}`;
 }

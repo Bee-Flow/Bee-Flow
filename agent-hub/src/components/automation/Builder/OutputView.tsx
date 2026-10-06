@@ -3,7 +3,7 @@ import { Braces, List, Maximize2, Table2, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import OutputFieldsViewJs from './mapping/OutputFieldsView';
 import TruncatedOutput from './TruncatedOutput';
-import FriendlyValue, { isTruncatedOutput } from './output/FriendlyValue';
+import FriendlyValue, { isTruncatedOutput, shownAs } from './output/FriendlyValue';
 import { expandEnabled, type MapCtx } from './output/mapAttrs';
 import { JsonTree, Scalar } from './output/ScalarValue';
 import SmartOutput, { smartRowsOf } from './output/SmartOutput';
@@ -76,11 +76,15 @@ const NO_ROWS: unknown[] = [];
 const NO_FIELDS: readonly string[] = [];
 
 function OutputBody({
-    value, emptyMessage = 'No output.', basePath = '', onCopyPath = null,
+    value: raw, emptyMessage = 'No output.', basePath = '', onCopyPath = null,
     fill = false, enableDrag = false, onPickPath = null, allowExpand = null,
     fieldsView = false, smartTable = false, columnsKey = null, usedFields = NO_FIELDS, stepLabel = null,
 }: OutputViewProps) {
     const { t } = useTranslation();
+    // An output that is JSON text (an AI answer in a ```json fence, a body
+    // that came back as text) is shown as the record or list it encodes; its
+    // paths need no parse step, the runtime reads through the text.
+    const value = useMemo(() => shownAs(raw), [raw]);
     const structured = value !== null && typeof value === 'object';
     const smartRows = useMemo(() => (smartTable ? smartRowsOf(value) : null), [smartTable, value]);
     const cols = useOutputColumns(smartRows ?? NO_ROWS, smartRows ? columnsKey : null, usedFields);

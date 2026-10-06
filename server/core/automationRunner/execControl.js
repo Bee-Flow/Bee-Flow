@@ -5,7 +5,7 @@
  * TERMINAL_STEP_TYPES for the full list of readers).
  */
 
-const { evaluate } = require('../../automation/expr');
+const { evaluate, parsePath, walkTokens, parseJsonText, jsonCacheFor } = require('../../automation/expr');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
 // Literals only, no requires of its own — the validator's vocabulary module is
@@ -197,23 +197,32 @@ async function execReturnToApp(step, ctx, runState) {
  */
 /**
  * Collection-mode source resolution for a switch whose expr is a COLUMN path
- * (`<base>[*].<field>`): return the table's ROWS aligned with each row's
+ * (`<rows>[*]<column>`): return the table's ROWS aligned with each row's
  * switch VALUE, so matches can carry the full row to the branch. A non-column
  * array expr (function results etc.) treats the elements as both row and
  * value. Null rows are skipped (same as the wildcard flatten).
+ *
+ * The path is read with the shared parser (shared/expr/path.mjs), so every
+ * spelling the builder writes is a column: `rows[*].status`,
+ * `rows[*]["Order status"]`, `rows[*].fields["Story Points"]`. It splits at
+ * the LAST `[*]`, so `orders[*].lines[*].state` routes the lines. A regex
+ * that only knew `[*].<identifier>` used to send the bare cell values down
+ * the branch instead of the rows, which emptied every field read from them.
  */
 function resolveSwitchCollection(expr, arrayValue, runState) {
-    const m = /^\s*([A-Za-z_$][\w$]*(?:\.[\w$]+|\[(?:\d+|"[^"]*"|'[^']*')\])*)\[\*\]\.([\w$.]+)\s*$/.exec(String(expr || ''));
-    if (m) {
-        const bind = require('../../automation/bind');
-        const base = bind.walkPath(m[1], runState);
+    const tokens = parsePath(String(expr || ''));
+    const lastWild = tokens ? tokens.map(t => t.type).lastIndexOf('wild') : -1;
+    if (lastWild > 0 && lastWild < tokens.length - 1) {
+        let base = walkTokens(tokens.slice(0, lastWild), runState);
+        if (typeof base === 'string') base = parseJsonText(base, jsonCacheFor(runState));
         if (Array.isArray(base)) {
+            const column = tokens.slice(lastWild + 1);
             const rows = [];
             const values = [];
             for (const row of base) {
                 if (row == null) continue;
                 rows.push(row);
-                values.push(bind.walkRelativePath(m[2], row));
+                values.push(walkTokens(column, row));
             }
             return { rows, values };
         }

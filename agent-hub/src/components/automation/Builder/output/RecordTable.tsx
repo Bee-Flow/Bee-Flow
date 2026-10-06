@@ -1,75 +1,68 @@
 import { useMemo, useState } from 'react';
+import { appendKey, appendWildcard, getRelativePath } from '@shared/expr/path.mjs';
 import ColHeader from './ColHeader';
 import { envelopeSpans, isForEachEnvelope } from './envelope';
 import InlineValue from './InlineValue';
-import { mapAttrs, type MapCtx } from './mapAttrs';
+import { joinPath, mapAttrs, type MapCtx } from './mapAttrs';
 import useCellPeek from './useCellPeek';
-import { COL_MAX_PX, MAX_COLS, MAX_ROWS, cellValue, humanize, isPlainObject } from './valueHelpers';
+import { COL_MAX_PX, MAX_COLS, MAX_ROWS, humanize, isPlainObject } from './valueHelpers';
+import { jsonTextValue, positionChildren, type Field } from '../mapping/upstream/fieldTree';
 
-interface RecordTableProps { rows: unknown[]; map?: MapCtx | null; allowExpand?: boolean }
-
-/** Base columns whose values are (mostly) of a shape, by majority vote. */
-function columnsWhere(rows: unknown[], baseCols: string[], test: (v: unknown) => boolean): Set<string> {
-    const s = new Set<string>();
-    for (const c of baseCols) {
-        let hits = 0, total = 0;
-        for (const r of rows) {
-            const v = isPlainObject(r) ? r[c] : undefined;
-            if (v !== undefined) { total++; if (test(v)) hits++; }
-        }
-        if (total && hits >= total / 2) s.add(c);
-    }
-    return s;
+interface RecordTableProps {
+    rows: unknown[];
+    map?: MapCtx | null;
+    allowExpand?: boolean;
+    /**
+     * A table inside a record: it scrolls sideways in its own box, so opening
+     * a list into columns does not push the record's labels and the other
+     * tables out of view.
+     */
+    contained?: boolean;
 }
 
+/** A rendered column: the field it shows and the opened columns it came out of, outermost first. */
+interface ShownCol { field: Field; trail: Field[] }
+
 /**
- * An expanded column's children: `parent.leaf` for an object column,
- * `parent[*].leaf` for a list of records, resolved with the same [*] flatten
- * the runtime performs. Never re-enters FriendlyArray with the same array:
- * the [{}] render-loop guard in RecordTable is load-bearing.
+ * A column's value in one row, read the way the runtime reads its path (a
+ * `[*]` maps and flattens; a quoted key is a key). A table of plain values
+ * has one column: the value itself.
  */
-function childColumns(rows: unknown[], col: string, isObject: boolean, isArray: boolean): string[] {
-    const children: string[] = [];
-    const pushKeys = (obj: Record<string, unknown>, prefix: string) => {
-        for (const k of Object.keys(obj)) {
-            const dotted = `${prefix}${k}`;
-            if (!children.includes(dotted)) children.push(dotted);
-        }
-    };
-    for (const r of rows) {
-        const v = isPlainObject(r) ? r[col] : undefined;
-        if (isObject && isPlainObject(v)) pushKeys(v, `${col}.`);
-        else if (isArray && Array.isArray(v)) v.filter(isPlainObject).forEach(el => pushKeys(el, `${col}[*].`));
-    }
-    return children;
+/**
+ * JSON text in a cell reads as what it encodes ("tags: x, y · ai: …"), never
+ * as escaped text — also one level in, where the cell's summary names the
+ * record's own fields.
+ */
+function shownAs(v: unknown): unknown {
+    const parsed = jsonTextValue(v);
+    const value = parsed === undefined ? v : parsed;
+    if (!isPlainObject(value)) return value;
+    return Object.fromEntries(Object.entries(value).map(([k, x]) => {
+        const inner = jsonTextValue(x);
+        return [k, inner === undefined ? x : inner];
+    }));
+}
+
+function cellAt(row: unknown, col: ShownCol, baseColCount: number): unknown {
+    if (isPlainObject(row)) return getRelativePath(row, col.field.path);
+    return !col.trail.length && baseColCount === 1 ? row : undefined;
 }
 
 /**
  * The classic table: every field a column, drill-down into object and list
- * columns, drag/click-to-map on every header and cell. The step drawer's
- * "Continues on" column uses the smarter SmartTable instead; the dry-run
- * cards, the run history and the Input panel keep this one.
+ * columns (as deep as the data goes), drag/click-to-map on every header and
+ * cell. The step drawer's "Continues on" column uses the smarter SmartTable
+ * instead; the dry-run cards, the run history and the Input panel keep this
+ * one.
+ *
+ * Columns are the upstream field tree of the rows (mapping/upstream/fieldTree):
+ * the union of every row's keys, each column's path RELATIVE to its row and
+ * written by the runtime grammar's writer, so `rows[*]["Story Points"]` and
+ * `rows[1].from.emailAddress.address` resolve at run time exactly as shown.
  */
-export default function RecordTable({ rows, map = null, allowExpand = false }: RecordTableProps) {
-    // Top-level columns (the object keys), discovered in first-seen order.
-    const baseCols = useMemo(() => {
-        const seen: string[] = [];
-        for (const r of rows) {
-            if (isPlainObject(r)) {
-                for (const k of Object.keys(r)) if (!seen.includes(k)) seen.push(k);
-            }
-        }
-        return seen;
-    }, [rows]);
-
-    // Columns holding (mostly) plain objects: drillable into `parent.leaf`.
-    const objectCols = useMemo(() => columnsWhere(rows, baseCols, isPlainObject), [rows, baseCols]);
-    // Columns holding (mostly) ARRAYS OF OBJECTS: drillable into
-    // `parent[*].leaf`, the same way object columns expand.
-    const arrayCols = useMemo(
-        () => columnsWhere(rows, baseCols, (v) => Array.isArray(v) && v.some(isPlainObject)),
-        [rows, baseCols],
-    );
+export default function RecordTable({ rows, map = null, allowExpand = false, contained = false }: RecordTableProps) {
+    const baseCols = useMemo(() => positionChildren(rows.filter(isPlainObject), '') as Field[], [rows]);
+    const baseKeys = useMemo(() => baseCols.map(c => c.key), [baseCols]);
 
     const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
     const toggle = (key: string) => setExpanded((prev) => {
@@ -78,17 +71,20 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
         return next;
     });
 
-    // The columns actually rendered: dotted paths relative to each row.
+    // The columns actually rendered: an opened column is replaced by its own
+    // columns, which may be opened in turn.
     const allCols = useMemo(() => {
-        const out: string[] = [];
-        for (const c of baseCols) {
-            const open = allowExpand && expanded.has(c);
-            const children = open ? childColumns(rows, c, objectCols.has(c), arrayCols.has(c)) : [];
-            if (children.length) out.push(...children);
-            else out.push(c);
-        }
+        const out: ShownCol[] = [];
+        const add = (field: Field, trail: Field[]) => {
+            if (allowExpand && expanded.has(field.path) && field.children?.length) {
+                for (const c of field.children) add(c, [...trail, field]);
+                return;
+            }
+            out.push({ field, trail });
+        };
+        for (const c of baseCols) add(c, []);
         return out;
-    }, [baseCols, objectCols, arrayCols, expanded, allowExpand, rows]);
+    }, [baseCols, expanded, allowExpand]);
 
     // The cap is an affordance, not a wall.
     const [showAllCols, setShowAllCols] = useState(false);
@@ -98,8 +94,8 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
     const shown = rows.slice(0, MAX_ROWS);
     const peek = useCellPeek();
     const groupSpans = useMemo(
-        () => (isForEachEnvelope(rows, baseCols) ? envelopeSpans(cols) : null),
-        [rows, baseCols, cols],
+        () => (isForEachEnvelope(rows, baseKeys) ? envelopeSpans(cols.map(c => c.field.path)) : null),
+        [rows, baseKeys, cols],
     );
 
     // No columns discovered (e.g. `[{}]`): render the rows as a list. Do NOT
@@ -109,7 +105,7 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
         return (
             <ul className="list-disc pl-4 space-y-0.5">
                 {shown.map((v, i) => (
-                    <li key={i} {...mapAttrs(map, `[${i}]`)}><InlineValue value={v} /></li>
+                    <li key={i} {...mapAttrs(map, appendKey('', i))}><InlineValue value={v} /></li>
                 ))}
                 {rows.length > MAX_ROWS && <li className="list-none text-[var(--text-tertiary)]">+{rows.length - MAX_ROWS} more</li>}
             </ul>
@@ -118,7 +114,8 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
 
     // `min-w-max` lets the table grow to its content width and overflow the
     // scroll container, so the HORIZONTAL scrollbar sticks to the panel bottom.
-    return (
+    // A table inside a record gets a sideways scroller of its own instead.
+    const table = (
         <div className="min-w-max">
             <table className="w-full border-collapse">
                 {/* Sticky header: a table whose columns you can't name is unreadable. */}
@@ -141,11 +138,13 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
                     <tr>
                         {cols.map((c) => (
                             <ColHeader
-                                key={c}
-                                col={c}
+                                key={c.field.path}
+                                col={c.field.path}
+                                label={humanize(c.field.key)}
+                                trail={c.trail.map(f => ({ path: f.path, label: humanize(f.key) }))}
                                 map={map}
-                                expandable={allowExpand && !c.includes('.') && !c.includes('[*]') && (objectCols.has(c) || arrayCols.has(c))}
-                                isListCol={arrayCols.has(c)}
+                                expandable={allowExpand && !!c.field.children?.length}
+                                isListCol={!!c.field.children?.some(ch => ch.path.startsWith(appendWildcard(c.field.path)))}
                                 onToggle={toggle}
                             />
                         ))}
@@ -168,19 +167,21 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
                     {shown.map((r, i) => (
                         <tr key={i} className="border-b border-[var(--border-default)]/60 last:border-b-0">
                             {cols.map((c) => {
-                                const v = cellValue(r, c, baseCols.length);
+                                const v = cellAt(r, c, baseCols.length);
                                 return (
                                     <td
-                                        key={c}
-                                        {...mapAttrs(map, `[${i}].${c}`)}
+                                        key={c.field.path}
+                                        // A row without this field has nothing to map: an
+                                        // empty cell hands out no path.
+                                        {...(v === undefined ? {} : mapAttrs(map, joinPath(appendKey('', i), c.field.path)))}
                                         // Capped so one long column can't push
                                         // the rest off the panel.
                                         style={{ maxWidth: COL_MAX_PX }}
-                                        onMouseEnter={(e) => peek.open(e.currentTarget, v, humanize(c.split('.').pop()))}
+                                        onMouseEnter={(e) => peek.open(e.currentTarget, shownAs(v), humanize(c.field.key))}
                                         onMouseLeave={peek.close}
-                                        className={`px-2 py-1 align-top text-[var(--text-primary)] ${map ? 'cursor-grab active:cursor-grabbing hover:bg-[var(--accent)]/10' : ''}`}
+                                        className={`px-2 py-1 align-top text-[var(--text-primary)] ${map && v !== undefined ? 'cursor-grab active:cursor-grabbing hover:bg-[var(--accent)]/10' : ''}`}
                                     >
-                                        <div className="truncate"><InlineValue value={v} /></div>
+                                        <div className="truncate"><InlineValue value={shownAs(v)} /></div>
                                     </td>
                                 );
                             })}
@@ -195,4 +196,5 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
             {peek.card}
         </div>
     );
+    return contained ? <div className="max-w-full overflow-x-auto custom-scrollbar" data-testid="nested-table">{table}</div> : table;
 }

@@ -9,6 +9,7 @@
 const { newId, appendAfter } = require('../draftGraph');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
 const { fieldsAtRef } = require('../outputFields');
+const { parsePath, formatPath, scanTemplate } = require('../../expr');
 const {
     normaliseKey, resolveDatatableOp, translateDatatableVocabulary, resolveDatatableRef,
     mapColumnKeys, mapColumnName,
@@ -30,15 +31,22 @@ const { DATATABLE_MAX_FILTERS, DATATABLE_MAX_LIMIT } = require('../../validate/c
  * the runner reads exactly those three, and anything else the model invents
  * would persist looking configured while doing nothing.
  */
-function sanitizeDatatableBindings(raw, draft) {
+function sanitizeDatatableBindings(raw, draft, draftWrap) {
     const rawValues = (raw.values && typeof raw.values === 'object' && !Array.isArray(raw.values)) ? raw.values : {};
-    const v = validateAndFixBindings(rawValues, draft);
-    if (v.error) return { error: `datatable values — ${v.error}` };
+    const v = validateAndFixBindings(rawValues, draft, { draftWrap });
+    if (v.error) {
+        return {
+            error: `datatable values — ${v.error.split('inputs.').join('values.')}`,
+            ...(v._suggestedPatch ? { _suggestedPatch: { ops: v._suggestedPatch.ops.map(o => ({ ...o, path: o.path.replace(/^inputs\./, 'values.') })) } } : {}),
+        };
+    }
     // The repair lines say `inputs.<key>` — the one label validateAndFixBindings
     // knows. They ride back to the model as _warnings, and a datatable step has
     // no inputs map: relabelled to the step's own field, or the model goes
     // looking for a map it never sent.
-    const repairs = (v.repairs || []).map(r => r.replace(/^inputs\./, 'values.'));
+    // A path the tool's description cannot find is a note too (it is not in
+    // repairs: nothing was rewritten).
+    const repairs = [...new Set([...(v.repairs || []), ...(v.notes || [])])].map(r => r.replace(/^inputs\./, 'values.'));
 
     const where = [];
     const coercedWhere = coerceWhereList(raw.where);
@@ -49,14 +57,43 @@ function sanitizeDatatableBindings(raw, draft) {
         if (!w || typeof w !== 'object' || Array.isArray(w)) continue;
         const entry = { field: typeof w.field === 'string' ? w.field : '', op: typeof w.op === 'string' ? w.op : '' };
         if (w.value !== undefined) {
-            const b = validateAndFixBindings({ value: w.value }, draft);
-            if (b.error) return { error: `datatable where[${i}] — ${b.error}` };
+            const b = validateAndFixBindings({ value: w.value }, draft, { draftWrap });
+            if (b.error) return { error: `datatable where[${i}] — ${b.error.split('inputs.value').join(`where[${i}].value`)}` };
             entry.value = b.inputs.value;
-            for (const r of (b.repairs || [])) repairs.push(r.replace(/^inputs\.value/, `where[${i}].value`));
+            for (const r of new Set([...(b.repairs || []), ...(b.notes || [])])) repairs.push(r.replace(/^inputs\.value/, `where[${i}].value`));
         }
         where.push(entry);
     }
     return { values: v.inputs, where, repairs };
+}
+
+/**
+ * find_rows' `cursor`: the previous page's `nextCursor`. The run reads it as
+ * a BINDING (execDatatable.readCursor → resolveValue), and a bare string is
+ * a literal there — so the "{{steps.<id>.output.nextCursor}}" the schema
+ * suggests was stored as text, every page read page 1 again, and the
+ * validator never saw the reference (findings, 2026-10). Stored as the
+ * binding it is: `{{…}}` → a template (one placeholder → a ref), a bare
+ * `steps.…` path → a ref, an opaque token → kept as given.
+ *
+ * @returns {{cursor: any, notes: string[], error: string|null}}
+ */
+function sanitizeDatatableCursor(raw, draft, draftWrap) {
+    if (raw === undefined || raw === null || raw === '') return { cursor: undefined, notes: [], error: null };
+    let candidate = raw;
+    if (typeof raw === 'string') {
+        const parts = scanTemplate(raw.trim());
+        if (parts.length === 1 && parts[0].type === 'ref') candidate = { kind: 'ref', path: parts[0].inner };
+        else if (/^\s*(steps|trigger|loop|vars)[.[]/.test(raw) && !parts.some(p => p.type === 'ref')) candidate = { kind: 'ref', path: raw.trim() };
+        else if (!parts.some(p => p.type === 'ref')) return { cursor: raw, notes: [], error: null };
+    }
+    const b = validateAndFixBindings({ cursor: candidate }, draft, { draftWrap });
+    if (b.error) return { cursor: raw, notes: [], error: b.error };
+    const notes = (b.notes || []).slice();
+    if (typeof raw === 'string' && b.inputs.cursor && b.inputs.cursor.kind !== 'literal') {
+        notes.push(`cursor "${raw}" stored as a ${b.inputs.cursor.kind} binding — a bare string is read as literal text, so the next page would never be asked for.`);
+    }
+    return { cursor: b.inputs.cursor, notes, error: null };
 }
 
 // The ops that change rows. The catalog row says whether THIS user may write
@@ -344,17 +381,19 @@ function checkExtractionFieldRefs(draft, values, forEach, draftWrap) {
         return { values, notes };
     }
     const declared = res.outputFields;
-    const prefix = `loop.${forEach.itemVar}.output.`;
     const out = {};
     for (const [k, b] of Object.entries(values)) {
         const isRef = !!b && typeof b === 'object' && !Array.isArray(b) && b.kind === 'ref' && typeof b.path === 'string';
-        if (!isRef || !b.path.startsWith(prefix)) { out[k] = b; continue; }
-        const [f, ...deeper] = b.path.slice(prefix.length).split('.');
+        // Token-based: `loop.x.output["Excl. btw"]` names one field, not two.
+        const t = isRef ? parsePath(b.path) : null;
+        const ours = t && t.length >= 4 && t[0].key === 'loop' && t[1].key === forEach.itemVar && t[2].key === 'output' && t[3].type === 'prop';
+        if (!ours) { out[k] = b; continue; }
+        const f = String(t[3].key);
         if (!f || declared.includes(f)) { out[k] = b; continue; }
         const norm = normaliseKey(f);
         const hits = norm ? declared.filter(d => normaliseKey(d) === norm) : [];
         if (hits.length === 1) {
-            out[k] = { ...b, path: `${prefix}${[hits[0], ...deeper].join('.')}` };
+            out[k] = { ...b, path: formatPath([...t.slice(0, 3), { type: 'prop', key: hits[0] }, ...t.slice(4)]) };
             notes.push(`values.${k} read ${b.path} — the extraction declares "${hits[0]}"; path corrected.`);
             continue;
         }
@@ -410,15 +449,16 @@ function applyAddDatatable(draft, rawArgs, draftWrap) {
     if (opR.error) return opR;
     if (opR.note) notes.push(opR.note);
     const op = opR.op;
-    const bound = sanitizeDatatableBindings(args, draft);
-    if (bound.error) return { error: bound.error };
+    const bound = sanitizeDatatableBindings(args, draft, draftWrap);
+    if (bound.error) return { error: bound.error, ...(bound._suggestedPatch ? { _suggestedPatch: bound._suggestedPatch } : {}) };
     notes.push(...bound.repairs);
     // forEach was silently DROPPED here until 2026-09-04 — the schema
     // advertised it, the validator forbade it, and this builder never copied
     // it onto the step, so a "save one row per accepted item" write ran once
     // with loop.<item> undefined. Same sanitiser as every other step type.
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
+    if (feNotes) notes.push(...feNotes);
     const loopErr = unboundLoopVarError({ values: bound.values, where: bound.where }, forEach, { what: 'values' });
     if (loopErr) return loopErr;
     const ref = resolveDatatableRef({ id: args.datatableId, key: args.datatableKey, datatables: draftWrap?._datatables });
@@ -471,13 +511,17 @@ function applyAddDatatable(draft, rawArgs, draftWrap) {
     // as given and the validator warns rather than silently trimming it — the
     // author has to see which column actually orders the rows.
     if (Array.isArray(sort)) step.sort = sort;
-    if (typeof args.cursor === 'string' && args.cursor) step.cursor = args.cursor;
+    const cursor = sanitizeDatatableCursor(args.cursor, draft, draftWrap);
+    if (cursor.error) return { error: cursor.error };
+    notes.push(...cursor.notes);
+    if (cursor.cursor !== undefined) step.cursor = cursor.cursor;
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
     return { added: step, ...(notes.length ? { _warnings: notes } : {}) };
 }
 
 module.exports = {
     sanitizeDatatableBindings,
+    sanitizeDatatableCursor,
     DATATABLE_WRITE_OPS,
     readOnlyTableError,
     coerceSortList,

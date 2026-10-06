@@ -27,7 +27,7 @@
  *   power    := primary ('^' unary)?
  *   primary  := number | string | bool | null | call | identifier_path | '(' expr ')'
  *   call     := (WHITELISTED_FN | HOST_FN) '(' (expr (',' expr)*)? ')'
- *   identifier_path := ident ('.' ident | '[' expr ']')*
+ *   identifier_path := ident ('.' ident | '[' expr ']' | '[*]' | '[' key '=' literal ']')*
  *
  * HOST functions. A caller may pass `{ host }` to parseExpr/evaluate/
  * tryEvaluate: a small table of extra callables that only exist where that
@@ -44,6 +44,7 @@
  */
 
 import { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } from './functions.mjs';
+import { jsonCacheFor, stepInto, stepMatch, walkTokens } from './path.mjs';
 
 export class ExprError extends Error {
     constructor(message, index) { super(message); this.name = 'ExprError'; this.index = index; }
@@ -57,20 +58,35 @@ const TOKEN = {
     OR: '||', AND: '&&', EQ: '==', NEQ: '!=', SEQ: '===', SNEQ: '!==',
     LT: '<', LTE: '<=', GT: '>', GTE: '>=',
     PLUS: '+', MINUS: '-', STAR: '*', SLASH: '/', PERCENT: '%', CARET: '^',
-    BANG: '!', EOF: 'EOF',
+    BANG: '!', ASSIGN: '=', EOF: 'EOF',
 };
 
 function tokenize(src) {
     if (typeof src !== 'string') throw new ExprError('Expression must be a string', 0);
     const tokens = [];
     let i = 0;
+    let brackets = 0;
     while (i < src.length) {
         const c = src[i];
         if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
+        const prev = tokens[tokens.length - 1];
+        const memberDot = c === '.' && prev && (prev.t === TOKEN.IDENT || prev.t === TOKEN.RBRACK);
+        if (memberDot) { tokens.push({ t: TOKEN.DOT, i }); i++; continue; }
+        // Right after a member dot, a name is a KEY whatever it looks like:
+        // `items.0.subject` (digits), `flags.true`, `naam.prénom`. The same
+        // spellings a ref binding resolves (path.mjs), so a picked path never
+        // works in a field and breaks in a formula.
+        const afterDot = tokens.length > 0 && tokens[tokens.length - 1].t === TOKEN.DOT;
+        if (afterDot && /[\p{L}\p{N}_$]/u.test(c)) {
+            let j = i;
+            while (j < src.length && /[\p{L}\p{N}\p{M}_$]/u.test(src[j])) j++;
+            tokens.push({ t: TOKEN.IDENT, v: src.slice(i, j), i });
+            i = j; continue;
+        }
         if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(src[i + 1] || ''))) {
             let j = i;
             while (j < src.length && /[0-9.]/.test(src[j])) j++;
-            tokens.push({ t: TOKEN.NUMBER, v: parseFloat(src.slice(i, j)), i });
+            tokens.push({ t: TOKEN.NUMBER, v: parseFloat(src.slice(i, j)), raw: src.slice(i, j), i });
             i = j; continue;
         }
         if (c === '"' || c === "'") {
@@ -78,7 +94,14 @@ function tokenize(src) {
             while (j < src.length && src[j] !== q) {
                 if (src[j] === '\\' && j + 1 < src.length) {
                     const n = src[j + 1];
-                    out += (n === 'n' ? '\n' : n === 't' ? '\t' : n);
+                    // JSON's escapes, so a key the builder quoted with
+                    // JSON.stringify (path.mjs formatKey) reads back here too.
+                    if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(src.slice(j + 2, j + 6))) {
+                        out += String.fromCharCode(parseInt(src.slice(j + 2, j + 6), 16));
+                        j += 6;
+                        continue;
+                    }
+                    out += (n === 'n' ? '\n' : n === 't' ? '\t' : n === 'r' ? '\r' : n === 'b' ? '\b' : n === 'f' ? '\f' : n);
                     j += 2;
                 } else { out += src[j]; j++; }
             }
@@ -86,9 +109,9 @@ function tokenize(src) {
             tokens.push({ t: TOKEN.STRING, v: out, i });
             i = j + 1; continue;
         }
-        if (/[A-Za-z_$]/.test(c)) {
+        if (/[\p{L}_$]/u.test(c)) {
             let j = i;
-            while (j < src.length && /[A-Za-z0-9_$]/.test(src[j])) j++;
+            while (j < src.length && /[\p{L}\p{N}\p{M}_$]/u.test(src[j])) j++;
             const word = src.slice(i, j);
             if (word === 'true' || word === 'false') tokens.push({ t: TOKEN.BOOL, v: word === 'true', i });
             else if (word === 'null') tokens.push({ t: TOKEN.NULL, i });
@@ -116,6 +139,12 @@ function tokenize(src) {
             // "Unexpected character", so no stored expression can contain one.
             '^': TOKEN.CARET,
         };
+        // A single `=` only exists inside a path's brackets, as the match
+        // segment `headers[name="Subject"]` (path.mjs). Anywhere else it is
+        // still the old error, so `a = b` keeps telling the author to write ==.
+        if (c === '=' && brackets > 0) { tokens.push({ t: TOKEN.ASSIGN, i }); i++; continue; }
+        if (c === '[') brackets++;
+        else if (c === ']' && brackets > 0) brackets--;
         if (single[c]) { tokens.push({ t: single[c], i }); i++; continue; }
         throw new ExprError(`Unexpected character in expression: ${c}`, i);
     }
@@ -273,6 +302,28 @@ function parse(tokens, host) {
                         eat(TOKEN.STAR);
                         eat(TOKEN.RBRACK);
                         path.push({ kind: 'wildcard' });
+                    } else if ((peek().t === TOKEN.IDENT || peek().t === TOKEN.STRING) && tokens[pos + 1]?.t === TOKEN.ASSIGN) {
+                        // `[key="value"]` — the first element whose key equals
+                        // the literal (path.mjs stepMatch), so a picked
+                        // `headers[name="Subject"].value` reads the same here.
+                        const key = tokens[pos++].v;
+                        eat(TOKEN.ASSIGN);
+                        const neg = accept(TOKEN.MINUS);
+                        const lit = tokens[pos++];
+                        let value;
+                        if (lit.t === TOKEN.NUMBER) value = neg ? -lit.v : lit.v;
+                        else if (!neg && lit.t === TOKEN.STRING) value = lit.v;
+                        else if (!neg && lit.t === TOKEN.BOOL) value = lit.v;
+                        else if (!neg && lit.t === TOKEN.NULL) value = null;
+                        else throw new ExprError('Expected a text, number, true, false or null after =', lit.i);
+                        eat(TOKEN.RBRACK);
+                        path.push({ kind: 'match', key, value });
+                    } else if (peek().t === TOKEN.NUMBER && /^[0-9]+$/.test(peek().raw || '') && !Number.isSafeInteger(peek().v) && tokens[pos + 1]?.t === TOKEN.RBRACK) {
+                        // A digit key past 2^53 (a snowflake id) would round as
+                        // a number; read it as the key it spells, as path.mjs does.
+                        const key = tokens[pos++].raw;
+                        eat(TOKEN.RBRACK);
+                        path.push({ kind: 'index', expr: { kind: 'str', v: key } });
                     } else {
                         const idx = ternary();
                         eat(TOKEN.RBRACK);
@@ -293,49 +344,45 @@ function parse(tokens, host) {
 // ── Evaluator ──────────────────────────────────────────
 function walkPath(segments, runState, host) {
     let cur = runState;
+    const cache = jsonCacheFor(runState);
     for (let i = 0; i < segments.length; i++) {
         if (cur == null) return undefined;
         const s = segments[i];
         if (s.kind === 'name') {
-            // The own-property gate is the WHOLE gate — no `typeof cur ===
-            // 'object'` term. hasOwnProperty.call auto-boxes primitives, so a
-            // string's own members (`.length`, `[0]`) resolve while its
-            // prototype members (`.toUpperCase`, `.constructor`) still come
-            // back undefined. The extra object check made `…body.length > 5`
-            // permanently false inside a condition while the identical path in
-            // a ref binding or a {{…}} template resolved to 11 — the binding
-            // resolver (server/automation/bind.js resolveTokens) has never had
-            // that term, and both files document the permissive read as intent.
-            cur = Object.prototype.hasOwnProperty.call(cur, s.v) ? cur[s.v] : undefined;
+            // One step, with the binding resolver's exact rules (path.mjs
+            // stepInto): own properties only, so a string's own members
+            // (`.length`, `[0]`) resolve while prototype members
+            // (`.toUpperCase`, `.constructor`) come back undefined; JSON text
+            // is read as the object it encodes; `[-1]` is the last element.
+            cur = stepInto(cur, s.v, cache);
         } else if (s.kind === 'wildcard') {
-            // `[*]`: map the REMAINDER of the path over the array's elements
-            // and flatten one level, skipping misses — mirrors the binding
-            // resolver's walkPath semantics so the same path string means the
-            // same thing in a binding and in an expression.
-            if (!Array.isArray(cur)) return undefined;
+            // `[*]`: hand the remainder to the shared walker, so the same path
+            // string means the same list in a binding and in an expression
+            // (flatten what the rest produced by one level, keep explicit
+            // nulls, a trailing [*] is the list itself). A computed index in
+            // the remainder reads the run state, not the element, so it is
+            // evaluated once up front.
             const rest = segments.slice(i + 1);
-            const out = [];
-            for (const el of cur) {
-                if (el == null) continue;
-                const v = rest.length ? walkPath([{ kind: 'root', v: el }, ...rest], runState, host) : el;
-                if (v === undefined) continue;
-                if (Array.isArray(v)) out.push(...v);
-                else out.push(v);
+            const tokens = [];
+            for (const r of rest) {
+                if (r.kind === 'name') tokens.push({ type: 'prop', key: r.v });
+                else if (r.kind === 'wildcard') tokens.push({ type: 'wild' });
+                else if (r.kind === 'match') tokens.push({ type: 'match', key: r.key, value: r.value });
+                else tokens.push({ type: 'prop', key: evalNode(r.expr, runState, host) });
             }
-            return out;
+            return walkTokens([{ type: 'wild' }, ...tokens], cur);
+        } else if (s.kind === 'match') {
+            cur = stepMatch(cur, s.key, s.value, cache);
         } else if (s.kind === 'root') {
-            // Internal marker used by the wildcard recursion: seed the walk
-            // at a concrete element value instead of the runState root.
+            // Internal marker kept for callers that seed a walk at a value.
             cur = s.v;
         } else {
             const k = evalNode(s.expr, runState, host);
             if (cur == null) return undefined;
-            // Prototype-chain gate on bracket access too — x["constructor"]
-            // must resolve to undefined, never walk to Function. Own-property
-            // only, no `typeof cur === 'object'` term, for the same reason as
-            // the dot branch above: `name[0]` on a string has to work here
-            // exactly as it does in a ref binding.
-            cur = Object.prototype.hasOwnProperty.call(cur, k) ? cur[k] : undefined;
+            // Same gate as the dot branch: x["constructor"] stays undefined,
+            // `name[0]` on a string works exactly as it does in a ref binding.
+            if (typeof k !== 'string' && typeof k !== 'number') return undefined;
+            cur = stepInto(cur, k, cache);
         }
     }
     return cur;

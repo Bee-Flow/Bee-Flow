@@ -1144,7 +1144,10 @@ function stepRowUnchanged(a: Record<string, unknown> | null, b: Record<string, u
     return a.status === b.status
         && a.durationMs === b.durationMs
         && a.attempts === b.attempts
-        && deepEqual(a.output, b.output);
+        && deepEqual(a.output, b.output)
+        // A re-run that fixed a mapping changes only its warnings; keeping the
+        // old row would go on showing "found nothing" for a fixed input.
+        && deepEqual(a.bindingWarnings, b.bindingWarnings);
 }
 
 /**

@@ -5,7 +5,9 @@
  *   graphWalk.js          backward BFS over the edges: WHICH nodes are upstream
  *   groups.js             the walk turned into variable groups (and the loop-body variant)
  *   describeNode.js       one node's `type` → its describer
- *   sampleFields.js       sample → bindable `{key, path, sample}` fields, and path escaping
+ *   fieldTree.ts          a value → its bindable fields, every level (the ONE builder)
+ *   forEachShape.ts       the shape a step that runs once per item hands downstream
+ *   sampleFields.js       sample → bindable fields, list sources, schema samples
  *   realOverlay.js        a node's real (pinned / last-run) output folded into its group
  *
  *   triggers.js           the trigger payload group and the "Trigger info" group
@@ -24,7 +26,8 @@
 export { collectUpstream } from './graphWalk';
 export { computeUpstreamGroups, computeLoopBodyGroups, buildToolOutputMap } from './groups';
 export { describeNode } from './describeNode';
-export { sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths } from './sampleFields';
+export { sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths, realFieldsOf, schemaToSample } from './sampleFields';
+export { eachField, fieldFor, mergeElements, outputFields, recordFields } from './fieldTree';
 export { overlayGroupWithReal } from './realOverlay';
 export { triggerMetaSample, describeTriggerMeta } from './triggers';
 export { inferLoopItemSample, suggestItemVar } from './loops';

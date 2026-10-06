@@ -7,6 +7,7 @@
  * expression field instead. The parser stays strict on purpose.
  */
 
+import { canonicalRefPath } from '../pathGrammar';
 import type { Binding } from '../types';
 import { bindingFromInput, isCleanPath } from './bindingText';
 import type { ConditionRow, ConditionRows } from './conditionModel';
@@ -101,10 +102,9 @@ function valueRawToBinding(rawText: unknown): Binding {
 function fieldFromLeft(left: unknown): Binding | null {
     const t = String(left || '').trim();
     if (t.includes('[*]')) return null;
-    return isCleanPath(t) ? { kind: 'ref', path: t } : null;
+    return isCleanPath(t) ? { kind: 'ref', path: canonicalRefPath(t) } : null;
 }
 
-const FN_RE = /^(contains|startsWith|endsWith)\(\s*([^,]+?)\s*,\s*(.+?)\s*\)$/;
 const CMP_SYMBOLS = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'];
 const OP_CHARS = new Set(['=', '!', '<', '>']);
 
@@ -144,17 +144,49 @@ function parseComparator(text: string): { left: string; op: string; right: strin
 const row = (field: Binding | null, op: string, value: Binding = { kind: 'literal', value: '' }): ConditionRow | null =>
     field && { field, op, value };
 
+// `[!]name(arg, …)` as a whole fragment: the arguments split on top-level
+// commas only, outside strings, brackets and parens, so a field like
+// `headers[name="a,b"]` or a text like "a, b" stays one argument. (The web
+// also reads `isAbout(…)`; the phone has no topic operators, so it stays raw.)
+const CALL_HEAD_RE = /^(!\s*)?(isEmpty|isAbout|contains|startsWith|endsWith)\(/;
+
+/** The arguments from `from` up to the call's own `)` (`{ args, end }`), or null when unclosed. */
+function splitArgs(text: string, start: number): { args: string[]; end: number } | null {
+    const args: string[] = [];
+    let from = start;
+    let depth = 0;
+    let str: string | null = null;
+    for (let i = start; i < text.length; i++) {
+        const c = text[i];
+        if (str) {
+            if (c === '\\') i++;
+            else if (c === str) str = null;
+            continue;
+        }
+        if (c === '"' || c === "'") str = c;
+        else if (c === '(' || c === '[') depth++;
+        else if (depth > 0 && (c === ')' || c === ']')) depth--;
+        else if (depth === 0 && c === ',') {
+            args.push(text.slice(from, i).trim());
+            from = i + 1;
+        } else if (c === ')') return { args: [...args, text.slice(from, i).trim()], end: i };
+    }
+    return null;
+}
+
 /** The helper-call shapes: isEmpty, !isEmpty, !contains, contains/startsWith/endsWith. */
 function parseCall(text: string): ConditionRow | null | undefined {
-    let m = /^!\s*isEmpty\(\s*(.+?)\s*\)$/.exec(text);
-    if (m) return row(fieldFromLeft(m[1]), 'isNotEmpty');
-    m = /^isEmpty\(\s*(.+?)\s*\)$/.exec(text);
-    if (m) return row(fieldFromLeft(m[1]), 'isEmpty');
-    m = /^!\s*contains\(\s*([^,]+?)\s*,\s*(.+?)\s*\)$/.exec(text);
-    if (m) return row(fieldFromLeft(m[1]), 'notContains', valueRawToBinding(m[2]));
-    m = FN_RE.exec(text);
-    if (m) return row(fieldFromLeft(m[2]), m[1] as string, valueRawToBinding(m[3]));
-    return undefined;
+    const head = CALL_HEAD_RE.exec(text);
+    if (!head) return undefined;
+    const inner = splitArgs(text, head[0].length);
+    // The call's own `)` must end the fragment (`contains(a, b) + 1` is a formula).
+    if (!inner || inner.end !== text.length - 1) return undefined;
+    const negate = !!head[1];
+    const fn = head[2] as string;
+    const { args } = inner;
+    if (fn === 'isEmpty') return args.length === 1 ? row(fieldFromLeft(args[0]), negate ? 'isNotEmpty' : 'isEmpty') : null;
+    if (fn === 'isAbout' || args.length !== 2 || !args[1] || (negate && fn !== 'contains')) return null;
+    return row(fieldFromLeft(args[0]), negate ? 'notContains' : fn, valueRawToBinding(args[1]));
 }
 
 /** One fragment as a row, or null when it is not a recognised shape. */
@@ -171,7 +203,7 @@ function parseFragment(part: string): ConditionRow | null {
         return row(f, cmp.op, valueRawToBinding(cmp.right));
     }
     // A bare field (a truthiness check); `[*]` IS allowed here.
-    if (!/^(true|false|null)$/.test(text) && isCleanPath(text)) return row({ kind: 'ref', path: text }, 'truthy');
+    if (!/^(true|false|null)$/.test(text) && isCleanPath(text)) return row({ kind: 'ref', path: canonicalRefPath(text) }, 'truthy');
     return null;
 }
 

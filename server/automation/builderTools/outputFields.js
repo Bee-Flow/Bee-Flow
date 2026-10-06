@@ -20,6 +20,9 @@
  * Unknown is always `fields: null` — never an empty list. A caller that turns
  * "unknown" into "no fields" would reject every binding on a tool nobody has
  * described yet, which is worse than the bug this module exists to catch.
+ * A list's entry is the UNION of its entries' keys (a field only entry 2
+ * carries is a field), and checkLoopRef walks the whole path, token by token,
+ * over the deep shape refCheck.js knows — not just the first dotted name.
  *
  * Pure and synchronous: the per-type step builders are sync, and this runs
  * inside them. Required from within automation/builderTools/.
@@ -28,6 +31,10 @@
 const { OUTPUT_SCHEMAS } = require('../outputSchemas');
 const { findStepAnywhere } = require('./draftGraph');
 const triggerCatalog = require('./triggerCatalog');
+const { formatPath } = require('../expr');
+const { normalizeAiPath } = require('./aiPaths');
+const { shapeAtRef, checkAgainst, describeProblem } = require('./refCheck');
+const { itemOf } = require('./shapeTree');
 
 const MAX_FIELDS_LISTED = 20;
 // A forEach over a fan-out over a fan-out is the deepest shape a build has
@@ -38,21 +45,27 @@ function isPlainObject(v) {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
-// Mirrors bindings.js _normalizeRefPath (private there): the ways weaker
-// models mangle a path — leading $, bracket access, leading dot, stray
-// whitespace, doubled dots. The check must see the same path the binding
-// canonicaliser stores, or a repair would be computed against a spelling
-// that never reaches the step.
-function normalizeRefPath(path) {
+// The tokens of a ref path, read the way bindings.js stores it (aiPaths.js:
+// leading $, `steps[x]`, whitespace, debris), so a check is computed against
+// the spelling that reaches the step. Brackets stay brackets.
+function refTokens(path) {
     if (typeof path !== 'string') return null;
-    return path
-        .trim()
-        .replace(/^\$+/, '')
-        .replace(/\[\s*['"]?([^\]'"]+)['"]?\s*\]/g, '.$1')
-        .replace(/^\.+/, '')
-        .replace(/\s*\.\s*/g, '.')
-        .replace(/\.{2,}/g, '.');
+    return normalizeAiPath(path).tokens;
 }
+
+/** The keys of every object in a list (a union: entry 2's extra field is a field). */
+function unionKeys(list) {
+    if (!Array.isArray(list)) return null;
+    const out = [];
+    for (const el of list) {
+        if (!isPlainObject(el)) continue;
+        for (const k of Object.keys(el)) if (!out.includes(k)) out.push(k);
+    }
+    return out.length ? out : null;
+}
+
+// A runtime descriptor of JSON text is { _json: <what it encodes> } (shapeCache).
+const unwrapJson = d => (isPlainObject(d) && Object.keys(d).length === 1 && '_json' in d ? d._json : d);
 
 /**
  * The field names inside the first `{ … }` after "array of" in a curated
@@ -125,7 +138,7 @@ function topLevelFieldsOf(tool, draftWrap) {
  */
 function itemFieldsOf(tool, arrayField, draftWrap) {
     const rt = draftWrap?._runtimeShapes?.[tool];
-    const rtField = isPlainObject(rt) ? rt[arrayField] : undefined;
+    const rtField = isPlainObject(rt) ? unwrapJson(rt[arrayField]) : undefined;
     if (isPlainObject(rtField)) {
         const fields = keysOrNull(rtField._array);
         if (fields) return { fields, source: 'runtime' };
@@ -135,7 +148,7 @@ function itemFieldsOf(tool, arrayField, draftWrap) {
     if (parsed) return { fields: parsed, source: 'curated' };
     const sampleArr = isPlainObject(schema?.sample) ? schema.sample[arrayField] : undefined;
     if (Array.isArray(sampleArr)) {
-        const fields = keysOrNull(sampleArr[0]);
+        const fields = unionKeys(sampleArr);
         if (fields) return { fields, source: 'sample' };
     }
     return { fields: null, source: null };
@@ -207,9 +220,9 @@ function emptyResult() {
  * vars.*, a step type with no described list — is unknown.
  */
 function fieldsAtRef(graph, refPath, draftWrap, depth = 0) {
-    const path = normalizeRefPath(refPath);
-    if (!path) return emptyResult();
-    const segs = path.split('.');
+    const tokens = refTokens(refPath);
+    if (!tokens || tokens.some(t => t.type !== 'prop')) return emptyResult();
+    const segs = tokens.map(t => String(t.key));
 
     if (segs[0] === 'steps' && segs.length === 4 && segs[2] === 'output') {
         return fieldsAtStepOutput(graph, segs[1], segs[3], draftWrap, depth);
@@ -287,7 +300,7 @@ function fieldsAtTriggerOutput(graph, arrayField) {
         if (t.kind !== 'app_event') continue;
         const sample = samples[`${t.appEvent?.provider}.${t.appEvent?.event}`];
         const arr = isPlainObject(sample) ? sample[arrayField] : undefined;
-        const fields = Array.isArray(arr) ? keysOrNull(arr[0]) : null;
+        const fields = Array.isArray(arr) ? unionKeys(arr) : null;
         if (fields) return { ...emptyResult(), upstream, arrayField, fields, source: 'trigger' };
     }
     return { ...emptyResult(), upstream, arrayField };
@@ -299,106 +312,76 @@ function triggerFieldsForGraph(graph) {
 }
 
 /**
- * Is `rest` (the part of a loop ref after `loop.<var>.`) reachable in `fields`?
- * A dotted prefix counts — 'name.first' is fine when 'name' is known, we do
- * not see deeper — EXCEPT for a fan-out envelope key whose contents ARE known:
- * 'output' being in the list must not make 'output.anything' pass when the
- * step's output fields are listed and 'anything' is not one of them. The
- * containers whose contents are unknown (null) stay permissive.
- */
-function presentIn(rest, fields, containersWithKnownContents) {
-    const segs = rest.split('.');
-    const known = new Set(fields);
-    for (let i = 1; i <= segs.length; i++) {
-        const prefix = segs.slice(0, i).join('.');
-        if (!known.has(prefix)) continue;
-        if (i < segs.length && containersWithKnownContents.has(prefix)) continue;
-        return true;
-    }
-    return false;
-}
-
-/**
  * Check one `loop.<v>.<rest>` binding of a step against the shape of what
- * its forEach iterates. Only the step's own var is checked (v === itemVar);
- * a foreign var is another check's business (bindings.unboundLoopVarError).
+ * its forEach iterates — deep and token-based: `loop.m.payload.headers[0]
+ * .value`, `loop.r.output.items[*].sku` and `loop.f["Story Points"]` are
+ * walked over the item's shape (refCheck.js) the way the run reads them.
+ * Only the step's own var is checked (v === itemVar); a foreign var is
+ * another check's business (bindings.unboundLoopVarError).
  *
  * Returns
  *   { ok: true }                         — fine, or shape unknown, or not ours
- *   { ok: true, path, note }             — REPAIRED: the model bound a fan-out
- *                                          field without its envelope segment;
- *                                          exactly one of output./item. has it
+ *   { ok: true, path, note }             — REPAIRED with one obvious fix: a
+ *                                          fan-out field bound without its
+ *                                          envelope segment (exactly one of
+ *                                          output./item. has it), a case-only
+ *                                          misspelling, a key on a list
  *   { ok: false, ambiguous: true, … }    — both output.<rest> and item.<rest>
  *                                          exist; only the model knows which
- *   { ok: false, missing, at, itemFields, upstream, fanout, outputFields }
+ *   { ok: false, missing, at, itemFields, upstream, fanout, outputFields,
+ *     suggestions, sure, message }      — `missing` is the part of <rest> up
+ *                                          to where it broke; `message` one
+ *                                          readable sentence with a "did you
+ *                                          mean"
  */
 function checkLoopRef(graph, refPath, forEach, draftWrap) {
-    const path = normalizeRefPath(refPath);
-    if (!path || !isPlainObject(forEach) || typeof forEach.overRef !== 'string') return { ok: true };
-    const segs = path.split('.');
-    if (segs[0] !== 'loop' || segs[1] !== forEach.itemVar) return { ok: true };
-    const rest = segs.slice(2).join('.');
-    if (!rest) return { ok: true };                       // loop.<v>: the whole item
+    const tokens = refTokens(refPath);
+    if (!tokens || !isPlainObject(forEach) || typeof forEach.overRef !== 'string') return { ok: true };
+    if (tokens[0].key !== 'loop' || !tokens[1] || String(tokens[1].key) !== forEach.itemVar) return { ok: true };
+    if (tokens.length === 2) return { ok: true };                 // loop.<v>: the whole item
 
-    const res = fieldsAtRef(graph, forEach.overRef, draftWrap);
-    if (res.fields === null) return { ok: true };
-    const fanout = res.source === 'fanout';
-    const containers = new Set();
-    if (fanout && res.outputFields !== null) containers.add('output');
-    if (fanout && res.itemFields !== null) containers.add('item');
+    const item = itemOf(shapeAtRef(graph, forEach.overRef, draftWrap));
+    if (item.t === 'any') return { ok: true };
+    const path = formatPath(tokens);
+    const res = checkAgainst(item, tokens, 2, {});
+    if (!res.problem && !res.fixes.length) return { ok: true };
 
-    if (presentIn(rest, res.fields, containers)) return { ok: true };
-
-    // Repair only when the model skipped the envelope altogether. A ref that
-    // already starts with output./item./index/status named the envelope and
-    // missed a field under it; wrapping it again would turn `item.nope` into
-    // `output.item.nope` whenever the output half is opaque, hiding the miss.
-    if (fanout && !FANOUT_ENVELOPE.has(segs[2])) {
-        const under = ['output', 'item'].filter(env => presentIn(`${env}.${rest}`, res.fields, containers));
-        if (under.length === 1) {
-            const env = under[0];
-            const fixed = `loop.${segs[1]}.${env}.${rest}`;
-            const origin = res.upstream ? `steps.${res.upstream.stepId}.output.${res.arrayField}` : forEach.overRef;
-            const where = env === 'output' ? 'the step\'s result sits under output' : 'the iterated item sits under item';
-            return {
-                ok: true,
-                path: fixed,
-                note: `binding "${path}" read as "${fixed}" — an entry of ${origin} is {index, item, output, status}; ${where}.`,
-            };
-        }
-        if (under.length === 2) {
-            return {
-                ok: false,
-                ambiguous: true,
-                at: path,
-                candidates: under.map(env => `loop.${segs[1]}.${env}.${rest}`),
-                itemFields: res.fields,
-                upstream: res.upstream,
-                fanout: true,
-                outputFields: res.outputFields,
-            };
-        }
+    const at = fieldsAtRef(graph, forEach.overRef, draftWrap);
+    const fanout = at.source === 'fanout';
+    if (!res.problem) {
+        const fixed = formatPath(res.tokens);
+        const origin = at.upstream && at.arrayField ? `steps.${at.upstream.stepId}.output.${at.arrayField}` : forEach.overRef;
+        const reasons = res.fixes.map(f => (f.envelope
+            ? `an entry of ${origin} is {index, item, output, status}; ${f.envelope === 'output' ? 'the step\'s result sits under output' : 'the iterated item sits under item'}`
+            : f.why));
+        return { ok: true, path: fixed, note: `binding "${path}" read as "${fixed}" — ${reasons.join('; ')}.` };
     }
-
-    // The shortest prefix that is not known, skipping an envelope key whose
-    // contents are listed: for 'output.nope' that is 'output.nope', not
-    // 'output' (which exists) and not 'nope' (which has no home).
-    const known = new Set(res.fields);
-    let missing = rest;
-    for (let i = 1; i <= segs.length - 2; i++) {
-        const prefix = segs.slice(2, 2 + i).join('.');
-        if (known.has(prefix) && containers.has(prefix)) continue;
-        missing = prefix;
-        break;
+    const p = res.problem;
+    if (p.kind === 'ambiguous') {
+        return {
+            ok: false,
+            ambiguous: true,
+            at: path,
+            candidates: p.candidates.map(t => formatPath(t)),
+            itemFields: at.fields,
+            upstream: at.upstream,
+            fanout: true,
+            outputFields: at.outputFields,
+            message: describeProblem(p, path),
+        };
     }
+    const brokenAt = Number.isInteger(p.at) ? p.at : res.tokens.length - 1;
     return {
         ok: false,
-        missing,
+        missing: formatPath(res.tokens.slice(2, brokenAt + 1)),
         at: path,
-        itemFields: res.fields,
-        upstream: res.upstream,
+        itemFields: at.fields,
+        upstream: at.upstream,
         fanout,
-        outputFields: res.outputFields,
+        outputFields: at.outputFields,
+        suggestions: p.suggestions || [],
+        sure: !!p.sure,
+        message: describeProblem(p, path),
     };
 }
 

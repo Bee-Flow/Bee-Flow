@@ -1,16 +1,11 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { render, screen, fireEvent, cleanup, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { proposePickBinding } from './proposePick';
 import ValueBuilder from './ValueBuilder';
 import { VariablePickerProvider } from './VariablePickerContext';
 import { FormDensityContext } from '../flow/settings/formDensity';
-
-// vitest runs from the agent-hub root; resolving from cwd avoids import.meta
-// URL schemes that differ between the .js and .jsx transforms.
-const SRC = path.resolve(process.cwd(), 'src/components/automation/Builder/mapping/ValueBuilder.jsx');
 
 /**
  * WHAT HAPPENS WHEN THE THING YOU PICKED DOES NOT FIT THE SLOT.
@@ -347,17 +342,18 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
 describe('mismatch.js is the only detector on this path', () => {
     beforeEach(cleanup);
 
-    it('every question the editor asks is one detectMismatch names', () => {
+    it('what the editor writes is what proposePickBinding decides', () => {
         // The regression this guards: a second gate creeping back in beside
-        // the shared one, so the two editors disagree about whether a value
-        // fits. Asserted on the source because the alternative is trusting a
-        // comment.
-        expect(fs.existsSync(SRC), `${SRC} is not where this test thinks it is`).toBe(true);
-        const src = fs.readFileSync(SRC, 'utf8');
-        expect(src).toContain('detectMismatch(');
-        // pathListShape survives for ONE job — handing the list chooser the
-        // shape it renders — and must not decide anything again.
-        const gates = src.split('\n').filter(l => /(?:if|\?|&&|\|\|)\s*\(?[^=]*pathListShape\(/.test(l));
-        expect(gates, `pathListShape is deciding again:\n${gates.join('\n')}`).toEqual([]);
+        // the shared one, so the editor (or the phone, which calls the same
+        // function) disagrees about whether a value fits. Asserted on
+        // behaviour: for every shape, the stored binding is the shared
+        // decision's remedy, or the bare ref when it fits.
+        for (const path of ['steps.s1.output.addresses', 'steps.s1.output.results', 'steps.s1.output.sender', 'steps.s1.output.subject']) {
+            cleanup();
+            const { onChange, insertQuiet } = renderEditor({ onRequestForEach: null });
+            insertQuiet(path);
+            const decided = proposePickBinding(path, SAMPLE, { slot: 'Subject', expectKind: 'text', expectShape: 'scalar' });
+            expect(onChange.mock.calls.at(-1)[0]).toEqual(decided.remedy ? decided.remedy.binding : { kind: 'ref', path: decided.path });
+        }
     });
 });

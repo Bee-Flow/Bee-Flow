@@ -8,7 +8,7 @@ const {
     newId, appendAfter, branchEdgeFor, layerAwareAnchor, spliceSuccessors, isKnownNodeId,
 } = require('../draftGraph');
 const { TEMP_ID_RX, rewriteTempRefs } = require('../tempRefs');
-const { validateAndFixBindings } = require('../bindings');
+const { validateAndFixBindings, sanitizeArrayRef } = require('../bindings');
 
 function applyAddCondition(draft, args) {
     const step = { id: newId('cond'), type: 'condition', expr: args.expr, label: args.label || 'Condition' };
@@ -73,12 +73,19 @@ function applyAddTokenize(draft, args) {
     return { added: step };
 }
 
-function applyAddLoop(draft, args) {
+function applyAddLoop(draft, args, draftWrap) {
     // Sanitize child body steps: every child must have an id, type, and any
     // type-specific required fields. Missing ids would crash the runner with
     // a null step_id DB constraint.
     const rawBody = Array.isArray(args.body) ? args.body : [];
     const childErrors = [];
+    const notes = [];
+    // The list the loop walks: canonicalised and checked as a LIST, like a
+    // forEach.overRef (a bracket path survives; `results.files` becomes
+    // `results[*].files`).
+    const over = sanitizeArrayRef(args.overRef, draft, { draftWrap });
+    if (over.error) return { error: over.error.replace(/^arrayRef/, 'overRef') };
+    notes.push(...over.notes.map(n => n.replace(/^arrayRef/, 'overRef')));
     // Handles declared so far in this body: id → id (a body step's id IS its
     // handle, so `steps.$read` and `steps.read` both reach a step with id
     // "read"). Same resolver as builder_add_steps — see tempRefs.js.
@@ -130,8 +137,9 @@ function applyAddLoop(draft, args) {
             return null;
         }
         if (fixed.inputs) {
-            const v = validateAndFixBindings(fixed.inputs, draft);
+            const v = validateAndFixBindings(fixed.inputs, draft, { draftWrap });
             if (v.error) childErrors.push(`body[${idx}] (${fixed.id}): ${v.error}`);
+            for (const n of v.notes || []) notes.push(`body[${idx}] (${fixed.id}): ${n}`);
             fixed.inputs = v.inputs;
         }
         return fixed;
@@ -141,14 +149,14 @@ function applyAddLoop(draft, args) {
     const step = {
         id: newId('loop'),
         type: 'loop',
-        overRef: args.overRef,
+        overRef: over.arrayRef,
         itemVar: args.itemVar,
         body,
         maxIterations: args.maxIterations || 100,
-        label: args.label || `Loop over ${args.overRef}`,
+        label: args.label || `Loop over ${over.arrayRef}`,
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(notes.length ? { _warnings: notes } : {}) };
 }
 
 /**

@@ -3,62 +3,35 @@
  * AppStudio/runtime/resolveBinding.js (resolveBinding.lockstep.test.ts).
  */
 
-/** 'rows[0].title' -> ['rows','0','title']; tolerant of quotes and malformed tails. */
-function parsePathSegments(path: string): string[] {
-    const out: string[] = [];
-    let buf = '';
-    const flush = () => {
-        if (buf !== '') {
-            out.push(buf);
-            buf = '';
-        }
-    };
-    for (let i = 0; i < path.length; i++) {
-        const c = path[i] as string;
-        if (c === '.') {
-            flush();
-            continue;
-        }
-        if (c !== '[') {
-            buf += c;
-            continue;
-        }
-        flush();
-        const close = path.indexOf(']', i);
-        if (close < 0) {
-            buf += path.slice(i); // malformed: keep the rest literal
-            break;
-        }
-        const raw = unquote(path.slice(i + 1, close).trim());
-        if (raw !== '') out.push(raw);
-        i = close;
-    }
-    flush();
-    return out;
-}
+import { getRelativePath, parsePath } from '@/shared/expr';
 
-function unquote(raw: string): string {
-    const quoted = (raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"));
-    return quoted ? raw.slice(1, -1) : raw;
+/**
+ * Does `path` read as a path RELATIVE to a value under the shared grammar?
+ * The same normalisation getRelativePath applies (`$.a`, `[0].x`, `a.b`).
+ */
+function isRelativePath(path: string): boolean {
+    let p = path.trim();
+    if (p === '' || p === '$') return true;
+    if (p.startsWith('$.')) p = p.slice(2);
+    else if (p.startsWith('$[')) p = p.slice(1);
+    return parsePath(p.startsWith('[') ? `$${p}` : `$.${p}`) !== null;
 }
 
 /**
- * Safe path walk with dot AND bracket notation: 'rows.0.title',
- * 'rows[0].title', 'data["a-b"]'. Missing segments are undefined; never throws.
+ * Safe path walk with the ONE path grammar the automation runtime, the server
+ * validator and the web app use (shared/expr/path.mjs): 'rows.0.title',
+ * 'rows[0].title', 'data["a-b"]', 'rows[*].title', 'headers[name="Subject"].value',
+ * JSON text read as the object it encodes. A string that is not a path at all
+ * is read as ONE key (a column called "Full name"). Never throws.
  */
 export function walkPath(value: unknown, path: unknown): unknown {
     if (path == null || path === '') return value;
     if (typeof path !== 'string') return undefined;
-    let current = value;
-    for (const segment of parsePathSegments(path)) {
-        if (current == null || typeof current !== 'object') return undefined;
-        current = Object.prototype.hasOwnProperty.call(current, segment)
-            ? (current as Record<string, unknown>)[segment]
-            : undefined;
-    }
-    return current;
+    if (isRelativePath(path)) return getRelativePath(value, path);
+    return value != null && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, path)
+        ? (value as Record<string, unknown>)[path]
+        : undefined;
 }
-
 /** Deterministic JSON with sorted keys: the hash half of a data cache key. */
 export function stableStringify(value: unknown): string {
     if (value == null) return 'null';

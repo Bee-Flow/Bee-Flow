@@ -9,45 +9,32 @@
  * is trivially reversible — so a wrong guess is cheap, but we avoid them.
  */
 
+import { firstKeyIsDiagnostic, sampleType, tryIterationMapping, typeCompatible } from './autoMapIteration';
+import { ownItemIdPatch } from './autoMapOwnItem';
+import { foldKey, groupListSources, groupValueFields, isRecord } from './deepFields';
 import { isEmptyBinding } from './partitionInputs';
 import { matchSchema } from './schemaMatch';
-import { buildSampleRoot } from './realOutputs';
-import {
-    computeUpstreamGroups,
-    buildToolOutputMap,
-    inferLoopItemSample,
-    sampleToFields,
-    suggestItemVar,
-} from './upstream';
+import { computeUpstreamGroups } from './upstream';
 import { getLayerContract } from '../flow/flowletScope';
 import { reconcileRouteEdges } from '../flow/routeEdges';
 import { isDiagnosticOutputKey } from '../flow/stepPayload';
 
+export { sampleType };
+
 // ── small pure helpers (exported for tests) ───────────────────────────────
 
+/**
+ * A key as a person means it: case, separators (snake/camel/kebab/space) and
+ * accents do not count (`First-Name` = `first_name` = `firstName`,
+ * `Prénom` = `prenom`). deepFields.foldKey.
+ */
 export function normalizeKey(name) {
-    return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-export function sampleType(v) {
-    if (v === null || v === undefined) return 'null';
-    if (Array.isArray(v)) return 'array';
-    return typeof v; // 'string' | 'number' | 'boolean' | 'object'
+    return foldKey(name);
 }
 
 export function isSecretLikeKey(key) {
     return /(password|passwd|secret|token|apikey|api[_-]?key|credential|client[_-]?secret|private[_-]?key)/i
         .test(String(key || ''));
-}
-
-/** JSON-Schema property type vs an upstream sample's type. Permissive when unknown. */
-function typeCompatible(propType, candType) {
-    if (!propType || !candType || candType === 'null') return true;
-    let pt = propType;
-    if (Array.isArray(pt)) pt = pt.find(t => t !== 'null') || pt[0];
-    if (pt === 'integer') pt = 'number';
-    if (pt === 'string') return ['string', 'number', 'boolean'].includes(candType);
-    return pt === candType;
 }
 
 /** Resolve a tool's inputSchema from the catalog. */
@@ -60,37 +47,34 @@ export function findInputSchemaForTool(catalog, tool) {
     return null;
 }
 
-/** Flatten upstream groups (and one nesting level) into candidate fields. */
+/**
+ * Every one-value field of every upstream group, at ANY depth: the fields the
+ * describers offer and what only the sample shows (keys inside JSON text,
+ * name/value entries such as `headers[name="Subject"].value`, keys under
+ * wrappers like `data.attributes`). Never a list column (`items[*].x` is one
+ * value PER ROW, so it would put a list into a one-value parameter) and never
+ * a per-iteration field (BFSF-369): those stay pickable by hand, and the
+ * "run once per item" pass below is what maps a column.
+ */
 function flattenCandidates(groups) {
     const out = [];
     (groups || []).forEach((g, gi) => {
-        let fi = 0;
-        for (const f of (g.fields || [])) {
-            // Same reason as the `[*]` children below: a per-iteration field
-            // (upstream.js wrapGroupForEach) resolves to ONE VALUE PER
-            // ITERATION, so auto-mapping it into a scalar param would be
-            // wrong. It stays pickable by hand (BFSF-369).
-            if (f.perIteration) { fi++; continue; }
-            out.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel: g.label, groupIndex: gi, fieldIndex: fi++ });
-            for (const c of (f.children || [])) {
-                // Element children (`items[*].<key>`) carry a SCALAR sample but
-                // resolve to an ARRAY at runtime ([*] flatten-maps) — auto-mapping
-                // one into a scalar tool param would be wrong. Skip them here;
-                // they stay pickable by hand in the tree/picker.
-                if (/\[\*\]/.test(c.path)) continue;
-                out.push({ key: c.key, path: c.path, type: sampleType(c.sample), sample: c.sample, groupLabel: g.label, groupIndex: gi, fieldIndex: fi++ });
-            }
-        }
+        groupValueFields(g).forEach((f, fi) => {
+            out.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel: g.label, groupIndex: gi, fieldIndex: fi, weight: f.weight });
+        });
     });
     return out;
 }
 
-/** Nearest = highest groupIndex (closest upstream node), then earliest field. */
+/**
+ * Nearest = highest groupIndex (closest upstream node), then the field that
+ * sits least deep (wrappers such as `data` do not count), then data order.
+ */
 function chooseNearest(list, used) {
     if (!list.length) return null;
     const unused = list.filter(c => !used.has(c.path));
     const pool = unused.length ? unused : list;
-    return pool.slice().sort((a, b) => (b.groupIndex - a.groupIndex) || (a.fieldIndex - b.fieldIndex))[0];
+    return pool.slice().sort((a, b) => (b.groupIndex - a.groupIndex) || (a.weight - b.weight) || (a.fieldIndex - b.fieldIndex))[0];
 }
 
 function bestCandidate(key, propType, candidates, used) {
@@ -99,47 +83,32 @@ function bestCandidate(key, propType, candidates, used) {
     const tier1 = candidates.filter(c => c.key === key && typeCompatible(propType, c.type));
     const pick1 = chooseNearest(tier1, used);
     if (pick1) return pick1;
-    // tier 2: normalized match (snake/camel/case differences)
+    // tier 2: normalized match (snake/camel/kebab/space, case, accents)
     const tier2 = candidates.filter(c => normalizeKey(c.key) === nkey && typeCompatible(propType, c.type));
     return chooseNearest(tier2, used) || null;
 }
 
-const ARRAY_NAME_RE = /items|results|rows|records|data|list|messages|emails|events|files|entries/i;
+const ARRAY_NAME_RE = /items|results|rows|records|data|list|messages|emails|events|files|entries|value/i;
 
 /**
- * The fields of one group that may serve as a list source.
- *
- * A Code step's output is `{ result, logs, httpCalls }`: `logs` and
- * `httpCalls` are diagnostics, so they are never a candidate (a lone `logs`
- * array used to be picked, binding "Fields added to each row" to an empty
- * list). What the code RETURNED is: `result` itself when it is an array, or an
- * array one level inside it (`result.lines`) when it is an object.
+ * The nearest upstream list (for a Loop's overRef, a list op's arrayRef), at
+ * any depth: Stripe's `data.object.lines.data`, Graph's `body.value` inside
+ * JSON text. Within the nearest step that has one: a plain list before a
+ * column of a list inside a list, a list of records before a list of plain
+ * values, a list-like name, then the shallowest. A Code step's `logs` and
+ * `httpCalls` are diagnostics, never a list source (a lone `logs` array used
+ * to be picked), and a step's own item is not a source for itself.
  */
-function listCandidateFields(group) {
-    // A per-iteration column is an array only because it has one entry per
-    // iteration — "loop over the counts an earlier loop produced" is never
-    // what the author meant, so it is not a candidate source (BFSF-369).
-    const fields = (group.fields || []).filter(f => !f.perIteration);
-    if (group.kind !== 'code') return fields;
-    const out = [];
-    for (const f of fields) {
-        if (isDiagnosticOutputKey(group.kind, f.key)) continue;
-        out.push(f);
-        if (f.key === 'result' && !Array.isArray(f.sample)) {
-            for (const c of (f.children || [])) out.push(c);
-        }
-    }
-    return out;
-}
-
-/** Nearest upstream array-typed field path (for loop/filter overRef/arrayRef). */
 export function nearestArrayRef(groups) {
     for (let gi = (groups || []).length - 1; gi >= 0; gi--) {
-        const fields = listCandidateFields(groups[gi]);
-        const preferred = fields.find(f => sampleType(f.sample) === 'array' && ARRAY_NAME_RE.test(f.key));
-        if (preferred) return preferred.path;
-        const anyArr = fields.find(f => sampleType(f.sample) === 'array');
-        if (anyArr) return anyArr.path;
+        const g = groups[gi];
+        if (g.ownItem) continue;
+        const sources = groupListSources(g).filter(s => !firstKeyIsDiagnostic(g, s.path, isDiagnosticOutputKey));
+        if (!sources.length) continue;
+        const rank = s => [s.chain.length, isRecord(s.element) ? 0 : 1, ARRAY_NAME_RE.test(s.key) ? 0 : 1, s.weight, s.depth];
+        const best = sources.map((s, i) => ({ s, r: [...rank(s), i] }))
+            .sort((a, b) => { for (let k = 0; k < a.r.length; k++) if (a.r[k] !== b.r[k]) return a.r[k] - b.r[k]; return 0; })[0];
+        return best.s.path;
     }
     return null;
 }
@@ -178,88 +147,6 @@ export function nearestScannableRef(groups) {
     }
     const nearest = (groups || [])[(groups || []).length - 1];
     return nearest?.basePath || null;
-}
-
-// ── iteration ("run once per item") detection ─────────────────────────────
-
-function lastSegmentKey(path) {
-    const parts = String(path || '').split('.');
-    return parts[parts.length - 1] || '';
-}
-
-/** `messageId` / `message_id` → 'message'; null when the key isn't id-suffixed. */
-function idAffinityBase(key) {
-    const m = /^(.+?)[_]?id$/i.exec(String(key || ''));
-    return m && m[1] ? m[1] : null;
-}
-
-/**
- * When a step's REQUIRED inputs can't be filled from scalar upstream fields
- * but the nearest upstream is an ARRAY of objects whose element fields
- * match, set up per-item iteration: bind matching inputs to
- * `loop.<itemVar>.<field>` and return the `forEach` config the runtime
- * fans out over (see execForEachStep on the server).
- *
- * Conservative: only fires from a declared schema, only for inputs the
- * scalar pass left empty, only on exact / normalized name + type matches
- * (plus a single `<entity>Id` ↔ element `id` affinity for the primary
- * identifier — the dominant list→read pattern), and only when at least one
- * REQUIRED input is satisfied per item. Returns null otherwise.
- */
-function tryIterationMapping(schema, existingInputs, groups, definition, catalog) {
-    const properties = schema?.properties || null;
-    if (!properties) return null;                  // need types + required to be safe
-    const required = new Set(schema?.required || []);
-    if (!required.size) return null;               // only auto-iterate to satisfy required inputs
-    const overRef = nearestArrayRef(groups);
-    if (!overRef) return null;
-    // Resolve the element against the groups' own sample tree — with real
-    // run/pinned data in the groups, the element shape is a real row.
-    const elementSample = inferLoopItemSample(overRef, definition, buildToolOutputMap(catalog), buildSampleRoot(groups));
-    if (!elementSample || typeof elementSample !== 'object' || Array.isArray(elementSample)) return null;
-
-    const itemVar = suggestItemVar(lastSegmentKey(overRef));
-    const candidates = [];
-    for (const f of sampleToFields(elementSample, `loop.${itemVar}`)) {
-        candidates.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel: itemVar, groupIndex: 0 });
-        for (const c of (f.children || [])) candidates.push({ key: c.key, path: c.path, type: sampleType(c.sample), sample: c.sample, groupLabel: itemVar, groupIndex: 0 });
-    }
-    if (!candidates.length) return null;
-    const idField = candidates.find(c => c.key === 'id');
-
-    const patch = {};
-    const used = new Set();
-    let matchedRequired = false;
-    let idAffinityUsed = false;
-    // Required first so they win the element's `id` field over optionals.
-    const keys = Object.keys(properties).sort((a, b) => (required.has(b) ? 1 : 0) - (required.has(a) ? 1 : 0));
-    for (const key of keys) {
-        if (!isEmptyBinding((existingInputs || {})[key])) continue;
-        if (isSecretLikeKey(key)) continue;
-        const propType = properties[key]?.type;
-        const nkey = normalizeKey(key);
-        let match = candidates.find(c => !used.has(c.path) && c.key === key && typeCompatible(propType, c.type))
-            || candidates.find(c => !used.has(c.path) && normalizeKey(c.key) === nkey && typeCompatible(propType, c.type));
-        // id-affinity: `<entity>Id` ↔ element `id`, applied once to the
-        // primary identifier (required keys sort first, so it wins it).
-        if (!match && !idAffinityUsed && idField && !used.has(idField.path) && idAffinityBase(key) && typeCompatible(propType, idField.type)) {
-            match = idField;
-            idAffinityUsed = true;
-        }
-        if (!match) continue;
-        patch[key] = { kind: 'ref', path: match.path };
-        used.add(match.path);
-        if (required.has(key)) matchedRequired = true;
-    }
-    // The same schema-matching layer as the single-value pass, per item.
-    const left = keys.filter(k => !patch[k] && isEmptyBinding((existingInputs || {})[k]) && !isSecretLikeKey(k));
-    for (const r of matchSchema(left.map(k => ({ key: k, ...(properties[k] || {}) })), candidates, used)) {
-        patch[r.key] = { kind: 'ref', path: r.path };
-        used.add(r.path);
-        if (required.has(r.key)) matchedRequired = true;
-    }
-    if (!matchedRequired) return null;
-    return { patch, forEach: { overRef, itemVar, maxIterations: 100 } };
 }
 
 // ── core ──────────────────────────────────────────────────────────────────
@@ -308,6 +195,7 @@ export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups,
             used.add(r.path);
         }
     }
+    if (properties && Object.keys(patch).length < maxPerStep) ownItemIdPatch({ keys, schema: targetInputSchema, existing: existingInputs || {}, groups: upstreamGroups }, patch);
     return patch;
 }
 
@@ -377,7 +265,7 @@ export function autoMapStep(step, definition, catalog, opts = {}) {
         // upstream is an array of objects whose elements match → fan out once
         // per item. Never override an existing forEach the user set.
         if (!step.forEach) {
-            const iter = tryIterationMapping(schema, nextInputs, groups, definition, catalog);
+            const iter = tryIterationMapping(schema, nextInputs, groups, isDiagnosticOutputKey);
             if (iter) {
                 nextInputs = { ...nextInputs, ...iter.patch };
                 keys = [...keys, ...Object.keys(iter.patch)];

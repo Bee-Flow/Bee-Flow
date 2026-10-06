@@ -9,8 +9,9 @@
  * is the container's own shape.
  */
 
-const { parseExpr, TOPIC_HOST_SPEC } = require('../../expr');
-const { isObject } = require('../helpers');
+const { parseExpr, TOPIC_HOST_SPEC, parsePath, formatPath } = require('../../expr');
+const { isObject, collectRefPaths } = require('../helpers');
+const { fieldsAtRef, checkLoopRef, itemFieldsOf, topLevelFieldsOf } = require('../../builderTools/outputFields');
 const { checkMaxItems } = require('../fieldChecks');
 const { SUMMARIZE_OPS, LIMIT_MODES } = require('../constants');
 
@@ -97,6 +98,146 @@ function checkForEach(ctx, step, at) {
             if (step.forEach.maxIterations !== undefined && (typeof step.forEach.maxIterations !== 'number' || step.forEach.maxIterations < 1 || step.forEach.maxIterations > 1000)) {
                 pushE({ code: 'foreach.max_iterations_range', severity: 'error', path: at + '.forEach.maxIterations', message: `Step ${step.id}: forEach maxIterations must be 1..1000.`, hint: 'Pick a small integer; 100 is a sensible default.' });
             }
+            if (typeof step.forEach.overRef === 'string' && step.forEach.overRef) {
+                checkForEachSource(ctx, step, at);
+                checkForEachParents(ctx, step, at);
+                checkForEachItemFields(ctx, step, at);
+            }
+        }
+    }
+}
+
+const tokensOf = (path) => parsePath(String(path || ''));
+const isPrefix = (short, long) => short.length < long.length && short.every((t, i) => {
+    const o = long[i];
+    return t.type === o.type && (t.type === 'wild' || (t.key === o.key && (t.type !== 'match' || t.value === o.value)));
+});
+
+/**
+ * The parents a forEach may bind (`forEach.parents`, a list inside a list —
+ * see core/automationRunner/forEachScope.js): outermost first, each with an
+ * overRef that is a leading part of the step's own overRef and a name of its
+ * own. Returns the usable ones; `problems` collects why the others are not.
+ */
+function usableParents(fe, problems = []) {
+    if (fe.parents === undefined || fe.parents === null) return [];
+    if (!Array.isArray(fe.parents)) { problems.push('`parents` must be a list'); return []; }
+    const own = tokensOf(fe.overRef);
+    const names = new Set([fe.itemVar]);
+    const out = [];
+    for (const p of fe.parents) {
+        if (!isObject(p) || typeof p.itemVar !== 'string' || !p.itemVar || typeof p.overRef !== 'string' || !p.overRef) {
+            problems.push('every parent needs an `itemVar` and an `overRef`');
+            continue;
+        }
+        if (names.has(p.itemVar)) { problems.push(`the name "${p.itemVar}" is used twice`); continue; }
+        const pt = tokensOf(p.overRef);
+        if (!own || !pt || !isPrefix(pt, own)) {
+            problems.push(`"${p.overRef}" is not an outer part of "${fe.overRef}"`);
+            continue;
+        }
+        names.add(p.itemVar);
+        out.push(p);
+    }
+    return out;
+}
+
+/**
+ * Every `loop.<var>` a step's forEach binds for its own fields: the item and
+ * the outer items it keeps. referenceScoping.js counts these as bound.
+ */
+function forEachBoundVars(fe) {
+    if (!isObject(fe) || typeof fe.itemVar !== 'string' || !fe.itemVar) return [];
+    return [fe.itemVar, ...usableParents(fe).map(p => p.itemVar)];
+}
+
+// The list is resolved BEFORE any item is bound, so `loop.<own item>` (or one
+// of its parents) as the source is always nothing; the run then skips the step
+// as `overref_unresolved` while the editor showed a list to pick.
+function checkForEachSource(ctx, step, at) {
+    const fe = step.forEach;
+    const t = tokensOf(fe.overRef);
+    if (!t || t[0]?.key !== 'loop' || typeof t[1]?.key !== 'string') return;
+    const own = forEachBoundVars(fe);
+    // A Loop above that binds the same name is read before this step's own
+    // item shadows it, so `loop.mail.attachments` inside a Loop over mails is fine.
+    const above = (ctx.loopVarsAbove && ctx.loopVarsAbove.get(step)) || [];
+    if (!own.includes(t[1].key) || above.includes(t[1].key)) return;
+    ctx.pushE({
+        code: 'foreach.overRef_self', severity: 'error', path: at + '.forEach.overRef',
+        message: `Step ${step.id}: it runs once per item of "${fe.overRef}", which is inside its own item (loop.${t[1].key}) — that does not exist yet when the list is read.`,
+        hint: 'Pick a list from an earlier step under "Run once per item". For a list inside each item, pick a value from it: the step then runs once per inner item.',
+    });
+}
+
+function checkForEachParents(ctx, step, at) {
+    const problems = [];
+    usableParents(step.forEach, problems);
+    for (const why of problems) {
+        ctx.pushE({
+            code: 'foreach.parents_invalid', severity: 'error', path: at + '.forEach.parents',
+            message: `Step ${step.id}: the outer lists this step keeps are not right: ${why}.`,
+            hint: 'Pick the list again under "Run once per item"; that rewrites them.',
+        });
+    }
+}
+
+/**
+ * What ONE item of `overRef` has, when we know: a direct list of a step
+ * (fieldsAtRef), or a list inside each result of a step that ran per item
+ * (`steps.read.output.results[*].output.attachments`). null when unknown —
+ * never an empty list, or every field of an undescribed tool would be flagged.
+ */
+function itemFieldsAt(graph, overRef) {
+    const direct = fieldsAtRef(graph, overRef, null);
+    if (direct.fields) return { fields: direct.fields, direct: true };
+    const t = tokensOf(overRef);
+    const keys = t ? t.map(x => (x.type === 'wild' ? '*' : x.key)) : [];
+    if (keys[0] !== 'steps' || keys[2] !== 'output' || keys[3] !== 'results' || keys[4] !== '*' || keys[5] !== 'output') return null;
+    const up = (graph?.steps || []).find(s => isObject(s) && s.id === keys[1]);
+    if (!up || up.type !== 'integration_action' || !isObject(up.forEach) || typeof up.tool !== 'string') return null;
+    if (keys.length === 6) return { fields: topLevelFieldsOf(up.tool, null).fields, direct: false };
+    if (keys.length === 7) return { fields: itemFieldsOf(up.tool, keys[6], null).fields, direct: false };
+    return null;
+}
+
+// A field that reads a field the item does not have resolves to nothing for
+// every item. The usual cause: the list the step runs over was switched and
+// the fields kept reading the old item's names.
+function checkForEachItemFields(ctx, step, at) {
+    const fe = step.forEach;
+    const scopes = [{ itemVar: fe.itemVar, overRef: fe.overRef }, ...usableParents(fe)];
+    for (const [slot, binding] of Object.entries(isObject(step.inputs) ? step.inputs : {})) {
+        const refs = [];
+        collectRefPaths(binding, refs);
+        for (const r of refs) {
+            if (r.kind !== 'ref') continue;
+            const t = tokensOf(r.path);
+            if (!t || t.length < 3 || t[0].key !== 'loop' || t[2].type !== 'prop') continue;
+            const scope = scopes.find(s => s.itemVar === t[1].key);
+            if (!scope) continue;
+            const shape = itemFieldsAt(ctx.graph, scope.overRef);
+            if (!shape || !shape.fields) continue;
+            let missing = null;
+            let suggestion = null;
+            if (shape.direct) {
+                const chk = checkLoopRef(ctx.graph, formatPath(t), { overRef: scope.overRef, itemVar: scope.itemVar }, null);
+                if (chk.ok && chk.path) suggestion = chk.path;
+                else if (!chk.ok && !chk.ambiguous) missing = chk.missing;
+            } else if (!shape.fields.includes(String(t[2].key))) {
+                missing = String(t[2].key);
+            }
+            if (!missing && !suggestion) continue;
+            const shown = shape.fields.slice(0, 12).join(', ') + (shape.fields.length > 12 ? ', …' : '');
+            ctx.pushW({
+                code: 'foreach.item_field_missing', severity: 'warning', path: `${at}.inputs.${slot}`,
+                message: suggestion
+                    ? `Step ${step.id}: input "${slot}" reads ${r.path}, but each item of ${scope.overRef} keeps that under ${suggestion}.`
+                    : `Step ${step.id}: input "${slot}" reads ${r.path}, but an item of ${scope.overRef} has no "${missing}" (it has: ${shown}).`,
+                hint: suggestion
+                    ? `Use ${suggestion}.`
+                    : 'Pick the field again from the current item under "Comes in" — the list this step runs over may have changed.',
+            });
         }
     }
 }
@@ -128,4 +269,4 @@ function checkCollectionOps(ctx, step, at) {
     }
 }
 
-module.exports = { checkLoop, checkParallel, checkForEach, checkCollectionOps };
+module.exports = { checkLoop, checkParallel, checkForEach, checkCollectionOps, forEachBoundVars, usableParents };

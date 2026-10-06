@@ -78,15 +78,17 @@ function applyAddAction(draft, rawArgs, draftWrap) {
     if (unknown) return unknown;
     const gate = inspectGateError(args.tool, args.inputs, draftWrap);
     if (gate) return gate;
-    const bindings = validateAndFixBindings(args.inputs || {}, draft);
-    if (bindings.error) return { error: bindings.error };
+    const bindings = validateAndFixBindings(args.inputs || {}, draft, { draftWrap });
+    // A suggested path is never auto-applied to an action that changes data.
+    if (bindings.error) return { error: bindings.error, ...(bindings._suggestedPatch && !isSideEffect(args.tool) ? { _suggestedPatch: bindings._suggestedPatch } : {}) };
     let inputs = bindings.inputs;
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
     const loopErr = unboundLoopVarError(inputs, forEach);
     if (loopErr) return loopErr;
-    // Every server-side repair lands here as a sentence on the success result.
-    const warnings = [toolNote, removedNote].filter(Boolean);
+    // Every server-side repair lands here as a sentence on the success result
+    // — a path read differently, or one the tool's description cannot find.
+    const warnings = [toolNote, removedNote, ...(bindings.notes || []), ...(feNotes || [])].filter(Boolean);
     // Required inputs left unbound. The builder's validator is not handed the
     // tool schemas, so a read step with no `path` finalised clean and failed
     // only at run time with "path is required" — one live run per missing
@@ -127,7 +129,9 @@ function applyAddAction(draft, rawArgs, draftWrap) {
             } else if (!chk.ok) {
                 res = res || fieldsAtRef(draft, forEach.overRef, draftWrap);
                 const phrase = describeItem(res);
-                if (phrase) warnings.push(`input "${k}" reads ${b.path} but ${phrase} — it will be empty at run time.`);
+                const dym = chk.suggestions && chk.suggestions.length ? ` Did you mean ${chk.suggestions.join(' or ')}?` : '';
+                if (phrase) warnings.push(`input "${k}" reads ${b.path} but ${phrase} — it will be empty at run time.${dym}`);
+                else if (chk.message) warnings.push(`input "${k}": ${chk.message}`);
             }
         }
     }

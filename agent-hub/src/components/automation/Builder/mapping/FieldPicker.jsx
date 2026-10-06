@@ -1,3 +1,4 @@
+import { appendKey, canonicalPath, isValidPath, pathKeys } from '@shared/expr/path.mjs';
 import { ChevronDown, FunctionSquare, Search } from 'lucide-react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
@@ -126,7 +127,7 @@ export default function FieldPicker({
                             if (e.key === 'Enter') {
                                 e.preventDefault();
                                 if (filtered.length) emit(filtered[0].path);
-                                else if (canUseTyped) emit(`${fallbackBase}.${typed}`);
+                                else if (canUseTyped) emit(typedPath(fallbackBase, typed));
                             }
                         }}
                         placeholder="Search fields…"
@@ -177,7 +178,7 @@ export default function FieldPicker({
                     {canUseTyped && (
                         <button
                             type="button"
-                            onMouseDown={(e) => { e.preventDefault(); emit(`${fallbackBase}.${typed}`); }}
+                            onMouseDown={(e) => { e.preventDefault(); emit(typedPath(fallbackBase, typed)); }}
                             className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-xs border-t border-[var(--border-default)] hover:bg-[var(--bg-secondary)]"
                         >
                             <span className="text-[var(--text-secondary)]">Use “{typed}”</span>
@@ -198,8 +199,21 @@ export default function FieldPicker({
     );
 }
 
-/** `steps.g1.output.results[*].subject` → `subject`. */
+/** `steps.g1.output.results[*]["first-name"]` → `first-name`: the last key, read as the runtime reads it. */
 function lastSegment(path) {
+    const keys = pathKeys(String(path || '').trim());
+    if (keys) return keys.filter(k => typeof k === 'string' && k !== '*').pop() || '';
     const cleaned = String(path || '').replace(/\[(?:\*|\d+)\]/g, '');
     return cleaned.split('.').filter(Boolean).pop() || '';
+}
+
+/**
+ * A free-typed field under `base`: a path as typed when it is one
+ * (`from.email`), otherwise ONE key, quoted as the runtime reads it
+ * (`Story Points` → `["Story Points"]`, never a dotted path that resolves to
+ * nothing).
+ */
+function typedPath(base, typed) {
+    if (isValidPath(typed)) return canonicalPath(`${base}.${typed}`) || `${base}.${typed}`;
+    return appendKey(base, typed);
 }

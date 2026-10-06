@@ -6,7 +6,7 @@
  */
 
 import * as am from './autoMap';
-import { tryIterationMapping } from './autoMapIteration';
+import { sampleType, tryIterationMapping } from './autoMapIteration';
 import { applyAutoMapToStep, autoMapStep } from './autoMapStep';
 import { CATALOG, chainDefinition } from './testing/fixture';
 import { BUILDER, requireWeb } from './testing/web';
@@ -126,7 +126,7 @@ describe('the matching helpers', () => {
         expect(am.nearestScannableRef(onlyObjects)).toBe(web.nearestScannableRef?.(onlyObjects));
         expect(am.nearestScannableRef(null)).toBe(web.nearestScannableRef?.(null));
         expect(am.nearestArrayRef(null)).toBe(web.nearestArrayRef?.(null));
-        for (const v of [null, undefined, [], {}, 'x', 1, true]) expect(am.sampleType(v)).toBe(web.sampleType?.(v));
+        for (const v of [null, undefined, [], {}, 'x', 1, true]) expect(sampleType(v)).toBe(web.sampleType?.(v));
         for (const k of ['From_Email', 'api-key', 'password', 'clientSecret', 'name', null]) {
             expect(am.normalizeKey(k)).toBe(web.normalizeKey?.(k));
             expect(am.isSecretLikeKey(k)).toBe(web.isSecretLikeKey?.(k));
@@ -137,17 +137,76 @@ describe('the matching helpers', () => {
         expect(am.findInputSchemaForTool(null, 'x')).toBe(null);
     });
 
+    // A step that already runs per mail gets the mail's own id only for a key
+    // that names the mail, and only once (web autoMapInputs.ownItemId.test.ts).
+    it.each([
+        ['result', { channelId: 'string', text: 'string' }, {}],
+        ['mail', { projectId: 'string', summary: 'string' }, {}],
+        ['mail', { messageId: 'string', labelId: 'string' }, { messageId: { kind: 'ref', path: 'loop.mail.id' } }],
+        ['mail', { messageId: 'string', labelId: 'string' }, { messageId: { kind: 'literal', value: 'abc' } }],
+        ['mail', { messageId: 'string', mailId: 'string' }, { mailId: { kind: 'template', value: '{{ loop.mail.id }}' } }],
+        ['mail', { messageId: 'string', note: 'string' }, { note: { kind: 'template', value: 'Re {{loop.mail.id}}' } }],
+        ['email', { messageId: 'string' }, {}],
+        ['message', { message_id: 'string' }, {}],
+    ])('the own item %s and %j', (itemVar, props, inputs) => {
+        const schema = { properties: Object.fromEntries(Object.entries(props).map(([k, type]) => [k, { type }])), required: Object.keys(props) };
+        const step: FlowNode = { id: 'own', type: 'integration_action', tool: 'x', inputs, forEach: { overRef: 'steps.search.output.results', itemVar, maxIterations: 100 } };
+        const local = computeUpstreamGroups(below(step), 'own', CATALOG);
+        const mine = am.autoMapInputs(schema, inputs, local);
+        expect(mine).toStrictEqual(web.autoMapInputs?.(schema, inputs, local));
+        const idKey = Object.keys(mine).find((k) => mine[k]?.path === `loop.${itemVar}.id`);
+        const named = ['mail', 'email', 'message'].includes(itemVar) && !Object.keys(inputs).some((k) => /id$/i.test(k));
+        expect(idKey ? [idKey] : []).toEqual(named ? Object.keys(props).filter((k) => /^message_?id$/i.test(k)) : []);
+    });
+
+    // A step connected below a list gets an element's `id` for `<x>Id` only
+    // when the element IS an x (web autoMapIteration.entity.test.ts).
+    const OUTPUTS: Record<string, unknown> = {
+        messages: { messages: [{ id: 'm1', snippet: 'Hello', text: 'Hello there' }] },
+        orders: { orders: [{ id: 'o1', total: 5, line_items: [{ id: 'li1', sku: 'A' }] }] },
+        mails: { results: [{ id: 'm1', subject: 'Invoice', from: 'a@b.nl' }] },
+        invoices: { data: [{ object: 'invoice', id: 'in_1' }] },
+        envelopes: { results: [{ index: 0, item: {}, status: 'success', output: { id: 'm1', subject: 'x', threadId: 't1' } }] },
+        anonymous: { results: [{ id: 'r1', title: 'x', customer: { id: 'c1' } }] },
+    };
+    const SCHEMAS: Record<string, string[]> = {
+        slack: ['channelId', 'text'], jira: ['projectId', 'summary'], read: ['messageId'], order: ['orderId'],
+        lines: ['orderId', 'lineItemId', 'sku'], invoice: ['invoiceId'], customer: ['customerId'],
+    };
+    it.each(Object.keys(OUTPUTS).flatMap((o) => Object.keys(SCHEMAS).map((sc) => [o, sc])))('connects %s → %s like the web', (o, sc) => {
+        const props = SCHEMAS[sc] as string[];
+        const catalog = {
+            apps: [{ actions: [
+                { name: 'source', outputSample: OUTPUTS[o] },
+                { name: 'target', inputSchema: { properties: Object.fromEntries(props.map((k) => [k, { type: 'string' }])), required: props } },
+            ] }],
+            triggerOutputs: { __manual: { fields: [], sample: {} } },
+        };
+        const def: FlowDefinition = {
+            trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+            steps: [{ id: 's1', type: 'integration_action', tool: 'source', inputs: {} }, { id: 's2', type: 'integration_action', tool: 'target', inputs: {} }],
+            edges: [{ from: 'trg', to: 's1' }, { from: 's1', to: 's2' }],
+        };
+        const mine = applyAutoMapToStep(def, 's2', catalog as never);
+        expect(mine).toStrictEqual(web.applyAutoMapToStep?.(def, 's2', catalog));
+        const inputs = (mine.definition.steps?.[1]?.inputs || {}) as Record<string, unknown>;
+        expect(inputs.channelId).toBeUndefined();
+        expect(inputs.projectId).toBeUndefined();
+    });
+
     it('the iteration fallback on its own', () => {
         const def = below({ id: 'r', type: 'integration_action', tool: 'gmail_read' });
         const local = computeUpstreamGroups(def, 'r', CATALOG);
         const schema = { properties: { messageId: { type: 'string' } }, required: ['messageId'] };
-        expect(tryIterationMapping(schema, {}, local, { definition: def, catalog: CATALOG })).toStrictEqual({
+        const webIter = requireWeb(`${BUILDER}/mapping/autoMapIteration.ts`);
+        expect(tryIterationMapping(schema, {}, local)).toStrictEqual({
             patch: { messageId: { kind: 'ref', path: 'loop.result.id' } },
             forEach: { overRef: 'steps.search.output.results', itemVar: 'result', maxIterations: 100 },
         });
-        expect(tryIterationMapping({ properties: {} }, {}, local, { definition: def, catalog: CATALOG })).toBe(null);
-        expect(tryIterationMapping(schema, {}, [], { definition: def, catalog: CATALOG })).toBe(null);
+        expect(tryIterationMapping(schema, {}, local)).toStrictEqual(webIter.tryIterationMapping?.(schema, {}, local));
+        expect(tryIterationMapping({ properties: {} }, {}, local)).toBe(null);
+        expect(tryIterationMapping(schema, {}, [])).toBe(null);
         const noMatch = { properties: { zzz: { type: 'number' } }, required: ['zzz'] };
-        expect(tryIterationMapping(noMatch, {}, local, { definition: def, catalog: CATALOG })).toBe(null);
+        expect(tryIterationMapping(noMatch, {}, local)).toBe(null);
     });
 });

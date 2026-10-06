@@ -9,6 +9,7 @@
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { resolveInputs } = require('../../automation/bind');
+const { inferAiStepOutputSchema } = require('./aiOutputInference');
 const { isSideEffect, isMemoisable } = require('../../automation/sideEffectMap');
 const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
 const { envFlagOn } = require('./integrationCachePolicy');
@@ -493,82 +494,16 @@ async function execIntegrationAction(step, ctx, runState, mode) {
 }
 
 /**
- * Walk the entire automation definition collecting every field name that
- * appears in a `steps.<stepId>.output.<field>` ref or `{{steps.<stepId>.output.<field>}}`
- * template. The returned array preserves first-seen order so the synthesised
- * outputSchema looks predictable to the model (and so the wrap-fallback
- * picks the right primary field).
+ * The top-level fields later steps read off this ai_step's output, in
+ * first-seen order (so the synthesised schema looks predictable to the
+ * model, and the wrap-fallback picks the right primary field). Every
+ * consumer counts: refs, `{{templates}}`, formulas (also bracket reads such
+ * as `output["Story Points"]`), condition/switch exprs, the lists steps loop
+ * over and what their bodies read off each item. The full, nested schema is
+ * aiOutputInference.inferAiStepOutputSchema; this is its field list.
  */
 function collectAiStepOutputFields(definition, stepId) {
-    const out = [];
-    const seen = new Set();
-    if (!definition || !stepId) return out;
-    const refRe = new RegExp(`^steps\\.${stepId.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\.output\\.([\\w$]+)`);
-    const tplRe = new RegExp(`\\{\\{\\s*steps\\.${stepId.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\.output\\.([\\w$]+)`, 'g');
-    const visit = (v) => {
-        if (v == null) return;
-        if (typeof v === 'string') return;
-        if (Array.isArray(v)) { v.forEach(visit); return; }
-        if (typeof v !== 'object') return;
-        if (v.kind === 'ref' && typeof v.path === 'string') {
-            const m = refRe.exec(v.path);
-            if (m && !seen.has(m[1])) { seen.add(m[1]); out.push(m[1]); }
-        }
-        if (v.kind === 'template' && typeof v.value === 'string') {
-            let m;
-            while ((m = tplRe.exec(v.value)) !== null) {
-                if (!seen.has(m[1])) { seen.add(m[1]); out.push(m[1]); }
-            }
-            tplRe.lastIndex = 0;
-        }
-        for (const key of Object.keys(v)) visit(v[key]);
-    };
-    // Bare ref-path strings (condition/switch/filter exprs, overRefs,
-    // arrayRefs, parse_json sources, datetime inputs) and raw template
-    // strings (notification title/body, stop_error message, http url/body/
-    // headers) — none of these are binding OBJECTS, so `visit` alone never
-    // saw them (C26): an ai_step consumed ONLY by a condition expr got no
-    // inferred schema and returned a raw string the expr couldn't address.
-    const bareRefRe = new RegExp(`steps\\.${stepId.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\.output\\.([\\w$]+)`, 'g');
-    const scanString = (s) => {
-        if (typeof s !== 'string' || !s) return;
-        let m;
-        while ((m = bareRefRe.exec(s)) !== null) {
-            if (!seen.has(m[1])) { seen.add(m[1]); out.push(m[1]); }
-        }
-        bareRefRe.lastIndex = 0;
-    };
-    const scanStep = (s) => {
-        if (!s || typeof s !== 'object') return;
-        visit(s.inputs || {});
-        if (s.type === 'set' || s.type === 'layer_output') visit(s.fields || {});
-        // Expr/ref-string consumer positions.
-        scanString(s.expr);
-        scanString(s.overRef);
-        scanString(s.arrayRef);
-        scanString(s.sourceRef);
-        scanString(s.itemsRef);
-        scanString(s.input);
-        scanString(s.input2);
-        if (s.forEach) scanString(s.forEach.overRef);
-        // Template consumer positions.
-        scanString(s.title);
-        scanString(s.body && typeof s.body === 'string' ? s.body : undefined);
-        scanString(s.message);
-        scanString(s.url);
-        scanString(s.prompt);
-        if (s.headers && typeof s.headers === 'object') for (const hv of Object.values(s.headers)) scanString(hv);
-        // Nested containers: loop bodies / parallel branches read the ROOT
-        // definition's step outputs too (ctx.definition is never rebound for
-        // them), so their consumers count. Flowlets are excluded — call_layer
-        // rebinds the definition.
-        if (s.type === 'loop' && Array.isArray(s.body)) s.body.forEach(scanStep);
-        if (s.type === 'parallel' && Array.isArray(s.branches)) {
-            for (const branch of s.branches) if (Array.isArray(branch)) branch.forEach(scanStep);
-        }
-    };
-    for (const s of (definition.steps || [])) scanStep(s);
-    return out;
+    return inferAiStepOutputSchema(definition, stepId).fields;
 }
 
 // ── Knowledge Base grounding (BFSF-410) ─────────────────────────────────────
@@ -875,15 +810,21 @@ async function execAiStep(step, ctx, runState, mode) {
     // silently resolve to undefined. Inferring the field set lets us tell
     // the model exactly what JSON keys to emit, and powers the
     // wrap-as-text fallback below.
-    const inferredFields = step.outputSchema
-        ? null
-        : collectAiStepOutputFields(ctx.definition, step.id);
+    //
+    // The inferred schema follows the READS, nested and typed: a field read
+    // as `customer.contacts[0].email` is a record holding a list of records,
+    // a field a later step loops over is a list (aiOutputInference.js).
+    // Typing every field "string" made a model that obeyed the schema break
+    // exactly those reads.
+    const inferred = step.outputSchema ? null : inferAiStepOutputSchema(ctx.definition, step.id);
+    const inferredFields = inferred ? inferred.fields : null;
     // Handoff 5: without a schema of its own, the step answers in its leading
     // skill's output contract (widened by any field a later step reads).
     const outputContract = stepSkills.effectiveOutputSchema({
         stepSchema: step.outputSchema || null,
         skillSchema: skillCtx.leadingSchema,
         inferredFields: inferredFields || [],
+        inferredSchema: inferred ? inferred.schema : null,
     });
     const effectiveSchema = outputContract.schema;
 
@@ -1271,7 +1212,7 @@ async function execAiStep(step, ctx, runState, mode) {
             // it under the first inferred field so downstream bindings
             // still resolve. Better a slightly off-shape than a silent
             // undefined that breaks the next step ("body is required").
-            output = { [inferredFields[0]]: String(output).trim() };
+            output = { [inferred.textField || inferredFields[0]]: String(output).trim() };
         } else if (outputContract.declared) {
             // The author (or the leading skill) DECLARED a schema and the
             // model did not honour it.

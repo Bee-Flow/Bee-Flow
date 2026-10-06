@@ -8,6 +8,9 @@
 // keyed mask array on runState: unreachable from templates/exprs/code steps
 // (bind.js walks string paths only), folded into secretValuesFor below.
 const { MASK_VALUES } = require('./httpAuth');
+// The shared path grammar (pure, no engine module): how a binding root is read.
+const { scanTemplate, formatPath } = require('../../automation/expr');
+const { refHead, findRefPaths, tryParseExpr } = require('../../automation/validate/refPaths');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const POLLING_INTERVAL_MS = 30_000;
@@ -288,25 +291,76 @@ const PII_RESCAN_EXEMPT_TYPES = new Set(['limit', 'filter', 'dedupe', 'aggregate
 // `synthesised`, `trigger` when ctx.triggerSynthetic, and loop vars whose
 // source array was tainted (propagated by execForEachStep / execLoop).
 
-/** True when a binding path's ROOT resolves to synthesized dry-run data. */
+const ownTrue = (o, k) => !!(o && k !== null && Object.prototype.hasOwnProperty.call(o, k) && o[k]);
+
+/**
+ * True when a binding path's ROOT resolves to synthesized dry-run data. The
+ * head is read with the shared path grammar, so `steps["read"]…` and
+ * `loop.msg["content-type"]` count like their dotted spellings.
+ */
 function refIsSynthetic(path, runState, ctx) {
-    const p = String(path || '').trim();
-    if (/^trigger\b/.test(p)) return !!ctx.triggerSynthetic;
-    let m = p.match(/^steps\.([A-Za-z0-9_-]+)/);
-    if (m) return !!(runState.steps && runState.steps[m[1]] && runState.steps[m[1]].synthesised);
-    m = p.match(/^loop\.([A-Za-z0-9_]+)/);
-    if (m) return !!(runState._syntheticLoopVars && runState._syntheticLoopVars[m[1]]);
+    const { root, second } = refHead(String(path || ''));
+    if (root === 'trigger') return !!ctx.triggerSynthetic;
+    if (root === 'steps') return !!(ownTrue(runState.steps, second) && runState.steps[second].synthesised);
+    if (root === 'loop') return ownTrue(runState._syntheticLoopVars, second);
     return false; // vars / secrets are design-time values → real
 }
 
-/** Collect every binding path referenced by a step's inputs (ref paths, {{template}} bodies, expr tokens). */
+// The roots taint can come from, and `trigger` on its own (the whole payload)
+// inside a formula, which has no second segment for findRefPaths to read.
+const TAINT_ROOTS = ['trigger', 'steps', 'loop'];
+const BARE_TRIGGER_RE = /(?<![\p{L}\p{N}\p{M}_$@.\-\]])trigger(?![\p{L}\p{N}\p{M}_$@\-])/u;
+
+/**
+ * The run roots a formula reads, off its syntax tree: `steps.<id>` /
+ * `steps["<id>"]`, `loop.<var>`, `trigger…` (or `trigger` alone). Read the way
+ * the runner evaluates it (bind.js evaluateExprBinding: parseExpr, no host),
+ * so `-steps.read.output.n` and `100-steps.read.output.n` are a minus and a
+ * read, where a text scan sees `-` as part of a name and finds nothing; and
+ * quoted text (`'steps.read'`) is a value, never a read. Walks the same keys
+ * as the engine's collectRefs.
+ */
+function exprRootReads(node, out) {
+    if (!node || typeof node !== 'object') return out;
+    if (node.kind === 'path' && Array.isArray(node.segments)) {
+        const [first, second] = node.segments;
+        if (first && first.kind === 'name' && TAINT_ROOTS.includes(first.v)) {
+            const tokens = [{ type: 'prop', key: first.v }];
+            if (second && second.kind === 'name') tokens.push({ type: 'prop', key: second.v });
+            else if (second && second.kind === 'index' && second.expr && (second.expr.kind === 'str' || second.expr.kind === 'num')) {
+                tokens.push({ type: 'prop', key: second.expr.v });
+            }
+            out.push(formatPath(tokens));
+        }
+        for (const seg of node.segments) if (seg.expr) exprRootReads(seg.expr, out);
+    }
+    for (const k of ['cond', 'a', 'b', 'expr']) if (node[k]) exprRootReads(node[k], out);
+    if (Array.isArray(node.args)) for (const a of node.args) exprRootReads(a, out);
+    return out;
+}
+
+/**
+ * Collect every binding path referenced by a step's inputs: ref paths, the
+ * placeholders of a template (quote-aware, like the runner fills them) and
+ * the run reads of a formula.
+ */
 function collectBindingPaths(value, out = []) {
     if (!value || typeof value !== 'object') return out;
     if (Array.isArray(value)) { for (const v of value) collectBindingPaths(v, out); return out; }
     if (typeof value.kind === 'string') {
         if (value.kind === 'ref' && typeof value.path === 'string') out.push(value.path);
-        else if ((value.kind === 'template' || value.kind === 'expr') && typeof value.value === 'string') {
-            for (const m of value.value.matchAll(/(trigger|steps\.[A-Za-z0-9_-]+|loop\.[A-Za-z0-9_]+)\b/g)) out.push(m[0]);
+        else if (value.kind === 'template' && typeof value.value === 'string') {
+            for (const part of scanTemplate(value.value)) if (part.type === 'ref') out.push(part.inner);
+        } else if (value.kind === 'expr' && typeof value.value === 'string') {
+            const { ast } = tryParseExpr(value.value);
+            if (ast) exprRootReads(ast, out);
+            else {
+                // Not a formula the runner can evaluate (it resolves to
+                // nothing): scan the text, erring toward synthesising.
+                const found = findRefPaths(value.value, TAINT_ROOTS);
+                for (const tokens of found) out.push(formatPath(tokens));
+                if (BARE_TRIGGER_RE.test(value.value) && !found.some(t => t[0].key === 'trigger')) out.push('trigger');
+            }
         }
         return out;
     }

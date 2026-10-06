@@ -11,6 +11,7 @@ import {
     findActionAndSiblings,
 } from './settings/actionEditors';
 import { emptySlotsIn } from '../mapping/boundPaths';
+import { listAsForStepType, SlotListAsContext } from '../mapping/slotListAs';
 import { AiStepFields } from './settings/aiStepEditors';
 import { ApprovalFields } from './settings/approvalEditors';
 import {
@@ -261,7 +262,11 @@ export default function SettingsForm({
     useEffect(() => () => { flushNow(); }, []);  
 
     // `@container/ndvset`: the footer fits itself to the settings column, not the window.
+    // SlotListAsContext: how THIS step's run writes a list into its inputs'
+    // text (JSON for tool, AI, code, table and HTTP steps), so every value
+    // editor below previews what the step will actually receive.
     return (
+        <SlotListAsContext.Provider value={listAsForStepType(step?.type)}>
         <div className="@container/ndvset flex-1 min-h-0 flex flex-col">
             {(stepIssues.errors.length > 0 || stepIssues.warnings.length > 0) && (
                 <div className="flex-shrink-0 px-3 py-2 border-b border-[var(--border-default)]">
@@ -557,6 +562,7 @@ export default function SettingsForm({
                 </div>
             </div>
         </div>
+        </SlotListAsContext.Provider>
     );
 }
 

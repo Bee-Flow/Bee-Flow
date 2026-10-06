@@ -4,9 +4,10 @@
  * `trigger.event`, … — one "Trigger info" group for the whole graph, however
  * many triggers the automation has).
  */
-import { walkRelativePath } from '../../../../../utils/bindingHelpers';
-import { samplePlaceholderFor } from './sampleFields';
+import { appendKey, getRelativePath } from '@shared/expr/path.mjs';
+import { fieldFor } from './fieldTree';
 import { pickSample } from './formAnswers';
+import { samplePlaceholderFor } from './sampleFields';
 
 /**
  * The non-payload facts a run knows about its trigger, as a sample object in
@@ -54,7 +55,7 @@ export function describeTriggerMeta(definition, catalog) {
             // The catalog's own sample is an example from ANOTHER trigger kind
             // ("New mail", a weekday cron): only fields the actual trigger
             // produces are listed, and they show what that trigger has.
-            sample: walkRelativePath(f.key, sample) ?? null,
+            sample: getRelativePath(sample, f.key) ?? null,
         })),
     };
 }
@@ -91,11 +92,7 @@ export function describeTrigger(trigger, triggerOutputs) {
             kind: 'trigger',
             basePath: 'trigger.output',
             sample,
-            fields: params.map(p => ({
-                key: p.name,
-                path: `trigger.output.${p.name}`,
-                sample: samplePlaceholderFor(p.type),
-            })),
+            fields: params.map(p => fieldFor(p.name, appendKey('trigger.output', p.name), samplePlaceholderFor(p.type))),
         };
     }
     // A hosted form's answers ARE its declared fields, so they are bindable
@@ -120,11 +117,7 @@ export function describeTrigger(trigger, triggerOutputs) {
             kind: 'trigger',
             basePath: 'trigger.output',
             sample: Object.fromEntries(fields.map(f => [f.name, sampleFor(f)])),
-            fields: fields.map(f => ({
-                key: f.name,
-                path: `trigger.output.${f.name}`,
-                sample: sampleFor(f),
-            })),
+            fields: fields.map(f => fieldFor(f.name, appendKey('trigger.output', f.name), sampleFor(f))),
         };
     }
     let key = `__${kind}`;
@@ -138,11 +131,10 @@ export function describeTrigger(trigger, triggerOutputs) {
         kind: 'trigger',
         basePath: 'trigger.output',
         sample: entry.sample || {},
-        fields: (entry.fields || []).map(f => ({
-            key: f.key,
-            path: `trigger.output.${f.key}`,
-            sample: f.sample,
-        })),
+        // The catalog's sample is a real event's shape: a calendar event's
+        // `organizer.email` and `attendees[*].email` are offered before the
+        // trigger has ever fired.
+        fields: (entry.fields || []).map(f => fieldFor(f.key, appendKey('trigger.output', f.key), f.sample)),
     };
 }
 

@@ -28,6 +28,7 @@
  *
  * Pure and framework-free.
  */
+import { parsePath } from '@shared/expr/path.mjs';
 
 export interface MatchParam {
     key: string;
@@ -84,9 +85,11 @@ function singular(w: string): string {
     return w.endsWith('s') ? w.slice(0, -1) : w;
 }
 
-/** `recipientEmailAddress` → ['to', 'email', 'address'] (canonical, singular). */
+/** `recipientEmailAddress` → ['to', 'email', 'address'] (canonical, singular). Accents do not count (`Prénom` → prenom). */
 export function tokens(name: string): string[] {
     const raw = String(name || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
         .replace(/\[[^\]]*\]/g, ' ')
         .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
         .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
@@ -161,11 +164,20 @@ function kindFits(want: Kind, have: Kind): boolean {
 
 const GENERIC = new Set(['id', 'name', 'email', 'url', 'title', 'subject', 'date', 'time', 'path', 'key']);
 
+// Keys that only wrap a payload say nothing about the entity a field belongs to.
+const WRAPPER_WORDS = new Set(['data', 'result', 'results', 'value', 'values', 'items', 'payload', 'body', 'response', 'record', 'records', 'attributes', 'fields', 'properties', 'output', 'object', 'content']);
+
 function entityWords(c: MatchCandidate): string[] {
     // Path segments before the key (`…attachments[*].id` → attachment), then
-    // the step's own label ("Mail accounts" → mail, account).
-    const segs = String(c.path || '').split('.').slice(0, -1).filter(s => !/^steps$|^output$|^loop$|^s?[a-z]+_[0-9a-f]{4,}$/i.test(s));
-    return [...tokens(segs.slice(1).join(' ')), ...tokens(c.groupLabel || '')];
+    // the step's own label ("Mail accounts" → mail, account). Read with the
+    // runtime grammar, so `["line-items"]` is a segment like any other.
+    const keys = ((parsePath(String(c.path || '')) || []) as Array<{ type: string; key?: unknown }>)
+        .filter(t => t.type !== 'wild' && typeof t.key === 'string')
+        .map(t => t.key as string);
+    // `steps.<id>` and `loop.<name>` say nothing; nor does `trigger`.
+    const skip = keys[0] === 'steps' || keys[0] === 'loop' ? 2 : 1;
+    const segs = keys.slice(skip, -1).filter(s => !/^output$|^s?[a-z]+_[0-9a-f]{4,}$/i.test(s) && !WRAPPER_WORDS.has(s.toLowerCase()));
+    return [...tokens(segs.join(' ')), ...tokens(c.groupLabel || '')];
 }
 
 /** Name evidence, 0..1: the parameter's words the field (or, for a generic key, its step) says. */

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { summariseData } from './flow/dataSummary';
+import { humanizeFieldKey } from './flow/displayHelpers';
 import { stepNumbers } from './flow/flowOrder';
 import { stepPayload } from './flow/stepPayload';
 import { isInlineId, parseInlineId } from './flow/inlineFlowlets';
@@ -37,6 +38,8 @@ export interface LoopContext {
     truncated: boolean;
     skipped: number;
     listLabel: string | null;
+    /** A step that runs once per item: what ONE item is ("attachment"); null for a Loop. */
+    itemNoun?: string | null;
 }
 
 /** Everything the step editor derives from its props — facts, never edits. */
@@ -308,7 +311,10 @@ export function resolveLoopContext({ groups = [], definition = null, rootDefinit
     stepId?: string | null;
     runSteps?: RunStepRow[];
 }): LoopContext | null {
-    const itemGroup = (groups || []).find(g => String(g?.basePath || '').startsWith('loop.'));
+    // The step's own item first: a per-item step over a list inside a list
+    // also lists its outer items (`…__parent_<var>`), which are not its loop.
+    const itemGroup = (groups || []).find(g => String(g?.id || '').endsWith('__foreach'))
+        || (groups || []).find(g => String(g?.basePath || '').startsWith('loop.'));
     if (!itemGroup) return null;
     const candidates: string[] = [];
     const gid = String(itemGroup.id || '');
@@ -355,5 +361,15 @@ export function resolveLoopContext({ groups = [], definition = null, rootDefinit
         // "one per <the list it loops over>" — the loop's own label is what the
         // author named it, which is what 2b's "één per bank" is.
         listLabel: loopStep?.label || itemGroup.label || null,
+        // A per-item step is named after its ITEM, not after itself: its label
+        // ("Download each attachment") read "one per Download each attachment".
+        itemNoun: perItemNoun(loopStep),
     };
+}
+
+function perItemNoun(step: unknown): string | null {
+    const fe = step && typeof step === 'object' && (step as { type?: string }).type !== 'loop'
+        ? (step as { forEach?: { itemVar?: unknown } }).forEach : null;
+    const itemVar = fe && typeof fe.itemVar === 'string' && fe.itemVar ? fe.itemVar : null;
+    return itemVar ? humanizeFieldKey(itemVar).toLowerCase() : null;
 }

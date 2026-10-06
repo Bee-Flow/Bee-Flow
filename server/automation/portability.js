@@ -486,152 +486,70 @@ function rebindDatatables(definition, tables) {
 
 // ── Re-keying ───────────────────────────────────────────
 //
-// Reference surfaces that carry step ids (enumerated from bind.js, expr.js
-// and validate.js collectRefPaths):
-//   - edges[].from / edges[].to and trigger.id
-//   - binding wrappers anywhere in a step:  {kind:'ref', path:'steps.<id>…'},
-//     {kind:'template', value:'…{{steps.<id>…}}…'}, {kind:'expr', value:'…'}
-//   - bare ref-path strings:  loop.overRef, collection-op arrayRef
-//     (filter/limit/dedupe/aggregate/summarize), datetime.input/.input2
-//   - bare expr strings:      condition.expr, switch.expr, filter.expr
-//   - bare template strings:  notification.title/.body, stop_error.message,
-//     return_to_app.toast.message + .navigateTo.recordRef (nested — see below)
-//     (interpolateTemplate'd at run time — ai_step.prompt is NOT: the runner
-//     passes it verbatim, its {{…}} placeholders name the step's own inputs)
+// A step id hides in more places than any list of fields can keep up with:
+// edges and trigger ids, binding wrappers anywhere ({kind:'ref'|'template'|
+// 'expr'}), bare reference paths (forEach.overRef on ANY step, sourceRef,
+// arrayRef, datetime inputs, data_extraction.source), bare templates
+// (notification and approval texts, HTTP url/headers/body, ai_step.prompt,
+// document and slide texts, form pages, approval details/fields/stages, a
+// datatable cursor, …) and bare expressions (condition/switch/filter `expr`,
+// switch cases, approval stage `when`).
+//
+// Per-type tables of those fields drifted from what the runner reads — an
+// imported or installed automation kept the ORIGINAL ids on per-item steps,
+// parse/guard sources, HTTP requests and prompts, and landed broken. So the
+// rewrite is a walk over EVERY value of a step, and each string is read for
+// what it is (stepIdRewrite.js): a template if it has placeholders, a whole
+// reference path, or an expression. Prose matches none of those and is left
+// alone. Only the step-id token changes; everything else stays byte for byte.
+//
+// What is deliberately NOT rewritten:
+//   - `{kind:'literal'}` values: they ship verbatim at run time;
+//   - a code step's `code`: JavaScript, which reads its `inputs`, never `steps`;
+//   - pins (captured data) and the step's own id/type/layerKey/position;
+//   - data_extraction.instructions: guidance for the model, never interpolated;
+//   - parse_json's `fields` and `itemsRef`: paths RELATIVE to the parsed value,
+//     where `steps` would be a key of that value, not the run's steps;
+//   - a note's `text`: an annotation for people, read by nothing.
 
-const IDENT = '[A-Za-z_$][A-Za-z0-9_$]*';
-const PATH_HEAD_DOT_RE = new RegExp(`^steps\\.(${IDENT})([\\s\\S]*)$`);
-const PATH_HEAD_BRACKET_RE = new RegExp(`^steps\\[(["'])(${IDENT})\\1\\]([\\s\\S]*)$`);
-// In exprs `steps` may appear mid-string; the leading char class rejects
-// `vars.steps.x` / `mysteps.x` lookalikes.
-const EXPR_STEPS_DOT_RE = new RegExp(`(^|[^A-Za-z0-9_$.])steps\\.(${IDENT})`, 'g');
-const EXPR_STEPS_BRACKET_RE = new RegExp(`(^|[^A-Za-z0-9_$.])steps\\[\\s*(["'])(${IDENT})\\2\\s*\\]`, 'g');
+const { rewriteRefPath, rewriteTemplate, rewriteExpr, rewriteAnyString } = require('./stepIdRewrite');
 
-// Per-step-type bare string surfaces (everything else rides in binding
-// wrappers which the deep walk below catches).
-const REF_STRING_FIELDS = {
-    loop: ['overRef'],
-    filter: ['arrayRef'],
-    limit: ['arrayRef'],
-    dedupe: ['arrayRef'],
-    aggregate: ['arrayRef'],
-    summarize: ['arrayRef'],
-    // `arrayRef` is the list-mode source (BFSF-375); without it a duplicated
-    // automation's Date & time step still points at the ORIGINAL step's list.
-    datetime: ['input', 'input2', 'arrayRef'],
-};
-const EXPR_STRING_FIELDS = {
-    condition: ['expr'],
-    switch: ['expr'],
-    filter: ['expr'],
-};
-const TEMPLATE_STRING_FIELDS = {
-    notification: ['title', 'body'],
-    stop_error: ['message'],
-    // The approver's question is interpolated at run time (engine's
-    // renderApprovalPrompt), so a duplicated automation whose prompt quotes an
-    // upstream value must be re-pointed at the COPY's step ids — otherwise the
-    // approver is asked to approve a blank, which is exactly the decision you
-    // least want made on missing information.
-    approval: ['prompt'],
-    // All three are {{…}} templates, and `content` is essentially always a
-    // reference to an upstream step. Without them a duplicated or imported
-    // automation keeps pointing at the ORIGINAL step ids and renders an empty
-    // document — silently, because a missing template path resolves to ''.
-    generate_document: ['content', 'title', 'fileName'],
-    // fill_document's two names. Its `values` are templates too, but they live
-    // one level down in a map — see the explicit pass further below, the same
-    // shape form_page and return_to_app need.
-    fill_document: ['fileName', 'copyName'],
-    // The presentation pair: every text field is a template. `slides` may be a
-    // string OR a list — see the explicit pass further below.
-    slide: ['title', 'content', 'notes', 'image', 'stats'],
-    presentation: ['title', 'subtitle', 'fileName', 'accent', 'background', 'logo', 'footerText', 'copyName'],
-    // data_extraction was CONSIDERED and deliberately has no entry here (nor in
-    // REF_STRING_FIELDS): its `source` is a binding WRAPPER, which the deep walk
-    // below already remaps, and `instructions` is plain guidance for the model
-    // — never interpolated — so a `{{…}}` typed into it must survive a copy
-    // verbatim rather than be rewritten as a reference. Its `fields` carry
-    // names, not ids.
+const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
+/** Keys whose string value is an expression even when it does not parse yet (half-typed). */
+const EXPR_KEYS = new Set(['expr', 'when']);
+const NEVER_REWRITTEN = new Set(['id', 'type', 'layerKey', 'position', 'code', ...PIN_FIELDS]);
+const VERBATIM_FIELDS = {
+    data_extraction: new Set(['instructions']),
+    parse_json: new Set(['fields', 'itemsRef']),
+    // A canvas annotation: text for people, read by nothing.
+    note: new Set(['text']),
 };
 
-/** Rewrite a whole ref-path string (`steps.<id>.output.x` / `steps["<id>"]…`). */
-function rewritePath(path, map) {
-    if (typeof path !== 'string') return path;
-    let m = PATH_HEAD_DOT_RE.exec(path);
-    if (m && map[m[1]]) return `steps.${map[m[1]]}${m[2]}`;
-    m = PATH_HEAD_BRACKET_RE.exec(path);
-    if (m && map[m[2]]) return `steps[${m[1]}${map[m[2]]}${m[1]}]${m[3]}`;
-    return path;
-}
-
-/** Rewrite every `{{ … }}` body of a template string, preserving spacing. */
-function rewriteTemplate(str, map) {
-    return String(str).replace(/\{\{([^}]*)\}\}/g, (_, raw) => {
-        const lead = /^\s*/.exec(raw)[0];
-        const inner = raw.trim();
-        const trail = raw.slice(lead.length + inner.length);
-        return `{{${lead}${rewritePath(inner, map)}${trail}}}`;
-    });
+/** Rewrite one binding wrapper in place (literal: untouched). */
+function rewriteBinding(b, map) {
+    if (b.kind === 'ref' && typeof b.path === 'string') b.path = rewriteRefPath(b.path, map);
+    else if (b.kind === 'template' && typeof b.value === 'string') b.value = rewriteTemplate(b.value, map);
+    else if (b.kind === 'expr' && typeof b.value === 'string') b.value = rewriteExpr(b.value, map);
 }
 
 /**
- * Rewrite `steps.<id>` / `steps["<id>"]` lookups inside an expression while
- * leaving quoted string literals untouched (an expr like
- * `status == "steps.s1 failed"` must not have its message rewritten).
- * Quote/escape handling mirrors the expr.js tokenizer.
+ * Rewrite step ids in any value: strings by what they are, binding wrappers
+ * by their kind, objects and lists all the way down. Returns the new value
+ * (strings are immutable); objects are rewritten in place.
  */
-function rewriteExpr(src, map) {
-    if (typeof src !== 'string') return src;
-    let out = '';
-    let buf = '';
-    const flush = () => {
-        if (!buf) return;
-        let seg = buf.replace(EXPR_STEPS_DOT_RE, (m, pre, id) => (map[id] ? `${pre}steps.${map[id]}` : m));
-        seg = seg.replace(EXPR_STEPS_BRACKET_RE, (m, pre, q, id) => (map[id] ? `${pre}steps[${q}${map[id]}${q}]` : m));
-        out += seg;
-        buf = '';
-    };
-    let i = 0;
-    while (i < src.length) {
-        const c = src[i];
-        if (c === '"' || c === "'") {
-            flush();
-            let j = i + 1;
-            while (j < src.length && src[j] !== c) {
-                if (src[j] === '\\' && j + 1 < src.length) j += 2;
-                else j++;
-            }
-            out += src.slice(i, Math.min(j + 1, src.length));
-            i = j + 1;
-            continue;
-        }
-        buf += c;
-        i++;
-    }
-    flush();
-    return out;
-}
-
-/**
- * Deep-walk arbitrary structures rewriting binding wrappers in place.
- * Mirrors bind.js resolveDeep: only objects whose `kind` is one of the four
- * binding kinds are wrappers; `literal` payloads ship verbatim at run time,
- * so we leave them untouched too.
- */
-function rewriteBindingsDeep(value, map) {
-    if (value === null || typeof value !== 'object') return;
+function rewriteValue(value, map, key) {
+    if (typeof value === 'string') return EXPR_KEYS.has(key) ? rewriteExpr(value, map) : rewriteAnyString(value, map);
     if (Array.isArray(value)) {
-        for (const v of value) rewriteBindingsDeep(v, map);
-        return;
+        for (let i = 0; i < value.length; i++) value[i] = rewriteValue(value[i], map, key);
+        return value;
     }
-    if (typeof value.kind === 'string' && ['literal', 'ref', 'template', 'expr'].includes(value.kind)) {
-        if (value.kind === 'ref' && typeof value.path === 'string') value.path = rewritePath(value.path, map);
-        if (value.kind === 'template' && typeof value.value === 'string') value.value = rewriteTemplate(value.value, map);
-        if (value.kind === 'expr' && typeof value.value === 'string') value.value = rewriteExpr(value.value, map);
-        return;
+    if (!isObject(value)) return value;
+    if (typeof value.kind === 'string' && BINDING_KINDS.has(value.kind)) {
+        rewriteBinding(value, map);
+        return value;
     }
-    for (const k of Object.keys(value)) rewriteBindingsDeep(value[k], map);
+    for (const k of Object.keys(value)) value[k] = rewriteValue(value[k], map, k);
+    return value;
 }
 
 /**
@@ -648,107 +566,27 @@ function freshId(oldId, used) {
     return id;
 }
 
-/** Rename one step (and its nested loop/parallel children) + rewrite its reference surfaces. */
+/** Rename one step (and its nested loop/parallel children) + rewrite every reference it carries. */
 function rekeyStep(step, map) {
-    if (typeof step.id === 'string' && map[step.id]) step.id = map[step.id];
-
-    // Bare string surfaces — handled by type so e.g. notification.body (a
-    // template) is never confused with loop.body (nested steps).
-    const handled = new Set(['id', 'type', 'layerKey', 'position']);
-    for (const f of REF_STRING_FIELDS[step.type] || []) {
-        if (typeof step[f] === 'string') step[f] = rewritePath(step[f], map);
-        handled.add(f);
-    }
-    for (const f of EXPR_STRING_FIELDS[step.type] || []) {
-        if (typeof step[f] === 'string') step[f] = rewriteExpr(step[f], map);
-        handled.add(f);
-    }
-    for (const f of TEMPLATE_STRING_FIELDS[step.type] || []) {
-        if (typeof step[f] === 'string') step[f] = rewriteTemplate(step[f], map);
-        handled.add(f);
-    }
-    // A form page's visitor-facing text is templated (that is how a closing
-    // page summarises the run), but it lives NESTED under `form` as bare
-    // strings — so neither TEMPLATE_STRING_FIELDS nor the binding-wrapper deep
-    // walk below would reach it, and an imported copy would render
-    // {{steps.<oldId>…}} as blank. Mirrors exactly what execFormPage
-    // interpolates.
-    if (step.type === 'form_page' && isObject(step.form)) {
-        for (const f of ['title', 'description', 'submitLabel', 'successMessage']) {
-            if (typeof step.form[f] === 'string') step.form[f] = rewriteTemplate(step.form[f], map);
-        }
-        for (const fld of (Array.isArray(step.form.fields) ? step.form.fields : [])) {
-            if (!isObject(fld)) continue;
-            for (const f of ['label', 'placeholder', 'help']) {
-                if (typeof fld[f] === 'string') fld[f] = rewriteTemplate(fld[f], map);
-            }
-        }
-        handled.add('form');
-    }
-    // A fill_document's VALUES are templates in a map keyed by placeholder
-    // name, so the flat field list above cannot reach them. Left alone, a
-    // duplicated or imported automation fills the invoice from the ORIGINAL
-    // step ids — which resolve to nothing, so every line prints blank and the
-    // PDF still renders. Silent, and on paper.
-    if (step.type === 'fill_document' && isObject(step.values)) {
-        for (const k of Object.keys(step.values)) {
-            if (typeof step.values[k] === 'string') step.values[k] = rewriteTemplate(step.values[k], map);
-        }
-        handled.add('values');
-    }
-    // A presentation's `slides` is a template string or a LIST of them (or of
-    // {title, content} objects whose values are templates). A copy that kept
-    // the original step ids would build a deck from nothing — silently, as
-    // every missed template path renders as ''.
-    if (step.type === 'presentation') {
-        const rewrite = (v, depth = 0) => {
-            if (depth > 3) return v;
-            if (typeof v === 'string') return rewriteTemplate(v, map);
-            if (Array.isArray(v)) return v.map((x) => rewrite(x, depth + 1));
-            if (isObject(v) && typeof v.kind !== 'string') {
-                for (const k of Object.keys(v)) v[k] = rewrite(v[k], depth + 1);
-            }
-            return v;
-        };
-        if (step.slides !== undefined) step.slides = rewrite(step.slides);
-        handled.add('slides');
-    }
-    // A slide's chart data is nested one level down (`chart.data`), a
-    // template or inline rows; `stats` may be a list of template strings.
-    if (step.type === 'slide') {
-        if (isObject(step.chart) && typeof step.chart.data === 'string') step.chart.data = rewriteTemplate(step.chart.data, map);
-        if (Array.isArray(step.stats)) step.stats = step.stats.map((x) => (typeof x === 'string' ? rewriteTemplate(x, map) : x));
-    }
-    // `return_to_app`'s two templates are nested one level down, like the form
-    // page's, so the flat map above cannot reach them. Left alone, a duplicated
-    // or imported automation would show the visitor an empty toast and open a
-    // record screen with no record — both silently, because a missed template
-    // path renders as ''.
-    if (step.type === 'return_to_app') {
-        if (isObject(step.toast) && typeof step.toast.message === 'string') {
-            step.toast.message = rewriteTemplate(step.toast.message, map);
-        }
-        if (isObject(step.navigateTo) && typeof step.navigateTo.recordRef === 'string') {
-            step.navigateTo.recordRef = rewriteTemplate(step.navigateTo.recordRef, map);
-        }
-        handled.add('toast');
-        handled.add('navigateTo');
-    }
-    if (step.type === 'loop' && Array.isArray(step.body)) {
-        for (const child of step.body) { if (isObject(child)) rekeyStep(child, map); }
-        handled.add('body');
-    }
-    if (step.type === 'parallel' && Array.isArray(step.branches)) {
-        for (const branch of step.branches) {
-            if (!Array.isArray(branch)) continue;
-            for (const child of branch) { if (isObject(child)) rekeyStep(child, map); }
-        }
-        handled.add('branches');
-    }
-    // Everything else (inputs, fields, cases, call_layer.inputs, …) may carry
-    // binding wrappers at any depth.
+    if (typeof step.id === 'string' && Object.prototype.hasOwnProperty.call(map, step.id)) step.id = map[step.id];
+    const verbatim = VERBATIM_FIELDS[step.type];
     for (const k of Object.keys(step)) {
-        if (!handled.has(k)) rewriteBindingsDeep(step[k], map);
+        if (NEVER_REWRITTEN.has(k) || (verbatim && verbatim.has(k))) continue;
+        // Nested steps are steps: renamed and walked by the same rules.
+        // (`body` is nested steps only on a loop — a notification's body is a
+        // template and goes through the generic walk.)
+        if (k === 'body' && step.type === 'loop' && Array.isArray(step.body)) {
+            for (const child of step.body) { if (isObject(child)) rekeyStep(child, map); }
+            continue;
+        }
+        if (k === 'branches' && step.type === 'parallel' && Array.isArray(step.branches)) {
+            for (const branch of step.branches) {
+                if (!Array.isArray(branch)) continue;
+                for (const child of branch) { if (isObject(child)) rekeyStep(child, map); }
+            }
+            continue;
+        }
+        step[k] = rewriteValue(step[k], map, k);
     }
 }
 
@@ -774,12 +612,14 @@ function rekeyGraph(graph) {
     // not-yet-renamed step mid-rewrite.
     const used = new Set(oldIds);
     const map = {};
+    // Own keys only: a step called `constructor` must not find Object's.
+    const has = (id) => typeof id === 'string' && Object.prototype.hasOwnProperty.call(map, id);
     for (const oldId of oldIds) {
-        if (!map[oldId]) map[oldId] = freshId(oldId, used);
+        if (!has(oldId)) map[oldId] = freshId(oldId, used);
     }
 
     walkTriggers(graph, null, (t) => {
-        if (map[t.id]) t.id = map[t.id];
+        if (has(t.id)) t.id = map[t.id];
     });
     if (Array.isArray(graph.steps)) {
         for (const s of graph.steps) { if (isObject(s)) rekeyStep(s, map); }
@@ -787,12 +627,12 @@ function rekeyGraph(graph) {
     if (Array.isArray(graph.edges)) {
         for (const e of graph.edges) {
             if (!isObject(e)) continue;
-            if (typeof e.from === 'string' && map[e.from]) e.from = map[e.from];
-            if (typeof e.to === 'string' && map[e.to]) e.to = map[e.to];
+            if (has(e.from)) e.from = map[e.from];
+            if (has(e.to)) e.to = map[e.to];
         }
     }
     // `vars` may carry binding wrappers referencing steps.
-    if (isObject(graph.vars)) rewriteBindingsDeep(graph.vars, map);
+    if (isObject(graph.vars)) rewriteValue(graph.vars, map, 'vars');
     return map;
 }
 

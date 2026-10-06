@@ -9,7 +9,9 @@
  */
 
 import { columnsAfterOps, suggestKeyFromPath, type VariableGroup } from '@/features/flow-editor/bindings';
+import { jsonPickBinding } from '@/features/flow-editor/bindings/valueParts';
 import { humanizeFieldKey } from '@/features/flow-editor/model';
+import { appendKey } from '@/shared/expr';
 
 import { msg, type Msg } from '../declarative/spec';
 
@@ -150,7 +152,8 @@ function rowCandidates(elementSample: unknown, eachRow: string): JsonCandidate[]
     if (!isRow(elementSample)) return [];
     return Object.entries(elementSample)
         .filter(([, v]) => jsonish(v))
-        .map(([k]) => ({ path: `item.${k}`, label: `${eachRow} · ${humanizeFieldKey(k)}`, preferred: PREFERRED.test(k) }));
+        // The row's key written canonically (`item["raw-json"]`), never `item.raw-json`.
+        .map(([k]) => ({ path: appendKey('item', k), label: `${eachRow} · ${humanizeFieldKey(k)}`, preferred: PREFERRED.test(k) }));
 }
 
 function upstreamCandidates(groups: readonly VariableGroup[]): JsonCandidate[] {
@@ -178,13 +181,14 @@ export function jsonCandidates({ listMode, elementSample, groups, eachRow }: { l
 }
 
 /**
- * A pick becomes a computed field: `parseJson(<source>, "<path>")` — exact,
- * free at run time, editable like any other field. The expression grammar has
- * no escapes, so the quote is whichever the path does not contain.
+ * A pick becomes a field that reads it (bindings/valueParts jsonPickBinding):
+ * a plain path into JSON text — the run reads JSON text as the value it
+ * encodes, so any key works — or, for JSON inside prose,
+ * `parseJson(<source>, "<path>")` with the path as an escaped literal.
+ * `sourceValue` is the source's sample, which says which of the two it is.
  */
-export function addJsonField(fields: unknown, sourcePath: string, relPath: string): Record<string, unknown> {
+export function addJsonField(fields: unknown, sourcePath: string, relPath: string, sourceValue?: unknown): Record<string, unknown> {
     const current = isRow(fields) ? fields : {};
     const name = suggestFieldName(relPath, Object.keys(current));
-    const quoted = relPath.includes('"') ? `'${relPath}'` : `"${relPath}"`;
-    return { ...current, [name]: { kind: 'expr', value: `parseJson(${sourcePath}, ${quoted})` } };
+    return { ...current, [name]: jsonPickBinding(sourcePath, relPath, sourceValue) };
 }

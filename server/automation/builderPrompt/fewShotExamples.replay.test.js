@@ -175,9 +175,9 @@ function synthesisedOutput(step, runState) {
     return { bound, recorded: JSON.parse(JSON.stringify({ ...bound, ...stamps })) };
 }
 
-/** The `_hint` builder_request_dry_run puts on a recorded object output (builderTools.js). */
+/** The `_hint` builder_request_dry_run puts on a recorded object output (builderTools.js dryRunHint). */
 function hintFor(recorded) {
-    return { outputType: 'object', topKeys: Object.keys(recorded), shape: shapeCache.renderShapeHint(shapeCache.describeValue(recorded)) };
+    return { outputType: 'object', topKeys: Object.keys(recorded), shape: shapeCache.shapeHintOf(recorded) };
 }
 
 /**
@@ -256,7 +256,13 @@ for (const [n, example] of examples().entries()) {
                 // is undefined is not a key on the wire.
                 real = JSON.parse(JSON.stringify(await applyToolCall(call.name, args, wrap)));
             }
-            assert.ok(!real.error, `${label}: the real builders must accept the few-shot call — ${real.error}`);
+            if (typeof call.echo?.error === 'string') {
+                // A recorded REFUSAL teaches reading the error and resending
+                // the corrected call: it must be the refusal the builders give.
+                assert.ok(real.error, `${label}: the recorded refusal must be what the builders answer — they accepted the call`);
+            } else {
+                assert.ok(!real.error, `${label}: the real builders must accept the few-shot call — ${real.error}`);
+            }
             if (call.name === 'builder_add_steps') {
                 for (const a of call.echo.added) idMap.set(a.id, real.idMap[a.tempId]);
                 for (const a of call.echo.added) knownIds.add(a.id);

@@ -6,6 +6,7 @@ import { deepEqual as deepEqualJs } from '../../../../utils/deepEqual';
 import { statusLabel, tokenForStep } from '../../../shared/statusTokens';
 import { summariseData as summariseDataJs } from '../flow/dataSummary';
 import { stepPayload } from '../flow/stepPayload';
+import { buildRunStepLabelMap } from '../flow/displayHelpers';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 import type { ErrorFix, StepErrorInfo } from '../output/ErrorCard';
 import type { NextSuggestion } from '../output/UsedBy';
@@ -27,6 +28,7 @@ interface RunStepRecord {
     startedAt?: string | null;
     skippedReason?: string | null;
     toolsWithheld?: unknown;
+    bindingWarnings?: unknown;
     [key: string]: unknown;
 }
 
@@ -53,6 +55,10 @@ interface RunTabContainerProps {
     onFixError?: ((fix: ErrorFix, info: StepErrorInfo | null) => boolean | void) | null;
 }
 
+// Its own function so the `tab` builder below stays readable (and under the
+// complexity bar): the row's mappings that found nothing, or null.
+const bindingWarningsOfRow = (run: RunStepRecord | null): unknown => run?.bindingWarnings ?? null;
+
 /**
  * The step drawer's "Continues on" column. Shows the latest run's OUTPUT
  * directly, under a one-line status strip, plus what the step will return
@@ -75,6 +81,7 @@ function RunTabContainer({
 
     const stepId = step?.id ?? null;
     const usedBy = useMemo(() => (definition ? usedByDownstream(definition, stepId) : undefined), [definition, stepId]);
+    const labelById = useMemo(() => buildRunStepLabelMap(definition) as Map<string, string>, [definition]);
     const onAddAfter = useMemo(
         () => (onAddAfterStep && stepId ? (s: NextSuggestion) => onAddAfterStep(stepId, s) : null),
         [onAddAfterStep, stepId],
@@ -109,6 +116,8 @@ function RunTabContainer({
             onFix={onFixError}
             columnsKey={stepId ? `${automationId || 'draft'}.${stepId}` : null}
             toolsWithheld={run?.toolsWithheld ?? null}
+            bindingWarnings={bindingWarningsOfRow(run)}
+            stepLabelById={labelById}
         />
     );
 
@@ -206,6 +215,7 @@ function runStepsRenderEqual(a: RunStepRecord | null | undefined, b: RunStepReco
     if (durationBucket(a.durationMs) !== durationBucket(b.durationMs)) return false;
     if (a.errorInfo !== b.errorInfo && !deepEqual(a.errorInfo, b.errorInfo)) return false;
     if (a.toolsWithheld !== b.toolsWithheld && !deepEqual(a.toolsWithheld, b.toolsWithheld)) return false;
+    if (a.bindingWarnings !== b.bindingWarnings && !deepEqual(a.bindingWarnings, b.bindingWarnings)) return false;
     if (a.status === 'running') return true;
     return deepEqual(a.output, b.output);
 }

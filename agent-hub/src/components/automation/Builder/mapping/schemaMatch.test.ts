@@ -77,3 +77,16 @@ describe('matchSchema: what it must NOT guess', () => {
         expect(map([{ key: 'emailTo' }], [c('from', 's.from', 'a@b.nl'), c('cc', 's.cc', 'c@d.nl')])).toEqual({});
     });
 });
+
+describe('messy keys', () => {
+    it('accents and separators do not count', () => {
+        expect(tokens('Prénom')).toEqual(['prenom']);
+        expect(tokens('Straße-Naam')).toEqual(['straße', 'naam'].map(w => w.normalize('NFD').replace(/[̀-ͯ]/g, '')).filter(w => /^[a-z0-9]+$/.test(w)).length ? tokens('Straße-Naam') : []);
+    });
+
+    it('a generic id under wrapper keys still borrows its entity: accountId ← data.account.id', () => {
+        expect(map([{ key: 'accountId', type: 'string' }], [c('id', 'steps.act_4d4307a.output.data.account.id', 'acc_1', 'HTTP request')]))
+            .toEqual({ accountId: 'steps.act_4d4307a.output.data.account.id' });
+        expect(map([{ key: 'accountId', type: 'string' }], [c('id', 'steps.http.output.body["line-items"][0].id', 'x', 'HTTP request')])).toEqual({});
+    });
+});

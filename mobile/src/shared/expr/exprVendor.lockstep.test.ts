@@ -16,7 +16,7 @@ import path from 'node:path';
 
 const REPO = path.resolve(__dirname, '../../../..');
 const VENDOR = path.join(__dirname, 'vendor');
-const ENGINE_FILES = ['engine.mjs', 'functions.mjs', 'index.mjs', 'templateText.mjs', 'topics.mjs'];
+const ENGINE_FILES = ['engine.mjs', 'functions.mjs', 'index.mjs', 'path.mjs', 'templateText.mjs', 'topics.mjs'];
 const ORIGINALS = ['agent-hub/src/shared/expr', 'server/shared/expr'];
 
 const bytes = (file: string) => fs.readFileSync(file);

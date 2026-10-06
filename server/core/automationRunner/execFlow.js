@@ -14,6 +14,7 @@ const {
 const { isRunPause } = require('./execApproval');
 const { unresolvedListMessage } = require('./execCollections');
 const { runDag } = require('./runDag');
+const { resolveForEachItems } = require('./forEachScope');
 
 // ── Parallel branches ───────────────────────────────────
 //
@@ -84,7 +85,7 @@ async function execParallel(step, ctx, runState, mode, dispatchSubStep) {
 }
 
 async function execLoop(step, ctx, runState, mode, dispatchSubStep) {
-    const resolved = require('../../automation/bind').walkPath(step.overRef, runState);
+    const resolved = require('../../automation/bind').walkList(step.overRef, runState);
     if (!Array.isArray(resolved)) {
         // Top-level skippedReason → runDag records the row as 'skipped', not
         // a green success (A10). An UNRESOLVED source is not the same thing
@@ -222,7 +223,7 @@ const PARALLEL_READ_TOOLS = new Map([['gmail_read', 5], ['gmail_read_attachment'
 
 async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel = null) {
     const fe = step.forEach || {};
-    const list = require('../../automation/bind').walkPath(fe.overRef, runState);
+    const list = require('../../automation/bind').walkList(fe.overRef, runState);
     if (!Array.isArray(list)) {
         // Top-level skippedReason → recorded as 'skipped', not success (A10).
         // The message names the binding and the remedy (BFSF-370) — a bare
@@ -232,6 +233,23 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
             output: {
                 iterations: 0, succeeded: 0, failed: 0, results: [],
                 skipped: unresolvedListMessage('the list it runs once per item over', fe.overRef, list),
+            },
+            skippedReason: 'overref_unresolved',
+        };
+    }
+    // A list inside a list keeps its outer items (`forEach.parents`, see
+    // forEachScope.js): per item, the element it came from is bound under the
+    // name it had before the step was moved down a level.
+    const { scopes, noMatch } = resolveForEachItems(fe, runState, list);
+    if (noMatch) {
+        // `orders[*].line_items.properties` resolves to [] on every order — a
+        // path that fits none of the data, not an empty source. Zero runs in
+        // green is what the author would see, so say what did not match.
+        return {
+            output: {
+                iterations: 0, succeeded: 0, failed: 0, results: [],
+                skipped: `This step works through a list, but the list it runs once per item over \`${fe.overRef}\` matched none of the ${noMatch.count} items of \`${noMatch.outer}\`. `
+                    + 'Pick the list again under "Run once per item", or re-run the step that produces it.',
             },
             skippedReason: 'overref_unresolved',
         };
@@ -281,10 +299,15 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
         // Honour cancellation between items — a long fan-out (hundreds of
         // API calls) must stop promptly, not only at the next step boundary.
         if (checkCancel) await checkCancel();
+        const parentVars = scopes ? scopes[i] : null;
         const subState = {
             ...runState,
-            loop: { ...(runState.loop || {}), [itemVar]: items[i], _index: i },
-            _syntheticLoopVars: { ...(runState._syntheticLoopVars || {}), [itemVar]: sourceSynthetic },
+            loop: { ...(runState.loop || {}), ...(parentVars || {}), [itemVar]: items[i], _index: i },
+            _syntheticLoopVars: {
+                ...(runState._syntheticLoopVars || {}),
+                ...(parentVars ? Object.fromEntries(Object.keys(parentVars).map(k => [k, sourceSynthetic])) : {}),
+                [itemVar]: sourceSynthetic,
+            },
         };
         let lastErr = null;
         let out = null;
@@ -329,7 +352,11 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
             results[i] = { index: i, item: items[i], output: out, status: 'success' };
         } else {
             failed++;
-            results[i] = { index: i, item: items[i], error: lastErr.message, errorClass: lastErr.errorClass || classifyUnknownError(lastErr), attempts: maxAttempts, status: 'error' };
+            // `output: null` keeps the slot: `results[*].output` stays as long
+            // as `results[*].item` and lines up with it. Without the key the
+            // [*] walk skipped the failed item and every later output moved
+            // one row up against its item.
+            results[i] = { index: i, item: items[i], output: null, error: lastErr.message, errorClass: lastErr.errorClass || classifyUnknownError(lastErr), attempts: maxAttempts, status: 'error' };
         }
     };
     for (let start = 0; start < items.length; start += concurrency) {

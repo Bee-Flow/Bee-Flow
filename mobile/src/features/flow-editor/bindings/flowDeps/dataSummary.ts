@@ -27,7 +27,7 @@ function recordsLabel(n: number): string {
 }
 
 function itemsLabel(n: number): string {
-    return n === 1 ? t('mobile.flow.summary.one_item', '1 item') : t('automations.canvas.result.items', '{n} items', { n });
+    return n === 1 ? t('automations.builder.one_item', '1 item') : t('automations.canvas.result.items', '{n} items', { n });
 }
 
 /** Is every element (that we sampled) an object? Then it reads as records. */
