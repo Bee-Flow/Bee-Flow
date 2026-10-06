@@ -11,8 +11,14 @@
 
 const { getOne, getAll } = require('../../../db');
 const configStore = require('../../../stores/configStore');
+const { LOCAL_PROVIDER_TYPES } = require('../../../core/providers/localModels');
 
-const INTERNAL_TYPES = new Set(['ollama', 'vllm', 'local', 'localai', 'lmstudio']);
+// Self-hosted runtimes are not an external processor. Read from the one list
+// the provider factory uses (CLAUDE.md: adding a runtime is one LOCAL_RUNTIMES
+// entry); the hand copy here missed llama.cpp, SGLang, TGI, Jan, KoboldCpp and
+// openai-compatible and called them external providers. 'local' is the legacy
+// type name older configs still carry.
+const INTERNAL_TYPES = new Set(['local', ...LOCAL_PROVIDER_TYPES]);
 
 async function _count(sql, params) {
     try {

@@ -1,6 +1,7 @@
 /**
  * GDPR Art. 37 — Data Protection Officer appointed.
- * Reads compliance_settings.dpo_email.
+ * Reads compliance_settings.dpo_name and dpo_email; records only THAT they are
+ * set, never their values.
  */
 
 const complianceStore = require('../../../stores/complianceStore');
@@ -28,7 +29,10 @@ module.exports = {
             status,
             evidence: { dpo_name: !!hasName, dpo_email: !!hasEmail },
             details: status === 'pass'
-                ? `DPO appointed: ${s.dpo_name} (${s.dpo_email}).`
+                // Never the name or address itself: details are written into the
+                // append-only evidence chain on every sweep, and a chain cannot
+                // forget a person who leaves the role.
+                ? 'A Data Protection Officer is appointed, with a name and e-mail address on record (Compliance → Settings).'
                 : status === 'warn'
                     ? 'DPO details are incomplete. Fill in both name and a valid email.'
                     : 'No Data Protection Officer has been appointed. Required when processing personal data at scale.',
