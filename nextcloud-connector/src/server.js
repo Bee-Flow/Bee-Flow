@@ -158,10 +158,15 @@ app.get(['/api/languages/user/locales', '/api/languages/user/strings/:lang',
 // `app-icon.svg` is the favicon the shell's own index.html links to. It was
 // absent here, so it fell through to the SaaS API proxy and 404'd on every
 // embedded page load.
-const CONNECTOR_OWNED = /^\/(setup\/?(.*)?$|assets\/|js\/|img\/|favicon|app-icon\.svg$|BeeFlow-logo|bee-flow-logo|index\.html$|$)/;
+// The SPA shell paths come from proxy.js's isSpaShellPath, so a folder the
+// frontend build adds (/monaco, /fonts, /module-shims) is listed once: here it
+// once had its own copy of the list, and a path missing from it went to the
+// SaaS API proxy and 404'd.
+const CONNECTOR_SETUP = /^\/setup(\/|$)/;
+const isConnectorOwned = (urlPath) => CONNECTOR_SETUP.test(urlPath) || isSpaShellPath(urlPath);
 const proxy = buildApiProxy();
 app.use((req, res, next) => {
-    if (CONNECTOR_OWNED.test(req.url.split('?')[0])) return next();
+    if (isConnectorOwned(req.url.split('?')[0])) return next();
     return proxy(req, res, next);
 });
 
@@ -246,7 +251,7 @@ app.get(['/js/embed', '/js/embed.js'], (_req, res) => {
 
 // Studio-app menu entries: /js/embed-app (the per-entry page script) and
 // /img/studio-app/<name>.svg (per-entry menu icons). Registered HERE — after
-// the SaaS-proxy gate (CONNECTOR_OWNED already excludes /js/ and /img/) and
+// the SaaS-proxy gate (isConnectorOwned already excludes /js/ and /img/) and
 // before the embed-shell proxy, which would otherwise forward these paths to
 // the cloud /embed/ build and 404. The sync loop that registers the entries
 // with AppAPI runs from heartbeat.js (/init) and the poller below.
