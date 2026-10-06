@@ -62,6 +62,7 @@ export const TAB_ROWS: Record<RowTab, Slot[][]> = {
     ai: [['ai_step', 'data_extraction']],
     logic: [
         ['route', 'loop'],
+        ['code', 'http_request'],
         ['privacy_shield'],
         [
             { menu: 'end', titleKey: 'automations.ribbon.group_end', fallback: 'End the run', Icon: Flag, ids: ['stop_error', 'return_to_app'] },

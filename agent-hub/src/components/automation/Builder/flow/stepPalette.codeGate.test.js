@@ -16,9 +16,10 @@ import { buildStepGroups, buildSearchResults, itemForKey, codeItemFor, CODE_OFF_
  */
 const catalogWith = (flags) => ({ apps: [], steps: [], flags });
 
-const integrations = (catalog) => buildStepGroups({ catalog })
-    .find(g => g.key === 'flow').sections.find(s => s.key === 'integrations').items;
-const codeIn = (catalog) => integrations(catalog).find(i => i.id === 'code') || null;
+// Code lives in Flow control (the ribbon's Logic tab): it is your own logic.
+const flowControl = (catalog) => buildStepGroups({ catalog })
+    .find(g => g.key === 'flow').sections.find(s => s.key === 'flow_control').items;
+const codeIn = (catalog) => flowControl(catalog).find(i => i.id === 'code') || null;
 const codeHit = (catalog) => buildSearchResults('code', { catalog }).find(r => r.key === 'code') || null;
 
 describe('stepPalette — the code step says what the runner would say', () => {

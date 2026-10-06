@@ -358,8 +358,10 @@ export const PEOPLE_ITEMS = [
 export const LOGIC_ITEMS = [...FLOW_CONTROL_ITEMS, ...PEOPLE_ITEMS];
 
 /**
- * "Integrations" (design 1f): reaching outside the automation — a web service,
- * your own code, and (on the Apps tab) every connected app.
+ * Calling a web service: Bee Flow's own way to reach anything with an HTTP
+ * API. It sits in Flow control (the ribbon's Logic tab) with Code, right after
+ * the loop: the two steps where you write the logic yourself. Connected apps
+ * have tabs of their own.
  */
 export const INTEGRATION_ITEMS = [
     stepItem('http_request', 'http_request', Globe,
@@ -610,14 +612,18 @@ export function buildStepGroups({ catalog = null, mode = 'step', layers = [], in
     ];
     const codeItem = codeItemFor(catalog);
     const flowSections = [
-        // The four content sections of the design's Home tab (1f). Every step
-        // has exactly ONE of them — stepPalette.oneHome.test.js proves it.
+        // The content sections of the design's Home tab (1f). Every step has
+        // exactly ONE of them — stepPalette.oneHome.test.js proves it.
         // Beide secties door hetzelfde filter: `return_to_app` zit in Flow
         // control en die sectie ging ONGEFILTERD door, dus de loop-body- en
         // flowlet-editor boden "Back to the app" aan terwijl de validator hem
         // daar hard weigert.
+        // Code and Call a web service sit right after the loop: the logic you
+        // write yourself. codeItemFor, not `flags.code` directly: the Code
+        // entry is also offered DISABLED, with the reason the server gave,
+        // when a code step would be refused at run time.
         { key: 'flow_control', title: t ? t('automations.node.group.flow_control', 'Flow control') : 'Flow control',
-          items: FLOW_CONTROL_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)).map(it => localised(it, t)) },
+          items: withOwnLogicAfterLoop(FLOW_CONTROL_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)), codeItem).map(it => localised(it, t)) },
         { key: 'people', title: t ? t('automations.node.group.people', 'People & waiting') : 'People & waiting',
           items: PEOPLE_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)).map(it => localised(gated(it, hasFormTrigger), t)) },
         // ONE data section. "Data" and "Lists" sat next to each other with no
@@ -625,11 +631,6 @@ export function buildStepGroups({ catalog = null, mode = 'step', layers = [], in
         // group, ordered records-first then whole-list operations.
         { key: 'data', title: t ? t('automations.node.group.data_lists', 'Data & lists') : 'Data & lists',
           items: [...DATA_ITEMS, ...COLLECTION_ITEMS].map(it => localised(it, t)) },
-        { key: 'integrations', title: t ? t('automations.node.group.integrations', 'Integrations') : 'Integrations',
-          // codeItemFor, not `flags.code` directly: the entry is also offered
-          // DISABLED, with the reason the server gave, when a code step would
-          // be refused at run time.
-          items: [...INTEGRATION_ITEMS, ...(codeItem ? [codeItem] : [])].map(it => localised(it, t)) },
     ];
     const groups = [
         // Browsing has to find triggers too — search alone would still leave a
@@ -652,6 +653,13 @@ export function buildStepGroups({ catalog = null, mode = 'step', layers = [], in
             : { key: 'steps', title: 'Steps', kind: 'sections', sections });
     }
     return groups;
+}
+
+/** Flow control's items with Code (when the catalog offers it) and Call a web service right after the loop. */
+function withOwnLogicAfterLoop(items, codeItem) {
+    const own = [...(codeItem ? [codeItem] : []), ...INTEGRATION_ITEMS];
+    const at = items.findIndex(it => it.payload.kind === 'loop');
+    return at < 0 ? [...items, ...own] : [...items.slice(0, at + 1), ...own, ...items.slice(at + 1)];
 }
 
 /** Look up a catalog item by id from a flat item list (for ribbon inline buttons). */
@@ -713,7 +721,7 @@ export function itemForKey(key, { catalog = null, layers = [] } = {}) {
         // there would still add the step. Until that row learns the stamp, not
         // offering the shortcut is the only answer that is true on BOTH
         // surfaces, and the step itself stays visible-with-its-reason in the
-        // palette's Integrations section, which is where the capability and
+        // palette's Flow control section, which is where the capability and
         // the rule behind it are meant to be discoverable (BFSF-348).
         if (rest === 'code') {
             const code = codeItemFor(catalog);
@@ -788,7 +796,7 @@ export function buildSearchResults(query, { catalog = null, mode = 'step', layer
 
     for (const it of AI_ITEMS) pushItem(localised(it, t), 'AI');
     for (const it of DATA_ITEMS) pushItem(localised(it, t), 'Data');
-    for (const it of INTEGRATION_ITEMS) pushItem(localised(it, t), 'Integrations');
+    for (const it of INTEGRATION_ITEMS) pushItem(localised(it, t), 'Flow');
     for (const it of COLLECTION_ITEMS) pushItem(localised(it, t), 'Collection');
     for (const it of LOGIC_ITEMS) {
         if (inLayer && NOT_INSIDE_A_LAYER.has(it.payload.kind)) continue;
