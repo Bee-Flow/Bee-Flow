@@ -4,7 +4,7 @@
 #
 # Shared packages carry guard-service's pins, so the two CPU sidecars move
 # together.
-fastapi==0.141.1
+fastapi==0.142.2
 uvicorn[standard]==0.54.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
@@ -13,7 +13,7 @@ pydantic-settings==2.15.0
 # floating version could move every score underneath them. Bump them together,
 # with an eval run.
 gliclass==0.1.20
-transformers==5.17.0
+transformers==5.18.0
 tokenizers==0.23.2
 huggingface_hub==1.33.0
 # gliclass requires both (numpy>=2, scikit-learn>=1).
