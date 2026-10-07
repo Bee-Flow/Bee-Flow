@@ -1,16 +1,24 @@
+import { render, screen, fireEvent, cleanup, waitFor, act, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import CustomFrameworksPage, { normaliseFramework, normaliseList, expiringCount, OUTCOMES } from './CustomFrameworksPage';
-import { parseQuestionnaire, splitLine, detectDelimiter } from './custom/QuestionnaireImport';
-import { toBody, validate, CODE_RE, editorErrorText } from './custom/FrameworkEditorDrawer';
-import { indexResults, joinChecks, statusPill } from './custom/CustomChecksTable';
 import { evidenceRef, attestErrorText } from './custom/AttestDrawer';
+import { indexResults, joinChecks, statusPill, groupBuiltinChecks } from './custom/CustomChecksTable';
+import { toBody, validate, CODE_RE, editorErrorText } from './custom/FrameworkEditorDrawer';
+import { parseQuestionnaire, splitLine, detectDelimiter } from './custom/QuestionnaireImport';
+import CustomFrameworksPage, { normaliseFramework, normaliseList, expiringCount, OUTCOMES } from './CustomFrameworksPage';
 
 vi.mock('../../../../hooks/useTranslation', () => {
+    // The built-in check titles the "Satisfied by" picker translates.
+    const DICT = {
+        'compliance.test_check_records': 'Principles of processing',
+        'compliance.test_check_ropa': 'Processing register kept',
+        'compliance.test_check_breach': 'Breaches detected and reported',
+        'compliance.test_check_disclosure': 'AI disclosure to users',
+    };
     const useTranslation = () => ({
         t: (key, fallback, params) => {
-            let out = typeof fallback === 'string' ? fallback : key;
+            let out = DICT[key] ?? (typeof fallback === 'string' ? fallback : key);
             for (const [k, v] of Object.entries(params || {})) out = out.split(`{${k}}`).join(String(v));
             return out;
         },
@@ -61,7 +69,20 @@ const detailBody = () => ({
     ],
 });
 
-const registryBody = () => ({ checks: [{ id: 'GDPR-Art30-ropa' }, { id: 'GDPR-Art33-breach-detection' }] });
+const registryBody = () => ({
+    checks: [
+        { id: 'AIA-Art50-ai-disclosure', regulation: 'AIA', article: '50', titleKey: 'compliance.test_check_disclosure' },
+        { id: 'GDPR-Art33-breach-detection', regulation: 'GDPR', article: '33', titleKey: 'compliance.test_check_breach' },
+        { id: 'GDPR-Art30-ropa', regulation: 'GDPR', article: '30', titleKey: 'compliance.test_check_ropa' },
+        { id: 'GDPR-Art5-principles', regulation: 'GDPR', article: '5', titleKey: 'compliance.test_check_records' },
+    ],
+});
+
+/** "New framework" is the header's primary action: call what the page handed the header. */
+function newFromHeader(p) {
+    const actions = p.setHeaderActions.mock.calls.map(c => c[0]).filter(a => a && a.onAddFramework);
+    act(() => { actions[actions.length - 1].onAddFramework(); });
+}
 
 function pageProps(over = {}) {
     return {
@@ -97,11 +118,12 @@ describe('CustomFrameworksPage — list', () => {
         expect(screen.getAllByTestId('custom-card-status')[1].textContent).toBe('Draft');
     });
 
-    it('offers the new-framework action to the header as well as on the page', () => {
+    it('offers the new-framework action to the header (its primary), not as a second button on the page', () => {
         const p = pageProps();
         render(<CustomFrameworksPage {...p} />);
         expect(p.setHeaderActions).toHaveBeenCalledWith(expect.objectContaining({ onAddFramework: expect.any(Function) }));
-        fireEvent.click(screen.getByTestId('custom-new'));
+        expect(screen.queryByTestId('custom-new')).toBeNull();
+        newFromHeader(p);
         expect(screen.getByTestId('custom-editor-title').textContent).toBe('New framework');
         expect(screen.getByTestId('custom-editor-code').disabled).toBe(false);
     });
@@ -132,7 +154,7 @@ describe('CustomFrameworksPage — list', () => {
             .mockResolvedValueOnce({ id: '44444444-4444-4444-8444-444444444444', code: 'NEW', checks: [] });      // detail
         const p = pageProps();
         render(<CustomFrameworksPage {...p} />);
-        fireEvent.click(screen.getByTestId('custom-new'));
+        newFromHeader(p);
         fireEvent.change(screen.getByTestId('custom-editor-name'), { target: { value: 'New one' } });
         fireEvent.change(screen.getByTestId('custom-editor-code'), { target: { value: 'new_one' } });
         fireEvent.click(screen.getByTestId('custom-editor-save'));
@@ -146,8 +168,9 @@ describe('CustomFrameworksPage — list', () => {
 
     it('a refused code is shown in the editor and the drawer stays open', async () => {
         fetchJson.mockRejectedValueOnce(new Error('409 custom_framework_code_taken'));
-        render(<CustomFrameworksPage {...pageProps()} />);
-        fireEvent.click(screen.getByTestId('custom-new'));
+        const p = pageProps();
+        render(<CustomFrameworksPage {...p} />);
+        newFromHeader(p);
         fireEvent.change(screen.getByTestId('custom-editor-name'), { target: { value: 'Duplicate' } });
         fireEvent.change(screen.getByTestId('custom-editor-code'), { target: { value: 'NIS2_KLANT' } });
         fireEvent.click(screen.getByTestId('custom-editor-save'));
@@ -182,11 +205,54 @@ describe('CustomFrameworksPage — detail', () => {
         await openFirst();
         expect(fetchJson.mock.calls[1][0]).toMatch(/\/registry$/);
         const selects = screen.getAllByTestId('custom-checks-mapped');
-        expect([...selects[0].options].map(o => o.value)).toEqual(['', 'GDPR-Art30-ropa', 'GDPR-Art33-breach-detection']);
+        // grouped by law in the rail's order, sorted by article (5 before 30), the id only as a tooltip
+        expect([...selects[0].options].map(o => o.value)).toEqual(['', 'GDPR-Art5-principles', 'GDPR-Art30-ropa', 'GDPR-Art33-breach-detection', 'AIA-Art50-ai-disclosure']);
+        expect([...selects[0].querySelectorAll('optgroup')].map(g => g.label)).toEqual(['GDPR', 'AI Act']);
+        const gdpr = selects[0].querySelector('optgroup[label="GDPR"]');
+        expect([...gdpr.querySelectorAll('option')].map(o => o.textContent)).toEqual([
+            'Art. 5 · Principles of processing', 'Art. 30 · Processing register kept', 'Art. 33 · Breaches detected and reported',
+        ]);
+        expect(gdpr.querySelector('option').getAttribute('title')).toBe('GDPR-Art5-principles');
+        expect([...selects[0].options].some(o => o.textContent === 'GDPR-Art30-ropa')).toBe(false);
         expect(selects[2].value).toBe('GDPR-Art30-ropa');
         const attestButtons = screen.getAllByTestId('custom-checks-attest');
         expect(attestButtons[0].disabled).toBe(false);
         expect(attestButtons[2].disabled).toBe(true);
+    });
+
+    it('delete asks first: "Delete this item?" — Cancel keeps the item, Delete removes it', async () => {
+        const user = userEvent.setup();
+        await openFirst();
+        const row = screen.getAllByTestId('custom-checks-row')[0];
+        await user.click(within(row).getByTestId('custom-checks-delete'));
+        const confirm = within(row).getByTestId('custom-checks-delete-confirm');
+        expect(confirm.getAttribute('role')).toBe('group');
+        expect(confirm).toHaveTextContent('Delete this item?');
+        expect(within(row).getByTestId('custom-checks-delete-yes')).toHaveFocus();
+        expect(fetchJson.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+
+        await user.click(within(row).getByTestId('custom-checks-delete-cancel'));
+        expect(within(row).queryByTestId('custom-checks-delete-confirm')).toBeNull();
+        expect(within(row).getByTestId('custom-checks-delete')).toHaveFocus();
+        expect(fetchJson.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+
+        // Escape backs out too
+        await user.click(within(row).getByTestId('custom-checks-delete'));
+        await user.keyboard('{Escape}');
+        expect(within(row).queryByTestId('custom-checks-delete-confirm')).toBeNull();
+
+        fetchJson.mockResolvedValue({});
+        await user.click(within(row).getByTestId('custom-checks-delete'));
+        await user.click(within(row).getByTestId('custom-checks-delete-yes'));
+        await waitFor(() => expect(fetchJson.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(true));
+        const [url] = fetchJson.mock.calls.find(([, init]) => init?.method === 'DELETE');
+        expect(url).toMatch(/\/custom\/checks\/c1$/);
+    });
+
+    it('the "Satisfied by" column is an action: it never folds away', async () => {
+        await openFirst();
+        const header = screen.getAllByRole('columnheader').find(h => h.textContent === 'Satisfied by');
+        expect(header.className).not.toMatch(/hidden/);
     });
 
     it('choosing a built-in check upserts the row through the bulk route', async () => {
@@ -262,6 +328,20 @@ describe('CustomFrameworksPage — detail', () => {
 });
 
 describe('pure helpers', () => {
+    it('groupBuiltinChecks: one group per law in rail order, by article, the title as text', () => {
+        const t = (key, fallback) => ({ 'compliance.reg_aia': 'AI Act' }[key] ?? fallback);
+        const groups = groupBuiltinChecks([
+            { id: 'X-1', regulation: 'NOPE', article: '1' },
+            ...registryBody().checks,
+            null,
+            { regulation: 'GDPR', article: '9' },
+        ], t);
+        expect(groups.map(g => g.label)).toEqual(['GDPR', 'AI Act', 'NOPE']);
+        expect(groups[0].checks.map(c => c.id)).toEqual(['GDPR-Art5-principles', 'GDPR-Art30-ropa', 'GDPR-Art33-breach-detection']);
+        expect(groups[2].checks[0].label).toBe('Art. 1 · X-1');
+        expect(groupBuiltinChecks(null, t)).toEqual([]);
+    });
+
     it('normaliseFramework accepts both the /frameworks row and a bare store row', () => {
         expect(normaliseFramework(customRows()[0])).toMatchObject({ id: '11111111-1111-4111-8111-111111111111', code: 'NIS2_KLANT', score: 67 });
         expect(normaliseFramework({ id: 'abc', code: 'X', name: 'X' })).toMatchObject({ id: 'abc', score: null, checks_count: null });

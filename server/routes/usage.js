@@ -187,6 +187,42 @@ const { requireMonitoringScope } = require('./usageMonitoringAuth');
 router.use('/guardrails', requireMonitoringScope);
 router.use('/integrations', requireMonitoringScope);
 
+// ── Special categories (GDPR Art. 9) never next to a person ─────────────────
+// Health labels (the Art. 9 kind the Shield detects) appear in these views as
+// organisation-wide totals only: stripped from rows that carry a user,
+// dropped from a category breakdown narrowed to one person, and a
+// ?pii=<special category> filter never returns people. See
+// core/privacy/specialCategories.js. Interim until per-person monitoring sits
+// behind the works-council / notice / DPIA opt-in.
+const { isSpecialCategory, withholdSpecialCategories, dropSpecialCategoryRows } = require('../core/privacy/specialCategories');
+const { HttpError } = require('../core/http/errors');
+
+/** The caller's own rows only (a personal account, or an admin filtering on themselves). */
+function ownRowsOnly(req) {
+    const userId = req.usageFilters?.userId;
+    return !!userId && userId === req.session?.user?.id;
+}
+
+/** The answer is narrowed to one person who is not the caller. */
+function aboutAnotherPerson(req) {
+    return !!req.usageFilters?.userId && !ownRowsOnly(req);
+}
+
+/** Monitoring routes whose answer lists people: rows with a user, or a ranking of users. */
+const PERSON_ROUTES = new Set(['/guardrails/recent', '/guardrails/by-user', '/integrations/recent', '/integrations/egress']);
+
+router.use((req, res, next) => {
+    if (!req.path.startsWith('/guardrails/') && !req.path.startsWith('/integrations/')) return next();
+    if (!isSpecialCategory(req.query.pii) || ownRowsOnly(req)) return next();
+    const listsPeople = PERSON_ROUTES.has(req.path)
+        || (req.path === '/integrations/sovereignty' && (req.query.dimension || 'user') === 'user');
+    if (aboutAnotherPerson(req) || listsPeople) {
+        return next(new HttpError(400, 'special_category_per_person',
+            'Health categories are shown as organisation totals only, never per person. Remove the person or the category filter.'));
+    }
+    next();
+});
+
 // Helper to load user display info (name + avatar) for usage rendering.
 // Returns Map<userId, { display_name, avatarType, avatar }>.
 async function getUserMap() {
@@ -512,6 +548,10 @@ router.get('/guardrails/overview', async (req, res) => {
     try {
         const interval = req.query.interval === 'hour' ? 'hour' : 'day';
         const data = await guardrailEventStore.getGuardrailOverview(req.usageFilters, interval);
+        // Art. 9: no health categories in one other person's breakdown, and a
+        // special-category filter returns no ranking of people.
+        if (aboutAnotherPerson(req)) data.top_categories = dropSpecialCategoryRows(data.top_categories);
+        if (isSpecialCategory(req.query.pii) && !ownRowsOnly(req)) data.top_users = [];
         const userMap = await getUserMapFor(data.top_users);
         data.top_users = (data.top_users || []).map(row => withUser(row, userMap));
         data.window = {
@@ -565,7 +605,8 @@ router.get('/guardrails/by-user', async (req, res) => {
 router.get('/guardrails/by-category', async (req, res) => {
     try {
         const data = await guardrailEventStore.getGuardrailByCategory(req.usageFilters);
-        res.json(data || []);
+        // Art. 9: one other person's breakdown carries no health categories.
+        res.json(aboutAnotherPerson(req) ? dropSpecialCategoryRows(data) : (data || []));
     } catch (err) {
         log.error('[Usage API] /guardrails/by-category error:', err.message);
         res.status(500).json({ error: 'Failed to fetch guardrail category data' });
@@ -580,7 +621,11 @@ router.get('/guardrails/recent', async (req, res) => {
         const beforeId = parseInt(req.query.cursor, 10);
         if (Number.isFinite(beforeId)) filters.beforeId = beforeId;
         if (req.query.type) filters.violationType = req.query.type;
-        const data = await guardrailEventStore.getRecentGuardrailEvents(limit, filters);
+        // Art. 9: every row carries a person, so no health categories on it
+        // (unless the rows are the caller's own). A page can come back shorter
+        // than `limit`; the cursor of its last row still pages correctly.
+        const raw = await guardrailEventStore.getRecentGuardrailEvents(limit, filters);
+        const data = ownRowsOnly(req) ? raw : withholdSpecialCategories(raw, 'violation_categories');
         const userMap = await getUserMapFor(data);
         // Response stays a plain array (existing consumers). Keyset paging:
         // pass ?cursor=<id of the last row you have> to get strictly older
@@ -619,6 +664,9 @@ router.get('/integrations/overview', async (req, res) => {
     try {
         const interval = req.query.interval === 'hour' ? 'hour' : 'day';
         const data = await integrationActivityStore.getIntegrationOverview(req.usageFilters, interval, { normalizeCategory });
+        // Art. 9: see the guardrails overview.
+        if (aboutAnotherPerson(req)) data.pii_categories = dropSpecialCategoryRows(data.pii_categories);
+        if (isSpecialCategory(req.query.pii) && !ownRowsOnly(req)) data.top.users = [];
         const userMap = await getUserMapFor(data.top.users);
         data.top.users = (data.top.users || []).map(row => withUser(row, userMap));
         for (const row of [...(data.top.destinations || []), ...(data.map?.destinations || [])]) {
@@ -685,7 +733,7 @@ router.get('/integrations/by-tool', async (req, res) => {
 router.get('/integrations/pii-summary', async (req, res) => {
     try {
         const data = await integrationActivityStore.getIntegrationPiiSummary(req.usageFilters);
-        res.json(data || []);
+        res.json(aboutAnotherPerson(req) ? dropSpecialCategoryRows(data, 'pii_category') : (data || []));
     } catch (err) {
         log.error('[Usage API] /integrations/pii-summary error:', err.message);
         res.status(500).json({ error: 'Failed to fetch integration PII data' });
@@ -711,7 +759,9 @@ router.get('/integrations/servers', async (req, res) => {
 router.get('/integrations/recent', async (req, res) => {
     try {
         const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
-        const data = await integrationActivityStore.getRecentIntegrationActivity(limit, req.usageFilters);
+        const raw = await integrationActivityStore.getRecentIntegrationActivity(limit, req.usageFilters);
+        // Art. 9: no health categories on a row that carries a person.
+        const data = ownRowsOnly(req) ? raw : withholdSpecialCategories(raw, 'pii_categories_detected');
         const userMap = await getUserMapFor(data);
         const enriched = (data || []).map(row => ({
             ...withUser(row, userMap),
@@ -739,7 +789,9 @@ router.get('/integrations/egress', async (req, res) => {
         // Keyset paging: ?cursor=<last row id> returns strictly older rows.
         const beforeId = parseInt(req.query.cursor, 10);
         if (Number.isFinite(beforeId)) filters.beforeId = beforeId;
-        const data = await integrationActivityStore.getEgressLog(filters, limit);
+        const raw = await integrationActivityStore.getEgressLog(filters, limit);
+        // Art. 9: no health categories on a row that carries a person.
+        const data = ownRowsOnly(req) ? raw : withholdSpecialCategories(raw, 'pii_categories_detected');
         const userMap = await getUserMapFor(data);
         const enriched = (data || []).map(row => ({
             ...withUser(row, userMap),
@@ -786,7 +838,9 @@ router.get('/integrations/sovereignty', async (req, res) => {
         if (!['user', 'integration', 'agent', 'pii'].includes(dimension)) {
             return res.status(400).json({ error: `Invalid dimension. Use one of: user, integration, agent, pii` });
         }
-        const data = await integrationActivityStore.getSovereigntyByDimension(dimension, req.usageFilters);
+        const found = await integrationActivityStore.getSovereigntyByDimension(dimension, req.usageFilters);
+        // Art. 9: one other person's category breakdown carries no health categories.
+        const data = dimension === 'pii' && aboutAnotherPerson(req) ? dropSpecialCategoryRows(found, 'key') : found;
         // Hydrate user display names + avatars for the 'user' dimension so the
         // UI can render an Avatar with a real label instead of a raw user_id.
         if (dimension === 'user') {

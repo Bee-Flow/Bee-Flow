@@ -28,9 +28,21 @@
 
 const { getAll } = require('../../db');
 const configStore = require('../../stores/configStore');
-const { SUPPLIER_ROW } = require('../../stores/integrationLocationSql');
+const { SUPPLIER_ROW, LEDGER_ORG_SQL } = require('../../stores/integrationLocationSql');
 
 const WINDOW_DAYS = 30;
+
+/**
+ * SQLSTATEs that mean "the ledger is not provisioned here" (a missing table or
+ * column on a fresh install) — the only read failures that may be answered
+ * with "no ledger". A timeout or a dropped connection is a failed read, and
+ * that is not the same claim.
+ */
+const NOT_PROVISIONED = new Set(['42P01', '42703']);
+
+// LEDGER_ORG_SQL, the org filter for `integration_activity_log` (the 'default'
+// bucket also owns org-less rows), lives in stores/integrationLocationSql.js
+// and is re-exported below for the readers that import it from here.
 
 // Provider types that run on the org's own infrastructure. Read from the local
 // runtime register when it is available so a new runtime is excluded the day
@@ -68,8 +80,9 @@ function canonical(name) {
 /**
  * Operators seen in the outbound ledger over the last 30 days.
  * @returns {Promise<Array<{operator:string,is_eu:boolean,calls:number,country_code?:string|null}>|null>}
- *   `null` when the ledger table is not available (fresh install) — callers
- *   distinguish "no ledger" from "ledger, but quiet".
+ *   `null` when the ledger table is not provisioned (fresh install) — callers
+ *   distinguish "no ledger" from "ledger, but quiet". Any other read failure
+ *   THROWS: "we could not read it" is not "there is no ledger".
  */
 async function fromActivityLog(orgId, { withCountry = false } = {}) {
     const countryCol = withCountry ? `, MAX(country_code) AS country_code` : '';
@@ -79,14 +92,15 @@ async function fromActivityLog(orgId, { withCountry = false } = {}) {
                    BOOL_OR(COALESCE(is_eu, false)) AS is_eu,
                    COUNT(*)::int AS calls${countryCol}
             FROM integration_activity_log
-            WHERE organization_id = $1
+            WHERE ${LEDGER_ORG_SQL}
               AND timestamp >= NOW() - INTERVAL '30 days'
               AND ${SUPPLIER_ROW}
               AND COALESCE(is_dry_run, false) = false
             GROUP BY COALESCE(operator, 'unknown')
         `, [orgId]);
-    } catch {
-        return null;
+    } catch (e) {
+        if (NOT_PROVISIONED.has(e?.code)) return null;
+        throw e;
     }
 }
 
@@ -136,14 +150,20 @@ async function fromAiProviders() {
 /**
  * One register over all three sources.
  * @returns {Promise<{
- *   window_days:number, ledger_available:boolean,
+ *   window_days:number, ledger_available:boolean, ledger_error:boolean,
  *   activity:Array, connections:Array, ai_providers:Array,
  *   operators:Array<{operator:string,key:string,sources:string[],is_eu:boolean|null,country_code:string|null,calls_30d:number,connections:number}>
  * }>}
  */
 async function collect(orgId) {
+    // `ledger_error` tells a failed read apart from a ledger that is not
+    // provisioned: both list without the ledger, but only the first is a
+    // register that cannot be called complete (DORA Art. 28(3)).
+    let ledgerError = false;
     const [activity, connections, aiProviders] = await Promise.all([
-        fromActivityLog(orgId, { withCountry: true }),
+        // The register keeps its old behaviour: an unreadable ledger lists the
+        // other two sources (ledger_available: false) instead of failing.
+        fromActivityLog(orgId, { withCountry: true }).catch(() => { ledgerError = true; return null; }),
         fromConnections(orgId),
         fromAiProviders(),
     ]);
@@ -178,6 +198,7 @@ async function collect(orgId) {
     return {
         window_days: WINDOW_DAYS,
         ledger_available: activity !== null,
+        ledger_error: ledgerError,
         activity: activity || [],
         connections,
         ai_providers: aiProviders,
@@ -185,4 +206,4 @@ async function collect(orgId) {
     };
 }
 
-module.exports = { WINDOW_DAYS, canonical, fromActivityLog, fromConnections, fromAiProviders, collect };
+module.exports = { WINDOW_DAYS, LEDGER_ORG_SQL, canonical, fromActivityLog, fromConnections, fromAiProviders, collect };

@@ -10,6 +10,7 @@
 import { ExternalLink } from 'lucide-react';
 import React, { useId, useState } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
+import { useDateFormat } from '../../shared/formatDates';
 import StatusPill from '../../shared/StatusPill';
 import { LEGAL_BASES } from '../settings/settingsFields';
 
@@ -107,6 +108,7 @@ export default function RopaProjects({ body, onSave, onRemove, onNavigate }: {
     onNavigate?: ((path: string) => void) | null;
 }) {
     const { t } = useTranslation();
+    const { formatDay } = useDateFormat();
     const [editing, setEditing] = useState<string | null>(null);
     const loading = body === null || body === undefined;
     const failed = !loading && (!!body.error || !Array.isArray(body.projects));
@@ -148,7 +150,7 @@ export default function RopaProjects({ body, onSave, onRemove, onNavigate }: {
                                     {row.registration?.lawful_basis
                                         ? t('compliance.ropa_projects.confirmed', '{basis} · confirmed {date}', {
                                             basis: basisLabel(row.registration.lawful_basis),
-                                            date: (row.registration.confirmed_at || '').slice(0, 10),
+                                            date: formatDay(row.registration.confirmed_at),
                                         })
                                         : t('compliance.ropa_projects.no_record', 'None yet')}
                                 </span>

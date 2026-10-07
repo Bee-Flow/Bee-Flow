@@ -3,7 +3,7 @@
  * exact document a save sends, the licence locks, and who is turned away.
  */
 
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import { api } from '@/core/api/client';
@@ -284,6 +284,30 @@ describe('OrgShieldScreen', () => {
         expect(screen.getAllByText('Email Addresses').length).toBeGreaterThan(1);
         await fireEvent.press(screen.getByLabelText('Outbound calls, 1'));
         expect(await screen.findByText('gmail → gmail.googleapis.com')).toBeTruthy();
+    });
+
+    it('shows health as an organisation total only, with a note, and never beside a person', async () => {
+        const answers: Record<string, unknown> = {
+            ...ANSWERS,
+            '/api/usage/guardrails/overview': {
+                summary: { total_events: '3', pii_count: '3' },
+                top_categories: [{ category: 'Email', count: '2' }, { category: 'MedicalCondition', count: '1' }],
+                top_users: [{ user_id: 'u1', display_name: 'Bea', total: 3 }],
+            },
+            // As a server from before the rows were stripped would answer.
+            '/api/usage/guardrails/recent': [
+                { id: 1, timestamp: '2026-09-02T09:00:00Z', violation_type: 'pii', violation_categories: 'MedicalCondition', action_taken: 'blocked', display_name: 'Bea', source: 'direct_chat' },
+            ],
+        };
+        (api.get as jest.Mock).mockImplementation((path: string) => Promise.resolve(answers[path] ?? null));
+        const user = userEvent.setup();
+        await renderScreen();
+        await user.press(await screen.findByText('What happened'));
+        expect(await screen.findByText('Health data is shown as an organisation total only, never per person.')).toBeTruthy();
+        // Once, in "Most found"; the only shield event named nothing else, so it is left out.
+        expect(screen.getAllByText('Medical Conditions')).toHaveLength(1);
+        expect(screen.queryByLabelText('Caught, 1')).toBeNull();
+        expect(screen.getByLabelText('Caught, 0')).toBeTruthy();
     });
 
     it('does not ask for the activity without the licence', async () => {

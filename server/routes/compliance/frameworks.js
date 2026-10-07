@@ -60,15 +60,20 @@ const { requireOrgId } = require('./shared');
 
 const RECENTLY_IN_FORCE_DAYS = 60;
 
-// A latest-result row counts when ANY framework it is mapped to is active — a
-// check's home regulation may be dormant while a tagged one is live.
+// A check runs when its HOME framework is active (runner.js). Only rows of a
+// check that runs may count: a row a check wrote before its home framework was
+// switched off is frozen, and must not keep scoring for a framework it is
+// merely tagged for. The overview and the check table (shared.js
+// activeResultsFilter) apply the same rule. Flip this one function when the
+// any-framework rule lands.
+function _runsFor(def, activeRegs) {
+    return !!def && activeRegs.has(def.regulation);
+}
+
 function _activeRowsFilter(latest, activeRegs) {
     return (latest || []).filter(r => {
         const def = registry.get(r.check_id);
-        if (def && Array.isArray(def.frameworks) && def.frameworks.length) {
-            return def.frameworks.some(f => activeRegs.has(f.regulation));
-        }
-        return activeRegs.has(def?.regulation || r.regulation);
+        return def ? _runsFor(def, activeRegs) : activeRegs.has(r.regulation);
     });
 }
 
@@ -96,7 +101,10 @@ async function _affects(fwId, orgId, latest) {
         const row = (latest || []).find(r => r.check_id === 'MACHINERY-Art3-industrial-detection');
         const ev = row?.evidence && typeof row.evidence === 'object' ? row.evidence : null;
         if (!ev) return null;
-        return { detections: Number(ev.matches ?? ev.detections ?? ev.count) || 0, derived_relevance: ev.derived_relevance || null };
+        // The detector stores `matches` as a list of slimmed matches and the
+        // count as `match_count`; Number() of a list is NaN, so read the count.
+        const n = ev.match_count ?? (Array.isArray(ev.matches) ? ev.matches.length : ev.matches) ?? ev.detections ?? ev.count;
+        return { detections: Number(n) || 0, derived_relevance: ev.derived_relevance || null };
     }
     return null;
 }
@@ -104,8 +112,11 @@ async function _affects(fwId, orgId, latest) {
 /**
  * The catalogue entry + the org's state + score, the shape PLAN §1.2 names.
  * `scores` is the scoresByFramework map over the ACTIVE rows (may be {}).
+ * `activeRegs` (Set of regulation codes) makes `checks_count` count what would
+ * run: the framework's home checks plus the tagged checks whose home framework
+ * is active — for a candidate framework too.
  */
-function serialize(fw, state, scores, calendarCounts, nowMs, affects, machineryRelevance) {
+function serialize(fw, state, scores, calendarCounts, nowMs, affects, machineryRelevance, activeRegs) {
     const active = !!(state?.enabled && !state?.locked);
     const s = active ? (scores[fw.id] || null) : null;
     let relevance = state?.relevance || 'unknown';
@@ -125,7 +136,8 @@ function serialize(fw, state, scores, calendarCounts, nowMs, affects, machineryR
         description_key: fw.description_key,
         affects_key: fw.affects_key,
         affects,
-        checks_count: registry.getByFramework(fw.regulation).length,
+        checks_count: registry.getByFramework(fw.regulation)
+            .filter(c => c.regulation === fw.regulation || (activeRegs && _runsFor(c, activeRegs))).length,
         registers: fw.registers || [],
         calendar_count: calendarCounts[fw.id] || 0,
         enabled: !!state?.enabled,
@@ -151,7 +163,7 @@ async function _buildOne(orgId, id, req) {
     const activeRegs = new Set([...activeIds].map(i => frameworks.regulationOf(i)));
     // scoresByFramework's second argument is a Set of REGULATION CODES.
     const scores = scoresByFramework(_activeRowsFilter(latest, activeRegs), activeRegs);
-    return serialize(fw, state, scores, calendar.countByFramework(), Date.now(), await _affects(id, orgId, latest), null);
+    return serialize(fw, state, scores, calendar.countByFramework(), Date.now(), await _affects(id, orgId, latest), null, activeRegs);
 }
 
 async function _customList(orgId, latest, req) {
@@ -210,7 +222,7 @@ router.get('/frameworks', requireAuth, requirePermission('admin_compliance'), as
             const machineryRelevance = fw.id === 'machinery' && affects?.derived_relevance
                 ? (affects.derived_relevance === 'relevant' ? 'relevant' : 'unknown')
                 : null;
-            return serialize(fw, byId.get(fw.id), scores, calendarCounts, nowMs, affects, machineryRelevance);
+            return serialize(fw, byId.get(fw.id), scores, calendarCounts, nowMs, affects, machineryRelevance, activeRegs);
         }));
         res.json({ frameworks: list, custom: await _customList(orgId, latest, req), catalogue: frameworks.catalogueReview(nowMs) });
     } catch (e) {
@@ -314,6 +326,15 @@ router.post('/frameworks/:id/relevance', requireAuth, requirePermission('admin_c
         }
         await frameworkPolicy.setRelevance(orgId, id, relevance, actorId, note, { req });
         await _evidence(orgId, id, 'framework_relevance_changed', actorId, { relevance, note });
+        // Every relevance-aware check reads the decision itself: re-run the
+        // framework now, so a 'not_relevant' does not leave its fail rows on
+        // the card until the next sweep. An inactive framework runs nothing.
+        // A run failure is logged, not fatal: the decision IS stored.
+        try {
+            await runner.runFramework(orgId, id, { runType: 'event' });
+        } catch (e) {
+            log.warn('[Compliance] re-run after relevance change failed:', e?.message || String(e));
+        }
         _invalidateCounts(orgId);
         calendar.invalidate(orgId);
         res.json({ framework: await _buildOne(orgId, id, req) });

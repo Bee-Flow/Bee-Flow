@@ -312,6 +312,60 @@ test('a failing first sweep still leaves the framework enabled and reports run_e
     } finally { runner.runFramework = orig; console.warn = warn; }
 });
 
+test('a tagged check whose home framework is off neither scores nor counts for the framework it is tagged for', async () => {
+    // The runner runs a check only when its HOME framework is active, so a
+    // NIS2 row written before NIS2 was switched off is frozen: it must not keep
+    // a pass on the DORA card, and the NIS2 check must not be counted as one
+    // of DORA's checks while it cannot run.
+    DEFS['NIS2-mfa'] = { id: 'NIS2-mfa', regulation: 'NIS2', severity: 'high', frameworks: [{ regulation: 'NIS2', ref: 'Art. 21', framework_id: 'nis2' }, { regulation: 'DORA', ref: 'Art. 9', framework_id: 'dora' }] };
+    DEFS['DORA-reg'] = { id: 'DORA-reg', regulation: 'DORA', severity: 'high', frameworks: [{ regulation: 'DORA', ref: 'Art. 28(3)', framework_id: 'dora' }] };
+    latestRows.push({ check_id: 'NIS2-mfa', regulation: 'NIS2', severity: 'high', status: 'pass', run_at: new Date(NOW).toISOString() });
+    policyState.dora.enabled = true;
+    try {
+        const body = await (await get()).json();
+        const dora = body.frameworks.find(f => f.id === 'dora');
+        assert.equal(dora.checks_count, 1, 'only the DORA-home check would run');
+        assert.equal(dora.score, null, 'the frozen NIS2 pass does not score for DORA');
+    } finally {
+        delete DEFS['NIS2-mfa'];
+        delete DEFS['DORA-reg'];
+        latestRows.splice(latestRows.findIndex(r => r.check_id === 'NIS2-mfa'), 1);
+    }
+});
+
+test('the Machinery card counts the detector\'s matches, not NaN of the match list', async () => {
+    latestRows.push({
+        check_id: 'MACHINERY-Art3-industrial-detection', regulation: 'MACHINERY', severity: 'medium', status: 'warn', run_at: new Date(NOW).toISOString(),
+        evidence: { matches: [{ source: 'automation', id: 'a1' }, { source: 'connection', id: 'c1' }], match_count: 7, derived_relevance: 'relevant' },
+    });
+    try {
+        const body = await (await get()).json();
+        const machinery = body.frameworks.find(f => f.id === 'machinery');
+        assert.deepEqual(machinery.affects, { detections: 7, derived_relevance: 'relevant' });
+    } finally {
+        latestRows.splice(latestRows.findIndex(r => r.check_id === 'MACHINERY-Art3-industrial-detection'), 1);
+    }
+});
+
+test('a relevance decision re-runs that framework at once', async () => {
+    const res = await post('/dora/relevance', { relevance: 'not_relevant', note: 'No financial-sector clients.' });
+    assert.equal(res.status, 200);
+    assert.deepEqual(calls.runFramework.map(c => c.id), ['dora']);
+    assert.equal(calls.runFramework[0].opts.runType, 'event');
+});
+
+test('a failing re-run after a relevance decision still stores the decision', async () => {
+    const warn = console.warn; console.warn = () => {};
+    const orig = runner.runFramework;
+    runner.runFramework = async () => { throw new Error('checks exploded'); };
+    try {
+        const res = await post('/dora/relevance', { relevance: 'not_relevant', note: 'No financial-sector clients.' });
+        assert.equal(res.status, 200);
+        assert.equal((await res.json()).framework.relevance, 'not_relevant');
+        assert.equal(calls.evidence.length, 1);
+    } finally { runner.runFramework = orig; console.warn = warn; }
+});
+
 test('no org → 403 no_organisation; no session → 401', async () => {
     const r403 = await fetch(`${baseUrl}/api/compliance/frameworks`, { headers: { 'x-test-user': 'u1' } });
     assert.equal(r403.status, 403);

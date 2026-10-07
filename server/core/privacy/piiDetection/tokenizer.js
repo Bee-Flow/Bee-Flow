@@ -14,7 +14,8 @@ const { splitAtCellBreaks } = require('./cellSplit');
 /**
  * Tokenize PII in text — replace each detected entity with a reversible token.
  *
- * Tokens look like: [PII:iban:1], [PII:email:1], [PII:name:1]
+ * Tokens look like: [internationalbankingaccountnumber_1], [email_1],
+ * [person_1] (see _tokenCategoryKey)
  *
  * Returns { tokenizedText, tokenMap, sweptEntities } where tokenMap maps each
  * token → real value. Call restoreTokens(text, tokenMap) to reverse.

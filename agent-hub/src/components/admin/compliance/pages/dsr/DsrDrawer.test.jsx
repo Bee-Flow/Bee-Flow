@@ -68,8 +68,9 @@ describe('DsrDrawer — header, clock, data subject', () => {
         expect(header).toHaveTextContent('Art. 17 · via Form /dsr');
         const clock = screen.getByTestId('dsr-drawer-clock');
         expect(clock).toHaveAttribute('data-state', 'overdue');
-        expect(clock).toHaveTextContent('overdue by 3 days');
-        expect(clock).toHaveTextContent(/Received 12 Aug \d{2}:\d{2} · due 11 Sep \d{2}:\d{2} · not extended/);
+        // No server due_at: receipt + one calendar month (Art. 12(3)), 12 Aug → 12 Sep, not + 30 days.
+        expect(clock).toHaveTextContent('overdue by 2 days');
+        expect(clock).toHaveTextContent(/Received 12 Aug \d{2}:\d{2} · due 12 Sep \d{2}:\d{2} · not extended/);
     });
 
     it('the address is masked, identity reads "confirmed via e-mail link", the DPO note is there, and the full address is nowhere', () => {
@@ -130,7 +131,7 @@ describe('DsrDrawer — actions post the right bodies', () => {
         expect(onReject).toHaveBeenCalledWith({ status: 'rejected', result_summary: 'Manifestly unfounded', notify_subject: true });
     });
 
-    it('Extend +60 d asks for a reason and calls onExtend(reason); it is hidden once extended_until is set', () => {
+    it('Extend +2 months asks for a reason and calls onExtend(reason); it is hidden once extended_until is set', () => {
         const { onExtend, rerender } = renderDrawer();
         fireEvent.click(screen.getByTestId('dsr-drawer-extend'));
         fireEvent.change(screen.getByTestId('dsr-drawer-extend-reason'), { target: { value: 'Complex request across three systems' } });
@@ -199,7 +200,7 @@ describe('DsrDrawer — timeline and discovery degrade', () => {
         expect(items.map(i => i.textContent)).toEqual([
             expect.stringMatching(/12 Aug \d{2}:\d{2}Received via Form \/dsr · clock started/),
             expect.stringMatching(/20 Aug \d{2}:\d{2}Started by T\. Smit/),
-            expect.stringMatching(/11 Sep \d{2}:\d{2}Deadline passed/),
+            expect.stringMatching(/12 Sep \d{2}:\d{2}Deadline passed/),
         ]);
         expect(items[2]).toHaveAttribute('data-tone', 'error');
         expect(items[2].className).toContain('text-[var(--error-ink)]');

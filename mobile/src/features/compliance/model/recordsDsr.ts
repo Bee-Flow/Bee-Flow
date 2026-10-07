@@ -57,7 +57,7 @@ export const DSR_REQUESTS: RecordType = {
     noun: { i18nKey: 'compliance.dsr_col_request', en: 'Request' },
     plural: { i18nKey: 'compliance.rail_dsr', en: 'Requests (DSR)' },
     icon: 'Inbox',
-    intro: { i18nKey: 'compliance.dsr_subtitle', en: 'Every request starts a 30-day clock (GDPR Art. 12(3)). Fulfil or reject each one and keep the record.' },
+    intro: { i18nKey: 'compliance.dsr_subtitle', en: 'Every request starts a one-month clock (GDPR Art. 12(3)). Fulfil or reject each one and keep the summary — it is your accountability record.' },
     list: { paths: [`${DSR}/requests`], select: ([raw]) => ({ rows: readDsrRequests(raw), context: null }) },
     idOf: (r) => str(r.id),
     titleOf: (r, fmt) => {
@@ -83,7 +83,7 @@ export const DSR_REQUESTS: RecordType = {
         label: { i18nKey: 'compliance.dsr_capture_title', en: 'Record a request' },
         fields: [TYPE, EMAIL, CHANNEL, RECEIVED, NOTES],
         request: (values) => ({ method: 'POST', path: `${DSR}/requests/manual`, body: captureBody(values) }),
-        success: { i18nKey: 'compliance.dsr_toast_captured', en: 'Request recorded — the 30-day clock is running' },
+        success: { i18nKey: 'compliance.dsr_toast_captured', en: 'Request recorded — the one-month clock is running' },
     },
     actions: [
         {
@@ -104,12 +104,12 @@ export const DSR_REQUESTS: RecordType = {
         },
         {
             id: 'extend',
-            label: { i18nKey: 'compliance.dsr_extend_60', en: 'Extend +60 d' },
+            label: { i18nKey: 'compliance.dsr_extend_60', en: 'Extend +2 months' },
             icon: 'Clock',
             when: (r) => isOpen(r) && !r.extended_at,
             fields: [{ key: 'reason', label: { i18nKey: 'compliance.dsr_extend_reason', en: 'Reason for the extension (Art. 12(3): complexity or number of requests)' }, kind: 'multiline', required: true }],
             request: (r, v) => request(r, 'extend', { reason: str(v.reason).trim() }),
-            success: { i18nKey: 'compliance.dsr_toast_extended', en: 'Deadline extended by 60 days' },
+            success: { i18nKey: 'compliance.dsr_toast_extended', en: 'Deadline extended by two months' },
         },
         {
             id: 'fulfil',

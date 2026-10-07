@@ -23,7 +23,7 @@ export const FRAMEWORKS = [
         "core": true,
         "capability": "compliance_hub_gdpr",
         "checks_dir": "gdpr",
-        "checks_count": 30,
+        "checks_count": 33,
         "in_force_since": "2018-05-25",
         "in_force_from": null,
         "phases": [
@@ -47,9 +47,13 @@ export const FRAMEWORKS = [
             {
                 "label": "Uitvoeringswet AVG — wetten.overheid.nl",
                 "url": "https://wetten.overheid.nl/BWBR0040940/"
+            },
+            {
+                "label": "Regulation (EU) 2025/2518 (GDPR cross-border enforcement procedure) — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2025/2518/oj"
             }
         ],
-        "legal_status_verified": "2026-10-06"
+        "legal_status_verified": "2026-10-07"
     },
     {
         "id": "aia",
@@ -114,7 +118,7 @@ export const FRAMEWORKS = [
         "core": true,
         "capability": "compliance_hub_iso27001",
         "checks_dir": "iso27001",
-        "checks_count": 73,
+        "checks_count": 77,
         "in_force_since": null,
         "in_force_from": null,
         "phases": [],
@@ -132,6 +136,10 @@ export const FRAMEWORKS = [
             {
                 "label": "ISO/IEC 27001:2022 — iso.org",
                 "url": "https://www.iso.org/standard/27001"
+            },
+            {
+                "label": "ISO/IEC 27001:2022/Amd 1:2024 (climate action changes) — iso.org",
+                "url": "https://www.iso.org/standard/88435.html"
             }
         ],
         "legal_status_verified": "2026-10-06"
@@ -171,6 +179,14 @@ export const FRAMEWORKS = [
             {
                 "label": "Implementing Regulation (EU) 2024/2690 — EUR-Lex",
                 "url": "https://eur-lex.europa.eu/eli/reg_impl/2024/2690/oj"
+            },
+            {
+                "label": "Cyberbeveiligingswet (Stb. 2026, 187) — wetten.overheid.nl",
+                "url": "https://wetten.overheid.nl/BWBR0052872/"
+            },
+            {
+                "label": "Cyberbeveiligingsbesluit (Stb. 2026, 189) — wetten.overheid.nl",
+                "url": "https://wetten.overheid.nl/BWBR0052875/"
             }
         ],
         "legal_status_verified": "2026-10-06"
@@ -210,6 +226,14 @@ export const FRAMEWORKS = [
             {
                 "label": "Regulation (EU) 2024/2847 — EUR-Lex",
                 "url": "https://eur-lex.europa.eu/eli/reg/2024/2847/oj"
+            },
+            {
+                "label": "Reporting under the Cyber Resilience Act — NCSC",
+                "url": "https://www.ncsc.nl/wet-en-regelgeving/cyber-resilience-act-cra/melden"
+            },
+            {
+                "label": "CRA Single Reporting Platform — ENISA",
+                "url": "https://www.enisa.europa.eu/topics/product-security/single-reporting-platform-srp"
             }
         ],
         "legal_status_verified": "2026-10-06"
@@ -217,7 +241,7 @@ export const FRAMEWORKS = [
     {
         "id": "data_act",
         "regulation": "DATA_ACT",
-        "regulation_code": "Verordening (EU) 2023/2854",
+        "regulation_code": "Verordening (EU) 2023/2854 · Uitvoeringswet dataverordening",
         "name_key": "compliance.fw_data_act_name",
         "description_key": "compliance.fw_data_act_desc",
         "affects_key": "compliance.fw_data_act_affects",
@@ -249,9 +273,13 @@ export const FRAMEWORKS = [
             {
                 "label": "Regulation (EU) 2023/2854 — EUR-Lex",
                 "url": "https://eur-lex.europa.eu/eli/reg/2023/2854/oj"
+            },
+            {
+                "label": "Uitvoeringswet dataverordening — wetten.overheid.nl",
+                "url": "https://wetten.overheid.nl/BWBR0051796/"
             }
         ],
-        "legal_status_verified": "2026-10-06"
+        "legal_status_verified": "2026-10-07"
     },
     {
         "id": "pld",
@@ -278,6 +306,14 @@ export const FRAMEWORKS = [
             {
                 "label": "Directive (EU) 2024/2853 — EUR-Lex",
                 "url": "https://eur-lex.europa.eu/eli/dir/2024/2853/oj"
+            },
+            {
+                "label": "Corrigendum to Directive (EU) 2024/2853 (OJ L 2026/90364, Art. 2(1)) — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/dir/2024/2853/corrigendum/2026-05-07/oj"
+            },
+            {
+                "label": "Wetsvoorstel 36906 — Tweede Kamer",
+                "url": "https://www.tweedekamer.nl/kamerstukken/wetsvoorstellen/detail?cfg=wetsvoorsteldetails&qry=wetsvoorstel%3A36906"
             }
         ],
         "legal_status_verified": "2026-10-06"
@@ -285,7 +321,7 @@ export const FRAMEWORKS = [
     {
         "id": "eaa",
         "regulation": "EAA",
-        "regulation_code": "Richtlijn (EU) 2019/882",
+        "regulation_code": "Richtlijn (EU) 2019/882 · Implementatiewet toegankelijkheidsvoorschriften producten en diensten",
         "name_key": "compliance.fw_eaa_name",
         "description_key": "compliance.fw_eaa_desc",
         "affects_key": "compliance.fw_eaa_affects",
@@ -311,9 +347,13 @@ export const FRAMEWORKS = [
             {
                 "label": "Directive (EU) 2019/882 — EUR-Lex",
                 "url": "https://eur-lex.europa.eu/eli/dir/2019/882/oj"
+            },
+            {
+                "label": "Implementatiewet toegankelijkheidsvoorschriften producten en diensten — wetten.overheid.nl",
+                "url": "https://wetten.overheid.nl/BWBR0049571/"
             }
         ],
-        "legal_status_verified": "2026-10-06"
+        "legal_status_verified": "2026-10-07"
     },
     {
         "id": "dora",
@@ -342,6 +382,18 @@ export const FRAMEWORKS = [
             {
                 "label": "Regulation (EU) 2022/2554 — EUR-Lex",
                 "url": "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+            },
+            {
+                "label": "Delegated Regulation (EU) 2025/301 (incident reporting content and time limits) — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg_del/2025/301/oj"
+            },
+            {
+                "label": "Implementing Regulation (EU) 2025/302 (incident reporting forms) — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg_impl/2025/302/oj"
+            },
+            {
+                "label": "Implementing Regulation (EU) 2024/2956 (register of information) — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg_impl/2024/2956/oj"
             }
         ],
         "legal_status_verified": "2026-10-06"
@@ -349,7 +401,7 @@ export const FRAMEWORKS = [
     {
         "id": "machinery",
         "regulation": "MACHINERY",
-        "regulation_code": "Verordening (EU) 2023/1230",
+        "regulation_code": "Verordening (EU) 2023/1230 · gewijzigd bij Verordening (EU) 2026/1744",
         "name_key": "compliance.fw_machinery_name",
         "description_key": "compliance.fw_machinery_desc",
         "affects_key": "compliance.fw_machinery_affects",
@@ -371,9 +423,13 @@ export const FRAMEWORKS = [
             {
                 "label": "Regulation (EU) 2023/1230 — EUR-Lex",
                 "url": "https://eur-lex.europa.eu/eli/reg/2023/1230/oj"
+            },
+            {
+                "label": "Regulation (EU) 2026/1744 (Digital Omnibus on AI, Art. 3 amends 2023/1230) — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2026/1744/oj"
             }
         ],
-        "legal_status_verified": "2026-10-06"
+        "legal_status_verified": "2026-10-07"
     }
 ];
 
@@ -519,6 +575,16 @@ export const MILESTONES = [
         "detail_key": "compliance.cal_ms_machinery_in_force_detail"
     },
     {
+        "id": "gdpr_procedural_regulation",
+        "date": "2027-04-02",
+        "expected": null,
+        "framework_id": "gdpr",
+        "kind": "phase",
+        "affects_kind": null,
+        "label_key": "compliance.cal_ms_gdpr_procedural_regulation_label",
+        "detail_key": "compliance.cal_ms_gdpr_procedural_regulation_detail"
+    },
+    {
         "id": "aia_gpai_legacy_models",
         "date": "2027-08-02",
         "expected": null,
@@ -597,6 +663,16 @@ export const MILESTONES = [
         "affects_kind": null,
         "label_key": "compliance.cal_ms_nl_uitvoeringswet_ai_label",
         "detail_key": "compliance.cal_ms_nl_uitvoeringswet_ai_detail"
+    },
+    {
+        "id": "eaa_en301549_v4_citation",
+        "date": null,
+        "expected": "2026-Q4",
+        "framework_id": "eaa",
+        "kind": "uncertain",
+        "affects_kind": "a11y",
+        "label_key": "compliance.cal_ms_eaa_en301549_v4_citation_label",
+        "detail_key": "compliance.cal_ms_eaa_en301549_v4_citation_detail"
     }
 ];
 
@@ -845,6 +921,41 @@ export const CHECK_DEFS = [
         "autoFixId": null
     },
     {
+        "check_id": "GDPR-Art32-chat-shield-coverage",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "32",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.8.12",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.8.16",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "32",
+        "severity": "medium",
+        "scope": "global",
+        "verification": "automated",
+        "titleKey": "chat_monitoring.checks.gdpr_art32_chat_cov.title",
+        "descriptionKey": "chat_monitoring.checks.gdpr_art32_chat_cov.desc",
+        "remediationKey": "chat_monitoring.checks.gdpr_art32_chat_cov.fix",
+        "remediationLink": "admin/security/guardrails",
+        "autoFixId": null
+    },
+    {
         "check_id": "GDPR-Art32-dlp-efficacy",
         "regulation": "GDPR",
         "framework_id": "gdpr",
@@ -1060,6 +1171,35 @@ export const CHECK_DEFS = [
         "autoFixId": null
     },
     {
+        "check_id": "GDPR-Art35-chat-monitoring-safeguards",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "35",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.34",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "35",
+        "severity": "high",
+        "scope": "global",
+        "verification": "hybrid",
+        "titleKey": "chat_monitoring.checks.gdpr_art35_chat_mon.title",
+        "descriptionKey": "chat_monitoring.checks.gdpr_art35_chat_mon.desc",
+        "remediationKey": "chat_monitoring.checks.gdpr_art35_chat_mon.fix",
+        "remediationLink": "admin/compliance/settings",
+        "autoFixId": null
+    },
+    {
         "check_id": "GDPR-Art35-dpia-high-risk",
         "regulation": "GDPR",
         "framework_id": "gdpr",
@@ -1080,6 +1220,35 @@ export const CHECK_DEFS = [
         "descriptionKey": "compliance.checks.gdpr_art35.desc",
         "remediationKey": "compliance.checks.gdpr_art35.fix",
         "remediationLink": "admin/compliance/dpia",
+        "autoFixId": null
+    },
+    {
+        "check_id": "GDPR-Art35-per-user-shield-view",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "35",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.34",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "35",
+        "severity": "high",
+        "scope": "global",
+        "verification": "hybrid",
+        "titleKey": "chat_monitoring.checks.gdpr_art35_per_user_view.title",
+        "descriptionKey": "chat_monitoring.checks.gdpr_art35_per_user_view.desc",
+        "remediationKey": "chat_monitoring.checks.gdpr_art35_per_user_view.fix",
+        "remediationLink": "admin/monitoring/activity",
         "autoFixId": null
     },
     {
@@ -1154,7 +1323,7 @@ export const CHECK_DEFS = [
         "titleKey": "compliance.checks.gdpr_art44.title",
         "descriptionKey": "compliance.checks.gdpr_art44.desc",
         "remediationKey": "compliance.checks.gdpr_art44.fix",
-        "remediationLink": "admin/compliance/settings",
+        "remediationLink": "admin/compliance/ropa",
         "autoFixId": null
     },
     {
@@ -1585,7 +1754,7 @@ export const CHECK_DEFS = [
         "article": "A.5.20",
         "severity": "high",
         "scope": "global",
-        "verification": "automated",
+        "verification": "hybrid",
         "titleKey": "compliance.checks.iso_suppliers.title",
         "descriptionKey": "compliance.checks.iso_suppliers.desc",
         "remediationKey": "compliance.checks.iso_suppliers.fix",
@@ -3187,7 +3356,7 @@ export const ISO_CONTROLS = [
         "ref": "A.5.14",
         "key": "a5_14",
         "theme": 5,
-        "bucket": "auto",
+        "bucket": "connector",
         "titleKey": "compliance.iso.a5_14.title",
         "objectiveKey": "compliance.iso.a5_14.objective"
     },
@@ -3203,7 +3372,7 @@ export const ISO_CONTROLS = [
         "ref": "A.5.16",
         "key": "a5_16",
         "theme": 5,
-        "bucket": "auto",
+        "bucket": "connector",
         "titleKey": "compliance.iso.a5_16.title",
         "objectiveKey": "compliance.iso.a5_16.objective"
     },

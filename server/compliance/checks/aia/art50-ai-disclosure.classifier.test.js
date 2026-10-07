@@ -34,8 +34,8 @@ let readError = null;
 const fakeDb = {
     async getAll(sql, params = []) {
         if (readError) throw readError;
-        const scoped = /AND organization_id = \$1/.test(String(sql).replace(/\s+/g, ' '));
-        const rows = scoped ? agents.filter(a => (a.organization_id ?? null) === params[0]) : agents;
+        const scoped = /AND COALESCE\(NULLIF\(organization_id, ''\), 'default'\) = \$1/.test(String(sql).replace(/\s+/g, ' '));
+        const rows = scoped ? agents.filter(a => (a.organization_id || 'default') === params[0]) : agents;
         return rows.filter(a => a.is_published).map(a => ({
             id: a.id, name: a.name,
             system_prompt: a.published_system_prompt ?? a.system_prompt,

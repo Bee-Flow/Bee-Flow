@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AttentionList from './AttentionList';
 
@@ -42,11 +43,7 @@ const ITEMS = [
     },
 ];
 
-const ATTENTION = {
-    items: ITEMS, total: 7,
-    tail: [{ id: 't1', title: 'DLP partly active', status: 'warn' }],
-    warn_tail_count: 2,
-};
+const ATTENTION = { items: ITEMS, total: 4 };
 
 function renderList(props = {}) {
     const navigate = vi.fn();
@@ -55,8 +52,15 @@ function renderList(props = {}) {
     const utils = render(
         <AttentionList attention={ATTENTION} items={ITEMS} navigate={navigate} onNavigate={onNavigate} onAutoFix={onAutoFix} {...props} />,
     );
-    return { ...utils, navigate, onNavigate, onAutoFix };
+    return { ...utils, navigate, onNavigate, onAutoFix, user: userEvent.setup() };
 }
+
+/** Twelve open items, like the Overview of an org with work to do. */
+const MANY = Array.from({ length: 12 }, (_, i) => ({
+    id: `item-${i}`, code: `CHECK-${i}`, title: `Open item ${i + 1}`, status: i < 4 ? 'fail' : 'warn',
+    meta: { severity: 'medium', verification: 'automated', frameworks: [{ regulation: i % 2 ? 'ISO27001' : 'GDPR', ref: i % 2 ? 'A.5.1' : '30' }] },
+    action: { type: 'open_fix', target: 'admin/compliance/ropa', label: 'Open fix' },
+}));
 
 describe('AttentionList', () => {
     it('renders the rows with glyph, refs, severity and verification', () => {
@@ -66,7 +70,7 @@ describe('AttentionList', () => {
         expect(rows[0].dataset.status).toBe('fail');
         expect(rows[0].textContent).toContain('GDPR Art. 12');
         expect(rows[0].textContent).toContain('URL missing in Settings');
-        expect(screen.getByTestId('attention-list-count').textContent).toBe('7');
+        expect(screen.getByTestId('attention-list-count').textContent).toBe('4');
     });
 
     it('shows a severity tag on open rows only (design rule 5)', () => {
@@ -97,31 +101,31 @@ describe('AttentionList', () => {
         expect(screen.queryByTestId('attention-list-row')).not.toBeInTheDocument();
     });
 
-    it('a navigate action inside the hub goes through navigate(section)', () => {
-        const { navigate, onNavigate } = renderList();
+    it('a navigate action inside the hub goes through navigate(section)', async () => {
+        const { navigate, onNavigate, user } = renderList();
         const rows = screen.getAllByTestId('attention-list-row');
-        fireEvent.click(within(rows[0]).getByTestId('attention-list-row-action'));
+        await user.click(within(rows[0]).getByTestId('attention-list-row-action'));
         expect(navigate).toHaveBeenCalledWith('settings', undefined, undefined); // (section, id, tab)
         expect(onNavigate).not.toHaveBeenCalled();
     });
 
-    it('an action that leaves the hub goes to the host callback', () => {
-        const { navigate, onNavigate } = renderList();
+    it('an action that leaves the hub goes to the host callback', async () => {
+        const { navigate, onNavigate, user } = renderList();
         const rows = screen.getAllByTestId('attention-list-row');
-        fireEvent.click(within(rows[2]).getByTestId('attention-list-row-action'));
+        await user.click(within(rows[2]).getByTestId('attention-list-row-action'));
         expect(onNavigate).toHaveBeenCalledWith('admin/security/guardrails');
         expect(navigate).not.toHaveBeenCalled();
     });
 
-    it('an auto-fix confirms before it runs, and cancel leaves nothing behind', () => {
-        const { onAutoFix } = renderList();
+    it('an auto-fix confirms before it runs, and cancel leaves nothing behind', async () => {
+        const { onAutoFix, user } = renderList();
         const rows = screen.getAllByTestId('attention-list-row');
-        fireEvent.click(within(rows[1]).getByTestId('attention-list-row-action'));
+        await user.click(within(rows[1]).getByTestId('attention-list-row-action'));
         expect(onAutoFix).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByTestId('attention-list-row-confirm-no'));
+        await user.click(screen.getByTestId('attention-list-row-confirm-no'));
         expect(onAutoFix).not.toHaveBeenCalled();
-        fireEvent.click(within(screen.getAllByTestId('attention-list-row')[1]).getByTestId('attention-list-row-action'));
-        fireEvent.click(screen.getByTestId('attention-list-row-confirm-yes'));
+        await user.click(within(screen.getAllByTestId('attention-list-row')[1]).getByTestId('attention-list-row-action'));
+        await user.click(screen.getByTestId('attention-list-row-confirm-yes'));
         expect(onAutoFix).toHaveBeenCalledWith('AIA-Art50-marking');
     });
 
@@ -131,23 +135,109 @@ describe('AttentionList', () => {
         expect(within(rows[1]).getByTestId('attention-list-row-action').textContent).toContain('Auto-fix · 2');
     });
 
-    it('caps the list and names the rest in the footer', () => {
-        renderList({ limit: 2 });
-        expect(screen.getAllByTestId('attention-list-row')).toHaveLength(2);
-        const more = screen.getByTestId('attention-list-more');
-        expect(more.textContent).toContain('DLP partly active');
-        expect(screen.getByTestId('attention-list-view-all')).toBeInTheDocument();
-    });
-
-    it('"View all" lands on the section of the first row', () => {
-        const { navigate } = renderList({ limit: 2 });
-        fireEvent.click(screen.getByTestId('attention-list-view-all'));
-        expect(navigate).toHaveBeenCalledWith('settings');
-    });
-
     it('uses tone tokens, never a hex', () => {
         const { container } = renderList();
         expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{6}\b/);
+    });
+});
+
+describe('AttentionList — the whole list in one place', () => {
+    it('shows five rows, then "Show all {n}" expands every item inline and "Show fewer" folds it back', async () => {
+        const { navigate, user } = renderList({ attention: { items: MANY, total: 12 }, items: MANY });
+        expect(screen.getAllByTestId('attention-list-row')).toHaveLength(5);
+        const toggle = screen.getByTestId('attention-list-toggle');
+        expect(toggle).toHaveTextContent('Show all 12');
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(toggle).toHaveAttribute('aria-controls', screen.getByTestId('attention-list-rows').id);
+
+        await user.click(toggle);
+        const rows = screen.getAllByTestId('attention-list-row');
+        expect(rows).toHaveLength(12);
+        expect(toggle).toHaveTextContent('Show fewer');
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        // Every expanded row keeps its own action — the list never sends you elsewhere to act.
+        await user.click(within(rows[11]).getByTestId('attention-list-row-action'));
+        expect(navigate).toHaveBeenCalledWith('ropa', undefined, undefined);
+
+        await user.click(toggle);
+        expect(screen.getAllByTestId('attention-list-row')).toHaveLength(5);
+        // No link that only opens the first item's framework.
+        expect(screen.queryByTestId('attention-list-all')).toBeNull();
+        expect(screen.queryByTestId('attention-list-view-all')).toBeNull();
+    });
+
+    it('has no toggle when everything fits', () => {
+        renderList();
+        expect(screen.queryByTestId('attention-list-toggle')).toBeNull();
+        expect(screen.queryByTestId('attention-list-elsewhere')).toBeNull();
+    });
+
+    it('names the items the server did not send at the end of the expanded list', async () => {
+        const { user } = renderList({ attention: { items: MANY, total: 61 }, items: MANY });
+        expect(screen.queryByTestId('attention-list-elsewhere')).toBeNull();
+        await user.click(screen.getByTestId('attention-list-toggle'));
+        expect(screen.getByTestId('attention-list-elsewhere')).toHaveTextContent('49 more on the framework pages');
+    });
+
+    it('limit still caps the folded list', () => {
+        renderList({ limit: 2 });
+        expect(screen.getAllByTestId('attention-list-row')).toHaveLength(2);
+        expect(screen.getByTestId('attention-list-toggle')).toHaveTextContent('Show all 4');
+    });
+});
+
+describe('AttentionList — the meta line', () => {
+    const metaText = (row) => within(row).getByTestId('attention-list-row-meta').textContent;
+
+    it('puts separators only between parts: a register item (no verification kind) has no dangling dot', () => {
+        const items = [
+            { id: 'register:obligation:3', code: 'obligation_overdue', title: 'Overdue: Phishing simulation', status: 'fail',
+                meta: { severity: 'high', verification: 'register', detail: 'Due 2026-10-03.', frameworks: [{ regulation: 'ISO27001', ref: 'cl. 9' }] },
+                action: { type: 'navigate', target: '/app/admin/compliance/training' } },
+            { id: 'register:no-refs', code: 'x', title: 'No references', status: 'warn',
+                meta: { severity: 'medium', verification: 'automated', frameworks: [] }, action: null },
+        ];
+        renderList({ attention: { items, total: 2 }, items });
+        const rows = screen.getAllByTestId('attention-list-row');
+        const first = metaText(rows[0]);
+        expect(first).toBe('ISO cl. 9·Should fix');
+        expect(within(rows[0]).queryByTestId('verification-chip')).toBeNull();
+        // No leading dot when the refs are missing.
+        expect(metaText(rows[1])).toMatch(/^Consider·/);
+        for (const row of rows) {
+            const text = metaText(row);
+            expect(text).not.toMatch(/^·|·$|··/);
+        }
+    });
+
+    it('caps the references at two and keeps the rest in the title', () => {
+        const items = [{
+            id: 'check:supplier', code: 'ISO-A.5.20', title: 'Supplier and cloud service agreements', status: 'fail',
+            meta: { severity: 'high', verification: 'automated', frameworks: [
+                { regulation: 'ISO27001', ref: 'A.5.20' }, { regulation: 'ISO27001', ref: 'A.5.22' }, { regulation: 'ISO27001', ref: 'A.5.23' },
+                { regulation: 'NIS2', ref: 'Art. 21(2)(d)' }, { regulation: 'DORA', ref: 'Art. 28(3)' },
+            ] },
+            action: { type: 'open_fix', target: 'admin/compliance/settings' },
+        }];
+        renderList({ attention: { items, total: 1 }, items });
+        const ref = screen.getByTestId('article-ref');
+        expect(ref).toHaveAttribute('title', expect.stringContaining('DORA Art. 28(3)'));
+        expect(screen.getByTestId('article-ref-more')).toHaveTextContent('+3');
+    });
+
+    it('a neutral severity word: the glyph already carries the colour', () => {
+        renderList();
+        const tag = within(screen.getAllByTestId('attention-list-row')[0]).getByTestId('severity-tag');
+        expect(tag).toHaveAttribute('data-tone', 'neutral');
+    });
+
+    it('the detail sits on its own line, without a leading dot', () => {
+        renderList();
+        const row = screen.getAllByTestId('attention-list-row')[0];
+        const detail = within(row).getByTestId('attention-list-row-detail');
+        expect(detail).toHaveTextContent('URL missing in Settings');
+        expect(detail.textContent.startsWith('·')).toBe(false);
+        expect(metaText(row)).not.toContain('URL missing');
     });
 });
 
@@ -183,7 +273,7 @@ describe('AttentionList — targets that carry a tab are live clicks', () => {
         const navigate = vi.fn();
         const items = [
             { id: 'register:ai_act:agent:a1', code: 'ai_act_attestation_expired', title: 'AI Act self-assessment expired (agent)', status: 'warn',
-                meta: { frameworks: [{ regulation: 'AIA', ref: 'Art. 53' }] },
+                meta: { frameworks: [{ regulation: 'AIA', ref: 'Art. 6' }] },
                 action: { type: 'navigate', target: '/app/admin/compliance/frameworks?tab=per_automation' } },
             { id: 'register:obligation:3', code: 'obligation_overdue', title: 'Overdue: Internal audit', status: 'fail',
                 meta: { frameworks: [{ regulation: 'ISO27001', ref: 'cl. 9' }] },
@@ -192,7 +282,8 @@ describe('AttentionList — targets that carry a tab are live clicks', () => {
         render(<AttentionList attention={{ items, total: 2, tail: [] }} items={items} navigate={navigate} onNavigate={vi.fn()} />);
         const rows = screen.getAllByTestId('attention-list-row');
         await user.click(within(rows[0]).getByTestId('attention-list-row-action'));
-        expect(navigate).toHaveBeenLastCalledWith('frameworks', undefined, 'per_automation');
+        // More frameworks › Per automation moved to AI Act › Systems (sections.js legacyTabs).
+        expect(navigate).toHaveBeenLastCalledWith('aia', undefined, 'systems');
         await user.click(within(rows[1]).getByTestId('attention-list-row-action'));
         expect(navigate).toHaveBeenLastCalledWith('training', undefined, undefined);
     });

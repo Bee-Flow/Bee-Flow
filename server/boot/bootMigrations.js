@@ -174,6 +174,7 @@ const NL_TRANSLATIONS = [
     'add-nl-app-studio-builder-translations', // de App Studio-bouwfilm: activiteitsrijen, bouwbanner, ghost-cel, chatkolom
     'add-nl-playbooks-translations',           // Studio → Playbooks: gefaseerde AI-bouw met pauzes voor akkoord
     'add-nl-compliance-center-translations',  // Compliance Center-redesign: rail, headers, registers, kaders, ladder, checks (data-gedreven)
+    'add-nl-chat-monitoring-translations',    // Chat signals: the Compliance Settings card, the notice in the chat and the embed, the three checks
     'add-nl-learning-center-translations',     // Learning Center-redesign: rail, curriculumkaart, cursustabel, Behaald, spelerchrome
     'add-nl-privacy-shield-redesign-translations', // Privacy Shield-redesign ronde 2: pijplijnstrip, categorie-matrix, de twee checks naast elkaar, What happened als kruisfilter
     'add-nl-privacy-shield-v3-translations',   // Privacy Shield ronde 3: kop met detectiestatus en PATH-strip, Overview-reviewkaart, één matrix, stroomkaart van de twee checks, What happened als één log
@@ -199,6 +200,8 @@ const NL_TRANSLATIONS = [
     'add-nl-condition-node-translations', // Condition node: rule rows, File type, outputs and Otherwise, Suggest outputs, follow-the-route and whole-list notices, Filter a list
     'add-nl-flatten-node-translations', // Flatten a list: the step card, Simple editor sentences, Choose fields, More options, run sentences
     'update-nl-legal-register-2026-10', // Legal register review of 6 Oct 2026: corrected framework, milestone and check Dutch (old shipped text only), new milestones, "Legal status checked" chip and Sources
+    'update-nl-compliance-detect-2026-10', // Compliance round 2 detection and legal wording: one-month DSR clock, CRA notification, DORA/Data Act/EAA/PLD/Machinery terms, encryption levels (old shipped text only), two new milestones; after the legal register review, whose Dutch it partly replaces
+    'update-nl-compliance-ui-2026-10', // Compliance Center UI round 2: Dutch for the strings the eleven UI packages added, and reworded Dutch where the English changed meaning (old shipped text only)
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

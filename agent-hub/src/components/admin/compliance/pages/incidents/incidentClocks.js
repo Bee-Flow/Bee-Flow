@@ -5,11 +5,18 @@
  * `breach` and `security_incident` (the Incidents section) and `vulnerability`
  * (the Vulnerability register, CRA Art. 14). The server computes the due
  * dates per regime and stores the EARLIEST of each stage
- * (`early_warning_due_at`, `deadline_at`, `final_report_due_at`,
- * `customer_notice_due_at`); this module reads those columns and, for a
- * vulnerability row from before BE-1c landed, derives the CRA stages from
- * `detected_at` (24 h · 72 h · 14 d) so the register never shows a row
- * without its clock.
+ * (`early_warning_due_at`, `final_report_due_at`, `customer_notice_due_at`);
+ * this module reads those columns and, for a vulnerability row from before
+ * BE-1c landed, derives the CRA stages from `detected_at` (24 h · 72 h · 14 d)
+ * so the register never shows a row without its clock.
+ *
+ * The authority notification has no column of its own. It is 72 h after
+ * detection under every regime that carries one (GDPR Art. 33, NIS2 Art. 23,
+ * CRA Art. 14), so it is derived here too. `deadline_at` is NOT that clock:
+ * the server keeps it at the earliest OPEN clock of the row (a DORA customer
+ * notice four hours in, say) and empties it once every clock is met or the
+ * incident is closed (incidentStore.nextOpenDeadline), which would move the
+ * notification or drop a filed one from the drawer.
  *
  * `urgentBelowMs` is REGULATION, not presentation (deadlineMath contract):
  * GDPR/NIS2 notification 24 h, CRA early warning 6 h, CRA later stages 24 h.
@@ -63,6 +70,15 @@ function addMs(iso, ms) {
     return Number.isNaN(t) ? null : new Date(t + ms).toISOString();
 }
 
+/** The regimes with an authority notification (incidentStore REGIME_CLOCKS: all 72 h); DORA has the customer notice only. */
+const NOTIFYING_REGIMES = Object.freeze(['GDPR', 'NIS2', 'CRA']);
+
+/** The row's regimes; none recorded is a CRA matter for a vulnerability and a GDPR one otherwise (incidentStore.normalizeRegimes). */
+function regimesOf(incident) {
+    const list = Array.isArray(incident?.regimes) ? incident.regimes.map(r => String(r).toUpperCase()) : [];
+    return list.length ? list : [isVulnerability(incident) ? 'CRA' : 'GDPR'];
+}
+
 /**
  * Every clock the row carries, in reporting order. Each:
  *   { stage, dueAt, sentAt, notFiled, urgentBelowMs, labelKey, fallback, derived }
@@ -89,7 +105,8 @@ export function clocksOf(incident) {
             derived: !incident.early_warning_due_at,
         });
     }
-    const notification = incident.notification_due_at ?? incident.deadline_at ?? (vuln ? addMs(started, CRA_WINDOWS.notification) : null);
+    const notifies = regimesOf(incident).some(r => NOTIFYING_REGIMES.includes(r));
+    const notification = incident.notification_due_at ?? (notifies ? addMs(started, CRA_WINDOWS.notification) : null);
     if (notification) {
         stages.push({
             stage: 'notification', dueAt: notification,
@@ -97,7 +114,7 @@ export function clocksOf(incident) {
             urgentBelowMs: vuln ? URGENT_BELOW.cra_later : URGENT_BELOW.breach,
             labelKey: vuln ? 'compliance.vuln_clock_notification' : 'compliance.inc_clock_notification',
             fallback: vuln ? 'Vulnerability notification (72 h)' : 'Authority notification (72 h)',
-            derived: !incident.notification_due_at && !incident.deadline_at,
+            derived: !incident.notification_due_at,
         });
     }
     const final = incident.final_report_due_at ?? (vuln ? addMs(started, CRA_WINDOWS.final_report) : null);

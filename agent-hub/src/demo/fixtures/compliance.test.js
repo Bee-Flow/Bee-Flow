@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createState, ROUTES } from './compliance';
 import { CHECK_DEFS, ISO_CONTROLS, FRAMEWORKS, MILESTONES } from './complianceCatalog';
 import { COMMON_ROUTES, DEMO_CAPABILITIES } from './common';
+import { addCalendarMonths } from '../../components/shared/deadlineMath';
 import { DEMO_FEATURES } from '../registry';
 import { createDemoTransport } from '../demoTransport';
 
@@ -136,8 +137,11 @@ describe('compliance fixture — arithmetic that is visible on screen', () => {
         const { risks, stats } = call('GET /api/compliance/iso/risks');
         for (const r of risks) expect(r.score).toBe(r.likelihood * r.impact);
         expect(stats.total).toBe(risks.length);
-        expect(stats.open).toBe(risks.filter(r => r.status === 'open' || r.status === 'treating').length);
-        expect(stats.high).toBe(risks.filter(r => r.score >= 9 && r.status !== 'closed').length);
+        // riskStore.getStats counts each status on its own: "open" is status open, not open or treating.
+        expect(stats.open).toBe(risks.filter(r => r.status === 'open').length);
+        expect(stats.treating).toBe(risks.filter(r => r.status === 'treating').length);
+        // The server's rule (riskStore HIGH_SCORE = 10), so header, rail and the "High" filter agree.
+        expect(stats.high).toBe(risks.filter(r => r.score >= 10 && r.status !== 'closed').length);
     });
 });
 
@@ -148,12 +152,15 @@ describe('compliance fixture — the states the pages need to render', () => {
         expect(call('GET /api/compliance/overview').onboarded).toBe(true);
     });
 
-    it('the breach deadline is exactly detected_at + 72 hours', () => {
-        // incidentStore's rule (Art. 33(1)). The countdown on screen is
-        // computed from this, so a typed-in deadline shows a wrong clock.
+    it('deadline_at is the earliest clock still open, and empty once the incident is closed', () => {
+        // incidentStore.nextOpenDeadline. A GDPR breach runs on the 72-hour
+        // notification; the DORA incident's customer notice (4 h) comes first.
+        const H = 3_600_000;
+        const delta = (i) => new Date(i.deadline_at).getTime() - new Date(i.detected_at).getTime();
         for (const i of call('GET /api/compliance/incidents')) {
-            const delta = new Date(i.deadline_at).getTime() - new Date(i.detected_at).getTime();
-            expect(delta, `${i.id}`).toBe(72 * 3_600_000);
+            if (i.status === 'closed') expect(i.deadline_at, `${i.id}`).toBeNull();
+            else if (i.regimes.includes('DORA')) expect(delta(i), `${i.id}`).toBe(4 * H);
+            else expect(delta(i), `${i.id}`).toBe(72 * H);
         }
     });
 
@@ -185,10 +192,12 @@ describe('compliance fixture — the states the pages need to render', () => {
         for (const p of ropa.processors) {
             expect(typeof p.is_eu, `${p.operator}.is_eu must be a strict boolean`).toBe('boolean');
         }
-        // Each activity lists those same transfers, or the column is blank.
-        for (const a of ropa.activities) {
+        // Each assistant lists those same transfers, or the column is blank;
+        // a project's record keeps its data with the project's members.
+        for (const a of ropa.activities.filter(x => x.source?.kind !== 'project')) {
             expect(a.transfers.length).toBe(nonEu.length);
         }
+        expect(ropa.activities.some(a => a.source?.kind === 'project')).toBe(true);
     });
 
     it('personnel cannot have acknowledged more policies than exist', () => {
@@ -267,7 +276,10 @@ describe('compliance fixture — the aggregates the shell reads', () => {
             expect(i.pct).toBeGreaterThanOrEqual(0);
             expect(i.pct).toBeLessThanOrEqual(1);
             expect(i.target, `${i.id} has nowhere to go`).toBeTruthy();
-            expect(i.meta.article, `${i.id} has no article`).toBeTruthy();
+            // A full citation the card prints as it comes; an attestation
+            // expiry is Bee Flow's review interval and cites nothing.
+            if (i.kind === 'attestation_expiry') expect(i.meta.article, `${i.id}`).toBeNull();
+            else expect(i.meta.article, `${i.id} has no article`).toMatch(/^(GDPR|NIS2|DORA|CRA|ISO 27001) /);
         }
         // An overdue row sorts above an open one, or the card is decoration.
         expect(d.items[0].state).toBe('overdue');
@@ -364,29 +376,33 @@ describe('compliance fixture — the DSR register after BE-2', () => {
             expect(r.subject_email, `${r.id} shows a full address in the list`).toBe(r.subject_email_masked);
             expect(r.timeline, `${r.id} ships its timeline to the list`).toBeUndefined();
         }
-        const detail = ROUTES['GET /api/dsr/requests/:id']({ ...c, params: { id: 'dsr_2417' } });
+        const detail = ROUTES['GET /api/dsr/requests/:id']({ ...c, params: { id: '2417' } });
         expect(detail.subject_email).toBe('h.veenstra@example.nl');
         expect(detail.timeline.length).toBeGreaterThan(2);
         // …and reading it is logged, which is the point of showing it.
         expect(ROUTES['GET /api/compliance/access-audit'](c).entries[0].action).toBe('dsr.subject_viewed');
     });
 
-    it('the clock is computed, and an open request is urgent before it is overdue', () => {
+    it('the clock is computed in calendar months, and an open request is urgent before it is overdue', () => {
         const rows = call('GET /api/dsr/requests');
         const open = rows.filter(r => r.state !== 'none');
         expect(open.length).toBeGreaterThan(0);
+        // Art. 12(3): one calendar month from receipt, three once extended —
+        // dsrStore's rule, not 30 or 90 days.
         for (const r of rows) {
-            const due = new Date(r.due_at).getTime() - new Date(r.created_at).getTime();
-            expect(Math.round(due / 86_400_000), `${r.id}`).toBeGreaterThanOrEqual(30);
+            const months = r.extended_until ? 3 : 1;
+            expect(new Date(r.due_at).getTime(), `${r.id}`).toBe(addCalendarMonths(r.created_at, months));
         }
+        expect(rows.some(r => r.extended_until)).toBe(true);
         expect(rows.some(r => r.state === 'urgent')).toBe(true);
     });
 
     it('a deadline can be extended once, and the second attempt is refused', () => {
-        const c = ctx({ params: { id: 'dsr_2416' }, body: { reason: 'The claim file sits with two insurers.' } });
+        const c = ctx({ params: { id: '2416' }, body: { reason: 'The claim file sits with two insurers.' } });
         const first = ROUTES['POST /api/dsr/requests/:id/extend'](c);
         expect(first.extension_reason).toBeTruthy();
-        expect(new Date(first.due_at).getTime() - new Date(first.created_at).getTime()).toBe(90 * 86_400_000);
+        expect(new Date(first.due_at).getTime()).toBe(addCalendarMonths(first.created_at, 3));
+        expect(first.extended_until).toBe(first.due_at);
         const second = ROUTES['POST /api/dsr/requests/:id/extend'](c);
         expect(second.status).toBe(409);
     });
@@ -401,7 +417,7 @@ describe('compliance fixture — the DSR register after BE-2', () => {
     });
 
     it('the discovery scan counts without naming, and says what it did not scan', () => {
-        const d = call('GET /api/dsr/requests/:id/discovery', { params: { id: 'dsr_2417' } });
+        const d = call('GET /api/dsr/requests/:id/discovery', { params: { id: '2417' } });
         expect(d.subject.email_masked).toContain('•••');
         expect(d.not_scanned).toContain('conversations');
         expect(JSON.stringify(d)).not.toMatch(/[\w.]+@[\w.]+\.nl/);
@@ -520,7 +536,7 @@ describe('compliance fixture — every url the hub asks for is answered', () => 
         '/api/compliance/settings', '/api/compliance/org-users', '/api/compliance/checks?framework=dora',
         // data/useComplianceCounts.js + data/aggregates.js
         '/api/compliance/counts', '/api/compliance/counts?keys=attention_open',
-        '/api/compliance/attention?limit=5', '/api/compliance/deadlines',
+        '/api/compliance/attention?limit=50', '/api/compliance/deadlines',
         '/api/compliance/frameworks', '/api/compliance/calendar', '/api/compliance/calendar?all=1',
         '/api/compliance/ai-act/assessments',
         '/api/compliance/ai-act/assessments/agent/agent_helpdesk',
@@ -530,9 +546,9 @@ describe('compliance fixture — every url the hub asks for is answered', () => 
         '/api/compliance/evidence/chain',
         '/api/compliance/evidence/GDPR-Art30-ropa-reviewed',
         // data/registers.js
-        '/api/dsr/requests', '/api/dsr/requests/dsr_2417', '/api/dsr/requests/dsr_2417/timeline',
-        '/api/dsr/requests/dsr_2417/discovery',
-        '/api/compliance/ropa', '/api/compliance/dpia',
+        '/api/dsr/requests', '/api/dsr/requests/2417', '/api/dsr/requests/2417/timeline',
+        '/api/dsr/requests/2417/discovery',
+        '/api/compliance/ropa', '/api/compliance/ropa/projects', '/api/compliance/dpia', '/api/compliance/dpia/agent_intake',
         '/api/compliance/incidents', '/api/compliance/incidents?kind=vulnerability',
         '/api/compliance/iso/soa', '/api/compliance/iso/soa/history', '/api/compliance/iso/readiness',
         '/api/compliance/iso/docs', '/api/compliance/iso/connectors', '/api/compliance/iso/risks',
@@ -544,6 +560,8 @@ describe('compliance fixture — every url the hub asks for is answered', () => 
         '/api/compliance/custom/frameworks', '/api/compliance/custom/frameworks/cfw_vvg',
         '/api/compliance/custom/checks/cck_3_1/attestations',
         '/api/compliance/registry',
+        // data/useChatMonitoring.ts (the Settings card)
+        '/api/compliance/chat-monitoring',
     ];
 
     it('answers every one of them with a body, not a 404', async () => {
@@ -583,7 +601,7 @@ describe('compliance fixture — writes stay in the tab', () => {
     it('notifying recipients says nothing was actually sent', () => {
         // The demo has no network. A silent success would tell a visitor an
         // email went out to a breach-notification list.
-        const c = ctx({ params: { id: 'inc_31' } });
+        const c = ctx({ params: { id: '31' } });
         expect(ROUTES['POST /api/compliance/incidents/:id/notify-recipients'](c).demo_not_sent).toBe(true);
     });
 });

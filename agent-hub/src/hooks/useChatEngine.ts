@@ -3,6 +3,7 @@ import { registerStream, releaseStream, detachStream } from './streamRegistry';
 import { createContentFlusher, type ContentFlusher } from './useChatEngine/contentFlusher';
 import { toHistoryAttachment } from './useChatEngine/historyAttachment';
 import { dispatchSSEEvent } from './useChatEngine/sseEvents';
+import { chatSignalsSurfaceFor, resolveTurnEndpoint, type ChatSignalsTurnSurface } from './useChatEngine/turnEndpoint';
 import { WORK_EVENT_KINDS, extractMdHeading, summarizeWorkItem, type WorkItem } from './useChatEngine/workSummary';
 import type { ChatAttachment } from './useChatEngine/historyAttachment';
 import type { ChatMessage, SseDispatchIds, SseEventData } from './useChatEngine/types';
@@ -90,6 +91,13 @@ export interface UseChatEngineOptions {
      */
     reloadConversation?: () => Promise<ChatMessage[] | null | undefined>;
     testChat?: TestChatMode | null;
+    /**
+     * Chat signals: the fields to add to a turn on a counted endpoint (the
+     * notice marker, and the opt-out when the person chose it). Asked only
+     * for the endpoint the turn really goes to; a host that shows no notice
+     * passes nothing, so its turns carry no marker and are not counted.
+     */
+    getChatSignalsPayload?: (surface: ChatSignalsTurnSurface) => Record<string, unknown> | null;
 }
 
 /**
@@ -120,6 +128,7 @@ export default function useChatEngine({
     onSessionSkillsChanged,
     reloadConversation,
     testChat = null,
+    getChatSignalsPayload,
 }: UseChatEngineOptions) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -239,6 +248,9 @@ export default function useChatEngine({
 
     const onGammaPreviewRef = useRef(onGammaPreview);
     useEffect(() => { onGammaPreviewRef.current = onGammaPreview; }, [onGammaPreview]);
+
+    const getChatSignalsPayloadRef = useRef(getChatSignalsPayload);
+    useEffect(() => { getChatSignalsPayloadRef.current = getChatSignalsPayload; }, [getChatSignalsPayload]);
 
     // Cleanup abort controller on unmount. Mount-only effect — the ref
     // always points at the current controller, so we don't need to re-run.
@@ -456,11 +468,17 @@ export default function useChatEngine({
             // When unset, the server falls back to the tier default.
             const reasoningEffort = scopedStorage.getItem('reasoningEffort') || null;
 
-            let url, payload;
+            let payload;
+            // One path for the request and for the chat-signals marker below.
+            const turnPath = resolveTurnEndpoint({
+                isDirectMode: !!isDirectMode,
+                customEndpoint: directMode?.customEndpoint,
+                agentId: selectedAgent?.id,
+            });
+            const url = `${API_BASE}${turnPath}`;
 
             if (isDirectMode) {
                 // Direct chat mode — post to custom endpoint or /ai/chat/direct/stream
-                url = directMode.customEndpoint ? `${API_BASE}${directMode.customEndpoint}` : `${API_BASE}/ai/chat/direct/stream`;
                 // History rule:
                 //   - Edit/retry flow: send `historyOverride` so the server can
                 //     truncate the conversation to the edit point.
@@ -514,7 +532,6 @@ export default function useChatEngine({
             } else {
                 // Agent chat mode — post to /agents/:id/chat/stream
                 const wsPayload = getNotebookPayload?.() || {};
-                url = `${API_BASE}/agents/${selectedAgent?.id}/chat/stream`;
                 payload = {
                     message: text,
                     agentId: selectedAgent?.id,
@@ -587,6 +604,12 @@ export default function useChatEngine({
                 // geklikt is zijn kleur houdt.
                 if (testChatRef.current?.enabled) toolDecisionsRef.current = {};
             }
+
+            // Chat signals: only a counted endpoint asks for the marker, and a
+            // test chat is never counted, so it carries none.
+            const signalsSurface = testChatRef.current?.enabled ? null : chatSignalsSurfaceFor(turnPath);
+            const signalsExtra = signalsSurface ? getChatSignalsPayloadRef.current?.(signalsSurface) ?? null : null;
+            if (signalsExtra) Object.assign(payload, signalsExtra);
 
             const response = await authFetch(url, {
                 method: 'POST',

@@ -23,9 +23,13 @@ module.exports = {
         return {
             status: ok ? 'pass' : 'fail',
             evidence: { privacy_notice_url: url || null },
+            // A value without a scheme IS on record, so "not set" would be
+            // untrue; say what is wrong with it instead.
             details: ok
                 ? `Privacy notice published at ${url}.`
-                : 'No privacy-notice URL set. Data subjects must be able to find how their data is processed.',
+                : url
+                    ? 'The privacy-notice address on record is not a full web address — it must start with https:// (Compliance → Settings).'
+                    : 'No privacy-notice URL set. Data subjects must be able to find how their data is processed.',
         };
     },
 };

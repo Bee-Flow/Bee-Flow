@@ -59,7 +59,7 @@ const ANSWERS: Record<string, unknown> = {
     [`${C}/attention`]: {
         items: [{ id: 'register:inc', source: 'register', status: 'fail', severity: 'high', title: 'Incident clock running', meta: { frameworks: [{ regulation: 'GDPR', ref: '33' }] }, action: { target: '/app/admin/compliance/incidents/4' } }],
     },
-    [`${C}/deadlines`]: { items: [{ id: 'dsr:9', kind: 'dsr', ref: '#9', title: 'Deletion request', state: 'urgent', meta: { article: '12–22' }, target: { section: 'dsr', id: '9' } }] },
+    [`${C}/deadlines`]: { items: [{ id: 'dsr:9', kind: 'dsr', ref: '#9', title: 'Deletion request', state: 'urgent', meta: { article: 'GDPR Art. 12(3)' }, target: { section: 'dsr', id: '9' } }] },
     [`${C}/org-users`]: [{ id: 'u1', displayName: 'Ann' }],
     [`${C}/iso/risks`]: { risks: [{ id: 1, title: 'Prompt leak', status: 'open', score: 16, likelihood: 4, impact: 4, category: 'confidentiality', owner_user_id: 'u1' }], treatments: [] },
     [`${C}/incidents`]: [{ id: 4, kind: 'breach', title: 'Laptop lost', status: 'open', severity: 'high', high_risk: true }],
@@ -102,6 +102,9 @@ describe('the hub', () => {
         expect(await screen.findByText('run today 09:12 · 7 open')).toBeTruthy();
         expect(await screen.findByText('Incident clock running')).toBeTruthy();
         expect(await screen.findByText('#9 · Deletion request')).toBeTruthy();
+        // The article as the server wrote it, never "Art. GDPR Art. 12(3)".
+        expect(screen.getByText(/· GDPR Art\. 12\(3\)$/)).toBeTruthy();
+        expect(screen.queryByText(/Art\. GDPR/)).toBeNull();
         expect(screen.getByText('91')).toBeTruthy();
         await fireEvent.press(screen.getByTestId('attention-register:inc'));
         expect(mockRouter.push).toHaveBeenCalledWith('/org/compliance/incidents/4');

@@ -116,7 +116,9 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
         counts: counts.counts, core, frameworks, calendar, dl, api: API,
         dsr, soa, incidents, vulnerabilities, risks, audit, policies, dpia,
         ...headerActions,
-        onAddFramework: headerActions.onAddFramework || (active === 'frameworks' ? () => setTab('all') : null),
+        // Until the page hands its own handler up: More frameworks has no tabs any
+        // more, so "Add framework" opens the own-frameworks page, as the page does.
+        onAddFramework: headerActions.onAddFramework || (active === 'frameworks' ? () => navigate('custom') : null),
     };
 
     const orgName = core.overview?.settings?.org_name || core.overview?.organization_name || null;

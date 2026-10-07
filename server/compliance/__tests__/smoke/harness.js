@@ -26,6 +26,7 @@ const _state = {
     dbRows: /** @type {{query: RegExp, rows: any[]}[]} */ ([]),
     dbOne: /** @type {{query: RegExp, row: any}[]} */ ([]),
     dsrStats: /** @type {Record<string, any>} */ ({}),   // keyed by request type
+    dsrOpen: /** @type {any[]} */ ([]),                  // open requests with due_at, every type
     dpia: /** @type {any} */ (null),                     // latest DPIA row per agent
     incidentDeadlines: { open: 0, overdue_unnotified: 0, nearing_deadline: 0 },
 };
@@ -37,7 +38,8 @@ configStore.getSecret = async () => null;
 complianceStore.getSettings = async () => ({ ..._state.settings });
 
 dsrStore.getSlaStats = async (_orgId, type) =>
-    _state.dsrStats[type] ?? { total: 0, open: 0, overdue: 0, fulfilled: 0, avg_days_to_fulfil: 0 };
+    _state.dsrStats[type] ?? { total: 0, open: 0, overdue: 0, nearing: 0, fulfilled: 0, avg_days_to_fulfil: 0 };
+dsrStore.listOpenWithDeadlines = async () => _state.dsrOpen || [];
 
 dpiaStore.getLatestForAgent = async () => _state.dpia;
 // dpiaStore.isCurrent stays real — it is a pure function of the row.
@@ -129,6 +131,7 @@ function resetState() {
     _state.dbRows = [];
     _state.dbOne = [];
     _state.dsrStats = {};
+    _state.dsrOpen = [];
     _state.dpia = null;
     _state.incidentDeadlines = { open: 0, overdue_unnotified: 0, nearing_deadline: 0 };
     _state.isoConnectorConfigs = {};

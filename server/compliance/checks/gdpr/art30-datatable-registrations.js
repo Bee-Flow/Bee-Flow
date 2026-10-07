@@ -73,29 +73,32 @@ function defaultDeps() {
 const REGISTERED_SQL = '(lawful_basis IS NOT NULL OR retention_days IS NOT NULL)';
 const isRegistered = (row) => row?.lawful_basis != null || row?.retention_days != null;
 
-/** Every table of this org that someone has recorded something about. */
+/**
+ * Every table of this org that someone has recorded something about.
+ *
+ * Does NOT swallow its errors. The subject list retires vanished slots
+ * (`retiresVanished`), so an empty register read off a failed query would
+ * retire every table's slot; the error goes up instead — to the runner, which
+ * records the listing as incomplete, or to `evaluate`, which says it could not
+ * re-check this run.
+ */
 async function _registeredTables(orgId, deps) {
-    try {
-        return await deps.getAll(`
-            SELECT id, name, scope_kind, scope_id,
-                   lawful_basis, retention_days, retention_field, subject_column,
-                   updated_at, created_at
-              FROM datatables
-             WHERE organization_id = $1
-               AND ${REGISTERED_SQL}
-             ORDER BY created_at ASC
-        `, [orgId]);
-    } catch {
-        return [];
-    }
+    return (await deps.getAll(`
+        SELECT id, name, scope_kind, scope_id,
+               lawful_basis, retention_days, retention_field, subject_column,
+               updated_at, created_at
+          FROM datatables
+         WHERE organization_id = $1
+           AND ${REGISTERED_SQL}
+         ORDER BY created_at ASC
+    `, [orgId])) || [];
 }
 
 /**
  * EVERY table of this org — registered or not. Deliberately not filtered.
  *
- * This one does NOT swallow its errors, and that is the whole point of it.
- * `_registeredTables` returning [] on a failed read gives a short register,
- * which is survivable. `_allTables` returning [] on a failed read would say
+ * This one does NOT swallow its errors either, and that is the whole point of
+ * it. `_allTables` returning [] on a failed read would say
  * "this workspace has no tables at all", i.e. "there is nothing we failed to
  * look at" — the exact false reassurance this function exists to prevent. A
  * database that cannot be read must surface as unknown coverage, so the error
@@ -202,6 +205,12 @@ module.exports = {
     remediationKey: 'compliance.checks.gdpr_art30_datatables.fix',
     remediationLink: 'admin/compliance/ropa',
 
+    // The subject list is the WHOLE register (no LIMIT), so the runner may
+    // retire the slot of a table that left it. Otherwise a table taken out of
+    // the register kept its last warning in the score for good.
+    retiresVanished: true,
+    retiredDetails: 'This table is no longer in the processing register, or it was deleted.',
+
     async listSubjects(orgId, deps = defaultDeps()) {
         const rows = await _registeredTables(orgId, deps);
         return rows.map((r) => ({ id: `datatable:${r.id}`, label: r.name || r.id }));
@@ -212,7 +221,19 @@ module.exports = {
             return { status: 'not_applicable', evidence: {}, details: 'No registered table to re-check.' };
         }
         const id = String(subject.id).replace(/^datatable:/, '');
-        const rows = await _registeredTables(orgId, deps);
+        // A failed read is not "no longer in the register": that answer is
+        // not_applicable and drops the table out of the score. Only the
+        // SQLSTATE travels — a raw error message can carry query text.
+        let rows;
+        try {
+            rows = await _registeredTables(orgId, deps);
+        } catch (e) {
+            return {
+                status: 'warn',
+                evidence: { datatable_id: id, error: 'register_unreadable', sqlstate: e?.code || null },
+                details: 'The processing register could not be read, so this table was not re-checked this run.',
+            };
+        }
         const row = rows.find((r) => r.id === id);
         if (!row) {
             return { status: 'not_applicable', evidence: { datatable_id: id }, details: 'That table is no longer in the register.' };

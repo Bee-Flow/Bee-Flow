@@ -6,7 +6,7 @@
  * and re-assessing starts from the saved declaration.
  */
 
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import { api, ApiError } from '@/core/api/client';
@@ -133,7 +133,7 @@ it('starts from the saved declaration', async () => {
         attestedAt: '2026-09-01T10:00:00Z',
         expiresAt: '2027-09-01T10:00:00Z',
         current: true,
-        answers: { art5: 'no', annexIii: 'no', annexDomains: ALL_NO },
+        answers: { art5: 'no', annexIii: 'no', annexCategory: null, annexDomains: ALL_NO },
     }));
     for (const chip of ART5_CHIPS) expect(screen.getByLabelText(chip.en)).toBeChecked();
     await next();
@@ -143,4 +143,28 @@ it('starts from the saved declaration', async () => {
     expect(screen.getByTestId('ladder-outcome-transparency')).toBeTruthy();
     expect(screen.getByTestId('ladder-saved-stamp')).toHaveTextContent(/^Last declared .+, valid until .+\.$/);
     expect(screen.getByTestId('ladder-record')).toBeEnabled();
+});
+
+it('a "yes" saved before the ten questions ticks only the area it named, and asks to pick the rest', async () => {
+    const user = userEvent.setup();
+    await mount(assessment({
+        outcome: 'high_risk',
+        answers: { art5: 'no', annexIii: 'yes', annexCategory: 'insurance', annexDomains: {} },
+    }));
+    await user.press(screen.getByTestId('ladder-next'));
+    await user.press(screen.getByTestId('ladder-next'));
+    expect(screen.getByTestId('ladder-legacy-yes-note')).toHaveTextContent('Declared high-risk earlier — pick the area(s) to confirm');
+    expect(screen.getByTestId('ladder-annex-insurance-yes')).toBeSelected();
+    // Never all ten: biometrics stays open, neither yes nor no.
+    expect(screen.getByTestId('ladder-annex-biometrics-yes')).not.toBeSelected();
+    expect(screen.getByTestId('ladder-annex-biometrics-no')).not.toBeSelected();
+});
+
+it('says nothing about an earlier declaration when the ten were answered', async () => {
+    const user = userEvent.setup();
+    await mount(assessment({ answers: { art5: 'no', annexIii: 'yes', annexCategory: null, annexDomains: { ...ALL_NO, credit: 'yes' } } }));
+    await user.press(screen.getByTestId('ladder-next'));
+    await user.press(screen.getByTestId('ladder-next'));
+    expect(screen.getByTestId('ladder-annex-credit-yes')).toBeSelected();
+    expect(screen.queryByTestId('ladder-legacy-yes-note')).toBeNull();
 });

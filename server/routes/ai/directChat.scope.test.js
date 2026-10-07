@@ -42,6 +42,11 @@ const fx = {
     released: [],
     persisted: [],
     orgProblems: [],
+    /** Chat signals: what the input gates do, and what was handed to the counter. */
+    gatesError: null,
+    gatesEndedStream: false,
+    gateArgs: null,
+    counted: [],
 };
 
 const noop = () => {};
@@ -117,7 +122,14 @@ const MOCKS = {
     './directChat/attachmentIntake': {
         processAttachmentsAndUserMessage: async () => ({ convId: 'c1', persistedAttachments: [], tokenizedMessage: 'hi' }),
     },
-    './directChat/inputGates': { runInputGates: async () => ({ userOrgId: 'org-1', piiTokenMap: null, tokenizedMessage: 'hi' }) },
+    './directChat/inputGates': {
+        runInputGates: async (args) => {
+            fx.gateArgs = args;
+            if (fx.gatesError) throw fx.gatesError;
+            return fx.gatesEndedStream ? undefined : { userOrgId: 'org-1', piiTokenMap: null, tokenizedMessage: 'hi' };
+        },
+    },
+    './directChat/chatSignalsTurn': { countDirectTurn: (args) => { fx.counted.push(args); } },
     './directChat/compactionPhase': { compactConversation: async () => {} },
     './directChat/chatOptions': { buildChatOptions: (turn) => { turn.chatOptions = {}; } },
     './directChat/stepMachine': {
@@ -215,6 +227,10 @@ function reset() {
     fx.streamError = null;
     fx.releaseError = null;
     fx.turnLock = null;
+    fx.gatesError = null;
+    fx.gatesEndedStream = false;
+    fx.gateArgs = null;
+    fx.counted.length = 0;
 }
 
 // ═══ 1. A crash still closes the stream ══════════════════════════
@@ -287,4 +303,39 @@ test('a cancelled turn closes quietly — no error event, no org-health outage',
     assert.ok(res.writableEnded);
     assert.ok(!fx.events.some(e => e.event === 'error'), 'a cancel is not a failure to report to the client');
     assert.deepStrictEqual(fx.orgProblems, [], 'a cancelled answer must not poison the org-health signal');
+});
+
+// ═══ 4. Chat signals: one count per turn that reached the gates ═══
+
+test('chat signals: a turn the gates let through is counted once, with what the gates filled in', async () => {
+    reset();
+    await runTurn();
+    assert.strictEqual(fx.counted.length, 1);
+    const c = fx.counted[0];
+    assert.strictEqual(c.chatSignal, fx.gateArgs.chatSignal, 'the accumulator the gates wrote into is the one counted');
+    assert.deepStrictEqual(c.chatSignal, { pii: {}, dlp: null, allowlistedHosts: [] });
+    assert.strictEqual(c.userId, 'alice');
+    assert.deepStrictEqual(c.config, { providerType: 'claude', providerName: 'Claude' }, 'the turn\'s model config, for internal vs external');
+});
+
+test('chat signals: a gate that ended the stream is counted once too', async () => {
+    reset();
+    fx.gatesEndedStream = true;
+    await runTurn();
+    assert.strictEqual(fx.counted.length, 1, 'a blocked turn is exactly what the coverage check needs to see');
+});
+
+test('chat signals: a throw from the gates is not counted', async () => {
+    reset();
+    fx.gatesError = new Error('shield resolution failed');
+    const res = await runTurn();
+    assert.strictEqual(fx.counted.length, 0, 'an unexpected error is never a Shield outcome');
+    assert.ok(res.writableEnded);
+});
+
+test('chat signals: a turn that dies before the gates is not counted', async () => {
+    reset();
+    fx.toolStackError = new Error('tool stack blew up');
+    await runTurn();
+    assert.strictEqual(fx.counted.length, 0, 'it never reached the Shield');
 });

@@ -1,44 +1,46 @@
-import React, { useState } from 'react';
-import { ArrowUpRight, CircleAlert, Loader2 } from 'lucide-react';
+import React, { useId, useState } from 'react';
+import { ArrowUpRight, ChevronDown, CircleAlert, Loader2 } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
 import StatusPill from '../../shared/StatusPill';
 import ArticleRef from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
-import VerificationChip from '../../shared/VerificationChip';
+import VerificationChip, { VERIFICATION_KINDS } from '../../shared/VerificationChip';
 import { complianceActionPath, resolveTarget } from '../../data/actions';
-import { sectionForRegulation } from '../../sections';
 
 /**
  * AttentionList — the "Needs attention" card on the Overview (artboard 1a,
  * PLAN-FRONTEND C6).
  *
- *   attention   GET /attention body | null  → { items, total, tail:[{id,title,severity,status}], warn_tail_count, complete }
+ *   attention   GET /attention body | null  → { items, total, complete }
  *   items       attention.items | null (null = not loaded / failed → one tertiary line, never an empty list)
  *   failed      the read failed (renders the same line)
  *   onAutoFix(checkId)   core.autoFix — called only after the inline confirm step
  *   autoFixingId         core.autoFixingId
  *   navigate(sectionId, subId?, tab?) / onNavigate(path)   hub callbacks; an action path outside the hub goes to onNavigate
- *   onViewAll()          footer link (defaults to navigate(section of the first item))
- *   limit                rows shown (default 5)
+ *   limit                rows shown before "Show all {n}" (default 5)
+ *
+ * The whole to-do list lives here: the first `limit` rows, then ONE toggle
+ * that expands the rest inline, each row with its own action. A link that
+ * opened the first item's framework used to stand in for "all" and never
+ * listed the items of the other frameworks together. Rows the server did not
+ * send (`total` beyond `items`, the request is capped at 50) are named in one
+ * line at the end, never silently dropped.
  */
 export default function AttentionList({
     attention = null, items = null, failed = false, onAutoFix, autoFixingId = null,
-    navigate, onNavigate, onViewAll, limit = 5, className = '', testId = 'attention-list',
+    navigate, onNavigate, limit = 5, className = '', testId = 'attention-list',
 }) {
     const { t } = useTranslation();
     const [confirmId, setConfirmId] = useState(null);
+    const [expanded, setExpanded] = useState(false);
+    const listId = useId();
 
-    const list = Array.isArray(items) ? items.slice(0, limit) : null;
-    const total = attention?.total ?? (Array.isArray(items) ? items.length : null);
-    const tail = Array.isArray(attention?.tail) ? attention.tail : [];
-    const warnTail = attention?.warn_tail_count ?? tail.filter(i => i.status === 'warn').length;
-    const firstSection = list?.[0] ? sectionOfItem(list[0]) : null;
-
-    const goViewAll = () => {
-        if (onViewAll) return onViewAll();
-        if (firstSection) navigate?.(firstSection);
-    };
+    const all = Array.isArray(items) ? items : null;
+    const canExpand = !!all && all.length > limit;
+    const list = all ? (expanded || !canExpand ? all : all.slice(0, limit)) : null;
+    const total = attention?.total ?? (all ? all.length : null);
+    const elsewhere = all && typeof total === 'number' ? Math.max(0, total - all.length) : 0;
 
     const runAction = (item) => {
         const action = item.action;
@@ -68,11 +70,6 @@ export default function AttentionList({
                 <h3 className="m-0 text-[13px] font-semibold text-[var(--text-primary)]">{t('compliance.ovw_attention_title', 'Needs attention')}</h3>
                 {total != null && total > 0 ? <StatusPill tone="warning" testId={`${testId}-count`}>{total}</StatusPill> : null}
                 <span className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.ovw_attention_order', 'failing first, then by severity')}</span>
-                {list && list.length > 0 ? (
-                    <button type="button" onClick={goViewAll} className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]" data-testid={`${testId}-all`}>
-                        {t('compliance.ovw_all', 'All')} <ArrowUpRight size={11} aria-hidden />
-                    </button>
-                ) : null}
             </header>
 
             {list === null ? (
@@ -90,7 +87,7 @@ export default function AttentionList({
                     {t('compliance.ovw_attention_empty', 'Nothing needs attention — every check passes or is not applicable.')}
                 </p>
             ) : (
-                <ul className="m-0 mt-1 list-none p-0" data-testid={`${testId}-rows`}>
+                <ul id={listId} className="m-0 mt-1 list-none p-0" data-testid={`${testId}-rows`}>
                     {list.map(item => (
                         <AttentionRow
                             key={item.id}
@@ -109,28 +106,32 @@ export default function AttentionList({
                 </ul>
             )}
 
-            {list && list.length > 0 && (tail.length > 0 || (total != null && total > list.length)) ? (
-                <footer className="mt-2 flex flex-wrap items-center gap-2 border-t border-[var(--border-default)] pt-2 text-[11px] text-[var(--text-tertiary)]" data-testid={`${testId}-more`}>
-                    <span className="min-w-0 flex-1 truncate">
-                        {t('compliance.ovw_more_warn', '{n} more with attention: {titles}', {
-                            n: tail.length || (total - list.length),
-                            titles: tail.map(i => i.title).join(' · '),
-                        })}
-                        {warnTail > 0 && tail.length === 0 ? ` (${warnTail})` : ''}
-                    </span>
-                    <button type="button" onClick={goViewAll} className="inline-flex items-center gap-1 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]" data-testid={`${testId}-view-all`}>
-                        {t('compliance.ovw_view_all', 'View all →')}
-                    </button>
+            {list && list.length > 0 && (canExpand || elsewhere > 0) ? (
+                <footer className="mt-1 flex flex-col items-start gap-1 border-t border-[var(--border-default)] pt-2 text-[11px] text-[var(--text-tertiary)]">
+                    {elsewhere > 0 && (expanded || !canExpand) ? (
+                        <p className="m-0" data-testid={`${testId}-elsewhere`}>
+                            {t('compliance.ovw_more_elsewhere', '{n} more on the framework pages', { n: elsewhere })}
+                        </p>
+                    ) : null}
+                    {canExpand ? (
+                        <button
+                            type="button"
+                            onClick={() => setExpanded(v => !v)}
+                            aria-expanded={expanded}
+                            aria-controls={listId}
+                            className="-mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            data-testid={`${testId}-toggle`}
+                        >
+                            {expanded
+                                ? t('compliance.ovw_show_fewer', 'Show fewer')
+                                : t('compliance.ovw_show_all', 'Show all {n}', { n: all.length })}
+                            <ChevronDown size={12} aria-hidden className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                        </button>
+                    ) : null}
                 </footer>
             ) : null}
         </section>
     );
-}
-
-function sectionOfItem(item) {
-    const reg = item?.meta?.frameworks?.[0]?.regulation || item?.regulation;
-    const fromAction = item?.action ? resolveTarget(complianceActionPath(item.action) || '')?.section : null;
-    return fromAction || (reg ? sectionForRegulation(reg) : null);
 }
 
 const ACTION_FALLBACK = Object.freeze({
@@ -158,26 +159,39 @@ function AttentionRow({ item, confirming, busy, onAction, onOpenSubject, onCance
     // A per-source check collapses into one item; it says how many subjects.
     const affected = Number(item.meta?.subject_count) > 1 ? Number(item.meta.subject_count) : null;
     const label = actionLabel(item.action, t);
-    const showSeverity = item.status === 'fail' || item.status === 'warn';
+    const showSeverity = (item.status === 'fail' || item.status === 'warn') && !!severity;
+    // Separators sit BETWEEN the parts that exist: a register item has no
+    // verification kind and an item may have no refs, so a fixed sequence of
+    // dots left leading, trailing and double '·' behind.
+    const parts = [
+        refs.length ? <ArticleRef key="refs" refs={refs} max={2} /> : null,
+        showSeverity ? <SeverityTag key="severity" severity={severity} tone="neutral" /> : null,
+        VERIFICATION_KINDS.includes(verification) ? <VerificationChip key="verification" verification={verification} minimal /> : null,
+        affected ? <span key="affected" data-testid={`${testId}-affected`}>{t('compliance.attention_subjects', '{n} affected', { n: affected })}</span> : null,
+    ].filter(Boolean);
 
     return (
         <li className="grid grid-cols-[18px_1fr_auto] items-start gap-2.5 border-t border-[var(--border-default)] py-2 first:border-t-0" data-testid={testId} data-status={item.status} data-id={item.id}>
             <Glyph size={14} className="mt-0.5" style={{ color: TONES[tone].ink }} aria-hidden />
             <div className="min-w-0">
                 <div className="text-xs font-medium text-[var(--text-primary)]">{item.title}</div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--text-secondary)]">
-                    {refs.length ? <ArticleRef refs={refs} /> : null}
-                    {refs.length && showSeverity && severity ? <Dot /> : null}
-                    {showSeverity && severity ? <SeverityTag severity={severity} /> : null}
-                    {verification ? <><Dot /><VerificationChip verification={verification} minimal /></> : null}
-                    {affected ? <><Dot /><span data-testid={`${testId}-affected`}>{t('compliance.attention_subjects', '{n} affected', { n: affected })}</span></> : null}
-                    {detail ? <><Dot /><span className="truncate">{detail}</span></> : null}
-                    {onOpenSubject ? (
-                        <><Dot /><button type="button" onClick={onOpenSubject} className="inline-flex items-center gap-0.5 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline" data-testid={`${testId}-open-subject`}>
-                            {t('compliance.attention_open_subject', 'Open')} <ArrowUpRight size={10} aria-hidden />
-                        </button></>
-                    ) : null}
-                </div>
+                {parts.length ? (
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--text-secondary)]" data-testid={`${testId}-meta`}>
+                        {parts.map((part, i) => (
+                            <React.Fragment key={part.key}>{i > 0 ? <Dot /> : null}{part}</React.Fragment>
+                        ))}
+                    </div>
+                ) : null}
+                {detail || onOpenSubject ? (
+                    <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[11px] text-[var(--text-tertiary)]" data-testid={`${testId}-detail`}>
+                        {detail ? <span className="min-w-0">{detail}</span> : null}
+                        {onOpenSubject ? (
+                            <button type="button" onClick={onOpenSubject} className="inline-flex items-center gap-0.5 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline" data-testid={`${testId}-open-subject`}>
+                                {t('compliance.attention_open_subject', 'Open')} <ArrowUpRight size={10} aria-hidden />
+                            </button>
+                        ) : null}
+                    </div>
+                ) : null}
             </div>
             {label ? (
                 confirming ? (

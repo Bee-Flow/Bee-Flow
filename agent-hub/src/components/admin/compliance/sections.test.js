@@ -92,9 +92,10 @@ describe('compliance sections registry', () => {
         expect(tabsOf('overview')).toEqual(['status', 'calendar', 'reports']);
         expect(tabsOf('gdpr')).toEqual(['checks', 'timeline', 'evidence']);
         expect(tabsOf('iso_controls')).toEqual(['checks', 'timeline', 'evidence']);
-        expect(tabsOf('frameworks')).toEqual(['all', 'calendar', 'per_automation']);
+        expect(tabsOf('aia')).toEqual(['checks', 'timeline', 'evidence', 'systems']);
+        expect(tabsOf('frameworks')).toEqual([]);
         expect(tabsOf('dsr')).toEqual(['requests', 'public_form']);
-        expect(tabsOf('soa')).toEqual(['controls', 'history', 'export']);
+        expect(tabsOf('soa')).toEqual(['controls', 'history']);
         expect(tabsOf('audits')).toEqual(['audits', 'reviews', 'ncs', 'objectives']);
         expect(tabsOf('incidents')).toEqual([]);
         expect(tabLabelKey('iso_soa', 'controls')).toBe('compliance.tab_soa_controls');
@@ -111,7 +112,10 @@ describe('compliance sections registry', () => {
         expect(resolveTab('audits', 'ncs')).toEqual({ section: 'audits', tab: 'ncs' });
         expect(resolveTab('dsr', 'settings')).toEqual({ section: 'settings', tab: null });
         expect(resolveTab('dsr', 'public_form')).toEqual({ section: 'dsr', tab: 'public_form' });
-        expect(resolveTab('frameworks', 'calendar')).toEqual({ section: 'frameworks', tab: 'calendar' });
+        expect(resolveTab('frameworks', 'calendar')).toEqual({ section: 'overview', tab: 'calendar' });
+        expect(resolveTab('kaders', 'per_automation')).toEqual({ section: 'aia', tab: 'systems' });
+        expect(resolveTab('aia', 'systems')).toEqual({ section: 'aia', tab: 'systems' });
+        expect(resolveTab('iso_soa', 'export')).toEqual({ section: 'soa', tab: 'controls' });
         expect(resolveTab('gdpr', null)).toEqual({ section: 'gdpr', tab: null });
         expect(resolveTab('nope', '')).toEqual({ section: 'overview', tab: null });
         // A key on Object.prototype is not a legacy tab.

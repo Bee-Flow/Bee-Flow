@@ -31,7 +31,7 @@ const { createRecordingDb } = require('../../testUtils/mockDb');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
 // ── Doubles ────────────────────────────────────────────────────────────────
-const calls = { saved: [], evidence: [], events: [], invalidated: [], runAll: [] };
+const calls = { saved: [], evidence: [], events: [], invalidated: [], runAll: [], runOne: [] };
 
 const STORED = {
     organization_id: 'orgA',
@@ -54,6 +54,7 @@ const complianceStore = {
         return { ...stored };
     },
     addEvidence: async (row) => { calls.evidence.push(row); return { id: calls.evidence.length }; },
+    setSccConfirmed: async () => [],
 };
 
 const mockDb = createRecordingDb({ tables: { compliance_settings: [], users: [] } });
@@ -63,7 +64,7 @@ const restore = installResolveStub({
     '../../db': mockDb.db,                    // for the route's own getAll
     '../../stores/complianceStore': complianceStore,
     '../../stores/configStore': { getConfig: async () => ({}) },
-    '../../compliance/runner': { runAll: async (orgId, opts) => { calls.runAll.push({ orgId, opts }); return []; }, runOne: async () => [] },
+    '../../compliance/runner': { runAll: async (orgId, opts) => { calls.runAll.push({ orgId, opts }); return []; }, runOne: async (orgId, id) => { calls.runOne.push(id); return []; } },
     '../../compliance/marking': { invalidate: (orgId) => calls.invalidated.push(orgId) },
     '../../compliance/events': {
         EVENTS: { CONTENT_MARKING_CHANGED: 'content_marking_changed' },
@@ -253,4 +254,36 @@ test('PUT: an in-domain value still saves — the edges are not moved', async ()
     const res = await put({ notice_period_days: 3650, dora_customer_notice_hours: 0, support_end_date: '9999-12-31' });
     assert.equal(res.status, 200);
     assert.deepEqual(lastPatch(), { notice_period_days: 3650, dora_customer_notice_hours: 0, support_end_date: '9999-12-31' });
+});
+
+test('POST /settings/scc re-runs every check that reads the attestation list', async () => {
+    // Art. 44 was the only one re-run, so Art. 28 (and the DORA register, the
+    // AI Act model inventory and ISO A.5.20) kept a stale "no attestation"
+    // verdict until the next sweep.
+    const res = await fetch(`${baseUrl}/api/compliance/settings/scc`, {
+        method: 'POST', headers: hdrs, body: JSON.stringify({ operator: 'openai', confirmed: true }),
+    });
+    assert.equal(res.status, 200);
+    for (const id of [
+        'GDPR-Art44-external-transfers',
+        'GDPR-Art28-subprocessors',
+        'DORA-Art28(3)-register-of-information',
+        'AIA-Art53-model-inventory',
+        'ISO27001-A.5.20-suppliers',
+    ]) {
+        assert.ok(calls.runOne.includes(id), `${id} is re-run`);
+    }
+});
+
+test('PUT: an AI-literacy save re-runs the Art. 4 check; an unrelated save does not', async () => {
+    // The attestation is a stored column the check reads; without the re-run
+    // the old fail/warn stood until the next six-hourly sweep.
+    const res = await put({ ai_literacy_confirmed_at: '2026-10-01T00:00:00.000Z' });
+    assert.equal(res.status, 200);
+    assert.deepEqual(calls.runOne, ['AIA-Art4-ai-literacy']);
+
+    calls.runOne.length = 0;
+    calls.saved.length = 0;
+    assert.equal((await put({ dpo_name: 'Dana' })).status, 200);
+    assert.deepEqual(calls.runOne, []);
 });

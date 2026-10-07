@@ -63,6 +63,10 @@ const EVENTS = {
     // files, archiving. Payload { orgId, projectId, reason } — ids only.
     // Emitted by ROUTES (stores cannot require compliance).
     PROJECT_CHANGED: 'project_changed',
+    // Chat signals were saved, deleted, or their DPIA changed. Payload
+    // { orgId } — ids only. Emitted by routes/compliance/chatMonitoring.js and
+    // its DPIA middleware.
+    CHAT_MONITORING_CHANGED: 'chat_monitoring_changed',
 };
 
 // Best-effort: the counts endpoint caches 60 s per org; anything that changes
@@ -76,6 +80,15 @@ function _invalidateCounts(orgId) {
 async function _rerun(orgId, checkId, opts = {}) {
     try { await _lazyRunner().runOne(orgId, checkId, { runType: 'event', ...opts }); }
     catch (e) { if (e?.status !== 409) log.warn(`[ComplianceEvents] rerun ${checkId} failed:`, e.message); }
+}
+
+// Re-judge one subject in every per-source check that actually lists it.
+// Never runOne with a subjectId: for a check that does not hold the subject
+// that writes "Subject not found." into the check's GLOBAL slot (see
+// runner.runForSubject).
+async function _review(orgId, ids) {
+    try { await _lazyRunner().runForSubject(orgId, ids, { runType: 'event' }); }
+    catch (e) { log.warn('[ComplianceEvents] subject review failed:', e.message); }
 }
 
 function emit(eventName, payload = {}) {
@@ -112,10 +125,16 @@ async function _notifyAdmins(orgId, category, title, message, link = null, dedup
 // All handlers are fire-and-forget. They never throw upstream — emitters keep
 // running even if compliance is offline.
 
+// Both Art-32 DLP checks read the org's shield config: dlp-enabled judges the
+// layers, dlp-efficacy decides from the same switch whether there is anything
+// to judge at all, so re-running only the first left the second stale until
+// the next sweep.
 _bus.on(EVENTS.DLP_CONFIG_CHANGED, async ({ orgId }) => {
     if (!orgId) return;
-    try { await _lazyRunner().runOne(orgId, 'GDPR-Art32-dlp-enabled', { runType: 'event' }); }
-    catch (e) { log.warn('[ComplianceEvents] DLP rerun failed:', e.message); }
+    await _rerun(orgId, 'GDPR-Art32-dlp-enabled');
+    await _rerun(orgId, 'GDPR-Art32-dlp-efficacy');
+    // ISO 27001 A.8.12 reads the same shield configuration.
+    await _rerun(orgId, 'ISO27001-A.8.12-dlp');
 });
 
 _bus.on(EVENTS.EXTERNAL_TRANSFER_DETECTED, async ({ orgId, operator, country_code }) => {
@@ -137,9 +156,18 @@ _bus.on(EVENTS.AGENT_PUBLISHED, async ({ orgId, agentId }) => {
     try {
         await _lazyRunner().runOne(orgId, 'AIA-Art50-ai-disclosure', { runType: 'event' });
     } catch (e) { log.warn('[ComplianceEvents] Art50 rerun failed:', e.message); }
-    try {
-        await _lazyRunner().runOne(orgId, 'GDPR-Art35-dpia-high-risk', { runType: 'event', subjectId: agentId });
-    } catch (e) { log.warn('[ComplianceEvents] Art35 rerun failed:', e.message); }
+    // Art. 13 judges every published agent's description, so a publish can
+    // change its verdict as much as Art. 50's.
+    await _rerun(orgId, 'AIA-Art13-transparency');
+    // The agent is re-judged by every per-source check that actually lists it
+    // (GDPR-Art35-dpia-high-risk and AIA-Art26-human-oversight share the
+    // high-risk population). runOne with a subjectId would write a "Subject
+    // not found." row into the check's GLOBAL slot for an agent that is not
+    // high-risk; see runner.runForSubject.
+    if (agentId) {
+        try { await _lazyRunner().runForSubject(orgId, [String(agentId)], { runType: 'event' }); }
+        catch (e) { log.warn('[ComplianceEvents] Art35 subject review failed:', e.message); }
+    }
 });
 
 _bus.on(EVENTS.DSR_SUBMITTED, async ({ orgId, requestType }) => {
@@ -153,7 +181,7 @@ _bus.on(EVENTS.DSR_SUBMITTED, async ({ orgId, requestType }) => {
         orgId,
         'urgent',
         'New data-subject request',
-        `A ${requestType || 'data-subject'} request was submitted. GDPR requires fulfilment within 30 days. Open Compliance → DSR Inbox to respond.`,
+        `A ${requestType || 'data-subject'} request was submitted. GDPR Art. 12(3) requires a response within one month of receipt. Open Compliance → DSR Inbox to respond.`,
         complianceSectionPath('dsr'),
         // One bell line per request type per hour: the inbox lists every
         // request, and a flood through the public form must not become a
@@ -256,9 +284,10 @@ _bus.on(EVENTS.FRAMEWORK_RELEVANCE_CHANGED, async ({ orgId }) => {
 _bus.on(EVENTS.AI_ACT_ATTESTED, async ({ orgId, targetKind, targetId }) => {
     if (!orgId) return;
     await _rerun(orgId, 'AIA-Art53-model-inventory');
-    if (targetKind === 'automation' && targetId) {
-        await _rerun(orgId, 'AIA-Art50-content-marking', { subjectId: targetId });
-    }
+    // The automation is re-judged where it is a subject. runOne with a
+    // subjectId wrote "Subject not found." into the Art. 50(2) check's global
+    // slot for an automation that generates no documents.
+    if (targetKind === 'automation' && targetId) await _review(orgId, [String(targetId)]);
     _invalidateCounts(orgId);
 });
 
@@ -344,4 +373,17 @@ function _resetProjectReruns() {
     _projectReruns.clear();
 }
 
+// ─────────────── Chat signals ───────────────
+//
+// Both chat signals checks read the effective state and the suppressed
+// totals, so a save, a delete or a DPIA for 'chat_monitoring' re-runs them.
+
+const CHAT_SIGNAL_CHECKS = Object.freeze(['GDPR-Art32-chat-shield-coverage', 'GDPR-Art35-chat-monitoring-safeguards']);
+_bus.on(EVENTS.CHAT_MONITORING_CHANGED, async ({ orgId }) => {
+    if (!orgId) return;
+    for (const id of CHAT_SIGNAL_CHECKS) await _rerun(orgId, id);
+    _invalidateCounts(orgId);
+});
+
 module.exports = { emit, EVENTS, _bus, PROJECT_RERUN_CHECKS, _resetProjectReruns, _projectRerunCount: () => _projectReruns.size };
+module.exports.CHAT_SIGNAL_CHECKS = CHAT_SIGNAL_CHECKS;

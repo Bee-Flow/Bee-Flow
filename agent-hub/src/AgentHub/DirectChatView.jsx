@@ -34,7 +34,41 @@ const DirectChatView = ({
     retryMessage, editAndRegenerate,
     renderSidePanels,
     activeProject = null, onOpenActiveProject, onLeaveActiveProject,
+    // useChatSignals() from useAgentHubData: the chat-signals notice for the
+    // endpoint this chat posts to, and the person's own switch. Both composers
+    // below get it, so the empty state and the conversation say the same.
+    chatSignals = null,
 }) => {
+    // The empty state and the conversation render the same composer; only how
+    // a send ends (the conversation also drops a picked webpage selection) and
+    // the empty state's Shield note differ, so those two stay on the elements.
+    const composerProps = {
+        onStopGenerating: stopGenerating,
+        isLoading,
+        directMode: true,
+        modelTiers,
+        selectedTier,
+        onTierChange: setSelectedTier,
+        input: chatInput,
+        isMobile,
+        setInput: setChatInput,
+        user,
+        activeSkillIds,
+        directSessionSkills,
+        directActivatedSessionSkillIds,
+        directConversationId: currentDirectConversation?.id,
+        onToggleSkill: handleToggleSkill,
+        messages,
+        onVoiceTurnComplete: handleVoiceTurnComplete,
+        chatSignalsNotice: chatSignals?.notice ?? null,
+        onChatSignalsCounted: chatSignals?.setCounted ?? null,
+        cowork: coworkComposer,
+        coworkMode,
+        onCoworkModeChange: setCoworkMode,
+        availableKBs: directChatKbs,
+        selectedKBIds: directChatKBIds,
+        onChangeKBIds: setDirectChatKBIds,
+    };
     return (
                     /* Direct Chat Mode */
                     <>
@@ -135,31 +169,9 @@ const DirectChatView = ({
                                                         onPromptClick: (text) => setChatInput(text),
                                                     },
                                                 <InputArea
+                                                    {...composerProps}
                                                     onSendMessage={(text, attachments) => { shouldForceScrollRef.current = true; sendMessage(text, attachments); }}
-                                                    onStopGenerating={stopGenerating}
-                                                    isLoading={isLoading}
-                                                    directMode={true}
-                                                    modelTiers={modelTiers}
-                                                    selectedTier={selectedTier}
-                                                    onTierChange={setSelectedTier}
-                                                    input={chatInput}
-                                                    isMobile={isMobile}
-                                                    setInput={setChatInput}
-                                                    user={user}
                                                     shieldApplies
-                                                    activeSkillIds={activeSkillIds}
-                                                    directSessionSkills={directSessionSkills}
-                                                    directActivatedSessionSkillIds={directActivatedSessionSkillIds}
-                                                    directConversationId={currentDirectConversation?.id}
-                                                    onToggleSkill={handleToggleSkill}
-                                                    messages={messages}
-                                                    onVoiceTurnComplete={handleVoiceTurnComplete}
-                                                    cowork={coworkComposer}
-                                                    coworkMode={coworkMode}
-                                                    onCoworkModeChange={setCoworkMode}
-                                                    availableKBs={directChatKbs}
-                                                    selectedKBIds={directChatKBIds}
-                                                    onChangeKBIds={setDirectChatKBIds}
                                                 />,
                                             )}
                                         </EmptyChatState>
@@ -220,29 +232,7 @@ const DirectChatView = ({
                                                 // by sending; next message starts fresh.
                                                 if (attachedWebpageSelection) setAttachedWebpageSelection(null);
                                             }}
-                                            onStopGenerating={stopGenerating}
-                                            isLoading={isLoading}
-                                            directMode={true}
-                                            modelTiers={modelTiers}
-                                            selectedTier={selectedTier}
-                                            onTierChange={setSelectedTier}
-                                            input={chatInput}
-                                            isMobile={isMobile}
-                                            setInput={setChatInput}
-                                            user={user}
-                                            activeSkillIds={activeSkillIds}
-                                            directSessionSkills={directSessionSkills}
-                                            directActivatedSessionSkillIds={directActivatedSessionSkillIds}
-                                            directConversationId={currentDirectConversation?.id}
-                                            onToggleSkill={handleToggleSkill}
-                                            messages={messages}
-                                            onVoiceTurnComplete={handleVoiceTurnComplete}
-                                            cowork={coworkComposer}
-                                            coworkMode={coworkMode}
-                                            onCoworkModeChange={setCoworkMode}
-                                            availableKBs={directChatKbs}
-                                            selectedKBIds={directChatKBIds}
-                                            onChangeKBIds={setDirectChatKBIds}
+                                            {...composerProps}
                                         />
                                     </div>
                                 )}

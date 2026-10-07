@@ -128,14 +128,19 @@ describe('the state rules', () => {
         expect(MODAL).toContain('if (next[id] === value) delete next[id]; else next[id] = value;');
     });
 
-    it('starts from the saved declaration, spreading a pre-ten-question answer over all ten', () => {
-        expect(prefill(null)).toEqual({ denied: [], domains: {} });
-        expect(prefill({ art5: 'no', annexIii: 'no', annexDomains: { credit: 'yes', made_up: 'no' } })).toEqual({ denied: [...ART5_PRACTICES], domains: { credit: 'yes' } });
-        expect(prefill({ art5: 'yes', annexIii: 'no', annexDomains: {} }).domains).toEqual(Object.fromEntries(ANNEX_III_CATEGORIES.map((id) => [id, 'no'])));
-        expect(prefill({ art5: null, annexIii: null, annexDomains: {} })).toEqual({ denied: [], domains: {} });
+    it('starts from the saved declaration; a pre-ten-question "no" fills all ten, a "yes" only the area it named', () => {
+        const none = { art5: null, annexIii: null, annexCategory: null, annexDomains: {} };
+        expect(prefill(null)).toEqual({ denied: [], domains: {}, legacyYes: false });
+        expect(prefill({ ...none, art5: 'no', annexIii: 'no', annexDomains: { credit: 'yes', made_up: 'no' } })).toEqual({ denied: [...ART5_PRACTICES], domains: { credit: 'yes' }, legacyYes: false });
+        expect(prefill({ ...none, art5: 'yes', annexIii: 'no' })).toEqual({ denied: [], domains: Object.fromEntries(ANNEX_III_CATEGORIES.map((id) => [id, 'no'])), legacyYes: false });
+        // Never 'yes' to all ten: that would attest biometrics and migration for an insurance quote.
+        expect(prefill({ ...none, annexIii: 'yes', annexCategory: 'insurance' })).toEqual({ denied: [], domains: { insurance: 'yes' }, legacyYes: true });
+        expect(prefill({ ...none, annexIii: 'yes', annexCategory: 'made_up' })).toEqual({ denied: [], domains: {}, legacyYes: true });
+        expect(prefill(none)).toEqual({ denied: [], domains: {}, legacyYes: false });
         expect(MODAL).toContain("setArt5Denied(a.art5?.answer === 'no' ? new Set(ART5_PRACTICES) : new Set());");
         expect(MODAL).toContain("if (stored && typeof stored === 'object' && ANNEX_III_CATEGORIES.some(id => stored[id] === 'yes' || stored[id] === 'no')) {");
-        expect(MODAL).toContain('setAnnexAnswers(Object.fromEntries(ANNEX_III_CATEGORIES.map(id => [id, a.annex_iii.answer])));');
+        expect(MODAL).toContain('setAnnexAnswers(legacyAnnexAnswers(a.annex_iii));');
+        expect(MODAL).toContain("setLegacyYes(a.annex_iii?.answer === 'yes');");
     });
 
     it('puts the questions the wording mentions first, never answering them', () => {

@@ -49,3 +49,16 @@ test('an empty turn still answers as before', async () => {
     assert.strictEqual(res.status, 400);
     assert.deepStrictEqual(res.body, { error: 'Message or attachments required' });
 });
+
+test('chat signals: the notice marker and the opt-out are typed, and a non-boolean opt-out is refused', async () => {
+    const parsed = DirectTurnBody.parse({ message: 'hi', chatSignalsNotice: 'direct@2026-10-14T09:00:00.000Z', chatSignalsOptOut: true });
+    assert.strictEqual(parsed.chatSignalsNotice, 'direct@2026-10-14T09:00:00.000Z');
+    assert.strictEqual(parsed.chatSignalsOptOut, true);
+    assert.strictEqual(DirectTurnBody.parse({ message: 'hi', chatSignalsOptOut: 'false' }).chatSignalsOptOut, false);
+    assert.strictEqual(DirectTurnBody.parse({ message: 'hi', chatSignalsNotice: null }).chatSignalsNotice, null);
+
+    h.assertRefused(assert, await post({ message: 'hi', chatSignalsOptOut: 'yes' }), 'body.chatSignalsOptOut', /true or false/);
+    h.assertRefused(assert, await post({ message: 'hi', chatSignalsNotice: { surface: 'direct' } }), 'body.chatSignalsNotice', /chatSignalsNotice is text/);
+    h.assertRefused(assert, await post({ message: 'hi', chatSignalsNotice: 'x'.repeat(121) }), 'body.chatSignalsNotice', /at most 120/);
+    assert.deepStrictEqual(db.queries, []);
+});

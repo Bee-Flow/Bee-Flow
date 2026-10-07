@@ -54,7 +54,7 @@ export function dsrHeaderSpec(t, { overdue, onRefresh, onCapture, refreshing = f
         pill: hasOverdue
             ? { tone: 'error', icon: Timer, label: t('compliance.hdr_dsr_overdue', '{n} past the deadline', { n: overdue }) }
             : { tone: 'neutral', icon: Timer, label: t('compliance.hdr_dsr_ok', 'All requests within the deadline') },
-        infoChip: { icon: Timer, label: t('compliance.hdr_dsr_window', 'Art. 12–22 · 30 days, +60 with reason') },
+        infoChip: { icon: Timer, label: t('compliance.hdr_dsr_window', 'Art. 12–22 · one month, +2 months with reason') },
         secondary: { icon: RefreshCw, iconOnly: true, ariaLabel: t('compliance.dsr_refresh', 'Refresh'), onClick: onRefresh, busy: refreshing },
         primary: { icon: Plus, label: t('compliance.dsr_capture_cta', 'Record a request'), onClick: onCapture },
     };
@@ -215,7 +215,7 @@ const DsrPage = forwardRef(function DsrPage({
         body.status === 'rejected' ? 'compliance.dsr_toast_rejected' : 'compliance.dsr_toast_fulfilled',
         body.status === 'rejected' ? 'Request rejected — the data subject has been e-mailed' : 'Request fulfilled — the data subject has been e-mailed',
     );
-    const onExtend = (reason) => selected && act('extend', () => src.extend(selected.id, reason), 'compliance.dsr_toast_extended', 'Deadline extended by 60 days');
+    const onExtend = (reason) => selected && act('extend', () => src.extend(selected.id, reason), 'compliance.dsr_toast_extended', 'Deadline extended by two months');
     const onStart = () => selected && act('start', () => src.start(selected.id), 'compliance.dsr_toast_started', 'Request started');
     const onVerifyIdentity = (body) => selected && act('verifyIdentity', () => src.verifyIdentity(selected.id, body), 'compliance.dsr_toast_identity_verified', 'Identity confirmed');
     const onCapture = async (body) => {
@@ -223,7 +223,7 @@ const DsrPage = forwardRef(function DsrPage({
         try {
             await src.capture(body);
             setCaptureOpen(false);
-            if (!said?.success) toast.success(t('compliance.dsr_toast_captured', 'Request recorded — the 30-day clock runs from receipt'));
+            if (!said?.success) toast.success(t('compliance.dsr_toast_captured', 'Request recorded — the one-month clock is running'));
         } catch {
             if (!said?.error) toast.error(t('compliance.dsr_toast_capture_failed', 'Could not record the request'));
         }

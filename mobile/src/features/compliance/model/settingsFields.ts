@@ -121,7 +121,7 @@ export const SETTING_GROUPS: readonly SettingGroup[] = [
         fields: [
             f('ai_literacy_material_url', 'url', L('compliance.ai_literacy_url', 'Training material URL (optional)')),
             f('ai_literacy_confirmed_at', 'stamp', L('compliance.settings_ai_literacy', 'AI literacy (EU AI Act Art. 4)')),
-            f('ai_content_marking_enabled', 'toggle', L('compliance.set_ai_marking', 'Mark AI-generated content'), { hint: L('compliance.set_ai_marking_hint', 'Required from 2 December 2026 (AI Act Art. 50(2)): documents and pages the AI writes carry a machine-readable marking and a visible note.') }),
+            f('ai_content_marking_enabled', 'toggle', L('compliance.set_ai_marking', 'Mark AI-generated content'), { hint: L('compliance.set_ai_marking_hint', 'AI Act Art. 50(2) requires machine-readable marking of AI-generated output since 2 August 2026 (systems already on the market before then: by 2 December 2026). Bee Flow also adds a visible note.') }),
             f('ai_content_marking_footer', 'text', L('compliance.set_ai_marking_footer', 'Visible footer text (optional)'), { dependsOn: 'ai_content_marking_enabled', hint: L('compliance.set_ai_marking_footer_hint', 'Leave empty for the default sentence.') }),
         ],
     },

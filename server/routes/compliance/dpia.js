@@ -15,6 +15,19 @@ const { resolveOrgId } = require('./shared');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
+const { CHAT_MONITORING_DPIA_KEY } = require('../../stores/lib/chatMonitoringVocab');
+
+/**
+ * Chat signals keep their org-wide DPIA under the key 'chat_monitoring'. A
+ * save of that one refreshes the chat signals resolver and re-runs its checks
+ * (routes/compliance/chatMonitoring.js chatMonitoringDpiaHook, after the
+ * response). Required lazily, for that key only: every other DPIA save never
+ * loads the chat signals router through this file.
+ */
+function chatMonitoringDpiaHook(req, res, next) {
+    if (req.params?.agentId !== CHAT_MONITORING_DPIA_KEY) return next();
+    return require('./chatMonitoring').chatMonitoringDpiaHook(req, res, next);
+}
 
 // ── What a caller may send ────────────────────────────────────────
 //
@@ -26,7 +39,8 @@ const { z } = require('zod');
 // dropped the measures the assessment turns on.
 //
 // `answers` stays an open object: it is the questionnaire's own vocabulary and
-// grows with the form, and dpiaStore stores it whole as jsonb.
+// grows with the form, and dpiaStore stores it whole as jsonb. Only the three
+// answers a questionnaire cannot do without are checked (REQUIRED_ANSWERS).
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
 const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
@@ -36,6 +50,28 @@ const RISKS = ['low', 'medium', 'high'];
 const oneOf = (name, values) => z.enum(values, {
     errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }),
 });
+
+// A questionnaire is the assessment itself, so it cannot be blank. Every
+// answer used to be optional: one click on "Save assessment" with an empty
+// form recorded a DPIA and turned Art. 35 green. These three are the Art.
+// 35(7) facts the form asks for in words; `automated_decisions` is a toggle,
+// so `false` is an answer. An attestation records that the assessment exists
+// elsewhere and carries no answers.
+const REQUIRED_ANSWERS = Object.freeze([
+    ['purpose', 'A questionnaire needs the purpose of the processing (answers.purpose).'],
+    ['data_categories', 'A questionnaire needs the personal data involved (answers.data_categories).'],
+    ['human_oversight', 'A questionnaire needs who oversees the output (answers.human_oversight).'],
+]);
+
+const filled = (v) => typeof v === 'string' && v.trim() !== '';
+
+function requireQuestionnaireAnswers(body, ctx) {
+    if (body.mode !== 'questionnaire') return;
+    const answers = body.answers || {};
+    for (const [key, message] of REQUIRED_ANSWERS) {
+        if (!filled(answers[key])) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['answers', key], message });
+    }
+}
 
 const DpiaBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     mode: oneOf('mode', MODES).optional(),
@@ -48,7 +84,7 @@ const DpiaBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z
     mitigations: z.array(worded('mitigations is a list of measures.'), {
         invalid_type_error: 'mitigations is a list of measures.',
     }).max(100, 'At most 100 measures.').optional(),
-}).strict());
+}).strict().superRefine(requireQuestionnaireAnswers));
 
 // ───────────────── DPIA ─────────────────
 
@@ -94,14 +130,18 @@ router.get('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'),
     res.json(row || null);
 });
 
-router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), validate({ body: DpiaBody }), async (req, res) => {
+router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), validate({ body: DpiaBody }), chatMonitoringDpiaHook, async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const saved = await dpiaStore.upsertAssessment(orgId, req.params.agentId, {
         ...req.body,
         approved_by: actorId,
     });
-    runner.runOne(orgId, 'GDPR-Art35-dpia-high-risk', { subjectId: req.params.agentId }).catch(() => {});
+    // Re-judge the agent wherever it is a subject (the Art-35 DPIA check and
+    // AIA-Art26-human-oversight read this assessment). runOne with a subjectId
+    // would write "Subject not found." into the Art-35 check's global slot for
+    // an agent that is not on the high-risk list; see runner.runForSubject.
+    runner.runForSubject(orgId, [req.params.agentId], { runType: 'manual' }).catch(() => {});
     res.json(saved);
 });
 

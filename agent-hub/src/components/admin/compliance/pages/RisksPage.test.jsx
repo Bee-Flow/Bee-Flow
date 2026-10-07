@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, cleanup, waitFor, within, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import RisksPage, { matchesFilter, sortRisks } from './RisksPage';
 import { severityOfScore } from './risks/RisksTable';
@@ -50,6 +51,9 @@ describe('RisksPage — pure helpers', () => {
     it('maps the score bands to severities and filters by status, high and overdue', () => {
         expect([1, 4, 5, 9, 10, 15, 16, 25].map(severityOfScore)).toEqual(['low', 'low', 'medium', 'medium', 'high', 'high', 'critical', 'critical']);
         expect(RISKS.filter(r => matchesFilter(r, 'high')).map(r => r.id)).toEqual([1]);
+        // riskStore.getStats' rule: a closed risk is never "high", whatever its score.
+        expect(matchesFilter({ id: 9, likelihood: 5, impact: 5, score: 25, status: 'closed' }, 'high')).toBe(false);
+        expect(matchesFilter({ id: 9, likelihood: 2, impact: 5, status: 'accepted' }, 'high')).toBe(true);
         expect(RISKS.filter(r => matchesFilter(r, 'overdue')).map(r => r.id)).toEqual([2]);
         expect(RISKS.filter(r => matchesFilter(r, 'accepted')).map(r => r.id)).toEqual([3]);
         expect(sortRisks(RISKS).map(r => r.id)).toEqual([1, 2, 3, 4]);
@@ -74,6 +78,14 @@ describe('RisksPage — table', () => {
         expect(screen.getByTestId('risk-filter-high').textContent).toMatch(/1/);
     });
 
+    it('the "High" pill leaves closed risks out, so it counts what the header and the rail say', () => {
+        const props = pageProps();
+        props.data.risks.risks = [...RISKS, { id: 5, title: 'Retired model', category: 'integrity', likelihood: 4, impact: 4, score: 16, status: 'closed' }];
+        render(<RisksPage {...props} />);
+        expect(screen.getByTestId('risk-filter-high').textContent).toMatch(/1/);
+        expect(screen.getByTestId('risk-filter-all').textContent).toMatch(/5/);
+    });
+
     it('filter pills narrow the rows; search matches the title', () => {
         render(<RisksPage {...pageProps()} />);
         fireEvent.click(screen.getByTestId('risk-filter-treating'));
@@ -95,22 +107,24 @@ describe('RisksPage — table', () => {
 });
 
 describe('RisksPage — drawer and create', () => {
-    it('the drawer edits through update(id, patch), accepts explicitly, and adds a treatment through addTreatment', async () => {
+    it('the drawer edits through update(id, patch), accepts with the draft, and adds a treatment through addTreatment', async () => {
+        const user = userEvent.setup();
         const props = pageProps();
         render(<RisksPage {...props} />);
-        fireEvent.click(screen.getByTestId('risk-table-row-2'));
+        await user.click(screen.getByTestId('risk-table-row-2'));
         const drawer = screen.getByTestId('risk-drawer');
         expect(within(drawer).getByTestId('risk-drawer-treatments').querySelectorAll('li')).toHaveLength(2);
-        fireEvent.change(within(drawer).getByTestId('risk-drawer-impact'), { target: { value: '5' } });
+        await user.selectOptions(within(drawer).getByTestId('risk-drawer-impact'), '5');
         expect(within(drawer).getByTestId('risk-drawer-score').textContent).toMatch(/15/);
-        fireEvent.click(within(drawer).getByTestId('risk-drawer-save'));
-        expect(props.data.risks.update).toHaveBeenCalledWith(2, {
+        await user.click(within(drawer).getByTestId('risk-drawer-actions-primary'));
+        const saved = {
             title: 'Provider outage', description: null, category: 'availability', likelihood: 3, impact: 5, status: 'treating', owner_user_id: 'u2', review_due_at: '2020-01-01',
-        });
-        fireEvent.click(within(drawer).getByTestId('risk-drawer-accept'));
-        expect(props.data.risks.update).toHaveBeenCalledWith(2, { status: 'accepted' });
-        fireEvent.change(within(drawer).getByTestId('risk-drawer-t-desc'), { target: { value: 'Failover runbook' } });
-        fireEvent.click(within(drawer).getByTestId('risk-drawer-t-add'));
+        };
+        expect(props.data.risks.update).toHaveBeenCalledWith(2, saved);
+        await user.click(within(drawer).getByTestId('risk-drawer-accept'));
+        expect(props.data.risks.update).toHaveBeenLastCalledWith(2, { ...saved, status: 'accepted' });
+        await user.type(within(drawer).getByTestId('risk-drawer-t-desc'), 'Failover runbook');
+        await user.click(within(drawer).getByTestId('risk-drawer-t-add'));
         await waitFor(() => expect(props.data.risks.addTreatment).toHaveBeenCalledWith(2, { option: 'mitigate', description: 'Failover runbook', due_at: undefined }));
         expect(fetchJson).not.toHaveBeenCalled();
     });

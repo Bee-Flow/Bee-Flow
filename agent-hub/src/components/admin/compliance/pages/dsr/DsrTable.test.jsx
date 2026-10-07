@@ -27,7 +27,7 @@ const NOW = new Date('2026-09-14T09:12:00Z').getTime();
 const iso = (ms) => new Date(ms).toISOString();
 
 const ROWS = [
-    // overdue by 3 days: received 33 days ago, no server due_at → +30 d
+    // overdue by 2 days: received 12 Aug, no server due_at → + one calendar month = 12 Sep (Art. 12(3))
     { id: 2038, request_type: 'deletion', status: 'in_progress', subject_email: 'john.doe@gmail.com', channel: 'public_form', identity_status: 'verified_email_link', created_at: iso(NOW - 33 * DAY_MS) },
     // 18 days left: server due_at wins
     { id: 2041, request_type: 'access', state: 'in_progress', subject_email_masked: 'm.•••@vandijkgroep.nl', channel: 'email_dpo', identity_status: 'employee', created_at: iso(NOW - 12 * DAY_MS), due_at: iso(NOW + 18 * DAY_MS) },
@@ -42,11 +42,11 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW); });
 afterEach(() => { vi.useRealTimers(); });
 
 describe('DsrTable — the clock column', () => {
-    it('open rows count down from receipt + 30 d (or the server due_at); overdue rows say so in error ink', () => {
+    it('open rows count down from receipt + one calendar month (or the server due_at); overdue rows say so in error ink', () => {
         render(<DsrTable rows={ROWS} />);
         const late = screen.getByTestId('dsr-table-clock-2038');
         expect(late).toHaveAttribute('data-state', 'overdue');
-        expect(late).toHaveTextContent('overdue by 3 days');
+        expect(late).toHaveTextContent('overdue by 2 days');
         expect(late).toHaveAttribute('data-tone', 'error');
         const ok = screen.getByTestId('dsr-table-clock-2041');
         expect(ok).toHaveAttribute('data-state', 'ok');
@@ -170,7 +170,7 @@ describe('DsrTable — selection, cards, states', () => {
         expect(screen.getByTestId('dsr-table')).toHaveAttribute('data-view', 'cards');
         const card = screen.getByTestId('dsr-table-card-2038');
         expect(card).toHaveTextContent('#2038');
-        expect(within(card).getByTestId('dsr-table-clock-2038')).toHaveTextContent('overdue by 3 days');
+        expect(within(card).getByTestId('dsr-table-clock-2038')).toHaveTextContent('overdue by 2 days');
         expect(card.textContent).not.toContain('john.doe@gmail.com');
         fireEvent.click(card);
         expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 2038 }));

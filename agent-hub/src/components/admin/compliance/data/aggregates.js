@@ -9,12 +9,14 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
 import { API, fetchJson, json, jsonInit, asObject, asArray } from './api';
 import useResource from './useResource';
-import { clockState, DAY_MS, HOUR_MS } from '../../../shared/deadlineMath';
+import { addCalendarMonths, clockState, DAY_MS, HOUR_MS } from '../../../shared/deadlineMath';
 
 const noop = () => {};
 
 // ── Needs attention ────────────────────────────────────────────────────────
-export function useComplianceAttention({ enabled = true, limit = 5 } = {}) {
+// The whole list (the server caps `limit` at 50): the Overview shows five and
+// expands the rest inline, so every item is reachable without leaving the page.
+export function useComplianceAttention({ enabled = true, limit = 50 } = {}) {
     const res = useResource(`${API}/attention?limit=${limit}`, {
         enabled,
         parse: (b) => { const o = asObject(b); return o && Array.isArray(o.items) ? o : null; },
@@ -23,28 +25,91 @@ export function useComplianceAttention({ enabled = true, limit = 5 } = {}) {
 }
 
 // ── Deadlines ──────────────────────────────────────────────────────────────
+// The citations GET /deadlines sends (server compliance/deadlines.js ARTICLE
+// and REGIME_ARTICLE), printed as-is by the card.
+const DSR_ARTICLE = 'GDPR Art. 12(3)';
+const REGIME_ARTICLE = Object.freeze({
+    GDPR: 'GDPR Art. 33',
+    NIS2: 'NIS2 Art. 23(4)',
+    DORA: 'DORA Art. 30(3)(b)',
+    // A severe incident under the CRA beside another regime: one row here,
+    // so the stage is unknown (the server lists each Art. 14(4) stage apart).
+    CRA: 'CRA Art. 14(4)',
+});
+// The three CRA stages: a vulnerability (Art. 14(2)) or a severe incident (Art. 14(4)).
+const CRA_ARTICLE = Object.freeze({
+    vulnerability: Object.freeze({ cra_early_warning: 'CRA Art. 14(2)(a)', cra_notification: 'CRA Art. 14(2)(b)', cra_full_report: 'CRA Art. 14(2)(c)' }),
+    severe: Object.freeze({ cra_early_warning: 'CRA Art. 14(4)(a)', cra_notification: 'CRA Art. 14(4)(b)', cra_full_report: 'CRA Art. 14(4)(c)' }),
+});
+
+/** The regimes a row is reported under; an unreadable list is the column's default (CRA for a vulnerability, else GDPR). */
+function regimesOf(i) {
+    let list = i.regimes;
+    if (typeof list === 'string') {
+        try { list = JSON.parse(list); } catch { list = null; }
+    }
+    return Array.isArray(list) && list.length ? list : [i.kind === 'vulnerability' ? 'CRA' : 'GDPR'];
+}
+
+/**
+ * The CRA stage a CRA-only row's `deadline_at` counts down. The store keeps
+ * `deadline_at` at the earliest clock still open, so it is the first stage
+ * without its stamp: early warning (24 h), notification (72 h), final report.
+ * Kinds, articles and urgency as the server's.
+ */
+function craStage(i, severe) {
+    const articles = severe ? CRA_ARTICLE.severe : CRA_ARTICLE.vulnerability;
+    let kind = 'cra_full_report';
+    if (i.early_warning_due_at && !i.early_warning_sent_at) kind = 'cra_early_warning';
+    else if (!i.authority_notified_at) kind = 'cra_notification';
+    return { kind, article: articles[kind], urgentBelowMs: kind === 'cra_early_warning' ? 6 * HOUR_MS : 24 * HOUR_MS };
+}
+
+/** An incident's authority clock, cited per regime ("GDPR Art. 33 · NIS2 Art. 23(4)"). */
+function incidentStage(regimes) {
+    const article = regimes.map(r => REGIME_ARTICLE[r]).filter(Boolean).join(' · ') || REGIME_ARTICLE.GDPR;
+    return { kind: 'incident', article, urgentBelowMs: 24 * HOUR_MS };
+}
+
+/** A DSR's clock: the server's due date, else the extension, else one calendar month after receipt (Art. 12(3)). */
+function dsrItem(r, now) {
+    const started = r.created_at || r.received_at;
+    const fallbackDue = addCalendarMonths(started, 1);
+    const due = r.due_at || r.extended_until || (fallbackDue === null ? null : new Date(fallbackDue).toISOString());
+    const c = clockState({ dueAt: due, startedAt: started, now, urgentBelowMs: 5 * DAY_MS });
+    return { id: `dsr:${r.id}`, kind: 'dsr', ref: `#${r.id}`, title: r.request_type || 'request', meta: { article: DSR_ARTICLE },
+        started_at: started, due_at: due, state: c.state, pct: c.pct, target: { section: 'dsr', id: String(r.id) } };
+}
+
+/** An incident's or a vulnerability's next open clock (`deadline_at`). */
+function incidentItem(i, now) {
+    const vuln = i.kind === 'vulnerability';
+    const regimes = regimesOf(i);
+    // A vulnerability, or a severe incident under the CRA alone, runs the CRA
+    // stages; any other incident the authority clock of its regimes.
+    const craOnly = vuln || regimes.every(r => r === 'CRA');
+    const stage = craOnly ? craStage(i, !vuln) : incidentStage(regimes);
+    const started = i.detected_at || i.created_at;
+    const c = clockState({ dueAt: i.deadline_at, startedAt: started, now, urgentBelowMs: stage.urgentBelowMs });
+    return { id: `${stage.kind}:${i.id}`, kind: stage.kind, ref: `INC-${i.id}`, title: i.title,
+        meta: { article: stage.article }, started_at: started, due_at: i.deadline_at, state: c.state, pct: c.pct,
+        target: { section: vuln ? 'vulnerabilities' : 'incidents', id: String(i.id) } };
+}
+
 /**
  * Client-side fallback: build the DSR + incident clocks from data the hub
  * already holds, so Overview's Deadlines card works before GET /deadlines
- * ships. Thresholds per regulation: DSR urgent ≤ 5 d, incident ≤ 24 h.
+ * ships. Thresholds per regulation: DSR urgent ≤ 5 d, incident ≤ 24 h, CRA
+ * early warning ≤ 6 h. A DSR without a server `due_at` is due one calendar
+ * month after receipt (GDPR Art. 12(3)), the same date the server stores.
+ *
+ * @param {{ requests?: Array<Record<string, any>> | null, incidents?: Array<Record<string, any>> | null, now?: number }} [sources]
  */
 export function deadlinesFromRegisters({ requests = null, incidents = null, now = Date.now() } = {}) {
-    const items = [];
-    for (const r of requests || []) {
-        if (!['pending', 'in_progress'].includes(r.status)) continue;
-        const started = r.created_at || r.received_at;
-        const due = r.due_at || r.extended_until || (started ? new Date(new Date(started).getTime() + 30 * DAY_MS).toISOString() : null);
-        const c = clockState({ dueAt: due, startedAt: started, now, urgentBelowMs: 5 * DAY_MS });
-        items.push({ id: `dsr:${r.id}`, kind: 'dsr', ref: `#${r.id}`, title: r.request_type || 'request', meta: { article: '12–22' },
-            started_at: started, due_at: due, state: c.state, pct: c.pct, target: { section: 'dsr', id: String(r.id) } });
-    }
-    for (const i of incidents || []) {
-        if (!['open', 'assessing'].includes(i.status)) continue;
-        const c = clockState({ dueAt: i.deadline_at, startedAt: i.detected_at || i.created_at, now, urgentBelowMs: 24 * HOUR_MS });
-        items.push({ id: `incident:${i.id}`, kind: i.kind === 'vulnerability' ? 'cra_full_report' : 'incident', ref: `INC-${i.id}`, title: i.title,
-            meta: { article: '33' }, started_at: i.detected_at || i.created_at, due_at: i.deadline_at, state: c.state, pct: c.pct,
-            target: { section: i.kind === 'vulnerability' ? 'vulnerabilities' : 'incidents', id: String(i.id) } });
-    }
+    const items = [
+        ...(requests || []).filter(r => ['pending', 'in_progress'].includes(r.status)).map(r => dsrItem(r, now)),
+        ...(incidents || []).filter(i => ['open', 'assessing'].includes(i.status)).map(i => incidentItem(i, now)),
+    ];
     const rank = { overdue: 0, urgent: 1, ok: 2, none: 3, done: 4 };
     items.sort((a, b) => (rank[a.state] ?? 9) - (rank[b.state] ?? 9) || new Date(a.due_at || 0) - new Date(b.due_at || 0));
     return items;

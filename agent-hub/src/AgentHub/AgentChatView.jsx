@@ -30,7 +30,36 @@ const AgentChatView = ({
     currentConversation, retryMessage, editAndRegenerate, modelTiers,
     renderSidePanels,
     activeProject = null, onOpenActiveProject, onLeaveActiveProject,
+    // useChatSignals() from useAgentHubData: the chat-signals notice for the
+    // endpoint this chat posts to, and the person's own switch. Both composers
+    // below get it, so the empty state and the conversation say the same.
+    chatSignals = null,
 }) => {
+    // The empty state and the conversation render the same composer.
+    const composerProps = {
+        onSendMessage: (text, attachments, parentId) => {
+            shouldForceScrollRef.current = true;
+            sendMessage(text, attachments, parentId, false);
+        },
+        onStopGenerating: stopGenerating,
+        isLoading,
+        selectedAgent,
+        agentIntegrations: selectedAgent?.config?.enabledIntegrations || null,
+        isMobile,
+        input: chatInput,
+        setInput: setChatInput,
+        user,
+        activeSkillIds,
+        agentAttachedSkillIds,
+        onToggleSkill: handleToggleSkill,
+        messages,
+        onVoiceTurnComplete: handleVoiceTurnComplete,
+        chatSignalsNotice: chatSignals?.notice ?? null,
+        onChatSignalsCounted: chatSignals?.setCounted ?? null,
+        cowork: coworkComposer,
+        coworkMode,
+        onCoworkModeChange: (mode) => setCoworkModeForAgent(mode, selectedAgent?.id),
+    };
     return (
                     <>
                         {/* New Inline Header for Agent */}
@@ -183,28 +212,7 @@ const AgentChatView = ({
                                                 shieldApplies
                                                 onNavigate={onNavigate}
                                             >
-                                                <InputArea
-                                                    onSendMessage={(text, attachments, parentId) => {
-                                                        shouldForceScrollRef.current = true;
-                                                        sendMessage(text, attachments, parentId, false);
-                                                    }}
-                                                    onStopGenerating={stopGenerating}
-                                                    isLoading={isLoading}
-                                                    selectedAgent={selectedAgent}
-                                                    agentIntegrations={selectedAgent?.config?.enabledIntegrations || null}
-                                                    isMobile={isMobile}
-                                                    input={chatInput}
-                                                    setInput={setChatInput}
-                                                    user={user}
-                                                    activeSkillIds={activeSkillIds}
-                                                    agentAttachedSkillIds={agentAttachedSkillIds}
-                                                    onToggleSkill={handleToggleSkill}
-                                                    messages={messages}
-                                                    onVoiceTurnComplete={handleVoiceTurnComplete}
-                                                    cowork={coworkComposer}
-                                                    coworkMode={coworkMode}
-                                                    onCoworkModeChange={(mode) => setCoworkModeForAgent(mode, selectedAgent?.id)}
-                                                />
+                                                <InputArea {...composerProps} />
                                             </WelcomeScreen>
                                         </EmptyChatState>
                                     ) : (
@@ -235,28 +243,7 @@ const AgentChatView = ({
                                 {messages.length > 0 && isReadOnlySharedChat(currentConversation) && <SharedChatReadOnly />}
                                 {messages.length > 0 && !isReadOnlySharedChat(currentConversation) && (
                                     <div className="w-full flex flex-col shrink-0">
-                                        <InputArea
-                                            onSendMessage={(text, attachments, parentId) => {
-                                                shouldForceScrollRef.current = true;
-                                                sendMessage(text, attachments, parentId, false);
-                                            }}
-                                            onStopGenerating={stopGenerating}
-                                            isLoading={isLoading}
-                                            selectedAgent={selectedAgent}
-                                            agentIntegrations={selectedAgent?.config?.enabledIntegrations || null}
-                                            input={chatInput}
-                                            isMobile={isMobile}
-                                            setInput={setChatInput}
-                                            user={user}
-                                            activeSkillIds={activeSkillIds}
-                                            agentAttachedSkillIds={agentAttachedSkillIds}
-                                            onToggleSkill={handleToggleSkill}
-                                            messages={messages}
-                                            onVoiceTurnComplete={handleVoiceTurnComplete}
-                                            cowork={coworkComposer}
-                                            coworkMode={coworkMode}
-                                            onCoworkModeChange={(mode) => setCoworkModeForAgent(mode, selectedAgent?.id)}
-                                        />
+                                        <InputArea {...composerProps} />
                                     </div>
                                 )}
                             </div>

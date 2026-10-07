@@ -1,56 +1,68 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
-import SideDrawer, { DrawerSection } from '../../../../shared/SideDrawer';
-import EmptyState from '../../../../shared/EmptyState';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     userName, fmtDate, Field, DateInput, TextArea, UserChecklist, ActionButton, Intro, RegisterLayout,
 } from './auditForms';
+import { mrInputLabel, mrInputValue } from './isoProcessHelpers';
+import useHeaderPrimary from './useHeaderPrimary';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
+import EmptyState from '../../../../shared/EmptyState';
+import SideDrawer, { DrawerSection } from '../../../../shared/SideDrawer';
+import useDrawerMode from '../../shared/useDrawerMode';
 
 /**
  * ReviewsTab — management reviews (clause 9.3). The 9.3.2 inputs are
  * auto-collected (`mrInputs`) and shown as the agenda card; recording a
  * review snapshots them with HUMAN minutes. Nothing here generates minutes.
+ *
+ * Inputs read as labelled figures (isoProcessHelpers' MR_INPUT_LABELS; a key
+ * it does not know keeps its own words), a date as a date, and attendees by
+ * name.
  */
-const labelize = (k) => String(k).replace(/_/g, ' ');
-export function fmtVal(v) {
-    if (v === null || v === undefined || v === '') return '—';
-    if (Array.isArray(v)) return v.map(x => (typeof x === 'object' && x !== null ? JSON.stringify(x) : String(x))).join(', ') || '—';
-    if (typeof v === 'object') return Object.entries(v).map(([k, x]) => `${labelize(k)}: ${typeof x === 'object' && x !== null ? JSON.stringify(x) : x}`).join(' · ');
-    return String(v);
-}
 
-function MrInputRows({ inputs, testId }) {
+/** The inputs as a compact grid of labelled figures: three across the page, two in a drawer. */
+function MrInputRows({ inputs, testId, narrow = false }) {
+    const { t, resolvedLocale } = useTranslation();
     return (
-        <div className="flex flex-col gap-1.5" data-testid={testId}>
+        <dl className={`m-0 grid gap-x-4 gap-y-2.5 ${narrow ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`} data-testid={testId}>
             {Object.entries(inputs).map(([k, v]) => (
-                <div key={k} className="flex gap-2.5 text-xs items-baseline">
-                    <div className="text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)] min-w-[140px] shrink-0">{labelize(k)}</div>
-                    <div className="text-[var(--text-secondary)] [overflow-wrap:anywhere]">{fmtVal(v)}</div>
+                <div key={k} className="flex flex-col gap-0.5 min-w-0" data-testid={testId ? `${testId}-${k}` : undefined}>
+                    <dt className="text-[11px] text-[var(--text-tertiary)]">{mrInputLabel(t, k)}</dt>
+                    <dd className="m-0 text-[13px] font-semibold tabular-nums text-[var(--text-primary)] [overflow-wrap:anywhere]">{mrInputValue(k, v, resolvedLocale)}</dd>
                 </div>
             ))}
-        </div>
+        </dl>
     );
 }
 
+/** The first line of the minutes, for a row that has no room for more. */
+const firstLine = (text) => String(text || '').split(/\r?\n/).find(l => l.trim()) || '';
+
 const EMPTY_DRAFT = Object.freeze({ held_at: '', attendees: [], decisions: '' });
 
-export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId = null }) {
+export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }) {
     const { t, resolvedLocale } = useTranslation();
     const { reviews, mrInputs, busy, createReview } = audit;
     const loading = reviews === null || reviews === undefined;
-    const list = Array.isArray(reviews) ? reviews : [];
+    const list = useMemo(() => (Array.isArray(reviews) ? reviews : []), [reviews]);
     const hasInputs = mrInputs && typeof mrInputs === 'object' && Object.keys(mrInputs).length > 0;
 
     const [selectedId, setSelectedId] = useState(focusId || null);
     const [creating, setCreating] = useState(false);
     const [draft, setDraft] = useState(EMPTY_DRAFT);
+    const [frameRef, drawerMode] = useDrawerMode({ isMobile });
     useEffect(() => { if (focusId) setSelectedId(String(focusId)); }, [focusId]);
     const selected = useMemo(() => list.find(r => String(r.id) === String(selectedId)) || null, [list, selectedId]);
+    const recordLabel = t('compliance.mr_record', 'Record review');
+    const headerHasCreate = useHeaderPrimary(setHeaderActions, {
+        label: recordLabel, icon: Plus, onClick: () => { setSelectedId(null); setCreating(true); },
+    });
 
+    // Older reviews stored bare user ids, newer ones { id, name }: a name either way.
     const attendeeNames = (r) => (Array.isArray(r.attendees) ? r.attendees : [])
-        .map(a => (a && typeof a === 'object') ? (a.name || a.id) : String(a));
+        .map(a => ((a && typeof a === 'object') ? (a.name || userName(orgUsers, a.id)) : userName(orgUsers, String(a))))
+        .filter(Boolean);
 
     const submit = () => {
         if (!draft.held_at) return;
@@ -67,15 +79,14 @@ export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId 
     const columns = [
         { id: 'held', width: '120px', label: t('compliance.mr_f_held', 'Held on') },
         { id: 'attendees', width: '1fr', label: t('compliance.mr_attendees', 'Attendees') },
-        { id: 'decisions', width: '1.4fr', label: t('compliance.mr_decisions', 'Decisions'), foldBelow: 1180 },
+        { id: 'decisions', width: '1.4fr', label: t('compliance.mr_decisions', 'Decisions'), foldBelow: 900 },
     ];
 
-    const drawerMode = isMobile ? 'modal' : 'inline';
     let drawer = null;
     if (creating) {
         drawer = (
-            <SideDrawer open onClose={() => setCreating(false)} mode={drawerMode} ariaLabel={t('compliance.mr_record', 'Record review')} testId="review-create-drawer"
-                header={<div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('compliance.mr_record', 'Record review')}</div>}
+            <SideDrawer open onClose={() => setCreating(false)} mode={drawerMode} ariaLabel={recordLabel} testId="review-create-drawer"
+                header={<div className="text-[13px] font-semibold text-[var(--text-primary)]">{recordLabel}</div>}
                 footer={(
                     <div className="flex flex-col gap-2">
                         <div className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.mr_minutes_note', 'Minutes are written by a person, never generated — the review is only worth what leadership actually decided.')}</div>
@@ -110,7 +121,7 @@ export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId 
                 </DrawerSection>
                 {snapshot && (
                     <DrawerSection label={t('compliance.mr_show_inputs', 'Inputs snapshot')}>
-                        <MrInputRows inputs={r.inputs} testId="review-snapshot" />
+                        <MrInputRows inputs={r.inputs} testId="review-snapshot" narrow />
                     </DrawerSection>
                 )}
             </SideDrawer>
@@ -118,18 +129,18 @@ export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId 
     }
 
     return (
-        <RegisterLayout isMobile={isMobile} testId="reviews-tab" drawer={drawer}
+        <RegisterLayout isMobile={isMobile} drawerMode={drawerMode} frameRef={frameRef} testId="reviews-tab" drawer={drawer}
             toolbar={(
                 <>
                     <Intro>{t('compliance.mr_subtitle', 'Management reviews (clause 9.3): leadership looks at the ISMS inputs and decides. The agenda below is collected automatically — the minutes and decisions are yours.')}</Intro>
-                    <ActionButton variant="primary" icon={Plus} onClick={() => { setSelectedId(null); setCreating(true); }} data-testid="review-record">{t('compliance.mr_record', 'Record review')}</ActionButton>
+                    {!headerHasCreate && <ActionButton variant="primary" icon={Plus} onClick={() => { setSelectedId(null); setCreating(true); }} data-testid="review-record">{recordLabel}</ActionButton>}
                 </>
             )}>
-            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-3.5 flex flex-col gap-2" data-testid="mr-inputs" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-3.5 flex flex-col gap-2 shadow-[var(--shadow-sm)]" data-testid="mr-inputs">
                 <div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('compliance.mr_inputs_title', 'Review inputs (clause 9.3.2)')}</div>
                 <div className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.mr_inputs_hint', 'Auto-collected from live compliance data — bring this agenda to the meeting. Recording a review snapshots these inputs with the minutes.')}</div>
                 {hasInputs
-                    ? <MrInputRows inputs={mrInputs} />
+                    ? <MrInputRows inputs={mrInputs} testId="mr-inputs-grid" />
                     : <div className="text-xs text-[var(--text-tertiary)]">{t('compliance.mr_no_inputs', 'No inputs collected yet — run the compliance checks first so the review has something to look at.')}</div>}
             </section>
             <DataTable
@@ -158,7 +169,11 @@ export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId 
                     <TableRow key={r.id} columns={ctx.columns} selected={!creating && String(selectedId) === String(r.id)}
                         onClick={() => { setCreating(false); setSelectedId(prev => (String(prev) === String(r.id) ? null : r.id)); }} testId={`review-row-${r.id}`}>
                         <TableCell column={ctx.columns[0]} className="font-semibold text-[var(--text-primary)] tabular-nums">{fmtDate(r.held_at, resolvedLocale)}</TableCell>
-                        <TableCell column={ctx.columns[1]} className="truncate text-[var(--text-secondary)]">{attendeeNames(r).join(', ') || '—'}</TableCell>
+                        <TableCell column={ctx.columns[1]} className="min-w-0 text-[var(--text-secondary)]">
+                            <div className="truncate" data-testid={`review-attendees-${r.id}`}>{attendeeNames(r).join(', ') || '—'}</div>
+                            {/* The decisions' first line while their own column is folded. */}
+                            {r.decisions && <div className="text-[11px] text-[var(--text-tertiary)] truncate"><span className={TABLE_FOLDED_ONLY[900]}>{firstLine(r.decisions)}</span></div>}
+                        </TableCell>
                         <TableCell column={ctx.columns[2]} className="truncate text-[var(--text-secondary)]">{r.decisions || '—'}</TableCell>
                     </TableRow>
                 )}

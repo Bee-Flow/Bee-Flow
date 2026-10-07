@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OverviewPage from './OverviewPage';
 import { sectionById } from '../sections';
@@ -66,6 +67,14 @@ const FRAMEWORK_ROWS = [
     { id: 'gdpr', enabled: true, core: true, in_force_since: '2018-05-25', checks_count: 15 },
     { id: 'aia', enabled: true, core: true, in_force_since: '2024-08-01', checks_count: 6 },
     { id: 'iso27001', enabled: true, core: true, in_force_since: '2022-10-25', checks_count: 23 },
+    { id: 'dora', enabled: true, core: false, in_force_since: '2025-01-17', checks_count: 8 },
+    { id: 'nis2', enabled: false, core: false, in_force_since: '2026-08-15', checks_count: 9 },
+];
+
+const CHECKS = [
+    { check_id: 'DORA-28-register', status: 'warn', regulation: 'DORA' },
+    { check_id: 'DORA-19-report', status: 'fail', regulation: 'DORA' },
+    { check_id: 'DORA-6-ict', status: 'pass', regulation: 'DORA' },
 ];
 
 function frameworksHook(rows = FRAMEWORK_ROWS) {
@@ -80,12 +89,12 @@ function baseData(overrides = {}) {
     const { core: coreOv = {}, ...rest } = overrides;
     return {
         core: {
-            overview: OVERVIEW, checks: [], scoreHistory: [], loading: false, running: false,
+            overview: OVERVIEW, checks: CHECKS, scoreHistory: [], loading: false, running: false,
             onboarded: true, settings: {}, autoFixingId: null,
             autoFix: vi.fn(), autoDetect: vi.fn(), finishSetup: vi.fn(), refresh: vi.fn(), runNow: vi.fn(),
             ...coreOv,
         },
-        counts: { soa: { approved: 9, total: 93 } },
+        counts: { soa: { approved: 9, total: 93 }, frameworks: { dora: { score: 75 } } },
         attention: { attention: { items: ATTENTION_ITEMS, total: 7, tail: [{ id: 'x', title: 'AI literacy not confirmed', status: 'warn' }], warn_tail_count: 2 }, items: ATTENTION_ITEMS, failed: false },
         deadlines: { items: [], emptyKinds: ['cra_vulnerability'], failed: false },
         frameworks: frameworksHook(),
@@ -126,10 +135,10 @@ describe('OverviewPage — status tab', () => {
         expect(screen.getByTestId('fw-score-card-gdpr')).toBeInTheDocument();
         expect(screen.getByTestId('fw-score-card-aia')).toBeInTheDocument();
         expect(screen.getByTestId('fw-score-card-iso27001')).toBeInTheDocument();
-        expect(screen.getByTestId('fw-score-card-gdpr-breakdown').textContent)
-            .toContain('15 checks · 9 passing · 4 attention · 1 failing · 1 n/a');
+        expect(screen.getByTestId('fw-score-card-gdpr-breakdown')).toHaveAttribute('title', '15 checks · 9 passing · 4 attention · 1 failing · 1 n/a');
+        expect(screen.getByTestId('fw-score-card-gdpr-breakdown').textContent).toContain('1 failing · 4 attention · 9 passing');
         // ISO counts CONTROLS, not checks — the noun is part of the honesty.
-        expect(screen.getByTestId('fw-score-card-iso27001-breakdown').textContent).toContain('23 controls');
+        expect(screen.getByTestId('fw-score-card-iso27001-breakdown')).toHaveAttribute('title', expect.stringContaining('23 controls'));
     });
 
     it('prices every status colour through the tone tokens, never a hex', () => {
@@ -141,31 +150,58 @@ describe('OverviewPage — status tab', () => {
         expect(gdpr.outerHTML).not.toMatch(/#[0-9a-fA-F]{6}\b/);
     });
 
-    it('opens the framework section when a card is activated', () => {
+    it('opens the framework section when a card is activated', async () => {
         const { navigate } = renderPage();
-        fireEvent.click(screen.getByTestId('fw-score-card-iso27001'));
+        await userEvent.setup().click(screen.getByTestId('fw-score-card-iso27001'));
         expect(navigate).toHaveBeenCalledWith('iso');
     });
 
     it('shows the SoA progress on the ISO card and the next milestone on the AI Act card', () => {
         renderPage();
-        expect(screen.getByTestId('fw-score-card-iso27001-chip-soa').textContent).toContain('SoA 9/93 approved');
+        expect(screen.getByTestId('fw-score-card-iso27001-verif-soa').textContent).toContain('SoA 9/93 approved');
         expect(screen.getByTestId('fw-score-card-aia-next').textContent).toContain('Mark AI content machine-readable');
     });
 
-    it('lays the attention list beside a 380px clock column and prints the score formula', () => {
+    it('lays the attention list beside a 380px clock column, each as tall as its content', () => {
         const { container } = renderPage();
         const grid = container.querySelector('.grid-cols-\\[minmax\\(0\\,1fr\\)_380px\\]');
         expect(grid).toBeTruthy();
         // Side by side down to a 960px page: a 1440px laptop with the 300px rail
         // leaves ~1140px, which used to stack everything and push the list below the fold.
         expect(grid.className).toContain('@max-[960px]/cpage:grid-cols-1');
+        // No stretched card with blank space beside the taller clock column.
+        expect(grid.className).toContain('items-start');
         expect(container.querySelector('[data-testid="overview-scores"]').className).toContain('grid-cols-3');
         expect(container.querySelector('[data-testid="overview-scores"]').className).toContain('@max-[880px]/cpage:grid-cols-2');
         expect(screen.getByTestId('attention-list')).toBeInTheDocument();
         expect(screen.getByTestId('deadlines-card')).toBeInTheDocument();
         expect(screen.getByTestId('upcoming-dates')).toBeInTheDocument();
+    });
+
+    it('keeps the score formula one click away, under the cards', async () => {
+        renderPage();
+        expect(screen.queryByTestId('overview-formula')).not.toBeInTheDocument();
+        const toggle = screen.getByRole('button', { name: /How the score is calculated/ });
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await userEvent.setup().click(toggle);
         expect(screen.getByTestId('overview-formula').textContent).toContain('Σ(weight × status)');
+        // Under the score cards, above the attention list.
+        const formula = screen.getByTestId('overview-formula');
+        expect(screen.getByTestId('overview-scores').compareDocumentPosition(formula) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(formula.compareDocumentPosition(screen.getByTestId('attention-list')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('lists every other enabled framework under the score cards — DORA with its score and open checks', async () => {
+        const { navigate } = renderPage();
+        const card = screen.getByTestId('other-frameworks');
+        expect(within(card).getByTestId('other-frameworks-ring-dora')).toHaveAttribute('data-score', '75');
+        expect(within(card).getByTestId('other-frameworks-headline-dora')).toHaveTextContent('A few items need attention');
+        expect(within(card).getByTestId('other-frameworks-open-dora')).toHaveTextContent('2 open');
+        // Not enabled → not listed; the core three have their own cards.
+        expect(within(card).queryByTestId('other-frameworks-row-nis2')).toBeNull();
+        expect(within(card).queryByTestId('other-frameworks-row-gdpr')).toBeNull();
+        await userEvent.setup().click(within(card).getByTestId('other-frameworks-row-dora'));
+        expect(navigate).toHaveBeenCalledWith('dora');
     });
 });
 
@@ -183,21 +219,22 @@ describe('OverviewPage — attention states', () => {
         expect(screen.getByTestId('attention-list-empty')).toBeInTheDocument();
     });
 
-    it('a navigate action reaches the hub with the target section', () => {
+    it('a navigate action reaches the hub with the target section', async () => {
         const { navigate } = renderPage();
         const rows = screen.getAllByTestId('attention-list-row');
-        fireEvent.click(within(rows[0]).getByTestId('attention-list-row-action'));
+        await userEvent.setup().click(within(rows[0]).getByTestId('attention-list-row-action'));
         expect(navigate).toHaveBeenCalledWith('settings', undefined, undefined); // (section, id, tab)
     });
 
-    it('an auto-fix asks first and only then calls core.autoFix', () => {
+    it('an auto-fix asks first and only then calls core.autoFix', async () => {
+        const user = userEvent.setup();
         const autoFix = vi.fn();
         const data = baseData({ core: { autoFix } });
         renderPage({ data });
         const rows = screen.getAllByTestId('attention-list-row');
-        fireEvent.click(within(rows[1]).getByTestId('attention-list-row-action'));
+        await user.click(within(rows[1]).getByTestId('attention-list-row-action'));
         expect(autoFix).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByTestId('attention-list-row-confirm-yes'));
+        await user.click(screen.getByTestId('attention-list-row-confirm-yes'));
         expect(autoFix).toHaveBeenCalledWith('AIA-Art50-marking');
     });
 });
@@ -224,20 +261,23 @@ describe('OverviewPage — not set up', () => {
         expect(screen.getByTestId('deadlines-card')).toBeInTheDocument();
         expect(screen.getByTestId('upcoming-dates')).toBeInTheDocument();
         expect(screen.queryByTestId('overview-formula')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /How the score is calculated/ })).not.toBeInTheDocument();
+        expect(screen.queryByTestId('other-frameworks')).not.toBeInTheDocument();
     });
 });
 
 describe('OverviewPage — calendar and reports tabs', () => {
     beforeEach(() => { vi.useFakeTimers({ now: NOW, toFake: ['Date'] }); });
 
-    it('calendar tab shows the full calendar and the AI Act phases', () => {
-        renderPage({ tab: 'calendar' });
+    it('calendar tab shows the full calendar, no phasing card, and a link to AI Act › Timeline', async () => {
+        const { navigate } = renderPage({ tab: 'calendar' });
         expect(screen.getByTestId('overview-calendar-full')).toBeInTheDocument();
-        const timeline = screen.getByTestId('overview-aia-timeline');
-        const phases = within(timeline).getAllByTestId('overview-aia-timeline-phase');
-        expect(phases).toHaveLength(2);
-        expect(phases[0].dataset.state).toBe('done');
-        expect(phases[1].dataset.state).toBe('upcoming');
+        expect(screen.queryByTestId('overview-aia-phases')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('overview-aia-timeline')).not.toBeInTheDocument();
+        const link = screen.getByTestId('overview-aia-phasing-link');
+        expect(link).toHaveTextContent('AI Act phasing → Timeline');
+        await userEvent.setup().click(link);
+        expect(navigate).toHaveBeenCalledWith('aia', undefined, 'timeline');
     });
 
     it('a calendar that could not be read says so instead of showing nothing', () => {
@@ -266,11 +306,18 @@ describe('OverviewPage — calendar and reports tabs', () => {
         expect(screen.queryByTestId('ovw-reports-group-iso')).not.toBeInTheDocument();
     });
 
-    it('"Calendar ↗" sends the hub to Frameworks with the calendar tab in the navigation itself', () => {
-        const { navigate, onTab } = renderPage();
-        fireEvent.click(screen.getByTestId('upcoming-dates-open'));
-        // The tab rides on navigate: a tab set before a host pushes a new URL is lost.
-        expect(navigate).toHaveBeenCalledWith('frameworks', undefined, 'calendar');
-        expect(onTab).not.toHaveBeenCalled();
+    it('"Calendar ›" and "{n} more dates ›" stay in the Overview: they switch to its own Calendar tab', async () => {
+        const user = userEvent.setup();
+        const many = [
+            ...MILESTONES,
+            { id: 'aia_annex_iii', date: '2027-12-02', framework_id: 'aia', kind: 'phase', label: 'Annex III', relevant: true },
+            { id: 'cra_full', date: '2027-12-11', framework_id: 'cra', kind: 'in_force', label: 'CRA in full', relevant: true },
+        ];
+        const { navigate, onTab } = renderPage({ data: baseData({ calendar: { milestones: many, failed: false } }) });
+        await user.click(screen.getByTestId('upcoming-dates-open'));
+        expect(onTab).toHaveBeenLastCalledWith('calendar');
+        await user.click(screen.getByTestId('cal-more'));
+        expect(onTab).toHaveBeenCalledTimes(2);
+        expect(navigate).not.toHaveBeenCalled();
     });
 });

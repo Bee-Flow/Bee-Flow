@@ -66,7 +66,24 @@ test('critical is a severity, not an unknown value that falls back to medium', a
 test('getDeadlineStats returns zeroed defaults when the query yields nothing', async () => {
     state.oneRow = null;
     const stats = await store.getDeadlineStats('org1');
-    assert.deepStrictEqual(stats, { open: 0, overdue_unnotified: 0, nearing_deadline: 0, vulnerabilities_open: 0 });
+    assert.deepStrictEqual(stats, {
+        open: 0, overdue_unnotified: 0, nearing_deadline: 0, vulnerabilities_open: 0,
+        gdpr_overdue_unnotified: 0, gdpr_nearing_deadline: 0,
+    });
+});
+
+test('getDeadlineStats counts the Art. 33 clock on its own: GDPR incidents, detected_at + 72 h', async () => {
+    // deadline_at is the earliest open clock over every regime (a NIS2 24 h
+    // early warning, a DORA customer notice), so it cannot tell whether the
+    // 72-hour GDPR deadline has passed.
+    state.oneRow = null;
+    await store.getDeadlineStats('org1');
+    const q = state.calls.find(c => c.fn === 'getOne' && /gdpr_overdue_unnotified/.test(c.sql));
+    assert.ok(q, 'the GDPR counts are in the query');
+    assert.match(q.sql, /regimes @> '\["GDPR"\]'::jsonb/);
+    assert.match(q.sql, /detected_at \+ INTERVAL '72 hours' < NOW\(\)/);
+    assert.match(q.sql, /AS gdpr_nearing_deadline/);
+    assert.match(q.sql, /deadline_at < NOW\(\)\s*\)::int AS overdue_unnotified/, 'the roll-up count is unchanged for counts.js and ISO A.5.24');
 });
 
 test('updateIncident returns null for an unknown incident', async () => {

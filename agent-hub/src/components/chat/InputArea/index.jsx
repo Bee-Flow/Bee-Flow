@@ -100,6 +100,11 @@ const InputArea = ({
     // all — gating on `user` alone put a green "Personal data is replaced
     // before sending" under a box that replaces nothing.
     shieldApplies = false,
+    // Chat signals: the notice for the endpoint this composer posts to (from
+    // useChatSignals in the host), and the person's "don't count me" switch.
+    // Null everywhere else, so no other composer announces anything.
+    chatSignalsNotice = null,
+    onChatSignalsCounted = null,
 }) => {
     const { t } = useTranslation();
     const [voiceMode, setVoiceMode] = useState(false);
@@ -575,6 +580,8 @@ const InputArea = ({
                             warningText={warningText}
                             footerLine={footerLine}
                             isTouchDevice={isTouchDevice}
+                            chatSignalsNotice={chatSignalsNotice}
+                            onChatSignalsCounted={onChatSignalsCounted}
                         />
                     )}
                 </div>

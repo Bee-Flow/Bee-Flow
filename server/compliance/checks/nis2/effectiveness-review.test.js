@@ -7,14 +7,19 @@ const assert = require('node:assert/strict');
 const { installResolveStub } = require('../../../testUtils/stubRequire');
 
 const ORG = 'org-a';
-const fx = { audit: null, review: null, sweep: null, settings: {}, missing: new Set(), params: [] };
+const fx = { audit: null, review: null, futureReview: null, sweep: null, settings: {}, missing: new Set(), params: [] };
 const pgError = (code) => Object.assign(new Error(`pg ${code}`), { code, severity: 'ERROR' });
 const fakeDb = {
     async getOne(sql, params) {
         fx.params.push(params);
         assert.match(sql, /organization_id = \$1/);
         if (/FROM iso_audits/.test(sql)) { if (fx.missing.has('audits')) throw pgError('42P01'); return { last: fx.audit }; }
-        if (/FROM iso_management_reviews/.test(sql)) { if (fx.missing.has('reviews')) throw pgError('42P01'); return { last: fx.review }; }
+        if (/FROM iso_management_reviews/.test(sql)) {
+            if (fx.missing.has('reviews')) throw pgError('42P01');
+            // Emulates MAX(held_at) over a planned (future-dated) row: only a
+            // query that excludes future dates gets the held review back.
+            return { last: fx.futureReview && !/held_at <= NOW\(\)/.test(sql) ? fx.futureReview : fx.review };
+        }
         if (/FROM compliance_score_history/.test(sql)) { if (fx.missing.has('sweeps')) throw pgError('42703'); return { last: fx.sweep }; }
         throw new Error(`unexpected sql: ${sql}`);
     },
@@ -29,7 +34,7 @@ test.after(() => restore());
 
 const daysAgo = (d) => new Date(Date.now() - d * 86400e3);
 
-test.beforeEach(() => { fx.audit = null; fx.review = null; fx.sweep = null; fx.settings = {}; fx.missing = new Set(); fx.params = []; });
+test.beforeEach(() => { fx.audit = null; fx.review = null; fx.futureReview = null; fx.sweep = null; fx.settings = {}; fx.missing = new Set(); fx.params = []; });
 
 test('contract shape', () => {
     assert.equal(check.id, 'NIS2-Art21(2)(f)-effectiveness-review');
@@ -51,6 +56,13 @@ test('never reviewed → fail; all three queries org-scoped', async () => {
     assert.equal(r.evidence.last_effectiveness_review_at, null);
     assert.equal(fx.params.length, 3);
     for (const p of fx.params) assert.equal(p[0], ORG);
+});
+
+test('a review dated in the future is not a review held', async () => {
+    fx.review = daysAgo(600); fx.futureReview = daysAgo(-30); fx.sweep = daysAgo(1);
+    const r = await check.evaluate(ORG);
+    assert.equal(r.status, 'fail');
+    assert.equal(r.evidence.review_age_days, 600);
 });
 
 test('review 400 days ago (grace window) → warn', async () => {

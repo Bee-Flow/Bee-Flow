@@ -24,12 +24,14 @@ function inject(relPath, exports) {
 
 const frameworkRuns = [];
 const invalidated = [];
+const subjectRuns = [];
 
 inject('./runner.js', {
     runOne: async (orgId, checkId, opts) => {
         runnerCalls.push({ orgId, checkId, opts });
         if (checkId === 'DISABLED-check') { const e = new Error('disabled'); e.status = 409; throw e; }
     },
+    runForSubject: async (orgId, ids, opts) => { subjectRuns.push({ orgId, ids, opts }); return []; },
     runAll: async () => [],
     runFramework: async (orgId, frameworkId, opts) => { frameworkRuns.push({ orgId, frameworkId, opts }); },
 });
@@ -76,6 +78,7 @@ beforeEach(() => {
     notifications.length = 0;
     frameworkRuns.length = 0;
     invalidated.length = 0;
+    subjectRuns.length = 0;
     claims.clear();
 });
 
@@ -117,15 +120,21 @@ test('FRAMEWORK_DISABLED / RELEVANCE_CHANGED only drop the counts cache', async 
     assert.strictEqual(notifications.length, 0);
 });
 
-test('AI_ACT_ATTESTED re-runs Art-53 and, for an automation, the per-subject Art-50 marking check', async () => {
+test('AI_ACT_ATTESTED re-runs Art-53 and, for an automation, re-judges it where it is a subject, never through runOne', async () => {
+    // runOne('AIA-Art50-content-marking', {subjectId}) for an automation that
+    // generates no documents wrote "Subject not found." into the global slot.
     events.emit(events.EVENTS.AI_ACT_ATTESTED, { orgId: 'org1', targetKind: 'automation', targetId: 'auto-7', outcome: 'transparency' });
     await settle();
-    assert.deepStrictEqual(runnerCalls.map(c => c.checkId), ['AIA-Art53-model-inventory', 'AIA-Art50-content-marking']);
-    assert.strictEqual(runnerCalls[1].opts.subjectId, 'auto-7');
+    assert.deepStrictEqual(runnerCalls.map(c => c.checkId), ['AIA-Art53-model-inventory']);
+    assert.ok(runnerCalls.every(c => !c.opts.subjectId), 'no runOne call carries a subjectId');
+    assert.deepStrictEqual(subjectRuns, [{ orgId: 'org1', ids: ['auto-7'], opts: { runType: 'event' } }]);
+    assert.deepStrictEqual(invalidated, ['org1']);
     runnerCalls.length = 0;
+    subjectRuns.length = 0;
     events.emit(events.EVENTS.AI_ACT_ATTESTED, { orgId: 'org1', targetKind: 'agent', targetId: 'ag-1' });
     await settle();
     assert.deepStrictEqual(runnerCalls.map(c => c.checkId), ['AIA-Art53-model-inventory']);
+    assert.strictEqual(subjectRuns.length, 0);
 });
 
 test('CONTENT_MARKING_CHANGED re-runs the Art-50 marking check and invalidates counts', async () => {
@@ -166,21 +175,25 @@ test('a 409 framework_disabled from the runner is swallowed silently by the reru
     assert.deepStrictEqual(invalidated, ['orgD'], 'counts still invalidated');
 });
 
-test('DLP_CONFIG_CHANGED re-runs the Art-32 DLP check as an event run', async () => {
+test('DLP_CONFIG_CHANGED re-runs both Art-32 DLP checks and ISO A.8.12 (all read the shield config) as event runs', async () => {
     events.emit(events.EVENTS.DLP_CONFIG_CHANGED, { orgId: 'org1' });
     await settle();
     assert.deepStrictEqual(runnerCalls, [
         { orgId: 'org1', checkId: 'GDPR-Art32-dlp-enabled', opts: { runType: 'event' } },
+        { orgId: 'org1', checkId: 'GDPR-Art32-dlp-efficacy', opts: { runType: 'event' } },
+        { orgId: 'org1', checkId: 'ISO27001-A.8.12-dlp', opts: { runType: 'event' } },
     ]);
 });
 
-test('AGENT_PUBLISHED re-runs Art-50 and the per-agent Art-35', async () => {
+test('AGENT_PUBLISHED re-runs Art-50 and Art-13 and re-judges the agent where it is a subject, never through runOne', async () => {
+    // runOne(…, {subjectId}) for an agent that is not high-risk wrote
+    // "Subject not found." into the Art-35 check's global slot. Art. 13
+    // judges every published agent's description, so it is re-run too.
     events.emit(events.EVENTS.AGENT_PUBLISHED, { orgId: 'org1', agentId: 'a9' });
     await settle();
-    assert.strictEqual(runnerCalls.length, 2);
-    assert.strictEqual(runnerCalls[0].checkId, 'AIA-Art50-ai-disclosure');
-    assert.strictEqual(runnerCalls[1].checkId, 'GDPR-Art35-dpia-high-risk');
-    assert.strictEqual(runnerCalls[1].opts.subjectId, 'a9');
+    assert.deepStrictEqual(runnerCalls.map(c => c.checkId), ['AIA-Art50-ai-disclosure', 'AIA-Art13-transparency']);
+    assert.ok(runnerCalls.every(c => !c.opts.subjectId), 'no runOne call carries a subjectId');
+    assert.deepStrictEqual(subjectRuns, [{ orgId: 'org1', ids: ['a9'], opts: { runType: 'event' } }]);
 });
 
 test('EXTERNAL_TRANSFER_DETECTED re-runs Art-44 and notifies org admins', async () => {
@@ -205,6 +218,7 @@ test('events without an orgId are ignored', async () => {
     events.emit(events.EVENTS.AGENT_PUBLISHED, {});
     await settle();
     assert.strictEqual(runnerCalls.length, 0);
+    assert.strictEqual(subjectRuns.length, 0);
 });
 
 test('external-transfer debounce collapses repeats per org+operator', async () => {
@@ -260,6 +274,9 @@ test('a burst of DSR submissions of one type is one notice per hour; another typ
     for (let i = 0; i < 3; i++) events.emit(events.EVENTS.DSR_SUBMITTED, { orgId: 'org1', requestType: 'access' });
     await settle();
     assert.strictEqual(notifications.length, 1);
+    // Art. 12(3) is one calendar month from receipt, not 30 days.
+    assert.match(notifications[0].message, /within one month of receipt/);
+    assert.doesNotMatch(notifications[0].message, /30 days/);
     events.emit(events.EVENTS.DSR_SUBMITTED, { orgId: 'org1', requestType: 'deletion' });
     await settle();
     assert.strictEqual(notifications.length, 2);
@@ -312,4 +329,26 @@ test('an AI-mode switch re-runs the AI-joins-by-itself check whole, once per bur
         subjectReview._reset();
         events._resetProjectReruns();
     }
+});
+
+test('CHAT_MONITORING_CHANGED re-runs both chat signals checks and drops the counts cache', async () => {
+    assert.deepStrictEqual([...events.CHAT_SIGNAL_CHECKS], ['GDPR-Art32-chat-shield-coverage', 'GDPR-Art35-chat-monitoring-safeguards']);
+    assert.ok(Object.isFrozen(events.CHAT_SIGNAL_CHECKS));
+    assert.strictEqual(events.EVENTS.CHAT_MONITORING_CHANGED, 'chat_monitoring_changed');
+    assert.strictEqual(Object.keys(events.EVENTS).pop(), 'CHAT_MONITORING_CHANGED', 'appended as the last event');
+
+    events.emit(events.EVENTS.CHAT_MONITORING_CHANGED, { orgId: 'org1' });
+    await settle();
+    await settle();
+    assert.deepStrictEqual(runnerCalls.map(c => [c.orgId, c.checkId, c.opts.runType]), [
+        ['org1', 'GDPR-Art32-chat-shield-coverage', 'event'],
+        ['org1', 'GDPR-Art35-chat-monitoring-safeguards', 'event'],
+    ]);
+    assert.deepStrictEqual(invalidated, ['org1']);
+    assert.strictEqual(notifications.length, 0, 'no notice: the admin made the change');
+
+    runnerCalls.length = 0;
+    events.emit(events.EVENTS.CHAT_MONITORING_CHANGED, {});
+    await settle();
+    assert.strictEqual(runnerCalls.length, 0, 'no org, nothing to re-run');
 });

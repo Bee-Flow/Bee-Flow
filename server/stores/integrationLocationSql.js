@@ -85,6 +85,20 @@ const SUPPLIER_ROW = `COALESCE(is_local, false) = false
               AND NOT (operator IS NULL AND COALESCE(location_state,
                     CASE WHEN COALESCE(is_eu, false) OR ${ROW_IP} IS NOT NULL THEN 'located' ELSE 'unknown' END) = 'unknown')`;
 
+/**
+ * The org filter for the ledger, with `$1` the org id.
+ *
+ * logToolEgress writes `organization_id` NULL for a user with no organisation,
+ * which on a single-tenant install is every user — while the scheduler sweeps
+ * that install as the 'default' bucket. A plain `organization_id = $1` meant
+ * 'default' never saw its own traffic. The NULL/'' rows count for 'default'
+ * only, never for a real org, and the comparisons stay on the bare column so
+ * the org index is still usable. Defined here, beside the other ledger
+ * fragments, so a reader needs no database module to import it; compliance/
+ * lib/observedOperators.js re-exports it under the same name.
+ */
+const LEDGER_ORG_SQL = "(organization_id = $1 OR ($1::text = 'default' AND (organization_id IS NULL OR organization_id = '')))";
+
 /** `COUNT(*) FILTER (WHERE <state>)` for each state, named <state>_count. */
 function stateCounts(prefix = '') {
     return ['local', 'eu', 'via_network', 'unknown']
@@ -104,5 +118,6 @@ module.exports = {
     NON_EU,
     LOCATED,
     SUPPLIER_ROW,
+    LEDGER_ORG_SQL,
     stateCounts,
 };

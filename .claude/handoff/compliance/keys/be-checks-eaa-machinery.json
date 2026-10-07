@@ -1,7 +1,7 @@
 {
   "en": {
     "compliance.check_eaa_webpage_a11y_title": "Published pages pass the accessibility lint",
-    "compliance.check_eaa_webpage_a11y_desc": "Public pages must meet WCAG 2.1 AA (EN 301 549). A static lint of the published HTML checks the declared language, image alternatives, labelled controls, named links and buttons, page titles, iframe titles, heading order, duplicate ids, focus-order hints, refresh/zoom/autoplay settings and table headers. Colour contrast, focus visibility, keyboard operability, reflow and dynamic ARIA state need a rendered page and are covered by the CI conformance check, not by this one.",
+    "compliance.check_eaa_webpage_a11y_desc": "Public pages are measured against WCAG 2.1 AA (EN 301 549 V3.2.1, the current reference; V4.1.1 of Sep 2026 is based on WCAG 2.2 AA and gives a presumption of conformity under the EAA once it is cited in the Official Journal). A static lint of the published HTML checks the declared language, image alternatives, labelled controls, named links and buttons, page titles, iframe titles, heading order, duplicate ids, focus-order hints, refresh/zoom/autoplay settings and table headers. Colour contrast, focus visibility, keyboard operability, reflow and dynamic ARIA state need a rendered page and are covered by the CI conformance check, not by this one.",
     "compliance.check_eaa_webpage_a11y_fix": "Fix the listed findings in the page and republish it; the check re-runs on the next sweep.",
 
     "compliance.check_eaa_product_surfaces_title": "Public forms, apps and the DSR form are accessibility-tested",
@@ -13,7 +13,7 @@
     "compliance.check_eaa_statement_fix": "Publish an accessibility statement and paste its URL under Compliance → Settings; record the conformance level and date you declare in it.",
 
     "compliance.check_machinery_detection_title": "Industrial control integrations detected?",
-    "compliance.check_machinery_detection_desc": "Software that controls or monitors a machine's safety function is a safety component under the Machinery Regulation (EU) 2023/1230. This check scans custom integrations, automations, connections, 90 days of outbound traffic and MCP servers for OPC UA, Modbus, MQTT/SCADA, PLC vendor endpoints and industrial vocabulary. No matches means the Regulation does not appear to apply; matches are a prompt to assess, never a verdict.",
+    "compliance.check_machinery_detection_desc": "Software that fulfils a safety function and is placed on the market on its own is a safety component under the Machinery Regulation (EU) 2023/1230 (Art. 3(3)); software built into a machine is assessed as part of that machine. This check scans custom integrations, automations, connections, 90 days of outbound traffic and MCP servers for OPC UA, Modbus, MQTT/SCADA, PLC vendor endpoints and industrial vocabulary. No matches means the Regulation does not appear to apply; matches are a prompt to assess, never a verdict.",
     "compliance.check_machinery_detection_fix": "Review each detected integration under Compliance → Machinery and record a safety-component assessment for it, or mark the Machinery Regulation as not relevant when none of them touches a machine.",
 
     "compliance.check_machinery_assessment_title": "Safety-component assessment recorded",
@@ -57,7 +57,7 @@
   },
   "nl": {
     "compliance.check_eaa_webpage_a11y_title": "Gepubliceerde pagina's doorstaan de toegankelijkheidscontrole",
-    "compliance.check_eaa_webpage_a11y_desc": "Openbare pagina's moeten voldoen aan WCAG 2.1 AA (EN 301 549). Een statische controle van de gepubliceerde HTML toetst de opgegeven taal, tekstalternatieven voor afbeeldingen, gelabelde invoervelden, benoemde links en knoppen, paginatitels, iframe-titels, kopvolgorde, dubbele id's, focusvolgorde, refresh-/zoom-/autoplay-instellingen en tabelkoppen. Kleurcontrast, zichtbare focus, toetsenbordbediening, herschikken en dynamische ARIA-status vragen een gerenderde pagina en vallen onder de CI-conformiteitscontrole, niet onder deze.",
+    "compliance.check_eaa_webpage_a11y_desc": "Openbare pagina's worden getoetst aan WCAG 2.1 AA (EN 301 549 V3.2.1, de huidige maatstaf; V4.1.1 van sep 2026 is gebaseerd op WCAG 2.2 AA en geeft een vermoeden van conformiteit onder de EAA zodra die in het Publicatieblad is aangehaald). Een statische controle van de gepubliceerde HTML toetst de opgegeven taal, tekstalternatieven voor afbeeldingen, gelabelde invoervelden, benoemde links en knoppen, paginatitels, iframe-titels, kopvolgorde, dubbele id's, focusvolgorde, refresh-/zoom-/autoplay-instellingen en tabelkoppen. Kleurcontrast, zichtbare focus, toetsenbordbediening, herschikken en dynamische ARIA-status vragen een gerenderde pagina en vallen onder de CI-conformiteitscontrole, niet onder deze.",
     "compliance.check_eaa_webpage_a11y_fix": "Los de genoemde bevindingen in de pagina op en publiceer opnieuw; de controle draait bij de volgende ronde weer mee.",
 
     "compliance.check_eaa_product_surfaces_title": "Openbare formulieren, apps en het AVG-verzoekformulier zijn op toegankelijkheid getest",
@@ -69,7 +69,7 @@
     "compliance.check_eaa_statement_fix": "Publiceer een toegankelijkheidsverklaring en plak de URL onder Compliance → Instellingen; leg het conformiteitsniveau en de datum vast die u erin verklaart.",
 
     "compliance.check_machinery_detection_title": "Industriële besturingsintegraties gedetecteerd?",
-    "compliance.check_machinery_detection_desc": "Software die een veiligheidsfunctie van een machine bestuurt of bewaakt, is een veiligheidscomponent onder de Machineverordening (EU) 2023/1230. Deze controle doorzoekt eigen integraties, automatiseringen, koppelingen, 90 dagen uitgaand verkeer en MCP-servers op OPC UA, Modbus, MQTT/SCADA, PLC-leveranciers en industriële termen. Geen treffers betekent dat de verordening niet van toepassing lijkt; treffers zijn een aanleiding om te beoordelen, nooit een oordeel.",
+    "compliance.check_machinery_detection_desc": "Software die een veiligheidsfunctie vervult en zelfstandig in de handel wordt gebracht, is een veiligheidscomponent onder de Machineverordening (EU) 2023/1230 (art. 3(3)); software die in een machine is ingebouwd, wordt beoordeeld als onderdeel van die machine. Deze controle doorzoekt eigen integraties, automatiseringen, koppelingen, 90 dagen uitgaand verkeer en MCP-servers op OPC UA, Modbus, MQTT/SCADA, PLC-leveranciers en industriële termen. Geen treffers betekent dat de verordening niet van toepassing lijkt; treffers zijn een aanleiding om te beoordelen, nooit een oordeel.",
     "compliance.check_machinery_detection_fix": "Beoordeel elke gedetecteerde integratie onder Compliance → Machines en leg er een veiligheidscomponentbeoordeling voor vast, of markeer de Machineverordening als niet relevant wanneer geen ervan een machine raakt.",
 
     "compliance.check_machinery_assessment_title": "Veiligheidscomponentbeoordeling vastgelegd",

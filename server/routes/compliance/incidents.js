@@ -56,6 +56,8 @@ const { z } = require('zod');
 
 const CRA_CHECK_ID = 'CRA-Art14-vuln-reporting-clocks';
 const BREACH_CHECK_ID = 'GDPR-Art33-breach-detection';
+const NIS2_CHECK_ID = 'NIS2-Art23-early-warning-path';
+const DORA_CHECK_ID = 'DORA-Art30-incident-reporting-path';
 const CRA_EVENT = 'cra_vulnerability_reported';
 
 const crypto = require('crypto');
@@ -76,6 +78,34 @@ function _recordIncidentEvidence(orgId, incidentId, payload, checkId = BREACH_CH
 
 function _rerun(orgId, checkId) {
     runner.runOne(orgId, checkId, { runType: 'event' }).catch(() => {});
+}
+
+function _regimesOf(incident) {
+    let r = incident?.regimes;
+    if (typeof r === 'string') { try { r = JSON.parse(r); } catch { r = []; } }
+    return Array.isArray(r) ? r.map(x => String(x).toUpperCase()) : [];
+}
+
+// The NIS2 (24 h early warning) and DORA (initial notification) reporting
+// paths judge the same register, and no compliance event re-runs them: without
+// this an incident registered with a clock already running kept its "no open
+// incident" pass until the next sweep, and a stamp kept the stale fail.
+// _rerun swallows the 409 of a framework that is switched off.
+function _rerunRegimeChecks(orgId, incident) {
+    const regimes = _regimesOf(incident);
+    if (regimes.includes('NIS2')) _rerun(orgId, NIS2_CHECK_ID);
+    if (regimes.includes('DORA')) _rerun(orgId, DORA_CHECK_ID);
+}
+
+/**
+ * `reported_via` is free text (the form suggests "ENISA platform, CSIRT…").
+ * The channel is what the chain needs; an address typed there is personal
+ * data in a record that can never be corrected, so it is recorded as 'email'.
+ */
+function _reportedViaForEvidence(v) {
+    if (!v) return null;
+    const s = String(v);
+    return /@/.test(s) ? 'email' : s.slice(0, 100);
 }
 
 function _isCra(incident) {
@@ -258,12 +288,15 @@ router.post('/incidents', requireAuth, requirePermission('admin_compliance'), va
             incident_id: incident.id,
             kind: incident.kind,
             regimes: incident.regimes,
-            title: incident.title,
+            // No title: it is free text that routinely names the person or
+            // quotes the address concerned. The register row keeps it; the
+            // append-only chain needs only the ids.
             by: actorId,
             at: new Date().toISOString(),
         }, isCra ? CRA_CHECK_ID : BREACH_CHECK_ID);
         _rerun(orgId, BREACH_CHECK_ID);
         if (isCra) _rerun(orgId, CRA_CHECK_ID);
+        _rerunRegimeChecks(orgId, incident);
         res.status(201).json(incident);
     } catch (e) {
         res.status(400).json({ error: e.message });
@@ -290,6 +323,7 @@ router.patch('/incidents/:id', requireAuth, requirePermission('admin_compliance'
         }
         _rerun(orgId, BREACH_CHECK_ID);
         if (_isCra(updated)) _rerun(orgId, CRA_CHECK_ID);
+        _rerunRegimeChecks(orgId, updated);
         res.json(updated);
     } catch (e) {
         res.status(400).json({ error: e.message });
@@ -321,13 +355,15 @@ router.post('/incidents/:id/cra-report', requireAuth, requirePermission('admin_c
             action: 'cra_report',
             stage: body.stage,
             incident_id: id,
-            reported_via: body.reported_via ? String(body.reported_via).slice(0, 100) : null,
+            reported_via: _reportedViaForEvidence(body.reported_via),
             reference: body.reference ? String(body.reference).slice(0, 200) : null,
             by: actorId,
             at,
         }, CRA_CHECK_ID);
         events.emit(CRA_EVENT, { orgId, incidentId: id, stage: body.stage, actorId, at });
         _rerun(orgId, CRA_CHECK_ID);
+        // An early-warning stamp also closes the NIS2 clock of the same incident.
+        _rerunRegimeChecks(orgId, incident);
         res.json(updated);
     } catch (e) {
         res.status(400).json({ error: e.message });
@@ -354,6 +390,8 @@ router.post('/incidents/:id/customer-notified', requireAuth, requirePermission('
         }, _isCra(incident) ? CRA_CHECK_ID : BREACH_CHECK_ID);
         _rerun(orgId, BREACH_CHECK_ID);
         if (_isCra(incident)) _rerun(orgId, CRA_CHECK_ID);
+        // The customer notice is the DORA stamp.
+        _rerunRegimeChecks(orgId, incident);
         res.json(updated);
     } catch (e) {
         res.status(400).json({ error: e.message });

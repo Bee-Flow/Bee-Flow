@@ -52,6 +52,11 @@ function assessTransfers(transfers, sccConfirmed) {
         else nonEuUnconfirmed.push(row);
     }
     const totalNonEu = nonEuUnconfirmed.length + nonEuConfirmed.length;
+    // The rows are grouped per operator AND country (and flags), so one
+    // operator in two countries is two rows: count distinct operators.
+    const opKey = (r) => String(r.operator || '').toLowerCase() || `unknown:${r.country_code || '?'}`;
+    const unconfirmedOps = new Set(nonEuUnconfirmed.map(opKey)).size;
+    const confirmedOps = new Set(nonEuConfirmed.map(opKey)).size;
     const viaUnattested = viaNetwork.filter(r => !r.scc_confirmed);
     const unlocatedPct = totalCalls > 0 ? Math.round((1000 * unlocatedCalls) / totalCalls) / 10 : 0;
     const tooManyUnlocated = totalCalls > 0 && unlocatedCalls / totalCalls > UNLOCATED_WARN_RATIO;
@@ -60,7 +65,8 @@ function assessTransfers(transfers, sccConfirmed) {
     let details;
     if (nonEuUnconfirmed.length > 0) {
         status = 'fail';
-        details = `${nonEuUnconfirmed.length} operator(s) routed personal data outside the EU in the last 30 days without SCC attestation. Confirm SCCs/DPAs under Compliance → Settings or switch traffic to an EU operator.`;
+        // "data", not "personal data": the ledger query has no PII filter.
+        details = `${unconfirmedOps} operator(s) received data outside the EU in the last 30 days without SCC attestation. Confirm SCCs/DPAs under Compliance → Processing register or switch traffic to an EU operator.`;
     } else if (viaUnattested.length > 0) {
         const names = [...new Set(viaUnattested.map(r => r.operator || 'unknown operator'))].join(', ');
         status = 'warn';
@@ -70,7 +76,7 @@ function assessTransfers(transfers, sccConfirmed) {
         details = `${unlocatedPct}% of the outbound calls in the last 30 days have no known location, so this check cannot confirm where that data went.`;
     } else if (totalNonEu > 0) {
         status = 'pass';
-        details = `${nonEuConfirmed.length} non-EU operator(s) in use — all covered by attested Standard Contractual Clauses.`;
+        details = `${confirmedOps} non-EU operator(s) in use — all covered by attested Standard Contractual Clauses.`;
     } else {
         status = 'pass';
         details = 'All located outbound integration calls in the last 30 days routed to EU or local infrastructure.';
@@ -81,6 +87,7 @@ function assessTransfers(transfers, sccConfirmed) {
             window_days: 30,
             transfers_total: transfers.length,
             non_eu_unconfirmed: nonEuUnconfirmed.slice(0, 50),
+            non_eu_unconfirmed_operators: unconfirmedOps,
             non_eu_confirmed: nonEuConfirmed.slice(0, 50),
             via_network: viaNetwork.slice(0, 50),
             eu_or_local_sample: euOrLocal.slice(0, 10),

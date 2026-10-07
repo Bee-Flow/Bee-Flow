@@ -1,15 +1,17 @@
-import React, { useMemo } from 'react';
 import { BookOpen, CalendarClock, ExternalLink } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import TimelinePhases from '../../shared/TimelinePhases';
-import RegulatoryCalendar from '../../shared/RegulatoryCalendar';
-import { parseDay, daysUntil, SOON_DAYS } from '../../shared/calendarMath';
+import React, { useMemo } from 'react';
 import { frameworkIdOf } from './checkSort';
+import { disclosureFails, isArt50Phase, shortTitlesOf } from './phaseRules';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import { parseDay, daysUntil, SOON_DAYS } from '../../shared/calendarMath';
+import RegulatoryCalendar from '../../shared/RegulatoryCalendar';
+import TimelinePhases from '../../shared/TimelinePhases';
 
 /**
  * TimelineTab — the framework's own dates (artboard 1b › Tijdlijn): the
  * phases on one track, then the regulatory calendar filtered to this
- * framework.
+ * framework. For the AI Act this is THE phasing (the More frameworks page no
+ * longer repeats it), including the Art. 50 "missed" rule.
  *
  * Milestones come from `GET /calendar` (data.calendar) — the one list the
  * overview's calendar reads too, so the two cannot disagree. When the
@@ -39,32 +41,42 @@ export function frameworkRecord(frameworks, frameworkId) {
     return null;
 }
 
+/** A milestone's own label, translated. */
+const labelOf = (m, t) => m.label ?? (m.label_key ? t(m.label_key, m.id) : m.id);
+
 /**
  * TimelinePhases input from milestones. The component draws the word it is
  * given, so the date → state decision is made here: past → done, within
  * SOON_DAYS → upcoming (with the countdown), later → future. Undated
- * (uncertain) rows have no place on a track.
+ * (uncertain) rows have no place on a track. One exception the design pins:
+ * with `art50Missed` (the AI Act disclosure check fails today) the past
+ * Art. 50 phase is `missed`, not done.
+ *
+ * `shortTitles` (phaseRules.shortTitlesOf) gives the track the catalogue's
+ * short label for a date that carries one milestone; the milestone's own
+ * label stays in the calendar list under the track.
  */
-export function toPhases(milestones, t, now = Date.now()) {
-    const out = [];
-    for (const m of milestones || []) {
-        const ms = parseDay(m.date);
-        if (ms === null) continue;
+export function toPhases(milestones, t, now = Date.now(), { art50Missed = false, shortTitles = null } = {}) {
+    const rows = (milestones || []).filter(m => parseDay(m.date) !== null);
+    const perDate = new Map();
+    for (const m of rows) perDate.set(m.date, (perDate.get(m.date) ?? 0) + 1);
+    return rows.map((m) => {
         const days = daysUntil(m.date, now);
         const past = days < 0;
         const soon = !past && days <= SOON_DAYS;
-        out.push({
+        const pastState = art50Missed && isArt50Phase(m) ? 'missed' : 'done';
+        const short = perDate.get(m.date) === 1 ? shortTitles?.get(m.date) : undefined;
+        return {
             date: m.date,
-            title: m.label ?? (m.label_key ? t(m.label_key, m.id) : m.id),
+            title: short || labelOf(m, t),
             subtitle: m.detail ?? (m.detail_key ? t(m.detail_key, '') : ''),
-            state: past ? 'done' : (soon ? 'upcoming' : 'future'),
+            state: past ? pastState : (soon ? 'upcoming' : 'future'),
             daysLeft: soon ? days : undefined,
-        });
-    }
-    return out;
+        };
+    });
 }
 
-export default function TimelineTab({ regulation, calendar, frameworks, now = undefined, testId = 'timeline-tab' }) {
+export default function TimelineTab({ regulation, calendar, frameworks, checks = null, now = undefined, testId = 'timeline-tab' }) {
     const { t } = useTranslation();
     const frameworkId = frameworkIdOf(regulation);
     const nowMs = now ?? Date.now();
@@ -72,12 +84,14 @@ export default function TimelineTab({ regulation, calendar, frameworks, now = un
     const milestones = useMemo(() => milestonesOf(calendar, frameworkId), [calendar, frameworkId]);
     const record = useMemo(() => frameworkRecord(frameworks, frameworkId), [frameworks, frameworkId]);
 
+    // Only the AI Act has an Art. 50 phase; the rule is moot elsewhere.
+    const art50Missed = regulation === 'AIA' && disclosureFails(checks);
     const phases = useMemo(() => {
-        const fromCalendar = toPhases(milestones, t, nowMs);
+        const fromCalendar = toPhases(milestones, t, nowMs, { art50Missed, shortTitles: shortTitlesOf(record, t) });
         if (fromCalendar.length > 0) return fromCalendar;
         const catalogue = Array.isArray(record?.milestones) ? record.milestones : (Array.isArray(record?.phases) ? record.phases : []);
-        return toPhases(catalogue.map((p, i) => ({ id: p.id ?? `${frameworkId}_${i}`, ...p })), t, nowMs);
-    }, [milestones, record, t, nowMs, frameworkId]);
+        return toPhases(catalogue.map((p, i) => ({ id: p.id ?? `${frameworkId}_${i}`, ...p })), t, nowMs, { art50Missed });
+    }, [milestones, record, t, nowMs, frameworkId, art50Missed]);
 
     // No calendar rows yet: `null` / `{failed:true}` is a failed read, anything
     // else is still loading — unless the catalogue record can fill the track.
@@ -87,7 +101,7 @@ export default function TimelineTab({ regulation, calendar, frameworks, now = un
 
     return (
         <div className="flex flex-col gap-4" data-testid={testId}>
-            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-4 flex flex-col gap-3" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-4 flex flex-col gap-3 shadow-[var(--shadow-sm)]">
                 <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)]">
                     <CalendarClock size={12} aria-hidden="true" />
                     <span>{t('compliance.tbl_timeline_phases', 'Phases')}</span>
@@ -100,7 +114,7 @@ export default function TimelineTab({ regulation, calendar, frameworks, now = un
                 {phases.length > 0 && <TimelinePhases phases={phases} now={nowMs} testId={`${testId}-phases`} />}
             </section>
             {Array.isArray(milestones) && (
-                <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
+                <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow-sm)]">
                     <RegulatoryCalendar milestones={milestones} now={nowMs} variant="full" testId={`${testId}-calendar`} />
                 </section>
             )}

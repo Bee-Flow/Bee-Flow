@@ -12,6 +12,11 @@
 // to Gmail that day"); answering one axis at a time made you start over for
 // the next.
 //
+// One exception: a health category (GDPR Art. 9) is an organisation total
+// and never a control, so it can never narrow the people panel to the people
+// it concerns. specialCategories.ts holds the rule; shieldFilters.toggleFilter
+// refuses it, whichever control asks.
+//
 // ── Where the numbers come from ──────────────────────────────────────────
 // Unfiltered: the server's aggregates for the whole window. Filtered: the
 // loaded rows (≤200 per ledger), with a notice when that is not the whole

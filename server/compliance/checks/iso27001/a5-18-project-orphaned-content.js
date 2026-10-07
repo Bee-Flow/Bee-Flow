@@ -96,7 +96,7 @@ function verdict({ projects, owners, threads, notebooks, unreadable = [] }) {
         return {
             status: 'fail',
             evidence,
-            details: `The owner of ${owners.length} project(s) has left, so nobody can manage who has access: ${pd.nameOffenders(owners)}. Reactivate the owner long enough to hand the project over, or archive it.${threadNote}`,
+            details: `The owner of ${owners.length} project(s) has left, so nobody can manage who has access: ${pd.nameOffenders(owners)}. Reactivate the owner long enough to hand the project over or delete it.${threadNote}`,
         };
     }
     if (threadCount || notebookCount) {

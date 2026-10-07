@@ -320,12 +320,41 @@ _SPECS: tuple[PatternSpec, ...] = (
         complete=True,
         near_miss=True,
     ),
+    # Lower/mixed case and dash-grouped IBANs (see _IBAN_ANYCASE_RE). Neither
+    # complete nor near_miss: the upper-case specs above keep the category
+    # claim, and a lower-case run that fails mod-97 is not a mistyped account.
+    PatternSpec(
+        "InternationalBankingAccountNumber",
+        _ANY,
+        generic._IBAN_ANYCASE_RE,
+        validate=generic._is_valid_iban_anysep,
+        post_filter=_digit_count_between(10, 32),
+        counts_near_miss=False,
+    ),
+    PatternSpec(
+        "InternationalBankingAccountNumber",
+        _ANY,
+        generic._IBAN_CONTIG_ANYCASE_RE,
+        validate=generic._is_valid_iban,
+        post_filter=_digit_count_between(10, 32),
+        counts_near_miss=False,
+    ),
     PatternSpec(
         "CreditCardNumber",
         _ANY,
         generic._CC_RE,
         validate=generic._is_valid_luhn,
         complete=True,
+    ),
+    # The bare run on its own (see _CC_BARE_RE): finds the card that _CC_RE
+    # lost by joining a neighbouring number. Luhn-valid only, not complete,
+    # not near_miss.
+    PatternSpec(
+        "CreditCardNumber",
+        _ANY,
+        generic._CC_BARE_RE,
+        validate=generic._is_valid_luhn,
+        counts_near_miss=False,
     ),
     # The grouped twin carries the near-miss (see _CC_GROUPED_RE): Luhn-fail
     # on the 4-4-4-4 / 4-6-5 grouping = mistyped card, emitted at 0.69;
@@ -533,7 +562,7 @@ def detect_regex_pii(
             validate=spec.validate,
             confidence=spec.confidence,
             pre_anchor=spec.pre_anchor,
-            near_miss_counts=near_miss,
+            near_miss_counts=near_miss if spec.counts_near_miss else None,
             near_miss=spec.near_miss,
         ):
             if spec.post_filter is None or spec.post_filter(ent):

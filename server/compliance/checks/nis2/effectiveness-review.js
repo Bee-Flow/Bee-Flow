@@ -73,8 +73,11 @@ module.exports = {
 
         const audit = await _latest(
             `SELECT MAX(closed_at) AS last FROM iso_audits WHERE organization_id = $1 AND status = 'closed'`, orgId);
+        // held_at is whatever date the admin typed (the register has no
+        // status): a review dated in the future is a planned one, not a review
+        // held, and must not hand the age gates a negative age.
         const review = await _latest(
-            `SELECT MAX(held_at) AS last FROM iso_management_reviews WHERE organization_id = $1`, orgId);
+            `SELECT MAX(held_at) AS last FROM iso_management_reviews WHERE organization_id = $1 AND held_at <= NOW()`, orgId);
         const sweep = await _latest(
             `SELECT MAX(captured_at) AS last FROM compliance_score_history WHERE organization_id = $1`, orgId);
 

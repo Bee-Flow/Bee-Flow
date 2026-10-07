@@ -109,7 +109,7 @@ async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
 
     const contextPrompt = `\n\n[WEBPAGE KNOWLEDGE BASE — USE THESE SOURCES]\nThe following passages were retrieved from the webpage's sources. Ground your design decisions, copy, and structure in this content.\n\n${kbText}`;
 
-    log.info(`[WebpageKBSearch] Found ${truncatedChunks.length} chunks (query: "${searchQuery.slice(0, 60)}", rerank: ${rerank})`);
+    log.info(`[WebpageKBSearch] Found ${truncatedChunks.length} chunks (query ${searchQuery.length} chars, rerank: ${rerank})`);
     return { chunks: truncatedChunks, contextPrompt, citations };
 }
 

@@ -39,6 +39,20 @@ test('the names read as personal data in the languages we ship', () => {
     assert.deepEqual(P.byName(null), []);
 });
 
+test('snake_case and camelCase names read as the words they were written from', () => {
+    // The patterns are \b-anchored, and an underscore or a camel hump is no
+    // word boundary: these keys all came back "no personal data".
+    assert.equal(P.kindFromName({ key: 'email_address' }), 'email');
+    assert.equal(P.kindFromName({ key: 'first_name', name: 'first_name' }), 'name');
+    assert.equal(P.kindFromName({ key: 'phoneNumber' }), 'phone');
+    // The patterns written with the underscore still match the raw key.
+    assert.equal(P.kindFromName({ key: 'id_number' }), 'id_number');
+    assert.equal(P.kindFromName({ key: 'account_number' }), 'financial');
+    // A word inside another word is still not that word.
+    assert.equal(P.kindFromName({ key: 'page_count' }), null);
+    assert.equal(P.kindFromName({ key: 'username' }), null);
+});
+
 test('every canonical guard category is either a kind of personal data or listed as not one', () => {
     // The old private map keyed on the category squashed to snake_case, which
     // no canonical id is — so 'PhoneNumber' matched nothing and a column of

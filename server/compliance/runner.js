@@ -30,7 +30,9 @@
  * One hanging evaluate() used to block the whole org sweep (and every org
  * after it — the scheduler runs orgs sequentially). Every evaluate() now races
  * a wall clock: past CHECK_TIMEOUT_MS the check is recorded as `fail` with the
- * timeout in its details, and the sweep moves on.
+ * timeout in its details, and the sweep moves on. listSubjects() and
+ * listCoverage() race the same clock: a listing that times out is an
+ * incomplete list, which retires nothing.
  *
  * COVERAGE — why a score is never allowed to stand alone (2026-09-21).
  *
@@ -69,6 +71,8 @@
  * RoPA page rather than a shrug. The per-run summary (examined / not examined
  * / which populations are unknown) rides on the score snapshot as `coverage`,
  * so the trend line records how much of the workspace each number covered.
+ * The pure pieces (the row's wording, the unknown-coverage row and the
+ * snapshot summary) live in compliance/coverage.js.
  *
  * ONE CONSTRAINT ON WHERE listCoverage() MAY GO, until routes/compliance/
  * checks.js is taught about the slot: that route renders every latest row of a
@@ -85,24 +89,15 @@ const frameworks = require('./frameworks');
 const frameworkPolicy = require('./frameworkPolicy');
 const complianceStore = require('../stores/complianceStore');
 const { computeScore, scoresByFramework, scoreNumbers, SNAPSHOT_COLUMN } = require('./score');
+const { onEvidenceWriteFailed } = require('./evidence/writeFailures');
+const { errorShape: _errorShape, errorLabel: _errorLabel, stackFrames: _stackFrames } = require('./lib/errorShape');
+const { COVERAGE_SCOPE, coverageVerdict, coverageFailure, coverageSummary } = require('./coverage');
 const log = require('../telemetry/log');
 
 // Wall-clock budget per evaluate(). Env override exists for tests and for a
 // self-hosted box whose telemetry probes are slow — not a tuning knob.
 const CHECK_TIMEOUT_MS = parseInt(process.env.COMPLIANCE_CHECK_TIMEOUT_MS || '30000', 10);
 const DEBUG = process.env.COMPLIANCE_RUNNER_DEBUG === '1';
-
-// The coverage row's slot. Constant per check so a new run overwrites the
-// previous coverage claim instead of adding a second one beside it — and
-// distinct from the `null` a global (or subject-less per-source) row uses, so
-// the two never collide in getLatestPerCheck or in the client's row key.
-const COVERAGE_SCOPE = 'coverage';
-// How many of the unexamined things to name in the sentence a human reads,
-// and how many to keep in the evidence row behind it. The count is always
-// exact; only the naming is capped, because a details line with 400 table
-// names in it is one nobody reads.
-const COVERAGE_NAMES_IN_DETAILS = 5;
-const COVERAGE_NAMES_IN_EVIDENCE = 50;
 
 class FrameworkDisabledError extends Error {
     constructor(checkId, regulation) {
@@ -124,6 +119,21 @@ function _hashPayload(payload) {
 function _humanTimeout(ms) {
     return ms % 1000 === 0 ? `${ms / 1000} s` : `${ms} ms`;
 }
+
+/** The sentence a timed-out step records, built from our own constants only. */
+function _timeoutText(label) {
+    return `${label} timed out after ${_humanTimeout(CHECK_TIMEOUT_MS)}`;
+}
+
+/**
+ * THROWN ERRORS. A check's evaluate() reads the database, and since round 2
+ * several readers (observedOperators.fromActivityLog, the Art. 30 list
+ * functions) rethrow instead of swallowing. The error's message never reaches
+ * the result row, its details, the evidence chain or the log; only its class
+ * and code do (lib/errorShape.js). The log line names the check, which is the
+ * reference the fixed details sentence points to.
+ */
+const CHECK_EXCEPTION_DETAILS = 'The check stopped with an error; see the server log for the reference.';
 
 /**
  * What of a subject enters the evidence chain: its id and nothing else.
@@ -190,14 +200,28 @@ async function _persistResult(check, orgId, result, runType, subject, scope = nu
         run_type: runType,
         subject: _evidenceSubject(subject),
     };
-    await complianceStore.addEvidence({
+    // The chain append can fail on its own after the result row landed (a lock
+    // timeout, a terminated backend). That must neither abort the rest of the
+    // org's sweep nor vanish: writeFailures counts the hole, and verifyChain
+    // reports it as write_failures.
+    const evidenceRow = {
         organization_id: orgId,
         check_id: check.id,
         subject_type: scopeType,
         subject_id: scopeId,
         hash: _hashPayload(payload),
         payload,
-    });
+    };
+    await complianceStore.addEvidence(evidenceRow).catch(onEvidenceWriteFailed(evidenceRow));
+}
+
+/** listSubjects() under the same wall clock as evaluate(): a hung listing must not stall the sweep. */
+function _listSubjectsTimed(check, orgId) {
+    return _withTimeout(
+        Promise.resolve().then(() => check.listSubjects(orgId)),
+        CHECK_TIMEOUT_MS,
+        'listSubjects',
+    );
 }
 
 /**
@@ -240,69 +264,19 @@ async function _runSafe(check, orgId, subject) {
             return {
                 status: 'fail',
                 evidence: { error: 'timeout', timeout_ms: CHECK_TIMEOUT_MS, elapsed_ms: ms },
-                details: e.message,
+                details: _timeoutText('check'),
             };
         }
-        log.error(`[ComplianceRunner] ${check.id} threw:`, e.message);
+        // The log names the check (the reference the details point to), the
+        // error's class and code and where it was thrown; see THROWN ERRORS.
+        const shape = _errorShape(e);
+        log.error(`[ComplianceRunner] ${check.id} threw ${_errorLabel(e)}`, _stackFrames(e));
         return {
             status: 'fail',
-            evidence: { error: e.message },
-            details: `Check raised an exception: ${e.message}`,
+            evidence: { error: 'check_exception', name: shape.name, code: shape.code },
+            details: CHECK_EXCEPTION_DETAILS,
         };
     }
-}
-
-/**
- * Turn a check's coverage report into the row a human reads.
- *
- * The wording is deliberately about US, not about the things listed. A Studio
- * table nobody registered is not thereby unlawful — it may hold no personal
- * data at all — so this never says "breach". What it says is that the verdicts
- * above did not look at it, which is a fact about the completeness of the
- * score and is exactly what an admin needs to know before reading the number
- * as an answer. The names are in the sentence so the next click is obvious.
- */
-function _coverageVerdict(check, report) {
-    const label = (report.label || report.kind || 'items').toLowerCase();
-    // What "examined" MEANS here is the check's word, not the runner's — this
-    // module has no business knowing what a Studio table or a register is.
-    const examinedAs = report.examined_as || 'examined';
-    const nextStep = report.next_step ? ` ${report.next_step}` : '';
-    const all = Array.isArray(report.unexamined) ? report.unexamined : [];
-    const total = Number(report.total) || 0;
-    const examined = Number(report.examined) || 0;
-    const missing = all.length;
-    const evidence = {
-        kind: report.kind || null,
-        label: report.label || null,
-        total,
-        examined,
-        unexamined_count: missing,
-        unexamined: all.slice(0, COVERAGE_NAMES_IN_EVIDENCE).map(u => ({ id: u.id ?? null, label: u.label ?? String(u.id ?? '') })),
-        unexamined_truncated: missing > COVERAGE_NAMES_IN_EVIDENCE,
-        link: report.link || check.remediationLink || null,
-    };
-
-    if (total === 0) {
-        return { status: 'not_applicable', evidence, details: `This organisation has no ${label}, so there is nothing outside what this check examined.` };
-    }
-    if (missing === 0) {
-        return { status: 'pass', evidence, details: `All ${total} of this organisation's ${label} were ${examinedAs}, so the verdicts above cover every one of them.` };
-    }
-    const named = all.slice(0, COVERAGE_NAMES_IN_DETAILS).map(u => `"${u.label ?? u.id}"`).join(', ');
-    const andMore = missing > COVERAGE_NAMES_IN_DETAILS ? `, and ${missing - COVERAGE_NAMES_IN_DETAILS} more` : '';
-    if (examined === 0) {
-        return {
-            status: 'fail',
-            evidence,
-            details: `None of this organisation's ${total} ${label} has ever been ${examinedAs}, so this check examined nothing at all and the score says nothing about them: ${named}${andMore}.${nextStep}`,
-        };
-    }
-    return {
-        status: 'warn',
-        evidence,
-        details: `${missing} of this organisation's ${total} ${label} have never been ${examinedAs}, so nothing above judged them and the score covers only the other ${examined}: ${named}${andMore}.${nextStep}`,
-    };
 }
 
 /**
@@ -326,54 +300,15 @@ async function _runCoverage(check, orgId, runType) {
             'coverage',
         );
         if (!report || typeof report !== 'object') throw new Error('listCoverage returned no report');
-        result = _coverageVerdict(check, report);
+        result = coverageVerdict(check, report);
     } catch (e) {
-        log.warn(`[ComplianceRunner] ${check.id} listCoverage failed:`, e.message);
-        result = {
-            status: 'warn',
-            evidence: { kind: null, label: null, total: null, examined: null, unexamined_count: null, unexamined: [], unknown: true, error: e.message, link: check.remediationLink || null },
-            details: `How much of this organisation this check actually covered could not be established (${e.message}), so the score above is over an unknown share of it. Re-run once the source is readable.`,
-        };
+        // Same rule as _runSafe (THROWN ERRORS): class and code, never the message.
+        log.warn(`[ComplianceRunner] ${check.id} listCoverage failed: ${_errorLabel(e)}`);
+        result = coverageFailure(check, e, e?.code === 'check_timeout' ? _humanTimeout(CHECK_TIMEOUT_MS) : null);
     }
     const row = { check_id: check.id, regulation: check.regulation, scope: COVERAGE_SCOPE, subject: null, ...result };
     await _persistResult(check, orgId, result, runType, null, { type: COVERAGE_SCOPE, id: COVERAGE_SCOPE });
     return row;
-}
-
-/**
- * The run-level answer to "what was this score computed over". Built from the
- * coverage rows the sweep just wrote, so there is one source of the numbers.
- * `complete` is narrow on purpose: it means every population that CAN be
- * counted was fully examined — not that everything in the product was, since
- * a check that declares no population is not counted either way.
- */
-function _coverageSummary(results) {
-    const rows = results.filter(r => r.scope === COVERAGE_SCOPE);
-    if (!rows.length) return null;
-    let total = 0, examined = 0, unexamined = 0, unknown = 0;
-    const populations = [];
-    for (const r of rows) {
-        const e = r.evidence || {};
-        if (e.unknown) {
-            unknown++;
-            populations.push({ check_id: r.check_id, kind: e.kind || null, label: e.label || null, unknown: true });
-            continue;
-        }
-        total += Number(e.total) || 0;
-        examined += Number(e.examined) || 0;
-        unexamined += Number(e.unexamined_count) || 0;
-        populations.push({
-            check_id: r.check_id,
-            kind: e.kind || null,
-            label: e.label || null,
-            total: Number(e.total) || 0,
-            examined: Number(e.examined) || 0,
-            unexamined: Number(e.unexamined_count) || 0,
-            link: e.link || null,
-            sample: (e.unexamined || []).slice(0, COVERAGE_NAMES_IN_DETAILS),
-        });
-    }
-    return { total, examined, unexamined, unknown_populations: unknown, complete: unexamined === 0 && unknown === 0, populations };
 }
 
 /**
@@ -433,7 +368,7 @@ async function _retireVanished(check, orgId, runType, liveIds) {
     try {
         slots = await complianceStore.listLatestScopes(orgId, check.id) || [];
     } catch (e) {
-        log.warn(`[ComplianceRunner] ${check.id} could not read its slots to retire vanished subjects:`, e.message);
+        log.warn(`[ComplianceRunner] ${check.id} could not read its slots to retire vanished subjects: ${_errorLabel(e)}`);
         return 0;
     }
     let retired = 0;
@@ -457,9 +392,9 @@ async function _runVerdicts(check, orgId, runType) {
         // A list that could not be read is incomplete by definition.
         let listing = { subjects: [], complete: false };
         try {
-            listing = _asListing(check, await check.listSubjects(orgId));
+            listing = _asListing(check, await _listSubjectsTimed(check, orgId));
         } catch (e) {
-            log.warn(`[ComplianceRunner] ${check.id} listSubjects failed:`, e.message);
+            log.warn(`[ComplianceRunner] ${check.id} listSubjects failed: ${_errorLabel(e)}`);
         }
         const { subjects, complete } = listing;
         if (!subjects.length) {
@@ -515,7 +450,7 @@ async function _runCustom(orgId, runType) {
     try {
         return await customRunner.runAll(orgId, { runType });
     } catch (e) {
-        log.warn(`[ComplianceRunner] custom frameworks run failed for org="${orgId}":`, e.message);
+        log.warn(`[ComplianceRunner] custom frameworks run failed for org="${orgId}": ${_errorLabel(e)}`);
         return null;
     }
 }
@@ -581,7 +516,7 @@ async function runAll(orgId, { runType = 'scheduled', frameworks: only = null } 
                 // it" and "how much of the org it covered" have to stay the
                 // same pair forever — a trend point that lost its coverage
                 // would be the false green again, one release later.
-                coverage: _coverageSummary(results),
+                coverage: coverageSummary(results),
             };
             // The three legacy columns are the same numbers under their old
             // names; an inactive (locked) core framework stays NULL.
@@ -590,7 +525,7 @@ async function runAll(orgId, { runType = 'scheduled', frameworks: only = null } 
             }
             await complianceStore.recordScoreSnapshot(snapshot);
         } catch (e) {
-            log.warn('[ComplianceRunner] score snapshot failed:', e.message);
+            log.warn(`[ComplianceRunner] score snapshot failed: ${_errorLabel(e)}`);
         }
     }
     _invalidateCounts(orgId);
@@ -662,16 +597,12 @@ async function runForSubject(orgId, subjectIds, { runType = 'event' } = {}) {
         if (!active.has(check.regulation)) continue;
         let subjects;
         try {
-            subjects = _asListing(check, await _withTimeout(
-                Promise.resolve().then(() => check.listSubjects(orgId)),
-                CHECK_TIMEOUT_MS,
-                'listSubjects',
-            )).subjects;
+            subjects = _asListing(check, await _listSubjectsTimed(check, orgId)).subjects;
         } catch (e) {
             // One check that cannot enumerate its population must not stop the
             // others from judging this automation. Nothing is persisted for it —
             // its previous row stands, and the scheduled sweep will try again.
-            log.warn(`[ComplianceRunner] ${check.id} listSubjects failed during subject review:`, e.message);
+            log.warn(`[ComplianceRunner] ${check.id} listSubjects failed during subject review: ${_errorLabel(e)}`);
             continue;
         }
         for (const subj of subjects) {
@@ -705,7 +636,8 @@ async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } =
     if (!active.has(check.regulation)) throw new FrameworkDisabledError(check.id, check.regulation);
 
     if (check.scope === 'per-source' && typeof check.listSubjects === 'function') {
-        const listing = _asListing(check, await check.listSubjects(orgId));
+        // A timeout rejects to the caller, like any other listSubjects error.
+        const listing = _asListing(check, await _listSubjectsTimed(check, orgId));
         const whole = !subjectId && listing.complete;
         let subjects = listing.subjects;
         if (subjectId) subjects = subjects.filter(s => String(s.id) === String(subjectId));
@@ -733,9 +665,17 @@ async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } =
     return { check_id: check.id, scope: 'global', subject: null, ...r };
 }
 
+/** An option NAME worth recording: identifier-shaped, so a key cannot smuggle text in. */
+const OPT_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+
 /**
  * Invoke a check's autoFix(orgId, opts) handler if defined and persist an
  * evidence row capturing the action for audit. Returns the autofix output.
+ *
+ * Same activity gate as runOne: a stale tab must not apply a switched-off
+ * framework's fix. The check receives the full opts; the append-only chain
+ * gets the subject id and the option NAMES only — the route forwards the
+ * request body as it came, and free text in it must never become permanent.
  */
 async function autoFix(orgId, checkId, opts = {}) {
     const check = registry.get(checkId);
@@ -743,11 +683,17 @@ async function autoFix(orgId, checkId, opts = {}) {
     if (typeof check.autoFix !== 'function') {
         throw new Error(`Check ${checkId} does not support auto-fix`);
     }
+    const active = await frameworkPolicy.activeRegulations(orgId);
+    if (!active.has(check.regulation)) throw new FrameworkDisabledError(check.id, check.regulation);
     const result = await check.autoFix(orgId, opts);
     const payload = {
         action: 'auto-fix',
         check_id: checkId,
-        opts,
+        opts: { subjectId: opts?.subjectId ?? null },
+        opt_keys: Object.keys(opts || {})
+            .filter(k => k !== 'actorId' && OPT_KEY_RE.test(k))
+            .sort()
+            .slice(0, 20),
         result,
         actor: opts.actorId || null,
         at: new Date().toISOString(),
@@ -766,7 +712,7 @@ async function autoFix(orgId, checkId, opts = {}) {
 module.exports = {
     runAll, runFramework, runOne, runForSubject, autoFix,
     FrameworkDisabledError, CHECK_TIMEOUT_MS, COVERAGE_SCOPE,
-    // Exported for the tests: the pure pieces of the coverage answer and of
-    // "is this subject list the whole population".
-    _coverageVerdict, _coverageSummary, _asListing,
+    // Exported for the tests: the pure pieces of the coverage answer
+    // (compliance/coverage.js) and of "is this subject list the whole population".
+    _coverageVerdict: coverageVerdict, _coverageSummary: coverageSummary, _asListing,
 };

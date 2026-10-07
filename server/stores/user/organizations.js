@@ -64,6 +64,18 @@ async function getSingleOrgId() {
     return rows.length === 1 ? rows[0].id : null;
 }
 
+/**
+ * Does this installation have any organisation at all? The 'default' bucket
+ * (users without an organisation) counts as an employee bucket for chat
+ * signals only on an installation without one (amendment 18).
+ * @returns {Promise<boolean>}
+ */
+async function hasAnyOrganization() {
+    await initDB();
+    const row = await getOne('SELECT 1 AS one FROM organizations LIMIT 1');
+    return !!row;
+}
+
 // Find an un-bound organisation that "owns" an email domain, used by the
 // connector bootstrap to route a same-domain Nextcloud install into the
 // email-code verification flow (vs. creating a fresh org). Matches either an
@@ -544,7 +556,7 @@ async function backfillAutoProvisionedNcOrgNames() {
 }
 
 module.exports = {
-    getAllOrganizations, getSingleOrgId, getOrganization, getOrganizationByNcInstanceId,
+    getAllOrganizations, getSingleOrgId, hasAnyOrganization, getOrganization, getOrganizationByNcInstanceId,
     createOrganization, updateOrganization, deleteOrganization,
     findUnboundOrgByEmailDomain,
     getOrgEnabledIntegrations, setOrgEnabledIntegrations, getOrgEnabledBetaFeatures, setOrgEnabledBetaFeatures,

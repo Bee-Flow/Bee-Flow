@@ -5,6 +5,7 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import useConfirm from '../../../shared/useConfirm';
 import StatusPill from '../shared/StatusPill';
 import { PAGE_FRAME } from './audits/auditForms';
+import ChatMonitoringCard from './settings/chatMonitoring/ChatMonitoringCard';
 import { SETTINGS_GROUPS, normaliseSettings, buildSettingsBody, groupIsInactive } from './settings/settingsFields';
 import SettingsGroup from './settings/SettingsGroup';
 import { groupProgress } from './settings/settingsLayout';
@@ -37,8 +38,12 @@ import { groupProgress } from './settings/settingsLayout';
  * pane); the groups sit in an 860px column, and the Save bar is a sticky
  * footer outside that padded column, so nothing scrolls visibly under it.
  *
+ * Chat signals are NOT a settings group: ChatMonitoringCard sits below the
+ * active groups with its own route and its own Save, and none of its columns
+ * pass through this form, its save body or its sticky Save bar.
+ *
  * Page props object per fe-1: `data.core.settings` / `data.core.saveSettings`,
- * `data.orgUsers`, `data.frameworks`, `setLeaveGuard`.
+ * `data.orgUsers`, `data.frameworks`, `setLeaveGuard`, `navigate`.
  */
 
 /** Groups that open by default — the rest is one click away. */
@@ -122,7 +127,7 @@ function useLeaveGuard(dirty, setLeaveGuard) {
     return confirmDialog;
 }
 
-export default function SettingsPage({ data = {}, isMobile = false, setLeaveGuard = null }) {
+export default function SettingsPage({ data = {}, isMobile = false, setLeaveGuard = null, navigate = null }) {
     const { t } = useTranslation();
     const core = data.core || {};
     const frameworks = data.frameworks || null;
@@ -194,6 +199,11 @@ export default function SettingsPage({ data = {}, isMobile = false, setLeaveGuar
                 {activeGroups.map(g => (
                     <SettingsGroup key={g.id} {...groupProps(g, false)} sectionFooters={g.id === 'general' ? generalFooters : null} />
                 ))}
+
+                <ChatMonitoringCard
+                    orgName={core.overview?.settings?.org_name || core.overview?.organization_name || null}
+                    onOpenChecks={typeof navigate === 'function' ? () => navigate('gdpr') : null}
+                />
 
                 {offGroups.length > 0 && (
                     <FrameworksOff groups={offGroups} open={offOpen} onToggle={setOffOpen} t={t}>

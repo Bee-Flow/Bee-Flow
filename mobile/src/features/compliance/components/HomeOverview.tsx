@@ -88,10 +88,15 @@ function AttentionGroup({ enabled }: { enabled: boolean }) {
     return <Group title={t('compliance.mob_needs_attention', 'Needs attention')}>{body}</Group>;
 }
 
+/**
+ * "CRA notification (72 h) · CRA Art. 14(2)(b)": the kind, then the article
+ * as the server wrote it — a full citation ("GDPR Art. 33 · NIS2 Art. 23(4)"),
+ * so it is never wrapped in another "Art.". An attestation's expiry has no
+ * statutory clock and sends no article.
+ */
 function deadlineMeta(d: DeadlineItem, t: TranslateFn): string | undefined {
     const kind = d.kind ? t(`compliance.deadline_kind_${d.kind}`, d.kind) : null;
-    const article = d.meta.article ? t('compliance.mob_article', 'Art. {ref}', { ref: d.meta.article }) : null;
-    return [kind, article].filter(Boolean).join(' · ') || undefined;
+    return [kind, d.meta.article].filter(Boolean).join(' · ') || undefined;
 }
 
 function DeadlinesGroup({ enabled }: { enabled: boolean }) {

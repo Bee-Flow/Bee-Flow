@@ -14,12 +14,26 @@ const dns = require('node:dns').promises;
 
 const COMMON_DKIM_SELECTORS = ['default', 'google', 'selector1', 'selector2', 'k1', 'mail', 's1'];
 
-async function _txt(name) {
+// Node's answers for "no TXT record here" (ENODATA) and "no such name"
+// (NXDOMAIN, ENOTFOUND). Anything else (SERVFAIL, a timeout, a refused query)
+// says nothing about the record.
+const ABSENT = new Set(['ENODATA', 'ENOTFOUND']);
+
+/**
+ * TXT records of `name`. Strict (the default) throws when the lookup itself
+ * failed, so a transient resolver error fails the sweep: the collector then
+ * keeps the last snapshot and marks the connector row 'error', instead of
+ * recording "SPF/DMARC absent" and raising a drift notice. The DKIM selector
+ * probes are not strict: NXDOMAIN is the normal answer there, and DKIM alone
+ * never fails the check.
+ */
+async function _txt(name, { strict = true } = {}) {
     try {
         const rows = await dns.resolveTxt(name);
         return rows.map(parts => parts.join('')).filter(Boolean);
-    } catch {
-        return [];
+    } catch (e) {
+        if (!strict || ABSENT.has(e?.code)) return [];
+        throw new Error(`DNS lookup for ${name} failed (${e?.code || 'error'})`);
     }
 }
 
@@ -38,8 +52,10 @@ module.exports = {
 
         const spfRecords = (await _txt(domain)).filter(r => r.toLowerCase().startsWith('v=spf1'));
         const dmarcRecords = (await _txt(`_dmarc.${domain}`)).filter(r => r.toLowerCase().startsWith('v=dmarc1'));
+        // The p= tag itself, anchored to a tag boundary: a bare /p=/ also
+        // matched the p= inside sp=none and read 'sp=none; p=reject' as 'none'.
         const dmarcPolicy = dmarcRecords.length
-            ? (dmarcRecords[0].match(/p=([a-z]+)/i)?.[1] || 'none').toLowerCase()
+            ? (dmarcRecords[0].match(/(?:^|;)\s*p\s*=\s*([a-z]+)/i)?.[1] || 'none').toLowerCase()
             : null;
 
         const selectors = [...new Set([
@@ -48,8 +64,10 @@ module.exports = {
         ])];
         const dkimFound = [];
         for (const sel of selectors) {
-            const rows = await _txt(`${sel}._domainkey.${domain}`);
-            if (rows.some(r => /v=dkim1|k=rsa|p=/i.test(r))) dkimFound.push(sel);
+            const rows = await _txt(`${sel}._domainkey.${domain}`, { strict: false });
+            // A published key is a non-empty p= tag; an empty p= is a revoked
+            // key (RFC 6376 section 3.6.1), not a DKIM key in use.
+            if (rows.some(r => /(?:^|;)\s*p\s*=\s*[A-Za-z0-9+/]/.test(r))) dkimFound.push(sel);
         }
 
         return [{

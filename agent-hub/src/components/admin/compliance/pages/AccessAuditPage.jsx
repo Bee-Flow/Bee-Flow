@@ -1,12 +1,13 @@
+import { Download, Filter } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { ScrollText, Download, Filter, LogIn, LogOut, ShieldOff, Globe, Users } from 'lucide-react';
+import { actionLabel, actorName, detailOf, metaFor, subjectOf, when } from './accessAuditLabels';
+import { Field, DateInput, UserSelect, ActionButton, Intro, ReadFailed, RegisterLayout } from './audits/auditForms';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
+import EmptyState from '../../../shared/EmptyState';
 import FilterPills from '../../../shared/FilterPills';
 import Pager from '../../../shared/Pager';
-import EmptyState from '../../../shared/EmptyState';
 import { TONES } from '../../../shared/statusTone';
-import { Field, TextInput, DateInput, ActionButton, Intro, ReadFailed, RegisterLayout } from './audits/auditForms';
 
 /**
  * AccessAuditPage — the access & authentication trail (ISO/IEC 27001 A.8.15 and
@@ -27,71 +28,39 @@ import { Field, TextInput, DateInput, ActionButton, Intro, ReadFailed, RegisterL
  * Redaction (BFSF-441 / the legacy test's rules): a refused sign-in NEVER
  * renders what was typed. The identifier fingerprint is a correlation handle,
  * shown as a short tag, never as a value to read.
+ *
+ * Names, not ids (accessAuditLabels): an event reads as words, the actor by
+ * display name with the id in the tooltip, and a data-subject request as
+ * "Request #2417", a link to that request.
  */
 
-/** Actions the log writes, so the list reads as events rather than ids. */
-export const ACTION_META = {
-    login_succeeded: { icon: LogIn, tone: 'success', key: 'compliance.aa_action_login_ok', en: 'Signed in' },
-    login_failed: { icon: LogOut, tone: 'warning', key: 'compliance.aa_action_login_fail', en: 'Sign-in refused' },
-    login_blocked: { icon: ShieldOff, tone: 'error', key: 'compliance.aa_action_login_blocked', en: 'Sign-in blocked' },
-    studio_app_published: { icon: Users, tone: 'neutral', key: 'compliance.aa_action_app_published', en: 'App published' },
-    studio_app_unpublished: { icon: Users, tone: 'neutral', key: 'compliance.aa_action_app_unpublished', en: 'App unpublished' },
-    studio_app_public_page_created: { icon: Globe, tone: 'error', key: 'compliance.aa_action_public_page_created', en: 'Public URL created' },
-    studio_app_public_page_revoked: { icon: Globe, tone: 'neutral', key: 'compliance.aa_action_public_page_revoked', en: 'Public URL revoked' },
-};
-
-export function metaFor(action) {
-    return ACTION_META[action] || { icon: ScrollText, tone: 'neutral', key: null, en: action };
-}
-
-/** Local time, seconds included — a minute is not enough to order a burst of failures. */
-export function when(iso) {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' });
-}
-
-/**
- * What a row is ABOUT, in one line — never the raw payload, and never the
- * fingerprint: an account name that matched nothing is shown as exactly that.
- */
-export function subjectOf(row, t) {
-    const d = row.new_values || {};
-    if (row.target_type === 'login_identifier') {
-        return t('compliance.aa_subject_unknown_account', 'an account name that matched nothing');
+/** The subject cell: a request is a link to it, anything else is text. */
+function Subject({ row, t, navigate, orgUsers = null, className = '' }) {
+    const text = subjectOf(row, t, orgUsers);
+    if (row.target_type === 'dsr_request' && row.target_id && typeof navigate === 'function') {
+        return (
+            <button type="button" onClick={() => navigate('dsr', row.target_id)} data-testid={`access-audit-subject-${row.id}`}
+                className={`p-0 border-0 bg-transparent text-left underline decoration-[var(--border-default)] underline-offset-2 hover:decoration-current cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${className}`.trim()}>
+                {text}
+            </button>
+        );
     }
-    if (row.target_type === 'studio_app') {
-        return d.appName || row.target_id;
-    }
-    return row.target_id;
-}
-
-/** The detail line, from an explicit allow-list of payload keys. */
-export function detailOf(row, t) {
-    const d = row.new_values || {};
-    return [
-        d.method,
-        d.reason,
-        d.audience,
-        d.ip,
-        d.identifierFingerprint
-            ? t('compliance.aa_same_name_tag', 'same-name tag {tag}', { tag: String(d.identifierFingerprint).slice(-6) })
-            : null,
-    ].filter(Boolean).join(' · ') || '—';
+    return <span className={className}>{text}</span>;
 }
 
 const COLUMNS = Object.freeze([
     Object.freeze({ id: 'when', label: 'compliance.aa_col_when', width: '190px' }),
     Object.freeze({ id: 'event', label: 'compliance.aa_col_event', width: '170px' }),
     Object.freeze({ id: 'subject', label: 'compliance.aa_col_subject', width: '1fr' }),
-    Object.freeze({ id: 'actor', label: 'compliance.aa_col_actor', width: '150px', foldBelow: 1180 }),
+    Object.freeze({ id: 'actor', label: 'compliance.aa_col_actor', width: '150px', foldBelow: 900 }),
     Object.freeze({ id: 'detail', label: 'compliance.aa_col_detail', width: '1fr', foldBelow: 1180 }),
 ]);
 const COLUMN_FALLBACKS = Object.freeze({ when: 'When', event: 'Event', subject: 'Subject', actor: 'By', detail: 'Detail' });
 
-export default function AccessAuditPage({ data = {}, isMobile = false, exportsEnabled = true, dl }) {
-    const { t } = useTranslation();
+export default function AccessAuditPage({ data = {}, isMobile = false, exportsEnabled = true, dl, navigate = undefined }) {
+    const { t, resolvedLocale } = useTranslation();
     const state = data.accessAudit || {};
+    const orgUsers = data.orgUsers ?? null;
     const [showFilters, setShowFilters] = useState(false);
 
     const log = state.data;
@@ -109,21 +78,39 @@ export default function AccessAuditPage({ data = {}, isMobile = false, exportsEn
 
     // Built from what the log CONTAINS, so an action a later feature starts
     // writing appears here without anyone registering it, and one that never
-    // happened in this organisation is not offered.
+    // happened in this organisation is not offered. An entry may be a bare
+    // action string (no count) as well as { action, count }.
     const pillOptions = useMemo(() => ([
         { value: '', label: t('compliance.aa_filter_any', 'Any') },
-        ...(Array.isArray(state.actions) ? state.actions : []).map(a => {
-            const meta = metaFor(a.action);
-            return {
-                value: a.action,
-                label: meta.key ? t(meta.key, meta.en) : a.action,
-                count: a.count,
-                tone: meta.tone,
-            };
-        }),
+        ...(Array.isArray(state.actions) ? state.actions : [])
+            .map(a => (typeof a === 'string' ? { action: a } : a))
+            .filter(a => a && typeof a.action === 'string' && a.action)
+            .map(a => ({ value: a.action, label: actionLabel(a.action, t), count: a.count, tone: metaFor(a.action).tone })),
     ]), [state.actions, t]);
 
+    // The account filter picks a member by name. An actor the roster does not
+    // hold (a former member, the platform itself) is offered too while the log
+    // on screen names it, and stays selectable while it is the active filter:
+    // the free-text id field it replaced could filter on those as well.
+    const actorOptions = useMemo(() => {
+        const list = Array.isArray(orgUsers) ? orgUsers : [];
+        const known = new Set(list.map(u => String(u.id)));
+        const extra = [];
+        const add = (id) => {
+            if (!id || id === 'anonymous' || known.has(String(id))) return;
+            known.add(String(id));
+            extra.push(id === 'system' ? { id, displayName: t('compliance.aa_actor_system', 'System') } : { id });
+        };
+        for (const r of Array.isArray(rows) ? rows : []) add(r?.changed_by);
+        add(filter.actor);
+        return extra.length ? [...list, ...extra] : list;
+    }, [orgUsers, rows, filter.actor, t]);
+
     const set = (patch) => state.setFilter?.({ ...filter, ...patch });
+    const byLine = (r) => {
+        const name = actorName(r, orgUsers, t);
+        return name ? t('compliance.aa_by', 'by {name}', { name }) : null;
+    };
 
     if (failed) {
         return (
@@ -184,11 +171,12 @@ export default function AccessAuditPage({ data = {}, isMobile = false, exportsEn
                     <Field label={t('compliance.aa_filter_until', 'To')} className="w-[160px]">
                         <DateInput value={filter.until || ''} onChange={(v) => set({ until: v || undefined })} data-testid="access-audit-until" />
                     </Field>
-                    <Field label={t('compliance.aa_filter_actor', 'Account')} className="w-[200px]">
-                        <TextInput
+                    <Field label={t('compliance.aa_filter_actor', 'Account')} className="w-[220px]">
+                        <UserSelect
                             value={filter.actor || ''}
+                            orgUsers={actorOptions}
+                            noneLabel={t('compliance.aa_filter_any', 'Any')}
                             onChange={(v) => set({ actor: v || undefined })}
-                            placeholder={t('compliance.aa_filter_actor_ph', 'user id')}
                             data-testid="access-audit-actor"
                         />
                     </Field>
@@ -224,37 +212,49 @@ export default function AccessAuditPage({ data = {}, isMobile = false, exportsEn
                     const meta = metaFor(r.action);
                     const Icon = meta.icon;
                     const tone = TONES[meta.tone] ? meta.tone : 'neutral';
+                    const by = byLine(r);
+                    const detail = detailOf(r, t);
                     return (
                         <TableRow columns={ctx.columns} testId={`access-audit-row-${r.id}`}>
                             <TableCell column={ctx.columns[0]}>
-                                <span className="whitespace-nowrap text-[var(--text-secondary)]">{when(r.created_at)}</span>
+                                <span className="whitespace-nowrap text-[var(--text-secondary)] tabular-nums">{when(r.created_at, resolvedLocale)}</span>
                             </TableCell>
                             <TableCell column={ctx.columns[1]}>
                                 <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: TONES[tone]?.ink || 'var(--text-primary)' }}>
                                     <Icon size={13} aria-hidden="true" />
-                                    {meta.key ? t(meta.key, meta.en) : r.action}
+                                    {actionLabel(r.action, t)}
                                 </span>
                             </TableCell>
                             <TableCell column={ctx.columns[2]}>
-                                <span className="text-[var(--text-primary)] [overflow-wrap:anywhere]">{subjectOf(r, t)}</span>
+                                <Subject row={r} t={t} navigate={navigate} orgUsers={orgUsers} className="text-[var(--text-primary)] [overflow-wrap:anywhere]" />
+                                {/* The actor while the By column is folded. */}
+                                {by && <div className="text-[11px] text-[var(--text-tertiary)] truncate"><span className={TABLE_FOLDED_ONLY[900]} title={r.changed_by}>{by}</span></div>}
+                                {/* The detail (method, reason, address, same-name tag) while its own column is folded. */}
+                                {detail !== '—' && <div className="text-[11px] text-[var(--text-tertiary)] [overflow-wrap:anywhere]"><span className={TABLE_FOLDED_ONLY[1180]} data-testid={`access-audit-folded-detail-${r.id}`}>{detail}</span></div>}
                             </TableCell>
                             <TableCell column={ctx.columns[3]}>
-                                <span className="truncate text-[var(--text-secondary)]">{r.changed_by || '—'}</span>
+                                <span className="truncate text-[var(--text-secondary)]" title={r.changed_by || undefined} data-testid={`access-audit-actor-${r.id}`}>{actorName(r, orgUsers, t) || '—'}</span>
                             </TableCell>
                             <TableCell column={ctx.columns[4]}>
-                                <span className="text-[var(--text-secondary)] [overflow-wrap:anywhere]">{detailOf(r, t)}</span>
+                                <span className="text-[var(--text-secondary)] [overflow-wrap:anywhere]">{detail}</span>
                             </TableCell>
                         </TableRow>
                     );
                 }}
-                renderCard={(r) => (
-                    <div className="flex flex-col gap-0.5 px-3.5 py-2.5" data-testid={`access-audit-card-${r.id}`}>
-                        <span className="text-[11px] text-[var(--text-tertiary)]">{when(r.created_at)}</span>
-                        <span className="text-xs font-semibold text-[var(--text-primary)]">{metaFor(r.action).key ? t(metaFor(r.action).key, metaFor(r.action).en) : r.action}</span>
-                        <span className="text-[11px] text-[var(--text-secondary)]">{subjectOf(r, t)}</span>
-                        <span className="text-[11px] text-[var(--text-tertiary)]">{detailOf(r, t)}</span>
-                    </div>
-                )}
+                renderCard={(r) => {
+                    const by = byLine(r);
+                    const detail = detailOf(r, t);
+                    return (
+                        <div className="flex flex-col gap-0.5 min-w-0" data-testid={`access-audit-card-${r.id}`}>
+                            <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">{when(r.created_at, resolvedLocale)}</span>
+                            <span className="text-xs font-semibold text-[var(--text-primary)]">{actionLabel(r.action, t)}</span>
+                            <Subject row={r} t={t} navigate={navigate} orgUsers={orgUsers} className="text-[11px] text-[var(--text-secondary)] [overflow-wrap:anywhere]" />
+                            {by && <span className="text-[11px] text-[var(--text-secondary)]" title={r.changed_by}>{by}</span>}
+                            {/* As in the table: a row without a detail adds no empty line. */}
+                            {detail !== '—' && <span className="text-[11px] text-[var(--text-tertiary)]" data-testid={`access-audit-card-detail-${r.id}`}>{detail}</span>}
+                        </div>
+                    );
+                }}
             />
         </RegisterLayout>
     );

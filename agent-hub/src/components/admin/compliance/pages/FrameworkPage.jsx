@@ -1,9 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
-import { frameworkOf } from '../sections';
-import ChecksTable from './framework/ChecksTable';
-import TimelineTab from './framework/TimelineTab';
-import EvidenceTab from './framework/EvidenceTab';
+import { frameworkOf, tabsOf } from '../sections';
+import { PAGE_FRAME } from './audits/auditForms';
 import { checksForRegulation, canFollow } from './framework/checkSort';
+import ChecksTable from './framework/ChecksTable';
+import EvidenceTab from './framework/EvidenceTab';
+import TimelineTab from './framework/TimelineTab';
+import PerAutomationTab from './frameworks/PerAutomationTab';
 
 /**
  * FrameworkPage — artboard 1b, the page behind EVERY framework section
@@ -22,9 +24,10 @@ import { checksForRegulation, canFollow } from './framework/checkSort';
  *   checks   → toolbar + ChecksTable (+ expansion rows)
  *   timeline → TimelinePhases + the framework's calendar rows
  *   evidence → paged evidence ledger (GET /evidence?regulation=)
+ *   systems  → the AI Act only: the ladder outcome per agent / automation
+ *              (PerAutomationTab; its row action is `onOpenLadder(kind, id, title)`)
+ * A section's own tab list (sections.js `tabs`) says which of these it has.
  */
-
-export const FRAMEWORK_TABS = Object.freeze(['checks', 'timeline', 'evidence']);
 
 export default function FrameworkPage({
     section,
@@ -37,11 +40,13 @@ export default function FrameworkPage({
     dl = (url) => url,
     data = {},
     isMobile = false,
+    onOpenLadder = undefined,
 }) {
     const sectionId = typeof section === 'string' ? section : section?.id;
     const regulation = frameworkOf(sectionId);
     const core = data?.core || {};
-    const activeTab = FRAMEWORK_TABS.includes(tab) ? tab : 'checks';
+    const ownTabs = tabsOf(sectionId);
+    const activeTab = ownTabs.includes(tab) ? tab : 'checks';
 
     const allChecks = core.checks;
     const checks = useMemo(() => checksForRegulation(allChecks, regulation), [allChecks, regulation]);
@@ -62,7 +67,7 @@ export default function FrameworkPage({
     if (!regulation) return null;
 
     return (
-        <div className="h-full min-h-0 overflow-y-auto p-4 flex flex-col gap-4" data-testid="framework-page" data-regulation={regulation} data-tab={activeTab}>
+        <div className={`h-full min-h-0 overflow-y-auto ${PAGE_FRAME}`} data-testid="framework-page" data-regulation={regulation} data-tab={activeTab}>
             {activeTab === 'checks' && (
                 <ChecksTable
                     checks={checks}
@@ -85,10 +90,13 @@ export default function FrameworkPage({
                 />
             )}
             {activeTab === 'timeline' && (
-                <TimelineTab regulation={regulation} calendar={data?.calendar} frameworks={data?.frameworks} />
+                <TimelineTab regulation={regulation} calendar={data?.calendar} frameworks={data?.frameworks} checks={checks} />
             )}
             {activeTab === 'evidence' && (
                 <EvidenceTab regulation={regulation} checks={checks} exportsEnabled={exportsEnabled} dl={dl} isMobile={isMobile} />
+            )}
+            {activeTab === 'systems' && (
+                <PerAutomationTab onOpenLadder={onOpenLadder} isMobile={isMobile} />
             )}
         </div>
     );

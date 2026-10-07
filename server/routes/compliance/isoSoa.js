@@ -24,6 +24,7 @@ const complianceStore = require('../../stores/complianceStore');
 const soaStore = require('../../stores/soaStore');
 const ismsDocStore = require('../../stores/ismsDocStore');
 const isoControls = require('../../compliance/iso/controls');
+const { readinessCounts } = require('../../compliance/iso/readiness');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId, _isoChecksByControl, _recordSoaEvidence, _buildClauseConformity } = require('./shared');
 const { validate } = require('../../core/http/validate');
@@ -215,14 +216,9 @@ router.get('/iso/readiness', requireAuth, requirePermission('admin_compliance'),
     }
     const checksByControl = _isoChecksByControl();
     const verifiable = isoControls.CONTROLS.filter(c => c.bucket === 'auto' || c.bucket === 'connector');
-    let verified = 0, failing = 0, unchecked = 0;
-    for (const c of verifiable) {
-        const statuses = (checksByControl[c.ref] || []).map(id => statusByCheck[id]).filter(Boolean);
-        if (!statuses.length) { unchecked++; continue; }
-        if (statuses.includes('fail')) failing++;
-        else if (statuses.every(s => s === 'pass' || s === 'not_applicable')) verified++;
-        // warn-only controls count neither verified nor failing — shown as the remainder
-    }
+    // not_applicable is no verdict (an unconnected connector control answers
+    // it), and warn-only controls count neither verified nor failing.
+    const { verified, failing, unchecked } = readinessCounts(verifiable, checksByControl, statusByCheck);
     const published = docs.filter(d => d.status === 'published');
     const clauses = await _buildClauseConformity(orgId);
     res.json({

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import RegulatoryCalendar from './RegulatoryCalendar';
 
@@ -24,16 +25,31 @@ const MILESTONES = [
 ];
 
 describe('RegulatoryCalendar — full variant (artboard 1e)', () => {
-    it('renders past rows, the today divider, upcoming rows and the uncertain footer, in that order', () => {
+    it('renders the two recent past rows, the today divider, upcoming rows and the uncertain footer, in that order', async () => {
         render(<RegulatoryCalendar milestones={MILESTONES} now={NOW} variant="full" />);
         const root = screen.getByTestId('reg-calendar');
         const order = [...root.querySelectorAll('[data-testid]')].map(el => el.getAttribute('data-testid'));
         const firstUpcoming = order.indexOf('cal-row');
         expect(order.indexOf('cal-today')).toBeGreaterThan(firstUpcoming); // past rows before the divider…
-        const rows = screen.getAllByTestId('cal-row');
-        const kinds = rows.map(r => r.getAttribute('data-when'));
-        expect(kinds).toEqual(['past', 'past', 'past', 'past', 'recent', 'recent', 'upcoming', 'upcoming', 'upcoming', 'upcoming']);
+        const kinds = () => screen.getAllByTestId('cal-row').map(r => r.getAttribute('data-when'));
+        expect(kinds()).toEqual(['recent', 'recent', 'upcoming', 'upcoming', 'upcoming', 'upcoming']);
         expect(order.indexOf('cal-uncertain')).toBeGreaterThan(order.lastIndexOf('cal-row'));
+
+        // The older dates are one click away, oldest first, above the recent two.
+        const toggle = screen.getByTestId('cal-earlier-toggle');
+        expect(toggle).toHaveTextContent('Show 4 earlier dates');
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await userEvent.setup().click(toggle);
+        expect(kinds()).toEqual(['past', 'past', 'past', 'past', 'recent', 'recent', 'upcoming', 'upcoming', 'upcoming', 'upcoming']);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(toggle).toHaveTextContent('Show fewer');
+        expect(document.getElementById(toggle.getAttribute('aria-controls'))).toBeInTheDocument();
+    });
+
+    it('has no earlier toggle when at most two dates are past', () => {
+        render(<RegulatoryCalendar milestones={MILESTONES.slice(4)} now={NOW} variant="full" />);
+        expect(screen.queryByTestId('cal-earlier-toggle')).toBeNull();
+        expect(screen.getAllByTestId('cal-row').filter(r => r.getAttribute('data-when') === 'recent')).toHaveLength(2);
     });
 
     it('the today divider: two kind-coloured lines around "today · 14 Sep 2026"', () => {
@@ -45,8 +61,9 @@ describe('RegulatoryCalendar — full variant (artboard 1e)', () => {
         expect(divider.querySelector('.text-\\[var\\(--kind-compliance\\)\\]')).toHaveTextContent('today');
     });
 
-    it('past rows are greyed one-liners with the full date; the two most recent keep secondary text, a bold title and "n days ago"', () => {
+    it('past rows are greyed one-liners with the full date; the two most recent keep secondary text, a bold title and "n days ago"', async () => {
         render(<RegulatoryCalendar milestones={MILESTONES} now={NOW} variant="full" />);
+        await userEvent.setup().click(screen.getByTestId('cal-earlier-toggle'));
         const rows = screen.getAllByTestId('cal-row');
         const older = rows[0];
         expect(older).toHaveTextContent('17 Jan 2025');
@@ -142,14 +159,25 @@ describe('RegulatoryCalendar — compact variant (artboard 1a "Komende data")', 
         expect(screen.queryByTestId('cal-more')).toBeNull(); // no onOpenCalendar → no link
     });
 
-    it('limitUpcoming and the "n more dates" link to the full calendar', () => {
+    it('limitUpcoming and the "n more dates" link to the full calendar', async () => {
         const onOpen = vi.fn();
         render(<RegulatoryCalendar milestones={MILESTONES} now={NOW} variant="compact" limitUpcoming={2} onOpenCalendar={onOpen} />);
         expect(screen.getAllByTestId('cal-row')).toHaveLength(2);
         const more = screen.getByTestId('cal-more');
         expect(more).toHaveTextContent('2 more dates');
-        fireEvent.click(more);
+        await userEvent.setup().click(more);
         expect(onOpen).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the meta to one line with the full text in the title, and the countdown outside the clamp', () => {
+        render(<RegulatoryCalendar milestones={MILESTONES} now={NOW} variant="compact" />);
+        const first = screen.getAllByTestId('cal-row')[0];
+        const meta = within(first).getByTestId('cal-meta');
+        const clamped = meta.querySelector('.line-clamp-1');
+        expect(clamped).toHaveAttribute('title', 'AI Act Art. 50 · affects 3 automations');
+        expect(clamped).not.toContainElement(within(first).getByTestId('cal-countdown'));
+        expect(within(first).getByTestId('cal-countdown')).toHaveTextContent('in 79 days');
+        expect(screen.queryByTestId('cal-earlier-toggle')).toBeNull();
     });
 
     it('full variant uses the 80px column and never caps the upcoming list by default', () => {

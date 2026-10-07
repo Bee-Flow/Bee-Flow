@@ -70,6 +70,9 @@ function decorate(settings) {
 
 const MARKING_KEYS = ['ai_content_marking_enabled', 'ai_content_marking_footer'];
 
+/** The stored AI-literacy attestation that AIA-Art4-ai-literacy reads. */
+const AI_LITERACY_KEYS = ['ai_literacy_confirmed_at', 'ai_literacy_material_url'];
+
 /**
  * Typed store errors (SettingsValidationError) carry their own status + body;
  * the body names the offending FIELDS only, never the submitted values.
@@ -140,6 +143,12 @@ router.put('/settings', requireAuth, requirePermission('admin_compliance'), asyn
                 emit(EVENTS.CONTENT_MARKING_CHANGED, { orgId, enabled: marking.enabled, by: actorId });
             } catch { /* the bus is optional in tests */ }
         }
+        // An AI-literacy save re-runs the Art. 4 check now, instead of leaving
+        // its old verdict standing until the next sweep. A switched-off AI Act
+        // framework throws FrameworkDisabledError; the catch swallows it.
+        if (AI_LITERACY_KEYS.some(k => Object.prototype.hasOwnProperty.call(patch, k))) {
+            runner.runOne(orgId, 'AIA-Art4-ai-literacy', { runType: 'event' }).catch(() => {});
+        }
         res.json(decorate(saved));
     } catch (e) {
         fail(res, next, e);
@@ -162,13 +171,25 @@ router.post('/settings/onboarded', requireAuth, requirePermission('admin_complia
     }
 });
 
+/** The checks that read `scc_confirmed_operators` — re-run when it changes. */
+const SCC_READING_CHECKS = Object.freeze([
+    'GDPR-Art44-external-transfers',
+    'GDPR-Art28-subprocessors',
+    'DORA-Art28(3)-register-of-information',
+    'AIA-Art53-model-inventory',
+    'ISO27001-A.5.20-suppliers',
+]);
+
 router.post('/settings/scc', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const { operator, confirmed } = req.body || {};
     if (!operator) return res.status(400).json({ error: 'operator is required' });
     const actorId = req.session?.user?.id || null;
     const next = await complianceStore.setSccConfirmed(orgId, operator, !!confirmed, actorId);
-    runner.runOne(orgId, 'GDPR-Art44-external-transfers').catch(() => {});
+    // Re-run every check that reads the attestation list, so none of them
+    // keeps its stale verdict until the next sweep. A check whose framework
+    // is switched off throws FrameworkDisabledError; the catch swallows it.
+    for (const checkId of SCC_READING_CHECKS) runner.runOne(orgId, checkId).catch(() => {});
     res.json({ scc_confirmed_operators: next });
 });
 

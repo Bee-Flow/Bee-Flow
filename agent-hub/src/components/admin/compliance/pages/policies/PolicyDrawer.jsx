@@ -1,9 +1,10 @@
 import React, { useEffect, useEffectEvent, useState } from 'react';
 import { Save, UploadCloud } from 'lucide-react';
+import { baselineOf, draftOf, publishQuestion, unchangedSincePublished } from './policyDraft';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection, DrawerId } from '../../../../shared/SideDrawer';
+import SideDrawer, { DrawerSection, DrawerId, DrawerFooter } from '../../../../shared/SideDrawer';
 import FindingRow from '../../../../shared/FindingRow';
-import StatusPill from '../../shared/StatusPill';
+import RegisterStatePill from '../../shared/RegisterStatePill';
 import {
     Field, TextInput, DateInput, UserSelect, ActionButton, INPUT_CLASS, ReadFailed,
 } from '../audits/auditForms';
@@ -16,37 +17,57 @@ import {
  *
  * The "template not customised" nudge stays until the body actually diverges
  * from the seed (`edited`) — an unedited template is what an auditor spots
- * first.
+ * first. It is a drawer-sized callout (FindingRow size="sm"), not the
+ * loudest text on the page.
+ *
+ * Publishing asks every member to acknowledge again, so it is never a
+ * reflex: "Publish" is disabled while title and text equal the published
+ * version (ismsDocStore.getDoc's `published`), and otherwise asks first,
+ * inline, with the number of acknowledgements it resets. A document never
+ * published (or a server that does not send `published`) can always be
+ * published, still behind the same question (policyDraft.ts holds those
+ * rules). Save draft (left) and Publish (right) sit in the DrawerFooter.
  */
+export const POLICY_DRAWER_WIDTH = 460;
+
+/** The status pill with the version: "Published · v3" / "Draft". The table draws the same one. */
+export function PolicyStatusPill({ status, version, className = '', testId = undefined }) {
+    const { t } = useTranslation();
+    const published = status === 'published';
+    return (
+        <RegisterStatePill state={published ? 'published' : 'draft'} className={className} testId={testId}>
+            {published
+                ? t('compliance.pol_status_published_v', 'Published · v{n}', { n: version ?? '—' })
+                : t('compliance.pol_status_draft', 'Draft')}
+        </RegisterStatePill>
+    );
+}
+
 export default function PolicyDrawer({
     doc, orgUsers = null, busy = false, onLoadDoc, onSave, onPublish, onClose, mode = 'inline',
 }) {
     const { t } = useTranslation();
     const slug = doc?.slug || null;
     const [draft, setDraft] = useState(null);
+    const [baseline, setBaseline] = useState(null);
     const [failed, setFailed] = useState(false);
+    const [confirming, setConfirming] = useState(false);
 
     const loadDoc = useEffectEvent((s) => onLoadDoc?.(s));
     useEffect(() => {
         let alive = true;
         setDraft(null);
+        setBaseline(null);
         setFailed(false);
+        setConfirming(false);
         if (!slug) return undefined;
         (async () => {
             try {
                 const full = await loadDoc(slug);
                 if (!alive) return;
                 if (!full) { setFailed(true); return; }
-                setDraft({
-                    title: full.title || '',
-                    body: full.draft_body || '',
-                    owner_user_id: full.owner_user_id || '',
-                    review_due_at: full.review_due_at ? String(full.review_due_at).slice(0, 10) : '',
-                    edited: !!full.edited,
-                    status: full.status,
-                    current_version: full.current_version,
-                    ack_count: full.ack_count,
-                });
+                setDraft(draftOf(full));
+                setBaseline(baselineOf(full));
             } catch {
                 if (alive) setFailed(true);
             }
@@ -62,27 +83,87 @@ export default function PolicyDrawer({
         owner_user_id: draft.owner_user_id || null,
         review_due_at: draft.review_due_at || null,
     });
-    const set = (p) => setDraft(d => ({ ...d, ...p }));
+    const set = (p) => { setDraft(d => ({ ...d, ...p })); if ('title' in p || 'body' in p) setConfirming(false); };
 
-    const published = (draft ? draft.status : doc.status) === 'published';
+    const status = draft ? draft.status : doc.status;
+    const version = draft ? draft.current_version : doc.current_version;
+    const published = status === 'published';
+    const unchanged = unchangedSincePublished(draft, baseline);
+    const nextVersion = (Number(version) || 0) + 1;
+    const acks = typeof draft?.ack_count === 'number' ? draft.ack_count : (typeof doc.ack_count === 'number' ? doc.ack_count : null);
+
+    const publish = async () => {
+        setConfirming(false);
+        await onSave?.(slug, patch());
+        await onPublish?.(slug);
+        // The new version is now the baseline: read it back rather than guess.
+        try {
+            const full = await onLoadDoc?.(slug);
+            if (full) { setDraft(draftOf(full)); setBaseline(baselineOf(full)); }
+        } catch { /* the list refresh still shows the new version */ }
+    };
+
+    const saveButton = (
+        <ActionButton icon={Save} disabled={busy} onClick={() => onSave?.(slug, patch())} data-testid="policy-drawer-save">
+            {t('compliance.policies_save', 'Save draft')}
+        </ActionButton>
+    );
+
+    const footer = draft && (confirming ? (
+        <div className="flex flex-col gap-2" role="group" aria-label={t('compliance.policies_publish', 'Publish')} data-testid="policy-drawer-confirm">
+            <p className="m-0 text-xs text-[var(--text-primary)]" data-testid="policy-drawer-confirm-text">{publishQuestion(t, { published, acks, nextVersion })}</p>
+            <DrawerFooter
+                primary={(
+                    <ActionButton variant="primary" icon={UploadCloud} disabled={busy} autoFocus onClick={publish} data-testid="policy-drawer-confirm-go">
+                        {t('compliance.pol_publish_go', 'Publish v{n}', { n: nextVersion })}
+                    </ActionButton>
+                )}
+            >
+                <ActionButton onClick={() => setConfirming(false)} data-testid="policy-drawer-confirm-cancel">
+                    {t('common.cancel', 'Cancel')}
+                </ActionButton>
+            </DrawerFooter>
+        </div>
+    ) : (
+        <>
+            {unchanged && (
+                <p className="m-0 text-[11px] text-[var(--text-tertiary)]" data-testid="policy-drawer-unchanged">
+                    {t('compliance.pol_publish_nothing', 'Nothing changed since the published version')}
+                </p>
+            )}
+            <DrawerFooter
+                primary={(
+                    <ActionButton
+                        variant="primary"
+                        icon={UploadCloud}
+                        disabled={busy || unchanged}
+                        title={t('compliance.policies_publish_hint', 'Freezes this text as a numbered version that members acknowledge.')}
+                        onClick={() => setConfirming(true)}
+                        data-testid="policy-drawer-publish"
+                    >
+                        {t('compliance.policies_publish', 'Publish')}
+                    </ActionButton>
+                )}
+            >
+                {saveButton}
+            </DrawerFooter>
+        </>
+    ));
 
     return (
         <SideDrawer
             open
             onClose={onClose}
             mode={mode}
-            width={460}
+            width={POLICY_DRAWER_WIDTH}
             ariaLabel={doc.title || doc.slug}
             testId="policy-drawer"
+            footer={footer}
             header={(
                 <div className="flex flex-col gap-1 min-w-0">
-                    <DrawerId testId="policy-drawer-slug">{doc.slug}</DrawerId>
+                    <DrawerId testId="policy-drawer-slug" className="text-[var(--text-tertiary)]">{doc.slug}</DrawerId>
                     <span className="text-sm font-bold text-[var(--text-primary)] truncate">{doc.title}</span>
-                    <StatusPill tone={published ? 'success' : 'warning'} testId="policy-drawer-status">
-                        {published
-                            ? t('compliance.policies_published_v', 'Published v{version}', { version: doc.current_version })
-                            : t('compliance.policies_draft', 'Draft')}
-                    </StatusPill>
+                    <PolicyStatusPill status={status} version={version} className="self-start" testId="policy-drawer-status" />
                 </div>
             )}
         >
@@ -103,6 +184,7 @@ export default function PolicyDrawer({
                     {!draft.edited && (
                         <FindingRow
                             severity="warning"
+                            size="sm"
                             message={t('compliance.policies_customise_nudge', 'This is still the template text word for word. Adjust it to how you actually work before you publish it.')}
                             testId="policy-drawer-nudge"
                         />
@@ -137,28 +219,6 @@ export default function PolicyDrawer({
                         <Field label={t('compliance.policies_review_due', 'Review due')}>
                             <DateInput value={draft.review_due_at} onChange={v => set({ review_due_at: v })} data-testid="policy-drawer-review" />
                         </Field>
-                    </div>
-
-                    {published && (
-                        <div className="text-[11px] text-[var(--text-tertiary)]" data-testid="policy-drawer-republish">
-                            {t('compliance.policies_republish_note', 'Publishing again creates a new version; acknowledgements are asked again.')}
-                        </div>
-                    )}
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <ActionButton icon={Save} disabled={busy} onClick={() => onSave?.(slug, patch())} data-testid="policy-drawer-save">
-                            {t('compliance.policies_save', 'Save draft')}
-                        </ActionButton>
-                        <ActionButton
-                            variant="primary"
-                            icon={UploadCloud}
-                            disabled={busy}
-                            title={t('compliance.policies_publish_hint', 'Freezes this text as a numbered version that members acknowledge.')}
-                            onClick={async () => { await onSave?.(slug, patch()); await onPublish?.(slug); }}
-                            data-testid="policy-drawer-publish"
-                        >
-                            {t('compliance.policies_publish', 'Publish')}
-                        </ActionButton>
                     </div>
                 </>
             )}

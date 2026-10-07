@@ -1,21 +1,30 @@
-import React, { useMemo, useState } from 'react';
 import { Plus, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
-import SideDrawer, { DrawerSection } from '../../../../shared/SideDrawer';
-import DeadlineClock from '../../../../shared/DeadlineClock';
-import EmptyState from '../../../../shared/EmptyState';
-import StatusPill from '../../shared/StatusPill';
+import React, { useId, useMemo, useState } from 'react';
 import {
     NC_STATUS, NC_SEVERITY, NC_SOURCE, labelOf, toneOf, userName, fmtDate, dateInputValue, isOverdue,
     Field, TextInput, TextArea, DateInput, Select, UserSelect, ActionButton, Intro, RegisterLayout,
 } from './auditForms';
+import { editPatch } from './isoProcessHelpers';
+import useHeaderPrimary from './useHeaderPrimary';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
+import DeadlineClock from '../../../../shared/DeadlineClock';
+import EmptyState from '../../../../shared/EmptyState';
+import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
+import RegisterStatePill from '../../shared/RegisterStatePill';
+import StatusPill from '../../shared/StatusPill';
+import useDrawerMode from '../../shared/useDrawerMode';
 
 /**
  * NcsTab — the nonconformity register (clause 10): open → corrective action
  * → effectiveness review → closed. The drawer edits the corrective action,
  * dates and owner, and carries the state transitions; closing goes through
  * `confirm_effectiveness: true` so the server records who confirmed it.
+ *
+ * A step is ONE write that carries the drawer's edits with the new status
+ * (isoProcessHelpers' editPatch), so a corrective action typed into the
+ * drawer is never lost when the step is taken instead of Save. Moving on to
+ * the effectiveness review, and closing, wait for a written corrective action.
  */
 const EMPTY_DRAFT = Object.freeze({ title: '', description: '', severity: 'minor', due_at: '', owner_user_id: '' });
 
@@ -26,11 +35,27 @@ const editFrom = (nc) => ({
     owner_user_id: nc.owner_user_id || '',
 });
 
-export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = null }) {
+/** The next step of an NC: its button and the status it writes (null when there is none). */
+function stepOf(nc, t) {
+    if (nc.status === 'open') {
+        return { label: t('compliance.nc_start_ca', 'Start corrective action'), icon: ArrowRight, testId: 'nc-start-ca', patch: { status: 'corrective_action' }, needsCa: false };
+    }
+    if (nc.status === 'corrective_action') {
+        return { label: t('compliance.nc_to_er', 'Move to effectiveness review'), icon: ArrowRight, testId: 'nc-to-er', patch: { status: 'effectiveness_review' }, needsCa: true };
+    }
+    if (nc.status === 'effectiveness_review') {
+        return { label: t('compliance.nc_confirm_close', 'Confirm effectiveness & close'), icon: CheckCircle2, testId: 'nc-confirm-close', patch: { status: 'closed', confirm_effectiveness: true }, needsCa: true };
+    }
+    return null;
+}
+
+export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }) {
     const { t, resolvedLocale } = useTranslation();
     const { ncs, busy, createNc, updateNc } = audit;
     const loading = ncs === null || ncs === undefined;
-    const list = Array.isArray(ncs) ? ncs : [];
+    const list = useMemo(() => (Array.isArray(ncs) ? ncs : []), [ncs]);
+    const hintId = useId();
+    const [frameRef, drawerMode] = useDrawerMode({ isMobile });
 
     const [selectedId, setSelectedId] = useState(focusId || null);
     const [creating, setCreating] = useState(false);
@@ -50,6 +75,11 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
         setEdit(selected ? editFrom(selected) : null);
     }
 
+    const recordLabel = t('compliance.nc_record', 'Record nonconformity');
+    const headerHasCreate = useHeaderPrimary(setHeaderActions, {
+        label: recordLabel, icon: Plus, onClick: () => { setSelectedId(null); setCreating(true); },
+    });
+
     const submit = () => {
         if (!draft.title.trim()) return;
         createNc({
@@ -65,29 +95,23 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
     };
     const saveEdit = (id) => {
         if (!edit) return;
-        updateNc(id, {
-            corrective_action: edit.corrective_action.trim() || undefined,
-            due_at: edit.due_at || undefined,
-            effectiveness_review_due_at: edit.effectiveness_review_due_at || undefined,
-            owner_user_id: edit.owner_user_id || undefined,
-        });
+        updateNc(id, editPatch(edit));
     };
 
     const columns = [
         { id: 'title', width: '1fr', label: t('compliance.nc_f_title', 'Title') },
         { id: 'status', width: '150px', label: t('compliance.obj_col_status', 'Status') },
-        { id: 'severity', width: '84px', label: t('compliance.nc_f_severity', 'Severity'), foldBelow: 1180 },
+        { id: 'severity', width: '84px', label: t('compliance.nc_f_severity', 'Severity'), foldBelow: 900 },
         { id: 'source', width: '120px', label: t('compliance.nc_col_source', 'Source'), foldBelow: 1180 },
         { id: 'due', width: '140px', label: t('compliance.nc_f_due', 'Corrective action due') },
-        { id: 'owner', width: '130px', label: t('compliance.nc_f_owner', 'Owner'), foldBelow: 1180 },
+        { id: 'owner', width: '130px', label: t('compliance.nc_f_owner', 'Owner'), foldBelow: 900 },
     ];
 
-    const drawerMode = isMobile ? 'modal' : 'inline';
     let drawer = null;
     if (creating) {
         drawer = (
-            <SideDrawer open onClose={() => setCreating(false)} mode={drawerMode} ariaLabel={t('compliance.nc_record', 'Record nonconformity')} testId="nc-create-drawer"
-                header={<div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('compliance.nc_record', 'Record nonconformity')}</div>}
+            <SideDrawer open onClose={() => setCreating(false)} mode={drawerMode} ariaLabel={recordLabel} testId="nc-create-drawer"
+                header={<div className="text-[13px] font-semibold text-[var(--text-primary)]">{recordLabel}</div>}
                 footer={(
                     <div className="flex gap-2">
                         <ActionButton variant="primary" disabled={busy || !draft.title.trim()} onClick={submit} data-testid="nc-create-submit">{t('compliance.nc_create', 'Record')}</ActionButton>
@@ -117,23 +141,32 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
     } else if (selected) {
         const nc = selected;
         const closed = nc.status === 'closed';
-        let step = null;
-        if (nc.status === 'open') step = <ActionButton variant="warning" icon={ArrowRight} disabled={busy} onClick={() => updateNc(nc.id, { status: 'corrective_action' })} data-testid="nc-start-ca">{t('compliance.nc_start_ca', 'Start corrective action')}</ActionButton>;
-        else if (nc.status === 'corrective_action') step = <ActionButton variant="neutral" icon={ArrowRight} disabled={busy} onClick={() => updateNc(nc.id, { status: 'effectiveness_review' })} data-testid="nc-to-er">{t('compliance.nc_to_er', 'Move to effectiveness review')}</ActionButton>;
-        else if (nc.status === 'effectiveness_review') step = <ActionButton variant="success" icon={CheckCircle2} disabled={busy} onClick={() => updateNc(nc.id, { status: 'closed', confirm_effectiveness: true })} data-testid="nc-confirm-close">{t('compliance.nc_confirm_close', 'Confirm effectiveness & close')}</ActionButton>;
+        const step = stepOf(nc, t);
+        // The step waits for a written corrective action; the hint says why the button is off.
+        const blocked = !!step?.needsCa && !String(edit?.corrective_action || '').trim();
+        const stepButton = step ? (
+            <ActionButton variant="primary" icon={step.icon} disabled={busy || blocked}
+                onClick={() => updateNc(nc.id, { ...editPatch(edit), ...step.patch })}
+                aria-describedby={blocked ? hintId : undefined} data-testid={step.testId}>
+                {step.label}
+            </ActionButton>
+        ) : null;
         drawer = (
             <SideDrawer open onClose={() => setSelectedId(null)} mode={drawerMode} ariaLabel={nc.title} testId="nc-drawer"
                 header={(
                     <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{nc.title}</span>
-                        <StatusPill tone={toneOf(NC_STATUS, nc.status)}>{labelOf(t, NC_STATUS, nc.status)}</StatusPill>
+                        <RegisterStatePill state={nc.status} testId="nc-drawer-state">{labelOf(t, NC_STATUS, nc.status)}</RegisterStatePill>
                     </div>
                 )}
-                footer={!closed && step ? (
-                    <div className="flex flex-col gap-1.5">
-                        <div className="flex gap-2 flex-wrap">{step}</div>
+                footer={!closed ? (
+                    <>
+                        <DrawerFooter primary={stepButton} testId="nc-footer">
+                            <ActionButton disabled={busy || !edit} onClick={() => saveEdit(nc.id)} data-testid="nc-save">{t('compliance.nc_save', 'Save')}</ActionButton>
+                        </DrawerFooter>
+                        {blocked && <div id={hintId} className="text-[11px] text-[var(--text-tertiary)]" data-testid="nc-needs-ca">{t('compliance.nc_needs_ca', 'Describe the corrective action first')}</div>}
                         {nc.status === 'effectiveness_review' && <div className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.nc_confirm_hint', 'Closing records you, by name, as the person who confirmed the corrective action actually worked.')}</div>}
-                    </div>
+                    </>
                 ) : null}>
                 <DrawerSection label={t('compliance.nc_f_desc', 'Description')}>
                     <div className="text-xs text-[var(--text-secondary)] whitespace-pre-wrap">{nc.description || '—'}</div>
@@ -142,7 +175,7 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                         <StatusPill>{labelOf(t, NC_SOURCE, nc.source)}</StatusPill>
                     </div>
                     {nc.effectiveness_confirmed_at && (
-                        <div className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--success-ink)' }} data-testid="nc-effectiveness">
+                        <div className="inline-flex items-center gap-1.5 text-xs text-[var(--success-ink)]" data-testid="nc-effectiveness">
                             <ShieldCheck size={13} aria-hidden="true" />
                             {t('compliance.nc_effectiveness_by', 'Effectiveness confirmed by')} {userName(orgUsers, nc.effectiveness_confirmed_by) || nc.effectiveness_confirmed_by} · {fmtDate(nc.effectiveness_confirmed_at, resolvedLocale)}
                         </div>
@@ -162,7 +195,6 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                         <Field label={t('compliance.nc_f_owner', 'Owner')}>
                             <UserSelect value={edit.owner_user_id} orgUsers={orgUsers} noneLabel={t('compliance.nc_owner_none', 'No owner')} onChange={v => setEdit(e => ({ ...e, owner_user_id: v }))} />
                         </Field>
-                        <ActionButton disabled={busy} onClick={() => saveEdit(nc.id)} className="self-start" data-testid="nc-save">{t('compliance.nc_save', 'Save')}</ActionButton>
                     </DrawerSection>
                 )}
                 {closed && nc.corrective_action && (
@@ -174,12 +206,14 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
         );
     }
 
+    const toggle = (nc) => { setCreating(false); setSelectedId(prev => (String(prev) === String(nc.id) ? null : nc.id)); };
+
     return (
-        <RegisterLayout isMobile={isMobile} testId="ncs-tab" drawer={drawer}
+        <RegisterLayout isMobile={isMobile} drawerMode={drawerMode} frameRef={frameRef} testId="ncs-tab" drawer={drawer}
             toolbar={(
                 <>
                     <Intro>{t('compliance.nc_subtitle', 'Nonconformity register (clause 10): every deviation gets a corrective action, a due date and an effectiveness review before it may close.')}</Intro>
-                    <ActionButton variant="primary" icon={Plus} onClick={() => { setSelectedId(null); setCreating(true); }} data-testid="nc-record">{t('compliance.nc_record', 'Record nonconformity')}</ActionButton>
+                    {!headerHasCreate && <ActionButton variant="primary" icon={Plus} onClick={() => { setSelectedId(null); setCreating(true); }} data-testid="nc-record">{recordLabel}</ActionButton>}
                 </>
             )}>
             <DataTable
@@ -196,14 +230,14 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                     return (
                         <button
                             type="button"
-                            onClick={() => { setCreating(false); setSelectedId(prev => (String(prev) === String(nc.id) ? null : nc.id)); }}
+                            onClick={() => toggle(nc)}
                             aria-selected={(!creating && String(selectedId) === String(nc.id)) || undefined}
                             className="w-full text-left min-h-[44px] flex flex-col justify-center gap-1 min-w-0"
                             data-testid={`nc-card-${nc.id}`}
                         >
                             <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{nc.title}</span>
                             <span className="flex items-center gap-2 min-w-0 text-[11px]">
-                                <StatusPill tone={toneOf(NC_STATUS, nc.status)}>{labelOf(t, NC_STATUS, nc.status)}</StatusPill>
+                                <RegisterStatePill state={nc.status} testId={`nc-card-state-${nc.id}`}>{labelOf(t, NC_STATUS, nc.status)}</RegisterStatePill>
                                 <StatusPill tone={toneOf(NC_SEVERITY, nc.severity)}>{labelOf(t, NC_SEVERITY, nc.severity)}</StatusPill>
                                 <span className="truncate text-[var(--text-secondary)]">{labelOf(t, NC_SOURCE, nc.source)}</span>
                             </span>
@@ -221,12 +255,16 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                     const overdue = isOverdue(nc.due_at, { closed });
                     return (
                         <TableRow key={nc.id} columns={ctx.columns} accent={overdue ? 'error' : toneOf(NC_STATUS, nc.status)} selected={!creating && String(selectedId) === String(nc.id)}
-                            onClick={() => { setCreating(false); setSelectedId(prev => (String(prev) === String(nc.id) ? null : nc.id)); }} testId={`nc-row-${nc.id}`}>
+                            onClick={() => toggle(nc)} testId={`nc-row-${nc.id}`}>
                             <TableCell column={ctx.columns[0]} className="min-w-0">
                                 <div className="font-semibold text-[var(--text-primary)] truncate">{nc.title}</div>
-                                {nc.description && <div className="text-[11px] text-[var(--text-tertiary)] truncate">{nc.description}</div>}
+                                <div className="text-[11px] text-[var(--text-tertiary)] truncate">
+                                    {/* The severity's word while its own column is folded. */}
+                                    <span className={TABLE_FOLDED_ONLY[900]} data-testid={`nc-folded-severity-${nc.id}`}>{labelOf(t, NC_SEVERITY, nc.severity)}{nc.description ? ' · ' : ''}</span>
+                                    {nc.description}
+                                </div>
                             </TableCell>
-                            <TableCell column={ctx.columns[1]}><StatusPill tone={toneOf(NC_STATUS, nc.status)}>{labelOf(t, NC_STATUS, nc.status)}</StatusPill></TableCell>
+                            <TableCell column={ctx.columns[1]}><RegisterStatePill state={nc.status} testId={`nc-state-${nc.id}`}>{labelOf(t, NC_STATUS, nc.status)}</RegisterStatePill></TableCell>
                             <TableCell column={ctx.columns[2]}><StatusPill tone={toneOf(NC_SEVERITY, nc.severity)}>{labelOf(t, NC_SEVERITY, nc.severity)}</StatusPill></TableCell>
                             <TableCell column={ctx.columns[3]} className="truncate text-[var(--text-secondary)]">{labelOf(t, NC_SOURCE, nc.source)}</TableCell>
                             <TableCell column={ctx.columns[4]}>

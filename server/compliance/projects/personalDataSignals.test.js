@@ -199,3 +199,36 @@ test('a source past its project limit is named in `truncated`, and the same proj
     assert.ok(first.byProject.has('m00001') && !first.byProject.has('m05001'), 'ordered by project id');
     assert.deepStrictEqual([...second.byProject.keys()], [...first.byProject.keys()]);
 });
+
+// ── canonical ids that are not personal data ─────────────────────────────
+
+test('Organization, URL and API-key labels alone never make a project a personal-data subject', async () => {
+    // _canonical kept every canonical id, including the three personalColumns
+    // lists as not personal data, so a project whose only labels were company
+    // names became a subject that "holds personal data ()". A files or content
+    // row whose labels are all of that kind must not fall back to the generic
+    // 'personal' either.
+    const stub = makeSignalReader({ query: async (sql) => {
+        if (/FROM guardrail_events/.test(sql) && /project_chats/.test(sql)) return [{ project_id: 'p1', categories: { Organization: 3 } }];
+        if (/pii_status/.test(sql)) {
+            return [
+                { project_id: 'p2', categories: { URL: 2 }, uncategorised: 0 },
+                { project_id: 'p3', categories: { URL: 1 }, uncategorised: 1 },
+            ];
+        }
+        if (/FROM content_pii_signals/.test(sql)) {
+            return [
+                { project_id: 'p4', categories: { Organization: 2, ApiKeyOrSecret: 1 }, kinds: [] },
+                { project_id: 'p5', categories: { Organization: 1, Person: 1 }, kinds: [] },
+            ];
+        }
+        return [];
+    } });
+    const { byProject } = await stub.signalsFor('o');
+    assert.ok(!byProject.has('p1'), 'an event naming only an organisation proves nothing');
+    assert.ok(!byProject.has('p2'), 'a flagged file naming only a URL proves nothing');
+    assert.deepStrictEqual(byProject.get('p3'), { categories: {}, kinds: ['personal'], sources: ['files'] },
+        'a flagged file with an uncategorised hit still holds personal data');
+    assert.ok(!byProject.has('p4'), 'a content scan naming only non-personal ids proves nothing');
+    assert.deepStrictEqual(byProject.get('p5'), { categories: { Person: 1 }, kinds: ['name'], sources: ['content'] });
+});

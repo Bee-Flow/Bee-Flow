@@ -291,13 +291,41 @@ router.get('/:id', async (req, res) => {
     // The Solution stage that manages this agent, or null (design 5.3): the
     // editor shows a managed agent read-only and says where to change it.
     const managed = await managedPayloadOfAgent(agent);
+    // Chat signals: is this agent's chat counted for THIS caller, and from
+    // when ({ state, from }; no ids). The chat shows its notice from this.
+    const complianceCounting = await complianceCountingFor(agent, req);
     if (wantsDraft && canEdit) {
-        return res.json({ ...agent, can_edit: true, runtimeSource: 'draft', unpublishedChanges, managed });
+        return res.json({ ...agent, can_edit: true, runtimeSource: 'draft', unpublishedChanges, managed, complianceCounting });
     }
     const body = { ...views.runtime, can_edit: canEdit, managed };
     if (canEdit) body.unpublishedChanges = unpublishedChanges;
+    body.complianceCounting = complianceCounting;
     res.json(body);
 });
+
+/**
+ * The three-state chat-signals gate of GET /agents/:id (core/privacy/
+ * chatSignalsNotice.agentCounting): not off only when the agent's org counts
+ * agent chat (scheduled or on) AND the caller's org is that org, the same rule
+ * the recorder applies to the turn (chatSignals.agentTurnTarget, the caller's
+ * org being the first of resolveUserOrgIds as in routes/agents/chat.js). A
+ * super admin (no caller org), another org's member and an agent without an
+ * org read off. Never throws.
+ */
+async function complianceCountingFor(agent, req) {
+    const notice = require('../../core/privacy/chatSignalsNotice');
+    const agentOrgId = typeof agent?.organization_id === 'string' && agent.organization_id ? agent.organization_id : null;
+    if (!agentOrgId) return notice.COUNTING_OFF;
+    try {
+        const mon = await require('../../core/entitlements/chatMonitoringFlag').resolveChatMonitoring(agentOrgId);
+        if (!notice.announcesSurface(mon, 'agent')) return notice.COUNTING_OFF;
+        const orgIds = await resolveUserOrgIds(req);
+        const callerOrgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
+        return notice.agentCounting(mon, { callerOrgId, agentOrgId });
+    } catch (_) {
+        return notice.COUNTING_OFF;
+    }
+}
 
 // Delete agent - owner can delete own; others need manage_agents within the
 // agent's org (enforced by canModifyAgent, which owners short-circuit).

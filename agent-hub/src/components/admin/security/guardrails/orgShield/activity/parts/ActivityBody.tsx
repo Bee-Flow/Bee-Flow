@@ -111,6 +111,9 @@ function Ranks({ view, filters, set, fmt, t }: BodyProps) {
                 pickLabel={i => t('admin.shield_activity_filter_kind', 'Filter on {kind}', { kind: i.label })}
                 empty={empty}
                 note={view.kindsSampled ? note : undefined}
+                totalOnlyNote={view.specialTotalOnly
+                    ? t('shield_activity.special_category_total_only', 'Health data is shown as an organisation total only, never per person.')
+                    : undefined}
                 fmt={fmt}
             />
             <RankCard

@@ -381,7 +381,7 @@ const AgentHub = ({
     // and state ownership (AgentHub's fiber) are unchanged.
     const {
         messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
-        turnConversation,
+        turnConversation, chatSignals,
         conversationStarted, handleVoiceTurnComplete,
         handleToggleSkill, agentAttachedSkillIds,
         designMode, setDesignMode,
@@ -1050,6 +1050,7 @@ const AgentHub = ({
                         activeProject={activeProjectLive}
                         onOpenActiveProject={openActiveProject}
                         onLeaveActiveProject={() => setActiveProject(null)}
+                        chatSignals={chatSignals}
                     />
                 ) : directChatMode ? (
                     /* Direct Chat Mode */
@@ -1103,6 +1104,7 @@ const AgentHub = ({
                         activeProject={activeProjectLive}
                         onOpenActiveProject={openActiveProject}
                         onLeaveActiveProject={() => setActiveProject(null)}
+                        chatSignals={chatSignals}
                     />
                 ) : (
                     /* No Agent Selected - Empty State */

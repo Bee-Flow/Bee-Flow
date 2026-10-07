@@ -1,5 +1,5 @@
-import React from 'react';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import MachineryPage, { subjectRows, assessmentPill, signalText, CLASSIFICATIONS, ART18_CHECK_ID } from './MachineryPage';
 
@@ -155,6 +155,27 @@ describe('MachineryPage — attest drawer', () => {
         await waitFor(() => expect(p.data.bump).toHaveBeenCalled());
         expect(p.data.core.refresh).toHaveBeenCalled();
         await waitFor(() => expect(screen.queryByTestId('mach-drawer-title')).toBeNull());
+    });
+
+    it('a deep link (focusId) opens the drawer AND loads its history — "Earlier attestations" never hangs on loading', async () => {
+        fetchJson.mockImplementation((url) => Promise.resolve(/\/attestations$/.test(url)
+            ? [{ id: 'h1', classification: 'not_safety_component', attested_at: '2026-01-10T00:00:00Z' }]
+            : detections()));
+        render(<MachineryPage {...props({ focusId: 'automation:a-9' })} />);
+        await waitFor(() => expect(screen.getByTestId('mach-drawer-title').textContent).toBe('Nightly MES sync'));
+        await waitFor(() => expect(screen.getByTestId('mach-drawer-history-row')).toBeTruthy());
+        expect(fetchJson.mock.calls.map(c => c[0]).some(u => /\/machinery\/subjects\/automation%3Aa-9\/attestations$/.test(u))).toBe(true);
+    });
+
+    it('the Signals and Valid columns fold below 900px, not 1180px', async () => {
+        fetchJson.mockResolvedValueOnce(detections());
+        render(<MachineryPage {...props()} />);
+        await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
+        const header = (name) => screen.getAllByRole('columnheader').find(h => h.textContent === name);
+        for (const name of ['Signals', 'Valid']) {
+            expect(header(name).className).toContain('900px');
+            expect(header(name).className).not.toContain('1180px');
+        }
     });
 
     it('the drawer opens pre-set on the existing classification and a failed history is its own state', async () => {
