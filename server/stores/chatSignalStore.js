@@ -216,10 +216,10 @@ function makeChatSignalStore(db, { ready = async () => {} } = {}) {
         const org = String(orgId);
         if (surface === 'direct') {
             const noOrgOnRow = `(t.organization_id IS NULL OR t.organization_id = '')`;
-            const userOrg = `NULLIF(u."organizationId", '')`;
-            const resolvesToOrg = `(t.organization_id = $1 OR (${noOrgOnRow} AND ${userOrg} = $1))`;
+            const memberOrg = `NULLIF(u."organizationId", '')`;
+            const resolvesToOrg = `(t.organization_id = $1 OR (${noOrgOnRow} AND ${memberOrg} = $1))`;
             const belongs = org === 'default'
-                ? `(${resolvesToOrg} OR (${noOrgOnRow} AND ${userOrg} IS NULL))`
+                ? `(${resolvesToOrg} OR (${noOrgOnRow} AND ${memberOrg} IS NULL))`
                 : resolvesToOrg;
             const { rows } = await q(`
                 SELECT COUNT(DISTINCT t.user_id)::int AS n

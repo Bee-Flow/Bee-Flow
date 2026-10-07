@@ -141,7 +141,7 @@ export interface PreviewContext {
 }
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const isDay = (v: unknown): v is string => typeof v === 'string' && DAY_RE.test(v);
+export const isDay = (v: unknown): v is string => typeof v === 'string' && DAY_RE.test(v);
 export const isEmployeeSurface = (s: string): boolean => (EMPLOYEE_SURFACES as readonly string[]).includes(s);
 
 /* ───────────────────────── days ───────────────────────── */

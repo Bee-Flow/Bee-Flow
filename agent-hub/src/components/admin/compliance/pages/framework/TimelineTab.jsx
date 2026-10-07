@@ -49,7 +49,7 @@ const labelOf = (m, t) => m.label ?? (m.label_key ? t(m.label_key, m.id) : m.id)
  * given, so the date → state decision is made here: past → done, within
  * SOON_DAYS → upcoming (with the countdown), later → future. Undated
  * (uncertain) rows have no place on a track. One exception the design pins:
- * with `art50Missed` (the AI Act disclosure check fails today) the passed
+ * with `art50Missed` (the AI Act disclosure check fails today) the past
  * Art. 50 phase is `missed`, not done.
  *
  * `shortTitles` (phaseRules.shortTitlesOf) gives the track the catalogue's
@@ -64,13 +64,13 @@ export function toPhases(milestones, t, now = Date.now(), { art50Missed = false,
         const days = daysUntil(m.date, now);
         const past = days < 0;
         const soon = !past && days <= SOON_DAYS;
-        const passed = art50Missed && isArt50Phase(m) ? 'missed' : 'done';
+        const pastState = art50Missed && isArt50Phase(m) ? 'missed' : 'done';
         const short = perDate.get(m.date) === 1 ? shortTitles?.get(m.date) : undefined;
         return {
             date: m.date,
             title: short || labelOf(m, t),
             subtitle: m.detail ?? (m.detail_key ? t(m.detail_key, '') : ''),
-            state: past ? passed : (soon ? 'upcoming' : 'future'),
+            state: past ? pastState : (soon ? 'upcoming' : 'future'),
             daysLeft: soon ? days : undefined,
         };
     });

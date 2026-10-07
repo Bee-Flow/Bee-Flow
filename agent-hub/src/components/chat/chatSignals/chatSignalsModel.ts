@@ -83,6 +83,7 @@ export function payloadFor(notice: NoticeModel): { chatSignalsNotice: string; ch
  * before west of Greenwich.
  */
 export function formatNoticeDate(day: string | null | undefined, locale = 'en'): string {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a constant anchored pattern of fixed-width digit runs, no nested repeat: linear
     if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return '';
     const date = new Date(`${day}T00:00:00.000Z`);
     if (Number.isNaN(date.getTime())) return '';

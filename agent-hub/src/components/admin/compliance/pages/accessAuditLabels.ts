@@ -139,6 +139,7 @@ export function reasonLabel(reason: unknown, t: Translate): string | null {
     if (typeof reason !== 'string' || !reason) return null;
     const known = Object.hasOwn(REASON_META, reason) ? REASON_META[reason] : undefined;
     if (known) return t(known.key, known.en);
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- each repeat starts with '_', which the class excludes, so there is one way to match: linear
     return /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(reason) ? reason.replace(/_/g, ' ') : reason;
 }
 

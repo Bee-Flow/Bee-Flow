@@ -127,6 +127,7 @@ async function saveSnapshot(orgId, connectorId, subjectId, payload) {
     // time series forever. The payload is refreshed too: the hash leaves the
     // elapsed-time fields out, and a check reading a stored first-day age
     // would miss a certificate that is about to expire.
+    // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- a content hash of evidence the org already holds, not a secret; equality only decides refresh vs append
     if (prev?.hash === hash) {
         await run(`
             UPDATE iso_evidence_snapshots SET fetched_at = NOW(), payload = $4::jsonb

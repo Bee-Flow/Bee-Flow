@@ -11,6 +11,7 @@ import {
     classifyChange,
     dayOf,
     defaultStartDate,
+    isDay,
     isEmployeeSurface,
     isHttpsUrl,
     utcDay,
@@ -23,7 +24,6 @@ import {
     type StoredSettings,
 } from './chatMonitoringForm';
 
-const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DPIA_VALIDITY_DAYS = 365;
 
 export interface DpiaView {
@@ -43,7 +43,7 @@ export function dpiaView(form: ChatMonitoringForm, server: DpiaInfo | null, now:
     if (server?.kind === 'internal') {
         return { kind: 'internal', current: server.current, riskLevel: server.risk_level, expiresAt: dayOf(server.expires_at) || null };
     }
-    if (form.dpia_external && form.dpia_ref.trim() && DAY_RE.test(form.dpia_at)) {
+    if (form.dpia_external && form.dpia_ref.trim() && isDay(form.dpia_at)) {
         const today = utcDay(now);
         const expiresAt = addDaysUtc(form.dpia_at, DPIA_VALIDITY_DAYS);
         return { kind: 'external', current: form.dpia_at <= today && today < expiresAt, riskLevel: form.dpia_risk_level || null, expiresAt };
@@ -51,7 +51,7 @@ export function dpiaView(form: ChatMonitoringForm, server: DpiaInfo | null, now:
     return { kind: 'none', current: false, riskLevel: null, expiresAt: null };
 }
 
-const missingOrFuture = (day: string, today: string): boolean => !DAY_RE.test(day) || day > today;
+const missingOrFuture = (day: string, today: string): boolean => !isDay(day) || day > today;
 
 function scopeIsWider(form: ChatMonitoringForm, before: StoredSettings): boolean {
     const stored = before.works_council_scope;
@@ -102,7 +102,7 @@ function noticeCodes(form: ChatMonitoringForm, startDay: string, today: string):
 }
 
 function startCodes(form: ChatMonitoringForm, now: Date): MissingCode[] {
-    if (!DAY_RE.test(form.start_date) || form.start_date < utcDay(now)) return ['effective_from'];
+    if (!isDay(form.start_date) || form.start_date < utcDay(now)) return ['effective_from'];
     if (form.start_date < defaultStartDate(now) && !form.ack_informed_before_start) return ['informed_before_start'];
     return [];
 }

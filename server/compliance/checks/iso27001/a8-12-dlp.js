@@ -34,12 +34,12 @@ const NO_ORG_ORG_ID = 'default';
 
 // Bare column comparisons, so idx_*_org_timestamp stays usable.
 const NO_ORG = "(t.organization_id IS NULL OR t.organization_id = '')";
-const USER_ORG = 'NULLIF(u."organizationId", \'\')';
+const MEMBER_ORG = 'NULLIF(u."organizationId", \'\')';
 
 /** SQL: the row `t` (joined to its user `u`) belongs to the org in $1. */
 function _belongs(orgId) {
-    const own = `(t.organization_id = $1 OR (${NO_ORG} AND ${USER_ORG} = $1))`;
-    return orgId === NO_ORG_ORG_ID ? `(${own} OR (${NO_ORG} AND ${USER_ORG} IS NULL))` : own;
+    const own = `(t.organization_id = $1 OR (${NO_ORG} AND ${MEMBER_ORG} = $1))`;
+    return orgId === NO_ORG_ORG_ID ? `(${own} OR (${NO_ORG} AND ${MEMBER_ORG} IS NULL))` : own;
 }
 
 /** SQL: FROM and WHERE of one ledger's rows in the window that belong to the org. */
