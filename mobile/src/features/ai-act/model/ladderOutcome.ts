@@ -21,7 +21,7 @@
  * which feeds the web module and this port the same raw rows.
  */
 
-import type { AiActAnswersBody, AiActOutcome, AiActSignals, AiActYesNo } from '@/features/flow-editor/api';
+import type { AiActAnswersBody, AiActOutcome, AiActSignals, AiActYesNo } from '../api';
 
 export type LadderAnswer = AiActYesNo | null;
 export type DomainAnswers = Partial<Record<string, AiActYesNo>>;

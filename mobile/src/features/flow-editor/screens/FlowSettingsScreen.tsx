@@ -14,11 +14,11 @@ import { useNavigation, useRouter } from 'expo-router';
 import React from 'react';
 
 import { useTranslation } from '@/core/i18n';
+import { AiActComplianceGroup } from '@/features/ai-act';
 import { useUserRefresh } from '@/shared/patterns';
 import { ErrorState, GroupedScroll, LoadingState, Screen, ScreenHeader } from '@/shared/ui';
 
 import { buildPath } from '../components/outline/stepRoute';
-import { ComplianceGroup } from '../components/settings/ComplianceGroup';
 import { DangerGroup } from '../components/settings/DangerGroup';
 import { DetailsGroup } from '../components/settings/DetailsGroup';
 import { EditorGroup } from '../components/settings/EditorGroup';
@@ -60,7 +60,7 @@ export function FlowSettingsScreen({ automationId }: FlowSettingsScreenProps) {
                 <NotificationsGroup store={flow.store} title={title} automationId={row?.id ?? null} ownerId={row?.userId} />
                 {row ? <WebhooksGroup flowKey={flow.key} store={flow.store} /> : null}
                 {row ? <PlacementGroup flowKey={flow.key} folderId={row.folderId} /> : null}
-                {row ? <ComplianceGroup automationId={row.id} /> : null}
+                {row ? <AiActComplianceGroup kind="automation" id={row.id} /> : null}
                 <EditorGroup />
                 <TransferGroup flowKey={flow.key} title={title} onImported={(id) => router.push(buildPath(id))} />
                 <DangerGroup

@@ -14,16 +14,7 @@ export { diffVersions, getVersion, listVersions, restoreVersion } from './versio
 export { dryRun, runStep, type TestRunInput } from './runs';
 export {
     diagnoseTrigger,
-    getAiActAssessment,
-    readAssessment,
     readDiagnosis,
-    saveAiActAssessment,
-    type AiActAnswers,
-    type AiActAnswersBody,
-    type AiActAssessment,
-    type AiActOutcome,
-    type AiActSignals,
-    type AiActYesNo,
     type CheckStatus,
     type TriggerCheck,
     type TriggerDiagnosis,

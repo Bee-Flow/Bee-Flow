@@ -1,5 +1,5 @@
 /**
- * The automation's AI Act declaration — the web Settings tab's Compliance block
+ * An agent's or automation's AI Act declaration — the web Settings tab's Compliance block
  * (ComplianceBlock.jsx): the saved outcome, the signals the checks see, and
  * "Assess…", which opens the three-question ladder (Art. 5, Art. 50,
  * Annex III) in a sheet; recording it stamps the declaration on the server.
@@ -12,16 +12,17 @@ import React, { useState } from 'react';
 
 import { useHasPermission } from '@/core/access';
 import { useTranslation } from '@/core/i18n';
-import { useAiActAssessment } from '@/features/flow-editor/hooks';
 import { Badge, Group, Icon, ListRow, NoteRow, SettingRow, Text } from '@/shared/ui';
 
+import type { AiActKind } from '../api';
+import { useAiActAssessment } from '../hooks';
 import { AiActLadderSheet } from './AiActLadderSheet';
-import { chipLabel, chipState, outcomeWords, signalsLine } from './complianceModel';
+import { chipLabel, chipState, outcomeWords, signalsLine } from '../model/complianceModel';
 
-export function ComplianceGroup({ automationId }: { automationId: string }) {
+export function AiActComplianceGroup({ kind, id }: { kind: AiActKind; id: string }) {
     const t = useTranslation();
     const allowed = useHasPermission('admin_compliance');
-    const query = useAiActAssessment(automationId, allowed);
+    const query = useAiActAssessment(kind, id, allowed);
     const [assessing, setAssessing] = useState(false);
     if (!allowed || query.data === null) return null;
     const assessment = query.data ?? null;
@@ -52,7 +53,7 @@ export function ComplianceGroup({ automationId }: { automationId: string }) {
                     testID="flow-compliance-assess"
                 />
             </Group>
-            {assessing && assessment ? <AiActLadderSheet automationId={automationId} assessment={assessment} onClose={() => setAssessing(false)} /> : null}
+            {assessing && assessment ? <AiActLadderSheet kind={kind} id={id} assessment={assessment} onClose={() => setAssessing(false)} /> : null}
         </>
     );
 }

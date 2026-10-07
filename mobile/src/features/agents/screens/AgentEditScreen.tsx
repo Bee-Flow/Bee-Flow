@@ -15,6 +15,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { useHasPermission } from '@/core/access';
 import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { AiActComplianceGroup } from '@/features/ai-act';
 import { QueryScreen, useConfirmLeave } from '@/shared/patterns';
 import { Banner, Icon, IconButton, SaveBar, ScreenHeader } from '@/shared/ui';
 
@@ -49,6 +50,7 @@ function AgentEditor({ agent }: { agent: AgentDetail }) {
                 ) : null}
                 <EditorBanners agent={agent} save={save} dirty={form.dirty} />
                 <EditorForm form={form} disabled={locked || save.saving} extra={<SharingRow agent={agent} disabled={locked} />} />
+                <AiActComplianceGroup kind="agent" id={agent.id} />
             </ScrollView>
             <SaveBar
                 dirty={form.dirty && !locked}

@@ -6,9 +6,9 @@
  */
 
 import type { TranslateFn } from '@/core/i18n';
-import type { AiActSignals } from '@/features/flow-editor/api';
 import type { IconName } from '@/shared/ui';
 
+import type { AiActSignals } from '../api';
 import { markingDeadlineLine } from './ladderWords';
 
 export type CardTone = 'success' | 'error' | 'neutral';

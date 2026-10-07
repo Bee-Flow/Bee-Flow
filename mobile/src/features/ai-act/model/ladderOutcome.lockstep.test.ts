@@ -8,9 +8,9 @@
  * that read the ladder's web files.
  */
 
-import { readAssessment, type AiActSignals } from '@/features/flow-editor/api';
 import { loadWebModule } from '@/shared/testing/webModule';
 
+import { readAssessment, type AiActSignals } from '../api';
 import * as port from './ladderOutcome';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

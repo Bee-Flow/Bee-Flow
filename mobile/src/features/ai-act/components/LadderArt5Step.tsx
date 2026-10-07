@@ -11,8 +11,8 @@ import { CheckRow } from '@/shared/ui';
 
 import { LadderContainsAi } from './LadderContainsAi';
 import { LadderStepHeader } from './LadderStepHeader';
-import { ART5_CHIPS, step1Verdict, stepWords } from './ladderWords';
 import type { AiActLadder } from './useAiActLadder';
+import { ART5_CHIPS, step1Verdict, stepWords } from '../model/ladderWords';
 
 export function LadderArt5Step({ ladder }: { ladder: AiActLadder }) {
     const t = useTranslation();

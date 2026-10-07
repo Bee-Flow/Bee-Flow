@@ -10,12 +10,13 @@ import { fireEvent, screen, userEvent, waitFor } from '@testing-library/react-na
 import React from 'react';
 
 import { api, ApiError } from '@/core/api/client';
-import { flowKeys, type AiActAssessment } from '@/features/flow-editor/api';
 import { renderScreen } from '@/shared/testing/renderWithProviders';
 
+import type { AiActAssessment } from '../api';
+import { aiActKeys } from '../keys';
 import { AiActLadderSheet } from './AiActLadderSheet';
-import { ANNEX_III_CATEGORIES } from './ladderOutcome';
-import { ART5_CHIPS } from './ladderWords';
+import { ANNEX_III_CATEGORIES } from '../model/ladderOutcome';
+import { ART5_CHIPS } from '../model/ladderWords';
 
 jest.mock('@/core/api/client', () => jest.requireActual('@/shared/testing/screenMocks').apiClient());
 
@@ -35,7 +36,7 @@ const assessment = (patch: Partial<AiActAssessment> = {}): AiActAssessment => ({
 });
 
 const onClose = jest.fn();
-const mount = (a: AiActAssessment = assessment()) => renderScreen(<AiActLadderSheet automationId="a1" assessment={a} onClose={onClose} />);
+const mount = (a: AiActAssessment = assessment()) => renderScreen(<AiActLadderSheet kind="automation" id="a1" assessment={a} onClose={onClose} />);
 const next = () => fireEvent.press(screen.getByTestId('ladder-next'));
 
 beforeEach(() => jest.clearAllMocks());
@@ -45,7 +46,7 @@ it('asks the three steps one at a time, shows the outcome, and records it', asyn
     const { queryClient } = await mount();
 
     expect(screen.getByText('Does the AI Act apply to this automation?')).toBeTruthy();
-    expect(screen.getByText('1 AI steps')).toBeTruthy();
+    expect(screen.getByText('1 AI step')).toBeTruthy();
     expect(screen.getByText(/yes — step "Classify" is an AI step\./)).toBeTruthy();
     expect(screen.getByText('Art. 5 — prohibited practice?')).toBeTruthy();
     expect(screen.queryByTestId('ladder-step-1-verdict')).toBeNull();
@@ -85,7 +86,7 @@ it('asks the three steps one at a time, shows the outcome, and records it', asyn
         },
         { retry: false },
     );
-    expect(queryClient.getQueryData<AiActAssessment>(flowKeys.aiAct('a1'))?.outcome).toBe('transparency');
+    expect(queryClient.getQueryData<AiActAssessment>(aiActKeys.one('automation', 'a1'))?.outcome).toBe('transparency');
     expect(await screen.findByText('Recorded as self-declared — stamped with who and when, valid for 12 months.')).toBeTruthy();
 });
 
@@ -167,4 +168,37 @@ it('says nothing about an earlier declaration when the ten were answered', async
     await user.press(screen.getByTestId('ladder-next'));
     expect(screen.getByTestId('ladder-annex-credit-yes')).toBeSelected();
     expect(screen.queryByTestId('ladder-legacy-yes-note')).toBeNull();
+});
+
+describe('opened without a saved assessment (the Systems list)', () => {
+    it('reads it for an agent, with the agent title', async () => {
+        (api.get as jest.Mock).mockResolvedValue({ outcome: null, signals: { contains_ai: true, steps: { ai: [{ label: 'Helpdesk' }] } }, answers: null });
+        await renderScreen(<AiActLadderSheet kind="agent" id="g 1" onClose={onClose} />);
+        expect(await screen.findByText('Does the AI Act apply to this agent?')).toBeTruthy();
+        expect(api.get).toHaveBeenCalledWith('/api/compliance/ai-act/assessments/agent/g%201');
+        expect(screen.getByText('1 AI step')).toBeTruthy();
+    });
+
+    it('says the saved assessment could not be read, and still shows the ladder', async () => {
+        (api.get as jest.Mock).mockRejectedValue(new ApiError('Boom', { status: 500 }));
+        await renderScreen(<AiActLadderSheet kind="agent" id="g1" onClose={onClose} />);
+        expect(await screen.findByText(/The saved assessment could not be read/)).toBeTruthy();
+        expect(screen.getByText('Art. 5 — prohibited practice?')).toBeTruthy();
+    });
+});
+
+it('enables marking from the Art. 50 card, then reads the signals back', async () => {
+    (api.put as jest.Mock).mockResolvedValue({ ok: true });
+    (api.get as jest.Mock).mockResolvedValue({ contains_ai: true, generates_content: true, marking_enabled: true });
+    const base = assessment();
+    const { queryClient } = await mount(assessment({ signals: { ...base.signals, generatesContent: true, markingEnabled: false } }));
+    const spy = jest.spyOn(queryClient, 'invalidateQueries');
+    await next();
+    expect(screen.getByText('Generates content: yes → marking missing')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('ladder-enable-marking'));
+    await waitFor(() => expect(screen.getByText('Generates content: yes → marking on')).toBeTruthy());
+    expect(api.put).toHaveBeenCalledWith('/api/compliance/settings', { ai_content_marking_enabled: true }, { retry: false });
+    expect(api.get).toHaveBeenCalledWith('/api/compliance/ai-act/assessments/automation/a1/signals');
+    expect(spy).toHaveBeenCalledWith({ queryKey: ['compliance'] });
+    expect(screen.queryByTestId('ladder-enable-marking')).toBeNull();
 });

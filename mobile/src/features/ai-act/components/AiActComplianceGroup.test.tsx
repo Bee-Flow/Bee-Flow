@@ -10,7 +10,7 @@ import React from 'react';
 import { api, ApiError } from '@/core/api/client';
 import { renderScreen } from '@/shared/testing/renderWithProviders';
 
-import { ComplianceGroup } from './ComplianceGroup';
+import { AiActComplianceGroup } from './AiActComplianceGroup';
 
 jest.mock('@/core/api/client', () => jest.requireActual('@/shared/testing/screenMocks').apiClient());
 jest.mock('@/core/access', () => ({ useHasPermission: () => true }));
@@ -26,7 +26,7 @@ beforeEach(() => jest.clearAllMocks());
 
 it('opens the three-question ladder in a sheet, starting from the saved declaration', async () => {
     (api.get as jest.Mock).mockImplementation(async (path: string) => (path === PATH ? ROW : null));
-    await renderScreen(<ComplianceGroup automationId="a1" />);
+    await renderScreen(<AiActComplianceGroup kind="automation" id="a1" />);
     expect(await screen.findByText('Minimal risk')).toBeTruthy();
     expect(screen.queryByText('Does the AI Act apply to this automation?')).toBeNull();
 
@@ -41,7 +41,7 @@ it('opens the three-question ladder in a sheet, starting from the saved declarat
 
 it('cannot assess before the saved assessment has been read', async () => {
     (api.get as jest.Mock).mockRejectedValue(new ApiError('Forbidden', { status: 403 }));
-    await renderScreen(<ComplianceGroup automationId="a1" />);
+    await renderScreen(<AiActComplianceGroup kind="automation" id="a1" />);
     expect(await screen.findByText('The saved assessment could not be read.')).toBeTruthy();
     expect(screen.getByTestId('flow-compliance-assess')).toBeDisabled();
 });
