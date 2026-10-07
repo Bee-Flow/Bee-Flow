@@ -1,16 +1,23 @@
 /**
  * The Compliance demo's incident register, as incidentStore keeps it.
  *
- * The clocks follow the store's REGIME_CLOCKS: GDPR a 72 h notification; NIS2
- * a 24 h early warning, the 72 h notification and a final report a month in;
- * CRA 24 h, 72 h and 14 days; DORA the customer notice within the hours the
- * settings name (4 h here). `deadline_at` is what the store keeps
- * (nextOpenDeadline): the EARLIEST clock still open, null once every clock is
- * met or the incident is closed. The notification has no column; clients
- * derive it from detected_at. Ids are numbers (a SERIAL column), the log is
- * [{ at, by, text }], and every write moves updated_at and the deadline, as
- * the store's mutators do. Computed, so the countdowns on screen are real.
+ * The clocks follow the store's REGIME_CLOCKS (stores/incidentClocks.js): GDPR
+ * a 72 h notification; NIS2 a 24 h early warning, the 72 h notification and a
+ * final report one calendar month in; CRA 24 h, 72 h and a final report 14
+ * days in for a vulnerability (Art. 14(2)(c)) or one calendar month after the
+ * notification for a severe incident (Art. 14(4)(c), counted from detected +
+ * 72 h until the notification is stamped); DORA the customer notice within
+ * the hours the settings name (4 h here). A month is a calendar month,
+ * clamped to the end of a short month (addCalendarMonths), as the server
+ * counts it. `deadline_at` is what the store keeps (nextOpenDeadline): the
+ * EARLIEST clock still open, null once every clock is met or the incident is
+ * closed. The notification has no column; clients derive it from detected_at.
+ * Ids are numbers (a SERIAL column), the log is [{ at, by, text }], and every
+ * write moves updated_at and the deadline, as the store's mutators do.
+ * Computed, so the countdowns on screen are real.
  */
+
+import { addCalendarMonths } from '../../components/shared/deadlineMath';
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
@@ -22,12 +29,27 @@ export const INCIDENT_OPEN_STATUSES = Object.freeze(['open', 'assessing', 'early
 const KINDS = Object.freeze(['breach', 'security_incident', 'vulnerability']);
 
 type Regime = 'GDPR' | 'NIS2' | 'CRA' | 'DORA';
-const REGIME_CLOCKS: Readonly<Record<Regime, { earlyWarningHours?: number; notificationHours?: number; finalDays?: number; finalMonths?: number; customerNotice?: boolean }>> = {
+type RegimeClock = {
+    earlyWarningHours?: number;
+    notificationHours?: number;
+    finalDays?: number;
+    finalMonths?: number;
+    /** CRA severe incident (Art. 14(4)(c)): months after the notification. */
+    incidentFinalMonths?: number;
+    customerNotice?: boolean;
+};
+const REGIME_CLOCKS: Readonly<Record<Regime, RegimeClock>> = {
     GDPR: { notificationHours: 72 },
     NIS2: { earlyWarningHours: 24, notificationHours: 72, finalMonths: 1 },
-    CRA: { earlyWarningHours: 24, notificationHours: 72, finalDays: 14 },
+    CRA: { earlyWarningHours: 24, notificationHours: 72, finalDays: 14, incidentFinalMonths: 1 },
     DORA: { customerNotice: true },
 };
+
+/** incidentClocks._isCraSevereIncident: a CRA row that is not a vulnerability. */
+const isCraSevereIncident = (kind: string | null | undefined, regimes: readonly string[]) =>
+    !!kind && kind !== 'vulnerability' && regimes.includes('CRA');
+
+const monthsLater = (from: string | number, months: number) => new Date(addCalendarMonths(from, months) as number).toISOString();
 
 export interface IncidentNote { at: string; by: string | null; text: string }
 
@@ -85,10 +107,17 @@ const earliest = (dates: (string | null | undefined)[]): string | null => {
     return ts.length ? new Date(Math.min(...ts)).toISOString() : null;
 };
 
-/** incidentStore.computeClocks: each stage's earliest due date over the row's regimes. */
-export function computeClocks(detectedAt: string, regimes: readonly string[]) {
+/**
+ * incidentClocks.computeClocks: each stage's earliest due date over the row's
+ * regimes. `kind` splits the CRA final report: a vulnerability's runs 14 days,
+ * a severe incident's one calendar month after the notification — from
+ * `notifiedAt` when recorded, else from the latest lawful notification
+ * (detected + 72 h).
+ */
+export function computeClocks(detectedAt: string, regimes: readonly string[], kind?: string | null, notifiedAt?: string | null) {
     const t = new Date(detectedAt).getTime();
     const at = (ms: number) => new Date(t + ms).toISOString();
+    const severeCra = isCraSevereIncident(kind, regimes);
     const early: string[] = [];
     const notification: string[] = [];
     const finals: string[] = [];
@@ -97,11 +126,15 @@ export function computeClocks(detectedAt: string, regimes: readonly string[]) {
         const c = REGIME_CLOCKS[code as Regime] || {};
         if (c.earlyWarningHours) early.push(at(c.earlyWarningHours * HOUR_MS));
         if (c.notificationHours) notification.push(at(c.notificationHours * HOUR_MS));
-        if (c.finalDays) finals.push(at(c.finalDays * DAY_MS));
-        if (c.finalMonths) {
-            const d = new Date(t);
-            d.setUTCMonth(d.getUTCMonth() + c.finalMonths);
-            finals.push(d.toISOString());
+        if (code === 'CRA' && severeCra && c.incidentFinalMonths && c.notificationHours) {
+            const from = notifiedAt && Number.isFinite(new Date(notifiedAt).getTime())
+                ? notifiedAt
+                : t + c.notificationHours * HOUR_MS;
+            finals.push(monthsLater(from, c.incidentFinalMonths));
+        } else if (c.finalDays) {
+            finals.push(at(c.finalDays * DAY_MS));
+        } else if (c.finalMonths) {
+            finals.push(monthsLater(t, c.finalMonths));
         }
         if (c.customerNotice) customer = at(DORA_CUSTOMER_NOTICE_HOURS * HOUR_MS);
     }
@@ -111,31 +144,58 @@ export function computeClocks(detectedAt: string, regimes: readonly string[]) {
     };
 }
 
-/** incidentStore.nextOpenDeadline: the earliest clock whose stamp is missing; null when closed or all met. */
-export function openDeadline(row: Incident): string | null {
+/** The clock columns openDeadline reads; the deadline feed passes a row narrowed to some regimes. */
+type ClockRow = Pick<Incident, 'status' | 'kind' | 'regimes' | 'detected_at' | 'authority_notified_at'
+    | 'early_warning_due_at' | 'early_warning_sent_at' | 'customer_notice_due_at' | 'customer_notified_at'
+    | 'final_report_due_at' | 'final_report_sent_at'>;
+
+/**
+ * incidentClocks.nextOpenDeadline: the earliest clock whose stamp is missing;
+ * null when closed or all met. A stored `*_due_at` column wins over the
+ * recomputation (the customer notice is the only record of the org's DORA
+ * window); a cleared one is recomputed from the row's regimes.
+ */
+export function openDeadline(row: ClockRow): string | null {
     if (row.status === 'closed') return null;
-    const notification = computeClocks(row.detected_at, row.regimes).notification_due_at;
+    const c = computeClocks(row.detected_at, regimesFor(row.kind, row.regimes), row.kind, row.authority_notified_at);
     return earliest([
-        row.early_warning_sent_at ? null : row.early_warning_due_at,
-        row.authority_notified_at ? null : notification,
-        row.customer_notified_at ? null : row.customer_notice_due_at,
-        row.final_report_sent_at ? null : row.final_report_due_at,
+        row.early_warning_sent_at ? null : (row.early_warning_due_at || c.early_warning_due_at),
+        row.authority_notified_at ? null : c.notification_due_at,
+        row.customer_notified_at ? null : (row.customer_notice_due_at || c.customer_notice_due_at),
+        row.final_report_sent_at ? null : (row.final_report_due_at || c.final_report_due_at),
     ]);
 }
 
-/** A row after a write: the store's _refreshDeadline. */
-const refreshed = (row: Incident): Incident => ({ ...row, deadline_at: openDeadline(row) });
+/**
+ * incidentClocks._severeIncidentFinalDue: a CRA severe incident's final report
+ * runs from the notification, which is stamped after creation, so it moves
+ * with the row until the report is filed. Null for every other row.
+ */
+function severeIncidentFinalDue(row: Incident): string | null {
+    if (row.final_report_sent_at || row.status === 'closed') return null;
+    if (!isCraSevereIncident(row.kind, row.regimes)) return null;
+    return computeClocks(row.detected_at, row.regimes, row.kind, row.authority_notified_at).final_report_due_at;
+}
+
+/** A row after a write: the store's _refreshDeadline (the severe-incident final report first). */
+const refreshed = (row: Incident): Incident => {
+    const finalDue = severeIncidentFinalDue(row);
+    const next = finalDue && finalDue !== row.final_report_due_at ? { ...row, final_report_due_at: finalDue } : row;
+    return { ...next, deadline_at: openDeadline(next) };
+};
 
 /** incidentStore.normalizeRegimes: none given is a CRA matter for a vulnerability and a GDPR one otherwise. */
-const regimesFor = (kind: string, regimes: unknown): string[] => (Array.isArray(regimes) && regimes.length
-    ? regimes.map(String)
-    : [kind === 'vulnerability' ? 'CRA' : 'GDPR']);
+function regimesFor(kind: string | null | undefined, regimes: unknown): string[] {
+    return Array.isArray(regimes) && regimes.length
+        ? regimes.map(String)
+        : [kind === 'vulnerability' ? 'CRA' : 'GDPR'];
+}
 
 /** A stored row: the store's defaults, the clock columns of its regimes, and its deadline. */
 export function incidentRow(org: string, o: Seed): Incident {
     const kind = o.kind || 'breach';
     const regimes = regimesFor(kind, o.regimes);
-    const c = computeClocks(o.detected_at, regimes);
+    const c = computeClocks(o.detected_at, regimes, kind, o.authority_notified_at);
     return refreshed({
         organization_id: org, kind, source: 'manual', severity: 'medium', high_risk: false, status: 'open',
         description: '', occurred_at: null, deadline_at: null,

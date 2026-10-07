@@ -179,7 +179,7 @@ jobs:
               - 'server/core/entitlements/entitlements.js'
               - 'server/core/kb/kbUsage.js'
               - 'server/core/meetingNotes/meetingUsage.js'
-              - 'server/core/privacy/orgShield.js'
+              - 'server/core/privacy/{orgShield.js,personalColumns.js,specialCategories.js}'
               - 'server/core/privacy/customTypes/shieldDoc.js'
               - 'server/core/webpages/{webpageDataCards.js,webpagePublicAudience.js,webpageUsage.js}'
               - 'server/integrations/{azureGroupSync.js,n8nTools.js,webpageGrants.js}'

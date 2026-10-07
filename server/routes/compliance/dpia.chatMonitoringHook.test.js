@@ -29,7 +29,8 @@ const restore = installResolveStub({
     },
     '../../stores/userStore': { hasAnyOrganization: async () => false, getUser: async () => null, logAccessAudit: async () => {} },
     '../../stores/chatSignalStore': {},
-    '../../compliance/runner': { runOne: async () => [] },
+    // The handler re-judges the agent through runForSubject (detection round 2).
+    '../../compliance/runner': { runOne: async () => [], runForSubject: async () => [] },
     '../../db': { getAll: async () => [] },
     '../../auth/permissions': { requireAuth: pass, requirePermission: () => pass, isOrgAdminForOrg: async () => true, isSuperAdmin: () => false },
     './shared': { resolveOrgId: async (req) => req.headers['x-test-org'] || 'default' },
