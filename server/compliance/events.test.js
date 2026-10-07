@@ -330,3 +330,25 @@ test('an AI-mode switch re-runs the AI-joins-by-itself check whole, once per bur
         events._resetProjectReruns();
     }
 });
+
+test('CHAT_MONITORING_CHANGED re-runs both chat signals checks and drops the counts cache', async () => {
+    assert.deepStrictEqual([...events.CHAT_SIGNAL_CHECKS], ['GDPR-Art32-chat-shield-coverage', 'GDPR-Art35-chat-monitoring-safeguards']);
+    assert.ok(Object.isFrozen(events.CHAT_SIGNAL_CHECKS));
+    assert.strictEqual(events.EVENTS.CHAT_MONITORING_CHANGED, 'chat_monitoring_changed');
+    assert.strictEqual(Object.keys(events.EVENTS).pop(), 'CHAT_MONITORING_CHANGED', 'appended as the last event');
+
+    events.emit(events.EVENTS.CHAT_MONITORING_CHANGED, { orgId: 'org1' });
+    await settle();
+    await settle();
+    assert.deepStrictEqual(runnerCalls.map(c => [c.orgId, c.checkId, c.opts.runType]), [
+        ['org1', 'GDPR-Art32-chat-shield-coverage', 'event'],
+        ['org1', 'GDPR-Art35-chat-monitoring-safeguards', 'event'],
+    ]);
+    assert.deepStrictEqual(invalidated, ['org1']);
+    assert.strictEqual(notifications.length, 0, 'no notice: the admin made the change');
+
+    runnerCalls.length = 0;
+    events.emit(events.EVENTS.CHAT_MONITORING_CHANGED, {});
+    await settle();
+    assert.strictEqual(runnerCalls.length, 0, 'no org, nothing to re-run');
+});

@@ -174,6 +174,7 @@ const NL_TRANSLATIONS = [
     'add-nl-app-studio-builder-translations', // de App Studio-bouwfilm: activiteitsrijen, bouwbanner, ghost-cel, chatkolom
     'add-nl-playbooks-translations',           // Studio → Playbooks: gefaseerde AI-bouw met pauzes voor akkoord
     'add-nl-compliance-center-translations',  // Compliance Center-redesign: rail, headers, registers, kaders, ladder, checks (data-gedreven)
+    'add-nl-chat-monitoring-translations',    // Chat signals: the Compliance Settings card, the notice in the chat and the embed, the three checks
     'add-nl-learning-center-translations',     // Learning Center-redesign: rail, curriculumkaart, cursustabel, Behaald, spelerchrome
     'add-nl-privacy-shield-redesign-translations', // Privacy Shield-redesign ronde 2: pijplijnstrip, categorie-matrix, de twee checks naast elkaar, What happened als kruisfilter
     'add-nl-privacy-shield-v3-translations',   // Privacy Shield ronde 3: kop met detectiestatus en PATH-strip, Overview-reviewkaart, één matrix, stroomkaart van de twee checks, What happened als één log

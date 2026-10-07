@@ -12,7 +12,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
 
-const fx = { userId: 'owner', draft: null, runtime: null, loads: 0 };
+const fx = { userId: 'owner', draft: null, runtime: null, loads: 0, callerOrgIds: new Set(), monitoring: null, asked: [] };
 const noop = () => {};
 const mw = () => (req, res, next) => next();
 
@@ -35,7 +35,7 @@ const MOCKS = {
         OrgRoles: { AGENT_EDITOR: 'agent_editor', ORG_ADMIN: 'org_admin' },
         SystemRoles: { SUPER_ADMIN: 'admin' },
         hasPermission: async () => false,
-        resolveUserOrgIds: async () => new Set(),
+        resolveUserOrgIds: async () => fx.callerOrgIds,
         canSeePublished: () => true,
         resolveUserGroups: async () => [],
         assertUserCanUseOrg: async () => {},
@@ -50,6 +50,10 @@ const MOCKS = {
     '../../core/http/sseHelpers': { setupSSE: noop, sendSSEError: noop, persistAndTitle: async () => {}, getOrCreateAgentConversation: async () => {} },
     '../../stores/skillStore': { getSkillScope: async () => null },
     '../../stores/knowledgeBases': { getKB: async () => null, isSystemKB: () => false },
+    // Chat signals: the resolver for the agent's org (complianceCounting).
+    '../../core/entitlements/chatMonitoringFlag': {
+        resolveChatMonitoring: async (orgKey) => { fx.asked.push(orgKey); return fx.monitoring; },
+    },
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -85,6 +89,9 @@ function get(url, query = {}) {
 test.beforeEach(() => {
     fx.userId = 'owner';
     fx.loads = 0;
+    fx.callerOrgIds = new Set();
+    fx.monitoring = null;
+    fx.asked = [];
     fx.draft = {
         id: 'a1', owner_id: 'owner', is_published: true, organization_id: null, shared_groups: [],
         rev: 9, published_version: 2, published_rev: 6,
@@ -143,3 +150,65 @@ test('?draft=1 for an editor also costs one load', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(fx.loads, 1);
 });
+
+// ── Chat signals: complianceCounting { state, from } ─────────────────
+
+const COUNTING_OFF = { state: 'off', from: null };
+const AGENT_ON = {
+    state: 'on', version: '2026-10-14T09:00:00.000Z', from: '2026-10-14', surfaces: ['direct', 'agent'],
+    paused: [], signals: ['outcomes'], noticeUrl: 'https://acme.example/n', visitorNoticeUrl: null, retentionDays: 90,
+};
+const inOrg = (over = {}) => {
+    fx.draft = { ...fx.draft, organization_id: 'org-1', ...over };
+    fx.runtime = { ...fx.runtime, organization_id: 'org-1', ...over };
+};
+
+test('complianceCounting: a member of the agent\'s org is told the state and the start date, nothing else', async () => {
+    inOrg();
+    fx.callerOrgIds = new Set(['org-1']);
+    fx.monitoring = AGENT_ON;
+    const res = await get('/a1');
+    assert.deepStrictEqual(res.body.complianceCounting, { state: 'on', from: '2026-10-14' });
+    assert.deepStrictEqual(fx.asked, ['org-1'], 'the resolver is asked about the AGENT\'s org');
+    fx.monitoring = { ...AGENT_ON, state: 'scheduled' };
+    assert.deepStrictEqual((await get('/a1')).body.complianceCounting, { state: 'scheduled', from: '2026-10-14' });
+    // The editor's concept view carries it too.
+    assert.deepStrictEqual((await get('/a1', { draft: '1' })).body.complianceCounting, { state: 'scheduled', from: '2026-10-14' });
+});
+
+test('complianceCounting: off for another org\'s member, a super admin and an agent without an org', async () => {
+    inOrg();
+    fx.monitoring = AGENT_ON;
+    fx.callerOrgIds = new Set(['org-2']);
+    assert.deepStrictEqual((await get('/a1')).body.complianceCounting, COUNTING_OFF);
+    fx.callerOrgIds = null; // a super admin: resolveUserOrgIds answers null
+    assert.deepStrictEqual((await get('/a1')).body.complianceCounting, COUNTING_OFF);
+
+    fx.asked = [];
+    inOrg({ organization_id: null });
+    fx.callerOrgIds = new Set(['org-1']);
+    assert.deepStrictEqual((await get('/a1')).body.complianceCounting, COUNTING_OFF);
+    assert.deepStrictEqual(fx.asked, [], 'no org, no question');
+});
+
+test('complianceCounting: off when agent chat is not counted (off, only other chat types, or paused)', async () => {
+    inOrg();
+    fx.callerOrgIds = new Set(['org-1']);
+    fx.monitoring = { ...AGENT_ON, state: 'off' };
+    assert.deepStrictEqual((await get('/a1')).body.complianceCounting, COUNTING_OFF);
+    fx.monitoring = { ...AGENT_ON, surfaces: ['direct'], paused: [{ surface: 'agent', missing: ['dpia_expired'] }] };
+    assert.deepStrictEqual((await get('/a1')).body.complianceCounting, COUNTING_OFF);
+    fx.monitoring = null;
+    assert.deepStrictEqual((await get('/a1')).body.complianceCounting, COUNTING_OFF);
+});
+
+test('complianceCounting: a resolver failure reads off and the agent still loads', async () => {
+    inOrg();
+    fx.callerOrgIds = new Set(['org-1']);
+    fx.monitoring = Promise.reject(new Error('ECONNREFUSED'));
+    fx.monitoring.catch(() => {});
+    const res = await get('/a1');
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.complianceCounting, COUNTING_OFF);
+});
+

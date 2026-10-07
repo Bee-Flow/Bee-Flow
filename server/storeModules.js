@@ -189,6 +189,11 @@ const STORE_MODULES = [
     // Compliance-hub-familie — allemaal al modern (memo + export), alleen nooit geregistreerd.
     { name: 'complianceStore', file: './stores/complianceStore' },
     { name: 'dpiaStore', file: './stores/dpiaStore' },
+    // Chat signals: weekly/daily counters of how the Privacy Shield handled
+    // chat messages (no ids, no text), and the per-person "Don't count my chat
+    // turns" objection. Read only through stores/lib/chatSignalSuppression.js.
+    { name: 'chatSignalStore', file: './stores/chatSignalStore' },
+    { name: 'chatSignalObjectionStore', file: './stores/chatSignalObjectionStore' },
     { name: 'dsrStore', file: './stores/dsrStore' },
     { name: 'incidentStore', file: './stores/incidentStore' },
     { name: 'riskStore', file: './stores/riskStore' },

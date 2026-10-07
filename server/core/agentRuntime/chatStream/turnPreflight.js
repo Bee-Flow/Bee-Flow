@@ -20,6 +20,7 @@ const { runInputGuardrails } = require('../guardrailsRunner');
 const { resolveShieldFor } = require('../../privacy/orgShield');
 const { resolveMemoryContext, injectProjectAndKnowledgeContext } = require('../contextEnrichment');
 const { createUntokenisingEventWrapper } = require('../streamUntokeniser');
+const chatSignals = require('../../privacy/chatSignals');
 const log = require('../../../telemetry/log');
 
 async function runTurnPreflight({
@@ -143,9 +144,46 @@ async function runTurnPreflight({
     // returns `dlpEnabled: false`.
     // dlpShield was resolved above (before memory retrieval) so the guard scan
     // could be pre-warmed; reused here unchanged.
+    let dlp = null;
+    // Chat signals: this turn's outcome as the PII gate or DLP already decided
+    // it, handed to the recorder fire-and-forget (never awaited, never
+    // throws). Called exactly once per turn: right before a DLP block's
+    // throw, or once the DLP block is behind us. Who counts where is
+    // chatSignals.agentTurnTarget: a website visitor under `agent_public`, a
+    // member of the agent's own organisation under `agent`, anybody else
+    // (another org, a super admin, an agent without an org) not at all. Test
+    // chats and "Test as" previews are dry runs. The recorder gets no agent,
+    // conversation or message; `userId` serves its objection lookup only.
+    const _recordSignal = () => {
+        try {
+            const target = chatSignals.agentTurnTarget({
+                userId, callerOrgId: messageMetadata?.orgId || null, agentOrgId: agent.organization_id || null,
+            });
+            if (!target) return;
+            const piiReport = guardrailsResult?.piiReport || null;
+            const outcome = dlp
+                ? chatSignals.outcomeFromDlp(dlp)
+                : (chatSignals.outcomeFromPiiReport(piiReport) || 'unscanned');
+            const categories = dlp
+                ? (Array.isArray(dlp.categories) ? dlp.categories : [])
+                : (Array.isArray(piiReport?.categories) ? piiReport.categories : []);
+            chatSignals.countTurn({
+                orgKey: target.orgKey,
+                surface: target.surface,
+                userId,
+                optOut: messageMetadata?.chatSignals?.optOut === true,
+                notice: typeof messageMetadata?.chatSignals?.notice === 'string' ? messageMetadata.chatSignals.notice : null,
+                outcome,
+                categories,
+                providerConfig: { providerType: config?.providerType, url: config?.url },
+                allowlistedHosts: Array.isArray(dlpShield?.dlpAllowlistedHosts) ? dlpShield.dlpAllowlistedHosts : [],
+                dryRun: testChatMod.isDryRunTurn(messageMetadata) || !!messageMetadata?.testAs,
+            });
+        } catch (_) { /* counting never touches the turn */ }
+    };
     if (dlpShield?.dlpEnabled) {
         const { runDlpPreflight } = require('../../dlp/dlpPreflight');
-        const dlp = await runDlpPreflight({
+        dlp = await runDlpPreflight({
             messages,
             resolvedShield: dlpShield,
             orgId: agent.organization_id,
@@ -185,12 +223,14 @@ async function runTurnPreflight({
             err.code = dlp.reason === 'ask_timeout' ? 'DLP_TIMEOUT'
                 : dlp.reason === 'user_blocked' ? 'DLP_USER_BLOCKED'
                     : 'DLP_BLOCKED';
+            _recordSignal();
             throw err;
         }
         if (dlp.redactedText != null) processedUserMessage = dlp.redactedText;
         if (dlp.userPrivacyMeta) _userPrivacyMeta = dlp.userPrivacyMeta;
         if (dlp.assistantTokenisationInfo) _assistantTokenisationInfo = dlp.assistantTokenisationInfo;
     }
+    _recordSignal();
 
     // ── DLP un-tokeniser (wraps onEvent for the rest of the turn) ──
     // Built in ./streamUntokeniser: restores conversation-vault tokens on every

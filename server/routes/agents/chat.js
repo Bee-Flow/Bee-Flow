@@ -122,6 +122,13 @@ const TurnBody = bodyOf({
     agentId: z.unknown().optional(),
     stream: z.unknown().optional(),
     isHidden: z.unknown().optional(),
+    // Chat signals (core/privacy/chatSignals.js): the notice marker a chat
+    // sends when it showed the chat-signals line for exactly this
+    // configuration (`agent@<version>`, `agent_public@<version>` from the
+    // embed), and the person's "don't count" switch. A turn without the
+    // marker is not counted.
+    chatSignalsNotice: worded('chatSignalsNotice must be text.').max(120, 'chatSignalsNotice is at most 120 characters.').optional(),
+    chatSignalsOptOut: flag('chatSignalsOptOut'),
 });
 
 /**
@@ -320,9 +327,31 @@ router.get('/:id/embed', embedLimiter, async (req, res) => {
         // returns false, and `false !== 0` read an OFF column as on.
         copyEnabled: storedFlag(agent.copy_enabled, FLAG_DEFAULTS.copy_enabled)
             && agent.config?.allowCopy !== false,
+        // What the page tells a website visitor about chat signals: state,
+        // start date, version, signals and the org's own https notice. No ids,
+        // no org name (core/privacy/chatSignalsNotice.embedNotice).
+        complianceNotice: await embedComplianceNotice(agent),
         isSwarm: false
     });
 });
+
+/**
+ * The embed's chat-signals notice, from the resolver for the AGENT's
+ * organisation (the org a visitor's turn counts under). An agent without an
+ * organisation is never counted, so nothing is announced for it. Never throws:
+ * a failure reads off, and an unannounced turn is not counted either.
+ */
+async function embedComplianceNotice(agent) {
+    const notice = require('../../core/privacy/chatSignalsNotice');
+    const orgId = typeof agent?.organization_id === 'string' && agent.organization_id ? agent.organization_id : null;
+    if (!orgId) return notice.EMBED_OFF;
+    try {
+        const mon = await require('../../core/entitlements/chatMonitoringFlag').resolveChatMonitoring(orgId);
+        return notice.embedNotice(mon);
+    } catch (_) {
+        return notice.EMBED_OFF;
+    }
+}
 
 // ── Subscription limit enforcement (uses shared module) ──────────────────────
 const checkSubscriptionLimits = checkSubLimits;
@@ -469,7 +498,10 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
             // Custom history override for thread context isolation
             history,
             // Message metadata for persistence (id, parentId, attachments, and conversationId)
-            { messageId, parentId, attachments, conversationId, ephemeral: isEphemeral, ephemeralKey: testChatMod.normaliseSessionKey(req.body.testSessionId), testAs, testChat: isTestChat, toolDecisions: isTestChat ? testChatMod.normaliseToolDecisions(req.body.toolDecisions) : undefined, notebookspaceContent: req.body.notebookspaceContent, notebookspaceSelection: req.body.notebookspaceSelection, notebookspaceAvailable: req.body.notebookspaceAvailable, sidePanelWebpage: req.body.sidePanelWebpage, signal: abortController.signal, userOrgId: userAuth.userOrgId, timezone: req.body.timezone, projectId: req.body.projectId, modelTier, activeSkillIds, orgId, reasoningEffort, memoryWriteEnabled: req.body.memoryWriteEnabled, webSearchEnabled: req.body.webSearchEnabled }
+            { messageId, parentId, attachments, conversationId, ephemeral: isEphemeral, ephemeralKey: testChatMod.normaliseSessionKey(req.body.testSessionId), testAs, testChat: isTestChat, toolDecisions: isTestChat ? testChatMod.normaliseToolDecisions(req.body.toolDecisions) : undefined, notebookspaceContent: req.body.notebookspaceContent, notebookspaceSelection: req.body.notebookspaceSelection, notebookspaceAvailable: req.body.notebookspaceAvailable, sidePanelWebpage: req.body.sidePanelWebpage, signal: abortController.signal, userOrgId: userAuth.userOrgId, timezone: req.body.timezone, projectId: req.body.projectId, modelTier, activeSkillIds, orgId, reasoningEffort, memoryWriteEnabled: req.body.memoryWriteEnabled, webSearchEnabled: req.body.webSearchEnabled,
+                // Chat signals: the marker and the switch, read by the turn
+                // preflight's recorder call (chatStream/turnPreflight.js).
+                chatSignals: { notice: typeof req.body.chatSignalsNotice === 'string' ? req.body.chatSignalsNotice : null, optOut: req.body.chatSignalsOptOut === true } }
         );
 
         // Skip all post-stream persistence for ephemeral embed chats — and for

@@ -120,8 +120,40 @@ function _applyAllowlist(result, orgShieldConfig) {
     };
 }
 
+/**
+ * What the input gate decided, for a caller that passes `options.report`
+ * (chat signals, core/privacy/chatSignals.js: the outcome of a turn is taken
+ * from this decision, never from a second scan). Written right before every
+ * exit; the return values and throws are untouched, and without a report
+ * nothing here runs.
+ *
+ *   status      disabled | allowed_by_policy | too_short | clean | guard_absent
+ *               | failed_open | failed_closed | found
+ *   decision    'tokenised' | 'blocked', only with status 'found'
+ *   categories  the distinct category ids of what was found, after the
+ *               allowlist; only with status 'found'. Never a span or a value.
+ *
+ * @typedef {{ status?: string, decision?: string, categories?: string[] }} PiiGateReport
+ * @param {PiiGateReport|null} report
+ * @param {string} status
+ * @param {Array<{category?: string, label?: string}>} [entities]
+ * @param {'tokenised'|'blocked'} [decision]
+ */
+function _report(report, status, entities, decision) {
+    if (!report) return;
+    report.status = status;
+    if (decision) report.decision = decision;
+    if (Array.isArray(entities)) {
+        report.categories = [...new Set(entities
+            .map(e => (e && (e.category || e.label)) || '')
+            .filter(c => typeof c === 'string' && c.length > 0))];
+    }
+}
+
 async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldConfig = null, overridePiiAction = null, existingTokenMap = null, options = {}) {
     const vaultUserId = options.vaultUserId || null;
+    /** @type {PiiGateReport|null} */
+    const report = options.report && typeof options.report === 'object' ? options.report : null;
     const aiConfig = await getAIConfig();
 
     // Loud entry trace so admins can see PII gates firing in logs.
@@ -138,6 +170,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
         !!orgShieldConfig?.enabled;
     if (!piiEnabled) {
         log.info('[PiiDetection] gate=DISABLED (aiConfig + agent + shield all off)');
+        _report(report, 'disabled');
         return null;
     }
 
@@ -149,6 +182,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
     const piiAction = overridePiiAction || orgShieldConfig?.piiDetectionAction || aiConfig.piiDetectionAction || 'block';
     if (piiAction === 'allow') {
         log.info('[PiiDetection] gate=ALLOW (per-call override) — skipping scan');
+        _report(report, 'allowed_by_policy');
         return null;
     }
 
@@ -163,6 +197,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
     const lastUserMessage = messages.slice().reverse().find(m => m.role === 'user');
     if (!lastUserMessage) {
         log.info('[PiiDetection] no user message in batch');
+        _report(report, 'too_short');
         return null;
     }
 
@@ -173,6 +208,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
     }
     if (!inputText || inputText.length < 3) {
         log.info(`[PiiDetection] input too short (${inputText?.length || 0} chars), skipping`);
+        _report(report, 'too_short');
         return null;
     }
 
@@ -242,13 +278,16 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
             if (MASKING_ACTIONS.has(piiAction)) {
                 const { tokenizedText, tokenMap } = await _tokenizeWithVault(inputText, hit.entities, existingTokenMap, vaultUserId);
                 log.warn(`[PiiDetection] Tokenizing ${hit.entities.length} entities (cached): ${[...new Set(hit.entities.map(_logLabel))].join(', ')}`);
+                _report(report, 'found', hit.entities, 'tokenised');
                 return { tokenizedText, tokenMap, entities: hit.entities };
             }
             const err = /** @type {PiiError} */ (new Error(`PII Detected: Message contains sensitive personal information (${categoryList}). Please remove PII before sending.`));
             err.piiEntities = hit.entities;
             err.violationCodes = hit.entities.map(e => `PII:${e.category}`);
+            _report(report, 'found', hit.entities, 'blocked');
             throw err;
         }
+        _report(report, 'clean');
         return null;
     }
 
@@ -259,11 +298,11 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
         // options.onProgress lets the chat runtimes report "part 3/6" while a
         // multi-window scan runs — minutes of otherwise silent wait.
         let result = await detectPii(inputText, enabledCategories, confidenceThreshold, { onProgress: options.onProgress });
-        if (!result) return null; // Guard not installed → feature off, fail open
+        if (!result) { _report(report, 'guard_absent'); return null; } // Guard not installed → feature off, fail open
         // No guard, but the org's own words/patterns ran in Node: same
         // fail-open as null for what the guard would have found, and the
         // custom matches are still acted on below.
-        if (result.guardAbsent && !result.hasPii) return null;
+        if (result.guardAbsent && !result.hasPii) { _report(report, 'guard_absent'); return null; }
 
         // Detection couldn't fully run (guard unreachable, or the GLiNER model
         // isn't ready so only the regex tier answered). Trusting this would
@@ -290,6 +329,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
                 log.warn(`[PiiDetection] Detection DEGRADED (${result.degradedReason || 'unknown'}) but only for [${affected.join(', ')}], none of which this scope requested — continuing with the result`);
             } else if (piiFailureMode === 'fail_open') {
                 log.warn(`[PiiDetection] Detection DEGRADED (${result.degradedReason || 'unknown'}) — fail_open: allowing content UNMASKED`);
+                _report(report, 'failed_open');
                 return null;
             } else {
                 log.warn(`[PiiDetection] Detection DEGRADED (${result.degradedReason || 'unknown'}) — fail_closed: blocking message`);
@@ -301,6 +341,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
                 err.privacyUnavailableKind = kind;
                 err.degradedReason = result.degradedReason || null;
                 err.degradedCategories = affected || null;
+                _report(report, 'failed_closed');
                 throw err;
             }
         }
@@ -341,6 +382,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
                     log.warn(`[PiiDetection] Input contains likely PII (${hints.join(', ')}) but threshold is ${confidenceThreshold}. Detectors typically return 0.70–0.85 confidence for short texts; lower the threshold to 0.70 if you expect detections. (Org Privacy Shield → PII Detection → Confidence Threshold)`);
                 }
             }
+            _report(report, 'clean');
             return null;
         }
 
@@ -367,6 +409,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
         if (MASKING_ACTIONS.has(piiAction)) {
             const { tokenizedText, tokenMap } = await _tokenizeWithVault(inputText, result.entities, existingTokenMap, vaultUserId);
             log.warn(`[PiiDetection] Tokenizing — sending redacted text to AI`);
+            _report(report, 'found', result.entities, 'tokenised');
             return { tokenizedText, tokenMap, entities: result.entities };
         }
 
@@ -374,6 +417,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
         const err = /** @type {PiiError} */ (new Error(`PII Detected: Message contains sensitive personal information (${categoryList}). Please remove PII before sending.`));
         err.piiEntities = result.entities;
         err.violationCodes = result.entities.map(e => `PII:${e.category}`);
+        _report(report, 'found', result.entities, 'blocked');
         throw err;
 
     } catch (e) {
@@ -382,6 +426,7 @@ async function validateInputForPii(messages, agentPiiEnabled = false, orgShieldC
         if (e.message?.includes('PII Detected') || e.privacyUnavailable) throw e;
         log.error('[PiiDetection] Validation failed:', e.message);
         log.warn('[PiiDetection] Service unavailable, allowing content (fail-open)');
+        _report(report, 'failed_open');
         return null;
     }
 }

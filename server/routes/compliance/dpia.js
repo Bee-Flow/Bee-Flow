@@ -15,6 +15,19 @@ const { resolveOrgId } = require('./shared');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
+const { CHAT_MONITORING_DPIA_KEY } = require('../../stores/lib/chatMonitoringVocab');
+
+/**
+ * Chat signals keep their org-wide DPIA under the key 'chat_monitoring'. A
+ * save of that one refreshes the chat signals resolver and re-runs its checks
+ * (routes/compliance/chatMonitoring.js chatMonitoringDpiaHook, after the
+ * response). Required lazily, for that key only: every other DPIA save never
+ * loads the chat signals router through this file.
+ */
+function chatMonitoringDpiaHook(req, res, next) {
+    if (req.params?.agentId !== CHAT_MONITORING_DPIA_KEY) return next();
+    return require('./chatMonitoring').chatMonitoringDpiaHook(req, res, next);
+}
 
 // ── What a caller may send ────────────────────────────────────────
 //
@@ -117,7 +130,7 @@ router.get('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'),
     res.json(row || null);
 });
 
-router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), validate({ body: DpiaBody }), async (req, res) => {
+router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), validate({ body: DpiaBody }), chatMonitoringDpiaHook, async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const saved = await dpiaStore.upsertAssessment(orgId, req.params.agentId, {

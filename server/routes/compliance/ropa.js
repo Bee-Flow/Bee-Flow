@@ -147,6 +147,15 @@ async function _buildRopa(orgId) {
             log.warn('[ROPA] project activities unavailable:', e.message);
         }
 
+        // Chat signals (checking whether the Privacy Shield works) while they
+        // are on or scheduled, or while collected counts remain —
+        // compliance/ropa/chatMonitoringActivity.js.
+        try {
+            activities.push(...await require('../../compliance/ropa/chatMonitoringActivity').chatMonitoringActivity(orgId));
+        } catch (e) {
+            log.warn('[ROPA] chat signals activity unavailable:', e.message);
+        }
+
         // Product measurement.
         //
         // Every model call writes a row to `ai_usage_log` carrying the user,

@@ -468,6 +468,8 @@ async function deleteUser(userId) {
     // Art. 17 request and the answer turns out to be untrue.
     try { await run('DELETE FROM message_feedback WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
     try { await run('DELETE FROM ai_usage_log WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    // Their "Don't count my chat turns" choice (chat signals, Art. 21).
+    try { await run('DELETE FROM chat_signal_objections WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
     // "Find repeating work": scans derived from this person's own mail, files
     // and ledger, and their feedback on them.
     await eraseSuggestionTraces(userId);

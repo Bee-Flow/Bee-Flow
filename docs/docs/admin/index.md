@@ -43,6 +43,10 @@ The first user to register on a fresh install becomes an org admin automatically
 
     Guardrail events, GDPR archive, audit log export (Enterprise+).
 
+-    [Chat signals](chat-signals.md)
+
+    Optional counts that show whether the Privacy Shield works in chat (off by default).
+
 </div>
 
 ## Quick reference

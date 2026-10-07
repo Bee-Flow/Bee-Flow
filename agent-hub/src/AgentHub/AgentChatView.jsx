@@ -30,6 +30,10 @@ const AgentChatView = ({
     currentConversation, retryMessage, editAndRegenerate, modelTiers,
     renderSidePanels,
     activeProject = null, onOpenActiveProject, onLeaveActiveProject,
+    // useChatSignals() from useAgentHubData: the chat-signals notice for the
+    // endpoint this chat posts to, and the person's own switch. Both composers
+    // below get it, so the empty state and the conversation say the same.
+    chatSignals = null,
 }) => {
     return (
                     <>
@@ -201,6 +205,8 @@ const AgentChatView = ({
                                                     onToggleSkill={handleToggleSkill}
                                                     messages={messages}
                                                     onVoiceTurnComplete={handleVoiceTurnComplete}
+                                                    chatSignalsNotice={chatSignals?.notice ?? null}
+                                                    onChatSignalsCounted={chatSignals?.setCounted ?? null}
                                                     cowork={coworkComposer}
                                                     coworkMode={coworkMode}
                                                     onCoworkModeChange={(mode) => setCoworkModeForAgent(mode, selectedAgent?.id)}
@@ -253,6 +259,8 @@ const AgentChatView = ({
                                             onToggleSkill={handleToggleSkill}
                                             messages={messages}
                                             onVoiceTurnComplete={handleVoiceTurnComplete}
+                                            chatSignalsNotice={chatSignals?.notice ?? null}
+                                            onChatSignalsCounted={chatSignals?.setCounted ?? null}
                                             cowork={coworkComposer}
                                             coworkMode={coworkMode}
                                             onCoworkModeChange={(mode) => setCoworkModeForAgent(mode, selectedAgent?.id)}

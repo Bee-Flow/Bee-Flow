@@ -640,6 +640,9 @@ app.use('/api/privacy/token-vault', require('./routes/piiVault'));
 // The caller's own effective Privacy Shield status — the one source behind the
 // chat and Cowork privacy claims (F4). Self-scoped; requireAuth on the route.
 app.use('/api/privacy/shield-status', require('./routes/privacyShieldStatus'));
+// The caller's own "Don't count my chat turns" preference for chat signals.
+// Self-scoped; requireAuth on each route; no admin equivalent by design.
+app.use('/api/privacy/chat-signals', require('./routes/privacyChatSignals'));
 // CMS AI builder — mounted BEFORE /api/cms so the more-specific prefix wins.
 app.use('/api/cms/builder', require('./routes/ai/cmsBuilder'));
 app.use('/api/cms', require('./routes/cms'));
@@ -1095,6 +1098,8 @@ const shutdown = async (signal) => {
     } catch (e) { log.warn('[Server] automation runner drain failed:', e.message); }
     try { require('./jobs/usageOpenObservePush').stop(); } catch (_) { /* best-effort */ }
     try { require('./jobs/opsMetricsPush').stop(); } catch (_) { /* best-effort */ }
+    // Chat signals: write the last minute of counters (bounded; a lost minute is acceptable, a hung shutdown is not).
+    try { await Promise.race([require('./core/privacy/chatSignals').flush(), new Promise(r => setTimeout(r, 2000).unref())]); } catch (_) { /* best-effort */ }
     try { require('./stores/configStore')._stopInvalidationListener(); } catch (_) { /* best-effort */ }
     await disconnectRedis(); // ioredis client (caching)
     // node-redis v5: close() replaces deprecated quit()
