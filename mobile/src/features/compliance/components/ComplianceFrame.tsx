@@ -17,6 +17,8 @@ export interface ComplianceFrameProps {
     subtitle?: string;
     gate: ComplianceGate;
     actions?: ReactNode;
+    /** A status row under the header (a framework's score pill and 'Run again'). */
+    status?: ReactNode;
     children: ReactNode;
 }
 
@@ -44,10 +46,11 @@ function Closed({ gate }: { gate: ComplianceGate }) {
     );
 }
 
-export function ComplianceFrame({ title, subtitle, gate, actions, children }: ComplianceFrameProps) {
+export function ComplianceFrame({ title, subtitle, gate, actions, status, children }: ComplianceFrameProps) {
     return (
         <Screen edges={['top', 'bottom']} inset>
             <ScreenHeader title={title} subtitle={subtitle} actions={gate.open ? actions : undefined} />
+            {gate.open && status ? status : null}
             {gate.open ? children : <Closed gate={gate} />}
         </Screen>
     );

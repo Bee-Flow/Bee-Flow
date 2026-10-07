@@ -1,7 +1,8 @@
 /**
  * A single choice as a wrapping row of pills under its label — inside a form
  * sheet, where a second sheet on top would be one modal too many. Pressing
- * the chosen pill again clears an optional choice.
+ * the chosen pill again clears an optional choice. The selected option's own
+ * hint, when it has one, is shown under the pills.
  */
 
 import React from 'react';
@@ -13,6 +14,8 @@ import { Chip, Text } from '@/shared/ui';
 export interface ChipOption {
     value: string;
     label: string;
+    /** Shown under the pills while this option is selected. */
+    hint?: string;
 }
 
 export interface ChoiceChipsProps {
@@ -28,6 +31,7 @@ export interface ChoiceChipsProps {
 
 export function ChoiceChips({ label, options, value, onChange, required = false, hint, error, testID }: ChoiceChipsProps) {
     const styles = useThemedStyles(makeStyles);
+    const note = options.find((o) => o.value === value)?.hint ?? hint;
     return (
         <View style={styles.field} testID={testID}>
             <Text variant="label" tone="secondary">
@@ -48,9 +52,9 @@ export function ChoiceChips({ label, options, value, onChange, required = false,
                 <Text variant="label" tone="error">
                     {error}
                 </Text>
-            ) : hint ? (
-                <Text variant="label" tone="tertiary">
-                    {hint}
+            ) : note ? (
+                <Text variant="label" tone="tertiary" testID={testID ? `${testID}-hint` : undefined}>
+                    {note}
                 </Text>
             ) : null}
         </View>
