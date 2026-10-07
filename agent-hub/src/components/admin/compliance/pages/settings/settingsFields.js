@@ -92,16 +92,16 @@ export const SETTINGS_GROUPS = Object.freeze([
         ]),
         fields: Object.freeze([
             Object.freeze({ name: 'dpo_user', kind: 'userfill', section: 'accountability', labelKey: 'compliance.set_fill_member', labelEn: 'Fill from member' }),
-            Object.freeze({ name: 'dpo_name', section: 'accountability', span: 'third', kind: 'text', labelKey: 'compliance.dpo_name', labelEn: 'DPO name', placeholder: 'Jane Doe' }),
-            Object.freeze({ name: 'dpo_email', section: 'accountability', span: 'third', kind: 'email', labelKey: 'compliance.dpo_email', labelEn: 'DPO email', placeholder: 'dpo@example.com' }),
-            Object.freeze({ name: 'dpo_phone', section: 'accountability', span: 'third', kind: 'text', labelKey: 'compliance.dpo_phone', labelEn: 'DPO phone', placeholder: '+31 6 …' }),
+            Object.freeze({ name: 'dpo_name', kind: 'text', section: 'accountability', span: 'third', labelKey: 'compliance.dpo_name', labelEn: 'DPO name', placeholder: 'Jane Doe' }),
+            Object.freeze({ name: 'dpo_email', kind: 'email', section: 'accountability', span: 'third', labelKey: 'compliance.dpo_email', labelEn: 'DPO email', placeholder: 'dpo@example.com' }),
+            Object.freeze({ name: 'dpo_phone', kind: 'text', section: 'accountability', span: 'third', labelKey: 'compliance.dpo_phone', labelEn: 'DPO phone', placeholder: '+31 6 …' }),
             Object.freeze({
                 name: 'legal_bases', kind: 'chips', options: LEGAL_BASES, section: 'lawful', span: 'half',
                 labelKey: 'compliance.settings_legal_bases', labelEn: 'Legal bases',
                 hintKey: 'compliance.settings_legal_bases_desc', hintEn: 'GDPR Art. 6 grounds you rely on for processing personal data.',
             }),
-            Object.freeze({ name: 'data_residency', section: 'lawful', kind: 'select', options: RESIDENCY, labelKey: 'compliance.data_residency', labelEn: 'Data residency' }),
-            Object.freeze({ name: 'default_retention_days', section: 'lawful', span: 'third', kind: 'number', min: 0, labelKey: 'compliance.default_retention_days', labelEn: 'Memory retention (days)', placeholder: '365' }),
+            Object.freeze({ name: 'data_residency', kind: 'select', section: 'lawful', options: RESIDENCY, labelKey: 'compliance.data_residency', labelEn: 'Data residency' }),
+            Object.freeze({ name: 'default_retention_days', kind: 'number', section: 'lawful', span: 'third', min: 0, labelKey: 'compliance.default_retention_days', labelEn: 'Memory retention (days)', placeholder: '365' }),
             // Art. 30(4): a record has to be kept up to date. This is how long
             // an entry in the processing register may stand before someone
             // reads it again — GDPR-Art30-datatable-registrations warns past it.
@@ -118,7 +118,7 @@ export const SETTINGS_GROUPS = Object.freeze([
                 labelKey: 'compliance.settings.project_retention_days', labelEn: 'Project retention (days)',
                 hintKey: 'compliance.settings.project_retention_days_hint', hintEn: 'How long a collaborative project may go unused while it holds personal data. 365 days when left empty.',
             }),
-            Object.freeze({ name: 'privacy_notice_url', section: 'public', kind: 'url', labelKey: 'compliance.privacy_notice_url', labelEn: 'Privacy notice URL', placeholder: 'https://yourcompany.com/privacy' }),
+            Object.freeze({ name: 'privacy_notice_url', kind: 'url', section: 'public', labelKey: 'compliance.privacy_notice_url', labelEn: 'Privacy notice URL', placeholder: 'https://yourcompany.com/privacy' }),
             Object.freeze({
                 name: 'breach_recipients', kind: 'emails', section: 'alerts', span: 'half',
                 labelKey: 'compliance.settings_breach', labelEn: 'Breach notification recipients',
