@@ -1,7 +1,8 @@
 /**
  * Step 3 — Annex III: ten questions, one per high-risk domain, the ones the
  * automation's own wording mentions first. "No" needs all ten; any "yes" makes
- * it high-risk and says under which point of the annex.
+ * it high-risk and says under which point of the annex. A row declared 'yes'
+ * before the ten questions existed asks to pick the area(s) to confirm.
  */
 
 import React from 'react';
@@ -32,6 +33,11 @@ export function LadderAnnexStep({ ladder }: { ladder: AiActLadder }) {
                 meta={words.meta}
                 verdict={step3Verdict(ladder.verdict, annexAnsweredCount(ladder.domains), t)}
             />
+            {ladder.legacyYes ? (
+                <Text variant="caption" weight="medium" tone="warning" testID="ladder-legacy-yes-note">
+                    {t('compliance.ladder_legacy_yes_note', 'Declared high-risk earlier — pick the area(s) to confirm')}
+                </Text>
+            ) : null}
             <View>
                 {orderByHints(ANNEX_QUESTIONS, hints).map((q) => (
                     <LadderAnnexQuestion key={q.id} question={q} value={ladder.domains[q.id]} hinted={hints.includes(q.id)} onAnswer={ladder.answer} />

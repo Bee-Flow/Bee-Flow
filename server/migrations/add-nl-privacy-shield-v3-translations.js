@@ -248,6 +248,7 @@ const NL_TRANSLATIONS = {
     'shield_activity.show_these': 'Toon deze',
     'shield_activity.showing': '{n} van {total} getoond',
     'shield_activity.showing_these': 'Deze worden getoond',
+    'shield_activity.special_category_total_only': 'Gezondheidsgegevens zie je alleen als totaal voor de organisatie, nooit per persoon.',
     'shield_activity.subtitle': 'Elke keer dat het schild ingreep bij een bericht, en elke aanroep van je organisatie naar een externe dienst.',
     'shield_activity.type_web_search': 'Webzoekopdracht',
     'shield_activity.worth_a_look': 'Het bekijken waard',

@@ -235,7 +235,7 @@ function Questionnaire({ form, set, onAttest, saving }: {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col gap-3" data-testid="dpia-form">
-            <span className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.dpia_questionnaire_hint', 'Art. 35(7): purpose, data, necessity, measures.')}</span>
+            <span className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.dpia_questionnaire_hint', 'Art. 35(7): description and purposes, necessity and proportionality, risks to the rights and freedoms of the people concerned, measures.')}</span>
             <Field label={t('compliance.dpia_q_purpose', 'Purpose of processing')}>
                 <TextInput value={form.purpose} onChange={v => set({ purpose: v })} data-testid="dpia-q-purpose" />
             </Field>

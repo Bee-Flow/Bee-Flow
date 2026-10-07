@@ -22,6 +22,7 @@ import { PII_CATEGORIES } from '../../config/piiCategories';
 import { DEMO_CAPABILITIES } from './common';
 import { ROUTES, createState, shieldDoc, _internals } from './privacyShield';
 import { LEGACY_ID, POLIS_ID, PROJECT_ID } from './privacyShieldOwnData';
+import { isSpecialCategory } from '../../components/admin/security/guardrails/orgShield/activity/specialCategories';
 
 const VALID_CATEGORY_IDS = new Set(PII_CATEGORIES.map(c => c.id));
 const CUSTOM_ID = /^cdt_[0-9a-f]{10}$/;
@@ -252,6 +253,22 @@ describe('"What happened" — the drill-downs are not empty', () => {
         for (const d of ROUTES['GET /api/usage/integrations/overview'](ctx()).top.non_eu_destinations) {
             expect(rows.some(r => r.dest_host === d.dest_host), `no sample call to "${d.dest_host}"`).toBe(true);
         }
+    });
+
+    it('no row names a health category next to a person, as the server never does', () => {
+        // GDPR Art. 9: health is an organisation total only. The server strips
+        // it from every row that carries a user (core/privacy/specialCategories.js);
+        // a demo row with one would show what the product never shows.
+        const guard = ROUTES['GET /api/usage/guardrails/recent'](ctx({ query: new URLSearchParams('limit=200') }));
+        const calls = ROUTES['GET /api/usage/integrations/egress'](ctx({ query: new URLSearchParams('limit=200') }));
+        const named = [
+            ...guard.map(r => r.violation_categories),
+            ...calls.map(r => r.pii_categories_detected),
+        ].flatMap(v => String(v || '').split(',')).filter(isSpecialCategory);
+        expect(named).toEqual([]);
+        // The total is still there.
+        const totals = ROUTES['GET /api/usage/guardrails/overview'](ctx()).top_categories;
+        expect(totals.some(c => isSpecialCategory(c.category) && c.count > 0)).toBe(true);
     });
 
     it('every person card can be drilled into', () => {

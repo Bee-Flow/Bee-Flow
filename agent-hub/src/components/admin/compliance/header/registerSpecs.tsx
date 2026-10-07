@@ -176,7 +176,7 @@ export const REGISTER_SPECS: Record<string, SpecFn> = {
         }
         return {
             pill,
-            infoChip: <InfoChip icon={Timer}>{t('compliance.hdr_dsr_window', 'Art. 12–22 · 30 days, +60 with reason')}</InfoChip>,
+            infoChip: <InfoChip icon={Timer}>{t('compliance.hdr_dsr_window', 'Art. 12–22 · one month, +2 months with reason')}</InfoChip>,
             secondary: refreshButton(ctx.dsr?.refresh, t, t('compliance.dsr_refresh', 'Refresh')),
             primary: ctx.onCaptureRequest ? <PrimaryButton onClick={ctx.onCaptureRequest} icon={Plus}>{t('compliance.dsr_capture_cta', 'Record a request')}</PrimaryButton> : null,
             tabCounts: { requests: total },
@@ -209,7 +209,7 @@ export const REGISTER_SPECS: Record<string, SpecFn> = {
         else if (open === 0) pill = <StatusPill tone="neutral" testId="header-pill">{t('compliance.hdr_vuln_none', 'No vulnerability being reported')}</StatusPill>;
         return {
             pill,
-            infoChip: <InfoChip icon={ShieldCheck}>{t('compliance.hdr_vuln_window', 'CRA Art. 14 · 24 h · 72 h · 14 days')}</InfoChip>,
+            infoChip: <InfoChip icon={ShieldCheck}>{t('compliance.hdr_vuln_window', 'CRA Art. 14 · 24 h · 72 h · 14 days after fix')}</InfoChip>,
             secondary: refreshButton(ctx.vulnerabilities?.refresh, t),
             primary: ctx.onRecordVulnerability ? <PrimaryButton onClick={ctx.onRecordVulnerability} icon={Plus}>{t('compliance.vuln_record', 'Record vulnerability')}</PrimaryButton> : null,
         };

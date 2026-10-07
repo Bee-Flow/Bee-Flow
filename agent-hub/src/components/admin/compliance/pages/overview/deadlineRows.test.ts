@@ -38,6 +38,7 @@ describe('deadlineRef and deadlineSubjectKind', () => {
     it('split the same field by kind', () => {
         expect(deadlineRef({ kind: 'dsr', ref: '#9' })).toBe('#9');
         expect(deadlineRef({ kind: 'cra_full_report', ref: 'INC-4' })).toBe('INC-4');
+        expect(deadlineRef({ kind: 'cra_notification', ref: 'INC-4' })).toBe('INC-4');
         expect(deadlineRef({ kind: 'obligation', ref: 'training' })).toBeNull();
         expect(deadlineSubjectKind({ kind: 'obligation', ref: 'management review' })).toBe('Management review');
         expect(deadlineSubjectKind({ kind: 'attestation_expiry', ref: 'Agent' })).toBe('Agent');
@@ -48,7 +49,7 @@ describe('deadlineRef and deadlineSubjectKind', () => {
 
 describe('emptyLines', () => {
     it('dedupes by sentence, never two unknown kinds into one', () => {
-        expect(emptyLines(['cra_early_warning', 'cra_full_report']).map((l) => l.id)).toEqual(['compliance.ovw_no_open_cra']);
+        expect(emptyLines(['cra_early_warning', 'cra_notification', 'cra_full_report']).map((l) => l.id)).toEqual(['compliance.ovw_no_open_cra']);
         expect(emptyLines(['obligation', 'attestation_expiry'])).toHaveLength(2);
         expect(emptyLines(['dsr', 'cra_vulnerability', 'dsr']).map((l) => l.kind)).toEqual(['dsr', 'cra_vulnerability']);
     });

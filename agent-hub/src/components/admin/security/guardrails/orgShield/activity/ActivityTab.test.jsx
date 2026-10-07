@@ -366,6 +366,62 @@ describe('ActivityTab behaviour', () => {
     });
 });
 
+describe('ActivityTab: health is an organisation total only (GDPR Art. 9)', () => {
+    beforeEach(() => {
+        guardOverview = {
+            ...GUARD_OVERVIEW,
+            top_categories: [
+                { category: 'Email', violation_type: 'pii', count: 4 },
+                { category: 'MedicalCondition', violation_type: 'pii', count: 2 },
+            ],
+        };
+    });
+
+    const openTab = async () => {
+        const user = userEvent.setup();
+        await renderEditor({ showActivityTab: true });
+        await user.click(screen.getByRole('tab', { name: /What happened/ }));
+        await screen.findByText('People');
+        return user;
+    };
+
+    // The catalogue has no inline English, so this file's `t` mock labels a
+    // category with its key.
+    const HEALTH = 'pii.medical_condition';
+    const EMAIL = 'pii.email_address';
+
+    it('lists the total, but not as a filter, and says why', async () => {
+        const user = await openTab();
+        const kinds = screen.getByRole('region', { name: 'Kinds of data found' });
+        expect(within(kinds).getByText(HEALTH)).toBeInTheDocument();
+        expect(within(kinds).getByRole('button', { name: `Filter on ${EMAIL}` })).toBeInTheDocument();
+        expect(within(kinds).queryByRole('button', { name: new RegExp(HEALTH) })).toBeNull();
+        expect(within(kinds).getByText('Health data is shown as an organisation total only, never per person.')).toBeInTheDocument();
+
+        // Clicking the row does nothing: no chip, and the people stay listed.
+        await user.click(within(kinds).getByText(HEALTH));
+        expect(screen.queryByRole('button', { name: /Remove this filter/ })).toBeNull();
+        expect(screen.getByRole('button', { name: /Filter on Kim/ })).toBeInTheDocument();
+    });
+
+    it('never asks the server about a person or a kind: every filter runs over the rows held', async () => {
+        const user = await openTab();
+        await user.click(screen.getByRole('button', { name: /Filter on Kim/ }));
+        await user.click(screen.getByRole('button', { name: `Filter on ${EMAIL}` }));
+        for (const url of usageCalls()) {
+            const qs = new URL(url, 'http://x').searchParams;
+            expect(qs.has('user'), url).toBe(false);
+            expect(qs.has('pii'), url).toBe(false);
+        }
+    });
+
+    it('says nothing when the window found no health data', async () => {
+        guardOverview = GUARD_OVERVIEW;
+        await openTab();
+        expect(screen.queryByText(/never per person/)).toBeNull();
+    });
+});
+
 describe('ActivityTab: where the data went', () => {
     const row = (id, over) => ({
         id, timestamp: now(), user_id: 'u-kim', display_name: 'Kim', source: 'direct_chat',

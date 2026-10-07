@@ -156,7 +156,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
             expect.stringMatching(/\/api\/dsr\/requests\/2041\/extend$/),
             expect.objectContaining({ body: JSON.stringify({ reason: 'Three systems' }) }),
         ));
-        await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('60 days')));
+        await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('two months')));
     });
 
     it('Start posts to /start on a pending row; a failing write toasts the error key, never a success', async () => {
@@ -388,7 +388,7 @@ describe('DsrPage — tabs and header spec', () => {
         expect(dsrHeaderSpec(t, { overdue: 0 }).pill.tone).toBe('neutral');
         const late = dsrHeaderSpec(t, { overdue: 1, onRefresh, onCapture });
         expect(late.pill).toMatchObject({ tone: 'error', label: '1 past the deadline' });
-        expect(late.infoChip.label).toBe('Art. 12–22 · 30 days, +60 with reason');
+        expect(late.infoChip.label).toBe('Art. 12–22 · one month, +2 months with reason');
         expect(late.secondary.iconOnly).toBe(true);
         late.secondary.onClick(); late.primary.onClick();
         expect(onRefresh).toHaveBeenCalledTimes(1);

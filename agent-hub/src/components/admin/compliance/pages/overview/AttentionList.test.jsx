@@ -273,7 +273,7 @@ describe('AttentionList — targets that carry a tab are live clicks', () => {
         const navigate = vi.fn();
         const items = [
             { id: 'register:ai_act:agent:a1', code: 'ai_act_attestation_expired', title: 'AI Act self-assessment expired (agent)', status: 'warn',
-                meta: { frameworks: [{ regulation: 'AIA', ref: 'Art. 53' }] },
+                meta: { frameworks: [{ regulation: 'AIA', ref: 'Art. 6' }] },
                 action: { type: 'navigate', target: '/app/admin/compliance/frameworks?tab=per_automation' } },
             { id: 'register:obligation:3', code: 'obligation_overdue', title: 'Overdue: Internal audit', status: 'fail',
                 meta: { frameworks: [{ regulation: 'ISO27001', ref: 'cl. 9' }] },

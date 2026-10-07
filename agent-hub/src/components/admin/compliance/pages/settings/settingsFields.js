@@ -164,7 +164,7 @@ export const SETTINGS_GROUPS = Object.freeze([
             Object.freeze({
                 name: 'ai_content_marking_enabled', kind: 'toggle',
                 labelKey: 'compliance.set_ai_marking', labelEn: 'Mark AI-generated content',
-                hintKey: 'compliance.set_ai_marking_hint', hintEn: 'Required from 2 December 2026 (AI Act Art. 50(2)): documents and pages the AI writes carry a machine-readable marking and a visible note.',
+                hintKey: 'compliance.set_ai_marking_hint', hintEn: 'AI Act Art. 50(2) requires machine-readable marking of AI-generated output since 2 August 2026 (systems already on the market before then: by 2 December 2026). Bee Flow also adds a visible note.',
             }),
             Object.freeze({
                 name: 'ai_content_marking_footer', kind: 'text',

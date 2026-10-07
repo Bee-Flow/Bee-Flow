@@ -147,7 +147,7 @@ export const MACHINERY: RecordType = {
     noun: { i18nKey: 'compliance.mach_col_subject', en: 'Integration' },
     plural: { i18nKey: 'compliance.rail_machinery', en: 'Machinery Regulation' },
     icon: 'Wrench',
-    intro: { i18nKey: 'compliance.mach_intro', en: 'Software that steers or monitors a safety function is a safety component from 20 January 2027.' },
+    intro: { i18nKey: 'compliance.mach_intro', en: 'Software that steers or monitors a safety function can be a safety component from 20 January 2027 — when it is placed on the market on its own (Art. 3(3)); built into a machine, it is assessed with the machine. The scan finds integrations that speak to machines; only you can say whether such an integration touches a safety function — declare it here, with evidence.' },
     list: { paths: [`${COMPLIANCE}/machinery/detections`], select: ([raw]) => ({ rows: readMachinery(raw), context: null }) },
     idOf: (r) => str(r.subject_id),
     titleOf: (r) => str(r.label),

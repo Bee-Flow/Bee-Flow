@@ -48,6 +48,71 @@ export function categoryLabel(id: string, t: TranslateFn): string {
     return marker ? t(marker.key, marker.en) : id;
 }
 
+// ── Special categories (GDPR Art. 9): health is an organisation total only ──
+// A health label next to a person reveals health data about that person, so
+// the server shows health categories only as organisation totals
+// (server/core/privacy/specialCategories.js): it strips them from every row
+// that carries a user, and answers `?pii=<health category>` next to a person
+// with 400 `special_category_per_person`. The phone never filters at all, and
+// applies the same row rule itself (api/endpoints.ts), so a server from
+// before that change cannot put a health label beside a name either. The
+// web's list is activity/specialCategories.ts; activity.lockstep.test.ts pins
+// both against the server.
+
+/** Every spelling of a health category, squashed to bare lower-case letters and digits. */
+export const SPECIAL_CATEGORY_SPELLINGS: readonly string[] = Object.freeze([
+    // The canonical ids (personalColumns KIND_OF_CATEGORY → 'health').
+    'healthinsurancenumber',
+    'medicalcondition',
+    'medication',
+    // The older spellings producers wrote (personalColumns LOOSE_KIND → 'health').
+    'health',
+    'medical',
+]);
+
+const squash = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** Is this stored category, in any spelling, a special category (health)? */
+export function isSpecialCategory(category: string | null | undefined): boolean {
+    if (category === null || category === undefined) return false;
+    const squashed = squash(category);
+    return squashed !== '' && SPECIAL_CATEGORY_SPELLINGS.includes(squashed);
+}
+
+const entriesOf = (list: string): string[] => list.split(',').map((s) => s.trim()).filter(Boolean);
+
+/**
+ * Rows that carry a person, without health labels in `field` — the server's
+ * `withholdSpecialCategories`. A row whose list named ONLY health is left out:
+ * kept with an empty list it would stand out (a find without a kind) and so
+ * say what was removed. Rows are copied, never changed in place.
+ */
+export function withholdSpecialCategories<T, K extends keyof T>(rows: readonly T[], field: K): T[] {
+    const out: T[] = [];
+    for (const row of rows) {
+        const value = row[field];
+        const entries = typeof value === 'string' ? entriesOf(value) : [];
+        if (!entries.some(isSpecialCategory)) {
+            out.push(row);
+            continue;
+        }
+        const kept = entries.filter((e) => !isSpecialCategory(e));
+        if (kept.length > 0) out.push({ ...row, [field]: kept.join(',') });
+    }
+    return out;
+}
+
+/** The note beside the totals when they name a health category (the web's kinds card says the same). */
+export const SPECIAL_TOTAL_NOTE: Readonly<Label> = {
+    key: 'shield_activity.special_category_total_only',
+    en: 'Health data is shown as an organisation total only, never per person.',
+};
+
+/** The window's totals name a health category: the summary says it is a total only. */
+export function namesSpecialCategory(counts: readonly { category: string; count: number }[]): boolean {
+    return counts.some((c) => c.count > 0 && isSpecialCategory(c.category));
+}
+
 /** A comma-joined column → labels, de-duplicated (legacy rows repeat a label per hit). */
 export function categoriesLabel(value: string | null | undefined, t: TranslateFn): string {
     if (!value) return '';

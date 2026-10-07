@@ -25,7 +25,7 @@ export const DAY_MS = 24 * HOUR_MS;
 
 /**
  * The unit rule: a window of a week or more is a calendar affair and counts
- * in DAYS (the 30-day DSR clock, even when 3 days are left); anything shorter
+ * in DAYS (the one-month DSR clock, even when 3 days are left); anything shorter
  * is a stopwatch and counts in HOURS (72 h breach notification, 24 h CRA
  * early warning): "2 days left" on a 72-hour clock hides a third of it.
  */
@@ -45,6 +45,28 @@ export function toMs(value) {
     if (value === null || value === undefined || value === '') return null;
     const ms = value instanceof Date ? value.getTime() : typeof value === 'number' ? value : new Date(value).getTime();
     return Number.isFinite(ms) ? ms : null;
+}
+
+/**
+ * `value` plus whole calendar months, in epoch ms (null for an unreadable
+ * value). A statutory "one month" (GDPR Art. 12(3)) is a calendar month, not
+ * 30 days, and when the target month is too short for the start day the
+ * period ends on that month's last day: 31 Jan + 1 month = 28 Feb (29 in a
+ * leap year), per Reg. 1182/71 Art. 3(2)(c). UTC throughout, so the time of
+ * day is kept. The server's rule (server/utils/calendarMonths.js, and Postgres
+ * `+ INTERVAL '1 month'`) gives the same date, so a client fallback never
+ * disagrees with the `due_at` the server stores.
+ */
+export function addCalendarMonths(value, months) {
+    const ms = toMs(value);
+    if (ms === null || !Number.isInteger(months)) return null;
+    const d = new Date(ms);
+    const day = d.getUTCDate();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + months);
+    const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    d.setUTCDate(Math.min(day, lastDay));
+    return d.getTime();
 }
 
 function ceilUnits(ms, unitMs) {

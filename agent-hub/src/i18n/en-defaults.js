@@ -22791,6 +22791,7 @@ const EN_DEFAULTS = {
     "shield_activity.show_these": "Show these",
     "shield_activity.showing": "Showing {n} of {total}",
     "shield_activity.showing_these": "Showing these",
+    "shield_activity.special_category_total_only": "Health data is shown as an organisation total only, never per person.",
     "shield_activity.subtitle": "Each time the shield acted on a message, and every call your organisation made to an outside service.",
     "shield_activity.type_tool": "Tool",
     "shield_activity.type_web_search": "Web search",

@@ -152,7 +152,7 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
         expect(box.getAttribute('data-outcome')).toBe('transparency');
         expect(box.textContent).toContain('Outcome: the AI Act applies — Art. 4 (literacy) and Art. 50 (transparency). Not high-risk.');
         expect(box.textContent).toContain('Art. 50 still open: content marking.');
-        expect(box.textContent).toContain('Recorded in the model inventory (Art. 53)');
+        expect(box.textContent).toContain('Recorded with the model inventory');
         expect(screen.getByTestId('ladder-record').hasAttribute('disabled')).toBe(false);
     });
 

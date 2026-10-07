@@ -20,23 +20,32 @@ import { deadlineRef, deadlineSubjectKind, emptyLines, splitDeadlines, targetOf 
  * What is pressing comes first: overdue and urgent clocks and anything due
  * within 30 days, at most six (deadlineRows.splitDeadlines). The rest waits
  * behind one "Show {n} later" toggle. The article prints as the server wrote
- * it ("GDPR Art. 12(3)"); only a request or an incident prints its ref.
+ * it, a full citation ("GDPR Art. 12(3)", "GDPR Art. 33 · NIS2 Art. 23(4)");
+ * a row without one (an attestation's expiry: no statutory clock) prints none.
+ * Only a request or an incident prints its ref. The kind labels' English is
+ * the dictionary's (server/i18n/defaults/en/compliance.js), word for word.
  */
 export const KIND_LABEL = Object.freeze({
-    dsr: { key: 'compliance.deadline_kind_dsr', en: 'DSR' },
-    incident: { key: 'compliance.deadline_kind_incident', en: 'Breach' },
-    cra_early_warning: { key: 'compliance.deadline_kind_cra_early_warning', en: 'CRA · early warning' },
-    cra_full_report: { key: 'compliance.deadline_kind_cra_full_report', en: 'CRA · full report' },
+    dsr: { key: 'compliance.deadline_kind_dsr', en: 'Data-subject request' },
+    incident: { key: 'compliance.deadline_kind_incident', en: 'Incident notification' },
+    cra_early_warning: { key: 'compliance.deadline_kind_cra_early_warning', en: 'CRA early warning' },
+    cra_notification: { key: 'compliance.deadline_kind_cra_notification', en: 'CRA notification (72 h)' },
+    cra_full_report: { key: 'compliance.deadline_kind_cra_full_report', en: 'CRA final report' },
     cra_vulnerability: { key: 'compliance.deadline_kind_cra_vulnerability', en: 'CRA · early warning' },
     obligation: { key: 'compliance.deadline_kind_obligation', en: 'ISMS obligation' },
-    attestation_expiry: { key: 'compliance.deadline_kind_attestation_expiry', en: 'AI Act attestation' },
+    attestation_expiry: { key: 'compliance.deadline_kind_attestation_expiry', en: 'Attestation expires' },
 });
 
-/** Regulation, not presentation: DSR 5 d, incident 24 h, CRA early 6 h / full 24 h, obligation 7 d, attestation 30 d. */
+/**
+ * Regulation, not presentation (the server's compliance/deadlines.js): DSR 5 d,
+ * incident 24 h, CRA early warning 6 h / notification 24 h / final report 24 h,
+ * obligation 7 d, attestation 30 d.
+ */
 export const URGENT_BELOW_MS = Object.freeze({
     dsr: 5 * DAY_MS,
     incident: 24 * HOUR_MS,
     cra_early_warning: 6 * HOUR_MS,
+    cra_notification: 24 * HOUR_MS,
     cra_full_report: 24 * HOUR_MS,
     obligation: 7 * DAY_MS,
     attestation_expiry: 30 * DAY_MS,

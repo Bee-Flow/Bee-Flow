@@ -58,7 +58,7 @@ export function useDsr({ enabled = false, onChanged = noop, refreshCore = noop }
     const capture = async (body) => {
         const r = await fetchJson(`${API_DSR}/requests/manual`, json(body));
         await res.refresh(); onChanged();
-        toast.success(t('compliance.dsr_toast_captured', 'Request recorded — the 30-day clock is running'));
+        toast.success(t('compliance.dsr_toast_captured', 'Request recorded — the one-month clock is running'));
         return r;
     };
     const start = async (id) => { await post(id, 'start'); await res.refresh(); onChanged(); };

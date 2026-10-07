@@ -13,7 +13,7 @@ export const SECTION_DESCRIPTIONS: Readonly<Record<string, Label>> = {
         i18nKey: 'compliance.nav_iso_overview_desc',
         en: 'Two honest numbers — continuously verified controls and Statement of Applicability progress — plus how long your ISMS has been operating.',
     },
-    dsr: { i18nKey: 'compliance.nav_dsr_desc', en: 'Data-subject requests — answer within 30 days (Art. 12–22).' },
+    dsr: { i18nKey: 'compliance.nav_dsr_desc', en: 'Data-subject requests — answer within one month (Art. 12–22).' },
     incidents: { i18nKey: 'compliance.nav_incidents_desc', en: 'Breach registry with the 72-hour Art. 33 workflow.' },
     ropa: { i18nKey: 'compliance.nav_ropa_desc', en: 'Records of Processing Activities, generated from your live configuration (Art. 30).' },
     dpia: { i18nKey: 'compliance.nav_dpia_desc', en: 'Impact assessments for high-risk agents (Art. 35).' },

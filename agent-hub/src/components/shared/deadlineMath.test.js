@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     CLOCK_STATES, DAY_MS, DAYS_WINDOW_MS, HOUR_MS, OVERDUE_IN_DAYS_AFTER_MS,
-    clockState, isClockState, normalisePct, toMs,
+    addCalendarMonths, clockState, isClockState, normalisePct, toMs,
 } from './deadlineMath';
 
 /**
@@ -235,5 +235,29 @@ describe('server helpers', () => {
         for (const s of CLOCK_STATES) expect(isClockState(s)).toBe(true);
         expect(isClockState('late')).toBe(false);
         expect(isClockState(undefined)).toBe(false);
+    });
+});
+
+describe('addCalendarMonths — a statutory month is a calendar month (GDPR Art. 12(3))', () => {
+    it('keeps the day and the time of day', () => {
+        expect(addCalendarMonths('2026-08-12T14:02:00Z', 1)).toBe(T('2026-09-12T14:02:00Z'));
+        expect(addCalendarMonths(T('2026-08-12T14:02:00Z'), 3)).toBe(T('2026-11-12T14:02:00Z'));
+    });
+
+    it('ends on the last day of a month that is too short, never in the next one', () => {
+        expect(addCalendarMonths('2027-01-31T10:00:00Z', 1)).toBe(T('2027-02-28T10:00:00Z'));
+        expect(addCalendarMonths('2028-01-31T10:00:00Z', 1)).toBe(T('2028-02-29T10:00:00Z'));
+        expect(addCalendarMonths('2026-08-31T10:00:00Z', 1)).toBe(T('2026-09-30T10:00:00Z'));
+        expect(addCalendarMonths('2026-11-30T10:00:00Z', 3)).toBe(T('2027-02-28T10:00:00Z'));
+    });
+
+    it('crosses the year', () => {
+        expect(addCalendarMonths('2026-12-15T09:00:00Z', 1)).toBe(T('2027-01-15T09:00:00Z'));
+    });
+
+    it('an unreadable date or a fractional month is null, not NaN', () => {
+        expect(addCalendarMonths(null, 1)).toBeNull();
+        expect(addCalendarMonths('not a date', 1)).toBeNull();
+        expect(addCalendarMonths('2026-08-12T14:02:00Z', 1.5)).toBeNull();
     });
 });

@@ -58,6 +58,8 @@ export function useAiActLadder(automationId: string, assessment: AiActAssessment
         denied,
         toggle: (id: string) => setDenied((d) => toggleDenied(d, id)),
         domains,
+        /** The saved row said 'yes' before the ten questions: pick the area(s) to confirm. */
+        legacyYes: start.legacyYes,
         answer: (id: string, value: AiActYesNo) => setDomains((d) => answerDomain(d, id, value)),
         assessment,
         signals,

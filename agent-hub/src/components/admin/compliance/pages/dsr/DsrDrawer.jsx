@@ -263,7 +263,7 @@ function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, on
                                 <div className="flex gap-1.5">
                                     <button type="button" className={SECONDARY} disabled={busy || !extendReason.trim()} data-testid={`${testId}-extend-confirm`}
                                         onClick={() => onExtend?.(extendReason.trim())}>
-                                        {t('compliance.dsr_extend_confirm', 'Extend by 60 days')}
+                                        {t('compliance.dsr_extend_confirm', 'Extend by two months')}
                                     </button>
                                     <button type="button" className={SECONDARY} onClick={() => setExtending(false)}>{t('common.cancel', 'Cancel')}</button>
                                 </div>
@@ -277,7 +277,7 @@ function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, on
                             {extendedUntil === null && onExtend && (
                                 <button type="button" className={SECONDARY} disabled={busy} data-testid={`${testId}-extend`}
                                     onClick={() => { setExtending(v => !v); setRejecting(false); }} aria-expanded={extending}>
-                                    {t('compliance.dsr_extend_60', 'Extend +60 d')}
+                                    {t('compliance.dsr_extend_60', 'Extend +2 months')}
                                 </button>
                             )}
                             {exportUrl && (

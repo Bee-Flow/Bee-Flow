@@ -5,11 +5,11 @@
  * row's state / channel / identity are read regardless of whether the old
  * columns (`status`, `subject_email`, `created_at`) or the BE-2 columns
  * (`state`, `subject_email_masked`, `received_at`, `due_at`, `extended_until`,
- * `identity_status`) are present, and the 30-day clock (Art. 12(3)).
+ * `identity_status`) are present, and the one-month clock (Art. 12(3)).
  *
  * No React, no English: labels live in the components through `t()`.
  */
-import { DAY_MS } from '../../../../shared/deadlineMath';
+import { addCalendarMonths, DAY_MS } from '../../../../shared/deadlineMath';
 
 /** Request type → GDPR article. `deletion` is the stored word, `erasure` the legal one — both map. */
 export const DSR_ARTICLE = Object.freeze({
@@ -51,10 +51,13 @@ export const DSR_STATES = Object.freeze(['pending', 'in_progress', 'fulfilled', 
 export const OPEN_STATES = Object.freeze(['pending', 'in_progress']);
 export const CLOSED_STATES = Object.freeze(['fulfilled', 'rejected']);
 
-/** GDPR Art. 12(3): one month, extendable by two more with a reason. */
-export const DSR_WINDOW_DAYS = 30;
-export const DSR_EXTENSION_DAYS = 60;
-export const DSR_WINDOW_MS = DSR_WINDOW_DAYS * DAY_MS;
+/**
+ * GDPR Art. 12(3): one month from receipt, extendable once by two further
+ * months with a reason. Calendar months, the same as the server's `due_at`
+ * (stores/dsrStore.js): 31 Jan + 1 month is 28 Feb, not 2 Mar.
+ */
+export const DSR_WINDOW_MONTHS = 1;
+export const DSR_EXTENSION_MONTHS = 2;
 /** The clock turns urgent under five days — regulation-driven, passed to DeadlineClock by the host. */
 export const DSR_URGENT_BELOW_MS = 5 * DAY_MS;
 
@@ -126,14 +129,14 @@ export function receivedAtOf(row) {
     return ms(row?.received_at) ?? ms(row?.created_at);
 }
 
-/** `due_at` from the server wins; an extension without a due date is the due date; else receipt + 30 d. */
+/** `due_at` from the server wins; an extension without a due date is the due date; else receipt + one calendar month. */
 export function dueAtOf(row) {
     const due = ms(row?.due_at);
     if (due !== null) return due;
     const extended = ms(row?.extended_until);
     if (extended !== null) return extended;
     const received = receivedAtOf(row);
-    return received === null ? null : received + DSR_WINDOW_MS;
+    return received === null ? null : addCalendarMonths(received, DSR_WINDOW_MONTHS);
 }
 
 /** When a closed row was closed — the best column we have, or null. */

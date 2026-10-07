@@ -135,7 +135,7 @@ export function outcomeText(verdict: Verdict, containsAi: boolean, t: TranslateF
         case 'prohibited':
             return t('compliance.ladder_outcome_prohibited', 'Outcome: prohibited practice (Art. 5) — this may not run.');
         case 'high_risk':
-            return t('compliance.ladder_outcome_high_risk', 'Outcome: the AI Act applies — high-risk (Annex III). Risk management, technical documentation and human oversight are required.');
+            return t('compliance.ladder_outcome_high_risk', 'Outcome: the AI Act applies — high-risk (Annex III). From 2 Dec 2027 risk management, technical documentation and human oversight are required (provider: Art. 9, 11, 14; deployer: Art. 26).');
         case 'transparency':
             return t('compliance.ladder_outcome_transparency', 'Outcome: the AI Act applies — Art. 4 (literacy) and Art. 50 (transparency). Not high-risk.');
         default:

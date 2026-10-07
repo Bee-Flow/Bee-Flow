@@ -156,7 +156,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
                     </h1>
                 </div>
                 <p style={{ margin: '0 0 20px', fontSize: 14, color: '#555', lineHeight: 1.5 }}>
-                    {t('dsr_public.subtitle', 'Under the GDPR you can ask what personal data we process about you, and have it corrected, exported or deleted. Submit your request below — it will be answered within 30 days.')}
+                    {t('dsr_public.subtitle', 'Under the GDPR you can ask what personal data we process about you, and have it corrected, exported or deleted. Submit your request below — it will be answered within one month of receipt, a period that can be extended by two further months where necessary.')}
                 </p>
 
                 {verify ? (

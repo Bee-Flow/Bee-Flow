@@ -34,12 +34,13 @@ const SOON_MS = 30 * DAY_MS;
 /** At most this many pressing clocks before the "Show {n} later" toggle. */
 export const MAX_SOON = 6;
 
-// The three CRA kinds share one sentence: three lines that all said "no open
-// vulnerability" were one fact printed three times.
+// The CRA kinds share one sentence: a line per stage that all said "no open
+// vulnerability" was one fact printed three or four times.
 const CRA_EMPTY: EmptyLineEntry = Object.freeze({ key: 'compliance.ovw_no_open_cra', en: 'CRA: no open vulnerability', sentence: true });
 const EMPTY_LINE: Readonly<Record<string, EmptyLineEntry>> = Object.freeze({
     cra_vulnerability: CRA_EMPTY,
     cra_early_warning: CRA_EMPTY,
+    cra_notification: CRA_EMPTY,
     cra_full_report: CRA_EMPTY,
     dsr: Object.freeze({ key: 'compliance.ovw_no_open_dsr', en: 'no open request' }),
     incident: Object.freeze({ key: 'compliance.ovw_no_open_incident', en: 'no open incident' }),
@@ -49,7 +50,7 @@ const EMPTY_FALLBACK: EmptyLineEntry = Object.freeze({ key: 'compliance.ovw_no_o
 // A request and an incident carry an identifier worth reading (#2417,
 // INC-31). An obligation's or attestation's `ref` is the KIND of subject
 // ("training", "Agent"), which reads as a label, not an id.
-const REF_KINDS: ReadonlySet<string> = new Set(['dsr', 'incident', 'cra_early_warning', 'cra_full_report']);
+const REF_KINDS: ReadonlySet<string> = new Set(['dsr', 'incident', 'cra_early_warning', 'cra_notification', 'cra_full_report']);
 
 const hasRef = (item: Pick<DeadlineRowItem, 'kind' | 'ref'> | null | undefined): boolean =>
     !!item?.kind && REF_KINDS.has(item.kind);
@@ -81,7 +82,7 @@ export function splitDeadlines<T extends Pick<DeadlineRowItem, 'state' | 'due_at
     return { soon, later };
 }
 
-/** One entry per distinct EMPTY_LINE sentence: the three CRA kinds collapse into one line. */
+/** One entry per distinct EMPTY_LINE sentence: the CRA kinds collapse into one line. */
 export function emptyLines(kinds: ReadonlyArray<string> | null | undefined): Array<{ id: string; kind: string; entry: EmptyLineEntry }> {
     const seen = new Set<string>();
     const out: Array<{ id: string; kind: string; entry: EmptyLineEntry }> = [];

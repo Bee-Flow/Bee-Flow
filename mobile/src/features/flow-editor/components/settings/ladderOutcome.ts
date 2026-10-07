@@ -73,6 +73,23 @@ const no = (v: unknown) => v === false || v === 'no';
 const domainsOf = (domains: DomainAnswers | null | undefined): DomainAnswers =>
     domains && typeof domains === 'object' ? domains : {};
 
+/**
+ * The ten Annex III answers for a row saved before the ten questions existed,
+ * which carries one `{ answer, category }` for all of them (the web's
+ * ladderOutcome.legacyAnnexAnswers). A 'no' covered every area, so it still
+ * reads as ten noes. A 'yes' never did: copying it to all ten would have
+ * "Record as self-declared" attest biometrics, law enforcement and migration
+ * for an insurance quote. It sets only the area it named, when that is a
+ * known one, and otherwise leaves all ten open.
+ */
+export function legacyAnnexAnswers(annexIii: { answer?: unknown; category?: unknown } | null | undefined): DomainAnswers {
+    const answer = annexIii?.answer;
+    if (answer === 'no') return Object.fromEntries(ANNEX_III_CATEGORIES.map((id) => [id, 'no']));
+    const category = annexIii?.category;
+    if (answer === 'yes' && typeof category === 'string' && (ANNEX_III_CATEGORIES as readonly string[]).includes(category)) return { [category]: 'yes' };
+    return {};
+}
+
 /** 'yes' when any domain is yes, 'no' only when EVERY domain is no, else null — no declaration at all. */
 export function annexAnswerFromDomains(domains: DomainAnswers | null | undefined): LadderAnswer {
     const d = domainsOf(domains);

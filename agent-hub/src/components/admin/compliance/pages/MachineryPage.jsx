@@ -202,7 +202,7 @@ export default function MachineryPage(props) {
                         <ArticleRef refs={[{ regulation: 'MACHINERY', ref: '18' }]} testId="mach-article" />
                     </div>
                     <p className="text-[var(--text-secondary)] leading-4">
-                        {t('compliance.mach_intro', 'Software that steers or monitors a safety function is a safety component from 20 January 2027. The scan finds integrations that speak to machines; only you can say whether such an integration touches a safety function — declare it here, with evidence.')}
+                        {t('compliance.mach_intro', 'Software that steers or monitors a safety function can be a safety component from 20 January 2027 — when it is placed on the market on its own (Art. 3(3)); built into a machine, it is assessed with the machine. The scan finds integrations that speak to machines; only you can say whether such an integration touches a safety function — declare it here, with evidence.')}
                     </p>
                 </div>
             </section>

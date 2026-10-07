@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import DeadlinesCardJs from './DeadlinesCard';
+import DeadlinesCardJs, { URGENT_BELOW_MS } from './DeadlinesCard';
 
 /**
  * The Overview's clocks: what is pressing first, one reference style, one line
@@ -22,7 +22,7 @@ vi.mock('../../../../../hooks/useTranslation', () => {
 });
 
 interface DeadlineItem {
-    id: string; kind: string; ref?: string; title?: string; meta?: { article?: string };
+    id: string; kind: string; ref?: string; title?: string; meta?: { article?: string | null };
     started_at?: string | null; due_at?: string | null; state?: string; pct?: number; target?: unknown;
 }
 
@@ -39,7 +39,7 @@ const at = (days: number) => new Date(NOW + days * DAY).toISOString();
 /** The demo's nine clocks, most urgent first, as GET /deadlines sends them. */
 const ITEMS: DeadlineItem[] = [
     { id: 'attestation_expiry:automation:a1', kind: 'attestation_expiry', ref: 'Automation', title: 'Polisvoorwaarden-brief',
-        meta: { article: 'AI Act Art. 53' }, due_at: at(-31), state: 'overdue', target: '/app/admin/compliance/frameworks?tab=per_automation' },
+        meta: { article: null }, due_at: at(-31), state: 'overdue', target: '/app/admin/compliance/frameworks?tab=per_automation' },
     { id: 'obligation:o1', kind: 'obligation', ref: 'training', title: 'Annual security awareness refresher',
         meta: { article: 'ISO 27001 cl. 9' }, due_at: at(-27), state: 'overdue', target: '/app/admin/compliance/training' },
     { id: 'obligation:o2', kind: 'obligation', ref: 'exercise', title: 'Phishing simulation',
@@ -53,9 +53,9 @@ const ITEMS: DeadlineItem[] = [
     { id: 'dsr:dsr_2416', kind: 'dsr', ref: '#dsr_2416', title: 'Deletion request',
         meta: { article: 'GDPR Art. 12(3)' }, started_at: at(-9), due_at: at(21), state: 'ok', target: '/app/admin/compliance/dsr/dsr_2416' },
     { id: 'attestation_expiry:agent:g1', kind: 'attestation_expiry', ref: 'Agent', title: 'Klantenservice-assistent',
-        meta: { article: 'AI Act Art. 53' }, due_at: at(313), state: 'ok', target: '/app/admin/compliance/frameworks?tab=per_automation' },
+        meta: { article: null }, due_at: at(313), state: 'ok', target: '/app/admin/compliance/frameworks?tab=per_automation' },
     { id: 'attestation_expiry:agent:g2', kind: 'attestation_expiry', ref: 'Agent', title: 'Schadebeoordeling',
-        meta: { article: 'AI Act Art. 53' }, due_at: at(327), state: 'ok', target: '/app/admin/compliance/frameworks?tab=per_automation' },
+        meta: { article: null }, due_at: at(327), state: 'ok', target: '/app/admin/compliance/frameworks?tab=per_automation' },
 ];
 
 function mount(props: Partial<React.ComponentProps<typeof DeadlinesCard>> = {}) {
@@ -124,7 +124,7 @@ describe('DeadlinesCard — one reference style', () => {
         const card = screen.getByTestId('deadlines-card');
         expect(card.textContent).not.toMatch(/Art\.\s+(GDPR|AI Act|ISO|CRA)/);
         const dsr = rowById('Access request');
-        expect(within(dsr as HTMLElement).getByTestId('deadlines-card-meta')).toHaveTextContent('DSR · GDPR Art. 12(3)');
+        expect(within(dsr as HTMLElement).getByTestId('deadlines-card-meta')).toHaveTextContent('Data-subject request · GDPR Art. 12(3)');
         expect(within(dsr as HTMLElement).getByTestId('deadlines-card-article').className).not.toContain('font-mono');
     });
 
@@ -144,7 +144,37 @@ describe('DeadlinesCard — one reference style', () => {
         expect(within(obligation).getByTestId('deadlines-card-title')).toHaveTextContent(/^Annual security awareness refresher$/);
         expect(within(obligation).getByTestId('deadlines-card-meta')).toHaveTextContent('ISMS obligation · ISO 27001 cl. 9 · Training');
         const attestation = rowById('Polisvoorwaarden-brief') as HTMLElement;
-        expect(within(attestation).getByTestId('deadlines-card-meta')).toHaveTextContent('AI Act attestation · AI Act Art. 53 · Automation');
+        // No statutory clock behind an attestation's expiry: the server sends no article, and none prints.
+        expect(within(attestation).getByTestId('deadlines-card-meta')).toHaveTextContent(/^Attestation expires · Automation$/);
+        expect(within(attestation).queryByTestId('deadlines-card-article')).toBeNull();
+    });
+
+    it('prints a full citation across regimes as it comes', () => {
+        const incident = { ...ITEMS[4], meta: { article: 'GDPR Art. 33 · NIS2 Art. 23(4)' } };
+        mount({ items: [incident] });
+        expect(screen.getByTestId('deadlines-card-meta')).toHaveTextContent(/^Incident notification · GDPR Art\. 33 · NIS2 Art\. 23\(4\)$/);
+    });
+});
+
+describe('DeadlinesCard — the CRA clocks', () => {
+    beforeEach(() => { vi.useFakeTimers({ now: NOW, toFake: ['Date'] }); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    const cra = (kind: string, article: string): DeadlineItem => ({
+        id: `${kind}:inc_40`, kind, ref: 'INC-inc_40', title: 'Remote code execution in the export module',
+        meta: { article }, started_at: at(-1), due_at: at(2), state: 'ok', target: '/app/admin/compliance/incidents/inc_40',
+    });
+
+    it('names the 72-hour notification and the final report, with their refs and articles', () => {
+        mount({ items: [cra('cra_notification', 'CRA Art. 14(2)(b)'), cra('cra_full_report', 'CRA Art. 14(2)(c)')] });
+        const [notification, report] = screen.getAllByTestId('deadlines-card-row');
+        expect(within(notification).getByTestId('deadlines-card-ref')).toHaveTextContent('INC-inc_40');
+        expect(within(notification).getByTestId('deadlines-card-meta')).toHaveTextContent('CRA notification (72 h) · CRA Art. 14(2)(b)');
+        expect(within(report).getByTestId('deadlines-card-meta')).toHaveTextContent('CRA final report · CRA Art. 14(2)(c)');
+    });
+
+    it('the notification is urgent under 24 hours, as the server rules', () => {
+        expect(URGENT_BELOW_MS.cra_notification).toBe(24 * 3_600_000);
     });
 });
 
@@ -152,8 +182,8 @@ describe('DeadlinesCard — empty registers', () => {
     beforeEach(() => { vi.useFakeTimers({ now: NOW, toFake: ['Date'] }); });
     afterEach(() => { vi.useRealTimers(); });
 
-    it('collapses the three CRA kinds into one line', () => {
-        mount({ emptyKinds: ['cra_vulnerability', 'cra_early_warning', 'cra_full_report'] });
+    it('collapses the CRA kinds into one line', () => {
+        mount({ emptyKinds: ['cra_vulnerability', 'cra_early_warning', 'cra_notification', 'cra_full_report'] });
         const lines = screen.getAllByTestId('deadlines-card-empty');
         expect(lines).toHaveLength(1);
         expect(lines[0]).toHaveTextContent('CRA: no open vulnerability');
@@ -162,7 +192,7 @@ describe('DeadlinesCard — empty registers', () => {
     it('keeps a line per other register', () => {
         mount({ items: [], emptyKinds: ['dsr', 'incident', 'cra_early_warning', 'cra_full_report'] });
         const lines = screen.getAllByTestId('deadlines-card-empty').map((l) => l.textContent);
-        expect(lines).toEqual(['DSRno open request', 'Breachno open incident', 'CRA: no open vulnerability']);
+        expect(lines).toEqual(['Data-subject requestno open request', 'Incident notificationno open incident', 'CRA: no open vulnerability']);
         expect(screen.queryByTestId('deadlines-card-none')).toBeNull();
     });
 });
