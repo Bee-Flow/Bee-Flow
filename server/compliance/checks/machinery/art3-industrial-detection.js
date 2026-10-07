@@ -2,9 +2,10 @@
  * Machinery Regulation (EU) 2023/1230 Art. 3(3) / Annex III B §1.1.9
  * (indicative) — are there industrial control integrations?
  *
- * Software that controls or monitors a machine's safety function is a
- * "safety component"; the org that modifies a machine that way may become
- * its manufacturer. The platform cannot know what an automation drives, but
+ * Software that fulfils a safety function and is placed on the market on its own is a
+ * "safety component" (Art. 3(3)); built into a machine it is assessed with that machine.
+ * Whoever substantially modifies a machine is treated as its manufacturer (Art. 18).
+ * The platform cannot know what an automation drives, but
  * it can see industrial protocols and vendors in what the org configured and
  * where its traffic went (detectors/industrialIntegrations.js).
  *

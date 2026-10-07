@@ -84,6 +84,9 @@ test('all admins acknowledged + fresh board training → pass', async () => {
     assert.equal(r.evidence.board_training_current, true);
     assert.equal(r.evidence.last_management_review.attendees_count, 3);
     assert.doesNotMatch(JSON.stringify(r.evidence) + r.details, EMAIL);
+    // A review dated in the future is a planned one, not the last one held.
+    const reviewSql = fx.seen.find(q => /FROM iso_management_reviews/.test(q.sql)).sql;
+    assert.match(reviewSql, /held_at <= NOW\(\)/);
 });
 
 test('all acknowledged but no board training recorded → warn (hybrid attestation part)', async () => {

@@ -231,7 +231,7 @@ ${DATA_NOT_INSTRUCTIONS} Ground your answer in these passages and refer to a pas
 
 ${kbText}`;
 
-    log.info(`[NotebookKBSearch] Found ${truncatedChunks.length} chunks (query: "${searchQuery.slice(0, 60)}", rerank: ${rerank}, azure: ${!!azureParams.use_azure})`);
+    log.info(`[NotebookKBSearch] Found ${truncatedChunks.length} chunks (query ${searchQuery.length} chars, rerank: ${rerank}, azure: ${!!azureParams.use_azure})`);
 
     return { chunks: truncatedChunks, contextPrompt, citations };
 }

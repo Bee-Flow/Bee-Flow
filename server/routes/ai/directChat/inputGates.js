@@ -172,7 +172,9 @@ async function runInputGates({ req, res, send, userId, convId, message, messages
             // The org Privacy Shield's master `enabled` flag is the only
             // switch needed — detectPii() calls the PII Guard service.
             const orgPiiEnabled = !!orgShield?.enabled;
-            log.info(`[DirectChat] PII calling validateInputForPii: orgPiiEnabled=${orgPiiEnabled} msgCount=${messages.length} msgsSlice=${JSON.stringify(messages.slice(-3).map(m => ({role: m.role, contentType: typeof m.content, contentPreview: typeof m.content === 'string' ? m.content.slice(0, 50) : '(non-string)'}))).slice(0, 300)}`);
+            // Shape only: never a slice of the message, which is what the
+            // shield is about to protect.
+            log.info(`[DirectChat] PII calling validateInputForPii: orgPiiEnabled=${orgPiiEnabled} msgCount=${messages.length} lastChars=${messageText(messages[messages.length - 1]).length}`);
             // Show a "Protecting your data…" status while the (possibly slow,
             // for a big pasted document) PII scan runs, instead of a silent
             // "Thinking…". A multi-window scan reports the part it is on, so
@@ -204,8 +206,8 @@ async function runInputGates({ req, res, send, userId, convId, message, messages
                 // un-tokeniser restores these values on the way back even when DLP
                 // itself is disabled.
                 try { require('../../../core/dlp/dlpRunner').mergeTokenMap(convId, piiResult.tokenMap); } catch (_) { /* non-fatal */ }
-                const tokenList = Object.entries(piiResult.tokenMap).map(([t, v]) => `${t}=“${v.slice(0,15)}”`).join(', ');
-                log.warn(`[DirectChat] 🔒 PII tokenized (${Object.keys(piiResult.tokenMap).length} tokens): ${tokenList}`);
+                // Token names only, never the values they stand for.
+                log.warn(`[DirectChat] 🔒 PII tokenized (${Object.keys(piiResult.tokenMap).length} tokens): ${Object.keys(piiResult.tokenMap).join(', ')}`);
 
                 // Tell the AI about the tokenization so it can reference them properly.
                 // Shared helper — also used by the agent path — keeps the rules and
@@ -302,9 +304,8 @@ async function runInputGates({ req, res, send, userId, convId, message, messages
             } else if (piiError.piiEntities) {
                 // Block mode: reject the message
                 const categoryList = [...new Set(piiError.piiEntities.map(e => e.label))].join(', ');
-                const snippets = piiError.piiEntities.map(e => `"${e.text.slice(0, 20).trim()}" (${e.label})`).join(' | ');
-                log.warn(`[DirectChat] 🚫 PII blocked | categories: ${categoryList}`);
-                log.warn(`[DirectChat] 🚫 Entities: ${snippets}`);
+                // Categories and a count: the entity texts are the blocked PII.
+                log.warn(`[DirectChat] 🚫 PII blocked | categories: ${categoryList} | ${piiError.piiEntities.length} entities`);
                 send('guardrail_violation', {
                     rules: [categoryList],
                     type: 'pii',
@@ -430,15 +431,24 @@ async function runInputGates({ req, res, send, userId, convId, message, messages
         // 3. Merge: org shield + direct chat guardrails
         let regexConfig = mergeWithOrgShield(orgShieldConfig, dcLocalConfig);
 
-        // Check user input against regex rules
-        const inputRx = applyRegexGuardrails({ text: message, regexConfig, scope: 'userInput', emit: send, direction: 'input' });
+        // Check user input against regex rules. Match on the typed message,
+        // but redact what the model will actually receive: the PII gate or
+        // the DLP pre-flight above may already have tokenised the last
+        // message, and redacting the raw `message` would write the original
+        // values back over those tokens (the agent path does the same with
+        // redactBase: processedUserMessage).
+        const lastMsg = messages[messages.length - 1];
+        const textPart = Array.isArray(lastMsg?.content) ? lastMsg.content.find(p => p.type === 'text') : null;
+        const redactBase = typeof lastMsg?.content === 'string' ? lastMsg.content : (textPart ? textPart.text : message);
+        const inputRx = applyRegexGuardrails({ text: message, redactBase, regexConfig, scope: 'userInput', emit: send, direction: 'input' });
         if (inputRx.action !== 'pass') {
             log.info(`[DirectChat RegexGuard] User input violated rules: ${inputRx.ruleNames}, action: ${regexConfig.action}`);
         }
         if (inputRx.action === 'redact') {
-            const lastMsg = messages[messages.length - 1];
             if (typeof lastMsg.content === 'string') {
                 lastMsg.content = inputRx.processedText;
+            } else if (textPart) {
+                textPart.text = inputRx.processedText;
             }
         } else if (inputRx.action === 'block') {
             send('done', {});

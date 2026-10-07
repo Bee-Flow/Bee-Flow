@@ -139,8 +139,19 @@ module.exports = {
             critical_count: register.filter(r => r.critical === true).length,
             non_eu_count: register.filter(r => r.is_eu === false).length,
             register,
+            // Only when it happened, so a clean read keeps its fingerprint.
+            ...(observed.ledger_error ? { ledger_error: true } : {}),
         };
 
+        // A ledger that exists but could not be read hides every operator seen
+        // only in traffic: the register can then be neither empty nor complete.
+        if (register.length === 0 && observed.ledger_error) {
+            return {
+                status: 'warn',
+                evidence,
+                details: 'The outbound activity ledger could not be read in this sweep, and no configured connection or third-party AI provider was found — the register cannot be confirmed empty. The next sweep reads the ledger again.' + relevanceNote,
+            };
+        }
         if (register.length === 0) {
             return {
                 status: 'not_applicable',
@@ -162,6 +173,7 @@ module.exports = {
         if (evidence.unattested.length) gaps.push(`${evidence.unattested.length} observed operator(s) are not in the register (${evidence.unattested.join(', ')})`);
         if (evidence.missing_contract_ref.length) gaps.push(`${evidence.missing_contract_ref.length} lack a contract reference (${evidence.missing_contract_ref.join(', ')})`);
         if (evidence.missing_criticality.length) gaps.push(`${evidence.missing_criticality.length} lack a criticality flag (${evidence.missing_criticality.join(', ')})`);
+        if (observed.ledger_error) gaps.push('the outbound activity ledger could not be read in this sweep, so operators seen only in traffic are missing from this view');
         if (gaps.length) {
             return {
                 status: 'warn',

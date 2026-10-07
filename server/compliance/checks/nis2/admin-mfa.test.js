@@ -96,7 +96,8 @@ test('no admin has MFA and no SSO → fail', async () => {
 
 test('no admin has MFA but SSO is configured (not attested) → warn with the attestation hint', async () => {
     fx.users = [admin('u1'), admin('u2')];
-    fx.configs.providers = { google: { enabled: true, clientId: 'x' }, microsoft: { enabled: false, clientId: 'y' } };
+    // microsoft has a client id but no secret: not configured (lib/ssoProviders.js).
+    fx.configs.providers = { google: { clientId: 'x', clientSecret: 's' }, microsoft: { clientId: 'y' } };
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.deepEqual(r.evidence.sso_providers, ['google']);
@@ -106,13 +107,33 @@ test('no admin has MFA but SSO is configured (not attested) → warn with the at
 
 test('SSO configured AND sso_enforces_mfa attested → covered → pass', async () => {
     fx.users = [admin('u1'), admin('u2', { mfa_enabled: true })];
-    fx.configs.oauth = { nextcloudUrl: 'https://nc.example.org', clientId: 'x' };
+    fx.configs.oauth = { nextcloudUrl: 'https://nc.example.org', clientId: 'x', clientSecret: 's' };
     fx.settings = { sso_enforces_mfa: true };
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'pass');
     assert.equal(r.evidence.sso_covered, true);
     assert.deepEqual(r.evidence.sso_providers, ['nextcloud']);
     assert.equal(r.evidence.uncovered_count, 0);
+});
+
+test('SSO as the SSO screen saves it (client id and secret, no enabled flag) counts as configured', async () => {
+    fx.users = [admin('u1')];
+    fx.configs.providers = { microsoft: { clientId: 'x', clientSecret: 's', tenantId: 't' } };
+    fx.settings = { sso_enforces_mfa: true };
+    const r = await check.evaluate(ORG);
+    assert.equal(r.status, 'pass', 'working SSO attested to enforce MFA covers the admin');
+    assert.deepEqual(r.evidence.sso_providers, ['microsoft']);
+    assert.equal(r.evidence.sso_covered, true);
+});
+
+test('a provider with a client id but no secret is not SSO', async () => {
+    fx.users = [admin('u1')];
+    fx.configs.providers = { google: { enabled: true, clientId: 'x' } };
+    fx.configs.oauth = { nextcloudUrl: 'https://nc.example.org', clientId: 'x' };
+    fx.settings = { sso_enforces_mfa: true };
+    const r = await check.evaluate(ORG);
+    assert.equal(r.status, 'fail');
+    assert.deepEqual(r.evidence.sso_providers, []);
 });
 
 test('attestation without a provider does not cover anyone', async () => {

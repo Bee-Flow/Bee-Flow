@@ -30,7 +30,6 @@
 const annexIii = require('./annexIii');
 
 const OUTCOMES = Object.freeze(['not_applicable', 'prohibited', 'high_risk', 'transparency', 'minimal']);
-const YES = new Set(['yes', 'true', true]);
 /** Attestations expire after this many months (aiActAssessmentStore.VALID_MONTHS agrees). */
 const VALID_MONTHS = 12;
 
@@ -42,8 +41,6 @@ const ART5_PRACTICES = Object.freeze([
 const ANNEX_III_CATEGORIES = annexIii.ANNEX_III_IDS;
 
 function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
-function _yes(v) { return YES.has(typeof v === 'string' ? v.toLowerCase() : v); }
-function _str(v, max = 200) { return typeof v === 'string' ? v.slice(0, max) : ''; }
 function _strList(v, allowed, max = 20) {
     if (!Array.isArray(v)) return [];
     const out = [];
@@ -93,7 +90,9 @@ function normalizeAnswers(input) {
         },
         annex_iii: {
             answer,
-            category: ANNEX_III_CATEGORIES.includes(annex.category) ? annex.category : _str(annex.category, 40) || null,
+            // A catalogue id or nothing: any other string could carry a name
+            // or free text into the JSONB.
+            category: ANNEX_III_CATEGORIES.includes(annex.category) ? annex.category : null,
             domains,
         },
     };

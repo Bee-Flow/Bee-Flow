@@ -209,6 +209,19 @@ test('storage failure → warn with a bounded error, no throw', async () => {
     } finally { storage.readSlot = orig; }
 });
 
+test('a storage failure records the error class and code, never its message', async () => {
+    const subj = { id: 'webpage:w1', label: 'Page w1', kind: 'webpage', webpage_id: 'w1', owner_id: 'owner-1', published_version_id: 'v-w1' };
+    const storage = require('../../../stores/webpage/storage');
+    const orig = storage.readSlot;
+    storage.readSlot = async () => { throw Object.assign(new Error('NoSuchKey: owner jan@example.com/w1'), { code: 'NoSuchKey' }); };
+    try {
+        const r = await check.evaluate(ORG, subj);
+        assert.equal(r.evidence.reason, 'read_failed');
+        assert.equal(r.evidence.error, 'Error (code NoSuchKey)');
+        assert.ok(!JSON.stringify(r).includes('jan@example.com'), 'neither the evidence nor the details quote the message');
+    } finally { storage.readSlot = orig; }
+});
+
 test('evidence carries no e-mail addresses even when the page does', async () => {
     const subj = { id: 'webpage:w1', label: 'Page w1', kind: 'webpage', webpage_id: 'w1', owner_id: 'owner-1', published_version_id: 'v-w1' };
     fx.slots['owner-1/w1/v-w1'] = '<!DOCTYPE html><html><head></head><body><a href="mailto:jane.doe@example.org"></a><img src="x.png" title="mail jane.doe@example.org"></body></html>';

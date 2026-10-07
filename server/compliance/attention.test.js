@@ -221,6 +221,9 @@ test('register findings: DSR overdue / due soon / unverified > 7 d, incident clo
         assert.equal(it.action.label_key, 'compliance.attention_action_navigate');
     }
     assert.equal(out.items.find(i => i.code === 'dsr_overdue').action.target, '/app/admin/compliance/dsr/1');
+    // Art. 12(3) is one calendar month (two further on extension), not 30 / +60 days.
+    assert.match(out.items.find(i => i.code === 'dsr_overdue').meta.detail, /one month from receipt, or the extended deadline\) passed 2 day\(s\) ago/);
+    assert.match(out.items.find(i => i.code === 'dsr_due_soon').meta.detail, /by two further months/);
     assert.equal(out.items.find(i => i.code === 'cra_early_warning_due').action.target, '/app/admin/compliance/incidents/8');
     assert.equal(out.items.find(i => i.code === 'soa_todo').action.target, '/app/admin/compliance/soa');
     // The ISMS obligations live on Training & competence, not behind an audits tab.
@@ -228,6 +231,49 @@ test('register findings: DSR overdue / due soon / unverified > 7 d, incident clo
     // The attestation target keeps its tab (the client aliases it once that tab moves).
     assert.equal(out.items.find(i => i.code === 'ai_act_attestation_expired').action.target, '/app/admin/compliance/frameworks?tab=per_automation');
     assert.deepEqual(out.items.find(i => i.code === 'cra_early_warning_due').meta.frameworks, [{ regulation: 'CRA', ref: 'Art. 14(2)(a)' }]);
+    // An expired self-assessment cites the classification its outcome rests
+    // on (Art. 50 for transparency), not the GPAI-provider article 53.
+    assert.deepEqual(out.items.find(i => i.code === 'ai_act_attestation_expired').meta.frameworks, [{ regulation: 'AIA', ref: 'Art. 50' }]);
+});
+
+test('a CRA severe incident\'s early warning cites Art. 14(4)(a); a vulnerability\'s Art. 14(2)(a)', async () => {
+    const out = await attention.build('org1', {
+        now: NOW, limit: 50,
+        deps: deps({
+            complianceStore: { getLatestPerCheck: async () => [], getSettings: async () => ({ breach_recipients: ['dpo@example.org'] }) },
+            incidentStore: {
+                listOpenClocks: async () => [
+                    { id: 8, kind: 'vulnerability', regimes: ['CRA'], detected_at: at(NOW - 20 * H), early_warning_due_at: at(NOW + 4 * H), early_warning_sent_at: null },
+                    { id: 9, kind: 'security_incident', regimes: ['CRA'], detected_at: at(NOW - 20 * H), early_warning_due_at: at(NOW + 4 * H), early_warning_sent_at: null },
+                ],
+            },
+        }),
+    });
+    const early = (id) => out.items.find(i => i.id === `register:incident:${id}:cra_early_warning`);
+    assert.deepEqual(early(8).meta.frameworks, [{ regulation: 'CRA', ref: 'Art. 14(2)(a)' }]);
+    assert.match(early(8).meta.detail, /actively exploited vulnerability.*Art\. 14\(2\)\(a\)/);
+    assert.deepEqual(early(9).meta.frameworks, [{ regulation: 'CRA', ref: 'Art. 14(4)(a)' }]);
+    assert.match(early(9).meta.detail, /severe incident.*Art\. 14\(4\)\(a\)/);
+    assert.doesNotMatch(early(9).meta.detail, /vulnerability/, 'a severe incident is not an exploited vulnerability');
+});
+
+test('an expired AI Act self-assessment cites the article its outcome rests on', async () => {
+    const refFor = async (outcome) => {
+        const out = await attention.build('org1', {
+            now: NOW, limit: 50,
+            deps: deps({
+                complianceStore: { getLatestPerCheck: async () => [], getSettings: async () => ({}) },
+                aiActAssessmentStore: { listForOrg: async () => [{ target_kind: 'agent', target_id: 'g1', outcome, expires_at: at(NOW - D) }] },
+            }),
+        });
+        return out.items.find(i => i.code === 'ai_act_attestation_expired').meta.frameworks[0].ref;
+    };
+    assert.equal(await refFor('prohibited'), 'Art. 5');
+    assert.equal(await refFor('high_risk'), 'Art. 6');
+    assert.equal(await refFor('transparency'), 'Art. 50');
+    // minimal / not applicable: an Art. 6 "not high-risk" classification.
+    assert.equal(await refFor('minimal'), 'Art. 6');
+    assert.equal(await refFor(null), 'Art. 6');
 });
 
 test('limit splits items from tail; warn_tail_count counts the warns beyond the fold', async () => {

@@ -125,9 +125,20 @@ module.exports = {
     async evaluate(orgId, subject, deps = defaultDeps()) {
         const projectId = pd.projectIdOf(subject?.id);
         if (!projectId) return { status: 'not_applicable', evidence: {}, details: 'No project to judge.' };
+        // A failed read of the window is not "no window set": judged silently
+        // against the 365-day default, a project with a 90-day record idle for
+        // 200 days passed. It goes into `unreadable`, which verdict() never
+        // lets pass; only a store that is not provisioned yet stays silent.
+        const unreadable = [];
         const [settings, registrations] = await Promise.all([
-            deps.complianceStore.getSettings(orgId).catch(() => ({})),
-            deps.complianceStore.listSubjectRegistrations(orgId, 'project').catch(() => []),
+            deps.complianceStore.getSettings(orgId).catch((e) => {
+                if (!pd.isNotProvisioned(e)) unreadable.push('retention settings');
+                return {};
+            }),
+            deps.complianceStore.listSubjectRegistrations(orgId, 'project').catch((e) => {
+                if (!pd.isNotProvisioned(e)) unreadable.push('processing records');
+                return [];
+            }),
         ]);
         const own = (registrations || []).find(r => String(r.subject_id) === projectId);
         let retentionDays = DEFAULT_RETENTION_DAYS;
@@ -139,7 +150,7 @@ module.exports = {
         if (!last.found && !last.unreadable.includes('project')) {
             return { status: 'not_applicable', evidence: { project_id: projectId }, details: 'That project no longer exists in this organisation.' };
         }
-        return verdict({ projectId, lastAt: last.at, retentionDays, source, now: deps.now(), unreadable: last.unreadable });
+        return verdict({ projectId, lastAt: last.at, retentionDays, source, now: deps.now(), unreadable: [...unreadable, ...last.unreadable] });
     },
 
     _verdict: verdict,

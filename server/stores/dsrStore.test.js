@@ -1,12 +1,13 @@
 /**
- * dsrStore — the 30-day clock, the one-time extension, identity verification
+ * dsrStore — the one-month clock, the one-time extension, identity verification
  * and the timeline. Recording db double: no Postgres, every statement and its
  * parameters are inspected.
  *
  * The things a regulator would ask about are pinned here:
- *   - due_at is received + 30 d (public form: now; manual intake: received_at);
- *   - an extension is granted ONCE, moves due_at to received + 90 d and needs
- *     a reason (Art. 12(3));
+ *   - due_at is received + one calendar month (public form: now; manual
+ *     intake: received_at), clamped to the end of a short month;
+ *   - an extension is granted ONCE, moves due_at to received + three calendar
+ *     months and needs a reason (Art. 12(3));
  *   - every mutation is scoped to the organisation;
  *   - the deadline feed carries no e-mail address (BFSF-441);
  *   - the verify token is single-use.
@@ -19,6 +20,7 @@ const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
 const { installResolveStub } = require('../testUtils/stubRequire');
+const { addCalendarMonths } = require('../utils/calendarMonths');
 
 const rows = [];
 let nextId = 1;
@@ -150,7 +152,6 @@ after(() => restore());
 beforeEach(() => { rows.length = 0; nextId = 1; mock.reset(); });
 
 const DAY = 86400 * 1000;
-const daysBetween = (a, b) => (new Date(b).getTime() - new Date(a).getTime()) / DAY;
 const mutations = () => mock.mutations();
 
 // ── DDL ──────────────────────────────────────────────────────────────────
@@ -164,7 +165,7 @@ test('boot DDL adds every redesign column, backfills due_at idempotently and add
     assert.match(ddl, /channel TEXT NOT NULL DEFAULT 'public_form'/);
     assert.match(ddl, /identity_status TEXT NOT NULL DEFAULT 'unverified'/);
     assert.match(ddl, /timeline JSONB NOT NULL DEFAULT '\[\]'::jsonb/);
-    assert.match(ddl, /UPDATE dsr_requests SET due_at = created_at \+ INTERVAL '30 days' WHERE due_at IS NULL/);
+    assert.match(ddl, /UPDATE dsr_requests SET due_at = created_at \+ INTERVAL '1 month' WHERE due_at IS NULL/);
     assert.match(ddl, /CREATE INDEX IF NOT EXISTS idx_dsr_org_due ON dsr_requests\(organization_id, due_at\) WHERE status IN \('pending','in_progress'\)/);
     // The backfill runs inside the same runDdl list (transaction client), after the column exists.
     const addDue = bootClient.findIndex(s => /ADD COLUMN IF NOT EXISTS due_at/.test(s));
@@ -174,13 +175,13 @@ test('boot DDL adds every redesign column, backfills due_at idempotently and add
 
 // ── intake ───────────────────────────────────────────────────────────────
 
-test('createRequest: due_at = created_at + 30 d, channel public_form, identity unverified, timeline opens with received', async () => {
+test('createRequest: due_at = created_at + one calendar month, channel public_form, identity unverified, timeline opens with received', async () => {
     const out = await store.createRequest({ organization_id: 'orgA', subject_email: ' Jan@Example.TEST ', request_type: 'deletion' });
     const row = rows[0];
     assert.strictEqual(row.subject_email, 'jan@example.test', 'normalised');
     assert.strictEqual(row.channel, 'public_form');
     assert.strictEqual(row.identity_status, 'unverified');
-    assert.strictEqual(daysBetween(row.created_at, row.due_at), 30);
+    assert.strictEqual(new Date(row.due_at).toISOString(), addCalendarMonths(row.created_at, 1).toISOString());
     assert.strictEqual(out.due_at, row.due_at);
     assert.strictEqual(row.timeline.length, 1);
     assert.strictEqual(row.timeline[0].kind, 'received');
@@ -213,6 +214,21 @@ test('createManual: identity verified_manual, clock starts at received_at, actor
     assert.strictEqual(row.timeline[0].text, 'Brief ontvangen per post');
     assert.strictEqual(row.timeline[1].method, 'manual');
     assert.strictEqual(mutations()[0].params[0], 'orgA');
+});
+
+test('the clock is one calendar month, not 30 days: received 31 Jan → due end of February', async () => {
+    // EDPB Guidelines 01/2022 (Reg. 1182/71): a request received on 31 January
+    // runs until the end of 28 February. 30 days would land on 2 March.
+    await store.createManual('orgA', {
+        subject_email: 'a@example.test', request_type: 'access', received_at: '2026-01-31T10:00:00.000Z', created_by: 'dpo-1',
+    });
+    assert.strictEqual(new Date(rows[0].due_at).toISOString(), '2026-02-28T10:00:00.000Z');
+    // The extension is two further months on top: three calendar months from
+    // receipt, 30 April — 90 days would land on 1 May.
+    mock.reset();
+    await store.extend('orgA', rows[0].id, { reason: 'Complex request', by: 'dpo-1' });
+    assert.strictEqual(new Date(rows[0].extended_until).toISOString(), '2026-04-30T10:00:00.000Z');
+    assert.strictEqual(rows[0].due_at, rows[0].extended_until);
 });
 
 test('createManual guards: org, e-mail, actor, future received_at, bad channel', async () => {
@@ -252,12 +268,12 @@ test('start: pending → in_progress with actor + timestamp, timeline "started";
     await assert.rejects(() => store.start('orgA', row.id, null), /userId/);
 });
 
-test('extend: once only, needs a reason, due_at = extended_until = created_at + 90 d, timeline "extended"', async () => {
+test('extend: once only, needs a reason, due_at = extended_until = created_at + three calendar months, timeline "extended"', async () => {
     const row = await seed();
     await assert.rejects(() => store.extend('orgA', row.id, { by: 'u' }), /reason is required/);
 
     const out = await store.extend('orgA', row.id, { reason: 'Complex request, three systems', by: 'dpo-1' });
-    assert.strictEqual(daysBetween(row.created_at, row.extended_until), 90);
+    assert.strictEqual(new Date(row.extended_until).toISOString(), addCalendarMonths(row.created_at, 3).toISOString());
     assert.strictEqual(row.due_at, row.extended_until, 'the deadline follows the extension');
     assert.strictEqual(row.extension_reason, 'Complex request, three systems');
     assert.strictEqual(row.extended_by, 'dpo-1');
@@ -271,6 +287,8 @@ test('extend: once only, needs a reason, due_at = extended_until = created_at + 
 
     await assert.rejects(() => store.extend('orgA', row.id, { reason: 'again', by: 'dpo-1' }), store.AlreadyExtendedError);
     await assert.rejects(() => store.extend('orgA', row.id, { reason: 'again', by: 'dpo-1' }), /code: 'dsr_already_extended'|already extended/);
+    // GDPR Art. 12(3): the extension is by two further months, not "one extension" of an unstated length.
+    await assert.rejects(() => store.extend('orgA', row.id, { reason: 'again', by: 'dpo-1' }), { message: /Art\. 12\(3\) allows one extension by two further months/ });
     assert.strictEqual(row.timeline.length, 2, 'the refused attempt left no trace');
 });
 
@@ -416,6 +434,7 @@ test('getSlaStats counts overdue from due_at: not at the deadline, yes one secon
     assert.strictEqual(stats.open, 5, 'the fulfilled row is not open');
     assert.strictEqual(stats.fulfilled, 1);
     assert.strictEqual(stats.overdue, 2, 'only C and D: the boundary row is in time and the extended row is not overdue');
+    assert.strictEqual(stats.nearing, 2, 'A (one second to go) and B (exactly at due_at) are due within 5 days; F, extended 50 days out, is not');
     assert.strictEqual(stats.avg_days_to_fulfil, 5);
 
     // Flip the extended row's deadline back to where it would sit without the
@@ -429,7 +448,7 @@ test('getSlaStats counts overdue from due_at: not at the deadline, yes one secon
     assert.strictEqual(c.params[1], 'access', 'and scoped to the request type');
     assert.deepStrictEqual(
         await store.getSlaStats('nobody', 'access'),
-        { total: 0, fulfilled: 0, open: 0, overdue: 0, avg_days_to_fulfil: 0 },
+        { total: 0, fulfilled: 0, open: 0, overdue: 0, nearing: 0, avg_days_to_fulfil: 0 },
         'an org with no requests reads zeroes, never a null row',
     );
 });
@@ -457,9 +476,9 @@ test('every mutation carries the organisation as its first parameter and in its 
     assert.strictEqual(await store.extend('orgB', row.id, { reason: 'r' }), null);
 });
 
-test('constants exported for the routes: channels, identity statuses, SLA days', () => {
+test('constants exported for the routes: channels, identity statuses, SLA months', () => {
     assert.deepStrictEqual(store.VALID_CHANNELS, ['public_form', 'email_dpo', 'phone', 'letter', 'other']);
     assert.deepStrictEqual(store.IDENTITY_STATUSES, ['unverified', 'verified_email_link', 'verified_manual']);
-    assert.strictEqual(store.SLA_DAYS, 30);
-    assert.strictEqual(store.EXTENDED_SLA_DAYS, 90);
+    assert.strictEqual(store.SLA_MONTHS, 1);
+    assert.strictEqual(store.EXTENDED_SLA_MONTHS, 3);
 });

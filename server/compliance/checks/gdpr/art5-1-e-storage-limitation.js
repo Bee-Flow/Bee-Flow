@@ -17,6 +17,9 @@
 const { getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 
+/** A missing table or column: memories are not provisioned here yet. */
+const NOT_PROVISIONED = new Set(['42P01', '42703']);
+
 module.exports = {
     id: 'GDPR-Art5-1-e-storage-limitation',
     regulation: 'GDPR',
@@ -37,6 +40,7 @@ module.exports = {
 
         // Orphan memories — no expires_at AND older than the retention window.
         let orphans = 0;
+        let countError = null;
         try {
             const row = await getOne(`
                 SELECT COUNT(*)::int AS c FROM user_memories m
@@ -47,21 +51,20 @@ module.exports = {
                   AND COALESCE(NULLIF(u."organizationId", ''), 'default') = $2
             `, [String(retentionDays), orgId || 'default']);
             orphans = row?.c || 0;
-        } catch {
-            return {
-                status: 'not_applicable',
-                evidence: { reason: 'user_memories table not available' },
-                details: 'Memory retention cannot be verified — the user_memories table is not present yet.',
-            };
+        } catch (e) {
+            countError = e;
         }
 
         const evidence = {
             retention_days: retentionDays,
             heartbeat: lastRun ? settings.last_retention_run_at : null,
             heartbeat_age_hours: lastRun ? Math.round(heartbeatAgeMs / 3600000) : null,
-            orphan_memories: orphans,
+            // null, not 0, when the count could not be read.
+            orphan_memories: countError ? null : orphans,
         };
 
+        // A broken enforcer is a finding of its own, and an unreadable memory
+        // table must not hide it.
         if (!heartbeatOk) {
             return {
                 status: 'fail',
@@ -69,6 +72,24 @@ module.exports = {
                 details: lastRun
                     ? `Memory retention enforcer last ran ${Math.round(heartbeatAgeMs / 3600000)}h ago — should run every 24h.`
                     : 'Memory retention enforcer has never run. Restart the server or enable the retention job.',
+            };
+        }
+        if (countError) {
+            // Only a missing table or column means "not provisioned yet". A
+            // timeout or a dropped connection is a failed read: not_applicable
+            // would drop the check out of the score and hide an orphan warning.
+            if (NOT_PROVISIONED.has(countError?.code)) {
+                return {
+                    status: 'not_applicable',
+                    evidence: { reason: 'user_memories table not available' },
+                    details: 'Memory retention cannot be verified — the user_memories table is not present yet.',
+                };
+            }
+            return {
+                status: 'warn',
+                // The SQLSTATE only: a driver message can quote the query.
+                evidence: { reason: 'user_memories_unreadable', sqlstate: countError?.code || null },
+                details: 'Stored memories could not be counted, so whether any outlive the retention window is unknown. Re-run once the database is reachable.',
             };
         }
         if (orphans > 0) {

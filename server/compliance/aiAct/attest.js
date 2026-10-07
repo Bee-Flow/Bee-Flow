@@ -20,6 +20,10 @@
 
 const log = require('../../telemetry/log');
 
+// Storage key only (evidence chain continuity), not a claim that the
+// classification is an Art. 53 duty: the chain is append-only and keyed by
+// check_id, so renaming it would cut new attestations off from every earlier
+// row. The self-assessment is the Art. 5 / 6 / 50 classification.
 const EVIDENCE_CHECK_ID = 'AIA-Art53-model-inventory';
 
 /**

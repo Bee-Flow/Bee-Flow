@@ -34,7 +34,7 @@
     "compliance.dsr_state_overdue": "Overdue",
     "compliance.dsr_state_urgent": "Due soon",
     "compliance.dsr_state_ok": "On track",
-    "compliance.dsr_error_already_extended": "This request was already extended once — Art. 12(3) allows a single extension.",
+    "compliance.dsr_error_already_extended": "This request was already extended once — Art. 12(3) allows at most two further months.",
     "compliance.dsr_error_not_open": "This request is already closed.",
     "compliance.dsr_error_invalid_token": "This verification link is invalid or has expired."
   },
@@ -73,7 +73,7 @@
     "compliance.dsr_state_overdue": "Te laat",
     "compliance.dsr_state_urgent": "Bijna verlopen",
     "compliance.dsr_state_ok": "Op schema",
-    "compliance.dsr_error_already_extended": "Dit verzoek is al één keer verlengd — art. 12(3) staat één verlenging toe.",
+    "compliance.dsr_error_already_extended": "Dit verzoek is al één keer verlengd — art. 12(3) staat hooguit twee extra maanden toe.",
     "compliance.dsr_error_not_open": "Dit verzoek is al gesloten.",
     "compliance.dsr_error_invalid_token": "Deze verificatielink is ongeldig of verlopen."
   }

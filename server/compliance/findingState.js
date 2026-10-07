@@ -21,8 +21,8 @@
  * project checks hand over the set of offending projects, so one more offender
  * re-opens the finding while a re-run that finds exactly the same thing does
  * not. Without one, every scalar evidence field counts except the ones that
- * move on every run by nature (timestamps, ages, durations) and the subject's
- * display label. A finding that turns from warn into fail always re-opens:
+ * move on every run by nature (timestamps, ages, durations, day counters and
+ * traffic counters) and the subject's display label. A finding that turns from warn into fail always re-opens:
  * the status is in the hash.
  *
  * Pure. The store keeps the rows (stores/complianceStore.js), the route writes
@@ -35,8 +35,13 @@ const crypto = require('crypto');
 const STATES = Object.freeze(['acknowledged', 'accepted_risk', 'snoozed']);
 const GLOBAL_SCOPE_KEY = 'global';
 
-// Evidence keys that differ between two runs over an unchanged workspace.
-const VOLATILE_KEY = /(_at|_ms|_hours|_age|age_hours|_days_ago|heartbeat|elapsed|timeout|generated|checked|run_type)$/i;
+// Evidence keys that differ between two runs over an unchanged workspace:
+// timestamps, ages, durations, day counters that tick every day
+// (days_until_required, review_age_days, idle_days, *_span_days) and traffic
+// counters (total_events, ai_requests). A configured value or threshold
+// (retention_days, notice_period_days, review_ok_days) does not move by
+// itself, so it keeps counting: changing it IS a different finding.
+const VOLATILE_KEY = /(_at|_ms|_hours|_age|age_hours|_days_ago|age_days|_span_days|idle_days|_events|_requests|heartbeat|elapsed|timeout|generated|checked|run_type)$|^days_(until|since|remaining)|^oldest_\w+_days$/i;
 // Evidence keys that NAME what was found rather than describe it: the runner
 // stamps `subject_label` (an agent's or automation's current title) on the
 // result row, and renaming the agent is not a different finding.

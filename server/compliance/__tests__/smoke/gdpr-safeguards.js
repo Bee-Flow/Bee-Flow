@@ -9,10 +9,16 @@ const log = require('../../../telemetry/log');
 
 module.exports = async function gdprSafeguards() {
     log.info('\n▶ GDPR Art. 32 — Encryption at rest');
-    await t('pass when env vars are set', async () => {
+    await t('pass when env vars are set and the org writes message bodies encrypted', async () => {
+        resetState();
         process.env.MASTER_ENCRYPTION_KEY = 'set';
         process.env.SESSION_SECRET = 'set';
-        assertStatus(await checks.encryptionAtRest.evaluate(), 'pass', 'both set');
+        _state.dbOne.push({ query: /encryption_tier/, row: { encryption_tier: 'managed', encryption_scope: null } });
+        assertStatus(await checks.encryptionAtRest.evaluate('org-enc'), 'pass', 'both set, managed tier');
+    });
+    await t('warn when env vars are set but the org tier is "none"', async () => {
+        resetState();
+        assertStatus(await checks.encryptionAtRest.evaluate('org-plain'), 'warn', 'both set, tier none');
     });
     await t('fail when master key missing', async () => {
         delete process.env.MASTER_ENCRYPTION_KEY;

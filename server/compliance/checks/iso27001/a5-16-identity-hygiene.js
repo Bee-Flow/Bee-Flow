@@ -8,6 +8,7 @@
  */
 
 const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { unreadableConnector } = require('../../lib/connectorEvidence');
 
 const SOURCES = ['google-workspace', 'microsoft-entra'];
 const DORMANT_FAIL_PCT = 10;
@@ -90,11 +91,20 @@ module.exports = {
 
     async evaluate(orgId) {
         const enabledSources = [];
+        // Reads that failed. Both store functions run initDB first, so a throw
+        // is a failed read, never "not enabled" or "no snapshot yet". It
+        // degrades to warn without hiding the other directory's verdict.
+        const unreadable = [];
         for (const id of SOURCES) {
-            const config = await isoEvidenceStore.getConfig(orgId, id).catch(() => null);
-            if (config?.enabled) enabledSources.push(id);
+            try {
+                const config = await isoEvidenceStore.getConfig(orgId, id);
+                if (config?.enabled) enabledSources.push(id);
+            } catch (e) {
+                unreadable.push({ connector: id, error_code: e?.code || null });
+            }
         }
         if (!enabledSources.length) {
+            if (unreadable.length) return unreadableConnector(unreadable[0].connector, { code: unreadable[0].error_code });
             return {
                 status: 'not_applicable',
                 evidence: { connectors: SOURCES, enabled: [] },
@@ -108,7 +118,13 @@ module.exports = {
         const bump = (level) => { if (RANK[level] > RANK[status]) status = level; };
 
         for (const id of enabledSources) {
-            const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, id).catch(() => []);
+            let snaps;
+            try {
+                snaps = (await isoEvidenceStore.listLatestSnapshots(orgId, id)) || [];
+            } catch (e) {
+                unreadable.push({ connector: id, error_code: e?.code || null });
+                continue;
+            }
             const snap = snaps.find(s => s.subject_id === 'summary') || snaps[0];
             if (!snap) {
                 bump('warn');
@@ -121,7 +137,15 @@ module.exports = {
             bump(r.status);
         }
 
+        for (const u of unreadable) {
+            bump('warn');
+            notes.push(`${u.connector}: configuration or snapshots could not be read${u.error_code ? ` (SQL state ${u.error_code})` : ''}, so it was not assessed this run`);
+        }
+
         if (!judged.length) {
+            if (unreadable.length) {
+                return { status: 'warn', evidence: { enabled: enabledSources, snapshots: 0, unreadable }, details: `Identity hygiene was not assessed: ${notes.join('; ')}.` };
+            }
             return {
                 status: 'warn',
                 evidence: { enabled: enabledSources, snapshots: 0 },
@@ -130,6 +154,7 @@ module.exports = {
         }
 
         const evidence = { sources: judged, thresholds: { dormant_fail_pct: DORMANT_FAIL_PCT, dormant_warn_pct: DORMANT_WARN_PCT, mfa_fail_pct: MFA_FAIL_PCT, mfa_warn_pct: MFA_WARN_PCT } };
+        if (unreadable.length) evidence.unreadable = unreadable;
         if (status === 'pass') {
             return {
                 status,

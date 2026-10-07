@@ -212,3 +212,33 @@ test('titlesFor looks titles up per kind, org-scoped, and returns nothing else',
     assert.strictEqual(calls.length, 2);
     for (const c of calls) assert.strictEqual(c.params[0], 'org-1');
 });
+
+test('listGeneratingAutomations judges the live copy and leaves trashed automations out', async () => {
+    calls.length = 0;
+    allResult = [];
+    await signals.listGeneratingAutomations('org-1');
+    const sql = calls[0].sql.replace(/\s+/g, ' ');
+    // Scheduled, form and app runs execute live_definition_json; a never-live
+    // automation (live NULL) runs its working copy.
+    assert.match(sql, /COALESCE\(a\.live_definition_json, a\.definition_json\) AS definition_json/);
+    // A trashed automation no longer runs, so it is no Art. 50(2) subject.
+    assert.match(sql, /a\.deleted_at IS NULL/);
+});
+
+test('loadAutomation does not resolve a trashed automation (no assessment, no attestation)', async () => {
+    calls.length = 0;
+    oneResult = null;
+    await signals.loadAutomation('org-1', 'auto-9');
+    assert.ok(calls.length >= 1);
+    for (const c of calls) assert.match(c.sql, /a\.deleted_at IS NULL/);
+});
+
+test('listGeneratingAutomations throws on a failed read: the Art. 50(2) list retires what it no longer holds', async () => {
+    // "could not read" answered as [] would retire every automation's slot.
+    allResult = () => { const e = new Error('canceling statement due to statement timeout'); e.code = '57014'; throw e; };
+    await assert.rejects(() => signals.listGeneratingAutomations('org-1'), (e) => e.code === '57014');
+    // A missing table (fresh install) is still an empty list.
+    allResult = () => { const e = new Error('relation "automations" does not exist'); e.code = '42P01'; throw e; };
+    assert.deepStrictEqual(await signals.listGeneratingAutomations('org-1'), []);
+    allResult = [];
+});

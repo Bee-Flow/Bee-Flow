@@ -224,6 +224,7 @@ test('listSubjects: platform first, then solutions with releases and published w
     assert.ok(/p\.organization_id = \$1/.test(solutionsSql), 'solutions listing is org-scoped');
     const pagesSql = state.queries.find(q => q.sql.includes('FROM webpages w')).sql;
     assert.ok(/w\.organization_id = \$1 AND w\.is_published = TRUE/.test(pagesSql), 'webpage listing is org-scoped and published-only');
+    assert.match(pagesSql, /v\.source = 'published' OR v\.id = w\.published_version_id/, 'a pinned legacy snapshot is a release record');
 });
 
 test('listSubjects: a missing table blanks only that source and is reported on the platform subject', async () => {

@@ -217,9 +217,29 @@ function kindsFromCategories(entities) {
     return orderKinds(out);
 }
 
-/** What this column's NAME claims it holds, or null. */
+/**
+ * A name split into the words it was written from: `email_address` and
+ * `phoneNumber` become "email address" and "phone Number".
+ *
+ * PERSONAL_PATTERNS are word-anchored (`\bname\b`), and in snake_case the
+ * underscore is a word character, in camelCase the hump is no boundary at
+ * all, so `first_name`, `email_address` and `phoneNumber` all read as "no
+ * personal data". A Studio table whose columns carry only such keys then
+ * passed Art. 30(1)(d) as holding none.
+ */
+function words(s) {
+    return String(s || '').replace(/[_\-]+/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+}
+
+/**
+ * What this column's NAME claims it holds, or null. The raw key and name stay
+ * in the haystack next to their words, so the patterns that are written with
+ * the underscore (`id_?number`, `account_?number`) still match.
+ */
 function kindFromName(field) {
-    const hay = `${(field && field.key) || ''} ${(field && field.name) || ''}`;
+    const key = (field && field.key) || '';
+    const name = (field && field.name) || '';
+    const hay = `${key} ${words(key)} ${name} ${words(name)}`;
     const hit = PERSONAL_PATTERNS.find((p) => p.re.test(hay));
     return hit ? hit.code : null;
 }

@@ -13,6 +13,15 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const deadlines = require('./deadlines');
+const { installResolveStub } = require('../testUtils/stubRequire');
+
+// The store's pure clock rule (nextOpenDeadline, REGIME_CLOCKS), loaded over a
+// db double so no pool is opened; only the pure functions are used.
+const restoreDb = installResolveStub({
+    '../db': { run: async () => ({ rows: [], rowCount: 0 }), getOne: async () => null, getAll: async () => [], exec: async () => {} },
+});
+const incidentStore = require('../stores/incidentStore');
+restoreDb();
 
 const NOW = Date.parse('2026-09-14T12:00:00Z');
 const H = 3600 * 1000;
@@ -100,8 +109,17 @@ test('incident rows: GDPR breach → one authority clock; CRA vulnerability → 
     });
     const kinds = out.items.map(i => `${i.kind}:${i.ref}`).sort();
     assert.deepEqual(kinds, [
-        'cra_early_warning:INC-8', 'cra_full_report:INC-8', 'cra_full_report:INC-9', 'incident:INC-7',
+        'cra_early_warning:INC-8', 'cra_full_report:INC-8', 'cra_full_report:INC-9',
+        'cra_notification:INC-8', 'cra_notification:INC-9', 'incident:INC-7',
     ]);
+    // The 72 h vulnerability notification is listed until it is stamped (Art. 14(2)(b)).
+    const notification = out.items.find(i => i.id === 'cra_notification:8');
+    assert.equal(notification.due_at, at(detected + 72 * H));
+    assert.equal(notification.meta.article, 'CRA Art. 14(2)(b)');
+    assert.equal(notification.meta.stage, 'notification');
+    // The final report is point (c), not the 72 h notification of point (b).
+    assert.equal(out.items.find(i => i.id === 'cra_full_report:8').meta.article, 'CRA Art. 14(2)(c)');
+    assert.equal(out.items.find(i => i.id === 'incident:7').meta.article, 'GDPR Art. 33');
     const early = out.items.find(i => i.id === 'cra_early_warning:8');
     assert.equal(early.state, 'urgent', '4 h left on a 6 h window');
     assert.equal(early.target, '/app/admin/compliance/incidents/8');
@@ -111,6 +129,70 @@ test('incident rows: GDPR breach → one authority clock; CRA vulnerability → 
     assert.deepEqual(breach.meta.regimes, ['GDPR']);
     // a stringified regimes column is tolerated
     assert.deepEqual(out.items.find(i => i.id === 'cra_full_report:8').meta.regimes, ['CRA']);
+});
+
+test('a CRA severe incident cites Art. 14(4)(a)-(c), gets its 72 h notification and no GDPR-labelled item', async () => {
+    const detected = NOW - 30 * H;
+    const out = await deadlines.build('org1', {
+        now: NOW,
+        deps: deps({
+            incidentStore: {
+                listOpenClocks: async () => [
+                    { id: 21, kind: 'security_incident', regimes: ['CRA'], title: 'Build server compromised', status: 'early_warning_sent',
+                      detected_at: at(detected), deadline_at: at(detected + 72 * H),
+                      early_warning_due_at: at(detected + 24 * H), early_warning_sent_at: at(detected + 10 * H),
+                      final_report_due_at: at(detected + 33 * D), final_report_sent_at: null, authority_notified_at: null },
+                    { id: 22, kind: 'breach', regimes: ['CRA'], title: 'Notified one', status: 'authority_notified',
+                      detected_at: at(detected), deadline_at: at(detected + 31 * D),
+                      early_warning_due_at: at(detected + 24 * H), early_warning_sent_at: null,
+                      final_report_due_at: at(detected + 31 * D), final_report_sent_at: null, authority_notified_at: at(NOW - H) },
+                ],
+            },
+        }),
+    });
+    const ids = out.items.map(i => i.id).sort();
+    assert.deepEqual(ids, ['cra_early_warning:22', 'cra_full_report:21', 'cra_full_report:22', 'cra_notification:21'],
+        'no "incident" item for a CRA-only row; the notified row has no notification item');
+    assert.equal(out.items.find(i => i.id === 'cra_notification:21').meta.article, 'CRA Art. 14(4)(b)');
+    assert.equal(out.items.find(i => i.id === 'cra_notification:21').state, 'ok', '42 h left on the 72 h clock');
+    assert.equal(out.items.find(i => i.id === 'cra_full_report:21').meta.article, 'CRA Art. 14(4)(c)');
+    assert.equal(out.items.find(i => i.id === 'cra_early_warning:22').meta.article, 'CRA Art. 14(4)(a)');
+});
+
+test('the authority item cites the regimes it covers, and its due date is their own clock', async () => {
+    const detected = NOW - 10 * H;
+    const row = (id, regimes, extra = {}) => ({
+        id, kind: 'security_incident', regimes, title: `Row ${id}`, status: 'open', detected_at: at(detected),
+        deadline_at: at(detected + 24 * H), authority_notified_at: null, ...extra,
+    });
+    const out = await deadlines.build('org1', {
+        now: NOW,
+        deps: deps({
+            incidentStore: {
+                nextOpenDeadline: incidentStore.nextOpenDeadline,
+                REGIME_CLOCKS: incidentStore.REGIME_CLOCKS,
+                listOpenClocks: async () => [
+                    row(31, ['NIS2'], { early_warning_due_at: at(detected + 24 * H) }),
+                    row(32, ['DORA'], { customer_notice_due_at: at(detected + 4 * H), deadline_at: at(detected + 4 * H) }),
+                    row(33, ['GDPR', 'NIS2'], { early_warning_due_at: at(detected + 24 * H) }),
+                    // GDPR + CRA vulnerability: deadline_at is the CRA 24 h early
+                    // warning, but the GDPR Art. 33 clock is 72 h.
+                    row(34, ['GDPR', 'CRA'], { kind: 'vulnerability', early_warning_due_at: at(detected + 24 * H),
+                        final_report_due_at: at(detected + 14 * D) }),
+                ],
+            },
+        }),
+    });
+    const incident = (id) => out.items.find(i => i.id === `incident:${id}`);
+    assert.equal(incident(31).meta.article, 'NIS2 Art. 23(4)');
+    assert.equal(incident(31).due_at, at(detected + 24 * H), 'the NIS2 early warning');
+    assert.equal(incident(32).meta.article, 'DORA Art. 30(3)(b)');
+    assert.equal(incident(32).due_at, at(detected + 4 * H), 'the stored DORA customer notice');
+    assert.equal(incident(33).meta.article, 'GDPR Art. 33 · NIS2 Art. 23(4)');
+    assert.equal(incident(34).meta.article, 'GDPR Art. 33');
+    assert.deepEqual(incident(34).meta.regimes, ['GDPR']);
+    assert.equal(incident(34).due_at, at(detected + 72 * H), 'the GDPR 72 h clock, not the CRA early warning');
+    assert.equal(out.items.find(i => i.id === 'cra_early_warning:34').due_at, at(detected + 24 * H), 'which is its own item');
 });
 
 test('obligations and expiring AI Act attestations join the list; empty_kinds names what is absent', async () => {
@@ -138,7 +220,10 @@ test('obligations and expiring AI Act attestations join the list; empty_kinds na
     assert.equal(out.items[1].ref, 'Automation');
     assert.equal(out.items[0].target, '/app/admin/compliance/training', 'an obligation opens Training & competence');
     assert.equal(out.items[1].target, '/app/admin/compliance/frameworks?tab=per_automation');
-    assert.deepEqual(out.empty_kinds, ['dsr', 'incident', 'cra_early_warning', 'cra_full_report']);
+    // The 12-month expiry is Bee Flow's review interval, not a statutory
+    // clock: no article is cited (the UI drops a null article).
+    assert.equal(out.items[1].meta.article, null);
+    assert.deepEqual(out.empty_kinds, ['dsr', 'incident', 'cra_early_warning', 'cra_notification', 'cra_full_report']);
 });
 
 test('sorted overdue → urgent → ok, then by due date; a failing source flags complete:false but keeps the rest', async () => {
@@ -168,7 +253,8 @@ test('sorted overdue → urgent → ok, then by due date; a failing source flags
 });
 
 test('KINDS and URGENT_BELOW_MS are the contract the client reads', () => {
-    assert.deepEqual(deadlines.KINDS, ['dsr', 'incident', 'cra_early_warning', 'cra_full_report', 'obligation', 'attestation_expiry']);
+    assert.deepEqual(deadlines.KINDS, ['dsr', 'incident', 'cra_early_warning', 'cra_notification', 'cra_full_report', 'obligation', 'attestation_expiry']);
     assert.equal(deadlines.URGENT_BELOW_MS.dsr, 5 * D);
     assert.equal(deadlines.URGENT_BELOW_MS.cra_early_warning, 6 * H);
+    assert.equal(deadlines.URGENT_BELOW_MS.cra_notification, 24 * H);
 });

@@ -46,3 +46,11 @@ test('no current DPIA: fail', async () => {
     fx.dpia = null;
     assert.equal((await check.evaluate('org1', SUBJECT)).status, 'fail');
 });
+
+test('the high-risk list is the whole population: a vanished agent is retired, not kept failing', () => {
+    // art35._highRiskAgents throws on a failed read, so an empty list really
+    // means "no high-risk agent left" and the runner may retire the slots.
+    assert.equal(check.retiresVanished, true);
+    assert.equal(typeof check.retiredDetails, 'string');
+    assert.ok(check.retiredDetails.length > 0);
+});

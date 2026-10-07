@@ -145,6 +145,19 @@ test('good: every observed operator attested with contract_ref and criticality â
     noPii(r);
 });
 
+test('a ledger that could not be read never lets the register read complete or empty', async () => {
+    fx.observed.ledger_available = false;
+    fx.observed.ledger_error = true;
+    let r = await check.evaluate(ORG);
+    assert.equal(r.status, 'warn', 'a fully attested register is not complete while the ledger is unread');
+    assert.equal(r.evidence.ledger_error, true);
+    assert.match(r.details, /could not be read/);
+    fx.observed.operators = [];
+    r = await check.evaluate(ORG);
+    assert.equal(r.status, 'warn', 'nothing observed is not "nothing to register" while the ledger is unread');
+    assert.match(r.details, /could not be read/);
+});
+
 test('country falls back from the attestation to the ledger; EU flag is derived from the country when the ledger did not say', async () => {
     fx.settings.scc_confirmed_operators = [
         ...FULL.slice(0, 2),

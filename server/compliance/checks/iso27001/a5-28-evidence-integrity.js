@@ -26,6 +26,7 @@
  */
 
 const { verifyChain } = require('../../evidence/chain');
+const { errorShape } = require('../../lib/errorShape');
 
 // The A.5.28 window: the newest 5000 linked rows. An org running ~60 checks
 // every 6 h appends ~240 rows a day, so this covers roughly three weeks.
@@ -57,9 +58,11 @@ module.exports = {
         try {
             report = await verifyChain(org, { limit: WINDOW_ROWS });
         } catch (e) {
+            // Class and SQLSTATE only: a driver message can quote values (lib/errorShape.js).
+            const { name, code } = errorShape(e);
             return {
                 status: 'warn',
-                evidence: { window_rows: WINDOW_ROWS, ledger_reachable: false, error: e.message },
+                evidence: { window_rows: WINDOW_ROWS, ledger_reachable: false, error_name: name, error_code: code },
                 details: 'The evidence ledger is not reachable yet — nothing to verify. Expected only on a fresh install.',
             };
         }

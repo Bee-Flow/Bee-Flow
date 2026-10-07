@@ -549,7 +549,7 @@ async function finalizeDirectChatTurn(turn) {
             // placeholder, so a chat titled on turn 2 is never re-titled.
             const _assistantReplies = savedMessages.filter(m => m && m.role === 'assistant').length;
             const _titleIsPlaceholder = !conv.title || !String(conv.title).trim() || /^new chat$/i.test(String(conv.title).trim());
-            log.info(`[DirectChat] Title check: assistantReplies=${_assistantReplies}, currentTitle="${conv.title || ''}", placeholder=${_titleIsPlaceholder}, moderationViolation=${!!moderationViolation}`);
+            log.info(`[DirectChat] Title check: assistantReplies=${_assistantReplies}, hasTitle=${!!conv.title}, placeholder=${_titleIsPlaceholder}, moderationViolation=${!!moderationViolation}`);
 
             if (_assistantReplies >= 1 && _titleIsPlaceholder && !moderationViolation) {
                 // Generate the real title as soon as there is one complete
@@ -607,7 +607,8 @@ async function finalizeDirectChatTurn(turn) {
                             titleAgent?.system_prompt,
                             { maxInputChars: 1600 },
                         );
-                        log.info(`[DirectChat] Title generated: "${title}" for conv ${convId}`);
+                        // The title is an encryption surface (CONVERSATION_TITLE): its length only.
+                        log.info(`[DirectChat] Title generated (${String(title).length} chars) for conv ${convId}`);
                         await agentStore.updateDirectConversationTitle(convId, title, userId);
                         send('title', { title, conversationId: convId });
                     }

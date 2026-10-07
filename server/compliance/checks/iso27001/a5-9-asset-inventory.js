@@ -7,11 +7,21 @@
  * evidence payload IS the inventory (same approach as
  * aia/art53-model-inventory.js). Asset classes whose table does not exist yet
  * (fresh install) are reported as null — never dressed up as a verified zero.
+ * Any other read error is a failed read, and the check warns that the
+ * inventory is incomplete instead of passing.
+ *
+ * Scoping: published agents belong to an org through organization_id, and the
+ * 'default' bucket holds the org-less ones (projects/projectData.orgMatch).
+ * A knowledge base with organization_id NULL is a PERSONAL one: it belongs to
+ * the org of its owner (tenant_id is the user id), so the bucket gets the
+ * personal KBs of org-less accounts. AI providers and MCP servers are
+ * install-wide (no org column) and are counted for every org.
  */
 
 const { getOne, getAll } = require('../../../db');
 const configStore = require('../../../stores/configStore');
 const { LOCAL_PROVIDER_TYPES } = require('../../../core/providers/localModels');
+const pd = require('../../projects/projectData');
 
 // Self-hosted runtimes are not an external processor. Read from the one list
 // the provider factory uses (CLAUDE.md: adding a runtime is one LOCAL_RUNTIMES
@@ -20,12 +30,18 @@ const { LOCAL_PROVIDER_TYPES } = require('../../../core/providers/localModels');
 // type name older configs still carry.
 const INTERNAL_TYPES = new Set(['local', ...LOCAL_PROVIDER_TYPES]);
 
-async function _count(sql, params) {
+/**
+ * One asset-class count, named after its key in `counts`. Not provisioned
+ * (42P01/42703) is null, "not enumerable yet"; any other error is recorded
+ * in `failed` (the SQLSTATE only) and is null too, so it never counts as zero.
+ */
+async function _count(asset, sql, params, failed) {
     try {
         const row = await getOne(sql, params);
         return row?.c ?? 0;
-    } catch {
-        return null; // table absent on fresh installs
+    } catch (e) {
+        if (!pd.isNotProvisioned(e)) failed.push({ asset, error_code: e?.code || null });
+        return null;
     }
 }
 
@@ -50,11 +66,18 @@ module.exports = {
             external: !INTERNAL_TYPES.has(String(p.type || '').toLowerCase()),
         }));
 
+        const scope = orgId || pd.NO_ORG_ORG_ID;
+        const failed = [];
         let agents = [];
         try {
-            agents = await getAll(`SELECT id, name, model, organization_id FROM agents WHERE is_published = TRUE`);
-        } catch { /* fresh install */ }
-        agents = agents.filter(a => !a.organization_id || a.organization_id === orgId);
+            agents = await getAll(
+                `SELECT id, model, organization_id FROM agents WHERE is_published = TRUE AND ${pd.orgMatch('organization_id')}`,
+                [scope]) || [];
+        } catch (e) {
+            if (!pd.isNotProvisioned(e)) failed.push({ asset: 'published_agents', error_code: e?.code || null });
+        }
+        // Mirrors orgMatch: an org-less agent is the bucket's, never every org's.
+        agents = agents.filter(a => (a.organization_id || pd.NO_ORG_ORG_ID) === scope);
 
         const models = new Map(); // modelString -> { model, provider_prefix, agents }
         for (const a of agents) {
@@ -67,15 +90,19 @@ module.exports = {
             models.set(model, entry);
         }
 
-        const knowledgeBases = await _count(
-            `SELECT COUNT(*)::int AS c FROM knowledge_bases WHERE organization_id = $1 OR organization_id IS NULL`,
-            [orgId]);
-        const connections = await _count(
+        const knowledgeBases = await _count('knowledge_bases', `
+            SELECT COUNT(*)::int AS c
+            FROM knowledge_bases kb
+            LEFT JOIN users u ON u.id = kb.tenant_id
+            WHERE kb.organization_id = $1
+               OR (kb.organization_id IS NULL AND COALESCE(NULLIF(u."organizationId", ''), '${pd.NO_ORG_ORG_ID}') = $1)
+        `, [scope], failed);
+        const connections = await _count('integration_connections',
             `SELECT COUNT(*)::int AS c FROM integration_connections WHERE org_id = $1 AND status <> 'revoked'`,
-            [orgId]);
+            [orgId], failed);
         // mcp_servers is workspace-global (admin-defined, no org column).
-        const mcpServers = await _count(
-            `SELECT COUNT(*)::int AS c FROM mcp_servers WHERE enabled = TRUE`, []);
+        const mcpServers = await _count('mcp_servers_enabled',
+            `SELECT COUNT(*)::int AS c FROM mcp_servers WHERE enabled = TRUE`, [], failed);
 
         const counts = {
             ai_providers: providers.length,
@@ -85,7 +112,9 @@ module.exports = {
             integration_connections: connections,
             mcp_servers_enabled: mcpServers,
         };
-        const notEnumerable = Object.entries(counts).filter(([, v]) => v == null).map(([k]) => k);
+        const failedAssets = new Set(failed.map(f => f.asset));
+        const notEnumerable = Object.entries(counts)
+            .filter(([k, v]) => v == null && !failedAssets.has(k)).map(([k]) => k);
         const total = Object.values(counts).reduce((sum, v) => sum + (v || 0), 0);
 
         const evidence = {
@@ -94,6 +123,14 @@ module.exports = {
             models: Array.from(models.values()),
             not_enumerable: notEnumerable,
         };
+        if (failed.length) {
+            evidence.unreadable = failed;
+            return {
+                status: 'warn',
+                evidence,
+                details: `The asset inventory is incomplete: ${failed.map(f => `${f.asset}${f.error_code ? ` (SQL state ${f.error_code})` : ''}`).join(', ')} could not be read this run.`,
+            };
+        }
 
         if (total === 0) {
             return {

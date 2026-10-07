@@ -67,6 +67,31 @@ test('the pure verdict: nothing to judge, dangling only, all clean', () => {
     assert.strictEqual(check._verdict({ projects: 2, rows: [], orgId: 'o' }).status, 'pass');
 });
 
+test('past the row limit the foreign members come first and the counts say "at least"', async () => {
+    // Without an ORDER BY, Postgres could return only dangling rows under the
+    // LIMIT, the status dropped from fail to warn, and the counts read as exact.
+    const cut = check._verdict({ projects: 1, rows: [{ project_id: 'p', target_exists: false, target_left: false, target_org: 'x' }], orgId: 'orgA', truncated: true });
+    assert.strictEqual(cut.evidence.counts_truncated, true);
+    assert.match(cut.details, /^At least 1 membership/);
+    assert.strictEqual(check._verdict({ projects: 1, rows: [], orgId: 'orgA' }).evidence.counts_truncated, false);
+
+    let sql = '';
+    const foreign = { project_id: 'p1', target_exists: true, target_left: false, target_org: 'orgB' };
+    const dangling = { project_id: 'p2', target_exists: false, target_left: false, target_org: 'default' };
+    const many = [foreign, ...Array.from({ length: 5000 }, () => dangling)];
+    const r = await check.evaluate('orgA', null, { query: async (q) => {
+        if (/COUNT\(\*\)::int AS n FROM projects/.test(q)) return [{ n: 2 }];
+        sql = q;
+        return many;
+    } });
+    assert.match(sql, /ORDER BY target_exists DESC, target_left ASC, project_id/);
+    assert.match(sql, /LIMIT 5001\b/);
+    assert.strictEqual(r.status, 'fail');
+    assert.strictEqual(r.evidence.counts_truncated, true);
+    assert.strictEqual(r.evidence.foreign_count + r.evidence.dangling_count, 5000, 'the row past the limit is not counted');
+    assert.match(r.details, /^At least 1 membership/);
+});
+
 test('the fingerprint follows which projects are affected, not how many rows', () => {
     const a = check.fingerprintOf({ offenders: [{ project_id: 'x', foreign: 1, dangling: 0 }] });
     const b = check.fingerprintOf({ offenders: [{ project_id: 'x', foreign: 3, dangling: 0 }] });

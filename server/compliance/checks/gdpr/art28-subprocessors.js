@@ -35,7 +35,18 @@ module.exports = {
     remediationKey: 'compliance.checks.gdpr_art28.fix',
     remediationLink: 'admin/compliance/ropa',
     async evaluate(orgId) {
-        const operators = await observedOperators.fromActivityLog(orgId);
+        // A failed read is not "no ledger yet": that answer is not_applicable
+        // and leaves the score. Only the SQLSTATE travels into the evidence.
+        let operators;
+        try {
+            operators = await observedOperators.fromActivityLog(orgId);
+        } catch (e) {
+            return {
+                status: 'warn',
+                evidence: { error: 'activity_ledger_unreadable', sqlstate: e?.code || null },
+                details: 'The outbound activity ledger could not be read, so processors were not reconciled against agreements this run.',
+            };
+        }
         if (operators === null) {
             return {
                 status: 'not_applicable',

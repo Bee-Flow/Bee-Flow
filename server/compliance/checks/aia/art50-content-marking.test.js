@@ -108,3 +108,20 @@ test('marking off from 2 Dec 2026 → fail', async () => {
     state.settings = {};
     assert.strictEqual((await check.evaluate('org-1', SUBJECT, { now: LATER })).status, 'fail');
 });
+
+test('the list is the whole population: vanished automations are retired, a list past the cap is a window', async () => {
+    assert.strictEqual(check.retiresVanished, true);
+    assert.match(check.retiredDetails, /no longer turns model output into a document/);
+
+    // 501 generating automations: only 500 are listed, and every one is
+    // flagged capped so the runner retires nothing outside that window.
+    state.generating = Array.from({ length: 501 }, (_, i) => ({ id: `au-${i}`, title: `A${i}`, is_active: true, is_draft: false, aiStepIds: ['ai'], generating: [] }));
+    const subjects = await check.listSubjects('org-1');
+    assert.strictEqual(subjects.length, 500);
+    assert.ok(subjects.every(s => s.capped === true));
+
+    // At or under the cap the list is complete: no capped flag.
+    state.generating = state.generating.slice(0, 500);
+    assert.ok((await check.listSubjects('org-1')).every(s => !('capped' in s)));
+    state.generating = [];
+});

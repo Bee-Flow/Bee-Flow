@@ -945,7 +945,7 @@ async function enrichWithDocumentFacts(rows, { client: borrowed = null } = {}) {
 async function searchLocally(tenantId, kbIds, query, options = {}) {
     const { topK = 10 } = options;
     const _searchStart = Date.now();
-    log.info(`[LocalKBSearch] searchLocally — tenantId="${tenantId}" kbIds=${JSON.stringify(kbIds)} query="${query.slice(0,60)}"`);
+    log.info(`[LocalKBSearch] searchLocally — tenantId="${tenantId}" kbIds=${JSON.stringify(kbIds)} query ${query.length} chars`);
 
     // Bootstrap pgvector. Don't pin a dim — `dispatchEmbedTexts` will tell us
     // what the configured provider actually produces (1024 for mistral-embed,
@@ -1097,7 +1097,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
         const MIN_VEC_SCORE = 0.35;
         const filteredVecRows = vectorResults.rows.filter(r => (r.vec_score || 0) >= MIN_VEC_SCORE);
 
-        log.info(`[LocalKBSearch] Vector: ${vectorResults.rows.length}→${filteredVecRows.length} (floor=${MIN_VEC_SCORE}), FTS: ${ftsResults.rows.length} (query="${ftsQueryStr.slice(0,60)}") [${Date.now() - _searchStart}ms]`);
+        log.info(`[LocalKBSearch] Vector: ${vectorResults.rows.length}→${filteredVecRows.length} (floor=${MIN_VEC_SCORE}), FTS: ${ftsResults.rows.length} (query ${ftsQueryStr.length} chars) [${Date.now() - _searchStart}ms]`);
 
         // Apply orphan filter to both result sets
         const cleanVecRows = filterOrphans(filteredVecRows);

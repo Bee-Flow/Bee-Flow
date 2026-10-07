@@ -7,7 +7,7 @@
     "compliance.deadline_kind_dsr": "Data-subject request",
     "compliance.deadline_kind_incident": "Incident notification",
     "compliance.deadline_kind_cra_early_warning": "CRA early warning",
-    "compliance.deadline_kind_cra_full_report": "CRA full report",
+    "compliance.deadline_kind_cra_full_report": "CRA final report",
     "compliance.deadline_kind_obligation": "ISMS obligation",
     "compliance.deadline_kind_attestation_expiry": "Attestation expires"
   },

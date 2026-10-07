@@ -17,6 +17,7 @@
 
 const { getAll } = require('../../../db');
 const dpiaStore = require('../../../stores/dpiaStore');
+const pd = require('../../projects/projectData');
 
 const DECISION_KEYWORDS = /\b(approve|deny|reject|recommend|score|classif|decid|grade|rank|verdict)\w*\b/i;
 const EXTERNAL_PROVIDER_PREFIXES = /\b(openai|claude|anthropic|google|google-vertex|azure|mistral|cohere|groq|together|fireworks|perplexity)\b/i;
@@ -46,25 +47,35 @@ function _isHighRisk(agent) {
     return null;
 }
 
+/**
+ * The published high-risk agents of the organisation. A read error THROWS:
+ * the list is the check's whole population (retiresVanished), and "could not
+ * read" must never retire every slot as if no agent were left.
+ *
+ * Org scoping (the convention of AIA Art. 13, 50 and 53, projectData.orgMatch):
+ * an agent without organization_id is visible only to org-less users
+ * (agentCrud.getPublishedAgentsForUser), whom the scheduler sweeps as the
+ * 'default' bucket, so it is that bucket's subject and never another
+ * tenant's. Counting it for EVERY organisation put tenant A's legacy agent by
+ * name into tenant B's DPIA list and evidence. The JS filter mirrors the SQL
+ * predicate so a store or stub that ignores parameters cannot widen it. Same
+ * rule in art44-external-transfers._scanAgents.
+ */
 async function _highRiskAgents(orgId) {
-    let rows = [];
-    try {
-        // Concept/live split (A1): assess what actually RUNS, not the draft.
-        // Same COALESCE pair as art50-ai-disclosure — `agents.config` is TEXT
-        // and `published_config` is JSONB, hence the ::text on both sides.
-        rows = await getAll(`
-            SELECT id, name, model,
-                   COALESCE(published_system_prompt, system_prompt) AS system_prompt,
-                   COALESCE(published_config::text, config::text) AS config,
-                   organization_id
-            FROM agents WHERE is_published = TRUE
-        `);
-    } catch {
-        return [];
-    }
+    const scope = orgId || pd.NO_ORG_ORG_ID;
+    // Concept/live split (A1): assess what actually RUNS, not the draft.
+    // Same COALESCE pair as art50-ai-disclosure — `agents.config` is TEXT
+    // and `published_config` is JSONB, hence the ::text on both sides.
+    const rows = await getAll(`
+        SELECT id, name, model,
+               COALESCE(published_system_prompt, system_prompt) AS system_prompt,
+               COALESCE(published_config::text, config::text) AS config,
+               organization_id
+        FROM agents WHERE is_published = TRUE AND ${pd.orgMatch('organization_id')}
+    `, [scope]);
     const out = [];
-    for (const a of rows) {
-        if (orgId && a.organization_id && a.organization_id !== orgId) continue;
+    for (const a of rows || []) {
+        if ((a.organization_id || pd.NO_ORG_ORG_ID) !== scope) continue;
         const risk = _isHighRisk(a);
         if (risk) out.push({ id: a.id, label: a.name || `agent-${a.id}`, risk_reason: risk.reason });
     }
@@ -82,6 +93,12 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art35.desc',
     remediationKey: 'compliance.checks.gdpr_art35.fix',
     remediationLink: 'admin/compliance/dpia',
+
+    // The list is every published high-risk agent, so an agent that was
+    // unpublished, deleted or no longer trips the heuristic is retired
+    // instead of keeping its last fail or warn in the score for good.
+    retiresVanished: true,
+    retiredDetails: 'No longer a published high-risk agent: unpublished, deleted, or no longer flagged by the high-risk heuristic.',
 
     async listSubjects(orgId) {
         return _highRiskAgents(orgId);

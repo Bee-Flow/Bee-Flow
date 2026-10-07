@@ -167,7 +167,11 @@ module.exports = {
             kind: r.kind || null,
             status: r.status,
             detected_at: r.detected_at ? new Date(r.detected_at).toISOString() : null,
-            reported_via: r.reported_via || null,
+            // Free text, like the authority channel: an address typed there
+            // is recorded only as the channel 'email'.
+            reported_via: r.reported_via
+                ? (/@/.test(String(r.reported_via)) ? 'email' : String(r.reported_via).slice(0, 100))
+                : null,
             clocks: {
                 early_warning: _clock(r.early_warning_due_at, r.early_warning_sent_at, now),
                 notification: _clock(_notificationDue(r), r.authority_notified_at, now),

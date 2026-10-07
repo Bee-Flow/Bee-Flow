@@ -48,7 +48,8 @@ test('identical values are only ever proper names or shared words', () => {
     // full sentence that survived untranslated is a stream that skipped the NL column.
     // "A sentence" = three or more plain lower-case words; proper names ("CRA · Cyber
     // Resilience Act"), placeholders ("{n} · sweep {time}") and article refs pass.
-    const lowerWords = (s) => (String(s).match(/\b[a-z]{3,}\b/g) || []).length;
+    // Placeholder names are not words: "run {date} {time}" is one Dutch word ("run") plus two values.
+    const lowerWords = (s) => (String(s).replace(/\{[a-z_]+\}/gi, ' ').match(/\b[a-z]{3,}\b/g) || []).length;
     const suspicious = SAME_AS_ENGLISH.filter((k) => lowerWords(GUI_DEFAULTS[k]) >= 3);
     assert.deepStrictEqual(suspicious, [], 'sentences identical in both languages — translate them in the stream\'s keys file');
 });

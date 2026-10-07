@@ -36,8 +36,14 @@ test('every key exists in the English catalog, has Dutch, and is not the English
 });
 
 test('the seed map carries the same new Dutch, so a fresh install and an upgraded one agree', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) assert.strictEqual(SEED[k], v, k);
-    for (const [k, { now }] of Object.entries(NL_REWORDED)) assert.strictEqual(SEED[k], now, k);
+    // A later migration may reword this Dutch again; then the seed carries
+    // ITS text, and it must replace exactly the Dutch shipped here, or an
+    // upgraded install would keep this text while a fresh one gets the newer.
+    const LATER = require('./update-nl-compliance-detect-2026-10').NL_REWORDED;
+    const agrees = (k, shipped) => SEED[k] === shipped
+        || (k in LATER && LATER[k].was.includes(shipped) && SEED[k] === LATER[k].now);
+    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) assert.ok(agrees(k, v), k);
+    for (const [k, { now }] of Object.entries(NL_REWORDED)) assert.ok(agrees(k, now), k);
 });
 
 test('applyNl adds missing keys, replaces the old shipped Dutch, and keeps a workspace\'s own wording', () => {
