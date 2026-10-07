@@ -172,6 +172,8 @@ jobs:
               - 'server/automation/{deliverableEvents.js,formPickSources.js}'
               - 'server/automation/validate/constants.js'
               - 'server/compliance/aiAct/{annexIii.js,signals.js}'
+              - 'server/compliance/{attention.js,deadlines.js}'
+              - 'server/compliance/ropa/chatMonitoringActivity.js'
               - 'server/compliance/dsr/mask.js'
               - 'server/config/orgRoles.json'
               - 'server/core/automationRunner/execFlow.js'
@@ -308,6 +310,8 @@ jobs:
               - 'agent-hub/src/components/shared/{AnchoredMenu.jsx,illustrations.tsx}'
               - 'agent-hub/src/hooks/{useAutomationApi.ts,useTranslation.tsx}'
               - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,helpers.js,sseStream.js,storageMigrations.js}'
+              # require()d by src/features/compliance/model/chatSignals/{form,preview}.test.ts
+              - 'agent-hub/src/components/admin/compliance/pages/settings/chatMonitoring/{chatMonitoringForm,chatMonitoringPreview}.ts'
             python:
               - 'guard-service/**'
               - 'pii-service/**'

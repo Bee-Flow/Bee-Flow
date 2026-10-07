@@ -35,7 +35,7 @@ describe('translateWebLink — every server-minted shape, verbatim', () => {
         ['/app/admin/compliance/incidents/inc1', '/org/compliance/incidents/inc1', 'utils/appPaths.js complianceIncidentPath'],
         ['/app/admin/compliance/dsr?id=r1', '/org/compliance/dsr/r1', 'jobs/complianceDeadlineNotifier.js (DSR deadline)'],
         ['/app/admin/compliance/dpia', '/org/compliance/dpia', 'jobs/complianceDeadlineNotifier.js'],
-        ['/app/admin/compliance/frameworks?tab=calendar', '/org/compliance/frameworks', 'jobs/complianceDeadlineNotifier.js'],
+        ['/app/admin/compliance/frameworks?tab=calendar', '/org/compliance/calendar', 'jobs/complianceDeadlineNotifier.js'],
         ['/app/admin/compliance/iso_training', '/org/compliance/training', 'jobs/complianceDeadlineNotifier.js (an old alias)'],
         ['/app/settings/organisation/license?checkout=success', '/org/billing', 'core/appPaths.js (Stripe return)'],
         // Both webpage shapes. The first is the one the builder and automation
