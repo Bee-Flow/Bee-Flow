@@ -1,6 +1,8 @@
 /**
  * The sheet an action opens before it sends anything: its fields in a form
- * sheet, or the attestation sheet. Driven by useActionRunner's `pending`.
+ * sheet (its own submit label and description, prefilled from the record
+ * when it asks, with its cross-field rules), or the attestation sheet.
+ * Driven by useActionRunner's `pending`.
  */
 
 import React from 'react';
@@ -27,23 +29,27 @@ export function ActionSheets({ runner }: { runner: ActionRunner }) {
                 rec={rec}
                 title={title}
                 onClose={runner.close}
-                onSubmit={(body) => runner.submit({ method: 'POST', path: attest.path(rec), body }, action)}
+                onSubmit={(body) => runner.submit({ method: 'POST', path: attest.path(rec), body }, action, rec)}
             />
         );
     }
     const fields = action.fields ?? [];
     const request = action.request;
     if (!request) return null;
+    const description = typeof action.description === 'function' ? action.description(rec, t) : action.description ? labelText(action.description, t) : null;
+    const validate = action.validate;
     return (
         <RecordFormSheet
             title={title}
-            submitLabel={title}
+            subtitle={description ?? undefined}
+            submitLabel={action.submitLabel ? labelText(action.submitLabel, t) : title}
             fields={fields}
-            initial={initialValues(fields)}
+            initial={initialValues(fields, action.prefill ? rec : null)}
             rec={rec}
             danger={action.danger}
+            validate={validate ? (values) => validate(values, rec, t) : undefined}
             onClose={runner.close}
-            onSubmit={(values) => runner.submit(request(rec, values, runner.context(values)), action)}
+            onSubmit={(values) => runner.submit(request(rec, values, runner.context(values)), action, rec)}
         />
     );
 }

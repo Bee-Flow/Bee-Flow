@@ -1,6 +1,7 @@
 /**
- * One register row: the registry's title, its summary line, the status chip.
- * The type and formatter come from the list's context, so FlatList's
+ * One register row: the registry's title, its summary line, the status chip
+ * — or, when the type has a `rowView`, a RegisterRow (stripe, meta line,
+ * badge, deadline clock) with the same defaults underneath. The type and formatter come from the list's context, so FlatList's
  * `renderItem` can stay a module-level function.
  */
 
@@ -10,6 +11,7 @@ import type { ListRenderItem } from 'react-native';
 
 import { Badge, ListRow } from '@/shared/ui';
 
+import { RegisterRow } from './RegisterRow';
 import { labelText, statusOf, summaryOf } from '../model/fields';
 import { recordRoute } from '../model/navigation';
 import type { Formatter, Rec, RecordType } from '../model/types';
@@ -28,6 +30,13 @@ export function RecordRow({ rec }: { rec: Rec }) {
     const { type, fmt } = ctx;
     const id = type.idOf(rec);
     const status = statusOf(type, rec);
+    const open = () => router.push(recordRoute(type.id, id));
+    if (type.rowView) {
+        const view = type.rowView(rec, fmt);
+        const badge = view.badge !== undefined ? view.badge : status ? { label: labelText(status.label, fmt.t), tone: status.tone ?? 'neutral' } : null;
+        const subtitle = view.subtitle !== undefined ? view.subtitle : summaryOf(type, rec, fmt);
+        return <RegisterRow testID={`record-${type.id}-${id}`} view={{ ...view, title: view.title ?? type.titleOf(rec, fmt), subtitle, badge }} onPress={open} />;
+    }
     return (
         <ListRow
             testID={`record-${type.id}-${id}`}
@@ -35,7 +44,7 @@ export function RecordRow({ rec }: { rec: Rec }) {
             subtitle={summaryOf(type, rec, fmt) ?? undefined}
             trailing={status ? <Badge label={labelText(status.label, fmt.t)} tone={status.tone ?? 'neutral'} /> : undefined}
             chevron
-            onPress={() => router.push(recordRoute(type.id, id))}
+            onPress={open}
         />
     );
 }
