@@ -25,7 +25,7 @@ export default function useResource(url, { enabled = true, parse = (b) => b, onE
     const [loading, setLoading] = useState(false);
     const requested = useRef(false);
     const alive = useRef(true);
-    useEffect(() => () => { alive.current = false; }, []);
+    useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
     const refresh = useCallback(async () => {
         if (!url) return null;

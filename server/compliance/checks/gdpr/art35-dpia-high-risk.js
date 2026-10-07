@@ -27,15 +27,17 @@ function _parseConfig(value) {
     try { return JSON.parse(value) || {}; } catch { return {}; }
 }
 
+// Each reason is a clause that completes "required because it …" in the
+// finding sentence, so it starts with a verb and names no setting key.
 function _isHighRisk(agent) {
     const cfg = _parseConfig(agent.config);
-    if (cfg.automated_decision_making) return { reason: 'automated_decision_making flag' };
+    if (cfg.automated_decision_making) return { reason: 'has automated decision-making switched on' };
     if (Array.isArray(cfg.pii_categories) && cfg.pii_categories.length > 0) {
         return { reason: `processes PII categories: ${cfg.pii_categories.slice(0, 3).join(', ')}` };
     }
     const prompt = String(agent.system_prompt || '');
     if (DECISION_KEYWORDS.test(prompt)) {
-        return { reason: 'system prompt mentions automated decisions' };
+        return { reason: 'has a system prompt that mentions automated decisions' };
     }
     const model = String(agent.model || '');
     if (EXTERNAL_PROVIDER_PREFIXES.test(model)) {

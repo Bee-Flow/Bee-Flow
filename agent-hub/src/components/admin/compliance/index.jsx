@@ -12,12 +12,19 @@
  *
  * Navigation contract (pinned by ComplianceHub.nav.test.jsx and consumed by
  * pages/settings/complianceNavAdapter.js): the hub EMITS
- * `admin/compliance/<canonical section>[/<encoded id>]` through `onNavigate`,
- * whatever host it sits in. Old ids (`iso_soa`, `iso_audit`, …) are accepted
- * as `activeSection` and resolve to their canonical row (sections.js), so a
- * bookmark from before the redesign still opens the right page. Header tabs
- * live in `?tab=` (data/actions.js) — no history entries, ignored by hosts
- * without a real URL (the demo).
+ * `admin/compliance/<canonical section>[/<encoded id>][?tab=<tab>]` through
+ * `onNavigate(path, { replace? })`, whatever host it sits in. Old ids
+ * (`iso_soa`, `iso_audit`, …) are accepted as `activeSection` and resolve to
+ * their canonical row (sections.js), so a bookmark from before the redesign
+ * still opens the right page; a `?tab=` that moved to another section
+ * (`legacyTabs`) is redirected there once. Header tabs live in `?tab=`
+ * (data/actions.js) — no history entries. `navigate(section, id, tab)` sets
+ * the tab state itself (the demo host has no URL) AND carries it in the path
+ * (the Settings host pushes a new URL, which the tab state re-reads).
+ *
+ * A page with unsaved edits calls `setLeaveGuard(fn)`; `navigate` (and so the
+ * rail) first awaits `fn()` and stays put when it resolves false. The guard is
+ * dropped whenever the section changes.
  *
  * Setup has ONE path: the Overview page renders the inline setup card from
  * `core.setupOpen` — no banner, no hero, no modal.
@@ -26,11 +33,11 @@
  * delivers); while it is absent the desktop layout renders, so the hub is
  * never blank.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useViewport } from '../../../hooks/useViewport';
 import StudioShell from '../../shared/StudioShell';
-import { resolveSection, sectionById, SECTIONS_WITH_PICKERS } from './sections';
+import { movedTab, resolveSection, sectionById, SECTIONS_WITH_PICKERS } from './sections';
 import { API, downloadUrl } from './data/api';
 import { compliancePath, useUrlQueryParam } from './data/actions';
 import useComplianceCore from './data/useComplianceCore';
@@ -53,15 +60,13 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
     const { isMobile } = useViewport();
     const active = resolveSection(activeSection);
     const section = sectionById(active);
-    const [tab, setTab] = useUrlQueryParam('tab', section.tabs[0] || null);
-    const currentTab = section.tabs.includes(tab) ? tab : (section.tabs[0] || null);
+    const { currentTab, setTab, navigate, setLeaveGuard } = useHubNavigation({ active, section, focusCheckId, onNavigate });
 
     const dl = useCallback((url) => downloadUrl(exportsEnabled, url), [exportsEnabled]);
     // Pages own their modals; the header's primary just needs a handle. A page
     // calls setHeaderActions({ onCaptureRequest }) once mounted (see pages.jsx).
     const [headerActions, setHeaderActions] = useState({});
     const [ladder, setLadder] = useState(null);
-    const navigate = useCallback((sectionId, subId) => { onNavigate?.(compliancePath(sectionId, subId)); }, [onNavigate]);
 
     // ── Data ──
     const counts = useComplianceCounts({ enabled: true });
@@ -98,7 +103,7 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
 
     const pageProps = {
         section, tab: currentTab, onTab: setTab, navigate, onNavigate, focusId: focusCheckId,
-        exportsEnabled, dl, api: API, isMobile, data, setHeaderActions,
+        exportsEnabled, dl, api: API, isMobile, data, setHeaderActions, setLeaveGuard,
         // The AI Act ladder is a modal the Frameworks page opens per automation
         // or agent; the hub owns the handle so one implementation serves the
         // page, the automation builder and the agent drawer.
@@ -152,10 +157,12 @@ function DesktopLayout({ active, section, currentTab, setTab, navigate, onBack, 
                 <ComplianceRail
                     active={active}
                     onSelect={(id, sub) => navigate(id, sub)}
-                    onOpenReports={() => { navigate('overview'); setTab('reports'); }}
+                    onOpenReports={() => navigate('overview', undefined, 'reports')}
                     counts={counts.counts}
                     frameworks={frameworks}
-                    checks={core.checks}
+                    // null while the first read is out: the attention filter
+                    // then falls back to the score instead of "no open checks".
+                    checks={core.overview ? core.checks : null}
                     orgName={orgName}
                     exportsEnabled={exportsEnabled}
                 />
@@ -171,6 +178,64 @@ function DesktopLayout({ active, section, currentTab, setTab, navigate, onBack, 
 }
 
 /**
+ * The hub's navigation state: the current header tab, `navigate` behind the
+ * page's leave guard, and the one-time redirect of a legacy `?tab=`.
+ */
+function useHubNavigation({ active, section, focusCheckId, onNavigate }) {
+    const [tab, setTab, setTabLocal] = useUrlQueryParam('tab', section.tabs[0] || null);
+    const go = useNavigateTo({ active, focusCheckId, onNavigate, setTab, setTabLocal });
+
+    const guardRef = useRef(null);
+    const setLeaveGuard = useCallback((fn) => { guardRef.current = typeof fn === 'function' ? fn : null; }, []);
+    // A guard belongs to the page that set it; a new section starts unguarded.
+    useEffect(() => () => { guardRef.current = null; }, [active]);
+    const navigate = useCallback((sectionId, subId, nextTab) => {
+        const guard = guardRef.current;
+        if (!guard) { go(sectionId, subId, nextTab); return; }
+        Promise.resolve().then(guard).then(
+            (ok) => { if (ok !== false) go(sectionId, subId, nextTab); },
+            () => { /* a guard that throws keeps the page — never lose an edit silently */ },
+        );
+    }, [go]);
+
+    // A `?tab=` that moved to another section (sections.js legacyTabs) — an
+    // old bookmark, an e-mailed link, a stored attention target — redirects
+    // there, once per arrival, replacing the old URL in the history.
+    const moved = movedTab(active, tab);
+    const redirected = useRef(null);
+    useEffect(() => {
+        if (!moved) return;
+        const key = `${active}/${focusCheckId ?? ''}?${tab}`;
+        if (redirected.current === key) return;
+        redirected.current = key;
+        go(moved.section, undefined, moved.tab, { replace: true });
+    }, [moved, active, focusCheckId, tab, go]);
+    const currentTab = !moved && section.tabs.includes(tab) ? tab : (section.tabs[0] || null);
+    return { currentTab, setTab, navigate, setLeaveGuard };
+}
+
+/**
+ * The one way the hub moves: `go(section, id, tab, { replace })`.
+ *
+ * Same page (section and id unchanged): `setTab` writes the tab onto the
+ * current URL, so the host's compare finds nothing to push. Another page: the
+ * tab is set in state only and travels in the emitted path, so the host's new
+ * URL carries it and the old history entry keeps its own tab. A tab equal to
+ * the section's first tab is left out of the path — that is the canonical URL.
+ */
+function useNavigateTo({ active, focusCheckId, onNavigate, setTab, setTabLocal }) {
+    return useCallback((sectionId, subId, nextTab, opts) => {
+        const target = resolveSection(sectionId);
+        const tabs = sectionById(target).tabs;
+        const tabArg = nextTab && nextTab !== tabs[0] ? nextTab : null;
+        const samePage = target === active && String(subId ?? '') === String(focusCheckId ?? '');
+        if (samePage) setTab(tabArg); else setTabLocal(tabArg || tabs[0] || null);
+        const path = compliancePath(target, subId, tabArg);
+        if (opts) onNavigate?.(path, opts); else onNavigate?.(path);
+    }, [active, focusCheckId, onNavigate, setTab, setTabLocal]);
+}
+
+/**
  * The phone frame is its own chunk (FE-9). A build without it must still
  * render the desktop layout, so the import failure is caught, not fatal:
  * undefined = loading, null = no chunk → fallback, else the component.
@@ -180,7 +245,10 @@ function ComplianceMobileGate({ props, fallback }) {
     React.useEffect(() => {
         let alive = true;
         import('./ComplianceMobile')
-            .then((m) => { if (alive) setResolved(m?.default || null); })
+            // Wrapped in an updater: the module's default export IS a function,
+            // and setState(fn) would call it as an updater — ComplianceMobile(prev)
+            // with no props, which threw on every phone.
+            .then((m) => { if (alive) setResolved(() => m?.default || null); })
             .catch(() => { if (alive) setResolved(null); });
         return () => { alive = false; };
     }, []);

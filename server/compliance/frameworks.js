@@ -22,8 +22,17 @@
  * Nothing in here touches the database or the licence layer; the file is safe
  * to require from a route, a store or a test without stubs.
  *
- * Dates and labels are the state of 14 Sep 2026 (BRIEF.md §1.4). Not legal
- * advice — the UI says so next to the calendar.
+ * Not legal advice — the UI says so next to the calendar.
+ *
+ * KEEPING IT CURRENT. Law moves; a catalogue that is silently out of date
+ * tells an organisation it complies with rules that changed. So every entry
+ * names the official text it was checked against (`sources`) and the day it
+ * was last checked (`legal_status_verified`, ISO date). `legalReview()` turns
+ * that into an age, and anything older than LEGAL_REVIEW_STALE_DAYS is
+ * reported in three places: the ISO27001-A.5.31 check in the product, the
+ * "Legal status checked" chip on Frameworks, and the CI guard
+ * `npm run lint:legal-catalogue`. Re-verifying means: read the sources (and
+ * the milestones below), correct what changed, and move the date.
  */
 
 // Display strings for the copy that the i18n keys point at live in the
@@ -37,6 +46,12 @@ const FRAMEWORKS = Object.freeze([
         capability: 'compliance_hub_gdpr',
         checks_dir: 'gdpr',
         regulation_code: 'Verordening (EU) 2016/679 · UAVG',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Regulation (EU) 2016/679 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2016/679/oj' },
+            { label: 'Uitvoeringswet AVG — wetten.overheid.nl', url: 'https://wetten.overheid.nl/BWBR0040940/' },
+        ],
+        legal_status_verified: '2026-10-06',
         in_force_since: '2018-05-25',
         in_force_from: null,
         phases: [
@@ -52,7 +67,13 @@ const FRAMEWORKS = Object.freeze([
         core: true,
         capability: 'compliance_hub_aia',
         checks_dir: 'aia',
-        regulation_code: 'Verordening (EU) 2024/1689',
+        regulation_code: 'Verordening (EU) 2024/1689 · gewijzigd bij Verordening (EU) 2026/1744',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Regulation (EU) 2024/1689 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2024/1689/oj' },
+            { label: 'Regulation (EU) 2026/1744 (Digital Omnibus on AI) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2026/1744/oj' },
+        ],
+        legal_status_verified: '2026-10-06',
         in_force_since: '2024-08-01',
         in_force_from: null,
         // Per-article application dates — the AI Act applies in stages, so a
@@ -62,6 +83,11 @@ const FRAMEWORKS = Object.freeze([
         articles: {
             '4': '2025-02-02',
             '5': '2025-02-02',
+            // Chapter III high-risk duties (Art. 13 transparency, Art. 26
+            // deployer obligations incl. 26(6) logs) apply with Annex III: a
+            // check on them must not claim they have applied since 2024.
+            '13': '2027-12-02',
+            '26': '2027-12-02',
             '53': '2025-08-02',
             '50': '2026-08-02',
             '50(2)': '2026-08-02',
@@ -86,7 +112,12 @@ const FRAMEWORKS = Object.freeze([
         core: true,
         capability: 'compliance_hub_iso27001',
         checks_dir: 'iso27001',
-        regulation_code: 'ISO/IEC 27001:2022',
+        regulation_code: 'ISO/IEC 27001:2022 + Amd 1:2024',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'ISO/IEC 27001:2022 — iso.org', url: 'https://www.iso.org/standard/27001' },
+        ],
+        legal_status_verified: '2026-10-06',
         // A standard, not a law: nothing "enters into force".
         in_force_since: null,
         in_force_from: null,
@@ -102,6 +133,13 @@ const FRAMEWORKS = Object.freeze([
         capability: 'compliance_hub_nis2',
         checks_dir: 'nis2',
         regulation_code: 'Richtlijn (EU) 2022/2555 · Cyberbeveiligingswet',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Directive (EU) 2022/2555 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/dir/2022/2555/oj' },
+            { label: 'Cyberbeveiligingswet: registration and reporting — NCSC', url: 'https://www.ncsc.nl/cyberbeveiligingswet-nis2' },
+            { label: 'Implementing Regulation (EU) 2024/2690 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg_impl/2024/2690/oj' },
+        ],
+        legal_status_verified: '2026-10-06',
         in_force_since: '2026-08-15',
         in_force_from: null,
         phases: [
@@ -129,11 +167,17 @@ const FRAMEWORKS = Object.freeze([
             'annex_i': '2027-12-11',
         },
         regulation_code: 'Verordening (EU) 2024/2847',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Regulation (EU) 2024/2847 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2024/2847/oj' },
+        ],
+        legal_status_verified: '2026-10-06',
         // The reporting duty (Art. 14) applies first; the product requirements,
         // conformity assessment and CE marking follow in Dec 2027.
         in_force_since: '2026-09-11',
         in_force_from: null,
         phases: [
+            { date: '2026-06-11', label_key: 'compliance.fw_cra_phase_notified_bodies' },
             { date: '2026-09-11', label_key: 'compliance.fw_cra_phase_reporting' },
             { date: '2027-12-11', label_key: 'compliance.fw_cra_phase_full' },
         ],
@@ -148,10 +192,16 @@ const FRAMEWORKS = Object.freeze([
         capability: 'compliance_hub_data_act',
         checks_dir: 'data-act',
         regulation_code: 'Verordening (EU) 2023/2854',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Regulation (EU) 2023/2854 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2023/2854/oj' },
+        ],
+        legal_status_verified: '2026-10-06',
         in_force_since: '2025-09-12',
         in_force_from: null,
         phases: [
             { date: '2025-09-12', label_key: 'compliance.fw_data_act_phase_in_force' },
+            { date: '2026-09-12', label_key: 'compliance.fw_data_act_phase_connected_products' },
             { date: '2027-01-12', label_key: 'compliance.fw_data_act_phase_switching_charges' },
         ],
         registers: ['portability'],
@@ -165,6 +215,11 @@ const FRAMEWORKS = Object.freeze([
         capability: 'compliance_hub_pld',
         checks_dir: 'pld',
         regulation_code: 'Richtlijn (EU) 2024/2853',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Directive (EU) 2024/2853 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/dir/2024/2853/oj' },
+        ],
+        legal_status_verified: '2026-10-06',
         // Applies to products placed on the market from this date — earlier
         // releases stay under the old regime, which is why the release date
         // becomes legally meaningful (BRIEF §1.4).
@@ -184,6 +239,11 @@ const FRAMEWORKS = Object.freeze([
         capability: 'compliance_hub_eaa',
         checks_dir: 'eaa',
         regulation_code: 'Richtlijn (EU) 2019/882',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Directive (EU) 2019/882 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/dir/2019/882/oj' },
+        ],
+        legal_status_verified: '2026-10-06',
         in_force_since: '2025-06-28',
         in_force_from: null,
         phases: [
@@ -201,6 +261,11 @@ const FRAMEWORKS = Object.freeze([
         capability: 'compliance_hub_dora',
         checks_dir: 'dora',
         regulation_code: 'Verordening (EU) 2022/2554',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Regulation (EU) 2022/2554 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2022/2554/oj' },
+        ],
+        legal_status_verified: '2026-10-06',
         in_force_since: '2025-01-17',
         in_force_from: null,
         phases: [
@@ -219,6 +284,11 @@ const FRAMEWORKS = Object.freeze([
         capability: 'compliance_hub_machinery',
         checks_dir: 'machinery',
         regulation_code: 'Verordening (EU) 2023/1230',
+        // The legal source this entry was checked against, and when.
+        sources: [
+            { label: 'Regulation (EU) 2023/1230 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2023/1230/oj' },
+        ],
+        legal_status_verified: '2026-10-06',
         in_force_since: null,
         in_force_from: '2027-01-20',
         phases: [
@@ -232,6 +302,7 @@ const FRAMEWORKS = Object.freeze([
     },
 ].map(f => Object.freeze({
     ...f,
+    sources: Object.freeze((f.sources || []).map(src => Object.freeze({ ...src }))),
     name_key: `compliance.fw_${f.id}_name`,
     description_key: `compliance.fw_${f.id}_desc`,
     affects_key: `compliance.fw_${f.id}_affects`,
@@ -250,7 +321,7 @@ const CORE_IDS = Object.freeze(FRAMEWORKS.filter(f => f.core).map(f => f.id));
 
 /**
  * The regulatory calendar: every dated milestone across the catalogue, plus
- * the two things still uncertain on 14 Sep 2026 (kind 'uncertain', date null,
+ * the two things still uncertain on 6 Oct 2026 (kind 'uncertain', date null,
  * `expected` names the quarter). `affects_kind` says which org objects a
  * milestone touches so the calendar route can count them:
  *   'marking'  → automations/agents that generate content (Art. 50(2))
@@ -263,24 +334,29 @@ const MILESTONES = Object.freeze([
     { id: 'eaa_in_force', date: '2025-06-28', framework_id: 'eaa', kind: 'in_force', affects_kind: 'a11y' },
     { id: 'aia_gpai', date: '2025-08-02', framework_id: 'aia', kind: 'phase', affects_kind: null },
     { id: 'data_act_in_force', date: '2025-09-12', framework_id: 'data_act', kind: 'in_force', affects_kind: null },
+    { id: 'cra_notified_bodies', date: '2026-06-11', framework_id: 'cra', kind: 'phase', affects_kind: null },
     { id: 'aia_art50_enforcement', date: '2026-08-02', framework_id: 'aia', kind: 'phase', affects_kind: 'marking' },
     { id: 'nis2_in_force', date: '2026-08-15', framework_id: 'nis2', kind: 'in_force', affects_kind: null },
     { id: 'cra_reporting_duty', date: '2026-09-11', framework_id: 'cra', kind: 'in_force', affects_kind: 'releases' },
+    { id: 'data_act_connected_products', date: '2026-09-12', framework_id: 'data_act', kind: 'phase', affects_kind: null },
     // End of the transition for marking AI-generated content from systems
     // that predate Art. 50 — and the new ban on AI-generated NCII/CSAM.
     { id: 'aia_marking_transition_end', date: '2026-12-02', framework_id: 'aia', kind: 'transition_end', affects_kind: 'marking' },
     { id: 'pld_in_force', date: '2026-12-09', framework_id: 'pld', kind: 'in_force', affects_kind: 'releases' },
     { id: 'data_act_switching_charges', date: '2027-01-12', framework_id: 'data_act', kind: 'phase', affects_kind: null },
     { id: 'machinery_in_force', date: '2027-01-20', framework_id: 'machinery', kind: 'in_force', affects_kind: null },
+    { id: 'aia_gpai_legacy_models', date: '2027-08-02', framework_id: 'aia', kind: 'transition_end', affects_kind: null },
+    { id: 'data_act_chapter_iv_legacy_contracts', date: '2027-09-12', framework_id: 'data_act', kind: 'transition_end', affects_kind: null },
     { id: 'aia_annex_iii', date: '2027-12-02', framework_id: 'aia', kind: 'phase', affects_kind: null },
     { id: 'cra_full', date: '2027-12-11', framework_id: 'cra', kind: 'phase', affects_kind: 'releases' },
     { id: 'aia_annex_i', date: '2028-08-02', framework_id: 'aia', kind: 'phase', affects_kind: null },
     { id: 'eaa_legacy_contracts_end', date: '2030-06-28', framework_id: 'eaa', kind: 'transition_end', affects_kind: 'a11y' },
-    // Not dated: the data/privacy/NIS2 part of the Digital Omnibus, and the
-    // Dutch AI Act implementation act (consultation closed 1 Jun 2026, bill
-    // not yet before parliament). Listed so the calendar can say "still
-    // uncertain" instead of staying silent.
-    { id: 'omnibus_data_part', date: null, framework_id: 'gdpr', kind: 'uncertain', expected: '2026-Q4', affects_kind: null },
+    // Not dated: the data/privacy/NIS2 part of the Digital Omnibus (still a
+    // proposal on 6 Oct 2026, no Council mandate yet, so the quarter is an
+    // estimate), and the Dutch AI Act implementation act (consultation closed
+    // 1 Jun 2026, bill not yet before parliament). Listed so the calendar can
+    // say "still uncertain" instead of staying silent.
+    { id: 'omnibus_data_part', date: null, framework_id: 'gdpr', kind: 'uncertain', expected: '2027-Q2', affects_kind: null },
     { id: 'nl_uitvoeringswet_ai', date: null, framework_id: 'aia', kind: 'uncertain', expected: '2026-Q4', affects_kind: null },
 ].map(m => Object.freeze({
     ...m,
@@ -288,6 +364,52 @@ const MILESTONES = Object.freeze([
     label_key: `compliance.cal_ms_${m.id}_label`,
     detail_key: `compliance.cal_ms_${m.id}_detail`,
 })));
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Days a framework's legal status may go unchecked before it is reported as stale. */
+const LEGAL_REVIEW_STALE_DAYS = 90;
+
+function _dayMs(iso) {
+    if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return NaN;
+    return Date.parse(`${iso}T00:00:00Z`);
+}
+
+/**
+ * How current one framework's legal status is. A missing or unreadable date
+ * is stale, never fresh: "nobody recorded a check" must not read as "checked".
+ * @returns {{ verified_on: string|null, age_days: number|null, stale: boolean, stale_after_days: number, sources: number }}
+ */
+function legalReview(fw, nowMs = Date.now()) {
+    const verified = fw && typeof fw.legal_status_verified === 'string' ? fw.legal_status_verified : null;
+    const ms = _dayMs(verified);
+    const age = Number.isFinite(ms) ? Math.max(0, Math.floor((nowMs - ms) / DAY_MS)) : null;
+    return {
+        verified_on: Number.isFinite(ms) ? verified : null,
+        age_days: age,
+        stale: age === null || age > LEGAL_REVIEW_STALE_DAYS,
+        stale_after_days: LEGAL_REVIEW_STALE_DAYS,
+        sources: Array.isArray(fw?.sources) ? fw.sources.length : 0,
+    };
+}
+
+/**
+ * The catalogue as a whole: the OLDEST check across the given frameworks
+ * (all built-ins by default) — the date the catalogue can vouch for — and
+ * which of them are stale.
+ */
+function catalogueReview(nowMs = Date.now(), list = FRAMEWORKS) {
+    const rows = list.map(fw => ({ id: fw.id, ...legalReview(fw, nowMs) }));
+    const dated = rows.filter(r => r.verified_on).sort((a, b) => a.verified_on.localeCompare(b.verified_on));
+    const oldest = dated[0] || null;
+    return {
+        verified_on: rows.some(r => !r.verified_on) ? null : (oldest ? oldest.verified_on : null),
+        age_days: rows.some(r => r.age_days === null) ? null : (oldest ? oldest.age_days : null),
+        stale: rows.some(r => r.stale),
+        stale_ids: rows.filter(r => r.stale).map(r => r.id),
+        stale_after_days: LEGAL_REVIEW_STALE_DAYS,
+    };
+}
 
 const _byId = new Map(FRAMEWORKS.map(f => [f.id, f]));
 const _byRegulation = new Map(FRAMEWORKS.map(f => [f.regulation, f]));
@@ -362,5 +484,8 @@ module.exports = {
     capabilityOf,
     isCustomId,
     inForceSince,
+    legalReview,
+    catalogueReview,
+    LEGAL_REVIEW_STALE_DAYS,
     _normaliseRef,
 };

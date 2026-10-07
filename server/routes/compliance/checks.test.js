@@ -126,7 +126,10 @@ const runner = {
 
 const complianceStore = {
     getLatestPerCheck: async (orgId) => { calls.latest.push(orgId); return LATEST; },
-    getCheckHistory: async (orgId, id, limit) => { calls.history.push({ orgId, id, limit }); return [{ check_id: id, status: 'pass', run_at: RUN_AT }]; },
+    getCheckHistory: async (orgId, id, limit, opts) => {
+        calls.history.push(opts === undefined ? { orgId, id, limit } : { orgId, id, limit, opts });
+        return [{ check_id: id, status: 'pass', run_at: RUN_AT }];
+    },
     getSettings: async () => ({}),
 };
 
@@ -309,6 +312,21 @@ test('GET /checks/:id/history reads that check, capped at 100 rows', async () =>
     assert.equal(status, 200);
     assert.deepEqual(calls.history, [{ orgId: 'orgA', id: 'GDPR-Art32-dlp-enabled', limit: 100 }]);
     assert.equal(body.length, 1);
+});
+
+test('GET /checks/:id/history?scope_id= reads one subject\'s slot only', async () => {
+    const { status } = await getJson('/checks/AIA-Art50-ai-disclosure/history?scope_id=agent-1');
+    assert.equal(status, 200);
+    assert.deepEqual(calls.history, [{ orgId: 'orgA', id: 'AIA-Art50-ai-disclosure', limit: 100, opts: { scopeId: 'agent-1' } }]);
+});
+
+test('GET /checks/:id/history refuses an empty scope_id or an unknown query key, and reads nothing', async () => {
+    for (const q of ['?scope_id=', '?scope=agent-1', `?scope_id=${'x'.repeat(201)}`]) {
+        const { status, body } = await getJson(`/checks/AIA-Art50-ai-disclosure/history${q}`);
+        assert.equal(status, 400, q);
+        assert.equal(body.code || body.error, 'invalid_request', q);
+    }
+    assert.deepEqual(calls.history, []);
 });
 
 // ── POST /checks/run ───────────────────────────────────────────────────────

@@ -1,0 +1,151 @@
+{
+  "_comment": "Dutch for the legal register review of 6 Oct 2026. 'translations' are new keys (added when missing); 'reworded' replaces the shipped Dutch only while a workspace still has the old text. Read by migrations/update-nl-legal-register-2026-10.js.",
+  "translations": {
+    "compliance.cal_ms_aia_gpai_legacy_models_label": "AI-verordening AI-modellen voor algemene doeleinden: modellen van vóór aug 2025",
+    "compliance.cal_ms_aia_gpai_legacy_models_detail": "aanbieders van AI-modellen voor algemene doeleinden die al vóór 2 aug 2025 op de markt waren, moeten aan de verplichtingen voldoen (art. 111(3)); het bindt de modelaanbieder, en je modelinventaris laat zien welke je gebruikt",
+    "compliance.fw_data_act_phase_connected_products": "toegang by design voor nieuwe verbonden producten",
+    "compliance.cal_ms_data_act_connected_products_label": "Data Act: toegang by design voor nieuwe verbonden producten",
+    "compliance.cal_ms_data_act_connected_products_detail": "verbonden producten en bijbehorende diensten die na deze datum op de markt komen, moeten gebruikers by design toegang tot hun data geven (art. 3(1)) · alleen voor fabrikanten",
+    "compliance.cal_ms_data_act_chapter_iv_legacy_contracts_label": "Toets op oneerlijke bedingen van de Data Act geldt ook voor oudere contracten",
+    "compliance.cal_ms_data_act_chapter_iv_legacy_contracts_detail": "hoofdstuk IV geldt ook voor contracten over het delen van data die op of vóór 12 sep 2025 zijn gesloten en voor onbepaalde tijd of minstens tien jaar lopen (art. 50)",
+    "compliance.fw_cra_phase_notified_bodies": "aangemelde instanties (hoofdstuk IV)",
+    "compliance.cal_ms_cra_notified_bodies_label": "CRA: regels voor aangemelde instanties gelden",
+    "compliance.cal_ms_cra_notified_bodies_detail": "conformiteitsbeoordelingsinstanties kunnen worden aangemeld (hoofdstuk IV, art. 71(2)) · alleen van belang voor belangrijke en kritieke producten",
+    "compliance.hdr_fw_checked": "Juridische status gecontroleerd op {date} · geen juridisch advies",
+    "compliance.hdr_fw_review_due": "Juridische status gecontroleerd op {date} · toe aan herziening",
+    "compliance.hdr_fw_review_unknown": "Juridische status niet vastgelegd · toe aan herziening",
+    "compliance.hdr_fw_checked_hint": "De kaders, data en mijlpalen hier zijn gecontroleerd aan de hand van de officiële teksten. Elk kader toont zijn bronnen onder Tijdlijn. Geen juridisch advies.",
+    "compliance.tbl_timeline_sources": "Bronnen",
+    "compliance.tbl_timeline_checked": "Gecontroleerd aan de hand van deze bronnen op {date}. Geen juridisch advies.",
+    "compliance.tbl_timeline_review_due": "Gecontroleerd op {date}. Toe aan herziening: meer dan {days} dagen geleden, dus beschouw deze data als onbevestigd tot Bee Flow is bijgewerkt.",
+    "compliance.checks.iso_legal_register.title": "Juridisch register actueel",
+    "compliance.checks.iso_legal_register.desc": "De kaders, data en mijlpalen waartegen deze hub scoort, zijn gecontroleerd aan de hand van de officiële teksten. Deze check meldt wanneer de juridische status van een kader dat u gebruikt meer dan 90 dagen niet opnieuw is gecontroleerd.",
+    "compliance.checks.iso_legal_register.fix": "Werk Bee Flow bij voor het nieuwste juridische register. Open tot die tijd Kaders, lees voor elk kader dat toe is aan herziening de vermelde bronnen, en beschouw de data als onbevestigd."
+  },
+  "reworded": {
+    "compliance.fw_aia_desc": {
+      "was": "Verordening (EU) 2024/1689 · Omnibus: Art. 4 \"ondersteunen\" i.p.v. \"waarborgen\", Bijlage III verschoven naar dec 2027",
+      "now": "Verordening (EU) 2024/1689, gewijzigd bij Verordening (EU) 2026/1744 (Digitale Omnibus AI, in werking 27 jul 2026): art. 4 \"ondersteunen\" i.p.v. \"waarborgen\", Bijlage III verschoven naar dec 2027, Bijlage I naar aug 2028, nieuw verbod op AI-gegenereerde NCII/CSAM vanaf 2 dec 2026"
+    },
+    "compliance.fw_aia_phase_marking_transition_end": {
+      "was": "markering bestaande systemen",
+      "now": "markering systemen van vóór aug 2026 · NCII/CSAM-verbod"
+    },
+    "compliance.fw_iso27001_desc": {
+      "was": "Managementsysteem voor informatiebeveiliging: Bijlage A-controls, Statement of Applicability, risicoregister, beleid en audits.",
+      "now": "Managementsysteem voor informatiebeveiliging: Bijlage A-controls, Statement of Applicability, risicoregister, beleid en audits — inclusief de vraag of klimaatverandering een relevant onderwerp is (Amd 1:2024)."
+    },
+    "compliance.fw_nis2_desc": {
+      "was": "Zorgplicht, meldplicht, registratie voor 8.000+ organisaties, expliciete bestuurdersverantwoordelijkheid.",
+      "now": "Zorgplicht, meldplicht, registratie voor zo'n 8.000 organisaties, expliciete bestuurdersverantwoordelijkheid."
+    },
+    "compliance.fw_nis2_affects": {
+      "was": "via klanten in scope — leveranciersvragenlijsten, meldafspraken, contractuele onboarding-eisen.",
+      "now": "via klanten in scope — leveranciersvragenlijsten, meldafspraken, contractuele onboarding-eisen. Host je Bee Flow als cloud- of beheerde dienst voor anderen en ben je middelgroot of groter, dan val je mogelijk zelf onder de wet, met Uitvoeringsverordening (EU) 2024/2690 als maatregelenkader."
+    },
+    "compliance.fw_cra_desc": {
+      "was": "Actief misbruikte kwetsbaarheden en ernstige incidenten melden: vroege waarschuwing binnen 24 u, volledig binnen 72 u, via MijnNCSC. Volledig (CE-markering) op 11 dec 2027.",
+      "now": "Actief misbruikte kwetsbaarheden en ernstige incidenten melden via het centrale meldplatform van ENISA (NL: NCSC): vroege waarschuwing binnen 24 u, melding binnen 72 u, eindrapport 14 dagen na een oplossing (ernstig incident: een maand na de melding). Volledig (CE-markering) op 11 dec 2027."
+    },
+    "compliance.fw_data_act_desc": {
+      "was": "Maximaal twee maanden opzegtermijn, export in gangbare machineleesbare formaten, functionele gelijkwaardigheid bij migratie; overstapkosten weg per 12 jan 2027.",
+      "now": "Overstappen: hooguit twee maanden opzegtermijn, overstap binnen 30 dagen afgerond, alle exporteerbare data in een gestructureerd, machineleesbaar formaat, kosteloze open interfaces (functionele gelijkwaardigheid alleen voor IaaS); tot 12 jan 2027 verlaagde overstapkosten, daarna geen."
+    },
+    "compliance.fw_eaa_desc": {
+      "was": "Digitale diensten voor consumenten moeten toegankelijk zijn (WCAG 2.1 AA).",
+      "now": "Consumentendiensten binnen de reikwijdte (e-commerce, bankdiensten, e-books, elektronische communicatie, personenvervoer) moeten toegankelijk zijn: EN 301 549, dus WCAG 2.1 AA. Micro-ondernemingen die diensten leveren zijn uitgezonderd."
+    },
+    "compliance.cal_ms_aia_art4_art5_detail": {
+      "was": "AI-geletterdheid is sinds de Omnibus een inspanningsverplichting, maar maatregelen moeten aantoonbaar blijven; verboden praktijken zijn nu handhaafbaar",
+      "now": "AI-geletterdheid: sinds 27 jul 2026 een plicht om ondersteunende maatregelen te nemen, niet om een niveau te garanderen; houd ze aantoonbaar · verboden praktijken gelden direct (Nederlandse boetebevoegdheid wacht op de uitvoeringswet)"
+    },
+    "compliance.cal_ms_eaa_in_force_detail": {
+      "was": "digitale diensten voor consumenten moeten voldoen aan WCAG 2.1 AA / EN 301 549",
+      "now": "consumentendiensten binnen de reikwijdte (e-commerce, bankdiensten, e-books, elektronische communicatie, vervoer) · EN 301 549 / WCAG 2.1 AA"
+    },
+    "compliance.cal_ms_data_act_in_force_detail": {
+      "was": "twee maanden opzegtermijn, export in machineleesbare formaten, functionele gelijkwaardigheid bij migratie",
+      "now": "overstappen: hooguit twee maanden opzegtermijn, overstap binnen 30 dagen, export in een gestructureerd, machineleesbaar formaat; functionele gelijkwaardigheid geldt alleen voor IaaS"
+    },
+    "compliance.cal_ms_aia_art50_enforcement_detail": {
+      "was": "nationale handhaving start · boetes tot € 35 mln / 7 %",
+      "now": "AI-melding, deepfake-labels en machineleesbare markering voor nieuwe systemen gelden · boetes tot € 15 mln / 3 % (art. 99(4)) · de Commissie kan nu aanbieders van AI-modellen voor algemene doeleinden beboeten (art. 101)"
+    },
+    "compliance.cal_ms_nis2_in_force_label": {
+      "was": "Cyberbeveiligingswet (NIS2)",
+      "now": "Cyberbeveiligingswet (Cbw, NIS2)"
+    },
+    "compliance.cal_ms_nis2_in_force_detail": {
+      "was": "zorgplicht, meldplicht, registratie, bestuurdersverantwoordelijkheid",
+      "now": "zorgplicht, melden via MijnNCSC (24 u / 72 u / 1 maand), registratie bij het NCSC, bestuurdersverantwoordelijkheid"
+    },
+    "compliance.cal_ms_cra_reporting_duty_detail": {
+      "was": "24 u / 72 u",
+      "now": "24 u vroege waarschuwing · 72 u melding · eindrapport 14 dagen na een oplossing (ernstig incident: 1 maand) · via het meldplatform van ENISA"
+    },
+    "compliance.cal_ms_aia_marking_transition_end_detail": {
+      "was": "AI Act Art. 50 · nieuw verbod AI-gegenereerd NCII/CSAM in de hoogste boetecategorie",
+      "now": "overgang AI-verordening art. 50(2) (art. 111(4)): alleen voor generatieve systemen die vóór 2 aug 2026 op de markt waren; nieuwere systemen markeren vanaf dag één · dezelfde dag: nieuw verbod in art. 5 op AI-gegenereerde NCII/CSAM (boetes tot € 35 mln / 7 %)"
+    },
+    "compliance.cal_ms_pld_in_force_detail": {
+      "was": "software, AI-systemen en verbonden diensten · raakt je als leverancier",
+      "now": "software, AI-systemen en verbonden diensten · raakt je als leverancier · de Nederlandse implementatiewet is nog niet aangenomen"
+    },
+    "compliance.cal_ms_data_act_switching_charges_detail": {
+      "was": "Data Act",
+      "now": "Data Act art. 29(1) · tot dan alleen verlaagde, kostengebaseerde overstapkosten (art. 29(2)–(3)); egress bij parallel gebruik mag nog tegen kostprijs (art. 34(2))"
+    },
+    "compliance.cal_ms_eaa_legacy_contracts_end_detail": {
+      "was": "dienstencontracten gesloten vóór 28 jun 2025 mogen uiterlijk tot deze datum ongewijzigd doorlopen",
+      "now": "dienstencontracten gesloten vóór 28 jun 2025 mogen uiterlijk tot deze datum ongewijzigd doorlopen; producten die al voor de dienst werden gebruikt mogen tot dan ook in gebruik blijven"
+    },
+    "compliance.cal_ms_omnibus_data_part_label": {
+      "was": "Digital Omnibus (data/privacy/NIS2-deel)",
+      "now": "Digital Omnibus (AVG, cookies, Data Act, NIS2-deel)"
+    },
+    "compliance.cal_ms_omnibus_data_part_detail": {
+      "was": "alleen het AI-deel van de Omnibus is af; het data/privacy-deel is niet aangenomen — ontwerp er niet omheen",
+      "now": "nog een voorstel (COM(2025) 837): geen akkoord tussen Raad en Parlement. Alleen het AI-deel is wet. De voorgestelde wijzigingen van de AVG (waaronder cookies en datalekmelding), de Data Act en één meldloket voor incidenten gelden niet — ontwerp er niet omheen"
+    },
+    "compliance.cal_ms_nl_uitvoeringswet_ai_detail": {
+      "was": "consultatie gesloten 1 jun 2026, wetsvoorstel nog niet ingediend. De AI Act geldt direct; alleen het Nederlandse handhavingsinstrumentarium is onaf.",
+      "now": "consultatie gesloten 1 jun 2026, wetsvoorstel nog niet ingediend. De AI-verordening geldt direct, maar er is nog geen Nederlandse toezichthouder bij wet aangewezen, dus geen nationale boetes tot deze wet in werking is. Voorgesteld: AP en RDI coördineren het toezicht."
+    },
+    "compliance.check_aia_art50_marking_desc": {
+      "was": "Documenten die een automatisering uit modeluitvoer maakt, dragen een zichtbare regel \"Gegenereerd met AI\" en machineleesbare metadata (PDF-info / Word-eigenschappen) die aangeven dat ze door AI zijn gemaakt, door welke aanbieder, wanneer en vanuit welke automatisering — AI-verordening art. 50(2). Verplicht vanaf 2 dec 2026.",
+      "now": "Documenten die een automatisering uit modeluitvoer maakt, dragen een zichtbare regel \"Gegenereerd met AI\" en machineleesbare metadata (PDF-info / Word-eigenschappen) die aangeven dat ze door AI zijn gemaakt, door welke aanbieder, wanneer en vanuit welke automatisering — AI-verordening art. 50(2). Geldt sinds 2 aug 2026; systemen die daarvoor al op de markt waren hebben tot 2 dec 2026."
+    },
+    "compliance.check_nis2_early_warning_desc": {
+      "was": "Significante incidenten vereisen een vroegtijdige waarschuwing binnen 24 uur, een melding binnen 72 uur en een eindverslag binnen een maand (art. 23). Het incidentenregister volgt alle drie de klokken; het platform meldt nooit namens u, dus elke melding wordt als stempel vastgelegd.",
+      "now": "Significante incidenten vereisen een vroegtijdige waarschuwing binnen 24 uur, een melding binnen 72 uur en een eindverslag binnen een maand na die melding (art. 23; in Nederland via MijnNCSC). Het incidentenregister volgt alle drie de klokken; het platform meldt nooit namens u, dus elke melding wordt als stempel vastgelegd."
+    },
+    "compliance.check_nis2_registration_desc": {
+      "was": "Essentiële en belangrijke entiteiten moeten zich registreren bij de nationale autoriteit. De registratie ligt buiten het platform; deze check legt uw zelfclassificatie en het registratiekenmerk met datum vast als verklaring.",
+      "now": "Essentiële en belangrijke entiteiten registreren zich bij het NCSC via MijnNCSC (Cyberbeveiligingswet, sinds 15 aug 2026) en melden wijzigingen binnen twee weken (cloud- en beheerde dienstverleners: drie maanden, art. 27). De registratie ligt buiten het platform; deze check legt uw zelfclassificatie en het registratiekenmerk met datum vast als verklaring."
+    },
+    "compliance.check_cra_vuln_clocks_desc": {
+      "was": "Actief uitgebuite kwetsbaarheden en ernstige incidenten moeten binnen 24 uur (vroegtijdige waarschuwing), 72 uur (melding) en 14 dagen (eindrapport) worden gemeld via MijnNCSC / het centrale meldplatform van ENISA (CRA art. 14). De controle leest het kwetsbaarhedenregister: elk open dossier onder het CRA-regime moet vóór het aflopen van elke klok zijn meldstempels dragen, en het meldkanaal, het PSIRT-contact en de incidentresponsprocedure moeten zijn ingericht.",
+      "now": "Actief uitgebuite kwetsbaarheden en ernstige incidenten moeten binnen 24 uur (vroegtijdige waarschuwing) en 72 uur (melding) worden gemeld, met een eindrapport 14 dagen nadat een oplossing of mitigatie beschikbaar is (kwetsbaarheid) of een maand na de melding (ernstig incident), via het centrale meldplatform van ENISA aan de CSIRT-coördinator (in Nederland het NCSC) (CRA art. 14). De controle leest het kwetsbaarhedenregister: elk open dossier onder het CRA-regime moet vóór het aflopen van elke klok zijn meldstempels dragen, en het meldkanaal, het PSIRT-contact en de incidentresponsprocedure moeten zijn ingericht."
+    },
+    "compliance.inc_clock_final_report": {
+      "was": "Eindrapport (1 maand)",
+      "now": "Eindrapport"
+    },
+    "compliance.vuln_clock_hint": {
+      "was": "Vastleggen start de klokken van CRA art. 14: vroege waarschuwing binnen 24 uur, melding binnen 72 uur, eindrapport binnen 14 dagen.",
+      "now": "Vastleggen start de klokken van CRA art. 14: vroege waarschuwing binnen 24 uur, melding binnen 72 uur; het eindrapport is 14 dagen na een oplossing of mitigatie verschuldigd (bij een ernstig incident een maand na de melding)."
+    },
+    "compliance.hdr_vuln_window": {
+      "was": "CRA art. 14 · 24 u · 72 u · 14 dagen",
+      "now": "CRA art. 14 · 24 u · 72 u · 14 dagen na oplossing"
+    },
+    "compliance.set_ai_marking_hint": {
+      "was": "Verplicht vanaf 2 december 2026 (AI-verordening art. 50(2)): documenten en pagina's die de AI schrijft krijgen een machineleesbare markering en een zichtbare vermelding.",
+      "now": "Verplicht onder AI-verordening art. 50(2) sinds 2 augustus 2026 (systemen die daarvoor al op de markt waren: uiterlijk 2 december 2026): documenten en pagina's die de AI schrijft krijgen een machineleesbare markering en een zichtbare vermelding."
+    },
+    "compliance.fw_aia_omnibus_note": {
+      "was": "Verordening (EU) 2024/1689 · Omnibus: Art. 4 \"ondersteunen\" i.p.v. \"waarborgen\", Bijlage III verschoven naar dec 2027",
+      "now": "Verordening (EU) 2024/1689, gewijzigd bij Verordening (EU) 2026/1744 (Digitale Omnibus AI): art. 4 \"ondersteunen\" i.p.v. \"waarborgen\", Bijlage III verschoven naar dec 2027, Bijlage I naar aug 2028"
+    }
+  }
+}

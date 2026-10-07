@@ -215,7 +215,7 @@ const DETAILS = {
    DERIVED from the DPIA fixture rather than declared, so the two can never
    disagree about which assistant is missing what. */
 const HIGH_RISK_AGENTS = [
-    { id: 'agent_claims', label: 'Schadebeoordeling', risk_reason: 'system prompt mentions automated decisions' },
+    { id: 'agent_claims', label: 'Schadebeoordeling', risk_reason: 'has a system prompt that mentions automated decisions' },
     { id: 'agent_intake', label: 'Polisintake', risk_reason: 'routes data to external provider (openai)' },
     { id: 'agent_helpdesk', label: 'Klantenservice-assistent', risk_reason: 'routes data to external provider (openai)' },
     { id: 'agent_kifid', label: 'Klachtdossier', risk_reason: 'processes PII categories: health, correspondence' },
@@ -315,7 +315,9 @@ const rowsForCheck = (d, i) => {
                 run_at,
                 run_type,
                 ...r,
-                evidence: { ...r.evidence, sha256: `demo${String(i).padStart(4, '0')}${j}` },
+                // The runner stamps the subject's label on the result row
+                // (runner._rowEvidence), so each per-subject row names its agent or automation.
+                evidence: { ...r.evidence, subject_label: subject.label, sha256: `demo${String(i).padStart(4, '0')}${j}` },
             };
         });
     }
@@ -1115,6 +1117,37 @@ const frameworkRow = (f, state) => {
         score: detail ? detail.score : null,
         score_detail: detail,
         recently_in_force: recentlyInForce(f),
+        sources: f.sources || [],
+        legal_review: legalReview(f),
+    };
+};
+
+// The server's compliance/frameworks.js legalReview, for the demo clock: how
+// many days ago the catalogue entry was checked against its sources.
+const LEGAL_REVIEW_STALE_DAYS = 90;
+const legalReview = (f) => {
+    const verified = typeof f.legal_status_verified === 'string' ? f.legal_status_verified : null;
+    const ms = verified ? Date.parse(`${verified}T00:00:00Z`) : NaN;
+    const age = Number.isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 86400000)) : null;
+    return {
+        verified_on: Number.isFinite(ms) ? verified : null,
+        age_days: age,
+        stale: age === null || age > LEGAL_REVIEW_STALE_DAYS,
+        stale_after_days: LEGAL_REVIEW_STALE_DAYS,
+        sources: (f.sources || []).length,
+    };
+};
+
+const catalogueReview = () => {
+    const rows = FRAMEWORKS.map(f => ({ id: f.id, ...legalReview(f) }));
+    const dated = rows.filter(r => r.verified_on).sort((a, b) => a.verified_on.localeCompare(b.verified_on));
+    const unknown = rows.some(r => !r.verified_on);
+    return {
+        verified_on: unknown ? null : (dated[0]?.verified_on ?? null),
+        age_days: unknown ? null : (dated[0]?.age_days ?? null),
+        stale: rows.some(r => r.stale),
+        stale_ids: rows.filter(r => r.stale).map(r => r.id),
+        stale_after_days: LEGAL_REVIEW_STALE_DAYS,
     };
 };
 
@@ -1146,6 +1179,7 @@ const customFrameworkRow = (fw, state) => {
 const FRAMEWORKS_BODY = (state) => ({
     frameworks: FRAMEWORKS.map(f => frameworkRow(f, state)),
     custom: state.custom.frameworks.filter(f => f.status !== 'archived').map(f => customFrameworkRow(f, state)),
+    catalogue: catalogueReview(),
 });
 
 /* ── GET /calendar ───────────────────────────────────────────────────── */
@@ -1287,7 +1321,7 @@ const ATTENTION = (state, limit = 5) => {
             id: `obligation:${o.id}`, code: 'obligation_overdue', severity: 'high', status: 'fail',
             title: `Overdue: ${o.title}`,
             detail: `Due ${o.due_at.slice(0, 10)}.`,
-            section: 'audits', target: `${sectionPath('audits')}?tab=obligations`,
+            section: 'training', target: sectionPath('training'),
             regulation: 'ISO27001', ref: 'cl. 9', at: due,
         }));
     }
@@ -1405,7 +1439,7 @@ const DEADLINES = (state) => {
     for (const o of state.training.obligations) {
         if (o.completed_at || !o.due_at) continue;
         items.push(deadlineItem('obligation', o.id, String(o.kind || 'obligation').replace(/_/g, ' '), o.title,
-            { kind: o.kind, recur_months: o.recur_months }, null, o.due_at, `${sectionPath('audits')}?tab=obligations`));
+            { kind: o.kind, recur_months: o.recur_months }, null, o.due_at, sectionPath('training')));
     }
     for (const a of state.aiAct) {
         if (!a.expires_at) continue;
@@ -1770,6 +1804,20 @@ const ACCESS_AUDIT_ROWS = () => ([
 
 const SWEEP_INTERVAL_HOURS = 6;
 
+/* server/routes/compliance/counts.js nextIncidentClock: the most urgent OPEN
+   clock over every stage of every incident, a stage of its own column winning
+   a tie with the rolled-up deadline_at. */
+const nextIncidentClock = (incidents) => incidents.flatMap(i => [
+    ['early_warning', i.early_warning_due_at, i.early_warning_sent_at],
+    ['customer_notice', i.customer_notice_due_at, i.customer_notified_at],
+    ['final_report', i.final_report_due_at, i.final_report_sent_at],
+    ['authority', i.deadline_at, i.authority_notified_at],
+].filter(([, due, done]) => due && !done).map(([stage, due]) => ({ stage, at: new Date(due).getTime() })))
+    .reduce((best, c) => (best.at == null || c.at < best.at ? c : best), { at: null, stage: null });
+
+/* counts.js hoursLeft: whole hours rounded away from zero, like deadlineMath. */
+const hoursAwayFromZero = (ms) => (ms < 0 ? -1 : 1) * Math.ceil(Math.abs(ms) / hours(1));
+
 const COUNTS = (state) => {
     const enabled = state.frameworks.enabled;
     const isoOn = enabled.includes('iso27001');
@@ -1784,10 +1832,8 @@ const COUNTS = (state) => {
     }
     const openDsr = state.dsr.filter(r => !DSR_CLOSED.has(r.status));
     const openIncidents = state.incidents.filter(i => i.status !== 'closed');
-    const nextDeadline = openIncidents
-        .filter(i => i.deadline_at && !i.authority_notified_at)
-        .map(i => new Date(i.deadline_at).getTime())
-        .sort((a, b) => a - b)[0] ?? null;
+    const nextClock = nextIncidentClock(openIncidents);
+    const nextDeadline = nextClock.at;
     const docs = state.docs.documents.filter(d => d.status === 'published');
     const personnel = state.training.personnel;
     const connectors = state.connectors.filter(c => c.config?.enabled);
@@ -1826,7 +1872,8 @@ const COUNTS = (state) => {
         body.incidents = {
             open: openIncidents.length,
             next_deadline_at: nextDeadline == null ? null : new Date(nextDeadline).toISOString(),
-            hours_left: nextDeadline == null ? null : Math.floor((nextDeadline - now()) / hours(1)),
+            next_stage: nextClock.stage,
+            hours_left: nextDeadline == null ? null : hoursAwayFromZero(nextDeadline - now()),
             vulnerabilities_open: enabled.includes('cra')
                 ? openIncidents.filter(i => i.kind === 'vulnerability').length
                 : null,
@@ -1836,7 +1883,7 @@ const COUNTS = (state) => {
     }
     if (isoOn) {
         body.risks = { total: state.risks.stats.total, high: state.risks.stats.high };
-        body.soa = { approved: state.soa.stats.approved, total: state.soa.stats.total };
+        body.soa = { approved: state.soa.stats.approved, total: state.soa.stats.total, todo: state.soa.stats.todo };
         body.policies = {
             total: docs.length,
             review_due: docs.filter(d => d.review_due_at && new Date(d.review_due_at).getTime() < now()).length,
@@ -2033,11 +2080,24 @@ export const ROUTES = {
             : c));
         return { fixed: true };
     },
-    'GET /api/compliance/checks/:id/history': ({ params }) => ([
-        { check_id: params.id, status: 'pass', run_at: iso(hours(6)), details: null },
-        { check_id: params.id, status: 'pass', run_at: iso(days(7)), details: null },
-        { check_id: params.id, status: 'warn', run_at: iso(days(14)), details: 'First observed as a warning.' },
-    ]),
+    // One trail per slot, as compliance_checks keeps it: the newest row is the
+    // slot's current result, older runs behind it. `?scope_id=` narrows it to
+    // one subject's slot, as the server does (getCheckHistory).
+    'GET /api/compliance/checks/:id/history': ({ state, params, query }) => {
+        const scope = query.get('scope_id');
+        const slots = (state.checks || []).filter(c => c.check_id === params.id);
+        const trail = (slot) => {
+            const scope_id = slot?.scope_id ?? null;
+            const status = slot?.status || 'pass';
+            return [
+                { check_id: params.id, scope_id, status, run_at: slot?.run_at || iso(hours(6)), run_type: slot?.run_type || 'scheduled', details: slot?.details ?? null },
+                { check_id: params.id, scope_id, status: status === 'fail' ? 'fail' : 'pass', run_at: iso(days(7)), run_type: 'scheduled', details: null },
+                { check_id: params.id, scope_id, status: 'warn', run_at: iso(days(14)), run_type: 'scheduled', details: 'First observed as a warning.' },
+            ];
+        };
+        const rows = (slots.length ? slots : [null]).flatMap(trail);
+        return scope ? rows.filter(r => r.scope_id === scope) : rows;
+    },
     /* ── The evidence ledger ──────────────────────────────────────────
        Order matters here: the transport matches the FIRST route whose
        pattern fits, so `/evidence` and `/evidence/chain` must be declared
@@ -2233,7 +2293,8 @@ export const ROUTES = {
         if (!i) return refuse('not_found', 404);
         if (i.kind !== 'vulnerability' && !(i.regimes || []).includes('CRA')) return refuse('not_cra_incident', 409);
         const at = new Date().toISOString();
-        const patch = stage === 'early_warning' ? { early_warning_sent_at: at } : { final_report_sent_at: at };
+        // `full` stamps the final report AND the notification, as incidentStore.stampCraReport does.
+        const patch = stage === 'early_warning' ? { early_warning_sent_at: at } : { final_report_sent_at: at, authority_notified_at: i.authority_notified_at || at };
         state.incidents = state.incidents.map(x => (x.id === i.id
             ? { ...x, ...patch, reported_via: body?.reported_via || x.reported_via, authority_reference: body?.reference || x.authority_reference }
             : x));
@@ -2249,8 +2310,21 @@ export const ROUTES = {
         reseal(state);
         return state.incidents.find(x => x.id === params.id);
     },
+    // As incidentStore.updateIncident: a status stamps its column once, a note
+    // is appended to the log (the Art. 33(5) reason a breach was closed unnotified).
     'PATCH /api/compliance/incidents/:id': ({ state, params, body }) => {
-        state.incidents = state.incidents.map(i => (i.id === params.id ? { ...i, ...(body || {}) } : i));
+        const at = new Date().toISOString();
+        const { note, ...patch } = body || {};
+        state.incidents = state.incidents.map(i => {
+            if (i.id !== params.id) return i;
+            const log = Array.isArray(i.notes) ? i.notes : (i.notes ? [{ at: i.detected_at, by: null, text: String(i.notes) }] : []);
+            return {
+                ...i, ...patch, updated_at: at,
+                authority_notified_at: patch.status === 'authority_notified' ? (i.authority_notified_at || at) : i.authority_notified_at,
+                subjects_notified_at: patch.status === 'subjects_notified' ? (i.subjects_notified_at || at) : i.subjects_notified_at,
+                notes: note ? [...log, { at, by: 'u_marieke', text: String(note) }] : i.notes,
+            };
+        });
         return state.incidents.find(i => i.id === params.id);
     },
     'POST /api/compliance/incidents/:id/notify-recipients': ({ state, params }) => {

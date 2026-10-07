@@ -1,7 +1,8 @@
 {
   "en": {
+    "compliance.pf_kind_app_templates": "App templates",
     "compliance.fw_aia_phasing": "AI Act — phasing",
-    "compliance.fw_aia_omnibus_note": "Regulation (EU) 2024/1689 · Omnibus: Art. 4 \"support\" instead of \"ensure\", Annex III moved to Dec 2027",
+    "compliance.fw_aia_omnibus_note": "Regulation (EU) 2024/1689, as amended by Regulation (EU) 2026/1744 (Digital Omnibus on AI): Art. 4 \"support\" instead of \"ensure\", Annex III moved to Dec 2027, Annex I to Aug 2028",
     "compliance.fw_aia_phases_unavailable": "The AI Act phases could not be read.",
     "compliance.fw_candidates": "Candidates",
     "compliance.fw_candidates_hint": "not enabled yet — enabling a framework adds checks, registers and calendar dates",
@@ -180,8 +181,9 @@
     "compliance.mach_err_not_provisioned": "The detector is not installed on this deployment."
   },
   "nl": {
+    "compliance.pf_kind_app_templates": "App-sjablonen",
     "compliance.fw_aia_phasing": "AI Act — fasering",
-    "compliance.fw_aia_omnibus_note": "Verordening (EU) 2024/1689 · Omnibus: Art. 4 \"ondersteunen\" i.p.v. \"waarborgen\", Bijlage III verschoven naar dec 2027",
+    "compliance.fw_aia_omnibus_note": "Verordening (EU) 2024/1689, gewijzigd bij Verordening (EU) 2026/1744 (Digitale Omnibus AI): art. 4 \"ondersteunen\" i.p.v. \"waarborgen\", Bijlage III verschoven naar dec 2027, Bijlage I naar aug 2028",
     "compliance.fw_aia_phases_unavailable": "De fasering van de AI Act kon niet worden gelezen.",
     "compliance.fw_candidates": "Kandidaten",
     "compliance.fw_candidates_hint": "nog niet ingeschakeld — een kader inschakelen voegt checks, registers en kalenderdata toe",

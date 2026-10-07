@@ -155,9 +155,13 @@ describe('OverviewPage — status tab', () => {
 
     it('lays the attention list beside a 380px clock column and prints the score formula', () => {
         const { container } = renderPage();
-        const grid = container.querySelector('.grid-cols-\\[1fr_380px\\]');
+        const grid = container.querySelector('.grid-cols-\\[minmax\\(0\\,1fr\\)_380px\\]');
         expect(grid).toBeTruthy();
-        expect(grid.className).toContain('@max-[1180px]/cpage:grid-cols-1');
+        // Side by side down to a 960px page: a 1440px laptop with the 300px rail
+        // leaves ~1140px, which used to stack everything and push the list below the fold.
+        expect(grid.className).toContain('@max-[960px]/cpage:grid-cols-1');
+        expect(container.querySelector('[data-testid="overview-scores"]').className).toContain('grid-cols-3');
+        expect(container.querySelector('[data-testid="overview-scores"]').className).toContain('@max-[880px]/cpage:grid-cols-2');
         expect(screen.getByTestId('attention-list')).toBeInTheDocument();
         expect(screen.getByTestId('deadlines-card')).toBeInTheDocument();
         expect(screen.getByTestId('upcoming-dates')).toBeInTheDocument();
@@ -183,7 +187,7 @@ describe('OverviewPage — attention states', () => {
         const { navigate } = renderPage();
         const rows = screen.getAllByTestId('attention-list-row');
         fireEvent.click(within(rows[0]).getByTestId('attention-list-row-action'));
-        expect(navigate).toHaveBeenCalledWith('settings', undefined);
+        expect(navigate).toHaveBeenCalledWith('settings', undefined, undefined); // (section, id, tab)
     });
 
     it('an auto-fix asks first and only then calls core.autoFix', () => {
@@ -262,10 +266,11 @@ describe('OverviewPage — calendar and reports tabs', () => {
         expect(screen.queryByTestId('ovw-reports-group-iso')).not.toBeInTheDocument();
     });
 
-    it('"Calendar ↗" sends the hub to Frameworks with the calendar tab selected', () => {
+    it('"Calendar ↗" sends the hub to Frameworks with the calendar tab in the navigation itself', () => {
         const { navigate, onTab } = renderPage();
         fireEvent.click(screen.getByTestId('upcoming-dates-open'));
-        expect(onTab).toHaveBeenCalledWith('calendar');
-        expect(navigate).toHaveBeenCalledWith('frameworks');
+        // The tab rides on navigate: a tab set before a host pushes a new URL is lost.
+        expect(navigate).toHaveBeenCalledWith('frameworks', undefined, 'calendar');
+        expect(onTab).not.toHaveBeenCalled();
     });
 });

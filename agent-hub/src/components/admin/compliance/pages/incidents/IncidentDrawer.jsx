@@ -1,25 +1,31 @@
+import { CheckCircle2, Mail, Play } from 'lucide-react';
 import React, { useState } from 'react';
-import { CheckCircle2, Landmark, Mail, Save, Siren, FileText, Building2, Users } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection, DrawerId } from '../../../../shared/SideDrawer';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import { TONES } from '../../../../shared/statusTone';
-import SeverityTag from '../../shared/SeverityTag';
+import { clocksOf, isVulnerability, stepsOf } from './incidentClocks';
+import { INPUT, ReportingList, SECONDARY_BUTTON, StepAction, usesCraRoute } from './IncidentReporting';
 import { IncidentClock, IncidentStatusPill, incidentRef } from './IncidentsTable';
-import { clocksOf, isVulnerability, nextCraStage } from './incidentClocks';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import SideDrawer, { DrawerFooter, DrawerSection, DrawerId } from '../../../../shared/SideDrawer';
+import { useDateFormat } from '../../shared/formatDates';
+import SeverityTag from '../../shared/SeverityTag';
 
 /**
  * IncidentDrawer — one row of the incident / vulnerability register.
  *
- * The GDPR actions are the legacy page's, unchanged in meaning: start the
- * assessment, notify the configured breach recipients (the one e-mail Bee
- * Flow sends), RECORD that the authority / the data subjects were notified
- * (attestations — the org files itself), close. A vulnerability row swaps
- * them for the CRA Art. 14 stages: "Report early warning" / "Report full"
- * (→ `craReport(id, { stage, reported_via, reference })`) and "Customer
- * notified" (→ `customerNotified(id)`). When the server has not shipped
- * those routes yet (404) the buttons stay, disabled, with a sentence saying
- * so — never a silent no-op.
+ * Top to bottom: the running clock; directly under it the NEXT filing step
+ * as the primary button (record the authority notification, report the CRA
+ * early warning or full report, stamp the customer notice; incidentClocks
+ * stepsOf); one "Reporting" list of every stage (IncidentReporting); the
+ * other actions (start the assessment, notify the configured breach
+ * recipients, the remaining filing steps); the editable facts; the log.
+ * "Close incident" is last, a secondary in the footer: while a stage is
+ * still unfiled it asks why the authority was not notified (Art. 33(5): the
+ * controller documents every breach, notified or not) and sends that as the
+ * PATCH's `note`. Save appears in the footer only while the facts are edited.
+ *
+ * Reporting is an attestation: the org files with the authority itself; Bee
+ * Flow records that it did, when, and the reference. On a server without the
+ * CRA routes (404) those steps stay, disabled, with a sentence saying so —
+ * never a silent no-op.
  *
  * props: incident, busy, onUpdate(id, patch), onNotify(id), onCraReport(id, body), onCustomerNotified(id),
  *        craUnavailable (bool), onClose, mode, testId
@@ -30,16 +36,17 @@ export default function IncidentDrawer({
     incident, busy = false, onUpdate, onNotify, onCraReport, onCustomerNotified, craUnavailable = false, onClose, mode = 'inline', testId = 'inc-drawer',
 }) {
     const { t } = useTranslation();
+    const { formatDayTime } = useDateFormat();
     const [draft, setDraft] = useState(() => draftOf(incident));
-    const [authorityRef, setAuthorityRef] = useState('');
-    const [cra, setCra] = useState({ reported_via: '', reference: '' });
+    const [closing, setClosing] = useState(false);
+    const [closeReason, setCloseReason] = useState('');
     // A fresh draft when another incident opens or this one changed on the
     // server — during render, so typing is never reset by a parent re-render.
-    const incidentKey = `${incident?.id}:${incident?.updated_at}`;
+    const incidentKey = `${incident?.id}:${incident?.updated_at}:${incident?.status}`;
     const [seenIncident, setSeenIncident] = useState(incidentKey);
     if (seenIncident !== incidentKey) {
         setSeenIncident(incidentKey);
-        setDraft(draftOf(incident)); setAuthorityRef(''); setCra({ reported_via: '', reference: '' });
+        setDraft(draftOf(incident)); setClosing(false); setCloseReason('');
     }
 
     if (!incident) return null;
@@ -48,54 +55,97 @@ export default function IncidentDrawer({
     const patch = (p) => setDraft(d => ({ ...d, ...p }));
     const dirty = draft.title !== (incident.title || '') || draft.description !== (incident.description || '')
         || draft.severity !== (incident.severity || 'medium') || !!draft.high_risk !== !!incident.high_risk;
+    const steps = stepsOf(incident);
+    // Closing while a stage is unfiled is the Art. 33(5) decision not to notify: it needs its reason.
+    const needsReason = clocksOf(incident).some(c => !c.sentAt);
+
+    const runStep = (step, fields) => {
+        if (step === 'authority') return onUpdate?.(incident.id, { status: 'authority_notified', authority_reference: fields.authority_reference?.trim() || undefined });
+        if (step === 'subjects') return onUpdate?.(incident.id, { status: 'subjects_notified' });
+        if (step === 'customers') return onCustomerNotified?.(incident.id);
+        return onCraReport?.(incident.id, craBody(step.replace(/^cra_/, ''), fields));
+    };
+    const stepBusy = (step) => busy || (craUnavailable && usesCraRoute(step));
+    const close = (note) => onUpdate?.(incident.id, { status: 'closed', note });
 
     const header = (
         <div className="flex items-center gap-2 min-w-0">
             <DrawerId>{incidentRef(incident)}</DrawerId>
             <span className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{incident.title}</span>
-            {!closed && incident.severity && <SeverityTag severity={incident.severity} />}
-            <IncidentStatusPill status={incident.status} />
+            {!closed && incident.severity && <SeverityTag severity={incident.severity} vocabulary="incident" testId={`${testId}-severity`} />}
+            <IncidentStatusPill status={incident.status} testId={`${testId}-status`} />
         </div>
     );
 
-    const footer = (
-        <button
-            type="button"
-            disabled={busy || !dirty || !draft.title.trim()}
-            onClick={() => onUpdate?.(incident.id, savePatch(draft, vuln))}
-            style={PRIMARY_ACTION_STYLE}
-            className="w-full h-8 px-3 rounded-[10px] text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            data-testid={`${testId}-save`}
-        >
-            <Save size={13} aria-hidden="true" /> {t('common.save', 'Save')}
-        </button>
+    const save = dirty ? { onPrimary: () => onUpdate?.(incident.id, savePatch(draft, vuln)), primaryDisabled: busy || !draft.title.trim() } : {};
+    const closeLabel = vuln ? t('compliance.vuln_close_reason', 'Why was it not reported? (CRA Art. 14)') : t('compliance.inc_close_reason', 'Why was the authority not notified? (Art. 33(5))');
+    const footer = (closed && !dirty) ? null : (
+        <>
+            {closing && (
+                <div className="flex flex-col gap-1.5" data-testid={`${testId}-close-form`}>
+                    <label className="text-[11px] text-[var(--text-secondary)]" htmlFor={`${testId}-close-reason`}>{closeLabel}</label>
+                    <textarea id={`${testId}-close-reason`} rows={2} value={closeReason} onChange={e => setCloseReason(e.target.value)} className={`${INPUT} resize-y`} data-testid={`${testId}-close-reason`} />
+                    <div className="flex gap-2">
+                        <button type="button" className={SECONDARY_BUTTON} disabled={busy || !closeReason.trim()} onClick={() => close(closeReason.trim())} data-testid={`${testId}-close-confirm`}>
+                            <CheckCircle2 size={13} aria-hidden="true" />{t('compliance.inc_close', 'Close incident')}
+                        </button>
+                        <button type="button" className={SECONDARY_BUTTON} onClick={() => { setClosing(false); setCloseReason(''); }}>{t('common.cancel', 'Cancel')}</button>
+                    </div>
+                </div>
+            )}
+            <DrawerFooter testId={`${testId}-foot`} {...save}>
+                {!closed && !closing && (
+                    <button
+                        type="button"
+                        disabled={busy}
+                        className={SECONDARY_BUTTON}
+                        aria-expanded={needsReason ? false : undefined}
+                        onClick={() => (needsReason ? setClosing(true) : close(t('compliance.inc_closed_note', 'Closed after assessment.')))}
+                        data-testid={`${testId}-close-incident`}
+                    >
+                        <CheckCircle2 size={13} aria-hidden="true" />{t('compliance.inc_close', 'Close incident')}
+                    </button>
+                )}
+            </DrawerFooter>
+        </>
     );
 
-    const stage = nextCraStage(incident);
+    const others = steps.others;
+    const hasActions = !closed && (incident.status === 'open' || !incident.recipients_notified_at || others.length > 0);
 
     return (
         <SideDrawer open onClose={onClose} header={header} footer={footer} mode={mode} ariaLabel={t(vuln ? 'compliance.vuln_drawer_aria' : 'compliance.inc_drawer_aria', vuln ? 'Vulnerability' : 'Incident')} testId={testId}>
             <IncidentClock incident={incident} variant="block" testId={`${testId}-clock`} />
 
-            <DrawerSection label={t('compliance.inc_clocks', 'Clocks')}>
-                <ul className="m-0 p-0 list-none flex flex-col gap-1 text-[11px]" data-testid={`${testId}-clocks`}>
-                    {clocksOf(incident).map(c => (
-                        <li key={c.stage} className="flex items-center justify-between gap-2" data-stage={c.stage} data-done={c.sentAt ? 'true' : 'false'}>
-                            <span className="text-[var(--text-secondary)]">{t(c.labelKey, c.fallback)}</span>
-                            <span className="tabular-nums" style={{ color: c.sentAt ? TONES.success.ink : 'var(--text-tertiary)' }}>
-                                {c.sentAt ? t('compliance.inc_clock_done_at', 'done {when}', { when: formatStamp(c.sentAt) }) : t('compliance.inc_clock_due_at', 'due {when}', { when: formatStamp(c.dueAt) })}
-                            </span>
-                        </li>
-                    ))}
-                </ul>
-            </DrawerSection>
+            {steps.primary && (
+                <div className="flex flex-col gap-2" data-testid={`${testId}-next`}>
+                    <StepAction key={`${incidentKey}:${steps.primary}:primary`} step={steps.primary} primary busy={stepBusy(steps.primary)} onRun={runStep} testId={testId} />
+                    {craUnavailable && (
+                        <p className="m-0 text-[11px] text-[var(--warning-ink)]" data-testid={`${testId}-cra-unavailable`}>
+                            {t('compliance.vuln_reporting_unavailable', 'CRA reporting is not available on this server yet — record the stamps once it is updated.')}
+                        </p>
+                    )}
+                    {steps.primary.startsWith('cra_') && (
+                        <p className="m-0 text-[11px] text-[var(--text-tertiary)]">
+                            {t('compliance.vuln_attestation_note', 'Reporting is an attestation: your organisation files on the ENISA single reporting platform itself; Bee Flow records the stage, the channel and the reference — never the vulnerability details.')}
+                        </p>
+                    )}
+                    {steps.primary === 'authority' && (
+                        <p className="m-0 text-[11px] text-[var(--text-tertiary)]">
+                            {t('compliance.inc_attestation_note', '"Record authority notification" is an attestation: your organisation files with the supervisory authority itself; Bee Flow only records that it was done, by whom and when.')}
+                        </p>
+                    )}
+                </div>
+            )}
+
+            <ReportingList incident={incident} testId={testId} />
 
             {vuln && (
                 <DrawerSection label={t('compliance.vuln_details', 'Vulnerability')}>
                     <div className="text-[11px] text-[var(--text-secondary)] flex flex-col gap-1">
                         <div className="font-mono">{Array.isArray(incident.cve_ids) && incident.cve_ids.length ? incident.cve_ids.join(' · ') : t('compliance.vuln_no_cve', 'no CVE id yet')}</div>
                         {incident.exploited_in_wild != null && (
-                            <div style={{ color: incident.exploited_in_wild ? TONES.error.ink : undefined }}>
+                            <div className={incident.exploited_in_wild ? 'text-[var(--error-ink)]' : ''}>
                                 {incident.exploited_in_wild ? t('compliance.vuln_exploited_long', 'Actively exploited — CRA Art. 14(1)') : t('compliance.vuln_not_exploited', 'No active exploitation known')}
                             </div>
                         )}
@@ -106,13 +156,33 @@ export default function IncidentDrawer({
                 </DrawerSection>
             )}
 
+            {hasActions && (
+                <DrawerSection label={t('compliance.inc_actions', 'Actions')} testId={`${testId}-actions`}>
+                    <div className="flex flex-wrap gap-2">
+                        {incident.status === 'open' && (
+                            <button type="button" disabled={busy} className={SECONDARY_BUTTON} onClick={() => onUpdate?.(incident.id, { status: 'assessing' })} data-testid={`${testId}-assess`}>
+                                <Play size={13} aria-hidden="true" />{t('compliance.inc_start_assess', 'Start assessment')}
+                            </button>
+                        )}
+                        {!incident.recipients_notified_at && (
+                            <button type="button" disabled={busy} className={SECONDARY_BUTTON} onClick={() => onNotify?.(incident.id)} data-testid={`${testId}-notify`}>
+                                <Mail size={13} aria-hidden="true" />{t('compliance.inc_notify_recipients', 'Notify breach recipients')}
+                            </button>
+                        )}
+                        {others.map(step => (
+                            <StepAction key={`${incidentKey}:${step}`} step={step} busy={stepBusy(step)} onRun={runStep} testId={testId} />
+                        ))}
+                    </div>
+                </DrawerSection>
+            )}
+
             <DrawerSection label={t('compliance.inc_f_title', 'What happened?')}>
-                <input value={draft.title} onChange={e => patch({ title: e.target.value })} className={INPUT} data-testid={`${testId}-title`} />
-                <textarea value={draft.description} rows={3} onChange={e => patch({ description: e.target.value })} placeholder={t('compliance.inc_f_desc_ph', 'What data, how many people, how discovered, first containment steps…')} className={`${INPUT} resize-y`} data-testid={`${testId}-description`} />
+                <input value={draft.title} onChange={e => patch({ title: e.target.value })} aria-label={t('compliance.inc_f_title', 'What happened?')} className={INPUT} data-testid={`${testId}-title`} />
+                <textarea value={draft.description} rows={3} onChange={e => patch({ description: e.target.value })} aria-label={t('compliance.inc_f_desc', 'Details')} placeholder={t('compliance.inc_f_desc_ph', 'What data, how many people, how discovered, first containment steps…')} className={`${INPUT} resize-y`} data-testid={`${testId}-description`} />
                 <div className="flex items-center gap-3 flex-wrap">
                     <label className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
                         {t('compliance.inc_f_severity', 'Severity')}
-                        <select value={draft.severity} onChange={e => patch({ severity: e.target.value })} className={`${INPUT} w-auto`} data-testid={`${testId}-severity`}>
+                        <select value={draft.severity} onChange={e => patch({ severity: e.target.value })} className={`${INPUT} w-auto`} data-testid={`${testId}-severity-select`}>
                             {SEVERITIES.map(s => <option key={s} value={s}>{t(`compliance.inc_sev_${s}`, SEVERITY_EN[s])}</option>)}
                         </select>
                     </label>
@@ -125,99 +195,11 @@ export default function IncidentDrawer({
                 </div>
             </DrawerSection>
 
-            {!closed && (
-                <DrawerSection label={t('compliance.inc_actions', 'Actions')} testId={`${testId}-actions`}>
-                    <div className="flex flex-wrap gap-2">
-                        {incident.status === 'open' && (
-                            <Action busy={busy} onClick={() => onUpdate?.(incident.id, { status: 'assessing' })} testId={`${testId}-assess`}>
-                                {t('compliance.inc_start_assess', 'Start assessment')}
-                            </Action>
-                        )}
-                        {!incident.recipients_notified_at && (
-                            <Action busy={busy} icon={Mail} onClick={() => onNotify?.(incident.id)} testId={`${testId}-notify`}>
-                                {t('compliance.inc_notify_recipients', 'Notify breach recipients')}
-                            </Action>
-                        )}
-                        <Action busy={busy} icon={CheckCircle2} onClick={() => onUpdate?.(incident.id, { status: 'closed', note: t('compliance.inc_closed_note', 'Closed after assessment.') })} testId={`${testId}-close-incident`}>
-                            {t('compliance.inc_close', 'Close incident')}
-                        </Action>
-                    </div>
-
-                    {vuln ? (
-                        <div className="flex flex-col gap-2" data-testid={`${testId}-cra`}>
-                            <div className="flex flex-wrap gap-2">
-                                <input value={cra.reported_via} onChange={e => setCra(c => ({ ...c, reported_via: e.target.value }))} placeholder={t('compliance.vuln_reported_via_ph', 'Reported via (ENISA platform, CSIRT…)')} className={`${INPUT} flex-1 min-w-[140px]`} data-testid={`${testId}-cra-via`} />
-                                <input value={cra.reference} onChange={e => setCra(c => ({ ...c, reference: e.target.value }))} placeholder={t('compliance.vuln_reference_ph', 'Reference (optional)')} className={`${INPUT} flex-1 min-w-[120px]`} data-testid={`${testId}-cra-ref`} />
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {stage === 'early_warning' && (
-                                    <Action busy={busy || craUnavailable} icon={Siren} onClick={() => onCraReport?.(incident.id, craBody('early_warning', cra))} testId={`${testId}-cra-early`}>
-                                        {t('compliance.vuln_report_early', 'Report early warning')}
-                                    </Action>
-                                )}
-                                {(stage === 'notification' || stage === 'final_report') && (
-                                    <Action busy={busy || craUnavailable} icon={FileText} onClick={() => onCraReport?.(incident.id, craBody(stage, cra))} testId={`${testId}-cra-full`}>
-                                        {stage === 'final_report' ? t('compliance.vuln_report_final', 'Report final report') : t('compliance.vuln_report_full', 'Report full')}
-                                    </Action>
-                                )}
-                                {!incident.customer_notified_at && (
-                                    <Action busy={busy || craUnavailable} icon={Building2} onClick={() => onCustomerNotified?.(incident.id)} testId={`${testId}-cra-customers`}>
-                                        {t('compliance.vuln_customer_notified', 'Customer notified')}
-                                    </Action>
-                                )}
-                            </div>
-                            {craUnavailable && (
-                                <p className="m-0 text-[11px]" style={{ color: TONES.warning.ink }} data-testid={`${testId}-cra-unavailable`}>
-                                    {t('compliance.vuln_reporting_unavailable', 'CRA reporting is not available on this server yet — record the stamps once it is updated.')}
-                                </p>
-                            )}
-                            <p className="m-0 text-[11px] text-[var(--text-tertiary)]">{t('compliance.vuln_attestation_note', 'Reporting is an attestation: your organisation files on the ENISA single reporting platform itself; Bee Flow records the stage, the channel and the reference — never the vulnerability details.')}</p>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-2">
-                            {!incident.authority_notified_at && (
-                                <div className="flex flex-wrap gap-2 items-center">
-                                    <input value={authorityRef} onChange={e => setAuthorityRef(e.target.value)} placeholder={t('compliance.inc_authority_ref_ph', 'Authority case/reference number (optional)')} className={`${INPUT} flex-1 min-w-[160px]`} data-testid={`${testId}-authority-ref`} />
-                                    <Action busy={busy} icon={Landmark} onClick={() => onUpdate?.(incident.id, { status: 'authority_notified', authority_reference: authorityRef.trim() || undefined })} testId={`${testId}-authority`}>
-                                        {t('compliance.inc_record_authority', 'Record authority notification')}
-                                    </Action>
-                                </div>
-                            )}
-                            {incident.high_risk && !incident.subjects_notified_at && (
-                                <Action busy={busy} icon={Users} onClick={() => onUpdate?.(incident.id, { status: 'subjects_notified' })} testId={`${testId}-subjects`}>
-                                    {t('compliance.inc_record_subjects', 'Record data-subject notification')}
-                                </Action>
-                            )}
-                            <p className="m-0 text-[11px] text-[var(--text-tertiary)]">{t('compliance.inc_attestation_note', '"Record authority notification" is an attestation: your organisation files with the supervisory authority itself; Bee Flow only records that it was done, by whom and when.')}</p>
-                        </div>
-                    )}
-                </DrawerSection>
-            )}
-
-            <DrawerSection label={t('compliance.inc_stamps', 'Stamps')}>
-                <ul className="m-0 p-0 list-none flex flex-col gap-1 text-[11px]" data-testid={`${testId}-stamps`}>
-                    {vuln ? (
-                        <>
-                            <StampLine label={t('compliance.vuln_stamp_early_warning', 'Early warning')} at={incident.early_warning_sent_at} extra={incident.reported_via} />
-                            <StampLine label={t('compliance.vuln_stamp_full_report', 'Full report')} at={incident.notification_sent_at ?? incident.authority_notified_at ?? incident.reported_at} extra={incident.authority_reference} />
-                            <StampLine label={t('compliance.vuln_clock_final_report', 'Final report (14 d)')} at={incident.final_report_sent_at} />
-                            <StampLine label={t('compliance.vuln_stamp_customers', 'Customers notified')} at={incident.customer_notified_at} />
-                        </>
-                    ) : (
-                        <>
-                            <StampLine label={t('compliance.inc_stamp_recipients', 'Internal recipients')} at={incident.recipients_notified_at} />
-                            <StampLine label={t('compliance.inc_stamp_authority', 'Supervisory authority (Art. 33)')} at={incident.authority_notified_at} extra={incident.authority_reference ? `ref: ${incident.authority_reference}` : null} />
-                            {incident.high_risk && <StampLine label={t('compliance.inc_stamp_subjects', 'Data subjects (Art. 34)')} at={incident.subjects_notified_at} />}
-                        </>
-                    )}
-                </ul>
-            </DrawerSection>
-
             {Array.isArray(incident.notes) && incident.notes.length > 0 && (
                 <DrawerSection label={t('compliance.inc_notes', 'Log')}>
                     <ul className="m-0 p-0 list-none flex flex-col gap-1 text-[11px] text-[var(--text-secondary)]">
                         {incident.notes.map((n, i) => (
-                            <li key={i}><span className="text-[var(--text-tertiary)]">{n.at ? formatStamp(n.at) : ''}</span> — {n.text}</li>
+                            <li key={i}><span className="text-[var(--text-tertiary)] tabular-nums">{n.at ? formatDayTime(n.at) : ''}</span> — {n.text}</li>
                         ))}
                     </ul>
                 </DrawerSection>
@@ -227,7 +209,6 @@ export default function IncidentDrawer({
 }
 
 const SEVERITY_EN = Object.freeze({ low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' });
-const INPUT = 'w-full rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
 
 function draftOf(incident) {
     return {
@@ -249,42 +230,16 @@ export function savePatch(draft, vuln) {
     return out;
 }
 
-/** POST /incidents/:id/cra-report body. */
+/**
+ * POST /incidents/:id/cra-report body. The route knows two stages:
+ * `early_warning` and `full` (the 72 h notification and the final report,
+ * which it stamps together); sending the clock's own stage name
+ * ('notification', 'final_report') was refused with a 400.
+ */
 export function craBody(stage, cra) {
     return {
-        stage,
+        stage: stage === 'early_warning' ? 'early_warning' : 'full',
         reported_via: String(cra?.reported_via || '').trim() || undefined,
         reference: String(cra?.reference || '').trim() || undefined,
     };
-}
-
-function Action({ busy, icon: Icon, onClick, children, testId }) {
-    return (
-        <button
-            type="button"
-            disabled={busy}
-            onClick={onClick}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--item-hover-bg)]"
-            data-testid={testId}
-        >
-            {Icon && <Icon size={13} aria-hidden="true" />}{children}
-        </button>
-    );
-}
-
-function StampLine({ label, at, extra }) {
-    return (
-        <li className="flex items-center justify-between gap-2" data-done={at ? 'true' : 'false'}>
-            <span className="text-[var(--text-secondary)]">{label}</span>
-            <span className="tabular-nums" style={{ color: at ? TONES.success.ink : 'var(--text-tertiary)' }}>
-                {at ? formatStamp(at) : '—'}{extra ? ` · ${extra}` : ''}
-            </span>
-        </li>
-    );
-}
-
-function formatStamp(value) {
-    const ms = value ? new Date(value).getTime() : NaN;
-    if (Number.isNaN(ms)) return '—';
-    return new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }

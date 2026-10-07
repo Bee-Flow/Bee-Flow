@@ -66,10 +66,17 @@ export function typeKeyOf(requestType) {
     return DSR_TYPE_KEY[String(requestType || '').toLowerCase()] ?? null;
 }
 
-/** BE-2 sends `state`; the legacy rows carry `status`. */
+/**
+ * The lifecycle state (pending · in_progress · fulfilled · rejected). The
+ * server's row carries it as `status`; its `state` is the CLOCK
+ * (ok · urgent · overdue · none, routes/dsr.js listRow), so reading `state`
+ * first turned every request into 'pending'. `state` still counts when it
+ * holds a lifecycle word (older rows); the clock is the clock helpers' job.
+ */
 export function stateOf(row) {
-    const s = row?.state ?? row?.status ?? 'pending';
-    return DSR_STATES.includes(s) ? s : 'pending';
+    if (DSR_STATES.includes(row?.status)) return row.status;
+    if (DSR_STATES.includes(row?.state)) return row.state;
+    return 'pending';
 }
 
 export function isOpen(row) {

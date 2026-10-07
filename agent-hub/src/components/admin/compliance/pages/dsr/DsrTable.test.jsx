@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { countByFilter, matchesQuery, sortByDeadline } from './dsrArticles';
 import DsrTable, { formatReceived, shownEmailOf } from './DsrTable';
 import { DAY_MS } from '../../../../shared/deadlineMath';
-import { countByFilter, matchesQuery, sortByDeadline } from './dsrArticles';
 
 /**
  * Artboard 1c's table: the clock is the first column, the list never shows a
@@ -29,7 +29,7 @@ const iso = (ms) => new Date(ms).toISOString();
 const ROWS = [
     // overdue by 3 days: received 33 days ago, no server due_at → +30 d
     { id: 2038, request_type: 'deletion', status: 'in_progress', subject_email: 'john.doe@gmail.com', channel: 'public_form', identity_status: 'verified_email_link', created_at: iso(NOW - 33 * DAY_MS) },
-    // still 18 days: server due_at wins
+    // 18 days left: server due_at wins
     { id: 2041, request_type: 'access', state: 'in_progress', subject_email_masked: 'm.•••@vandijkgroep.nl', channel: 'email_dpo', identity_status: 'employee', created_at: iso(NOW - 12 * DAY_MS), due_at: iso(NOW + 18 * DAY_MS) },
     // open, received today
     { id: 2044, request_type: 'portability', status: 'pending', subject_email: 'anna@vandijkgroep.nl', channel: 'form', created_at: iso(NOW - 20 * 60_000) },
@@ -50,7 +50,7 @@ describe('DsrTable — the clock column', () => {
         expect(late).toHaveAttribute('data-tone', 'error');
         const ok = screen.getByTestId('dsr-table-clock-2041');
         expect(ok).toHaveAttribute('data-state', 'ok');
-        expect(ok).toHaveTextContent('still 18 days');
+        expect(ok).toHaveTextContent('18 days left');
         expect(screen.getByTestId('dsr-table-clock-2041-bar')).toBeTruthy();
     });
 
@@ -109,13 +109,18 @@ describe('DsrTable — request, channel and status cells', () => {
         expect(screen.getByTestId('dsr-table-row-2041')).toHaveTextContent('Art. 15');
         expect(within(screen.getByTestId('dsr-table-row-2041')).getByText('E-mail to DPO')).toBeTruthy();
 
+        // One look for every register (RegisterStatePill): never dashed, urgency stays with the clock.
+        expect(screen.getByTestId('dsr-table-state-2038')).toHaveAttribute('data-tone', 'warning');
         const pending = screen.getByTestId('dsr-table-state-2044');
         expect(pending).toHaveTextContent('Open');
-        expect(pending.style.border).toBe('1px dashed var(--text-tertiary)');
+        expect(pending).toHaveAttribute('data-tone', 'neutral');
+        expect(pending.className).not.toContain('dashed');
 
         const done = screen.getByTestId('dsr-table-state-2036');
         expect(done).toHaveTextContent('Completed');
-        expect(done.style.color).toBe('var(--success-ink)');
+        expect(done).toHaveAttribute('data-tone', 'success');
+        expect(done.className).toContain('text-[var(--success-ink)]');
+        expect(screen.getByTestId('dsr-table-state-2030')).toHaveAttribute('data-tone', 'muted');
         expect(within(screen.getByTestId('dsr-table-row-2036')).getByText('Phone')).toBeTruthy();
 
         expect(screen.getByTestId('dsr-table-state-2030')).toHaveTextContent('Rejected');
@@ -123,12 +128,26 @@ describe('DsrTable — request, channel and status cells', () => {
         expect(screen.getByTestId('dsr-table-row-2030')).toHaveTextContent('Art. 21');
     });
 
-    it('the header is the artboard: Deadline · Request · Received · Via · Status on 118px 1fr 104px 110px 84px', () => {
+    it('the header is the artboard: Deadline · Request · Received · Via · Status on 118px 1fr 104px 110px 96px', () => {
         render(<DsrTable rows={ROWS} />);
         const headers = screen.getAllByRole('columnheader').map(h => h.textContent);
-        expect(headers).toEqual(['Deadline', 'Request', 'Received', 'Via', 'Status']);
+        expect(headers).toEqual(['Deadline ↓', 'Request', 'Received', 'Via', 'Status']);
         const headerRow = screen.getAllByRole('row')[0];
-        expect(headerRow.style.gridTemplateColumns).toBe('118px 1fr 104px 110px 84px');
+        expect(headerRow.style.getPropertyValue('--ct-cols')).toBe('118px 1fr 104px 110px 96px');
+    });
+
+    it('the register is sorted by deadline, and the Deadline header says so (aria-sort, not a separate note)', () => {
+        render(<DsrTable rows={ROWS} />);
+        const [deadline, ...rest] = screen.getAllByRole('columnheader');
+        expect(deadline).toHaveAttribute('aria-sort', 'ascending');
+        expect(rest.every(h => !h.hasAttribute('aria-sort'))).toBe(true);
+    });
+
+    it('the row stripe follows the clock only: red when overdue, none for an open row with time left or a closed one', () => {
+        render(<DsrTable rows={ROWS} />);
+        expect(screen.getByTestId('dsr-table-row-2038')).toHaveAttribute('data-accent', 'error');
+        expect(screen.getByTestId('dsr-table-row-2041')).not.toHaveAttribute('data-accent');
+        expect(screen.getByTestId('dsr-table-row-2036')).not.toHaveAttribute('data-accent');
     });
 });
 
@@ -172,6 +191,19 @@ describe('DsrTable — selection, cards, states', () => {
 describe('dsrArticles — filters, sort, search', () => {
     it('counts per pill: open = pending + in_progress, overdue counted separately', () => {
         expect(countByFilter(ROWS, NOW)).toEqual({ open: 3, overdue: 1, fulfilled: 1, rejected: 1 });
+    });
+
+    it('server-shaped rows (`status` + the clock as `state`) count as Completed / Rejected, not as Open', () => {
+        const server = [
+            { id: 1, status: 'fulfilled', state: 'none', created_at: iso(NOW - 40 * DAY_MS), due_at: iso(NOW - 10 * DAY_MS), fulfilled_at: iso(NOW - 20 * DAY_MS) },
+            { id: 2, status: 'rejected', state: 'none', created_at: iso(NOW - 48 * DAY_MS), due_at: iso(NOW - 18 * DAY_MS), fulfilled_at: iso(NOW - 40 * DAY_MS) },
+            { id: 3, status: 'in_progress', state: 'urgent', created_at: iso(NOW - 27 * DAY_MS), due_at: iso(NOW + 3 * DAY_MS) },
+        ];
+        expect(countByFilter(server, NOW)).toEqual({ open: 1, overdue: 0, fulfilled: 1, rejected: 1 });
+        render(<DsrTable rows={server} />);
+        expect(screen.getByTestId('dsr-table-state-2')).toHaveTextContent('Rejected');
+        expect(screen.getByTestId('dsr-table-clock-2')).toHaveAttribute('data-state', 'done');
+        expect(screen.getByTestId('dsr-table-row-3')).toHaveAttribute('data-accent', 'warning');
     });
 
     it('by deadline: open rows soonest first (overdue on top), closed rows after, newest first', () => {

@@ -25,7 +25,9 @@ module.exports = {
         } catch (e) {
             return {
                 status: 'warn',
-                evidence: { error: e.message },
+                // The SQLSTATE only: a driver message can quote the row it
+                // failed on, and evidence is append-only.
+                evidence: { error: 'dsr_ledger_unreadable', sqlstate: e?.code || null },
                 details: 'Could not read DSR ledger — open Compliance → DSR Inbox to verify.',
             };
         }

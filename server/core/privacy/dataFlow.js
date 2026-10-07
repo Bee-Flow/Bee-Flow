@@ -125,6 +125,16 @@ const MODEL_TYPES = Object.freeze(new Set(AI_STEP_TYPES));
 /** The Privacy Shield in its three runtime shapes. */
 const SHIELD_TYPES = Object.freeze(new Set(['guard', 'tokenize', 'untokenize']));
 
+/**
+ * The one shape that puts real values BACK. It is a shield step (the editor
+ * shows it under the shield, and `role` stays 'shield'), but it protects
+ * nothing: a reveal in front of a send means the real values travel. The
+ * editor's own rule already drops it (complianceRules.js SHIELD_TYPES); the
+ * flow reading must agree, or the Art. 30 check calls a re-identifying
+ * automation "guarded".
+ */
+const REVEAL_TYPES = Object.freeze(new Set(['untokenize']));
+
 /** Step types that read or write the workspace's own rows. */
 const STORE_TYPES = Object.freeze(new Set(['datatable']));
 
@@ -273,11 +283,17 @@ function analyseFlow({ steps = null, personal = null } = {}) {
     const readable = Array.isArray(steps) && steps.length > 0;
     const classified = readable ? steps.map((s, i) => classifyStep(s, i)) : [];
     const shields = classified.filter((s) => s.role === 'shield');
-    const firstShield = shields.length ? shields[0].index : null;
-    // "Shielded" means a shield stands EARLIER than it. A shield at the end of
-    // an automation guards nothing that came before it, which is exactly the case
-    // a single boolean could not express.
-    const shielded = (s) => firstShield !== null && firstShield < s.index;
+    // "Shielded" means a hiding shield stands EARLIER than it, with no reveal
+    // in between. A shield at the end of an automation guards nothing that came
+    // before it, and a reveal after it puts the real values back for every step
+    // that follows — until the next hiding shield.
+    const hiddenAt = [];
+    let hidden = false;
+    for (const s of classified) {
+        hiddenAt[s.index] = hidden;
+        if (s.role === 'shield') hidden = !REVEAL_TYPES.has(s.type || '');
+    }
+    const shielded = (s) => hiddenAt[s.index] === true;
     const mark = (s) => ({ ...s, shielded: shielded(s) });
     const exits = classified.filter((s) => s.role === 'exit').map(mark);
     const models = classified.filter((s) => s.role === 'model').map(mark);
@@ -438,6 +454,6 @@ function flowRecord(flow) {
 module.exports = {
     analyseFlow, observedEgress, mergeObserved, flowRecord,
     classifyStep, destinationOf, isExit, carriedKinds, kindsCarried,
-    OUTBOUND_TYPES, MODEL_TYPES, SHIELD_TYPES, STORE_TYPES,
+    OUTBOUND_TYPES, MODEL_TYPES, SHIELD_TYPES, REVEAL_TYPES, STORE_TYPES,
     ROLES, VERDICTS, DESTINATION_ALIASES, FLOW_FIELDS, EGRESS_FIELDS,
 };

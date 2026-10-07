@@ -25,7 +25,7 @@ export const LEGAL_BASES = Object.freeze([
     Object.freeze({ value: 'legitimate_interests', key: 'compliance.lb_legitimate_interests', en: 'Legitimate interests' }),
 ]);
 
-const RESIDENCY = Object.freeze([
+export const RESIDENCY = Object.freeze([
     Object.freeze({ value: 'eu', key: 'compliance.residency_eu', en: 'EU-only' }),
     Object.freeze({ value: 'internal', key: 'compliance.residency_internal', en: 'Self-hosted only' }),
     Object.freeze({ value: 'hybrid', key: 'compliance.residency_hybrid', en: 'Hybrid' }),
@@ -73,6 +73,9 @@ export const RELEVANCE_OPTIONS = Object.freeze([
  *  strings  — editable list of free-text lines
  *  contacts — list of {name, email, entity} rows
  *  relevance— NOT a settings column: routed to frameworks.setRelevance(framework)
+ * layout (settingsLayout.ts): `section` names a sub-heading of the group's
+ * `sections`; `span` ('third' | 'half' | 'full') overrides the default width;
+ * `optional` leaves the field out of "{n} of {total} answered".
  */
 export const SETTINGS_GROUPS = Object.freeze([
     Object.freeze({
@@ -81,57 +84,63 @@ export const SETTINGS_GROUPS = Object.freeze([
         titleKey: 'compliance.set_group_general', titleEn: 'General',
         descKey: 'compliance.set_group_general_desc',
         descEn: 'The organisation facts every framework reads: who is accountable, where data may live, and how people reach you.',
+        sections: Object.freeze([
+            Object.freeze({ id: 'accountability', titleKey: 'compliance.set_section_accountability', titleEn: 'Accountability' }),
+            Object.freeze({ id: 'lawful', titleKey: 'compliance.set_section_lawful', titleEn: 'Lawful processing' }),
+            Object.freeze({ id: 'public', titleKey: 'compliance.set_section_public', titleEn: 'Public addresses' }),
+            Object.freeze({ id: 'alerts', titleKey: 'compliance.set_section_alerts', titleEn: 'Alerts & identity' }),
+        ]),
         fields: Object.freeze([
-            Object.freeze({ name: 'dpo_user', kind: 'userfill', labelKey: 'compliance.pick_org_user', labelEn: 'Fill from an organisation member' }),
-            Object.freeze({ name: 'dpo_name', kind: 'text', labelKey: 'compliance.dpo_name', labelEn: 'DPO name', placeholder: 'Jane Doe' }),
-            Object.freeze({ name: 'dpo_email', kind: 'email', labelKey: 'compliance.dpo_email', labelEn: 'DPO email', placeholder: 'dpo@example.com' }),
-            Object.freeze({ name: 'dpo_phone', kind: 'text', labelKey: 'compliance.dpo_phone', labelEn: 'DPO phone', placeholder: '+31 6 …' }),
+            Object.freeze({ name: 'dpo_user', kind: 'userfill', section: 'accountability', labelKey: 'compliance.set_fill_member', labelEn: 'Fill from member' }),
+            Object.freeze({ name: 'dpo_name', kind: 'text', section: 'accountability', span: 'third', labelKey: 'compliance.dpo_name', labelEn: 'DPO name', placeholder: 'Jane Doe' }),
+            Object.freeze({ name: 'dpo_email', kind: 'email', section: 'accountability', span: 'third', labelKey: 'compliance.dpo_email', labelEn: 'DPO email', placeholder: 'dpo@example.com' }),
+            Object.freeze({ name: 'dpo_phone', kind: 'text', section: 'accountability', span: 'third', labelKey: 'compliance.dpo_phone', labelEn: 'DPO phone', placeholder: '+31 6 …' }),
             Object.freeze({
-                name: 'legal_bases', kind: 'chips', options: LEGAL_BASES,
+                name: 'legal_bases', kind: 'chips', options: LEGAL_BASES, section: 'lawful', span: 'half',
                 labelKey: 'compliance.settings_legal_bases', labelEn: 'Legal bases',
                 hintKey: 'compliance.settings_legal_bases_desc', hintEn: 'GDPR Art. 6 grounds you rely on for processing personal data.',
             }),
-            Object.freeze({ name: 'data_residency', kind: 'select', options: RESIDENCY, labelKey: 'compliance.data_residency', labelEn: 'Data residency' }),
-            Object.freeze({ name: 'default_retention_days', kind: 'number', min: 0, labelKey: 'compliance.default_retention_days', labelEn: 'Memory retention (days)', placeholder: '365' }),
+            Object.freeze({ name: 'data_residency', kind: 'select', section: 'lawful', options: RESIDENCY, labelKey: 'compliance.data_residency', labelEn: 'Data residency' }),
+            Object.freeze({ name: 'default_retention_days', kind: 'number', section: 'lawful', span: 'third', min: 0, labelKey: 'compliance.default_retention_days', labelEn: 'Memory retention (days)', placeholder: '365' }),
             // Art. 30(4): a record has to be kept up to date. This is how long
             // an entry in the processing register may stand before someone
             // reads it again — GDPR-Art30-datatable-registrations warns past it.
             Object.freeze({
-                name: 'datatable_review_days', kind: 'number', min: 30, max: 3650, placeholder: '180',
-                labelKey: 'compliance.settings.datatable_review_days', labelEn: 'Re-confirm a registered processing every (days)',
+                name: 'datatable_review_days', kind: 'number', min: 30, max: 3650, placeholder: '180', section: 'lawful', span: 'third', optional: true,
+                labelKey: 'compliance.settings.datatable_review_days', labelEn: 'Register review every (days)',
                 hintKey: 'compliance.settings.datatable_review_days_hint', hintEn: 'How long an entry in the processing register may stand before someone reads it again. 180 days when left empty.',
             }),
             // Collaborative projects: how long an unused project with personal
             // data may stay (GDPR-Art5-1-e-project-retention, 365 when empty),
             // and whether owners see the one gentle hint they can act on.
             Object.freeze({
-                name: 'project_retention_days', kind: 'number', min: 30, max: 3650, placeholder: '365',
-                labelKey: 'compliance.settings.project_retention_days', labelEn: 'Keep unused projects with personal data for (days)',
+                name: 'project_retention_days', kind: 'number', min: 30, max: 3650, placeholder: '365', section: 'lawful', span: 'third', optional: true,
+                labelKey: 'compliance.settings.project_retention_days', labelEn: 'Project retention (days)',
                 hintKey: 'compliance.settings.project_retention_days_hint', hintEn: 'How long a collaborative project may go unused while it holds personal data. 365 days when left empty.',
             }),
+            Object.freeze({ name: 'privacy_notice_url', kind: 'url', section: 'public', labelKey: 'compliance.privacy_notice_url', labelEn: 'Privacy notice URL', placeholder: 'https://yourcompany.com/privacy' }),
             Object.freeze({
-                // On unless switched off: an absent value must not read as "off"
-                // and be saved back as a decision nobody made.
-                name: 'project_owner_hints_enabled', kind: 'toggle', defaultOn: true,
-                labelKey: 'compliance.settings.project_owner_hints_enabled', labelEn: 'Show project owners one gentle hint they can act on',
-                hintKey: 'compliance.settings.project_owner_hints_enabled_hint', hintEn: 'At most one dismissible suggestion per project — members from outside, accounts that are gone, files not checked. Never about personal data in the project; that stays with you.',
-            }),
-            Object.freeze({ name: 'privacy_notice_url', kind: 'url', labelKey: 'compliance.privacy_notice_url', labelEn: 'Privacy notice URL', placeholder: 'https://yourcompany.com/privacy' }),
-            Object.freeze({
-                name: 'breach_recipients', kind: 'emails',
+                name: 'breach_recipients', kind: 'emails', section: 'alerts', span: 'half',
                 labelKey: 'compliance.settings_breach', labelEn: 'Breach notification recipients',
                 hintKey: 'compliance.settings_breach_desc', hintEn: 'Emails alerted on anomalous data-access events.',
             }),
             Object.freeze({
-                name: 'public_base_url', kind: 'url',
+                name: 'public_base_url', kind: 'url', section: 'public',
                 labelKey: 'compliance.set_public_base_url', labelEn: 'Public base URL',
                 hintKey: 'compliance.set_public_base_url_hint', hintEn: 'The address your customers reach — the checks probe security.txt, the privacy notice and the accessibility statement here.',
                 placeholder: 'https://yourcompany.com',
             }),
             Object.freeze({
-                name: 'sso_enforces_mfa', kind: 'toggle',
+                name: 'sso_enforces_mfa', kind: 'toggle', section: 'alerts', span: 'half',
                 labelKey: 'compliance.set_sso_enforces_mfa', labelEn: 'Our SSO enforces multi-factor authentication',
                 hintKey: 'compliance.set_sso_enforces_mfa_hint', hintEn: 'Bee Flow cannot see what your identity provider requires — answer for it.',
+            }),
+            Object.freeze({
+                // On unless switched off: an absent value must not read as "off"
+                // and be saved back as a decision nobody made.
+                name: 'project_owner_hints_enabled', kind: 'toggle', defaultOn: true, section: 'alerts',
+                labelKey: 'compliance.settings.project_owner_hints_enabled', labelEn: 'Show project owners one gentle hint they can act on',
+                hintKey: 'compliance.settings.project_owner_hints_enabled_hint', hintEn: 'At most one dismissible suggestion per project — members from outside, accounts that are gone, files not checked. Never about personal data in the project; that stays with you.',
             }),
         ]),
     }),
@@ -143,12 +152,13 @@ export const SETTINGS_GROUPS = Object.freeze([
         descKey: 'compliance.set_group_ai_act_desc',
         descEn: 'AI literacy (Art. 4) and the marking of AI-generated content (Art. 50(2)).',
         fields: Object.freeze([
-            Object.freeze({ name: 'ai_literacy_material_url', kind: 'url', labelKey: 'compliance.ai_literacy_url', labelEn: 'Training material URL (optional)', placeholder: 'https://intranet.example.com/ai-training' }),
+            Object.freeze({ name: 'ai_literacy_material_url', kind: 'url', optional: true, labelKey: 'compliance.ai_literacy_url', labelEn: 'Training material URL (optional)', placeholder: 'https://intranet.example.com/ai-training' }),
             Object.freeze({
                 name: 'ai_literacy_confirmed_at', kind: 'stamp',
                 labelKey: 'compliance.settings_ai_literacy', labelEn: 'AI literacy (EU AI Act Art. 4)',
                 actionKey: 'compliance.ai_literacy_confirm', actionEn: 'Confirm measures now',
-                setKey: 'compliance.ai_literacy_confirmed_at', setEn: 'Confirmed {date} — remember to save',
+                setKey: 'compliance.ai_literacy_confirmed_at', setEn: 'Confirmed {date}',
+                unsavedKey: 'compliance.ai_literacy_confirmed_unsaved', unsavedEn: 'Confirmed {date} — not saved yet',
                 unsetKey: 'compliance.ai_literacy_never', unsetEn: 'Not confirmed yet',
             }),
             Object.freeze({
@@ -161,7 +171,7 @@ export const SETTINGS_GROUPS = Object.freeze([
                 labelKey: 'compliance.set_ai_marking_footer', labelEn: 'Visible footer text (optional)',
                 hintKey: 'compliance.set_ai_marking_footer_hint', hintEn: 'Leave empty for the default sentence.',
                 placeholder: 'This document was produced with AI assistance.',
-                dependsOn: 'ai_content_marking_enabled',
+                dependsOn: 'ai_content_marking_enabled', optional: true,
             }),
         ]),
     }),
@@ -299,7 +309,7 @@ export const SETTINGS_GROUPS = Object.freeze([
                 name: 'machinery_manual_subjects', kind: 'strings',
                 labelKey: 'compliance.set_machinery_subjects', labelEn: 'Manually added subjects',
                 hintKey: 'compliance.set_machinery_subjects_hint', hintEn: 'Integrations the detector cannot see — one line per machine or bridge.',
-                placeholder: 'Press brake bridge',
+                placeholder: 'Press brake bridge', optional: true,
             }),
         ]),
     }),
@@ -393,5 +403,9 @@ export function buildSettingsBody(form) {
 /** True when the group's framework is off for this org (the page folds it shut). */
 export function groupIsInactive(group, frameworks) {
     if (!group.framework || !frameworks || typeof frameworks.isEnabled !== 'function') return false;
+    // Not loaded (or failed) is "unknown", never "off": before this guard every
+    // group, GDPR and the AI Act included, read "This framework is off" while
+    // the framework list was still on its way.
+    if (!Array.isArray(frameworks.frameworks)) return false;
     return !frameworks.isEnabled(group.framework);
 }

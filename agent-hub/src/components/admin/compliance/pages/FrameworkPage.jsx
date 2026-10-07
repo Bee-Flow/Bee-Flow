@@ -13,7 +13,7 @@ import { checksForRegulation, canFollow } from './framework/checkSort';
  *   { section, tab, onTab, navigate(sectionId, subId?), onNavigate?(path), focusId,
  *     exportsEnabled, dl(url), data: { core, calendar, frameworks, … }, isMobile }
  * and `data.core` = useComplianceCore — { overview, checks, loading, rerunningId,
- * autoFixingId, rerun(checkId), autoFix(checkId), loadTrail(checkId) }.
+ * autoFixingId, rerun(checkId), autoFix(checkId), loadTrail(checkId, scopeId) }.
  *
  * The regulation is `sections.frameworkOf(section.id)`; the rows are the
  * checks whose home is that regulation OR that the registry tagged for it

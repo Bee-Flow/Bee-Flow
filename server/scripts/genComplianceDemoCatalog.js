@@ -88,6 +88,8 @@ function main() {
         phases: (f.phases || []).map(p => ({ date: p.date, label_key: p.label_key })),
         registers: f.registers || [],
         relevance_gate: !!f.relevance_gate,
+        sources: (f.sources || []).map(src => ({ label: src.label, url: src.url })),
+        legal_status_verified: f.legal_status_verified || null,
     }));
 
     const milestones = frameworks.MILESTONES.map(m => ({

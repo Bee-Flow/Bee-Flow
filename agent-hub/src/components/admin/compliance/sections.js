@@ -33,17 +33,24 @@ export const GROUPS = Object.freeze([
 // Tabs a framework section carries in its header (artboard 1b: Checks · Tijdlijn · Bewijs).
 const FRAMEWORK_TABS = Object.freeze(['checks', 'timeline', 'evidence']);
 
+// `legacyTabs` maps a tab that no longer lives on a section to where it went:
+// `{ <oldTab>: { section, tab? } }`. A bookmark, an e-mailed link or a stored
+// attention target with `?tab=<oldTab>` then still opens the right page
+// (resolveTab here, the redirect in index.jsx, resolveTarget in data/actions.js).
+const NO_LEGACY_TABS = Object.freeze({});
+const legacy = (map) => Object.freeze(Object.fromEntries(Object.entries(map).map(([k, v]) => [k, Object.freeze({ ...v })])));
+
 const fw = (id, regulation, icon, labelKey, labelFallback, extra = {}) => Object.freeze({
-    id, group: 'frameworks', icon, labelKey, labelFallback, regulation, tabs: FRAMEWORK_TABS, aliases: Object.freeze([]), ...extra,
+    id, group: 'frameworks', icon, labelKey, labelFallback, regulation, tabs: FRAMEWORK_TABS, aliases: Object.freeze([]), legacyTabs: NO_LEGACY_TABS, ...extra,
 });
 const reg = (id, icon, labelKey, labelFallback, extra = {}) => Object.freeze({
-    id, group: 'registers', icon, labelKey, labelFallback, regulation: null, tabs: Object.freeze([]), aliases: Object.freeze([]), ...extra,
+    id, group: 'registers', icon, labelKey, labelFallback, regulation: null, tabs: Object.freeze([]), aliases: Object.freeze([]), legacyTabs: NO_LEGACY_TABS, ...extra,
 });
 
 export const SECTIONS = Object.freeze([
     Object.freeze({
         id: 'overview', group: null, icon: Gauge, labelKey: 'compliance.nav_overview', labelFallback: 'Overview',
-        regulation: null, tabs: Object.freeze(['status', 'calendar', 'reports']), aliases: Object.freeze([]),
+        regulation: null, tabs: Object.freeze(['status', 'calendar', 'reports']), aliases: Object.freeze([]), legacyTabs: NO_LEGACY_TABS,
     }),
     // ── Kaders ──
     fw('gdpr', 'GDPR', Fingerprint, 'compliance.nav_gdpr', 'GDPR'),
@@ -53,7 +60,7 @@ export const SECTIONS = Object.freeze([
     fw('iso', 'ISO27001', ShieldCheck, 'compliance.fw_iso', 'ISO 27001', { aliases: Object.freeze(['iso_overview', 'iso_controls']) }),
     Object.freeze({
         id: 'frameworks', group: 'frameworks', icon: Layers, labelKey: 'compliance.rail_frameworks', labelFallback: 'More frameworks',
-        regulation: null, tabs: Object.freeze(['all', 'calendar', 'per_automation']), aliases: Object.freeze(['kaders']),
+        regulation: null, tabs: Object.freeze(['all', 'calendar', 'per_automation']), aliases: Object.freeze(['kaders']), legacyTabs: NO_LEGACY_TABS,
     }),
     // The growing set — a row appears in the rail only once the org has enabled it.
     fw('nis2', 'NIS2', Network, 'compliance.rail_nis2', 'NIS2', { optional: true }),
@@ -67,7 +74,8 @@ export const SECTIONS = Object.freeze([
     fw('machinery', 'MACHINERY', Factory, 'compliance.rail_machinery', 'Machinery Regulation', { optional: true, tabs: Object.freeze([]) }),
     fw('custom', 'CUSTOM', FolderKanban, 'compliance.rail_custom', 'Own frameworks', { optional: true, tabs: Object.freeze([]) }),
     // ── Registers ──
-    reg('dsr', Inbox, 'compliance.rail_dsr', 'Requests (DSR)', { tabs: Object.freeze(['requests', 'public_form', 'settings']) }),
+    // The DPO / acknowledgement settings live with the other compliance settings (reached through the rail).
+    reg('dsr', Inbox, 'compliance.rail_dsr', 'Requests (DSR)', { tabs: Object.freeze(['requests', 'public_form']), legacyTabs: legacy({ settings: { section: 'settings' } }) }),
     reg('incidents', Siren, 'compliance.rail_incidents', 'Incidents & breaches'),
     reg('vulnerabilities', ShieldAlert, 'compliance.rail_vulnerabilities', 'Vulnerability register', { optional: true }),
     reg('ropa', BookOpen, 'compliance.rail_ropa', 'Processing register (ROPA)'),
@@ -75,8 +83,10 @@ export const SECTIONS = Object.freeze([
     reg('risks', TriangleAlert, 'compliance.rail_risks', 'Risk register', { aliases: Object.freeze(['iso_risks']) }),
     reg('soa', ListChecks, 'compliance.rail_soa', 'SoA (Annex A)', { tabs: Object.freeze(['controls', 'history', 'export']), aliases: Object.freeze(['iso_soa']) }),
     reg('policies', ScrollText, 'compliance.rail_policies', 'Policies', { aliases: Object.freeze(['iso_policies']) }),
-    reg('audits', SearchCheck, 'compliance.rail_audits', 'Audits & management review', {
+    reg('audits', SearchCheck, 'compliance.rail_audits', 'Audits & reviews', {
         tabs: Object.freeze(['audits', 'reviews', 'ncs', 'objectives']), aliases: Object.freeze(['iso_audit']),
+        // The ISMS obligations moved to Training & competence.
+        legacyTabs: legacy({ obligations: { section: 'training' } }),
     }),
     reg('training', GraduationCap, 'compliance.rail_training', 'Training & competence', { aliases: Object.freeze(['iso_training']) }),
     reg('access_log', History, 'compliance.rail_access_log', 'Access log', { aliases: Object.freeze(['iso_access_log']) }),
@@ -84,11 +94,11 @@ export const SECTIONS = Object.freeze([
     // ── Beheer ──
     Object.freeze({
         id: 'settings', group: 'admin', icon: Settings2, labelKey: 'compliance.nav_settings', labelFallback: 'Settings',
-        regulation: null, tabs: Object.freeze([]), aliases: Object.freeze([]),
+        regulation: null, tabs: Object.freeze([]), aliases: Object.freeze([]), legacyTabs: NO_LEGACY_TABS,
     }),
     Object.freeze({
         id: 'connectors', group: 'admin', icon: PlugZap, labelKey: 'compliance.rail_connectors', labelFallback: 'Evidence connectors',
-        regulation: null, tabs: Object.freeze([]), aliases: Object.freeze(['iso_connectors']),
+        regulation: null, tabs: Object.freeze([]), aliases: Object.freeze(['iso_connectors']), legacyTabs: NO_LEGACY_TABS,
     }),
 ]);
 
@@ -131,6 +141,24 @@ export function tabsOf(sectionId) {
     return sectionById(sectionId).tabs;
 }
 
+/**
+ * Where `?tab=<tab>` on a section lands: the section's own tab, or — for a tab
+ * that moved away — the target its `legacyTabs` names. Always `{ section, tab }`
+ * with a canonical section id; `tab` is null when there is none to select.
+ */
+export function resolveTab(sectionId, tab) {
+    const section = sectionById(sectionId);
+    const moved = movedTab(section.id, tab);
+    if (moved) return { section: resolveSection(moved.section), tab: moved.tab || null };
+    return { section: section.id, tab: typeof tab === 'string' && tab ? tab : null };
+}
+
+/** The `legacyTabs` target of a tab that moved away from a section, else null. */
+export function movedTab(sectionId, tab) {
+    const map = sectionById(sectionId).legacyTabs;
+    return typeof tab === 'string' && tab && map && Object.hasOwn(map, tab) ? map[tab] : null;
+}
+
 /** Sections in one rail group, in rail order. */
 export function sectionsInGroup(groupId) {
     return SECTIONS.filter(s => s.group === groupId);
@@ -138,10 +166,12 @@ export function sectionsInGroup(groupId) {
 
 /**
  * Sections whose page shows an org-member picker (DPO, owners, auditors,
- * attesters). `/org-users` is fetched only for these — the nav test pins that
- * the GDPR page never asks for the directory.
+ * attesters) or names members (the Access log shows who acted, the DSR
+ * timeline who handled a request). `/org-users`
+ * is fetched only for these — the nav test pins that the GDPR page never asks
+ * for the directory.
  */
-export const SECTIONS_WITH_PICKERS = Object.freeze(['settings', 'soa', 'policies', 'risks', 'audits', 'training', 'custom']);
+export const SECTIONS_WITH_PICKERS = Object.freeze(['settings', 'soa', 'policies', 'risks', 'audits', 'training', 'custom', 'access_log', 'dsr']);
 
 /** i18n key of a header tab label: `compliance.tab_<section>_<tab>`. */
 export function tabLabelKey(sectionId, tabId) {

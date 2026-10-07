@@ -44,7 +44,9 @@ module.exports = {
             };
         }
         const answers = dpia.answers && typeof dpia.answers === 'object' ? dpia.answers : {};
-        const oversight = String(answers.human_oversight || '').trim();
+        // A string only: the DPIA route accepts any JSON value, and `true` or
+        // `{}` stringify to "true" / "[object Object]", which is not a person.
+        const oversight = typeof answers.human_oversight === 'string' ? answers.human_oversight.trim() : '';
         if (!oversight) {
             return {
                 status: 'warn',
@@ -54,8 +56,10 @@ module.exports = {
         }
         return {
             status: 'pass',
-            evidence: { ...evidence, human_oversight: oversight },
-            details: `Human oversight recorded for "${subject.label}": ${oversight}`,
+            // The answer itself usually names a person ("Recruiter Jan checks
+            // every result"); the evidence chain keeps only that one exists.
+            evidence: { ...evidence, human_oversight_recorded: true },
+            details: `Human oversight recorded for "${subject.label}" (see its DPIA).`,
         };
     },
 };

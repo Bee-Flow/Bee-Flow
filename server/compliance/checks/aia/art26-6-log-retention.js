@@ -1,5 +1,5 @@
 /**
- * EU AI Act Art. 12 / 26(6) — automatically generated logs of high-risk AI
+ * EU AI Act Art. 19 / 26(6) — automatically generated logs of high-risk AI
  * systems must be kept for at least six months.
  *
  * Automated signal: the age span of the activity ledgers
@@ -62,7 +62,7 @@ module.exports = {
         return {
             status: 'warn',
             evidence: { ...evidence, observed_span_days: maxSpan },
-            details: `Activity logs span only ${maxSpan} days. If this install is older than that, logs are being purged early — Art. 12/26(6) requires keeping them at least six months.`,
+            details: `Activity logs span only ${maxSpan} days. If this install is older than that, logs are being purged early — Art. 19/26(6) requires keeping them at least six months (for high-risk systems from 2 Dec 2027; good practice before then).`,
         };
     },
 };

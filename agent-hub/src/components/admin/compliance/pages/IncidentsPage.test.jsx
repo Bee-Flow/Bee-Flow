@@ -1,5 +1,6 @@
-import React from 'react';
 import { render, screen, fireEvent, cleanup, waitFor, within, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import IncidentsPage from './IncidentsPage';
 
@@ -46,8 +47,12 @@ function pageProps(sectionId, over = {}) {
 }
 
 describe('IncidentsPage — the incidents register', () => {
-    it('shows only breach / security_incident rows (no kind = breach), with INC- ids, running clocks first', () => {
+    it('opens on the Open filter; All shows only breach / security_incident rows (no kind = breach), INC- ids, running clocks first', async () => {
+        const user = userEvent.setup();
         render(<IncidentsPage {...pageProps('incidents')} />);
+        expect(screen.getByTestId('inc-filter-open')).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getAllByTestId(/^inc-table-row-/).map(r => r.getAttribute('data-testid'))).toEqual(['inc-table-row-1']);
+        await user.click(screen.getByTestId('inc-filter-all'));
         const rows = screen.getAllByTestId(/^inc-table-row-/);
         expect(rows.map(r => r.getAttribute('data-testid'))).toEqual(['inc-table-row-1', 'inc-table-row-2', 'inc-table-row-3']);
         expect(rows[0].textContent).toMatch(/INC-1/);
@@ -59,12 +64,52 @@ describe('IncidentsPage — the incidents register', () => {
         expect(screen.getByTestId('inc-filter-closed').textContent).toMatch(/1/);
     });
 
-    it('the clock column runs the 72 h Art. 33 clock; a notified row shows its completion; a closed row shows a closed clock', () => {
+    it('the clock column runs the 72 h Art. 33 clock; a notified row shows its completion; a closed, unnotified row reads "closed · not notified"', async () => {
+        const user = userEvent.setup();
         render(<IncidentsPage {...pageProps('incidents')} />);
+        await user.click(screen.getByTestId('inc-filter-all'));
         expect(screen.getByTestId('inc-table-clock-1').getAttribute('data-state')).toBe('ok');
         expect(screen.getByTestId('inc-table-clock-1').getAttribute('data-unit')).toBe('hours');
         expect(screen.getByTestId('inc-table-clock-2').getAttribute('data-state')).toBe('done');
-        expect(screen.getByTestId('inc-table-clock-3').getAttribute('data-state')).toBe('done');
+        const closed = screen.getByTestId('inc-table-clock-3');
+        expect(closed).toHaveAttribute('data-state', 'not_filed');
+        expect(closed).toHaveTextContent('closed · not notified');
+        expect(closed.className).toContain('text-[var(--text-tertiary)]');
+        expect(screen.getByTestId('inc-table-row-3')).not.toHaveTextContent(/overdue/);
+    });
+
+    it('the Next step column names the running stage in words (with the filed count for a screen reader), or All filed / Closed', async () => {
+        const user = userEvent.setup();
+        render(<IncidentsPage {...pageProps('incidents')} />);
+        await user.click(screen.getByTestId('inc-filter-all'));
+        expect(screen.getAllByRole('columnheader').map(h => h.textContent)).toEqual(['Deadline', 'Incident', 'Occurred', 'Next step', 'Status']);
+        expect(screen.getByTestId('inc-table-next-1')).toHaveTextContent('Authority notification (72 h) · 0 of 1 filed');
+        expect(screen.getByTestId('inc-table-next-2')).toHaveTextContent('All filed · 1 of 1 filed');
+        expect(screen.getByTestId('inc-table-next-3')).toHaveTextContent('Closed');
+        expect(screen.queryByTestId('reported-stamps')).toBeNull();
+    });
+
+    it('severity reads in incident words (High, Medium), never the check vocabulary; the status is the shared register pill', async () => {
+        const user = userEvent.setup();
+        render(<IncidentsPage {...pageProps('incidents')} />);
+        await user.click(screen.getByTestId('inc-filter-all'));
+        expect(screen.getByTestId('inc-table-severity-1')).toHaveTextContent('High');
+        expect(screen.getByTestId('inc-table-severity-2')).toHaveTextContent('Medium');
+        expect(screen.getByTestId('inc-table-severity-2')).toHaveAttribute('data-vocabulary', 'incident');
+        expect(screen.getByTestId('inc-table-row-2')).not.toHaveTextContent(/Consider/i);
+        expect(screen.getByTestId('inc-table-status-1')).toHaveAttribute('data-tone', 'neutral');
+        expect(screen.getByTestId('inc-table-status-3')).toHaveAttribute('data-tone', 'success');
+    });
+
+    it('a deep link opens the drawer for a string id as well as a number', () => {
+        const rows = [{ id: 'inc_32', kind: 'security_incident', status: 'open', title: 'Connector down', severity: 'medium', detected_at: iso(-3 * H), deadline_at: iso(69 * H) }];
+        const props = pageProps('incidents', { focusId: 'inc_32' });
+        props.data.incidents.incidents = rows;
+        const { unmount } = render(<IncidentsPage {...props} />);
+        expect(screen.getByTestId('inc-drawer-header')).toHaveTextContent('Connector down');
+        unmount();
+        render(<IncidentsPage {...pageProps('incidents', { focusId: '1' })} />);
+        expect(screen.getByTestId('inc-drawer-header')).toHaveTextContent('Lost laptop');
     });
 
     it('a row click opens the drawer with the GDPR actions; the attestations go through data.incidents.update', async () => {
@@ -92,7 +137,32 @@ describe('IncidentsPage — the incidents register', () => {
         fireEvent.click(screen.getByTestId('inc-create-high-risk'));
         fireEvent.click(screen.getByTestId('inc-create-submit'));
         await waitFor(() => expect(props.data.incidents.create).toHaveBeenCalledTimes(1));
-        expect(props.data.incidents.create.mock.calls[0][0]).toEqual({ kind: 'breach', title: 'Misdirected e-mail', description: undefined, severity: 'medium', occurred_at: undefined, high_risk: true });
+        const body = props.data.incidents.create.mock.calls[0][0];
+        expect(body).toEqual({ kind: 'breach', title: 'Misdirected e-mail', description: undefined, severity: 'medium', occurred_at: undefined, detected_at: expect.any(String), high_risk: true });
+        // "Became aware at" defaults to now (to the minute)
+        expect(Math.abs(new Date(body.detected_at).getTime() - Date.now())).toBeLessThan(2 * 60_000);
+    });
+
+    it('"Became aware at" sits next to "Occurred at": a breach found yesterday is recorded with yesterday, and the future is refused', async () => {
+        const user = userEvent.setup();
+        const props = pageProps('incidents');
+        render(<IncidentsPage {...props} />);
+        await user.click(screen.getByTestId('inc-record'));
+        expect(screen.getByRole('dialog')).toHaveTextContent('The reporting clocks run from the moment your organisation became aware of the breach.');
+        const aware = screen.getByLabelText('Became aware at');
+        expect(aware).toHaveAccessibleDescription('The 72-hour clock runs from here');
+        expect(aware).toHaveAttribute('max');
+        await user.type(screen.getByTestId('inc-create-title'), 'Found in yesterday\'s logs');
+        const pad = (n) => String(n).padStart(2, '0');
+        const local = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const tomorrow = new Date(Date.now() + 24 * H);
+        fireEvent.change(aware, { target: { value: local(tomorrow) } });
+        expect(screen.getByTestId('inc-create-submit')).toBeDisabled();
+        const yesterday = new Date(Date.now() - 24 * H);
+        fireEvent.change(aware, { target: { value: local(yesterday) } });
+        await user.click(screen.getByTestId('inc-create-submit'));
+        await waitFor(() => expect(props.data.incidents.create).toHaveBeenCalledTimes(1));
+        expect(props.data.incidents.create.mock.calls[0][0].detected_at).toBe(new Date(local(yesterday)).toISOString());
     });
 
     it('the header primary arrives as headerAction="create": the modal opens, the page hides its own button and reports back', async () => {
@@ -187,7 +257,7 @@ describe('IncidentsPage — the vulnerability register (CRA Art. 14)', () => {
         render(<IncidentsPage {...props} />);
         fireEvent.click(screen.getByTestId('inc-table-row-9'));
         let drawer = screen.getByTestId('inc-drawer');
-        expect(within(drawer).getByTestId('inc-drawer-clocks').querySelectorAll('li')).toHaveLength(3);
+        expect(within(drawer).getByTestId('inc-drawer-reporting').querySelectorAll('li')).toHaveLength(4);
         fireEvent.change(within(drawer).getByTestId('inc-drawer-cra-via'), { target: { value: 'ENISA SRP' } });
         fireEvent.change(within(drawer).getByTestId('inc-drawer-cra-ref'), { target: { value: 'SRP-1' } });
         fireEvent.click(within(drawer).getByTestId('inc-drawer-cra-early'));
@@ -201,7 +271,7 @@ describe('IncidentsPage — the vulnerability register (CRA Art. 14)', () => {
         drawer = screen.getByTestId('inc-drawer');
         expect(within(drawer).queryByTestId('inc-drawer-cra-early')).toBeNull();
         fireEvent.click(within(drawer).getByTestId('inc-drawer-cra-full'));
-        expect(props.data.incidents.craReport).toHaveBeenCalledWith(10, { stage: 'notification', reported_via: undefined, reference: undefined });
+        expect(props.data.incidents.craReport).toHaveBeenCalledWith(10, { stage: 'full', reported_via: undefined, reference: undefined });
     });
 
     it('degrades when the CRA routes 404: the buttons disable and a sentence says why', async () => {

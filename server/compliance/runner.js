@@ -139,6 +139,25 @@ function _evidenceSubject(subject) {
     return { id: subject.id ?? null };
 }
 
+/** Longest subject label kept on a result row. */
+const SUBJECT_LABEL_MAX = 120;
+
+/**
+ * The evidence as the RESULT ROW (compliance_checks, the latest-row view the
+ * check table reads) stores it: with the subject's label as `subject_label`,
+ * so a per-subject row can say which agent or automation it is about. Those
+ * labels are the org's own configuration (an agent's or automation's title),
+ * and the row is not the chain: the ledger payload keeps `_evidenceSubject`,
+ * id only. A check that already wrote its own `subject_label` keeps it.
+ */
+function _rowEvidence(evidence, subject) {
+    const label = typeof subject?.label === 'string' ? subject.label.trim().slice(0, SUBJECT_LABEL_MAX) : '';
+    if (!label) return evidence;
+    const base = evidence && typeof evidence === 'object' && !Array.isArray(evidence) ? evidence : {};
+    if (typeof base.subject_label === 'string' && base.subject_label) return evidence;
+    return { ...base, subject_label: label };
+}
+
 /**
  * Persist one result row + its evidence link. `scope` overrides the slot the
  * row occupies; without it the slot is derived from the subject, which is what
@@ -155,7 +174,7 @@ async function _persistResult(check, orgId, result, runType, subject, scope = nu
         article: check.article,
         severity: check.severity,
         status: result.status,
-        evidence: result.evidence,
+        evidence: _rowEvidence(result.evidence, subject),
         details: result.details,
         scope_type: scopeType,
         scope_id: scopeId,

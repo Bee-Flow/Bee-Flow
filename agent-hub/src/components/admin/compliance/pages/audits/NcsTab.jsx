@@ -27,7 +27,7 @@ const editFrom = (nc) => ({
 });
 
 export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = null }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const { ncs, busy, createNc, updateNc } = audit;
     const loading = ncs === null || ncs === undefined;
     const list = Array.isArray(ncs) ? ncs : [];
@@ -144,7 +144,7 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                     {nc.effectiveness_confirmed_at && (
                         <div className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--success-ink)' }} data-testid="nc-effectiveness">
                             <ShieldCheck size={13} aria-hidden="true" />
-                            {t('compliance.nc_effectiveness_by', 'Effectiveness confirmed by')} {userName(orgUsers, nc.effectiveness_confirmed_by) || nc.effectiveness_confirmed_by} · {fmtDate(nc.effectiveness_confirmed_at)}
+                            {t('compliance.nc_effectiveness_by', 'Effectiveness confirmed by')} {userName(orgUsers, nc.effectiveness_confirmed_by) || nc.effectiveness_confirmed_by} · {fmtDate(nc.effectiveness_confirmed_at, resolvedLocale)}
                         </div>
                     )}
                 </DrawerSection>

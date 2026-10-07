@@ -6,14 +6,14 @@
  * already built for the active section. Nothing is fetched here: the frame
  * is chrome around the hub's state.
  *
- *   ┌ top bar ─ 44px back · 28px kind tile · "Compliance" + "run today 09:12 · 7 open" · 44px Play ┐
+ *   ┌ top bar ─ 44px back · 28px kind tile · "Compliance" + "run 09:12 · 7 open" · 44px Play       ┐
  *   │ at HOME (active === 'overview'):                                                             │
  *   │   SegmentedControl  Overview | Frameworks | Registers   ← a VIEW state, not a route          │
  *   │   overview  → MobileHomeOverview (framework rows · needs attention · deadlines)               │
  *   │   frameworks→ MobileRailList groups=['frameworks']                                          │
  *   │   registers → MobileRailList groups=['registers','admin']                                    │
  *   │ in a SECTION:                                                                                │
- *   │   ComplianceHeader folded (wrapped in a @container so StudioSectionHeader's <1180 fold fires) │
+ *   │   ComplianceHeader layout="phone": title bar + tab menu, then a wrapping action row          │
  *   │   + the `page` node (pages render DataTable's renderCard list on mobile)                     │
  *   └──────────────────────────────────────────────────────────────────────────────────────────────┘
  *
@@ -21,26 +21,37 @@
  * a section → home. Every row is ≥ 44px (MOBILE_ROW_CLASS). The subtitle
  * prints only the parts the counts endpoint stated — no "0 open" invented.
  */
-import React, { useEffect, useState } from 'react';
 import { ChevronLeft, Play, Scale } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import SegmentedControl from '../../shared/SegmentedControl';
+import React, { useEffect, useState } from 'react';
 import ComplianceHeader from './ComplianceHeader';
 import { countFor } from './data/useComplianceCounts';
-import { formatClock } from './railMeta';
-import { sectionById } from './sections';
 import MobileHomeOverview from './mobile/MobileHomeOverview';
 import MobileRailList from './mobile/MobileRailList';
+import { formatClock } from './railMeta';
+import { sectionById } from './sections';
+import { formatDay } from './shared/formatDates';
+import { useTranslation } from '../../../hooks/useTranslation';
+import SegmentedControl from '../../shared/SegmentedControl';
 
 export const MOBILE_VIEWS = Object.freeze(['overview', 'frameworks', 'registers']);
 
 const ICON_BUTTON = 'w-11 h-11 grid place-items-center rounded-lg flex-shrink-0 disabled:opacity-40';
 
-/** 'run today 09:12 · 7 open' — each half only when the counts stated it; null when neither did. */
-export function mobileSubtitle(counts, t, { locale } = {}) {
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+/**
+ * 'run 09:12 · 7 open' for a run today, 'run 5 Oct 09:12 · 7 open' for one on
+ * another day — each half only when the counts stated it; null when neither did.
+ */
+export function mobileSubtitle(counts, t, { locale, now = Date.now() } = {}) {
     const parts = [];
-    const hhmm = formatClock(countFor(counts, 'last_run.at'), locale);
-    if (hhmm) parts.push(t('compliance.mob_run_today', 'run today {time}', { time: hhmm }));
+    const at = countFor(counts, 'last_run.at');
+    const hhmm = formatClock(at, locale);
+    if (hhmm) {
+        parts.push(sameDay(new Date(at), new Date(now))
+            ? t('compliance.rail_meta_run', 'run {time}', { time: hhmm })
+            : t('compliance.mob_run_at', 'run {date} {time}', { date: formatDay(at, locale || 'en', now), time: hhmm }));
+    }
     const open = countFor(counts, 'attention_open');
     if (typeof open === 'number') parts.push(t('compliance.rail_meta_open', '{n} open', { n: open }));
     return parts.length ? parts.join(' · ') : null;
@@ -52,7 +63,7 @@ export function mobileSubtitle(counts, t, { locale } = {}) {
 export default function ComplianceMobile({
     active = 'overview', navigate, onBack = null, data, tab, onTab, page = null, section = null, headerCtx = {},
 }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const atHome = active === 'overview';
     const sec = section || sectionById(active);
     const [view, setView] = useState('overview');
@@ -61,7 +72,7 @@ export default function ComplianceMobile({
 
     const counts = data?.counts || null;
     const core = data?.core || {};
-    const subtitle = mobileSubtitle(counts, t);
+    const subtitle = mobileSubtitle(counts, t, { locale: resolvedLocale });
     const canRun = typeof core.runNow === 'function';
 
     const goBack = () => { if (atHome) onBack?.(); else navigate?.('overview'); };
@@ -117,7 +128,7 @@ export default function ComplianceMobile({
                 </>
             ) : (
                 <div className="@container/cmobile flex-1 min-h-0 flex flex-col" data-testid="mobile-section">
-                    <ComplianceHeader section={sec} tab={tab} onTab={onTab} ctx={headerCtx} />
+                    <ComplianceHeader section={sec} tab={tab} onTab={onTab} ctx={headerCtx} layout="phone" />
                     <div className="@container/cpage flex-1 min-h-0 overflow-y-auto">{page}</div>
                 </div>
             )}

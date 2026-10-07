@@ -118,6 +118,10 @@ function serialize(fw, state, scores, calendarCounts, nowMs, affects, machineryR
         in_force_since: fw.in_force_since || null,
         in_force_from: fw.in_force_from || null,
         phases: fw.phases || [],
+        // Where the legal facts above come from, and how recently they were
+        // checked (compliance/frameworks.js legalReview).
+        sources: fw.sources || [],
+        legal_review: frameworks.legalReview(fw, nowMs),
         description_key: fw.description_key,
         affects_key: fw.affects_key,
         affects,
@@ -208,7 +212,7 @@ router.get('/frameworks', requireAuth, requirePermission('admin_compliance'), as
                 : null;
             return serialize(fw, byId.get(fw.id), scores, calendarCounts, nowMs, affects, machineryRelevance);
         }));
-        res.json({ frameworks: list, custom: await _customList(orgId, latest, req) });
+        res.json({ frameworks: list, custom: await _customList(orgId, latest, req), catalogue: frameworks.catalogueReview(nowMs) });
     } catch (e) {
         if (e && e.status && e.body) return res.status(e.status).json(e.body);
         log.error('[Compliance] frameworks error:', e);

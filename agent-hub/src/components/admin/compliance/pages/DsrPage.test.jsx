@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import DsrPage, { dsrHeaderSpec } from './DsrPage';
 import { capturePayload, validateCapture } from './dsr/DsrCaptureModal';
+import DsrPage, { dsrHeaderSpec } from './DsrPage';
 import { DAY_MS } from '../../../shared/deadlineMath';
 
 /**
@@ -38,10 +39,11 @@ vi.mock('../data/api', async (importOriginal) => {
 
 const NOW = new Date('2026-09-14T09:12:00Z').getTime();
 const iso = (ms) => new Date(ms).toISOString();
+// As GET /api/dsr/requests sends them: `status` is the lifecycle, `state` the CLOCK.
 const ROWS = [
-    { id: 2038, request_type: 'deletion', state: 'in_progress', subject_email_masked: 'j.•••@gmail.com', channel: 'public_form', identity_status: 'verified_email_link', created_at: iso(NOW - 33 * DAY_MS), due_at: iso(NOW - 3 * DAY_MS) },
-    { id: 2041, request_type: 'access', state: 'in_progress', subject_email_masked: 'm.•••@vandijkgroep.nl', channel: 'email_dpo', created_at: iso(NOW - 12 * DAY_MS), due_at: iso(NOW + 18 * DAY_MS) },
-    { id: 2036, request_type: 'deletion', state: 'fulfilled', subject_email_masked: 'p.•••@outlook.com', channel: 'phone', created_at: iso(NOW - 48 * DAY_MS), completed_at: iso(NOW - 39 * DAY_MS), result_summary: 'done' },
+    { id: 2038, request_type: 'deletion', status: 'in_progress', state: 'overdue', subject_email_masked: 'j.•••@gmail.com', channel: 'public_form', identity_status: 'verified_email_link', created_at: iso(NOW - 33 * DAY_MS), due_at: iso(NOW - 3 * DAY_MS) },
+    { id: 2041, request_type: 'access', status: 'in_progress', state: 'ok', subject_email_masked: 'm.•••@vandijkgroep.nl', channel: 'email_dpo', created_at: iso(NOW - 12 * DAY_MS), due_at: iso(NOW + 18 * DAY_MS) },
+    { id: 2036, request_type: 'deletion', status: 'fulfilled', state: 'none', subject_email_masked: 'p.•••@outlook.com', channel: 'phone', created_at: iso(NOW - 48 * DAY_MS), completed_at: iso(NOW - 39 * DAY_MS), result_summary: 'done' },
 ];
 
 const t = (key, fallback, vars) => (vars ? Object.entries(vars).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), fallback) : fallback);
@@ -52,10 +54,8 @@ beforeEach(() => {
     fetchJson.mockReset();
     toast.success.mockReset();
     toast.error.mockReset();
-    // ≥ 1180 → the drawer sits inline beside the table
-    window.matchMedia = (query) => ({ matches: true, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
 });
-afterEach(() => { vi.useRealTimers(); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 const listOnly = (rows = ROWS) => fetchJson.mockImplementation((url, init) => {
     if (url.endsWith('/api/dsr/requests') && !init) return Promise.resolve(rows);
@@ -77,9 +77,27 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
         expect(within(pills).getByTestId('dsr-filter-open')).toHaveAttribute('aria-pressed', 'true');
         const ids = screen.getAllByTestId(/^dsr-table-row-/).map(r => r.getAttribute('data-testid'));
         expect(ids).toEqual(['dsr-table-row-2038', 'dsr-table-row-2041']);
-        expect(screen.getByTestId('dsr-sort-note')).toHaveTextContent('By deadline');
-        expect(screen.getByTestId('dsr-intake-note')).toHaveTextContent('The 30-day clock starts at receipt');
-        expect(screen.getByTestId('dsr-view-form')).toHaveAttribute('href', expect.stringMatching(/\/privacy\/requests$/));
+        // The sort is the Deadline header's (↓ + aria-sort), not a separate note; the
+        // intake explanation lives on the Public form tab, the toolbar only links the form.
+        expect(screen.queryByTestId('dsr-sort-note')).toBeNull();
+        expect(screen.queryByTestId('dsr-intake-note')).toBeNull();
+        expect(screen.getAllByRole('columnheader')[0]).toHaveAttribute('aria-sort', 'ascending');
+        const link = screen.getByRole('link', { name: /Public form/ });
+        expect(link).toHaveAttribute('href', expect.stringMatching(/\/privacy\/requests$/));
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(screen.getByRole('textbox', { name: 'Search # or e-mail' })).toHaveAttribute('placeholder', 'Search # or e-mail');
+    });
+
+    it('server-shaped rows: Completed counts the fulfilled row and a closed row never reads as open', async () => {
+        listOnly([...ROWS, { id: 2030, request_type: 'objection', status: 'rejected', state: 'none', subject_email_masked: 'k.•••@ziggo.nl', channel: 'letter', created_at: iso(NOW - 60 * DAY_MS), due_at: iso(NOW - 30 * DAY_MS), fulfilled_at: iso(NOW - 58 * DAY_MS) }]);
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        render(<DsrPage />);
+        await screen.findByTestId('dsr-table-row-2038');
+        expect(screen.getByTestId('dsr-filter-fulfilled')).toHaveTextContent('Completed1');
+        expect(screen.getByTestId('dsr-filter-rejected')).toHaveTextContent('Rejected1');
+        await user.click(screen.getByTestId('dsr-filter-rejected'));
+        expect(screen.getByTestId('dsr-table-state-2030')).toHaveTextContent('Rejected');
+        expect(screen.getByTestId('dsr-table-clock-2030')).toHaveAttribute('data-state', 'done');
     });
 
     it('filter pills and the search narrow the list; the overdue pill is the error tone', async () => {
@@ -113,7 +131,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
         fireEvent.click(await screen.findByTestId('dsr-table-row-2041'));
         const drawer = await screen.findByTestId('dsr-drawer');
         expect(drawer).toHaveAttribute('data-mode', 'inline');
-        expect(screen.getByTestId('dsr-page')).toHaveAttribute('data-drawer', 'inline');
+        expect(screen.getByTestId('dsr-page')).toHaveAttribute('data-drawer-mode', 'inline');
         expect(screen.getByTestId('dsr-table-row-2041')).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByTestId('dsr-drawer-export')).toHaveAttribute('href', expect.stringMatching(/\/api\/dsr\/requests\/2041\/export$/));
 
@@ -143,7 +161,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
 
     it('Start posts to /start on a pending row; a failing write toasts the error key, never a success', async () => {
         fetchJson.mockImplementation((url, init) => {
-            if (url.endsWith('/api/dsr/requests') && !init) return Promise.resolve([{ ...ROWS[1], state: 'pending' }]);
+            if (url.endsWith('/api/dsr/requests') && !init) return Promise.resolve([{ ...ROWS[1], status: 'pending' }]);
             if (/\/start$/.test(url)) return Promise.reject(new Error('409 Conflict'));
             return Promise.reject(new Error('404 Not Found'));
         });
@@ -152,6 +170,38 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
         await waitFor(() => expect(fetchJson).toHaveBeenCalledWith(expect.stringMatching(/\/api\/dsr\/requests\/2041\/start$/), expect.objectContaining({ method: 'POST' })));
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not update the request'));
         expect(toast.success).not.toHaveBeenCalled();
+    });
+
+    it('below the inline threshold the drawer floats over the table (1280: a 952px register row)', async () => {
+        vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
+        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 952, height: 600, top: 0, left: 0, right: 952, bottom: 600, x: 0, y: 0, toJSON() {} });
+        listOnly();
+        render(<DsrPage focusId={2041} />);
+        const drawer = await screen.findByTestId('dsr-drawer');
+        await waitFor(() => expect(drawer).toHaveAttribute('data-mode', 'overlay'));
+        expect(screen.getByTestId('dsr-page')).toHaveAttribute('data-drawer-mode', 'overlay');
+        expect(screen.getByTestId('dsr-drawer-scrim')).toBeTruthy();
+    });
+
+    it('a phone opens the drawer as a dialog', async () => {
+        listOnly();
+        render(<DsrPage focusId={2041} isMobile />);
+        await screen.findByRole('dialog');
+        expect(screen.getByTestId('dsr-drawer')).toHaveAttribute('data-mode', 'modal');
+    });
+
+    it('Confirm identity… posts { method: "manual", note } to /verify-identity and toasts', async () => {
+        listOnly();
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        render(<DsrPage focusId={2041} />);
+        await user.click(await screen.findByRole('button', { name: /Confirm identity…/ }));
+        await user.type(screen.getByLabelText('How was the identity checked?'), 'Called back on the number in the CRM');
+        await user.click(screen.getByTestId('dsr-drawer-identity-save'));
+        await waitFor(() => expect(fetchJson).toHaveBeenCalledWith(
+            expect.stringMatching(/\/api\/dsr\/requests\/2041\/verify-identity$/),
+            expect.objectContaining({ method: 'POST', body: JSON.stringify({ method: 'manual', note: 'Called back on the number in the CRM' }) }),
+        ));
+        await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Identity confirmed'));
     });
 
     it('a completed row opens read-only', async () => {
@@ -312,7 +362,7 @@ describe('DsrPage — capture modal', () => {
 });
 
 describe('DsrPage — tabs and header spec', () => {
-    it('public_form shows the URL with a copy button; settings links to the settings section', async () => {
+    it('public_form shows the URL with a copy button and links to the settings section; there is no Settings tab', async () => {
         const navigate = vi.fn();
         const { rerender } = render(<DsrPage tab="public_form" navigate={navigate} data={{ core: { overview: { settings: { public_dsr_url: 'https://acme.example/dsr' } } } }} />);
         expect(screen.getByTestId('dsr-public-form-url')).toHaveTextContent('https://acme.example/dsr');
@@ -323,9 +373,11 @@ describe('DsrPage — tabs and header spec', () => {
         fireEvent.click(screen.getByTestId('dsr-public-form-settings'));
         expect(navigate).toHaveBeenCalledWith('settings');
         expect(fetchJson).not.toHaveBeenCalled();
+        // An old ?tab=settings is redirected by the hub (sections.js legacyTabs); the page itself has no settings panel.
+        listOnly();
         rerender(<DsrPage tab="settings" navigate={navigate} />);
-        fireEvent.click(screen.getByTestId('dsr-settings-open'));
-        expect(navigate).toHaveBeenLastCalledWith('settings');
+        await screen.findByTestId('dsr-table-row-2038');
+        expect(screen.queryByTestId('dsr-settings-tab')).toBeNull();
     });
 
     it('dsrHeaderSpec: unknown/zero overdue → neutral pill; n → error Timer pill; the window chip; refresh + primary', () => {

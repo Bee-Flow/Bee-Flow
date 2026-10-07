@@ -72,7 +72,7 @@ const OBL_COLUMNS = Object.freeze([
 const OBL_FALLBACKS = Object.freeze({ kind: 'Kind', title: 'Obligation', due: 'Due', owner: 'Owner' });
 
 export default function TrainingPage({ data = {}, isMobile = false }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const state = data.training || {};
     const orgUsers = data.orgUsers ?? null;
     const personnel = state.personnel;
@@ -199,7 +199,7 @@ export default function TrainingPage({ data = {}, isMobile = false }) {
             </DrawerSection>
             {attestPerson.attested_at && (
                 <div className="text-[11px] text-[var(--text-tertiary)]" data-testid="attest-previous">
-                    {t('compliance.training_attested_at', 'Training attested {date}', { date: fmtDate(attestPerson.attested_at) })}
+                    {t('compliance.training_attested_at', 'Training attested {date}', { date: fmtDate(attestPerson.attested_at, resolvedLocale) })}
                     {attestPerson.attested_note ? ` · ${attestPerson.attested_note}` : ''}
                 </div>
             )}
@@ -372,7 +372,7 @@ export default function TrainingPage({ data = {}, isMobile = false }) {
                                     {done ? (
                                         <span className="text-[11px] text-[var(--success-ink)] inline-flex items-center gap-1 flex-shrink-0" data-testid={`obligation-done-card-${o.id}`}>
                                             <CheckCircle2 size={11} aria-hidden="true" />
-                                            {t('compliance.obl_completed_at', 'Done {date}', { date: fmtDate(o.completed_at) })}
+                                            {t('compliance.obl_completed_at', 'Done {date}', { date: fmtDate(o.completed_at, resolvedLocale) })}
                                         </span>
                                     ) : (
                                         <ActionButton
@@ -417,7 +417,7 @@ export default function TrainingPage({ data = {}, isMobile = false }) {
                                         {done ? (
                                             <span className="text-[11px] text-[var(--success-ink)] inline-flex items-center gap-1" data-testid={`obligation-done-${o.id}`}>
                                                 <CheckCircle2 size={11} aria-hidden="true" />
-                                                {t('compliance.obl_completed_at', 'Done {date}', { date: fmtDate(o.completed_at) })}
+                                                {t('compliance.obl_completed_at', 'Done {date}', { date: fmtDate(o.completed_at, resolvedLocale) })}
                                             </span>
                                         ) : (
                                             <ActionButton

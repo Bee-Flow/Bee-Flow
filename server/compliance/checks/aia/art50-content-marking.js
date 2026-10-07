@@ -107,7 +107,7 @@ module.exports = {
             return {
                 status: 'warn',
                 evidence,
-                details: `AI content marking is off: required from ${formatDeadline(due)} (in ${days} day${days === 1 ? '' : 's'}). Switch it on under Compliance → Settings.`,
+                details: `AI content marking is off. Art. 50(2) has applied since 2 Aug 2026; the transition for systems already on the market before then ends on ${formatDeadline(due)} (in ${days} day${days === 1 ? '' : 's'}). Switch it on under Compliance → Settings.`,
             };
         }
         return {

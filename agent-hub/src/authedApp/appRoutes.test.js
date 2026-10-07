@@ -38,6 +38,7 @@ import {
     parseCoworkUrl,
     parseAgentUrl,
     parseDirectChatUrl,
+    parseAdminPath,
     usesStudioRail,
 } from './appRoutes';
 import { parseStudioUrl } from '../components/admin/Studio/studioRoutes';
@@ -319,5 +320,16 @@ describe('mobile allow-list is frozen', () => {
         expect(mobilePageKey('studio/approvals/apr_1')).toBe(
             isApprovalsStudioPath('/app/studio/approvals/apr_1') ? 'approvals' : 'studio',
         );
+    });
+});
+
+describe('parseAdminPath — the query is never a segment', () => {
+    it('reads the segments of an admin path with or without a query', () => {
+        expect(parseAdminPath('/app/admin/compliance/incidents/i1')).toEqual({ seg1: 'compliance', seg2: 'incidents', seg3: 'i1' });
+        // In-app navigation hands over the page string with the hub's header tab.
+        expect(parseAdminPath('/app/admin/compliance/frameworks?tab=calendar')).toEqual({ seg1: 'compliance', seg2: 'frameworks', seg3: '' });
+        expect(parseAdminPath('/app/admin/compliance/gdpr/GDPR-Art30?tab=checks#x')).toEqual({ seg1: 'compliance', seg2: 'gdpr', seg3: 'GDPR-Art30' });
+        expect(parseAdminPath('/app/admin?tab=support')).toEqual({ seg1: '', seg2: '', seg3: '' });
+        expect(parseAdminPath('/app/agents')).toEqual({ seg1: '', seg2: '', seg3: '' });
     });
 });

@@ -15,8 +15,8 @@ export interface TableColumn {
     /** A grid track: '1fr', '120px'. */
     width?: string;
     align?: 'left' | 'right' | 'center';
-    /** Hide the column when the table is narrower than 1180px. */
-    foldBelow?: 1180;
+    /** Hide the column (and its grid track) when the table is narrower than this. */
+    foldBelow?: 1180 | 900;
 }
 
 export interface DataTableProps<T> {
@@ -25,6 +25,8 @@ export interface DataTableProps<T> {
     renderRow: (row: T) => React.ReactNode;
     renderCard?: (row: T) => React.ReactNode;
     isMobile?: boolean;
+    /** Render the cards (renderCard) whenever the table is narrower than this many px. */
+    cardsBelow?: number;
     rowKey?: (row: T, index: number) => string | number;
     loading?: boolean;
     skeletonRows?: number;

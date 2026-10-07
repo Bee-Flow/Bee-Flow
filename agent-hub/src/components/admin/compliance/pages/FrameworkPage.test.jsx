@@ -109,7 +109,7 @@ describe('FrameworkPage — the checks tab', () => {
         expect(screen.getByTestId('checks-table-row-GDPR-Art33-breach')).toHaveAttribute('aria-expanded', 'true');
         expect(screen.getByTestId('checks-table-row-GDPR-Art33-breach-expansion')).toBeInTheDocument();
         await waitFor(() => expect(c.loadTrail).toHaveBeenCalledTimes(1));
-        expect(c.loadTrail).toHaveBeenCalledWith('GDPR-Art33-breach');
+        expect(c.loadTrail).toHaveBeenCalledWith('GDPR-Art33-breach', null);
         fireEvent.click(screen.getByTestId('checks-table-row-GDPR-Art33-breach'));
         expect(screen.queryByTestId('checks-table-row-GDPR-Art33-breach-expansion')).toBeNull();
         expect(screen.getByTestId('checks-table-row-GDPR-Art33-breach')).toHaveAttribute('aria-expanded', 'false');
@@ -139,10 +139,13 @@ describe('FrameworkPage — the checks tab', () => {
         expect(onNavigate).toHaveBeenCalledWith('admin/monitoring/activity');
     });
 
-    it('rerun on a passing row calls core.rerun; a failed checks read is its own state, not an empty list', () => {
+    it('rerun from a passing row\'s expansion calls core.rerun; a failed checks read is its own state, not an empty list', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const user = userEvent.setup();
         const c = core();
         const { unmount } = renderPage({ data: { core: c } });
-        fireEvent.click(screen.getByTestId('checks-table-row-GDPR-Art32-enc-rerun'));
+        await user.click(screen.getByTestId('checks-table-row-GDPR-Art32-enc'));
+        await user.click(within(screen.getByTestId('checks-table-row-GDPR-Art32-enc-expansion')).getByRole('button', { name: 'Re-run this check' }));
         expect(c.rerun).toHaveBeenCalledWith('GDPR-Art32-enc');
         unmount();
         renderPage({ data: { core: core({ checks: null, loading: false }) } });
@@ -203,6 +206,23 @@ describe('FrameworkPage — timeline and evidence tabs', () => {
         fireEvent.click(screen.getByTestId('evidence-tab-pager-next'));
         await waitFor(() => expect(screen.getByTestId('evidence-tab-row-125')).toBeInTheDocument());
         expect(new URL(authFetch.mock.calls[1][0], 'http://x').searchParams.get('offset')).toBe('25');
+    });
+
+    it('evidence: a per-subject ledger row names its subject under the title; the check id is the title\'s tooltip', async () => {
+        const dpia = (scope_id, name) => ({
+            check_id: 'GDPR-Art35-dpia', regulation: 'GDPR', article: '35', status: 'pass', severity: 'high', verification: 'attestation',
+            titleKey: 'compliance.trail_history', scope_id, evidence: { agent_id: scope_id, subject_label: name },
+        });
+        authFetch.mockImplementation(() => ok([
+            { id: 7, seq: 7, check_id: 'GDPR-Art35-dpia', subject_type: 'per-source', subject_id: 'agent_intake', hash: 'abcdef0123456789' },
+            { id: 8, seq: 8, check_id: 'GDPR-Art35-dpia', subject_type: 'per-source', subject_id: 'agent_gone', hash: 'abcdef0123456789' },
+        ]));
+        renderPage({ tab: 'evidence', data: { core: core({ checks: [dpia('agent_claims', 'Schadebeoordeling'), dpia('agent_intake', 'Polisintake')] }) } });
+        await waitFor(() => expect(screen.getByTestId('evidence-tab-row-7')).toBeInTheDocument());
+        const row = screen.getByTestId('evidence-tab-row-7');
+        expect(within(row).getByTestId('evidence-tab-subject-label')).toHaveTextContent('Polisintake');
+        expect(within(row).getByText('Run history')).toHaveAttribute('title', 'GDPR-Art35-dpia');
+        expect(within(screen.getByTestId('evidence-tab-row-8')).queryByTestId('evidence-tab-subject-label')).toBeNull();
     });
 
     it('evidence: a failed read or a non-list body is the "could not read" state; an array body has no pager; exports off hides the JSON links', async () => {

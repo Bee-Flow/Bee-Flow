@@ -223,6 +223,10 @@ test('register findings: DSR overdue / due soon / unverified > 7 d, incident clo
     assert.equal(out.items.find(i => i.code === 'dsr_overdue').action.target, '/app/admin/compliance/dsr/1');
     assert.equal(out.items.find(i => i.code === 'cra_early_warning_due').action.target, '/app/admin/compliance/incidents/8');
     assert.equal(out.items.find(i => i.code === 'soa_todo').action.target, '/app/admin/compliance/soa');
+    // The ISMS obligations live on Training & competence, not behind an audits tab.
+    assert.equal(out.items.find(i => i.code === 'obligation_overdue').action.target, '/app/admin/compliance/training');
+    // The attestation target keeps its tab (the client aliases it once that tab moves).
+    assert.equal(out.items.find(i => i.code === 'ai_act_attestation_expired').action.target, '/app/admin/compliance/frameworks?tab=per_automation');
     assert.deepEqual(out.items.find(i => i.code === 'cra_early_warning_due').meta.frameworks, [{ regulation: 'CRA', ref: 'Art. 14(2)(a)' }]);
 });
 

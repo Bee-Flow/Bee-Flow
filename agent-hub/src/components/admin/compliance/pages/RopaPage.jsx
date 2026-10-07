@@ -89,7 +89,7 @@ function ActivityName({ activity, onNavigate, className }) {
 }
 
 export default function RopaPage({ data = {}, isMobile = false, exportsEnabled = true, dl, api = '/api/compliance', onNavigate = null }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const state = data.ropa || {};
     const ropa = state.ropa;
 
@@ -135,7 +135,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                 <>
                     <Intro testId="ropa-intro">
                         {reviewedAt
-                            ? t('compliance.ropa_reviewed_at', 'Last reviewed {date}', { date: fmtDate(reviewedAt) })
+                            ? t('compliance.ropa_reviewed_at', 'Last reviewed {date}', { date: fmtDate(reviewedAt, resolvedLocale) })
                             : t('compliance.ropa_never_reviewed', 'This register has never been reviewed.')}
                     </Intro>
                     <ActionButton icon={RefreshCw} onClick={() => state.refresh?.()} title={t('compliance.ropa_regenerate', 'Rebuild from what the platform observes')} data-testid="ropa-refresh">
@@ -253,7 +253,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                                         )}
                                     </span>
                                     <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums truncate">
-                                        {p.calls ?? '—'} · {p.last_seen ? fmtDate(p.last_seen) : '—'}
+                                        {p.calls ?? '—'} · {p.last_seen ? fmtDate(p.last_seen, resolvedLocale) : '—'}
                                     </span>
                                 </div>
                                 {p.is_eu ? (
@@ -316,7 +316,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                                     <span className="text-[var(--text-secondary)] tabular-nums">{p.calls ?? '—'}</span>
                                 </TableCell>
                                 <TableCell column={ctx.columns[i++]}>
-                                    <span className="text-[var(--text-secondary)]">{p.last_seen ? fmtDate(p.last_seen) : '—'}</span>
+                                    <span className="text-[var(--text-secondary)]">{p.last_seen ? fmtDate(p.last_seen, resolvedLocale) : '—'}</span>
                                 </TableCell>
                                 <TableCell column={ctx.columns[i++]}>
                                     {p.is_eu ? (

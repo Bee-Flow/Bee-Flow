@@ -193,6 +193,18 @@ test('GET: all ten built-ins, locked ones returned locked (never hidden), scores
     assert.equal(body.frameworks.find(f => f.id === 'dora').affects, null);
 });
 
+test('GET: every framework carries its sources and legal review, and the catalogue its oldest check', async () => {
+    const body = await (await get()).json();
+    for (const f of body.frameworks) {
+        assert.ok(Array.isArray(f.sources) && f.sources.length > 0, `${f.id} sources`);
+        assert.match(f.sources[0].url, /^https:\/\//);
+        assert.equal(typeof f.legal_review.stale, 'boolean');
+        assert.equal(f.legal_review.stale_after_days, 90);
+    }
+    assert.ok(body.catalogue && typeof body.catalogue.stale === 'boolean');
+    assert.match(body.catalogue.verified_on, /^\d{4}-\d{2}-\d{2}$/);
+});
+
 test('POST enable: setEnabled → runFramework (awaited) → evidence row with an allow-listed payload → counts invalidated; response carries the framework', async () => {
     const res = await post('/cra/enable');
     assert.equal(res.status, 200);

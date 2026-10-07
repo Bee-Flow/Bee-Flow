@@ -1,33 +1,45 @@
-import React, { useState } from 'react';
 import { ChevronDown, GraduationCap, CheckCircle2, Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import BreachRecipients from './BreachRecipients';
+import { RELEVANCE_OPTIONS } from './settingsFields';
+import { SPAN_CLASS, groupProgress, isVisible, sectionsOf, spanOf } from './settingsLayout';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { FilterPill } from '../../../../shared/FilterPills';
+import { formatDay } from '../../shared/formatDates';
 import {
     Field, TextInput, DateInput, Select, UserSelect, Toggle, ActionButton, INPUT_CLASS, LABEL_CLASS,
 } from '../audits/auditForms';
-import { RELEVANCE_OPTIONS } from './settingsFields';
 
 /**
  * SettingsGroup — one collapsible card of the compliance settings form.
  *
  * It renders the field table from `settingsFields.js`; the page owns the form
- * state and the save. A group whose framework is off renders collapsed with a
- * quiet "framework is off" note — never hidden, so an org can see what the
- * next framework would ask of it (locked ≠ invisible, PLAN §1.4).
+ * state and the save. The header says how far the group is answered
+ * (settingsLayout.groupProgress). The body is a container-queried grid: one
+ * column on a narrow card, six tracks from 640px, where a field takes a
+ * third, half or the whole row (settingsLayout.spanOf), so short inputs sit
+ * side by side. A group with `sections` gets a sub-heading per section; a
+ * `userfill` field sits in its section's heading row as a compact picker.
+ *
+ * `saved` is the form as last loaded or saved: the AI-literacy stamp reads
+ * "not saved yet" only while it differs from it. A group whose framework is
+ * off is not hidden: the page lists it under one "Frameworks that are off"
+ * disclosure (locked ≠ invisible, PLAN §1.4).
  */
 export default function SettingsGroup({
-    group, form, onChange, orgUsers = null, open = true, onToggle = null,
-    inactive = false, relevanceOf = () => 'unknown', onRelevance = null, footer = null,
+    group, form, saved = null, onChange, orgUsers = null, open = true, onToggle = null,
+    inactive = false, relevanceOf = () => 'unknown', onRelevance = null, sectionFooters = null,
 }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const [selfOpen, setSelfOpen] = useState(open);
     const isOpen = onToggle ? open : selfOpen;
     const toggle = () => (onToggle ? onToggle(!isOpen) : setSelfOpen(v => !v));
+    const progress = groupProgress(group, form, relevanceOf);
+    const fieldProps = { form, saved, onChange, orgUsers, relevanceOf, onRelevance, t, locale: resolvedLocale || 'en' };
 
     return (
         <section
-            className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden"
-            style={{ boxShadow: 'var(--shadow-sm)' }}
+            className="shrink-0 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden shadow-[var(--shadow-sm)]"
             data-testid={`settings-group-${group.id}`}
             data-inactive={inactive ? 'true' : 'false'}
         >
@@ -35,56 +47,97 @@ export default function SettingsGroup({
                 type="button"
                 onClick={toggle}
                 aria-expanded={isOpen}
-                className="w-full flex items-start gap-2 px-3.5 py-3 text-left"
+                className="w-full flex items-start gap-2 px-3.5 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]"
                 data-testid={`settings-group-${group.id}-toggle`}
             >
                 <span className="flex-1 min-w-0 flex flex-col gap-0.5">
-                    <span className="text-sm font-bold text-[var(--text-primary)]">{t(group.titleKey, group.titleEn)}</span>
+                    <span className="flex items-baseline gap-x-2 flex-wrap">
+                        <span className="text-sm font-bold text-[var(--text-primary)]">{t(group.titleKey, group.titleEn)}</span>
+                        {progress.total > 0 && (
+                            <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]" data-testid={`settings-group-${group.id}-progress`}>
+                                {t('compliance.set_group_progress', '{n} of {total} answered', { n: progress.answered, total: progress.total })}
+                            </span>
+                        )}
+                    </span>
                     <span className="text-xs text-[var(--text-secondary)]">{t(group.descKey, group.descEn)}</span>
-                    {inactive && (
-                        <span className="text-[11px] text-[var(--text-tertiary)]" data-testid={`settings-group-${group.id}-off`}>
-                            {t('compliance.set_framework_off', 'This framework is off — the answers are kept and start counting when you turn it on.')}
-                        </span>
-                    )}
                 </span>
-                <ChevronDown
-                    size={14}
-                    aria-hidden="true"
-                    className="mt-1 shrink-0 text-[var(--text-tertiary)]"
-                    style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }}
-                />
+                <ChevronDown size={14} aria-hidden="true" className={`mt-1 shrink-0 text-[var(--text-tertiary)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && (
-                <div className="px-3.5 pb-3.5 flex flex-col gap-3" data-testid={`settings-group-${group.id}-body`}>
-                    {group.fields.map(f => (
-                        <GroupField
-                            key={f.name}
-                            field={f}
-                            form={form}
-                            onChange={onChange}
-                            orgUsers={orgUsers}
-                            relevanceOf={relevanceOf}
-                            onRelevance={onRelevance}
-                            t={t}
+                <div className="@container px-3.5 pb-3.5 flex flex-col gap-3" data-testid={`settings-group-${group.id}-body`}>
+                    {sectionsOf(group).map((section, i) => (
+                        <GroupSection
+                            key={section.id || `s${i}`}
+                            section={section}
+                            first={i === 0}
+                            footer={section.id ? sectionFooters?.[section.id] : null}
+                            fieldProps={fieldProps}
                         />
                     ))}
-                    {footer}
                 </div>
             )}
         </section>
     );
 }
 
-function GroupField({ field, form, onChange, orgUsers, relevanceOf, onRelevance, t }) {
+/** One section of a group: its sub-heading (with any member picker), the grid of fields, an optional footer. */
+function GroupSection({ section, first, footer, fieldProps }) {
+    const { t, form } = fieldProps;
+    const titled = !!section.titleKey;
+    const fillers = section.fields.filter(f => f.kind === 'userfill');
+    const cells = section.fields.filter(f => !fillers.includes(f) && isVisible(f, form));
+    return (
+        <div
+            className={`flex flex-col gap-3 ${titled && !first ? 'pt-3 border-t border-[var(--border-default)]' : ''}`}
+            data-testid={section.id ? `settings-section-${section.id}` : undefined}
+        >
+            {(titled || fillers.length > 0) && (
+                <div className="flex items-center gap-2 flex-wrap min-h-7">
+                    {titled && <h3 className="m-0 text-xs font-bold text-[var(--text-primary)]">{t(section.titleKey, section.titleEn)}</h3>}
+                    {fillers.map(f => <MemberFill key={f.name} field={f} {...fieldProps} />)}
+                </div>
+            )}
+            <div className="grid grid-cols-1 @[640px]:grid-cols-6 gap-3">
+                {cells.map(f => (
+                    <div key={f.name} className={SPAN_CLASS[spanOf(f)]}>
+                        <GroupField field={f} {...fieldProps} />
+                    </div>
+                ))}
+            </div>
+            {footer}
+        </div>
+    );
+}
+
+/** "Fill from member": a compact picker in the heading row that copies a member's name, e-mail and phone. */
+function MemberFill({ field, orgUsers, onChange, t }) {
+    const label = t(field.labelKey, field.labelEn);
+    return (
+        <div className="ml-auto w-[200px] max-w-full">
+            <UserSelect
+                value=""
+                orgUsers={orgUsers}
+                noneLabel={label}
+                aria-label={label}
+                className="py-1"
+                onChange={(id) => {
+                    const u = (Array.isArray(orgUsers) ? orgUsers : []).find(x => String(x.id) === String(id));
+                    if (u) onChange('__fill_dpo__', u);
+                }}
+                data-testid={`settings-f-${field.name}`}
+            />
+        </div>
+    );
+}
+
+function GroupField({ field, form, saved, onChange, orgUsers, relevanceOf, onRelevance, t, locale }) {
     const name = field.name;
     const value = form?.[name];
     const label = t(field.labelKey, field.labelEn);
     const hint = field.hintKey ? t(field.hintKey, field.hintEn) : null;
     const testId = `settings-f-${name}`;
     const set = (v) => onChange(name, v);
-
-    if (field.dependsOn && form?.[field.dependsOn] !== true) return null;
 
     switch (field.kind) {
         case 'relevance':
@@ -132,22 +185,6 @@ function GroupField({ field, form, onChange, orgUsers, relevanceOf, onRelevance,
                 </Field>
             );
 
-        case 'userfill':
-            return (
-                <Field label={label} testId={`${testId}-field`}>
-                    <UserSelect
-                        value=""
-                        orgUsers={orgUsers}
-                        noneLabel={t('compliance.pick_org_user_placeholder', 'Select a member…')}
-                        onChange={(id) => {
-                            const u = (Array.isArray(orgUsers) ? orgUsers : []).find(x => String(x.id) === String(id));
-                            if (u) onChange('__fill_dpo__', u);
-                        }}
-                        data-testid={testId}
-                    />
-                </Field>
-            );
-
         case 'chips':
             return (
                 <Field label={label} hint={hint} testId={`${testId}-field`}>
@@ -160,6 +197,7 @@ function GroupField({ field, form, onChange, orgUsers, relevanceOf, onRelevance,
                                     key={o.value}
                                     label={t(o.key, o.en)}
                                     active={active}
+                                    checked={active}
                                     onClick={() => set(active ? list.filter(x => x !== o.value) : [...list, o.value])}
                                     testId={`${testId}-${o.value}`}
                                 />
@@ -170,7 +208,7 @@ function GroupField({ field, form, onChange, orgUsers, relevanceOf, onRelevance,
             );
 
         case 'emails':
-            return <EmailList label={label} hint={hint} value={value} onChange={set} orgUsers={orgUsers} testId={testId} t={t} />;
+            return <BreachRecipients label={label} hint={hint} value={value} onChange={set} orgUsers={orgUsers} testId={testId} />;
 
         case 'strings':
             return <StringList label={label} hint={hint} value={value} onChange={set} placeholder={field.placeholder} testId={testId} t={t} />;
@@ -178,23 +216,30 @@ function GroupField({ field, form, onChange, orgUsers, relevanceOf, onRelevance,
         case 'contacts':
             return <ContactList label={label} hint={hint} value={value} onChange={set} testId={testId} t={t} />;
 
-        case 'stamp':
+        case 'stamp': {
+            // "not saved yet" only while the stamp differs from the loaded one.
+            const unsaved = !!value && value !== (saved ? saved[name] : value);
+            const date = value ? formatDay(value, locale) : '';
             return (
-                <div className="flex flex-col gap-1.5" data-testid={`${testId}-field`}>
+                <div className="flex flex-col gap-1" data-testid={`${testId}-field`}>
                     <span className={LABEL_CLASS}>{label}</span>
                     <div className="flex items-center gap-2 flex-wrap">
                         <ActionButton icon={GraduationCap} variant="success" onClick={() => set(new Date().toISOString())} data-testid={`${testId}-confirm`}>
                             {t(field.actionKey, field.actionEn)}
                         </ActionButton>
-                        <span className="text-[11px] inline-flex items-center gap-1 text-[var(--text-tertiary)]" data-testid={`${testId}-state`}>
+                        <span
+                            className={`text-[11px] inline-flex items-center gap-1 ${unsaved ? 'text-[var(--warning-ink)]' : 'text-[var(--text-tertiary)]'}`}
+                            data-testid={`${testId}-state`}
+                            data-unsaved={unsaved || undefined}
+                        >
                             {value ? <CheckCircle2 size={12} aria-hidden="true" /> : null}
-                            {value
-                                ? t(field.setKey, field.setEn, { date: new Date(value).toLocaleDateString() })
-                                : t(field.unsetKey, field.unsetEn)}
+                            {!value && t(field.unsetKey, field.unsetEn)}
+                            {value && (unsaved ? t(field.unsavedKey, field.unsavedEn, { date }) : t(field.setKey, field.setEn, { date }))}
                         </span>
                     </div>
                 </div>
             );
+        }
 
         case 'email':
         case 'url':
@@ -228,57 +273,6 @@ function RemoveButton({ onClick, label, testId }) {
         >
             <X size={12} aria-hidden="true" />
         </button>
-    );
-}
-
-function EmailList({ label, hint, value, onChange, orgUsers, testId, t }) {
-    const list = Array.isArray(value) ? value : [];
-    const [draft, setDraft] = useState('');
-    const add = (v) => {
-        const s = String(v || '').trim();
-        if (!s || list.includes(s)) return;
-        onChange([...list, s]);
-        setDraft('');
-    };
-    return (
-        <Field label={label} hint={hint} testId={`${testId}-field`}>
-            <div className="flex flex-col gap-1.5" data-testid={testId}>
-                <UserSelect
-                    value=""
-                    orgUsers={(Array.isArray(orgUsers) ? orgUsers : []).filter(u => !list.includes(u.email))}
-                    noneLabel={t('compliance.add_org_recipient', 'Add an organisation member')}
-                    onChange={(id) => {
-                        const u = (Array.isArray(orgUsers) ? orgUsers : []).find(x => String(x.id) === String(id));
-                        if (u?.email) add(u.email);
-                    }}
-                    data-testid={`${testId}-picker`}
-                />
-                {list.map((r, i) => (
-                    <div key={`${r}-${i}`} className="flex items-center gap-1.5">
-                        <span className="flex-1 min-w-0 truncate rounded-[8px] bg-[var(--bg-tertiary)] px-2.5 py-1.5 text-xs text-[var(--text-primary)]" data-testid={`${testId}-item`}>{r}</span>
-                        <RemoveButton
-                            onClick={() => onChange(list.filter((_, idx) => idx !== i))}
-                            label={t('common.remove', 'Remove')}
-                            testId={`${testId}-remove-${i}`}
-                        />
-                    </div>
-                ))}
-                <div className="flex items-center gap-1.5">
-                    <input
-                        value={draft}
-                        onChange={e => setDraft(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }}
-                        placeholder="security@example.com"
-                        aria-label={label}
-                        className={INPUT_CLASS}
-                        data-testid={`${testId}-input`}
-                    />
-                    <ActionButton icon={Plus} size="sm" onClick={() => add(draft)} data-testid={`${testId}-add`}>
-                        {t('compliance.add', 'Add')}
-                    </ActionButton>
-                </div>
-            </div>
-        </Field>
     );
 }
 

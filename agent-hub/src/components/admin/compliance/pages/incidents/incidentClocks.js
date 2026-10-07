@@ -65,16 +65,19 @@ function addMs(iso, ms) {
 
 /**
  * Every clock the row carries, in reporting order. Each:
- *   { stage, dueAt, sentAt, urgentBelowMs, labelKey, fallback, derived }
- * `dueAt` null → the regime does not carry that stage; `sentAt` set → done.
- * A closed incident marks every open stage done at `closed_at ?? updated_at`.
+ *   { stage, dueAt, sentAt, notFiled, urgentBelowMs, labelKey, fallback, derived }
+ * `dueAt` null → the regime does not carry that stage; `sentAt` is the real
+ * filing stamp. On a closed incident a stage without a stamp is `notFiled`:
+ * its clock stops (it is not running, and not overdue), but it does NOT count
+ * as filed. A breach closed as "unlikely to result in a risk" (Art. 33(1))
+ * was deliberately not notified, and reads so, never as "overdue by 217 h".
  */
 export function clocksOf(incident) {
     if (!incident) return [];
     const vuln = isVulnerability(incident);
     const started = startedAtOf(incident);
-    const closedAt = CLOSED.has(incident.status) ? (incident.closed_at ?? incident.updated_at ?? null) : null;
-    const done = (sentAt) => sentAt ?? closedAt ?? null;
+    const closed = CLOSED.has(incident.status);
+    const done = (sentAt) => sentAt ?? null;
 
     const stages = [];
     const early = incident.early_warning_due_at ?? (vuln ? addMs(started, CRA_WINDOWS.early_warning) : null);
@@ -115,21 +118,96 @@ export function clocksOf(incident) {
             derived: false,
         });
     }
-    return stages;
+    return stages.map(c => ({ ...c, notFiled: closed && !c.sentAt }));
 }
 
-/** The clock the row is currently running: the earliest-due open stage; null when every stage is done or none exists. */
+/** The clock the row is currently running: the earliest-due open stage; null when every stage is filed, closed or none exists. */
 export function nextClock(incident) {
-    const open = clocksOf(incident).filter(c => c.dueAt && !c.sentAt);
+    const open = clocksOf(incident).filter(c => c.dueAt && !c.sentAt && !c.notFiled);
     if (!open.length) return null;
     return open.slice().sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))[0];
 }
 
-/** The most recent completion — what a done row shows ("completed in 2 days"). */
+/** The most recent filing — what a done row shows ("completed in 2 days"). */
 export function lastDone(incident) {
     const done = clocksOf(incident).filter(c => c.sentAt);
     if (!done.length) return null;
     return done.slice().sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))[0];
+}
+
+/**
+ * A closed incident none of whose stages was filed: the row reads
+ * "closed · not notified" in quiet ink instead of a clock.
+ */
+export function isClosedUnfiled(incident) {
+    if (!incident || !CLOSED.has(incident.status)) return false;
+    const clocks = clocksOf(incident);
+    return clocks.length > 0 && clocks.every(c => c.notFiled);
+}
+
+/** Filed stages out of all stages: the row's "{n} of {total} filed". */
+export function filedCount(incident) {
+    const clocks = clocksOf(incident);
+    return { filed: clocks.filter(c => c.sentAt).length, total: clocks.length };
+}
+
+/**
+ * The drawer's "Reporting" list: every regulatory stage (clocksOf) plus the
+ * stamps that have no clock of their own, in reporting order: the internal
+ * recipients e-mail first, then the stages, then the Art. 34 notice to the
+ * data subjects (a high-risk breach) or the CRA customer notice (a
+ * vulnerability without a DORA clock). Each row:
+ *   { id, labelKey, fallback, dueAt|null, filedAt|null, notFiled, via|null, reference|null }
+ */
+export function reportingRowsOf(incident) {
+    if (!incident) return [];
+    const vuln = isVulnerability(incident);
+    const closed = CLOSED.has(incident.status);
+    const clocks = clocksOf(incident);
+    const stamp = (id, labelKey, fallback, filedAt) => ({ id, labelKey, fallback, dueAt: null, filedAt: filedAt ?? null, notFiled: closed && !filedAt, via: null, reference: null });
+    const rows = clocks.map(c => ({
+        id: c.stage, labelKey: c.labelKey, fallback: c.fallback, dueAt: c.dueAt, filedAt: c.sentAt, notFiled: c.notFiled,
+        via: vuln && c.stage === 'early_warning' ? incident.reported_via ?? null : null,
+        reference: c.stage === 'notification' ? incident.authority_reference ?? null : null,
+    }));
+    if (vuln) {
+        if (!clocks.some(c => c.stage === 'customer_notice')) rows.push(stamp('customers', 'compliance.vuln_stamp_customers', 'Customers notified', incident.customer_notified_at));
+        return rows;
+    }
+    rows.unshift(stamp('recipients', 'compliance.inc_stamp_recipients', 'Internal recipients', incident.recipients_notified_at));
+    if (incident.high_risk) rows.push(stamp('subjects', 'compliance.inc_stamp_subjects', 'Data subjects (Art. 34)', incident.subjects_notified_at));
+    return rows;
+}
+
+/**
+ * The filing steps the drawer offers, as `{ primary, others }`:
+ *   authority          record the authority notification (GDPR Art. 33 / NIS2)
+ *   cra_early_warning · cra_notification · cra_final_report
+ *                      report the next CRA Art. 14 stage (a vulnerability)
+ *   customers          stamp the customer notice (DORA, or CRA users)
+ *   subjects           record the Art. 34 notice to the data subjects
+ * `primary` is the step of the stage whose clock runs (nextClock); a stage
+ * without a step of its own here (a NIS2 early warning on a non-CRA row)
+ * falls back to the first step left. A closed incident has none.
+ */
+export function stepsOf(incident) {
+    if (!incident || CLOSED.has(incident.status)) return { primary: null, others: [] };
+    const steps = [];
+    if (isVulnerability(incident)) {
+        const cra = nextCraStage(incident);
+        if (cra) steps.push(`cra_${cra}`);
+        if (!incident.customer_notified_at) steps.push('customers');
+    } else {
+        if (!incident.authority_notified_at) steps.push('authority');
+        if (incident.customer_notice_due_at && !incident.customer_notified_at) steps.push('customers');
+        if (incident.high_risk && !incident.subjects_notified_at) steps.push('subjects');
+    }
+    const next = nextClock(incident);
+    let primary = null;
+    if (next?.stage === 'customer_notice') primary = steps.includes('customers') ? 'customers' : null;
+    else if (next) primary = steps.find(s => s === 'authority' || s.startsWith('cra_')) ?? null;
+    primary = primary ?? steps[0] ?? null;
+    return { primary, others: steps.filter(s => s !== primary) };
 }
 
 /** The stage the "Report early warning" / "Report full" buttons submit next — CRA only. */
@@ -139,17 +217,7 @@ export function nextCraStage(incident) {
     return next && next.stage !== 'customer_notice' ? next.stage : null;
 }
 
-/** Status word → pill tone. */
-export function toneOfIncidentStatus(status) {
-    switch (status) {
-        case 'open': return 'error';
-        case 'assessing':
-        case 'early_warning_sent': return 'warning';
-        case 'closed': return 'success';
-        default: return 'neutral'; // authority_notified, reported, subjects_notified
-    }
-}
-
+/** Status word → its label. How the pill looks is statusVocabulary's (RegisterStatePill), as on every register. */
 export const STATUS_LABEL = Object.freeze({
     open: Object.freeze({ key: 'compliance.inc_status_open', en: 'Open' }),
     assessing: Object.freeze({ key: 'compliance.inc_status_assessing', en: 'Assessing' }),
@@ -170,10 +238,26 @@ export function parseCveIds(text) {
     return out;
 }
 
+/** Now (or `ms`) as a datetime-local value in the reader's own clock: 'YYYY-MM-DDTHH:mm' (localToIso's inverse). */
+export function localInputValue(ms = Date.now()) {
+    const d = new Date(ms);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** A datetime-local value ('2026-10-05T14:30', the reader's own clock) as an ISO instant; undefined when blank or unreadable. */
+export function localToIso(value) {
+    if (!value) return undefined;
+    const ms = new Date(value).getTime();
+    return Number.isNaN(ms) ? undefined : new Date(ms).toISOString();
+}
+
 /**
  * The create body — an explicit allow-list (BFSF-441): the register never
  * sends a field the form did not ask for. `kind` decides the regimes' default
- * on the server (CRA for a vulnerability, GDPR otherwise).
+ * on the server (CRA for a vulnerability, GDPR otherwise). `detected_at` is
+ * when the organisation became aware: the 72-hour clock runs from there, not
+ * from the moment someone filled in the form.
  */
 export function createBodyOf(draft, kind) {
     const body = {
@@ -181,7 +265,10 @@ export function createBodyOf(draft, kind) {
         title: String(draft.title || '').trim(),
         description: String(draft.description || '').trim() || undefined,
         severity: draft.severity || 'medium',
-        occurred_at: draft.occurred_at || undefined,
+        // Both moments come from datetime-local inputs (the reader's clock):
+        // sent as instants, so the server never reads them in its own zone.
+        occurred_at: localToIso(draft.occurred_at),
+        detected_at: localToIso(draft.detected_at),
     };
     if (kind === 'vulnerability') {
         body.cve_ids = parseCveIds(draft.cve_ids);

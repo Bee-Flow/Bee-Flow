@@ -56,7 +56,7 @@ const COLUMNS = Object.freeze([
 const COLUMN_FALLBACKS = Object.freeze({ agent: 'Agent', reason: 'Why it is high-risk', status: 'DPIA' });
 
 export default function DpiaPage({ data = {}, isMobile = false, focusId = null, exportsEnabled = true, dl }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const state = data.dpia || {};
     const core = data.core || {};
 
@@ -149,7 +149,7 @@ export default function DpiaPage({ data = {}, isMobile = false, focusId = null, 
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
                     <ClipboardList size={12} aria-hidden="true" />
                     {selected.dpia
-                        ? t('compliance.dpia_on_record', 'DPIA on record ({mode}) — {date}', { mode: selected.dpia.mode, date: fmtDate(selected.dpia.approved_at) })
+                        ? t('compliance.dpia_on_record', 'DPIA on record ({mode}) — {date}', { mode: selected.dpia.mode, date: fmtDate(selected.dpia.approved_at, resolvedLocale) })
                         : t('compliance.dpia_missing', 'No DPIA on record')}
                 </span>
             </DrawerSection>
@@ -237,7 +237,7 @@ export default function DpiaPage({ data = {}, isMobile = false, focusId = null, 
                             <TableCell column={ctx.columns[2]}>
                                 <StatusPill tone={r.dpia ? 'success' : tone} testId={`dpia-status-${r.agentId}`}>
                                     {r.dpia
-                                        ? t('compliance.dpia_on_record', 'DPIA on record ({mode}) — {date}', { mode: r.dpia.mode, date: fmtDate(r.dpia.approved_at) })
+                                        ? t('compliance.dpia_on_record', 'DPIA on record ({mode}) — {date}', { mode: r.dpia.mode, date: fmtDate(r.dpia.approved_at, resolvedLocale) })
                                         : t('compliance.dpia_missing', 'No DPIA on record')}
                                 </StatusPill>
                             </TableCell>

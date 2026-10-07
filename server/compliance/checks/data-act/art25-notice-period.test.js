@@ -77,6 +77,15 @@ test('self-hosted → not_applicable (no cloud switching contract), via either l
     assert.equal(check._test._deploymentMode(), 'cloud', 'default is cloud');
 });
 
+test('an unknown deployment mode without a provider role → not_applicable, not a crash', async () => {
+    state.licenseShape = 'mode';
+    state.mode = 'staging';
+    const r = await check.evaluate('org-1');
+    assert.equal(r.status, 'not_applicable');
+    assert.equal(r.evidence.deployment_mode, 'staging');
+    assert.deepEqual(Object.keys(r.evidence).sort(), ['deployment_mode', 'max_notice_days', 'org_provider_role']);
+});
+
 test('cloud, platform value not declared → warn', async () => {
     const r = await check.evaluate('org-1');
     assert.equal(r.status, 'warn');

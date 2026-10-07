@@ -104,7 +104,7 @@ describe('RisksTable — the register rows', () => {
     it('lays the columns out 58px 1fr 110px 110px 92px with the artboard headings', () => {
         renderTable({ testId: 'risk-table' });
         const header = screen.getByTestId('risk-table-header');
-        expect(header.style.gridTemplateColumns).toBe('58px 1fr 110px 110px 92px');
+        expect(header.style.getPropertyValue('--ct-cols')).toBe('58px 1fr 110px 110px 92px');
         expect(RISK_COLUMNS.map(c => c.width)).toEqual(['58px', '1fr', '110px', '110px', '92px']);
         expect(within(header).getAllByRole('columnheader').map(c => c.textContent))
             .toEqual(['Risk', 'Title · scenario', 'Score', 'Treatment', 'Owner']);

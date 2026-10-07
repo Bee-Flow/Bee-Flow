@@ -23,7 +23,7 @@ export const FRAMEWORKS = [
         "core": true,
         "capability": "compliance_hub_gdpr",
         "checks_dir": "gdpr",
-        "checks_count": 21,
+        "checks_count": 30,
         "in_force_since": "2018-05-25",
         "in_force_from": null,
         "phases": [
@@ -38,19 +38,30 @@ export const FRAMEWORKS = [
             "ropa",
             "dpia"
         ],
-        "relevance_gate": false
+        "relevance_gate": false,
+        "sources": [
+            {
+                "label": "Regulation (EU) 2016/679 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+            },
+            {
+                "label": "Uitvoeringswet AVG — wetten.overheid.nl",
+                "url": "https://wetten.overheid.nl/BWBR0040940/"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "aia",
         "regulation": "AIA",
-        "regulation_code": "Verordening (EU) 2024/1689",
+        "regulation_code": "Verordening (EU) 2024/1689 · gewijzigd bij Verordening (EU) 2026/1744",
         "name_key": "compliance.fw_aia_name",
         "description_key": "compliance.fw_aia_desc",
         "affects_key": "compliance.fw_aia_affects",
         "core": true,
         "capability": "compliance_hub_aia",
         "checks_dir": "aia",
-        "checks_count": 7,
+        "checks_count": 9,
         "in_force_since": "2024-08-01",
         "in_force_from": null,
         "phases": [
@@ -80,19 +91,30 @@ export const FRAMEWORKS = [
             }
         ],
         "registers": [],
-        "relevance_gate": false
+        "relevance_gate": false,
+        "sources": [
+            {
+                "label": "Regulation (EU) 2024/1689 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj"
+            },
+            {
+                "label": "Regulation (EU) 2026/1744 (Digital Omnibus on AI) — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2026/1744/oj"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "iso27001",
         "regulation": "ISO27001",
-        "regulation_code": "ISO/IEC 27001:2022",
+        "regulation_code": "ISO/IEC 27001:2022 + Amd 1:2024",
         "name_key": "compliance.fw_iso27001_name",
         "description_key": "compliance.fw_iso27001_desc",
         "affects_key": "compliance.fw_iso27001_affects",
         "core": true,
         "capability": "compliance_hub_iso27001",
         "checks_dir": "iso27001",
-        "checks_count": 63,
+        "checks_count": 73,
         "in_force_since": null,
         "in_force_from": null,
         "phases": [],
@@ -105,7 +127,14 @@ export const FRAMEWORKS = [
             "access_log",
             "connectors"
         ],
-        "relevance_gate": false
+        "relevance_gate": false,
+        "sources": [
+            {
+                "label": "ISO/IEC 27001:2022 — iso.org",
+                "url": "https://www.iso.org/standard/27001"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "nis2",
@@ -117,7 +146,7 @@ export const FRAMEWORKS = [
         "core": false,
         "capability": "compliance_hub_nis2",
         "checks_dir": "nis2",
-        "checks_count": 36,
+        "checks_count": 37,
         "in_force_since": "2026-08-15",
         "in_force_from": null,
         "phases": [
@@ -129,7 +158,22 @@ export const FRAMEWORKS = [
         "registers": [
             "incidents"
         ],
-        "relevance_gate": false
+        "relevance_gate": false,
+        "sources": [
+            {
+                "label": "Directive (EU) 2022/2555 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
+            },
+            {
+                "label": "Cyberbeveiligingswet: registration and reporting — NCSC",
+                "url": "https://www.ncsc.nl/cyberbeveiligingswet-nis2"
+            },
+            {
+                "label": "Implementing Regulation (EU) 2024/2690 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg_impl/2024/2690/oj"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "cra",
@@ -146,6 +190,10 @@ export const FRAMEWORKS = [
         "in_force_from": null,
         "phases": [
             {
+                "date": "2026-06-11",
+                "label_key": "compliance.fw_cra_phase_notified_bodies"
+            },
+            {
                 "date": "2026-09-11",
                 "label_key": "compliance.fw_cra_phase_reporting"
             },
@@ -157,7 +205,14 @@ export const FRAMEWORKS = [
         "registers": [
             "vulnerabilities"
         ],
-        "relevance_gate": false
+        "relevance_gate": false,
+        "sources": [
+            {
+                "label": "Regulation (EU) 2024/2847 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2024/2847/oj"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "data_act",
@@ -178,6 +233,10 @@ export const FRAMEWORKS = [
                 "label_key": "compliance.fw_data_act_phase_in_force"
             },
             {
+                "date": "2026-09-12",
+                "label_key": "compliance.fw_data_act_phase_connected_products"
+            },
+            {
                 "date": "2027-01-12",
                 "label_key": "compliance.fw_data_act_phase_switching_charges"
             }
@@ -185,7 +244,14 @@ export const FRAMEWORKS = [
         "registers": [
             "portability"
         ],
-        "relevance_gate": false
+        "relevance_gate": false,
+        "sources": [
+            {
+                "label": "Regulation (EU) 2023/2854 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2023/2854/oj"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "pld",
@@ -207,7 +273,14 @@ export const FRAMEWORKS = [
             }
         ],
         "registers": [],
-        "relevance_gate": false
+        "relevance_gate": false,
+        "sources": [
+            {
+                "label": "Directive (EU) 2024/2853 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/dir/2024/2853/oj"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "eaa",
@@ -233,7 +306,14 @@ export const FRAMEWORKS = [
             }
         ],
         "registers": [],
-        "relevance_gate": false
+        "relevance_gate": false,
+        "sources": [
+            {
+                "label": "Directive (EU) 2019/882 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/dir/2019/882/oj"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "dora",
@@ -257,7 +337,14 @@ export const FRAMEWORKS = [
         "registers": [
             "incidents"
         ],
-        "relevance_gate": true
+        "relevance_gate": true,
+        "sources": [
+            {
+                "label": "Regulation (EU) 2022/2554 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     },
     {
         "id": "machinery",
@@ -279,7 +366,14 @@ export const FRAMEWORKS = [
             }
         ],
         "registers": [],
-        "relevance_gate": true
+        "relevance_gate": true,
+        "sources": [
+            {
+                "label": "Regulation (EU) 2023/1230 — EUR-Lex",
+                "url": "https://eur-lex.europa.eu/eli/reg/2023/1230/oj"
+            }
+        ],
+        "legal_status_verified": "2026-10-06"
     }
 ];
 
@@ -335,6 +429,16 @@ export const MILESTONES = [
         "detail_key": "compliance.cal_ms_data_act_in_force_detail"
     },
     {
+        "id": "cra_notified_bodies",
+        "date": "2026-06-11",
+        "expected": null,
+        "framework_id": "cra",
+        "kind": "phase",
+        "affects_kind": null,
+        "label_key": "compliance.cal_ms_cra_notified_bodies_label",
+        "detail_key": "compliance.cal_ms_cra_notified_bodies_detail"
+    },
+    {
         "id": "aia_art50_enforcement",
         "date": "2026-08-02",
         "expected": null,
@@ -363,6 +467,16 @@ export const MILESTONES = [
         "affects_kind": "releases",
         "label_key": "compliance.cal_ms_cra_reporting_duty_label",
         "detail_key": "compliance.cal_ms_cra_reporting_duty_detail"
+    },
+    {
+        "id": "data_act_connected_products",
+        "date": "2026-09-12",
+        "expected": null,
+        "framework_id": "data_act",
+        "kind": "phase",
+        "affects_kind": null,
+        "label_key": "compliance.cal_ms_data_act_connected_products_label",
+        "detail_key": "compliance.cal_ms_data_act_connected_products_detail"
     },
     {
         "id": "aia_marking_transition_end",
@@ -403,6 +517,26 @@ export const MILESTONES = [
         "affects_kind": null,
         "label_key": "compliance.cal_ms_machinery_in_force_label",
         "detail_key": "compliance.cal_ms_machinery_in_force_detail"
+    },
+    {
+        "id": "aia_gpai_legacy_models",
+        "date": "2027-08-02",
+        "expected": null,
+        "framework_id": "aia",
+        "kind": "transition_end",
+        "affects_kind": null,
+        "label_key": "compliance.cal_ms_aia_gpai_legacy_models_label",
+        "detail_key": "compliance.cal_ms_aia_gpai_legacy_models_detail"
+    },
+    {
+        "id": "data_act_chapter_iv_legacy_contracts",
+        "date": "2027-09-12",
+        "expected": null,
+        "framework_id": "data_act",
+        "kind": "transition_end",
+        "affects_kind": null,
+        "label_key": "compliance.cal_ms_data_act_chapter_iv_legacy_contracts_label",
+        "detail_key": "compliance.cal_ms_data_act_chapter_iv_legacy_contracts_detail"
     },
     {
         "id": "aia_annex_iii",
@@ -447,7 +581,7 @@ export const MILESTONES = [
     {
         "id": "omnibus_data_part",
         "date": null,
-        "expected": "2026-Q4",
+        "expected": "2027-Q2",
         "framework_id": "gdpr",
         "kind": "uncertain",
         "affects_kind": null,
@@ -574,6 +708,93 @@ export const CHECK_DEFS = [
         "titleKey": "compliance.checks.gdpr_art28.title",
         "descriptionKey": "compliance.checks.gdpr_art28.desc",
         "remediationKey": "compliance.checks.gdpr_art28.fix",
+        "remediationLink": "admin/compliance/ropa",
+        "autoFixId": null
+    },
+    {
+        "check_id": "GDPR-Art30-personal-data-flows",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "30(1)(d)",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "30(1)(d)",
+        "severity": "medium",
+        "scope": "per-source",
+        "verification": "automated",
+        "titleKey": "compliance.checks.gdpr_art30_flows.title",
+        "descriptionKey": "compliance.checks.gdpr_art30_flows.desc",
+        "remediationKey": "compliance.checks.gdpr_art30_flows.fix",
+        "remediationLink": "admin/compliance/ropa",
+        "autoFixId": null
+    },
+    {
+        "check_id": "GDPR-Art30-datatable-registrations",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "30",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "30",
+        "severity": "medium",
+        "scope": "per-source",
+        "verification": "automated",
+        "titleKey": "compliance.checks.gdpr_art30_datatables.title",
+        "descriptionKey": "compliance.checks.gdpr_art30_datatables.desc",
+        "remediationKey": "compliance.checks.gdpr_art30_datatables.fix",
+        "remediationLink": "admin/compliance/ropa",
+        "autoFixId": null
+    },
+    {
+        "check_id": "GDPR-Art30-project-personal-data",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "30",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "GDPR",
+                "ref": "5(1)(c)",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.34",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.12",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "30",
+        "severity": "medium",
+        "scope": "per-source",
+        "verification": "hybrid",
+        "titleKey": "compliance.checks.gdpr_project_personal_data.title",
+        "descriptionKey": "compliance.checks.gdpr_project_personal_data.desc",
+        "remediationKey": "compliance.checks.gdpr_project_personal_data.fix",
         "remediationLink": "admin/compliance/ropa",
         "autoFixId": null
     },
@@ -734,6 +955,82 @@ export const CHECK_DEFS = [
         "autoFixId": null
     },
     {
+        "check_id": "GDPR-Art32-project-access",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "32",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.15",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.18",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.8.3",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            },
+            {
+                "regulation": "NIS2",
+                "ref": "Art. 21(2)(i)",
+                "framework_id": "nis2",
+                "in_force_since": "2026-08-15"
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "32",
+        "severity": "high",
+        "scope": "global",
+        "verification": "automated",
+        "titleKey": "compliance.checks.gdpr_project_access.title",
+        "descriptionKey": "compliance.checks.gdpr_project_access.desc",
+        "remediationKey": "compliance.checks.gdpr_project_access.fix",
+        "remediationLink": "admin/compliance/gdpr",
+        "autoFixId": "project_prune_dangling_shares"
+    },
+    {
+        "check_id": "GDPR-Art32-project-files-unscanned",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "32",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.8.12",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "32",
+        "severity": "medium",
+        "scope": "global",
+        "verification": "automated",
+        "titleKey": "compliance.checks.gdpr_project_files_unscanned.title",
+        "descriptionKey": "compliance.checks.gdpr_project_files_unscanned.desc",
+        "remediationKey": "compliance.checks.gdpr_project_files_unscanned.fix",
+        "remediationLink": "admin/compliance/gdpr",
+        "autoFixId": "project_files_rescan"
+    },
+    {
         "check_id": "GDPR-Art33-breach-detection",
         "regulation": "GDPR",
         "framework_id": "gdpr",
@@ -786,6 +1083,35 @@ export const CHECK_DEFS = [
         "autoFixId": null
     },
     {
+        "check_id": "GDPR-Art35-project-ai-participation",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "35",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "AIA",
+                "ref": "Art. 26(9)",
+                "framework_id": "aia",
+                "in_force_since": "2027-12-02"
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "35",
+        "severity": "high",
+        "scope": "per-source",
+        "verification": "hybrid",
+        "titleKey": "compliance.checks.gdpr_project_ai_participation.title",
+        "descriptionKey": "compliance.checks.gdpr_project_ai_participation.desc",
+        "remediationKey": "compliance.checks.gdpr_project_ai_participation.fix",
+        "remediationLink": "admin/compliance/dpia",
+        "autoFixId": "project_ai_mode_mention"
+    },
+    {
         "check_id": "GDPR-Art37-dpo-appointed",
         "regulation": "GDPR",
         "framework_id": "gdpr",
@@ -832,6 +1158,35 @@ export const CHECK_DEFS = [
         "autoFixId": null
     },
     {
+        "check_id": "GDPR-Art5-1-e-project-retention",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "5(1)(e)",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.8.10",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "5(1)(e)",
+        "severity": "medium",
+        "scope": "per-source",
+        "verification": "automated",
+        "titleKey": "compliance.checks.gdpr_project_retention.title",
+        "descriptionKey": "compliance.checks.gdpr_project_retention.desc",
+        "remediationKey": "compliance.checks.gdpr_project_retention.fix",
+        "remediationLink": "admin/compliance/settings",
+        "autoFixId": null
+    },
+    {
         "check_id": "GDPR-Art5-1-e-storage-limitation",
         "regulation": "GDPR",
         "framework_id": "gdpr",
@@ -863,10 +1218,10 @@ export const CHECK_DEFS = [
                 "regulation": "AIA",
                 "ref": "13",
                 "framework_id": "aia",
-                "in_force_since": "2024-08-01"
+                "in_force_since": "2027-12-02"
             }
         ],
-        "in_force_since": "2024-08-01",
+        "in_force_since": "2027-12-02",
         "article": "13",
         "severity": "medium",
         "scope": "global",
@@ -886,10 +1241,10 @@ export const CHECK_DEFS = [
                 "regulation": "AIA",
                 "ref": "26(6)",
                 "framework_id": "aia",
-                "in_force_since": "2024-08-01"
+                "in_force_since": "2027-12-02"
             }
         ],
-        "in_force_since": "2024-08-01",
+        "in_force_since": "2027-12-02",
         "article": "26(6)",
         "severity": "medium",
         "scope": "global",
@@ -909,10 +1264,10 @@ export const CHECK_DEFS = [
                 "regulation": "AIA",
                 "ref": "26",
                 "framework_id": "aia",
-                "in_force_since": "2024-08-01"
+                "in_force_since": "2027-12-02"
             }
         ],
-        "in_force_since": "2024-08-01",
+        "in_force_since": "2027-12-02",
         "article": "26",
         "severity": "high",
         "scope": "per-source",
@@ -990,6 +1345,29 @@ export const CHECK_DEFS = [
         "descriptionKey": "compliance.check_aia_art50_marking_desc",
         "remediationKey": "compliance.check_aia_art50_marking_fix",
         "remediationLink": "admin/compliance/settings",
+        "autoFixId": null
+    },
+    {
+        "check_id": "AIA-Art50-project-ai-edits-attributed",
+        "regulation": "AIA",
+        "framework_id": "aia",
+        "frameworks": [
+            {
+                "regulation": "AIA",
+                "ref": "50",
+                "framework_id": "aia",
+                "in_force_since": "2026-08-02"
+            }
+        ],
+        "in_force_since": "2026-08-02",
+        "article": "50",
+        "severity": "low",
+        "scope": "global",
+        "verification": "automated",
+        "titleKey": "compliance.checks.aia_project_ai_edits.title",
+        "descriptionKey": "compliance.checks.aia_project_ai_edits.desc",
+        "remediationKey": "compliance.checks.aia_project_ai_edits.fix",
+        "remediationLink": "admin/compliance/aia",
         "autoFixId": null
     },
     {
@@ -1133,6 +1511,41 @@ export const CHECK_DEFS = [
         "autoFixId": null
     },
     {
+        "check_id": "ISO27001-A.5.18-project-orphaned-content",
+        "regulation": "ISO27001",
+        "framework_id": "iso27001",
+        "frameworks": [
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.18",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.6.5",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            },
+            {
+                "regulation": "GDPR",
+                "ref": "5(1)(f)",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            }
+        ],
+        "in_force_since": null,
+        "article": "A.5.18",
+        "severity": "medium",
+        "scope": "global",
+        "verification": "automated",
+        "titleKey": "compliance.checks.iso_project_orphaned_content.title",
+        "descriptionKey": "compliance.checks.iso_project_orphaned_content.desc",
+        "remediationKey": "compliance.checks.iso_project_orphaned_content.fix",
+        "remediationLink": "admin/security/users",
+        "autoFixId": null
+    },
+    {
         "check_id": "ISO27001-A.5.20-suppliers",
         "regulation": "ISO27001",
         "framework_id": "iso27001",
@@ -1271,6 +1684,29 @@ export const CHECK_DEFS = [
         "descriptionKey": "compliance.checks.iso_evidence_integrity.desc",
         "remediationKey": "compliance.checks.iso_evidence_integrity.fix",
         "remediationLink": null,
+        "autoFixId": null
+    },
+    {
+        "check_id": "ISO27001-A.5.31-legal-register",
+        "regulation": "ISO27001",
+        "framework_id": "iso27001",
+        "frameworks": [
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.31",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": null,
+        "article": "A.5.31",
+        "severity": "medium",
+        "scope": "global",
+        "verification": "automated",
+        "titleKey": "compliance.checks.iso_legal_register.title",
+        "descriptionKey": "compliance.checks.iso_legal_register.desc",
+        "remediationKey": "compliance.checks.iso_legal_register.fix",
+        "remediationLink": "admin/compliance/frameworks",
         "autoFixId": null
     },
     {
@@ -2369,7 +2805,7 @@ export const CHECK_DEFS = [
         "frameworks": [
             {
                 "regulation": "DATA_ACT",
-                "ref": "30(3)",
+                "ref": "30(5)",
                 "framework_id": "data_act",
                 "in_force_since": "2025-09-12"
             },
@@ -2381,7 +2817,7 @@ export const CHECK_DEFS = [
             }
         ],
         "in_force_since": "2025-09-12",
-        "article": "30(3)",
+        "article": "30(5)",
         "severity": "medium",
         "scope": "global",
         "verification": "automated",

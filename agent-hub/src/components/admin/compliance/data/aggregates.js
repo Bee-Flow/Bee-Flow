@@ -99,6 +99,8 @@ export function useFrameworks({ enabled = true, onChanged = noop } = {}) {
         active: list ? list.filter(f => f.enabled) : null,
         candidates: list ? list.filter(f => !f.enabled && !f.core) : null,
         custom: res.data?.custom ?? null,
+        // How recently the legal register was checked (server: catalogueReview).
+        catalogue: res.data?.catalogue ?? null,
         byId: (id) => list?.find(f => f.id === id) || null,
         isEnabled: (id) => !!list?.find(f => f.id === id)?.enabled,
         busyId, failed: res.failed, refresh: res.refresh,

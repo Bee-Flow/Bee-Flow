@@ -512,15 +512,20 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     }, [canSeeOrg]);
 
     // ComplianceHub always emits admin-dashboard paths. Keep compliance-internal
-    // navigation on the settings surface (deep URL incl. section/check id),
-    // land remediation links on their settings equivalents where possible, and
-    // forward the rest to the app router.
-    const handleComplianceNavigate = useCallback((path) => {
+    // navigation on the settings surface (deep URL incl. section/check id and
+    // the header tab in `?tab=`), land remediation links on their settings
+    // equivalents where possible, and forward the rest to the app router.
+    // `{ replace: true }` is the hub redirecting a legacy link: the old URL
+    // must not stay in the history, or Back would land on it again.
+    const handleComplianceNavigate = useCallback((path, opts) => {
         const hit = rewriteComplianceNav(path);
         if (hit) {
             setOrgDeepSegs({ seg1: hit.section, seg2: hit.checkId });
             setActiveTabState('org_compliance');
-            if (window.location.pathname !== hit.url) window.history.pushState({}, '', hit.url);
+            if (window.location.pathname + window.location.search !== hit.url) {
+                if (opts?.replace) window.history.replaceState({}, '', hit.url);
+                else window.history.pushState({}, '', hit.url);
+            }
             return;
         }
         if (applyAdminEscape(path)) return;

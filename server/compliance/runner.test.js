@@ -516,6 +516,28 @@ function subjectCheck(id, regulation, subjects, overrides = {}) {
     });
 }
 
+test('the result row names its subject; the chained evidence payload stays id-only', async () => {
+    fakeRegistry.register(subjectCheck('GDPR-Art35-dpia', 'GDPR', [
+        { id: 'agent-1', label: '  Schadebeoordeling  ' },
+        { id: 'agent-2', label: '' },
+    ]));
+    fakeRegistry.register(subjectCheck('PLD-Art9-own-label', 'GDPR', [{ id: 'build-1', label: 'Runner label' }], {
+        evaluate: async (_org, subj) => ({ status: 'pass', evidence: { subject_label: 'Check label' }, details: `judged ${subj?.id}` }),
+    }));
+
+    await runner.runAll('org1');
+
+    const row = (id) => store.results.find(r => r.scope_id === id);
+    assert.deepStrictEqual(row('agent-1').evidence, { subject: 'agent-1', subject_label: 'Schadebeoordeling' });
+    assert.deepStrictEqual(row('agent-2').evidence, { subject: 'agent-2' }, 'no label, nothing added');
+    assert.deepStrictEqual(row('build-1').evidence, { subject_label: 'Check label' }, 'a check\'s own label wins');
+
+    const ledger = store.evidence.find(e => e.subject_id === 'agent-1');
+    assert.deepStrictEqual(ledger.payload.subject, { id: 'agent-1' }, 'the chain carries the id only');
+    assert.deepStrictEqual(ledger.payload.evidence, { subject: 'agent-1' }, 'the label never enters the chained payload');
+    assert.doesNotMatch(JSON.stringify(ledger.payload), /Schadebeoordeling/);
+});
+
 test('runForSubject runs only the checks that hold the subject, and writes nothing for the rest', async () => {
     fakeRegistry.register(subjectCheck('AIA-Art50-marking', 'AIA', [
         { id: 'auto-1', label: 'Invoice mailer' },

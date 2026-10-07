@@ -232,7 +232,13 @@ export function useNavigateToPage({
             setAdminPath(parseAdminPath(path));
             setShowProfileMenu(false);
             setShowStudio(false);
-            window.history.pushState({ page: 'admin' }, '', path);
+            // The Compliance Center hands over its header tab in the path
+            // ('admin/compliance/frameworks?tab=calendar') and asks for
+            // `replace` when it redirects a legacy link, so Back skips it.
+            // A tab switch on the same page already rewrote the URL: no
+            // second, identical history entry.
+            if (replace) window.history.replaceState({ page: 'admin' }, '', path);
+            else if (window.location.pathname + window.location.search !== path) window.history.pushState({ page: 'admin' }, '', path);
             return;
         }
         // Support org-settings sub-paths like 'org-settings/agents'

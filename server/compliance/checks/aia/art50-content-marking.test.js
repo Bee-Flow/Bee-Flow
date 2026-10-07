@@ -84,11 +84,12 @@ test('marking on → pass for every subject, evidence carries the graph facts', 
     assert.ok(!JSON.stringify(r.evidence).includes('Offerte'), 'evidence carries ids, not the title');
 });
 
-test('marking off before 2 Dec 2026 → warn with "required from 2 Dec 2026 (in N days)"', async () => {
+test('marking off before 2 Dec 2026 → warn: Art. 50(2) applies, the transition ends 2 Dec 2026 (in N days)', async () => {
     state.settings = { ai_content_marking_enabled: false };
     const r = await check.evaluate('org-1', SUBJECT, { now: BEFORE });
     assert.strictEqual(r.status, 'warn');
-    assert.match(r.details, /required from 2 Dec 2026 \(in 79 days\)/);
+    assert.match(r.details, /has applied since 2 Aug 2026/);
+    assert.match(r.details, /ends on 2 Dec 2026 \(in 79 days\)/);
     assert.strictEqual(r.evidence.days_until_required, 79);
     const eve = await check.evaluate('org-1', SUBJECT, { now: EVE });
     assert.strictEqual(eve.status, 'warn');

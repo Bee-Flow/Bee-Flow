@@ -30,6 +30,15 @@ test('the fingerprint ignores what moves on every run and keeps what was found',
     assert.notStrictEqual(fs.fingerprintOf(a), fs.fingerprintOf(failing), 'warn → fail always re-opens');
 });
 
+test('the subject label the runner stamps on a row is a name, not part of the finding', () => {
+    const a = { status: 'fail', evidence: { agent_id: 'ag_1', subject_label: 'Claims bot' } };
+    const renamed = { status: 'fail', evidence: { agent_id: 'ag_1', subject_label: 'Claims assessor' } };
+    const unlabelled = { status: 'fail', evidence: { agent_id: 'ag_1' } };
+    assert.strictEqual(fs.fingerprintOf(a), fs.fingerprintOf(renamed), 'renaming the agent keeps the decision');
+    assert.strictEqual(fs.fingerprintOf(a), fs.fingerprintOf(unlabelled), 'adding the label does not lapse an earlier decision');
+    assert.notStrictEqual(fs.fingerprintOf(a), fs.fingerprintOf({ status: 'fail', evidence: { agent_id: 'ag_2', subject_label: 'Claims bot' } }));
+});
+
 test('a check can name its own stable subset', () => {
     const def = { fingerprintOf: (ev) => (ev.offenders || []).map(o => o.project_id).sort() };
     const a = { status: 'warn', evidence: { offenders: [{ project_id: 'p1', count: 2 }], total: 2 } };

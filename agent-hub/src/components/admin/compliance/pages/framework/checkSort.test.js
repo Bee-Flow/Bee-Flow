@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     belongsToRegulation, checksForRegulation, otherFrameworkRefs, articleForRegulation, articleNumber, articleKey,
     sortChecks, filterByStatus, countByStatus, matchesSearch, resolveRemediation, canFollow, autoFixCount,
-    formatRunAt, shortHash, frameworkIdOf, isOpen,
+    formatRunAt, shortHash, frameworkIdOf, isOpen, rowKeyOf, focusRowKey, subjectLabel,
 } from './checkSort';
 
 const c = (check_id, status, severity, article, extra = {}) => ({ check_id, status, severity, article, regulation: 'GDPR', ...extra });
@@ -128,5 +128,40 @@ describe('checkSort — formatting', () => {
         expect(frameworkIdOf('ISO27001')).toBe('iso27001');
         expect(frameworkIdOf('DATA_ACT')).toBe('data_act');
         expect(frameworkIdOf(null)).toBeNull();
+    });
+});
+
+describe('checkSort — one row per subject', () => {
+    const dpia = (scope_id, status, evidence = {}) => ({ check_id: 'GDPR-Art35-dpia-high-risk', scope_id, status, evidence });
+
+    it('rowKeyOf is check + scope, with an empty scope for a global check', () => {
+        expect(rowKeyOf(dpia('agent_claims', 'fail'))).toBe('GDPR-Art35-dpia-high-risk:agent_claims');
+        expect(rowKeyOf({ check_id: 'GDPR-Art32-enc', scope_id: null })).toBe('GDPR-Art32-enc:');
+        expect(rowKeyOf({ check_id: 'GDPR-Art32-enc' })).toBe('GDPR-Art32-enc:');
+    });
+
+    it('focusRowKey takes a row key exactly, and a bare check id as the first row of that check', () => {
+        const list = [dpia('agent_claims', 'fail'), dpia('agent_intake', 'pass'), { check_id: 'GDPR-Art32-enc', scope_id: null }];
+        expect(focusRowKey(list, 'GDPR-Art35-dpia-high-risk:agent_intake')).toBe('GDPR-Art35-dpia-high-risk:agent_intake');
+        expect(focusRowKey(list, 'GDPR-Art35-dpia-high-risk')).toBe('GDPR-Art35-dpia-high-risk:agent_claims');
+        expect(focusRowKey(list, 'GDPR-Art32-enc')).toBe('GDPR-Art32-enc:');
+        expect(focusRowKey(list, 'nope')).toBeNull();
+        expect(focusRowKey(null, 'GDPR-Art32-enc')).toBeNull();
+        expect(focusRowKey(list, null)).toBeNull();
+    });
+
+    it('subjectLabel: the runner\'s subject_label, then agent_name, then automation_name, then the one project', () => {
+        expect(subjectLabel(dpia('a', 'fail', { subject_label: 'From runner', agent_name: 'From check', automation_name: 'Auto' }))).toBe('From runner');
+        expect(subjectLabel(dpia('a', 'fail', { subject_label: '  ', agent_name: 'Schadebeoordeling' }))).toBe('Schadebeoordeling');
+        expect(subjectLabel(dpia('a', 'fail', { automation_name: 'Polisbrief' }))).toBe('Polisbrief');
+        expect(subjectLabel({ check_id: 'x', scope_id: 'project:p1', evidence: { project_id: 'p1' }, project_names: { p1: 'Launch plan' } })).toBe('Launch plan');
+        expect(subjectLabel({ check_id: 'x', scope_id: null, evidence: { offenders: [{ project_id: 'p1' }, { project_id: 'p2' }] } })).toBeNull();
+        expect(subjectLabel({ check_id: 'x', evidence: null })).toBeNull();
+    });
+
+    it('the search also finds a row by its subject\'s name', () => {
+        const row = dpia('agent_claims', 'fail', { agent_name: 'Schadebeoordeling' });
+        expect(matchesSearch(row, 'schadebeoord')).toBe(true);
+        expect(matchesSearch(row, 'polisintake')).toBe(false);
     });
 });

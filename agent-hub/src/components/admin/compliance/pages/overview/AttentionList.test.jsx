@@ -101,7 +101,7 @@ describe('AttentionList', () => {
         const { navigate, onNavigate } = renderList();
         const rows = screen.getAllByTestId('attention-list-row');
         fireEvent.click(within(rows[0]).getByTestId('attention-list-row-action'));
-        expect(navigate).toHaveBeenCalledWith('settings', undefined);
+        expect(navigate).toHaveBeenCalledWith('settings', undefined, undefined); // (section, id, tab)
         expect(onNavigate).not.toHaveBeenCalled();
     });
 
@@ -173,5 +173,27 @@ describe('AttentionList — collapsed per-source findings', () => {
         expect(within(rows[0]).queryByTestId('attention-list-row-open-subject')).toBeNull();
         await userEvent.setup().click(within(rows[1]).getByTestId('attention-list-row-open-subject'));
         expect(onNavigate).toHaveBeenCalledWith('projects/p1/settings');
+    });
+});
+
+describe('AttentionList — targets that carry a tab are live clicks', () => {
+    it('opens the tab the target names, and sends a moved tab where it went', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const user = userEvent.setup();
+        const navigate = vi.fn();
+        const items = [
+            { id: 'register:ai_act:agent:a1', code: 'ai_act_attestation_expired', title: 'AI Act self-assessment expired (agent)', status: 'warn',
+                meta: { frameworks: [{ regulation: 'AIA', ref: 'Art. 53' }] },
+                action: { type: 'navigate', target: '/app/admin/compliance/frameworks?tab=per_automation' } },
+            { id: 'register:obligation:3', code: 'obligation_overdue', title: 'Overdue: Internal audit', status: 'fail',
+                meta: { frameworks: [{ regulation: 'ISO27001', ref: 'cl. 9' }] },
+                action: { type: 'navigate', target: '/app/admin/compliance/audits?tab=obligations' } },
+        ];
+        render(<AttentionList attention={{ items, total: 2, tail: [] }} items={items} navigate={navigate} onNavigate={vi.fn()} />);
+        const rows = screen.getAllByTestId('attention-list-row');
+        await user.click(within(rows[0]).getByTestId('attention-list-row-action'));
+        expect(navigate).toHaveBeenLastCalledWith('frameworks', undefined, 'per_automation');
+        await user.click(within(rows[1]).getByTestId('attention-list-row-action'));
+        expect(navigate).toHaveBeenLastCalledWith('training', undefined, undefined);
     });
 });

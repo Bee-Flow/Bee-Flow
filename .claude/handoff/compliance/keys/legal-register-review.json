@@ -1,0 +1,26 @@
+{
+    "en": {
+        "compliance.hdr_fw_checked": "Legal status checked {date} · not legal advice",
+        "compliance.hdr_fw_review_due": "Legal status checked {date} · due for review",
+        "compliance.hdr_fw_review_unknown": "Legal status not recorded · due for review",
+        "compliance.hdr_fw_checked_hint": "The frameworks, dates and milestones here were checked against the official texts. Each framework lists its sources under Timeline. Not legal advice.",
+        "compliance.tbl_timeline_sources": "Sources",
+        "compliance.tbl_timeline_checked": "Checked against these sources on {date}. Not legal advice.",
+        "compliance.tbl_timeline_review_due": "Checked {date}. Due for review: more than {days} days ago, so treat these dates as unconfirmed until Bee Flow is updated.",
+        "compliance.checks.iso_legal_register.title": "Legal register up to date",
+        "compliance.checks.iso_legal_register.desc": "The frameworks, dates and milestones this hub scores against are checked against the official texts. This check reports when the legal status of a framework you use has not been re-checked for more than 90 days.",
+        "compliance.checks.iso_legal_register.fix": "Update Bee Flow to get the latest legal register. Until then, open Frameworks, read the listed sources for each framework marked as due for review, and treat its dates as unconfirmed."
+    },
+    "nl": {
+        "compliance.hdr_fw_checked": "Juridische status gecontroleerd op {date} · geen juridisch advies",
+        "compliance.hdr_fw_review_due": "Juridische status gecontroleerd op {date} · toe aan herziening",
+        "compliance.hdr_fw_review_unknown": "Juridische status niet vastgelegd · toe aan herziening",
+        "compliance.hdr_fw_checked_hint": "De kaders, data en mijlpalen hier zijn gecontroleerd aan de hand van de officiële teksten. Elk kader toont zijn bronnen onder Tijdlijn. Geen juridisch advies.",
+        "compliance.tbl_timeline_sources": "Bronnen",
+        "compliance.tbl_timeline_checked": "Gecontroleerd aan de hand van deze bronnen op {date}. Geen juridisch advies.",
+        "compliance.tbl_timeline_review_due": "Gecontroleerd op {date}. Toe aan herziening: meer dan {days} dagen geleden, dus beschouw deze data als onbevestigd tot Bee Flow is bijgewerkt.",
+        "compliance.checks.iso_legal_register.title": "Juridisch register actueel",
+        "compliance.checks.iso_legal_register.desc": "De kaders, data en mijlpalen waartegen deze hub scoort, zijn gecontroleerd aan de hand van de officiële teksten. Deze check meldt wanneer de juridische status van een kader dat u gebruikt meer dan 90 dagen niet opnieuw is gecontroleerd.",
+        "compliance.checks.iso_legal_register.fix": "Werk Bee Flow bij voor het nieuwste juridische register. Open tot die tijd Kaders, lees voor elk kader dat toe is aan herziening de vermelde bronnen, en beschouw de data als onbevestigd."
+    }
+}

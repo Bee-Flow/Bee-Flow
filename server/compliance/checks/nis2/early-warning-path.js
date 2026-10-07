@@ -5,9 +5,13 @@
  *
  * The incident register (compliance_incidents) carries one clock per stage
  * once the NIS2 columns land: `early_warning_due_at/_sent_at` (24 h),
- * `deadline_at` + `authority_notified_at` (72 h — the existing GDPR column
- * pair, shared), `final_report_due_at/_sent_at` (+1 month). Incidents count
- * for NIS2 when `regimes` contains 'NIS2'.
+ * `authority_notified_at` (72 h), `final_report_due_at/_sent_at` (+1 month).
+ * The 72 h due date has no column of its own: `deadline_at` is the EARLIEST
+ * open clock across every regime on the row (the 24 h early warning, a DORA
+ * 4 h customer notice, …), so reading it as "the notification" failed an
+ * incident at hour 4 or 24 for a 72 h duty. The notification clock is
+ * therefore computed from `detected_at` with the store's own NIS2 clock.
+ * Incidents count for NIS2 when `regimes` contains 'NIS2'.
  *
  *   any NIS2 incident past a clock without the matching stamp → fail
  *   a clock within 6 h, or no authority channel / CSIRT contact configured → warn
@@ -32,6 +36,8 @@ const incidentStore = require('../../../stores/incidentStore');
 
 const HOUR = 3600 * 1000;
 const URGENT_HOURS = 6;
+// NIS2 Art. 23(4)(b): incident notification within 72 h of becoming aware.
+const NOTIFICATION_HOURS = 72;
 const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
@@ -82,6 +88,17 @@ async function _openNis2Incidents(orgId) {
         if (NOT_PROVISIONED.has(e?.code)) return { rows: null, source: 'query', missing: e.code };
         throw e;
     }
+}
+
+/**
+ * The NIS2 72 h notification due date, from detected_at — never `deadline_at`
+ * (see the header). No detected_at → no clock: unknown, not met.
+ */
+function _notificationDue(row) {
+    const detected = row && row.detected_at ? new Date(row.detected_at).getTime() : NaN;
+    if (!Number.isFinite(detected)) return null;
+    const hours = incidentStore.REGIME_CLOCKS?.NIS2?.notificationHours || NOTIFICATION_HOURS;
+    return new Date(detected + hours * HOUR);
 }
 
 function _clock(dueAt, sentAt, now) {
@@ -153,7 +170,7 @@ module.exports = {
             reported_via: r.reported_via || null,
             clocks: {
                 early_warning: _clock(r.early_warning_due_at, r.early_warning_sent_at, now),
-                notification: _clock(r.deadline_at, r.authority_notified_at, now),
+                notification: _clock(_notificationDue(r), r.authority_notified_at, now),
                 final_report: _clock(r.final_report_due_at, r.final_report_sent_at, now),
             },
         }));

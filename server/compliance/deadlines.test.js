@@ -136,6 +136,8 @@ test('obligations and expiring AI Act attestations join the list; empty_kinds na
     assert.equal(out.items[0].pct, 1);
     assert.equal(out.items[1].state, 'urgent');
     assert.equal(out.items[1].ref, 'Automation');
+    assert.equal(out.items[0].target, '/app/admin/compliance/training', 'an obligation opens Training & competence');
+    assert.equal(out.items[1].target, '/app/admin/compliance/frameworks?tab=per_automation');
     assert.deepEqual(out.empty_kinds, ['dsr', 'incident', 'cra_early_warning', 'cra_full_report']);
 });
 

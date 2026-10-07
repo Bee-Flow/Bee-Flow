@@ -103,14 +103,14 @@ export const SETTING_GROUPS: readonly SettingGroup[] = [
             f('default_retention_days', 'number', L('compliance.default_retention_days', 'Memory retention (days)')),
             f('datatable_review_days', 'number', L('compliance.settings.datatable_review_days', 'Re-confirm a registered processing every (days)'), { hint: L('compliance.settings.datatable_review_days_hint', 'How long an entry in the processing register may stand before someone reads it again. 180 days when left empty.') }),
             f('project_retention_days', 'number', L('compliance.settings.project_retention_days', 'Keep unused projects with personal data for (days)'), { hint: L('compliance.settings.project_retention_days_hint', 'How long a collaborative project may go unused while it holds personal data. 365 days when left empty.') }),
-            f('project_owner_hints_enabled', 'toggle', L('compliance.settings.project_owner_hints_enabled', 'Show project owners one gentle hint they can act on'), {
-                defaultOn: true,
-                hint: L('compliance.settings.project_owner_hints_enabled_hint', 'At most one dismissible suggestion per project — members from outside, accounts that are gone, files not checked. Never about personal data in the project; that stays with you.'),
-            }),
             f('privacy_notice_url', 'url', L('compliance.privacy_notice_url', 'Privacy notice URL')),
             f('breach_recipients', 'emails', L('compliance.settings_breach', 'Breach notification recipients'), { hint: L('compliance.settings_breach_desc', 'Emails alerted on anomalous data-access events.') }),
             f('public_base_url', 'url', L('compliance.set_public_base_url', 'Public base URL'), { hint: L('compliance.set_public_base_url_hint', 'The address your customers reach — the checks probe security.txt, the privacy notice and the accessibility statement here.') }),
             f('sso_enforces_mfa', 'toggle', L('compliance.set_sso_enforces_mfa', 'Our SSO enforces multi-factor authentication'), { hint: L('compliance.set_sso_enforces_mfa_hint', 'Bee Flow cannot see what your identity provider requires — answer for it.') }),
+            f('project_owner_hints_enabled', 'toggle', L('compliance.settings.project_owner_hints_enabled', 'Show project owners one gentle hint they can act on'), {
+                defaultOn: true,
+                hint: L('compliance.settings.project_owner_hints_enabled_hint', 'At most one dismissible suggestion per project — members from outside, accounts that are gone, files not checked. Never about personal data in the project; that stays with you.'),
+            }),
         ],
     },
     {

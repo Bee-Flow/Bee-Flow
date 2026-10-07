@@ -44,23 +44,37 @@ tier, including Community.
 Detection runs entirely **in your own tenant**, in the `guard-service`
 container. Nothing is sent to a third-party detection API.
 
-A **GLiNER** model (Apache-2.0, CPU-only) performs the detection. Because it
-reads context rather than matching shapes, it distinguishes cases a pattern
-cannot — `factuurnummer 0123456789` is not treated as a phone number, while a
-bare `0644137044` is.
+Detection runs in two tiers, both inside the guard:
 
-One detector is deliberately not the model: the **Dutch BSN** is validated by
-its elfproef checksum. A nine-digit number with no surrounding context carries
-no signal for a language model to read, whereas the checksum decides it
-arithmetically. This applies to Dutch BSNs specifically — other countries'
-national identification numbers are detected by the model like anything else.
+1. **Patterns with checksums.** About fifty patterns for eleven countries
+   (NL, BE, DE, FR, ES, IT, PL, SE, AT, GB, US) propose structured identifiers:
+   e-mail addresses, URLs, IP addresses, IBANs, card numbers, API keys,
+   national and tax identifiers, licence plates and the like. A pattern only
+   proposes a candidate; many must then pass a checksum (mod-97 for an IBAN,
+   Luhn for a card number, the elfproef for a BSN). Some only count when a
+   keyword such as "BSN", "kenteken" or "polisnummer" appears just before the
+   number. Pattern matches carry a fixed confidence.
+2. **A GLiNER model** (Apache-2.0, CPU-only) reads context, so it finds what a
+   pattern cannot: names, organisations, addresses, dates of birth and health
+   data. It also distinguishes cases a pattern would get wrong:
+   `factuurnummer 0123456789` is not treated as a phone number, while a bare
+   `0644137044` is.
 
-A configurable **confidence threshold** (default 0.7) tunes how eagerly
-detection fires. Each category is individually calibrated and the slider
-shifts all the floors together: lower means broader detection and more false
-positives, higher means fewer detections. Above roughly 0.85 many genuine
-detections are filtered out — including structured ones, since a phone number
-in a short message with little surrounding context can score around 0.5.
+Where the pattern tier covers a category fully, the model is not asked about
+it at all. With no country configured that is e-mail, URL, IP address, IBAN,
+card number and API key; declaring a region (`GUARD_PII_REGIONS`, for example
+`NL`) hands national IDs, tax IDs and licence plates for that country to the
+pattern tier too, which also makes scans faster. A checksum can raise or lower
+the confidence of something the model found, but never removes it: a card
+number with a typo is still personal data.
+
+A configurable **confidence threshold** (default 0.7) tunes how eagerly the
+model fires. Each category has its own minimum score and the slider shifts all
+of them together: lower means broader detection and more false positives,
+higher means fewer detections. The per-category minimums are provisional until
+the next calibration run. The slider does not affect pattern matches. Above
+roughly 0.85 many genuine model detections are filtered out, since a phone
+number in a short message with little surrounding context can score around 0.5.
 
 ![Privacy Shield settings panel](../img/screenshots/features/privacy-shield-settings/)
 
@@ -74,11 +88,22 @@ in a short message with little surrounding context can score around 0.5.
 ## If detection is unavailable
 
 If the guard cannot be reached, or its model has not finished loading, the
-scan result is marked *degraded*. The default policy is **fail closed** — the
-message is blocked rather than sent unscanned. This is deliberate: in a
-privacy product, silently forwarding unscanned content is worse than a visible
-error. Self-hosters should allow for model load time on startup and run more
-than one replica if a restart must not interrupt service.
+scan result is marked *degraded*. For chat messages the default policy is
+**fail closed**: the message is blocked rather than sent unscanned. This is
+deliberate: in a privacy product, silently forwarding unscanned content is
+worse than a visible error. Self-hosters should allow for model load time on
+startup and run more than one replica if a restart must not interrupt service.
+
+Not every surface behaves the same way when the guard is down:
+
+| Surface | When detection is unavailable |
+|---------|-------------------------------|
+| Chat messages | Blocked (fail closed, the default) |
+| Large attachments | The unscanned part is cut off and marked, unless *attachment large-input policy* is set to fail closed |
+| Tool results, memory and knowledge-base passages | Passed through unscanned |
+
+Patterns from **Your own data** (word lists and fixed formats) run on the Bee
+Flow server, so they still apply on the surfaces that pass through.
 
 Configure per-org in **Settings → Organisation → Privacy**, or per-agent in **Studio → Agents** (overrides the org default). The org-level config is stored in the `org_privacy_shield_<orgId>` record.
 
@@ -94,7 +119,7 @@ Configure per-org in **Settings → Organisation → Privacy**, or per-agent in 
 | `piiFailureMode` | `fail_closed` | What to do when detection is unavailable. Server-side only — deliberately not exposed in the UI, because the safe value is the one you want. |
 | `showRawPayload` | `false` | Emit tokenised prompt + token map as SSE events for transparency (debug). |
 | `euModeEnabled` | `false` | GDPR-aware data handling (logs minimised). |
-| `webSearchGuardEnabled` | `true` | Apply PII filter to web-search results before injection. |
+| `webSearchGuardEnabled` | `false` | Apply PII filter to web-search results before injection. Needs the web-search guard licence feature. |
 | `customDataTypes` | `[]` | Your own kinds of data (see [Your own data](#your-own-data)). Each one is switched on by its id in `piiDetectionCategories` and the two tool lists. |
 | `customSensitiveTerms` | `[]` | The old list of your own words and patterns. Kept for one release as a copy of your own words and fixed formats; edit them under Your own data instead. |
 
@@ -102,7 +127,7 @@ Configure per-org in **Settings → Organisation → Privacy**, or per-agent in 
 
 1. Detect — matches in the outbound payload.
 2. Replace each match with a stable placeholder: `[email_1]`, `[iban_1]`, `[person_2]`, …
-3. Store the placeholder ↔ original mapping in tenant memory only (`conversationTokenMaps` map, conversation-scoped).
+3. Store the placeholder ↔ original mapping with the conversation, inside your own installation (see [Token map storage](#token-map-storage)).
 4. Send the redacted payload to the model.
 5. On the response, restore placeholders to original values **only on your screen**.
 
@@ -112,13 +137,16 @@ The model never sees the originals. The model provider's logs never contain the 
 
 | | Value |
 |---|---|
-| Scope | Per-conversation (in-memory `Map`) |
+| Scope | Per conversation (and per notebook) |
 | Per-message | Tokens merged into the conversation's map |
 | Token format | `[<category>_<index>]` — e.g. `[email_1]`, `[phone_2]` |
-| Cap | 500 tokens per conversation (LRU eviction) |
-| TTL | 5 minutes since last access (eviction is purely an LRU + TTL cache; the durable record is the redacted message in Postgres) |
+| Cap | 2,000 tokens per conversation, 5,000 per notebook; past the cap the oldest token is dropped and the drop is logged |
+| Storage | Written through to the conversation or notebook row in Postgres (encrypted when encryption is configured), and kept in memory on the replica for speed |
 
-The map lives in memory on the active server replica. With Redis configured, tokens migrate via Redis so that follow-up turns can hit a different replica and still resolve placeholders.
+Because the map is stored with the conversation, a follow-up turn on another
+replica or after a restart still resolves its placeholders. Values are also
+remembered per user, so the same e-mail address gets the same placeholder in
+later conversations.
 
 ## Showing the user what was redacted
 
