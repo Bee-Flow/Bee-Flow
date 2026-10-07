@@ -4,13 +4,13 @@
 # readable from the pinning box. Resolving torch from PyPI instead would
 # swap the CPU build for the CUDA one and add gigabytes to the image, so
 # this service waits for a box that can read download.pytorch.org.
-fastapi==0.141.1
+fastapi==0.142.2
 uvicorn[standard]==0.54.0
 # CPU-only PyTorch — much smaller than the default CUDA build. Unpinned: the
 # versions on the PyTorch wheel index cannot be read from the pinning box.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
-transformers==5.17.0
+transformers==5.18.0
 huggingface_hub==1.33.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
