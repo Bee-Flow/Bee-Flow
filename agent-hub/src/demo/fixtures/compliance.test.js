@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createState, ROUTES } from './compliance';
 import { CHECK_DEFS, ISO_CONTROLS, FRAMEWORKS, MILESTONES } from './complianceCatalog';
 import { COMMON_ROUTES, DEMO_CAPABILITIES } from './common';
+import { addCalendarMonths } from '../../components/shared/deadlineMath';
 import { DEMO_FEATURES } from '../registry';
 import { createDemoTransport } from '../demoTransport';
 
@@ -275,7 +276,10 @@ describe('compliance fixture — the aggregates the shell reads', () => {
             expect(i.pct).toBeGreaterThanOrEqual(0);
             expect(i.pct).toBeLessThanOrEqual(1);
             expect(i.target, `${i.id} has nowhere to go`).toBeTruthy();
-            expect(i.meta.article, `${i.id} has no article`).toBeTruthy();
+            // A full citation the card prints as it comes; an attestation
+            // expiry is Bee Flow's review interval and cites nothing.
+            if (i.kind === 'attestation_expiry') expect(i.meta.article, `${i.id}`).toBeNull();
+            else expect(i.meta.article, `${i.id} has no article`).toMatch(/^(GDPR|NIS2|DORA|CRA|ISO 27001) /);
         }
         // An overdue row sorts above an open one, or the card is decoration.
         expect(d.items[0].state).toBe('overdue');
@@ -379,14 +383,17 @@ describe('compliance fixture — the DSR register after BE-2', () => {
         expect(ROUTES['GET /api/compliance/access-audit'](c).entries[0].action).toBe('dsr.subject_viewed');
     });
 
-    it('the clock is computed, and an open request is urgent before it is overdue', () => {
+    it('the clock is computed in calendar months, and an open request is urgent before it is overdue', () => {
         const rows = call('GET /api/dsr/requests');
         const open = rows.filter(r => r.state !== 'none');
         expect(open.length).toBeGreaterThan(0);
+        // Art. 12(3): one calendar month from receipt, three once extended —
+        // dsrStore's rule, not 30 or 90 days.
         for (const r of rows) {
-            const due = new Date(r.due_at).getTime() - new Date(r.created_at).getTime();
-            expect(Math.round(due / 86_400_000), `${r.id}`).toBeGreaterThanOrEqual(30);
+            const months = r.extended_until ? 3 : 1;
+            expect(new Date(r.due_at).getTime(), `${r.id}`).toBe(addCalendarMonths(r.created_at, months));
         }
+        expect(rows.some(r => r.extended_until)).toBe(true);
         expect(rows.some(r => r.state === 'urgent')).toBe(true);
     });
 
@@ -394,7 +401,8 @@ describe('compliance fixture — the DSR register after BE-2', () => {
         const c = ctx({ params: { id: '2416' }, body: { reason: 'The claim file sits with two insurers.' } });
         const first = ROUTES['POST /api/dsr/requests/:id/extend'](c);
         expect(first.extension_reason).toBeTruthy();
-        expect(new Date(first.due_at).getTime() - new Date(first.created_at).getTime()).toBe(90 * 86_400_000);
+        expect(new Date(first.due_at).getTime()).toBe(addCalendarMonths(first.created_at, 3));
+        expect(first.extended_until).toBe(first.due_at);
         const second = ROUTES['POST /api/dsr/requests/:id/extend'](c);
         expect(second.status).toBe(409);
     });
@@ -552,6 +560,8 @@ describe('compliance fixture — every url the hub asks for is answered', () => 
         '/api/compliance/custom/frameworks', '/api/compliance/custom/frameworks/cfw_vvg',
         '/api/compliance/custom/checks/cck_3_1/attestations',
         '/api/compliance/registry',
+        // data/useChatMonitoring.ts (the Settings card)
+        '/api/compliance/chat-monitoring',
     ];
 
     it('answers every one of them with a body, not a 404', async () => {

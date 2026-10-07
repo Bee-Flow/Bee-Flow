@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createState, ROUTES } from './compliance';
 import { ISO_CONNECTORS } from './complianceCatalog';
+import { addCalendarMonths } from '../../components/shared/deadlineMath';
 
 /**
  * The Compliance demo answers in the server's shapes and vocabularies.
@@ -240,5 +241,132 @@ describe('compliance demo — collaborative projects in the processing register'
         expect((routes['GET /api/compliance/ropa'](c) as { activities: Row[] }).activities.some(a => a.activity_id === 'project:prj_makelaars')).toBe(true);
         expect((routes['DELETE /api/compliance/ropa/projects/:projectId']({ ...c, params: { projectId: 'prj_makelaars' } }) as Row).removed).toBe(true);
         expect((routes['DELETE /api/compliance/ropa/projects/:projectId']({ ...c, params: { projectId: 'prj_makelaars' } }) as Response).status).toBe(404);
+    });
+});
+
+// compliance/deadlines.js KINDS, in its order (the order of `empty_kinds`).
+const DEADLINE_KINDS = ['dsr', 'incident', 'cra_early_warning', 'cra_notification', 'cra_full_report', 'obligation', 'attestation_expiry'];
+const HOUR = 3_600_000;
+type Deadline = { id: string; kind: string; ref: string; state: string; due_at: string | null; meta: Row & { article: string | null } };
+type Attention = { id: string; code: string; status: string; meta: { detail: string | null; frameworks: { regulation: string; ref: string }[] } };
+const deadlines = (c: Ctx) => routes['GET /api/compliance/deadlines'](c) as { items: Deadline[]; empty_kinds: string[] };
+const attention = (c: Ctx) => (routes['GET /api/compliance/attention']({ ...c, query: new URLSearchParams('limit=50') }) as { items: Attention[] }).items;
+const hoursAgo = (h: number) => new Date(Date.now() - h * HOUR).toISOString();
+const ms = (v: unknown) => new Date(v as string).getTime();
+
+/** A CRA row needs the CRA switched on, as on the server. */
+function withCra(): Ctx {
+    const c = ctx();
+    routes['POST /api/compliance/frameworks/:id/enable']({ ...c, params: { id: 'cra' } });
+    return c;
+}
+const record = (c: Ctx, body: Row) => routes['POST /api/compliance/incidents']({ ...c, body }) as Row;
+const clocksOf = (c: Ctx, id: unknown) => deadlines(c).items.filter(i => i.ref === `INC-${id}`);
+
+describe('compliance demo — the clocks and citations of compliance/deadlines.js', () => {
+    it('cites each clock in full, per regime, and nothing for an attestation expiry', () => {
+        const d = deadlines(ctx());
+        expect([...d.empty_kinds]).toEqual(DEADLINE_KINDS.filter(k => d.empty_kinds.includes(k)));
+        expect(d.empty_kinds).toContain('cra_notification');
+        const byId = Object.fromEntries(d.items.map(i => [i.id, i]));
+        expect(byId['dsr:2417'].meta.article).toBe('GDPR Art. 12(3)');
+        // The DORA customer notice is the provider's contractual clock, cited beside GDPR Art. 33.
+        expect(byId['incident:32'].meta).toMatchObject({ article: 'GDPR Art. 33 · DORA Art. 30(3)(b)', regimes: ['GDPR', 'DORA'] });
+        expect(byId['incident:31'].meta.article).toBe('GDPR Art. 33');
+        const expiry = d.items.filter(i => i.kind === 'attestation_expiry');
+        expect(expiry.length).toBeGreaterThan(0);
+        for (const i of expiry) expect(i.meta.article).toBeNull();
+    });
+
+    it('a vulnerability runs the three Art. 14(2) clocks, the notification urgent with 24 hours left', () => {
+        const c = withCra();
+        const v = record(c, { kind: 'vulnerability', title: 'Auth bypass in the broker portal', detected_at: hoursAgo(50) });
+        const clocks = clocksOf(c, v.id);
+        expect(clocks.map(i => i.kind).sort()).toEqual(['cra_early_warning', 'cra_full_report', 'cra_notification']);
+        const by = Object.fromEntries(clocks.map(i => [i.kind, i]));
+        expect(by.cra_early_warning.meta).toMatchObject({ article: 'CRA Art. 14(2)(a)', stage: 'early_warning' });
+        expect(by.cra_early_warning.state).toBe('overdue');
+        expect(by.cra_notification.meta).toMatchObject({ article: 'CRA Art. 14(2)(b)', stage: 'notification' });
+        expect(ms(by.cra_notification.due_at) - ms(v.detected_at)).toBe(72 * HOUR);
+        expect(by.cra_notification.state).toBe('urgent');
+        expect(by.cra_full_report.meta).toMatchObject({ article: 'CRA Art. 14(2)(c)', stage: 'full' });
+        expect(ms(by.cra_full_report.due_at) - ms(v.detected_at)).toBe(14 * 24 * HOUR);
+        // 32 hours left on a 72-hour notification is not yet urgent.
+        const later = record(c, { kind: 'vulnerability', title: 'Second finding', detected_at: hoursAgo(40) });
+        expect(clocksOf(c, later.id).find(i => i.kind === 'cra_notification')?.state).toBe('ok');
+    });
+
+    it('a severe incident under the CRA cites Art. 14(4), its final report runs a month from the notification, and GDPR keeps its own item', () => {
+        const c = withCra();
+        const row = record(c, { kind: 'security_incident', regimes: ['GDPR', 'CRA'], title: 'Ransomware on the policy server', detected_at: hoursAgo(10) });
+        const by = Object.fromEntries(clocksOf(c, row.id).map(i => [i.kind, i]));
+        expect(Object.keys(by).sort()).toEqual(['cra_early_warning', 'cra_full_report', 'cra_notification', 'incident']);
+        expect(by.cra_early_warning.meta.article).toBe('CRA Art. 14(4)(a)');
+        expect(by.cra_notification.meta.article).toBe('CRA Art. 14(4)(b)');
+        expect(by.cra_full_report.meta.article).toBe('CRA Art. 14(4)(c)');
+        expect(ms(by.cra_full_report.due_at)).toBe(addCalendarMonths(ms(row.detected_at) + 72 * HOUR, 1));
+        // The authority item tracks the non-CRA regimes only: GDPR's 72 hours, not the CRA 24-hour early warning.
+        expect(by.incident.meta).toMatchObject({ article: 'GDPR Art. 33', regimes: ['GDPR'] });
+        expect(ms(by.incident.due_at) - ms(row.detected_at)).toBe(72 * HOUR);
+        // Recording the notification meets both notification clocks and re-dates the final report.
+        const filed = routes['PATCH /api/compliance/incidents/:id']({ ...c, params: { id: String(row.id) }, body: { status: 'authority_notified' } }) as Row;
+        expect(ms(filed.final_report_due_at)).toBe(addCalendarMonths(filed.authority_notified_at as string, 1));
+        expect(clocksOf(c, row.id).map(i => i.kind).sort()).toEqual(['cra_early_warning', 'cra_full_report']);
+    });
+
+    it('a NIS2 final report is one calendar month in, clamped to the end of a short month', () => {
+        const c = ctx();
+        const row = record(c, { kind: 'security_incident', regimes: ['NIS2'], title: 'Outage', detected_at: '2026-01-31T10:00:00.000Z' });
+        expect(row.final_report_due_at).toBe('2026-02-28T10:00:00.000Z');
+    });
+});
+
+describe('compliance demo — the register findings of compliance/attention.js', () => {
+    it('a DSR due soon and an overdue one carry the one-month wording', () => {
+        const c = ctx();
+        const soon = attention(c).find(i => i.id === 'register:dsr:2417:due_soon');
+        expect(soon?.meta.detail).toBe('Fulfil or extend (once, by two further months, with a reason) before the deadline.');
+        const late = routes['POST /api/dsr/requests/manual']({ ...c, body: { subject_email: 'l.bos@example.nl', request_type: 'access', received_at: hoursAgo(50 * 24) } }) as Row;
+        const overdue = attention(c).find(i => i.id === `register:dsr:${late.id}:overdue`);
+        expect(overdue?.status).toBe('fail');
+        expect(overdue?.meta.detail).toMatch(/^The response deadline \(one month from receipt, or the extended deadline\) passed \d+ day\(s\) ago\.$/);
+        // An overdue request is not also flagged as due soon or unverified.
+        expect(attention(c).filter(i => i.id.startsWith(`register:dsr:${late.id}:`)).length).toBe(1);
+    });
+
+    it('an expired self-assessment cites the article its outcome rests on, Art. 6 by default', () => {
+        const c = ctx();
+        const expired = (c.state.aiAct as Row[]).find(a => ms(a.expires_at) < Date.now()) as Row;
+        const refOf = (outcome: string) => {
+            expired.outcome = outcome;
+            const item = attention(c).find(i => i.code === 'ai_act_attestation_expired');
+            return item?.meta.frameworks[0];
+        };
+        expect(refOf('transparency')).toEqual({ regulation: 'AIA', ref: 'Art. 50' });
+        expect(refOf('high_risk')?.ref).toBe('Art. 6');
+        expect(refOf('prohibited')?.ref).toBe('Art. 5');
+        expect(refOf('minimal')?.ref).toBe('Art. 6');
+    });
+
+    it('a CRA early warning due within 6 hours cites Art. 14(2)(a) for a vulnerability and Art. 14(4)(a) for a severe incident', () => {
+        const c = withCra();
+        const v = record(c, { kind: 'vulnerability', title: 'Exploited CVE', detected_at: hoursAgo(20) });
+        const s = record(c, { kind: 'security_incident', regimes: ['CRA'], title: 'Severe incident', detected_at: hoursAgo(26) });
+        const items = attention(c);
+        const vItem = items.find(i => i.id === `register:incident:${v.id}:cra_early_warning`);
+        expect(vItem?.status).toBe('warn');
+        expect(vItem?.meta.frameworks).toEqual([{ regulation: 'CRA', ref: 'Art. 14(2)(a)' }]);
+        expect(vItem?.meta.detail).toContain('actively exploited vulnerability');
+        const sItem = items.find(i => i.id === `register:incident:${s.id}:cra_early_warning`);
+        expect(sItem?.status).toBe('fail');
+        expect(sItem?.meta.frameworks).toEqual([{ regulation: 'CRA', ref: 'Art. 14(4)(a)' }]);
+        expect(sItem?.meta.detail).toContain('severe incident affecting the security of the product');
+    });
+
+    it('a running notification clock with no breach recipients is flagged, as the server does', () => {
+        const c = ctx();
+        c.state.settings = { ...c.state.settings, breach_recipients: [] };
+        const ids = attention(c).filter(i => i.code === 'incident_no_breach_recipients').map(i => i.id).sort();
+        expect(ids).toEqual(['register:incident:31:no_recipients', 'register:incident:32:no_recipients']);
     });
 });

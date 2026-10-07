@@ -23,7 +23,7 @@ export const FRAMEWORKS = [
         "core": true,
         "capability": "compliance_hub_gdpr",
         "checks_dir": "gdpr",
-        "checks_count": 30,
+        "checks_count": 33,
         "in_force_since": "2018-05-25",
         "in_force_from": null,
         "phases": [
@@ -118,7 +118,7 @@ export const FRAMEWORKS = [
         "core": true,
         "capability": "compliance_hub_iso27001",
         "checks_dir": "iso27001",
-        "checks_count": 73,
+        "checks_count": 77,
         "in_force_since": null,
         "in_force_from": null,
         "phases": [],
@@ -921,6 +921,41 @@ export const CHECK_DEFS = [
         "autoFixId": null
     },
     {
+        "check_id": "GDPR-Art32-chat-shield-coverage",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "32",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.8.12",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.8.16",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "32",
+        "severity": "medium",
+        "scope": "global",
+        "verification": "automated",
+        "titleKey": "chat_monitoring.checks.gdpr_art32_chat_cov.title",
+        "descriptionKey": "chat_monitoring.checks.gdpr_art32_chat_cov.desc",
+        "remediationKey": "chat_monitoring.checks.gdpr_art32_chat_cov.fix",
+        "remediationLink": "admin/security/guardrails",
+        "autoFixId": null
+    },
+    {
         "check_id": "GDPR-Art32-dlp-efficacy",
         "regulation": "GDPR",
         "framework_id": "gdpr",
@@ -1136,6 +1171,35 @@ export const CHECK_DEFS = [
         "autoFixId": null
     },
     {
+        "check_id": "GDPR-Art35-chat-monitoring-safeguards",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "35",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.34",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "35",
+        "severity": "high",
+        "scope": "global",
+        "verification": "hybrid",
+        "titleKey": "chat_monitoring.checks.gdpr_art35_chat_mon.title",
+        "descriptionKey": "chat_monitoring.checks.gdpr_art35_chat_mon.desc",
+        "remediationKey": "chat_monitoring.checks.gdpr_art35_chat_mon.fix",
+        "remediationLink": "admin/compliance/settings",
+        "autoFixId": null
+    },
+    {
         "check_id": "GDPR-Art35-dpia-high-risk",
         "regulation": "GDPR",
         "framework_id": "gdpr",
@@ -1156,6 +1220,35 @@ export const CHECK_DEFS = [
         "descriptionKey": "compliance.checks.gdpr_art35.desc",
         "remediationKey": "compliance.checks.gdpr_art35.fix",
         "remediationLink": "admin/compliance/dpia",
+        "autoFixId": null
+    },
+    {
+        "check_id": "GDPR-Art35-per-user-shield-view",
+        "regulation": "GDPR",
+        "framework_id": "gdpr",
+        "frameworks": [
+            {
+                "regulation": "GDPR",
+                "ref": "35",
+                "framework_id": "gdpr",
+                "in_force_since": "2018-05-25"
+            },
+            {
+                "regulation": "ISO27001",
+                "ref": "A.5.34",
+                "framework_id": "iso27001",
+                "in_force_since": null
+            }
+        ],
+        "in_force_since": "2018-05-25",
+        "article": "35",
+        "severity": "high",
+        "scope": "global",
+        "verification": "hybrid",
+        "titleKey": "chat_monitoring.checks.gdpr_art35_per_user_view.title",
+        "descriptionKey": "chat_monitoring.checks.gdpr_art35_per_user_view.desc",
+        "remediationKey": "chat_monitoring.checks.gdpr_art35_per_user_view.fix",
+        "remediationLink": "admin/monitoring/activity",
         "autoFixId": null
     },
     {

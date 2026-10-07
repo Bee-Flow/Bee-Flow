@@ -11,7 +11,7 @@
  * /frameworks and /calendar for the growing set, /evidence for the ledger.
  *
  * WHERE THE DATA COMES FROM
- * The catalog half — 10 frameworks, 18 regulatory milestones, 71 check
+ * The catalog half — 10 frameworks, 24 regulatory milestones, 84 check
  * definitions, 93 Annex A controls, 10 connectors
  * — is GENERATED from the server's own registries into complianceCatalog.js
  * (`cd server && node scripts/genComplianceDemoCatalog.js`). Everything a
@@ -24,7 +24,7 @@
  * The organisation half is invented — Van Dael Assurantiën, a fictional Dutch
  * insurance intermediary. It is written to be recognisable to someone who does
  * this work: a score in the eighties rather than a perfect one, two real
- * failures, a DSR three days from its deadline, a breach that was notified in
+ * failures, a DSR a few days from its deadline, a breach that was notified in
  * time and one still inside the 72-hour window.
  *
  * SHAPES ARE DERIVED FROM WHAT THE PAGES READ, not from what looks reasonable.
@@ -39,13 +39,18 @@ import { ACCESS_LOG_ROUTES, accessAuditSeed, logAccess } from './complianceAcces
 import {
     CHECK_DEFS, ISO_CONTROLS, ISO_THEMES, ISO_CONNECTORS, FRAMEWORKS, MILESTONES,
 } from './complianceCatalog';
-import { INCIDENT_OPEN_STATUSES, incidentRoutes, incidentSeed } from './complianceIncidents';
+import { CHAT_MONITORING_ROUTES } from './complianceChatMonitoring';
+import { INCIDENT_OPEN_STATUSES, incidentRoutes, incidentSeed, openDeadline } from './complianceIncidents';
 import {
     PROJECT_CHECK_ID, projectActivities, projectSubjects, projectVerdict, ropaProjectRoutes, ropaProjectsSeed,
 } from './complianceRopaProjects';
 // The hub's own masker, not a second one: the register shows "h.•••@example.nl"
 // in exactly the shape the product uses (BFSF-441, artboard 1c).
 import { maskEmail } from '../../components/admin/compliance/shared/maskEmail';
+// The hub's own calendar-month arithmetic: GDPR Art. 12(3)'s "one month" is a
+// calendar month, clamped to the end of a short month, exactly as the server's
+// utils/calendarMonths counts it.
+import { addCalendarMonths } from '../../components/shared/deadlineMath';
 // The English dictionary the SERVER reads when it builds "Needs attention"
 // (compliance/attention.js: `titles[def.titleKey]`). An attention item carries
 // a plain title, not a key, so the fixture resolves it the same way — which is
@@ -169,6 +174,14 @@ const STATUS_OVERRIDES = {
     'GDPR-Art30-ropa-reviewed': 'pass',
     'GDPR-Art32-encryption-at-rest': 'pass',
     'GDPR-Art5-1-e-storage-limitation': 'warn',
+    // Chat signals are not switched on in this org, so the two checks that
+    // judge them have nothing to judge. The per-person Privacy Shield views
+    // are on its plan (the Privacy Shield demo shows them), and that check
+    // never passes in this release: the opt-in gate it asks for does not
+    // exist yet (server/compliance/checks/gdpr/art35-per-user-shield-view.js).
+    'GDPR-Art32-chat-shield-coverage': 'not_applicable',
+    'GDPR-Art35-chat-monitoring-safeguards': 'not_applicable',
+    'GDPR-Art35-per-user-shield-view': 'warn',
     // EU AI Act — literacy confirmed, transparency notice still missing.
     'AIA-Art50-ai-disclosure': 'fail',
     // ISO 27001 — an unevidenced control and a supplier review that lapsed.
@@ -191,6 +204,13 @@ const DETAILS = {
     'ISO27001-A.5.20-suppliers': 'No signed processing agreement on file for 1 of 5 processors.',
     'ISO27001-A.8.8-vuln-mgmt': 'Last dependency scan is 41 days old; the policy says 30.',
     'GDPR-Art5-1-e-storage-limitation': 'Conversation content has no automatic retention limit; only stored memories expire (365 days).',
+    'GDPR-Art32-chat-shield-coverage': 'Chat signals are off.',
+    'GDPR-Art35-chat-monitoring-safeguards': 'Chat signals are not switched on.',
+    'GDPR-Art35-per-user-shield-view': 'Usage & Monitoring offers per-person Privacy Shield views: GET /api/usage/guardrails/overview (top_users, a ranking of named people), '
+        + 'GET /api/usage/guardrails/recent (events with the person, filterable by ?user) and GET /api/usage/guardrails/by-user (deprecated). '
+        + 'These are a facility suitable for monitoring named staff (WOR art. 27(1)(k), (l)), so they need a DPIA, works-council consent that covers them, '
+        + 'and a notice that names them. Per-person events are kept for 400 days. '
+        + 'AI Act: before 2 December 2027, document an Annex III 4(b) / Art. 6(3) assessment of the ranking or remove it.',
     'ISO27001-A.8.19-workplace-software': 'No managed endpoints in scope — staff work in the browser and the workspace is the system of record.',
     'DORA-Art30-contract-clauses': 'The Art. 30 clause set has not been confirmed against the current contract template this year.',
     'NIS2-Art3-registration': 'No registration reference on file. Entities in scope had to register with the national authority; the law has applied since 15 August 2026.',
@@ -308,7 +328,7 @@ const EVENT_RERUN = new Set(['AIA-Art50-ai-disclosure', 'AIA-Art50-content-marki
 
 const rowsForCheck = (d, i) => {
     // Spread the run times over the last sweep so the "last run" column is not
-    // 71 identical timestamps.
+    // 84 identical timestamps.
     const scheduled = EVENT_RERUN.has(d.check_id);
     const run_at = scheduled ? iso(hours(2)) : iso(hours(6) + i * 1_000);
     const run_type = scheduled ? 'event' : 'scheduled';
@@ -489,11 +509,21 @@ const SCORE_HISTORY = () => {
       The legacy inbox still prints `subject_email`, so the fixture puts the
       MASKED string there as well: a demo that renders "undefined · #2417" is
       broken, and a demo that prints a full address contradicts the product.
-   2. The 30-day clock is COMPUTED (`due_at = created_at + 30 d`, or the
-      extension), never typed, so the countdown on screen is real. */
+   2. The one-month clock is COMPUTED, never typed, so the countdown on screen
+      is real: `due_at = created_at + 1 calendar month`, or the extension,
+      `extended_until = created_at + 3 calendar months` (Art. 12(3): one
+      month, extendable once by two further months). A calendar month, clamped
+      to the end of a short month (31 Jan + 1 month = 28/29 Feb), as
+      dsrStore counts it — not 30 days. */
 
-const DSR_WINDOW_DAYS = 30;
-const DSR_EXTENSION_DAYS = 60;
+const DSR_WINDOW_MONTHS = 1;
+const DSR_EXTENDED_MONTHS = 3;
+
+/** The DSR clock from receipt, in calendar months (dsrStore._dueFrom). */
+const dsrDueFrom = (receivedAt, months) => new Date(addCalendarMonths(receivedAt, months)).toISOString();
+
+/** An extended request runs to receipt + 3 calendar months (dsrStore.extend). */
+const dsrExtendedUntil = (o) => o.extended_until || (o.extended_at ? dsrDueFrom(o.created_at, DSR_EXTENDED_MONTHS) : null);
 
 const dsrRow = (o) => ({
     organization_id: ORG,
@@ -509,15 +539,14 @@ const dsrRow = (o) => ({
     created_by: null,
     started_at: null,
     started_by: null,
-    extended_until: null,
     extension_reason: null,
     extended_by: null,
     extended_at: null,
     subject_user_id: null,
     timeline: [],
     ...o,
-    due_at: o.extended_until
-        || new Date(new Date(o.created_at).getTime() + days(DSR_WINDOW_DAYS)).toISOString(),
+    extended_until: dsrExtendedUntil(o),
+    due_at: dsrExtendedUntil(o) || dsrDueFrom(o.created_at, DSR_WINDOW_MONTHS),
     subject_email_masked: maskEmail(o.subject_email),
     pending: o.status === 'pending' || o.status === 'in_progress',
 });
@@ -581,7 +610,6 @@ const DSR = () => ([
         started_at: iso(days(60)), started_by: 'u_marieke',
         // Extended once, with a reason — the only extension GDPR allows, and
         // the one the drawer's "extend" button refuses to repeat.
-        extended_until: new Date(now() - days(61) + days(DSR_WINDOW_DAYS + DSR_EXTENSION_DAYS)).toISOString(),
         extension_reason: 'Complex objection: the claim file spans two insurers and a Kifid complaint.',
         extended_by: 'u_marieke', extended_at: iso(days(40)),
         notes: 'Objection to automated triage of a claim.',
@@ -1237,71 +1265,155 @@ const registerAttentionItem = ({ id, code, severity, status, title, detail, sect
     _at: at || 0,
 });
 
-const ATTENTION = (state, limit = 5) => {
-    const items = state.checks
-        .filter(r => r.status === 'fail' || r.status === 'warn')
-        .map(checkAttentionItem);
+const DSR_TYPE_LABEL = {
+    access: 'access', deletion: 'deletion', rectification: 'rectification',
+    portability: 'portability', restriction: 'restriction', objection: 'objection',
+};
 
-    // The registers say things no check says yet (compliance/attention.js).
-    for (const r of state.dsr) {
-        if (DSR_CLOSED.has(r.status)) continue;
-        const due = new Date(r.due_at).getTime();
-        const target = `${sectionPath('dsr')}/${r.id}`;
-        const common = { section: 'dsr', target, regulation: 'GDPR', ref: 'Art. 12(3)', at: new Date(r.created_at).getTime() };
-        if (due < now()) {
-            items.push(registerAttentionItem({
-                ...common, id: `dsr:${r.id}:overdue`, code: 'dsr_overdue', severity: 'critical', status: 'fail',
-                title: `DSR #${r.id} (${r.request_type}) is overdue`,
-                detail: 'The 30-day response window has closed.',
-            }));
-        } else if (due - now() <= days(5)) {
-            items.push(registerAttentionItem({
-                ...common, id: `dsr:${r.id}:due_soon`, code: 'dsr_due_soon', severity: 'high', status: 'warn',
-                title: `DSR #${r.id} (${r.request_type}) is due in ${Math.max(0, Math.ceil((due - now()) / days(1)))} day(s)`,
-                detail: 'Fulfil or extend (once, +60 days with a reason) before the window closes.',
-            }));
-        }
-        if (r.identity_status === 'unverified' && now() - new Date(r.created_at).getTime() > days(7)) {
-            items.push(registerAttentionItem({
-                ...common, id: `dsr:${r.id}:unverified`, code: 'dsr_identity_unverified', severity: 'medium', status: 'warn',
-                title: `DSR #${r.id} (${r.request_type}): identity not verified after 7 days`,
-                detail: 'Verify the data subject before releasing or deleting data (Art. 12(6)).',
-            }));
-        }
+/**
+ * The CRA early warning a row owes, by kind (attention.js _craEarlyWarning):
+ * an actively exploited vulnerability's is Art. 14(2)(a), a severe incident
+ * affecting the security of the product has its own in Art. 14(4)(a). A row
+ * without a kind runs the vulnerability clock.
+ */
+const craEarlyWarning = (kind) => (kind && kind !== 'vulnerability'
+    ? {
+        ref: 'Art. 14(4)(a)',
+        detail: 'Report the severe incident affecting the security of the product to the CSIRT and ENISA within 24 hours of becoming aware of it (Art. 14(4)(a)).',
     }
+    : {
+        ref: 'Art. 14(2)(a)',
+        detail: 'Report the actively exploited vulnerability to ENISA / the CSIRT within 24 hours of awareness (Art. 14(2)(a)).',
+    });
 
-    const soaStats = state.soa.stats;
-    if (soaStats.todo > 0) {
-        items.push(registerAttentionItem({
+/**
+ * The article an expired AI Act self-assessment points at (attention.js
+ * ATTESTATION_REF): the classification its recorded outcome rests on —
+ * Art. 5 prohibited practices, Art. 6 with Annex III high risk, Art. 50
+ * transparency. A minimal or not-applicable outcome is an Art. 6 "not
+ * high-risk" classification. The 12-month expiry itself is Bee Flow's review
+ * interval, not a statutory clock.
+ */
+const ATTESTATION_REF = { prohibited: 'Art. 5', high_risk: 'Art. 6', transparency: 'Art. 50' };
+
+/* The register findings, one function per source as compliance/attention.js
+   has them: the registers say things no check says yet. */
+
+const dsrFindings = (r) => {
+    if (DSR_CLOSED.has(r.status)) return [];
+    const due = r.due_at ? new Date(r.due_at).getTime() : null;
+    const type = DSR_TYPE_LABEL[r.request_type] || 'data-subject';
+    const common = { section: 'dsr', target: `${sectionPath('dsr')}/${r.id}`, regulation: 'GDPR', ref: 'Art. 12(3)', at: new Date(r.created_at).getTime() };
+    if (due != null && due < now()) {
+        const late = Math.floor((now() - due) / days(1));
+        return [registerAttentionItem({
+            ...common, id: `dsr:${r.id}:overdue`, code: 'dsr_overdue', severity: 'critical', status: 'fail',
+            title: `DSR #${r.id} (${type}) is overdue`,
+            // Art. 12(3): one calendar month from receipt, or the extended
+            // deadline — `due_at` is whichever applies.
+            detail: late > 0
+                ? `The response deadline (one month from receipt, or the extended deadline) passed ${late} day(s) ago.`
+                : 'The response deadline (one month from receipt, or the extended deadline) has passed.',
+        })];
+    }
+    const out = [];
+    if (due != null && due - now() <= days(5)) {
+        out.push(registerAttentionItem({
+            ...common, id: `dsr:${r.id}:due_soon`, code: 'dsr_due_soon', severity: 'high', status: 'warn',
+            title: `DSR #${r.id} (${type}) is due in ${Math.max(0, Math.ceil((due - now()) / days(1)))} day(s)`,
+            detail: 'Fulfil or extend (once, by two further months, with a reason) before the deadline.',
+        }));
+    }
+    if ((r.identity_status === 'unverified' || !r.identity_status) && now() - new Date(r.created_at).getTime() > days(7)) {
+        out.push(registerAttentionItem({
+            ...common, id: `dsr:${r.id}:unverified`, code: 'dsr_identity_unverified', severity: 'medium', status: 'warn',
+            title: `DSR #${r.id} (${type}): identity not verified after 7 days`,
+            detail: 'Verify the data subject before releasing or deleting data (Art. 12(6)).',
+        }));
+    }
+    return out;
+};
+
+/** An incident clock running with nobody to tell. */
+const noRecipientsFinding = (i, recipients) => (
+    i.deadline_at && !i.authority_notified_at && recipients.length === 0 && i.kind !== 'vulnerability'
+        ? [registerAttentionItem({
+            id: `incident:${i.id}:no_recipients`, code: 'incident_no_breach_recipients', severity: 'critical', status: 'fail',
+            title: `INC-${i.id}: notification clock running, no breach recipients configured`,
+            detail: 'Add the authority / DPO contacts under Compliance → Settings so the 72-hour notification can go out.',
+            section: 'incidents', target: incidentPath(i.id), regulation: 'GDPR', ref: 'Art. 33', at: new Date(i.detected_at).getTime(),
+        })]
+        : []);
+
+/** A CRA early warning due within 6 hours, or already late. */
+const craEarlyWarningFinding = (i) => {
+    const isCra = i.kind === 'vulnerability' || (Array.isArray(i.regimes) && i.regimes.includes('CRA'));
+    const earlyDue = i.early_warning_due_at ? new Date(i.early_warning_due_at).getTime() : null;
+    if (!isCra || earlyDue == null || i.early_warning_sent_at || earlyDue - now() > hours(6)) return [];
+    const overdue = earlyDue <= now();
+    const early = craEarlyWarning(i.kind);
+    return [registerAttentionItem({
+        id: `incident:${i.id}:cra_early_warning`, code: 'cra_early_warning_due', severity: 'critical', status: overdue ? 'fail' : 'warn',
+        title: overdue
+            ? `INC-${i.id}: CRA early warning is overdue`
+            : `INC-${i.id}: CRA early warning due within ${Math.max(1, Math.ceil((earlyDue - now()) / hours(1)))} h`,
+        detail: early.detail,
+        section: 'vulnerabilities', target: incidentPath(i.id), regulation: 'CRA', ref: early.ref, at: new Date(i.detected_at).getTime(),
+    })];
+};
+
+const incidentFindings = (state) => {
+    const recipients = Array.isArray(state.settings?.breach_recipients) ? state.settings.breach_recipients : [];
+    return state.incidents
+        .filter(i => i.status !== 'closed')
+        .flatMap(i => [...noRecipientsFinding(i, recipients), ...craEarlyWarningFinding(i)]);
+};
+
+const soaFindings = (state) => {
+    const stats = state.soa.stats;
+    return stats.todo > 0
+        ? [registerAttentionItem({
             id: 'soa:todo', code: 'soa_todo', severity: 'medium', status: 'warn',
-            title: `${soaStats.todo} Statement-of-Applicability row(s) still to decide`,
-            detail: `${soaStats.approved} of ${soaStats.total} controls approved.`,
+            title: `${stats.todo} Statement-of-Applicability row(s) still to decide`,
+            detail: `${stats.approved} of ${stats.total} controls approved.`,
             section: 'soa', regulation: 'ISO27001', ref: 'cl. 6.1.3(d)', at: 0,
-        }));
-    }
+        })]
+        : [];
+};
 
-    for (const o of state.training.obligations) {
-        const due = new Date(o.due_at).getTime();
-        if (o.completed_at || due >= now()) continue;
-        items.push(registerAttentionItem({
-            id: `obligation:${o.id}`, code: 'obligation_overdue', severity: 'high', status: 'fail',
-            title: `Overdue: ${o.title}`,
-            detail: `Due ${o.due_at.slice(0, 10)}.`,
-            section: 'training', target: sectionPath('training'),
-            regulation: 'ISO27001', ref: 'cl. 9', at: due,
-        }));
-    }
+const obligationFindings = (state) => state.training.obligations
+    .filter(o => !o.completed_at && new Date(o.due_at).getTime() < now())
+    .map(o => registerAttentionItem({
+        id: `obligation:${o.id}`, code: 'obligation_overdue', severity: 'high', status: 'fail',
+        title: `Overdue: ${o.title}`,
+        detail: `Due ${o.due_at.slice(0, 10)}.`,
+        section: 'training', target: sectionPath('training'),
+        regulation: 'ISO27001', ref: 'cl. 9', at: new Date(o.due_at).getTime(),
+    }));
 
-    for (const a of state.aiAct) {
-        if (!a.expires_at || new Date(a.expires_at).getTime() >= now()) continue;
-        items.push(registerAttentionItem({
-            id: `ai_act:${a.target_kind}:${a.target_id}`, code: 'ai_act_attestation_expired', severity: 'medium', status: 'warn',
-            title: `AI Act self-assessment expired (${a.target_kind === 'agent' ? 'agent' : 'automation'})`,
-            detail: `Recorded outcome "${a.outcome}" expired ${a.expires_at.slice(0, 10)} — reassess.`,
-            section: 'frameworks', target: `${sectionPath('frameworks')}?tab=per_automation`,
-            regulation: 'AIA', ref: 'Art. 53', at: new Date(a.expires_at).getTime(),
-        }));
-    }
+const attestationFindings = (state) => state.aiAct
+    .filter(a => a.expires_at && new Date(a.expires_at).getTime() < now())
+    .map(a => registerAttentionItem({
+        id: `ai_act:${a.target_kind}:${a.target_id}`, code: 'ai_act_attestation_expired', severity: 'medium', status: 'warn',
+        title: `AI Act self-assessment expired (${a.target_kind === 'agent' ? 'agent' : 'automation'})`,
+        detail: `Recorded outcome "${a.outcome || 'unknown'}" expired ${a.expires_at.slice(0, 10)} — reassess.`,
+        section: 'frameworks', target: `${sectionPath('frameworks')}?tab=per_automation`,
+        regulation: 'AIA', ref: ATTESTATION_REF[a.outcome] || 'Art. 6', at: new Date(a.expires_at).getTime(),
+    }));
+
+const REGISTER_FINDINGS = [
+    (state) => state.dsr.flatMap(dsrFindings),
+    incidentFindings,
+    soaFindings,
+    obligationFindings,
+    attestationFindings,
+];
+
+const ATTENTION = (state, limit = 5) => {
+    const items = [
+        ...state.checks.filter(r => r.status === 'fail' || r.status === 'warn').map(checkAttentionItem),
+        ...REGISTER_FINDINGS.flatMap(find => find(state)),
+    ];
 
     items.sort((a, b) => (STATUS_RANK[a.status] - STATUS_RANK[b.status])
         || ((SEVERITY_RANK[a.severity] ?? 9) - (SEVERITY_RANK[b.severity] ?? 9))
@@ -1322,23 +1434,50 @@ const ATTENTION = (state, limit = 5) => {
 
 /* ── GET /deadlines ──────────────────────────────────────────────────── */
 
+// compliance/deadlines.js URGENT_BELOW_MS, in its order (it is also the order
+// of `empty_kinds`).
 const URGENT_BELOW_MS = {
     dsr: days(5),
     incident: hours(24),
     cra_early_warning: hours(6),
+    cra_notification: hours(24),
     cra_full_report: hours(24),
     obligation: days(7),
     attestation_expiry: days(30),
 };
 
+// The full citation the card prints as it comes (deadlines.js ARTICLE). An
+// item may carry its own `meta.article`, spread after this default.
 const DEADLINE_ARTICLE = {
     dsr: 'GDPR Art. 12(3)',
     incident: 'GDPR Art. 33',
     cra_early_warning: 'CRA Art. 14(2)(a)',
-    cra_full_report: 'CRA Art. 14(2)(b)',
+    cra_notification: 'CRA Art. 14(2)(b)',
+    cra_full_report: 'CRA Art. 14(2)(c)',
     obligation: 'ISO 27001 cl. 9',
-    attestation_expiry: 'AI Act Art. 53',
+    // No statutory clock: the 12-month validity is Bee Flow's review
+    // interval, so no article is cited.
+    attestation_expiry: null,
 };
+
+// A severe incident under the CRA: the same three stages, Art. 14(4)(a)-(c).
+const CRA_SEVERE_INCIDENT_ARTICLE = {
+    cra_early_warning: 'CRA Art. 14(4)(a)',
+    cra_notification: 'CRA Art. 14(4)(b)',
+    cra_full_report: 'CRA Art. 14(4)(c)',
+};
+
+// The clock the authority ('incident') item tracks, per non-CRA regime. DORA
+// puts no notification duty on the provider itself: its clock is the
+// contractual notice to the financial entity, Art. 30(3)(b).
+const REGIME_ARTICLE = {
+    GDPR: 'GDPR Art. 33',
+    NIS2: 'NIS2 Art. 23(4)',
+    DORA: 'DORA Art. 30(3)(b)',
+};
+
+// CRA Art. 14(2)(b) / 14(4)(b): the notification 72 h after becoming aware.
+const CRA_NOTIFICATION_HOURS = 72;
 
 const deadlineItem = (kind, id, ref, title, meta, startedAt, dueAt, target) => {
     const due = dueAt ? new Date(dueAt).getTime() : null;
@@ -1372,48 +1511,74 @@ const DSR_TITLE = {
 
 const DEADLINE_KINDS = Object.keys(URGENT_BELOW_MS);
 
-const DEADLINES = (state) => {
-    const items = [];
-    for (const r of state.dsr) {
-        if (DSR_CLOSED.has(r.status)) continue;
-        items.push(deadlineItem('dsr', r.id, `#${r.id}`, DSR_TITLE[r.request_type] || 'Data-subject request', {
+/** The CRA clocks of one incident: Art. 14(2) for a vulnerability, 14(4) for a severe incident. */
+const craDeadlines = (i, { base, title, target, started }) => {
+    const severe = i.kind !== 'vulnerability';
+    const clock = (kind, stage, due) => deadlineItem(kind, i.id, `INC-${i.id}`, title,
+        severe ? { ...base, stage, article: CRA_SEVERE_INCIDENT_ARTICLE[kind] } : { ...base, stage },
+        started, due, target);
+    const out = [];
+    if (i.early_warning_due_at && !i.early_warning_sent_at) out.push(clock('cra_early_warning', 'early_warning', i.early_warning_due_at));
+    // No column of its own: detected + 72 h, met by the authority
+    // notification stamp.
+    if (started && !i.authority_notified_at) {
+        out.push(clock('cra_notification', 'notification', new Date(new Date(started).getTime() + hours(CRA_NOTIFICATION_HOURS)).toISOString()));
+    }
+    if (i.final_report_due_at && !i.final_report_sent_at) out.push(clock('cra_full_report', 'full', i.final_report_due_at));
+    return out;
+};
+
+/**
+ * The authority clock of the non-CRA regimes, cited per regime: the earliest
+ * of their still-open clocks by the store's own rule, with the early-warning
+ * and final-report columns recomputed for these regimes only. A CRA-only row
+ * has none: its notification is the cra_notification item.
+ */
+const authorityDeadline = (i, regimes, { base, title, target, started }) => {
+    const nonCra = regimes.filter(x => x !== 'CRA');
+    if (nonCra.length === 0 || i.authority_notified_at) return [];
+    const due = openDeadline({ ...i, regimes: nonCra, early_warning_due_at: null, final_report_due_at: null });
+    if (!due) return [];
+    const article = nonCra.map(x => REGIME_ARTICLE[x]).filter(Boolean).join(' · ') || DEADLINE_ARTICLE.incident;
+    return [deadlineItem('incident', i.id, `INC-${i.id}`, title, { ...base, regimes: nonCra, article }, started, due, target)];
+};
+
+// One incident can carry several clocks (deadlines.js incidentItems): the
+// authority notification of the non-CRA regimes (GDPR / NIS2 / DORA) and,
+// under the CRA, the early warning, the notification and the final report. A
+// clock that has been stamped is done and is not listed.
+const incidentDeadlines = (i) => {
+    if (i.status === 'closed') return [];
+    const regimes = Array.isArray(i.regimes) && i.regimes.length ? i.regimes : [i.kind === 'vulnerability' ? 'CRA' : 'GDPR'];
+    const clock = {
+        base: { incident_kind: i.kind || 'breach', regimes, severity: i.severity || null, reported_via: i.reported_via || null },
+        title: i.title ? String(i.title).slice(0, 120) : 'Incident',
+        target: incidentPath(i.id),
+        started: i.detected_at || i.created_at,
+    };
+    const isCra = i.kind === 'vulnerability' || regimes.includes('CRA');
+    return [...(isCra ? craDeadlines(i, clock) : []), ...authorityDeadline(i, regimes, clock)];
+};
+
+const DEADLINE_SOURCES = [
+    (state) => state.dsr.filter(r => !DSR_CLOSED.has(r.status)).map(r => deadlineItem(
+        'dsr', r.id, `#${r.id}`, DSR_TITLE[r.request_type] || 'Data-subject request', {
             request_type: r.request_type, status: r.status, identity_status: r.identity_status,
             channel: r.channel, extended: !!r.extended_until,
-        }, r.started_at || r.created_at, r.due_at, `${sectionPath('dsr')}/${r.id}`));
-    }
-    const craOn = state.frameworks.enabled.includes('cra');
-    for (const i of state.incidents) {
-        if (i.status === 'closed') continue;
-        const regimes = i.regimes || [];
-        const isCra = i.kind === 'vulnerability' || regimes.includes('CRA');
-        const base = { incident_kind: i.kind, regimes, severity: i.severity, reported_via: i.reported_via };
-        if (isCra && craOn) {
-            if (i.early_warning_due_at && !i.early_warning_sent_at) {
-                items.push(deadlineItem('cra_early_warning', i.id, `INC-${i.id}`, i.title,
-                    { ...base, stage: 'early_warning' }, i.detected_at, i.early_warning_due_at, incidentPath(i.id)));
-            }
-            if (i.final_report_due_at && !i.final_report_sent_at) {
-                items.push(deadlineItem('cra_full_report', i.id, `INC-${i.id}`, i.title,
-                    { ...base, stage: 'full' }, i.detected_at, i.final_report_due_at, incidentPath(i.id)));
-            }
-        }
-        if (i.deadline_at && !i.authority_notified_at && i.kind !== 'vulnerability') {
-            items.push(deadlineItem('incident', i.id, `INC-${i.id}`, i.title, base,
-                i.detected_at, i.deadline_at, incidentPath(i.id)));
-        }
-    }
-    for (const o of state.training.obligations) {
-        if (o.completed_at || !o.due_at) continue;
-        items.push(deadlineItem('obligation', o.id, String(o.kind || 'obligation').replace(/_/g, ' '), o.title,
-            { kind: o.kind, recur_months: o.recur_months }, null, o.due_at, sectionPath('training')));
-    }
-    for (const a of state.aiAct) {
-        if (!a.expires_at) continue;
-        items.push(deadlineItem('attestation_expiry', `${a.target_kind}:${a.target_id}`,
-            a.target_kind === 'agent' ? 'Agent' : 'Automation', a.title,
-            { target_kind: a.target_kind, target_id: a.target_id, outcome: a.outcome },
-            a.attested_at, a.expires_at, `${sectionPath('frameworks')}?tab=per_automation`));
-    }
+        }, r.started_at || r.created_at, r.due_at, `${sectionPath('dsr')}/${r.id}`)),
+    (state) => state.incidents.flatMap(incidentDeadlines),
+    (state) => state.training.obligations.filter(o => !o.completed_at && o.due_at).map(o => deadlineItem(
+        'obligation', o.id, String(o.kind || 'obligation').replace(/_/g, ' '), o.title,
+        { kind: o.kind, recur_months: o.recur_months }, null, o.due_at, sectionPath('training'))),
+    (state) => state.aiAct.filter(a => a.expires_at).map(a => deadlineItem(
+        'attestation_expiry', `${a.target_kind}:${a.target_id}`,
+        a.target_kind === 'agent' ? 'Agent' : 'Automation', a.title,
+        { target_kind: a.target_kind, target_id: a.target_id, outcome: a.outcome },
+        a.attested_at, a.expires_at, `${sectionPath('frameworks')}?tab=per_automation`)),
+];
+
+const DEADLINES = (state) => {
+    const items = DEADLINE_SOURCES.flatMap(read => read(state));
     const rank = { overdue: 0, urgent: 1, ok: 2, none: 3 };
     items.sort((a, b) => (rank[a.state] - rank[b.state])
         || (new Date(a.due_at || 0) - new Date(b.due_at || 0)));
@@ -2100,7 +2265,7 @@ export const ROUTES = {
         return rows.map(dsrListRow);
     },
     // A manual capture: the DPO writes down a request that arrived by phone or
-    // by letter. The 30-day clock starts at receipt, not at the moment of
+    // by letter. The one-month clock starts at receipt, not at the moment of
     // typing, which is why `received_at` is honoured when it is given.
     'POST /api/dsr/requests/manual': ({ state, body }) => {
         const created = body?.received_at || new Date().toISOString();
@@ -2167,7 +2332,7 @@ export const ROUTES = {
         if (DSR_CLOSED.has(r.status)) return refuse('not_open', 409);
         if (!body?.reason) return refuse('reason_required');
         const at = new Date().toISOString();
-        const until = new Date(new Date(r.created_at).getTime() + days(DSR_WINDOW_DAYS + DSR_EXTENSION_DAYS)).toISOString();
+        const until = dsrDueFrom(r.created_at, DSR_EXTENDED_MONTHS);
         const next = {
             ...r, extended_until: until, due_at: until, extension_reason: String(body.reason),
             extended_by: 'u_marieke', extended_at: at,
@@ -2462,8 +2627,9 @@ export const ROUTES = {
     'GET /api/compliance/ai-act/assessments/:kind/:id': ({ state, params }) =>
         aiActDetail(state, params.kind, params.id) || refuse('target_not_found', 404),
     // Recording an assessment stamps who and when, and starts the 12-month
-    // clock the register counts down (Art. 53) — the same row the expired
-    // automation above is an example of.
+    // review interval the register counts down (Bee Flow's own, not a
+    // statutory clock) — the same row the expired automation above is an
+    // example of.
     'PUT /api/compliance/ai-act/assessments/:kind/:id': ({ state, params, body }) => {
         const answers = body?.answers || {};
         const signals = AI_ACT_SIGNALS[aiActKey(params.kind, params.id)] || null;
@@ -2657,6 +2823,7 @@ export const ROUTES = {
     }),
 
     ...ACCESS_LOG_ROUTES,
+    ...CHAT_MONITORING_ROUTES,
 };
 
 // Policy bodies are one short, real-sounding paragraph each rather than lorem:
