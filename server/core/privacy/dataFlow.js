@@ -350,18 +350,26 @@ function analyseFlow({ steps = null, personal = null } = {}) {
  *
  * → `null` when there is nothing to read from (no rows argument at all), so a
  * ledger that was never consulted does not read as a ledger that is empty.
+ *
+ * `unscanned_calls` counts the calls of rows marked `scanned: false` — written
+ * while the PII scan was off. Their empty category column means "nobody
+ * looked", not "nothing personal", so a caller must never read those calls as
+ * clean. A row with no `scanned` flag at all is not counted: that is a caller
+ * that did not ask, not a ledger that said the scan was off.
  */
 const EGRESS_FIELDS = Object.freeze(['tool', 'destination', 'calls', 'kinds']);
 
 function observedEgress(rows) {
     if (!Array.isArray(rows)) return null;
     const byTool = new Map();
+    let unscanned = 0;
     for (const r of rows) {
         if (!r) continue;
         const tool = str(r.tool_name || r.tool);
         if (!tool) continue;
         const kinds = kindsCarried(r.pii_categories_detected ?? r.categories ?? null) || [];
         const calls = Number(r.calls);
+        if (r.scanned === false) unscanned += (Number.isFinite(calls) && calls > 0 ? calls : 1);
         const prev = byTool.get(tool) || { tool, destination: destinationOf({ type: 'integration_action', tool }), calls: 0, kinds: [] };
         byTool.set(tool, {
             tool: prev.tool,
@@ -375,6 +383,7 @@ function observedEgress(rows) {
         tools,
         kinds: orderKinds(tools.flatMap((t) => t.kinds)),
         destinations: [...new Set(tools.map((t) => t.destination).filter(Boolean))].sort(),
+        unscanned_calls: unscanned,
     };
 }
 

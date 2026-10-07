@@ -1,0 +1,195 @@
+{
+  "_comment": "Dutch for the round 2 detection and legal-wording fixes (Oct 2026). 'translations' are keys that never had shipped Dutch (added when missing); 'reworded' replaces Dutch shipped earlier ('was': one string, or every earlier shipped variant) only while a workspace still has exactly that text. Read by migrations/update-nl-compliance-detect-2026-10.js.",
+  "translations": {
+    "compliance.nav_dsr_desc": "Verzoeken van betrokkenen — beantwoorden binnen één maand (art. 12–22).",
+    "compliance.dsr_subtitle": "Elk verzoek start een klok van één maand (art. 12, lid 3 AVG). Handel elk verzoek af of wijs het af en bewaar de samenvatting — dat is je verantwoording.",
+    "compliance.checks.gdpr_art32_ear.desc": "Art. 32 AVG vraagt om passende technische maatregelen. Bee-Flow versleutelt de inhoud van berichten in opslag met AES-256-GCM-envelopversleuteling als het versleutelingsniveau van de organisatie op Managed of Zero-knowledge staat, met sleutelmateriaal uit MASTER_ENCRYPTION_KEY en SESSION_SECRET. Op het standaardniveau, Off, wordt de inhoud van berichten onversleuteld opgeslagen.",
+    "compliance.checks.gdpr_art32_ear.fix": "Stel de omgevingsvariabelen MASTER_ENCRYPTION_KEY en SESSION_SECRET in op je server en start de server opnieuw. Kies daarna in de beheerinstellingen van de organisatie, onder Encryption, het versleutelingsniveau Managed of Zero-knowledge.",
+    "compliance.checks.gdpr_art44.desc": "Een externe LLM gebruiken kan persoonsgegevens buiten de EER doorgeven. Voor zo'n doorgifte is een adequaatheidsbesluit nodig (art. 45, bijvoorbeeld het EU-VS Data Privacy Framework voor gecertificeerde Amerikaanse ontvangers) of passende waarborgen zoals SCC's (art. 46). Een verwerkersovereenkomst (art. 28) is op zichzelf geen doorgifte-instrument.",
+    "compliance.checks.aia_art13.desc": "Art. 13 (AI-systemen met een hoog risico; bijlage III vanaf 2 dec 2027): de gebruiksaanwijzing moet gebruiksverantwoordelijken laten begrijpen wie de aanbieder is, wat het beoogde doel is en wat het systeem wel en niet kan. Voor andere agents is een duidelijke beschrijving goede praktijk; mensen laten weten dat ze met een AI praten valt onder art. 50(1).",
+    "compliance.checks.gdpr_art15.desc": "Art. 15 geeft iedereen het recht op een kopie van de eigen gegevens. Verzoeken moeten binnen één maand na ontvangst worden beantwoord (art. 12, lid 3 AVG), of binnen de verlengde termijn.",
+    "compliance.checks.gdpr_art15.fix": "Open Compliance → Verzoeken (DSR) en handel de openstaande inzageverzoeken af voordat hun termijn van één maand verstrijkt.",
+    "compliance.checks.gdpr_art17.desc": "Art. 17 (recht op gegevenswissing) — verwijderverzoeken moeten zonder onredelijke vertraging worden uitgevoerd, uiterlijk binnen één maand na ontvangst (art. 12, lid 3 AVG), of binnen de verlengde termijn.",
+    "compliance.checks.gdpr_art17.fix": "Open Compliance → Verzoeken (DSR) en handel de openstaande verwijderverzoeken af voordat hun termijn van één maand verstrijkt.",
+    "compliance.checks.aia_art53.desc": "Art. 53 (van toepassing sinds 2 aug 2025) verplicht aanbieders van AI-modellen voor algemene doeleinden om technische documentatie bij te houden (art. 53(1)(a)) en aanbieders die hun modellen integreren de informatie te geven die ze nodig hebben (art. 53(1)(b)). Deze check houdt bij welke modellen je werkruimte gebruikt, zodat je om die documentatie kunt vragen, en controleert of elke externe aanbieder gedekt is door een verwerkersovereenkomst of SCC (AVG art. 28/46).",
+    "compliance.cal_ms_gdpr_procedural_regulation_label": "Procedure voor grensoverschrijdende AVG-handhaving",
+    "compliance.cal_ms_gdpr_procedural_regulation_detail": "Verordening (EU) 2025/2518 (in werking sinds 1 jan 2026) geldt voor nieuwe grensoverschrijdende zaken: uniforme regels voor hoe toezichthouders klachten en onderzoeken behandelen, waaronder ontvankelijkheid, het recht om gehoord te worden over voorlopige bevindingen, inzage in het dossier en termijnen · alleen van belang als je verwerking grensoverschrijdend is (AVG art. 4, punt 23)",
+    "compliance.cal_ms_eaa_en301549_v4_citation_label": "EN 301 549 V4.1.1 (WCAG 2.2 AA) aangewezen onder de EAA",
+    "compliance.cal_ms_eaa_en301549_v4_citation_detail": "gepubliceerd in sep 2026; geeft pas een vermoeden van conformiteit zodra de Commissie de referentie in het Publicatieblad bekendmaakt. Tot die tijd is V3.2.1 / WCAG 2.1 AA de maatstaf.",
+    "compliance.deadline_kind_cra_notification": "CRA melding (72 uur)",
+    "compliance.checks.gdpr_art15.title": "Inzageverzoeken op tijd beantwoord",
+    "compliance.checks.gdpr_art17.title": "Verwijderverzoeken uitgevoerd",
+    "compliance.checks.gdpr_art32_ear.title": "Versleuteling in opslag",
+    "compliance.checks.gdpr_art44.title": "Internationale doorgiften onder controle",
+    "compliance.checks.gdpr_art44.fix": "Zet de agent(s) over op zelf gehoste modellen, of leg voor elke externe aanbieder een ondertekende verwerkersovereenkomst/SCC vast in je administratie.",
+    "compliance.checks.aia_art13.title": "Transparantie: agent beschreven",
+    "compliance.checks.aia_art13.fix": "Vul voor elke agent onder Beheer → Agents een betekenisvolle beschrijving in (minstens 30 tekens).",
+    "compliance.checks.aia_art53.title": "Inventaris van AI-modellen voor algemene doeleinden",
+    "compliance.checks.aia_art53.fix": "Bekijk de modelinventaris in het bewijs van deze check en bevestig de SCC/verwerkersovereenkomst voor elke externe aanbieder onder Compliance → Verwerkingsregister."
+  },
+  "reworded": {
+    "compliance.dsr_error_already_extended": {
+      "was": "Dit verzoek is al één keer verlengd — art. 12(3) staat één verlenging toe.",
+      "now": "Dit verzoek is al één keer verlengd — art. 12(3) staat hooguit twee extra maanden toe."
+    },
+    "compliance.check_pld_release_record_desc": {
+      "was": "Risicoaansprakelijkheid hecht aan de versie die op de markt is gebracht en aan de datum waarop dat gebeurde (PLD art. 9, art. 2(1)); een substantiële wijziging start een nieuw aansprakelijkheidsvenster (art. 8(2)). De draaiende build en elke gepubliceerde oplossing of webpagina moeten een vastgelegde release hebben; entiteiten die lang na hun laatste release zijn gewijzigd worden gemarkeerd voor een beoordeling op substantiële wijziging.",
+      "now": "Risicoaansprakelijkheid hecht aan de versie die op de markt is gebracht en aan de datum waarop dat gebeurde (PLD art. 9, art. 2(1)); een substantiële wijziging laat de vervaltermijn van 10 jaar voor het gewijzigde product opnieuw ingaan (art. 17(1)(b)), en wie die wijziging buiten de controle van de fabrikant aanbrengt en het product daarna op de markt aanbiedt, geldt als fabrikant (art. 8(2)). De draaiende build en elke gepubliceerde oplossing of webpagina moeten een vastgelegde release hebben; entiteiten die lang na hun laatste release zijn gewijzigd worden gemarkeerd voor een beoordeling op substantiële wijziging."
+    },
+    "compliance.check_data_act_export_coverage_desc": {
+      "was": "Klanten moeten al hun gegevens kunnen meenemen bij overstappen (Data Act art. 30). Elke soort gegevens die hier wordt bewaard heeft een werkend exportendpoint nodig.",
+      "now": "Klanten moeten bij overstappen al hun exporteerbare gegevens kunnen meenemen (Data Act art. 23(c), 25(2)(a) en (e)). Elke soort gegevens die hier wordt bewaard heeft een werkend exportendpoint nodig."
+    },
+    "compliance.check_data_act_formats_desc": {
+      "was": "Geëxporteerde gegevens moeten in een gestructureerd, gangbaar formaat staan (JSON, CSV, ZIP, DOCX). Alleen-PDF-exports maken migratie onmogelijk.",
+      "now": "Geëxporteerde gegevens moeten in een gestructureerd, gangbaar en machineleesbaar formaat staan (Data Act art. 30(5)), zoals JSON, CSV, ZIP of DOCX. Alleen-PDF-exports maken migratie onmogelijk."
+    },
+    "compliance.check_dora_incident_path_desc": {
+      "was": "Financiële instellingen moeten grote ICT-incidenten binnen uren melden; als hun leverancier moet je hen direct informeren (DORA art. 30). Klantcontacten en een meldtermijn moeten vastliggen.",
+      "now": "Financiële instellingen moeten van een ernstig ICT-gerelateerd incident binnen 4 uur na de classificatie, en uiterlijk 24 uur nadat ze ervan op de hoogte zijn, een eerste melding doen (DORA art. 19; Gedelegeerde Verordening (EU) 2025/301). Je contract met hen moet regelen dat je bijstand verleent wanneer zich een ICT-incident voordoet (art. 30(2)(f)) en, voor diensten die kritieke of belangrijke functies ondersteunen, je kennisgevingstermijnen en rapportageverplichtingen vastleggen (art. 30(3)(b)). Klantcontacten en een meldtermijn moeten vastliggen."
+    },
+    "compliance.check_dora_register_desc": {
+      "was": "DORA art. 28(3) vereist een register van alle ICT-uitbestedingen met contractreferentie en kritikaliteit. Het register wordt afgeleid van de partijen die je werkruimte daadwerkelijk gebruikt.",
+      "now": "DORA art. 28(3) verplicht je financiële klanten een informatieregister bij te houden van al hun ICT-afspraken met derden, volgens de templates in Uitvoeringsverordening (EU) 2024/2956, inclusief de onderaannemers die ICT-diensten ter ondersteuning van hun kritieke of belangrijke functies daadwerkelijk dragen. Als hun leverancier moet je jouw deel van die keten kunnen aanleveren: op welke onderaannemers je steunt, en waar zij de dienst leveren en gegevens verwerken. Het register wordt afgeleid van de partijen die je werkruimte daadwerkelijk gebruikt."
+    },
+    "compliance.check_dora_contract_clauses_desc": {
+      "was": "Contracten met financiële instellingen moeten de bepalingen van DORA art. 30 bevatten (dienstbeschrijving, locaties, serviceniveaus, auditrechten, exit). Bevestig je sjabloon jaarlijks.",
+      "now": "Contracten met financiële instellingen moeten de bepalingen van DORA art. 30(2) bevatten (dienstbeschrijving, locaties, gegevensbescherming, toegang tot en teruggave van gegevens, serviceniveaus, bijstand bij incidenten, samenwerking met toezichthouders, beëindigingsrechten, deelname aan bewustmakingstrainingen). Ondersteun je een kritieke of belangrijke functie, dan voegt art. 30(3) daar precieze serviceniveaus, kennisgevings- en rapportageverplichtingen, noodplannen, deelname aan dreigingsgestuurde penetratietests, audit- en toegangsrechten en exitstrategieën aan toe. Bevestig je sjabloon jaarlijks."
+    },
+    "compliance.check_eaa_webpage_a11y_desc": {
+      "was": "Openbare pagina's moeten voldoen aan WCAG 2.1 AA (EN 301 549). Een statische controle van de gepubliceerde HTML toetst de opgegeven taal, tekstalternatieven voor afbeeldingen, gelabelde invoervelden, benoemde links en knoppen, paginatitels, iframe-titels, kopvolgorde, dubbele id's, focusvolgorde, refresh-/zoom-/autoplay-instellingen en tabelkoppen. Kleurcontrast, zichtbare focus, toetsenbordbediening, herschikken en dynamische ARIA-status vragen een gerenderde pagina en vallen onder de CI-conformiteitscontrole, niet onder deze.",
+      "now": "Openbare pagina's worden getoetst aan WCAG 2.1 AA (EN 301 549 V3.2.1, de huidige maatstaf; V4.1.1 van sep 2026 is gebaseerd op WCAG 2.2 AA en geeft een vermoeden van conformiteit onder de EAA zodra die in het Publicatieblad is aangehaald). Een statische controle van de gepubliceerde HTML toetst de opgegeven taal, tekstalternatieven voor afbeeldingen, gelabelde invoervelden, benoemde links en knoppen, paginatitels, iframe-titels, kopvolgorde, dubbele id's, focusvolgorde, refresh-/zoom-/autoplay-instellingen en tabelkoppen. Kleurcontrast, zichtbare focus, toetsenbordbediening, herschikken en dynamische ARIA-status vragen een gerenderde pagina en vallen onder de CI-conformiteitscontrole, niet onder deze."
+    },
+    "compliance.check_machinery_detection_desc": {
+      "was": [
+        "Software die een veiligheidsfunctie van een machine bestuurt of bewaakt, is een veiligheidscomponent onder de Machineverordening (EU) 2023/1230. Deze controle doorzoekt eigen integraties, routines, koppelingen, 90 dagen uitgaand verkeer en MCP-servers op OPC UA, Modbus, MQTT/SCADA, PLC-leveranciers en industriële termen. Geen treffers betekent dat de verordening niet van toepassing lijkt; treffers zijn een aanleiding om te beoordelen, nooit een oordeel.",
+        "Software die een veiligheidsfunctie van een machine bestuurt of bewaakt, is een veiligheidscomponent onder de Machineverordening (EU) 2023/1230. Deze controle doorzoekt eigen integraties, automatiseringen, koppelingen, 90 dagen uitgaand verkeer en MCP-servers op OPC UA, Modbus, MQTT/SCADA, PLC-leveranciers en industriële termen. Geen treffers betekent dat de verordening niet van toepassing lijkt; treffers zijn een aanleiding om te beoordelen, nooit een oordeel."
+      ],
+      "now": "Software die een veiligheidsfunctie vervult en zelfstandig in de handel wordt gebracht, is een veiligheidscomponent onder de Machineverordening (EU) 2023/1230 (art. 3(3)); software die in een machine is ingebouwd, wordt beoordeeld als onderdeel van die machine. Deze controle doorzoekt eigen integraties, automatiseringen, koppelingen, 90 dagen uitgaand verkeer en MCP-servers op OPC UA, Modbus, MQTT/SCADA, PLC-leveranciers en industriële termen. Geen treffers betekent dat de verordening niet van toepassing lijkt; treffers zijn een aanleiding om te beoordelen, nooit een oordeel."
+    },
+    "compliance.fw_data_act_phase_in_force": {
+      "was": "van kracht",
+      "now": "van toepassing"
+    },
+    "compliance.fw_eaa_desc": {
+      "was": [
+        "Digitale diensten voor consumenten moeten toegankelijk zijn (WCAG 2.1 AA).",
+        "Consumentendiensten binnen de reikwijdte (e-commerce, bankdiensten, e-books, elektronische communicatie, personenvervoer) moeten toegankelijk zijn: EN 301 549, dus WCAG 2.1 AA. Micro-ondernemingen die diensten leveren zijn uitgezonderd."
+      ],
+      "now": "Consumentendiensten binnen de reikwijdte (e-commerce, bankdiensten voor consumenten, e-books, elektronische communicatie, toegang tot audiovisuele mediadiensten, personenvervoer) moeten voldoen aan de toegankelijkheidseisen van bijlage I. EN 301 549 V3.2.1 (WCAG 2.1 AA) is de huidige maatstaf; V4.1.1 (WCAG 2.2 AA) geeft een vermoeden van conformiteit zodra die in het Publicatieblad is aangehaald. Micro-ondernemingen die diensten leveren zijn uitgezonderd."
+    },
+    "compliance.fw_dora_phase_in_force": {
+      "was": "van kracht",
+      "now": "van toepassing"
+    },
+    "compliance.fw_machinery_desc": {
+      "was": "Software die veiligheidsfuncties stuurt of bewaakt is een veiligheidscomponent; wie een machine wezenlijk wijzigt kan fabrikant worden.",
+      "now": "Software die een veiligheidsfunctie vervult en zelfstandig in de handel wordt gebracht, is een veiligheidscomponent (art. 3(3)); wie een machine wezenlijk wijzigt, geldt als fabrikant (art. 18)."
+    },
+    "compliance.cal_ms_data_act_connected_products_detail": {
+      "was": "verbonden producten en bijbehorende diensten die na deze datum op de markt komen, moeten gebruikers by design toegang tot hun data geven (art. 3(1)) · alleen voor fabrikanten",
+      "now": "verbonden producten en bijbehorende diensten die na deze datum op de markt komen, moeten gebruikers by design toegang tot hun data geven (art. 3(1)) · alleen voor fabrikanten van verbonden producten en aanbieders van bijbehorende diensten"
+    },
+    "compliance.cal_ms_data_act_chapter_iv_legacy_contracts_detail": {
+      "was": "hoofdstuk IV geldt ook voor contracten over het delen van data die op of vóór 12 sep 2025 zijn gesloten en voor onbepaalde tijd of minstens tien jaar lopen (art. 50)",
+      "now": "hoofdstuk IV geldt ook voor contracten over het delen van data die op of vóór 12 sep 2025 zijn gesloten en voor onbepaalde tijd lopen of op zijn vroegst tien jaar na 11 jan 2024 aflopen, dus niet vóór 11 jan 2034 (art. 50)"
+    },
+    "compliance.cal_ms_cra_notified_bodies_detail": {
+      "was": "conformiteitsbeoordelingsinstanties kunnen worden aangemeld (hoofdstuk IV, art. 71(2)) · alleen van belang voor belangrijke en kritieke producten",
+      "now": "conformiteitsbeoordelingsinstanties kunnen worden aangemeld (hoofdstuk IV, art. 71(2)) · vooral van belang voor belangrijke (bijlage III) en kritieke (bijlage IV) producten; voor andere producten alleen als de fabrikant kiest voor een module met een derde partij (art. 32(1))"
+    },
+    "compliance.cal_ms_dora_in_force_label": {
+      "was": "DORA van kracht",
+      "now": "DORA van toepassing"
+    },
+    "compliance.cal_ms_eaa_in_force_detail": {
+      "was": [
+        "digitale diensten voor consumenten moeten voldoen aan WCAG 2.1 AA / EN 301 549",
+        "consumentendiensten binnen de reikwijdte (e-commerce, bankdiensten, e-books, elektronische communicatie, vervoer) · EN 301 549 / WCAG 2.1 AA"
+      ],
+      "now": "consumentendiensten binnen de reikwijdte (e-commerce, bankdiensten voor consumenten, e-books, elektronische communicatie, toegang tot audiovisuele mediadiensten, personenvervoer) · getoetst aan EN 301 549 V3.2.1 (WCAG 2.1 AA) totdat V4.1.1 (WCAG 2.2 AA) in het Publicatieblad is aangehaald"
+    },
+    "compliance.cal_ms_data_act_in_force_label": {
+      "was": "Data Act van kracht",
+      "now": "Data Act van toepassing"
+    },
+    "compliance.cal_ms_pld_in_force_detail": {
+      "was": [
+        "software, AI-systemen en verbonden diensten · raakt je als leverancier",
+        "software, AI-systemen en verbonden diensten · raakt je als leverancier · de Nederlandse implementatiewet is nog niet aangenomen"
+      ],
+      "now": "software, AI-systemen en verbonden diensten · raakt je als leverancier · wetsvoorstel 36906 (Implementatiewet richtlijn herziening productaansprakelijkheid) ligt nog bij de Tweede Kamer en is nog niet aangenomen"
+    },
+    "compliance.policy_seed_exit_procedure_desc": {
+      "was": "Hoe data wordt teruggegeven en een dienst wordt afgebouwd wanneer een klant of leverancier vertrekt — overstaprechten uit de Data Act, ISO 27001 A.5.29/A.5.30.",
+      "now": "Hoe data wordt teruggegeven en een dienst wordt afgebouwd wanneer een klant of leverancier vertrekt — overstaprechten uit de Data Act (art. 23, 25), ISO 27001 A.5.20/A.5.23."
+    },
+    "compliance.dsr_toast_captured": {
+      "was": "Verzoek vastgelegd — de 30-dagenklok loopt",
+      "now": "Verzoek vastgelegd — de klok van één maand loopt"
+    },
+    "compliance.hdr_dsr_window": {
+      "was": "Art. 12–22 · 30 dagen, +60 met reden",
+      "now": "Art. 12–22 · één maand, +2 maanden met reden"
+    },
+    "compliance.ovw_deadlines_hint": {
+      "was": "30 dagen · 72 uur · 24 uur — één klok",
+      "now": "1 maand · 72 uur · 24 uur — één klok"
+    },
+    "compliance.dsr_intake_note": {
+      "was": "Verzoeken komen binnen via het openbare formulier /dsr (zonder account, rate-limited, gelinkt vanuit de privacyverklaring) of worden hier handmatig vastgelegd. De 30-dagenklok start bij ontvangst, niet bij het starten.",
+      "now": "Verzoeken komen binnen via het openbare formulier (zonder account, rate-limited, gelinkt vanuit de privacyverklaring) of worden hier handmatig vastgelegd. De klok van één maand start bij ontvangst, niet wanneer het werk begint."
+    },
+    "compliance.dsr_extend_60": {
+      "was": "Verlengen +60 d",
+      "now": "Verlengen +2 maanden"
+    },
+    "compliance.dsr_extend_confirm": {
+      "was": "Verleng met 60 dagen",
+      "now": "Verleng met twee maanden"
+    },
+    "compliance.dsr_capture_desc": {
+      "was": "Voor een verzoek dat per e-mail, telefoon of brief binnenkwam. De 30-dagenklok start bij ontvangst.",
+      "now": "Voor een verzoek dat per e-mail, telefoon of brief binnenkwam. De klok van één maand start bij ontvangst."
+    },
+    "compliance.dsr_toast_extended": {
+      "was": "Termijn met 60 dagen verlengd",
+      "now": "Termijn met twee maanden verlengd"
+    },
+    "compliance.dsr_pf_intro": {
+      "was": "Betrokkenen dienen hier zonder account een verzoek in. Link het vanuit je privacyverklaring; elke inzending start de 30-dagenklok bij ontvangst.",
+      "now": "Betrokkenen dienen hier zonder account een verzoek in. Link het vanuit je privacyverklaring; elke inzending start bij ontvangst de klok van één maand."
+    },
+    "compliance.dpia_questionnaire_hint": {
+      "was": "Art. 35(7): doel, gegevens, noodzaak, maatregelen.",
+      "now": "Art. 35(7): beschrijving en doeleinden, noodzaak en evenredigheid, risico's voor de rechten en vrijheden van betrokkenen, maatregelen."
+    },
+    "compliance.set_ai_marking_hint": {
+      "was": [
+        "Verplicht vanaf 2 december 2026 (AI-verordening art. 50(2)): documenten en pagina's die de AI schrijft krijgen een machineleesbare markering en een zichtbare vermelding.",
+        "Verplicht onder AI-verordening art. 50(2) sinds 2 augustus 2026 (systemen die daarvoor al op de markt waren: uiterlijk 2 december 2026): documenten en pagina's die de AI schrijft krijgen een machineleesbare markering en een zichtbare vermelding."
+      ],
+      "now": "AI-verordening art. 50(2) vereist sinds 2 augustus 2026 een machineleesbare markering van door AI gegenereerde output (systemen die daarvoor al op de markt waren: uiterlijk 2 december 2026). Bee Flow voegt daarnaast een zichtbare vermelding toe."
+    },
+    "compliance.pf_intro": {
+      "was": "Art. 30 vraagt dat een klant zijn gegevens kan meenemen bij overstappen: elke soort die dit platform bewaart, in een gestructureerd, gangbaar, machineleesbaar formaat. Een soort zonder werkende exportroute is een gat in de exit-procedure — die staat hier, niet verstopt.",
+      "now": "De Data Act vraagt dat een klant bij overstappen alle exporteerbare gegevens kan meenemen (art. 23(c), 25(2)(a) en (e)): elke soort die dit platform bewaart, in een gestructureerd, gangbaar en machineleesbaar formaat (art. 30(5)). Een soort zonder werkende exportroute is een gat in de exit-procedure — die staat hier, niet verstopt."
+    },
+    "compliance.mach_intro": {
+      "was": "Software die een veiligheidsfunctie stuurt of bewaakt is vanaf 20 januari 2027 een veiligheidscomponent. De scan vindt integraties die met machines praten; alleen jij kunt zeggen of zo'n integratie een veiligheidsfunctie raakt — verklaar dat hier, met bewijs.",
+      "now": "Software die een veiligheidsfunctie stuurt of bewaakt, kan vanaf 20 januari 2027 een veiligheidscomponent zijn — als die zelfstandig in de handel wordt gebracht (art. 3(3)); ingebouwd in een machine wordt die samen met de machine beoordeeld. De scan vindt integraties die met machines praten; alleen jij kunt zeggen of zo'n integratie een veiligheidsfunctie raakt — verklaar dat hier, met bewijs."
+    },
+    "compliance.ladder_outcome_high_risk": {
+      "was": "Uitkomst: de AI Act geldt — hoog risico (Bijlage III). Risicobeheer, technische documentatie en menselijk toezicht zijn verplicht.",
+      "now": "Uitkomst: de AI Act geldt — hoog risico (Bijlage III). Vanaf 2 dec 2027 zijn risicobeheer, technische documentatie en menselijk toezicht verplicht (aanbieder: art. 9, 11, 14; gebruiksverantwoordelijke: art. 26)."
+    },
+    "compliance.ladder_outcome_note": {
+      "was": "Wordt vastgelegd in de modelinventaris (Art. 53) en als verwerkingsactiviteit in het Verwerkingsregister; de checks \"AI-melding\" en \"markering\" blijven automatisch draaien.",
+      "now": "Wordt vastgelegd bij de modelinventaris en als verwerkingsactiviteit in het Verwerkingsregister; de checks \"AI-melding\" en \"markering\" blijven automatisch draaien."
+    },
+    "compliance.checks.iso_project_orphaned_content.fix": {
+      "was": "Activeer de vertrokken eigenaar lang genoeg om het project over te dragen, of archiveer het project. Een chat die is gedeeld door iemand die is vertrokken, is versleuteld met diens sleutel: die kan niet aan iemand anders worden gegeven, alleen worden gearchiveerd of verwijderd.",
+      "now": "Activeer de vertrokken eigenaar lang genoeg om het project over te dragen of te verwijderen. Een chat die is gedeeld door iemand die is vertrokken, is versleuteld met diens sleutel: die kan niet aan iemand anders worden gegeven, alleen worden gearchiveerd of verwijderd."
+    }
+  }
+}

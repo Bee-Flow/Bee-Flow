@@ -1,0 +1,10 @@
+{
+  "en": {
+    "compliance.checks.gdpr_art32_ear.desc": "GDPR Art. 32 requires appropriate technical measures. Bee-Flow encrypts message bodies at rest with AES-256-GCM envelope encryption when the organisation’s encryption level is Managed or Zero-knowledge, using key material from MASTER_ENCRYPTION_KEY and SESSION_SECRET. At the default level, Off, message bodies are stored in plaintext.",
+    "compliance.checks.gdpr_art32_ear.fix": "Set the MASTER_ENCRYPTION_KEY and SESSION_SECRET environment variables on your server and restart. Then choose the Managed or Zero-knowledge encryption level in the organisation’s admin settings, under Encryption."
+  },
+  "nl": {
+    "compliance.checks.gdpr_art32_ear.desc": "Art. 32 AVG vraagt om passende technische maatregelen. Bee-Flow versleutelt de inhoud van berichten in opslag met AES-256-GCM-envelopversleuteling als het versleutelingsniveau van de organisatie op Managed of Zero-knowledge staat, met sleutelmateriaal uit MASTER_ENCRYPTION_KEY en SESSION_SECRET. Op het standaardniveau, Off, wordt de inhoud van berichten onversleuteld opgeslagen.",
+    "compliance.checks.gdpr_art32_ear.fix": "Stel de omgevingsvariabelen MASTER_ENCRYPTION_KEY en SESSION_SECRET in op je server en start de server opnieuw. Kies daarna in de beheerinstellingen van de organisatie, onder Encryption, het versleutelingsniveau Managed of Zero-knowledge."
+  }
+}

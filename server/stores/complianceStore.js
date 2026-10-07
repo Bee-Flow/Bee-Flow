@@ -803,6 +803,11 @@ async function getLatestForChecks(orgId, checkIds, { maxAgeDays = 3 } = {}) {
  * subject's slot (a per-source check has a row per agent or automation, and
  * one row's audit trail must not show another subject's runs). Without it
  * every slot is returned, as before.
+ *
+ * @param {string} orgId
+ * @param {string} checkId
+ * @param {number} [limit]
+ * @param {{ scopeId?: string | null }} [opts]
  */
 async function getCheckHistory(orgId, checkId, limit = 100, { scopeId } = {}) {
     await initDB();

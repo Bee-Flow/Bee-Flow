@@ -83,6 +83,14 @@ test('sha mismatch → warn stale', async () => {
     assert.match(r.details, /stale/);
 });
 
+test('"dev" ties nothing to a build', async () => {
+    fx.sha = 'dev';
+    const r = await check.evaluate(ORG, null, { path: artefact({ build_sha: 'dev' }), now: NOW });
+    assert.equal(r.status, 'warn');
+    assert.equal(r.evidence.build_sha_matches, false);
+    assert.match(r.details, /no build sha/);
+});
+
 test('older than 60 days → warn stale; a short sha prefix still matches', async () => {
     fx.sha = 'abcdef1';
     const r = await check.evaluate(ORG, null, { path: artefact({ generated_at: '2026-06-01T00:00:00Z' }), now: NOW });

@@ -128,8 +128,8 @@ test('CRA clocks: early warning within 6 h / overdue, full report within 24 h / 
     const cra = sent.filter(n => /^CRA /.test(n.title));
     const byIncident = (id) => cra.filter(n => n.message.includes(`#${id} `)).map(n => n.title);
     assert.deepStrictEqual(byIncident(10), ['CRA early warning (24 h) due soon']);
-    assert.deepStrictEqual(byIncident(11), ['CRA vulnerability report (72 h) due soon']);
-    assert.deepStrictEqual(byIncident(12), ['CRA early warning (24 h) overdue', 'CRA vulnerability report (72 h) overdue']);
+    assert.deepStrictEqual(byIncident(11), ['CRA final report due soon']);
+    assert.deepStrictEqual(byIncident(12), ['CRA early warning (24 h) overdue', 'CRA final report overdue']);
     assert.deepStrictEqual(byIncident(13), []);
     assert.deepStrictEqual(byIncident(14), []);
     for (const n of cra) assert.match(n.link, /^\/app\/admin\/compliance\/incidents\/\d+$/);
@@ -279,6 +279,40 @@ test('AI Act attestation expiries within 30 days fire once; expired ones daily',
     deps.now = () => NOW + DAY;
     await run(deps);
     assert.strictEqual(sent.filter(n => /AI Act self-assessment/.test(n.title)).length, 3);
+});
+
+test('CRA notification (72 h): due soon within 24 h, overdue after, met by the authority notification stamp', async () => {
+    const clocks = [
+        // detected 60 h ago → the 72 h notification is 12 h out
+        { id: 30, kind: 'vulnerability', regimes: ['CRA'], detected_at: at(-60 * HOUR), early_warning_sent_at: at(-50 * HOUR) },
+        // detected 80 h ago, still not notified → overdue
+        { id: 31, kind: 'security_incident', regimes: ['CRA'], detected_at: at(-80 * HOUR), early_warning_sent_at: at(-70 * HOUR) },
+        // notified → the clock is met
+        { id: 32, kind: 'vulnerability', regimes: ['CRA'], detected_at: at(-80 * HOUR), early_warning_sent_at: at(-70 * HOUR), authority_notified_at: at(-10 * HOUR) },
+        // detected 10 h ago → 62 h out, outside the 24 h window
+        { id: 33, kind: 'vulnerability', regimes: ['CRA'], detected_at: at(-10 * HOUR), early_warning_sent_at: at(-5 * HOUR) },
+    ];
+    const { deps, sent } = harness({ incidentStore: { listNeedingAttention: async () => [], listOpenClocks: async () => clocks } });
+    await run(deps);
+    const byIncident = (id) => sent.filter(n => n.message.includes(`#${id} `)).map(n => n.title);
+    assert.deepStrictEqual(byIncident(30), ['CRA notification (72 h) due soon']);
+    assert.deepStrictEqual(byIncident(31), ['CRA notification (72 h) overdue']);
+    assert.deepStrictEqual(byIncident(32), []);
+    assert.deepStrictEqual(byIncident(33), []);
+});
+
+test('the legacy Art. 33 sweep skips CRA-only rows, so a CRA clock is never nudged twice', async () => {
+    const { deps, sent } = harness({ incidentStore: {
+        listNeedingAttention: async () => [
+            { id: 40, kind: 'vulnerability', regimes: ['CRA'], deadline_at: at(10 * HOUR) },
+            { id: 41, kind: 'security_incident', regimes: '["CRA"]', deadline_at: at(-HOUR) },
+            { id: 42, kind: 'vulnerability', regimes: ['GDPR', 'CRA'], deadline_at: at(10 * HOUR) },
+        ],
+        listOpenClocks: async () => [],
+    } });
+    await run(deps);
+    const art33 = sent.filter(n => /Art\. 33/.test(n.title));
+    assert.deepStrictEqual(art33.map(n => n.message.match(/Incident #(\d+)/)[1]), ['42'], 'only the row that is also a GDPR matter');
 });
 
 test('legacy Art. 33 incident sweep is deduped too and names the incident by id, not title', async () => {

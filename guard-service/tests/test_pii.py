@@ -1292,6 +1292,59 @@ class RegexTierTests(unittest.TestCase):
         self.assertTrue(persons)
         self.assertIn("Eva", persons[0]["text"])
 
+    def test_iban_in_any_case_or_with_dashes(self):
+        # IBAN is regex-complete, so GLiNER is not asked: a form the regex
+        # misses goes to the model in cleartext. Upper-case-only patterns
+        # missed the lower/mixed-case and dashed forms entirely.
+        for text, value in [
+            ("mijn iban is nl91abna0417164300", "nl91abna0417164300"),
+            ("iban: Nl91 Abna 0417 1643 00", "Nl91 Abna 0417 1643 00"),
+            ("NL91-ABNA-0417-1643-00", "NL91-ABNA-0417-1643-00"),
+            ("NL91ABNA 0417164300", "NL91ABNA 0417164300"),
+            # A BBAN length that is a multiple of four, followed by a word: the
+            # grouped pattern absorbs the word, the contiguous twin still hits.
+            ("mijn iban is be68539007547034 voor de huur", "be68539007547034"),
+            ("iban es9121000418450200051332 graag", "es9121000418450200051332"),
+        ]:
+            with self.subTest(text=text):
+                ents = detect_regex_pii(text)
+                self.assertTrue(
+                    any(
+                        e["category"] == "InternationalBankingAccountNumber"
+                        and e["text"] == value
+                        for e in ents
+                    ),
+                    ents,
+                )
+
+    def test_a_lower_case_word_run_is_not_an_iban(self):
+        ents = detect_regex_pii("ab12 test word here")
+        self.assertFalse(
+            any(e["category"] == "InternationalBankingAccountNumber" for e in ents),
+            ents,
+        )
+
+    def test_a_dutch_vat_number_that_passes_mod97_is_not_an_iban(self):
+        # 14 characters: shorter than any registered IBAN, but it fits the
+        # grouped any-case shape and happens to pass mod-97 (an eval corpus case).
+        ents = detect_regex_pii("btw-nummer NL908830705B27.")
+        self.assertFalse(
+            any(e["category"] == "InternationalBankingAccountNumber" for e in ents),
+            ents,
+        )
+
+    def test_card_right_after_another_number(self):
+        # _CC_RE joins the preceding '7' into the run, Luhn fails on the joined
+        # run and the whole match was dropped, so the card was never tried.
+        ents = detect_regex_pii("klant 7 4111111111111111")
+        self.assertTrue(
+            any(
+                e["category"] == "CreditCardNumber" and e["text"] == "4111111111111111"
+                for e in ents
+            ),
+            ents,
+        )
+
 
 class CacheKeyFingerprintTests(unittest.TestCase):
     """The cache key must identify the CONFIGURATION, not just the text.

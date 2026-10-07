@@ -49,8 +49,15 @@ async function _initDB() {
     await exec(`CREATE INDEX IF NOT EXISTS idx_iso_snap ON iso_evidence_snapshots(organization_id, connector_id, subject_id, fetched_at DESC)`);
 }
 
+// Elapsed-time fields change every day on their own, so they are not drift:
+// hashing them raised a daily CONTROL_DRIFT and "External system
+// configuration changed" notice, and a new snapshot row per subject per day,
+// with nothing changed (github.js, scaleway.js, tls-endpoints.js).
+const VOLATILE_KEYS = new Set(['days_remaining', 'oldest_open_days', 'oldest_high_critical_days', 'newest_backup_age_days']);
+
 function hashPayload(payload) {
-    return crypto.createHash('sha256').update(JSON.stringify(payload || {})).digest('hex');
+    const json = JSON.stringify(payload || {}, (k, v) => (VOLATILE_KEYS.has(k) ? undefined : v));
+    return crypto.createHash('sha256').update(json).digest('hex');
 }
 
 // ── Connector configs ──
@@ -116,17 +123,19 @@ async function saveSnapshot(orgId, connectorId, subjectId, payload) {
         WHERE organization_id = $1 AND connector_id = $2 AND subject_id = $3
         ORDER BY fetched_at DESC LIMIT 1
     `, [orgId, connectorId, subjectId]);
-    // Unchanged: refresh the timestamp of the latest row instead of growing an
-    // identical-row time series forever.
+    // Unchanged: refresh the latest row instead of growing an identical-row
+    // time series forever. The payload is refreshed too: the hash leaves the
+    // elapsed-time fields out, and a check reading a stored first-day age
+    // would miss a certificate that is about to expire.
     if (prev?.hash === hash) {
         await run(`
-            UPDATE iso_evidence_snapshots SET fetched_at = NOW()
+            UPDATE iso_evidence_snapshots SET fetched_at = NOW(), payload = $4::jsonb
             WHERE id = (
                 SELECT id FROM iso_evidence_snapshots
                 WHERE organization_id = $1 AND connector_id = $2 AND subject_id = $3
                 ORDER BY fetched_at DESC LIMIT 1
             )
-        `, [orgId, connectorId, subjectId]);
+        `, [orgId, connectorId, subjectId, JSON.stringify(payload || {})]);
         return { changed: false, hash };
     }
     await run(`

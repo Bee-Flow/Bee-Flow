@@ -14,7 +14,18 @@ const ALERT_THRESHOLD = 50;     // decrypts per minute before alerting
 const WINDOW_MS = 60000;        // 1 minute sliding window
 const CLEANUP_INTERVAL = 300000; // Clean old entries every 5 min
 
-// Map<userId, { count: number, windowStart: number, alerted: boolean }>
+/**
+ * Map<userId, { stamps: number[], alertedAt: number, count: number, windowStart: number }>
+ *
+ * A SLIDING window: `stamps` holds the times of the user's decrypts in the
+ * last WINDOW_MS (at most ALERT_THRESHOLD of them — enough to decide), so
+ * any 60 seconds count. The window used to tumble: it reset at the first
+ * decrypt more than a minute after it opened, and 49 decrypts at the end of
+ * one window plus 49 at the start of the next (98 in two seconds) never
+ * reached the threshold. `alertedAt` starts at -Infinity so the very first
+ * burst alerts; after that at most one alert per WINDOW_MS while it lasts
+ * (the BREACH_SIGNAL handler dedupes per source per day on top).
+ */
 const decryptCounts = new Map();
 
 /**
@@ -29,18 +40,19 @@ function trackDecrypt(userId, conversationId = null) {
 
     const now = Date.now();
     let entry = decryptCounts.get(userId);
-
-    if (!entry || now - entry.windowStart > WINDOW_MS) {
-        // New window
-        entry = { count: 1, windowStart: now, alerted: false };
+    if (!entry) {
+        entry = { stamps: [], alertedAt: -Infinity, count: 0, windowStart: now };
         decryptCounts.set(userId, entry);
-        return;
     }
 
-    entry.count++;
+    entry.stamps.push(now);
+    while (entry.stamps.length && now - entry.stamps[0] > WINDOW_MS) entry.stamps.shift();
+    if (entry.stamps.length > ALERT_THRESHOLD) entry.stamps.shift();
+    entry.count = entry.stamps.length;
+    entry.windowStart = entry.stamps[0];
 
-    if (entry.count >= ALERT_THRESHOLD && !entry.alerted) {
-        entry.alerted = true;
+    if (entry.count >= ALERT_THRESHOLD && now - entry.alertedAt > WINDOW_MS) {
+        entry.alertedAt = now;
         log.error(
             `[ALERT] Bulk decrypt detected: user ${userId} performed ${entry.count} decrypts in ` +
             `${Math.ceil((now - entry.windowStart) / 1000)}s` +
@@ -79,7 +91,8 @@ function trackDecrypt(userId, conversationId = null) {
  * @returns {{ count: number, windowStart: number } | null}
  */
 function getDecryptStats(userId) {
-    return decryptCounts.get(userId) || null;
+    const entry = decryptCounts.get(userId);
+    return entry ? { count: entry.count, windowStart: entry.windowStart } : null;
 }
 
 // Periodic cleanup of stale entries. unref'd: housekeeping must never be the
@@ -88,7 +101,8 @@ function getDecryptStats(userId) {
 const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [userId, entry] of decryptCounts) {
-        if (now - entry.windowStart > WINDOW_MS * 2) {
+        const last = entry.stamps.length ? entry.stamps[entry.stamps.length - 1] : entry.windowStart;
+        if (now - last > WINDOW_MS * 2) {
             decryptCounts.delete(userId);
         }
     }

@@ -75,6 +75,13 @@ test('register without the NIS2 columns (42703) → warn not provisioned, readin
     noPii(r);
 });
 
+test('an e-mail address typed as reported_via never reaches the evidence', async () => {
+    fx.incidents = [incident(1, { reported_via: 'mail to contact@ncsc.example.org' })];
+    const r = await check.evaluate(ORG);
+    noPii(r);
+    assert.equal(r.evidence.incidents[0].reported_via, 'email');
+});
+
 test('ready: channel + CSIRT + recipients, no open incident → pass; contact never in evidence', async () => {
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'pass');

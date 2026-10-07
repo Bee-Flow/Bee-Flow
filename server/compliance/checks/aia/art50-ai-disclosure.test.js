@@ -29,10 +29,12 @@ const fakeDb = {
         const s = flat(sql);
         assert.match(s, /COALESCE\(published_system_prompt, system_prompt\) AS system_prompt/);
         assert.match(s, /COALESCE\(published_config::text, config::text\) AS config/);
-        const scoped = /AND organization_id = \$1/.test(s);
+        // projectData.orgMatch: an agent without an organisation is the
+        // 'default' bucket's.
+        const scoped = /AND COALESCE\(NULLIF\(organization_id, ''\), 'default'\) = \$1/.test(s);
         assert.equal(scoped, params.length === 1, 'the org predicate and its parameter must travel together');
         const rows = scoped && !ignoreParams
-            ? agents.filter(a => (a.organization_id ?? null) === params[0])
+            ? agents.filter(a => (a.organization_id || 'default') === params[0])
             : agents;
         return rows.filter(a => a.is_published).map(a => ({
             id: a.id, name: a.name,
@@ -62,9 +64,26 @@ const fakeDb = {
 const dbPath = require.resolve(path.join(__dirname, '..', '..', '..', 'db.js'));
 require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: fakeDb };
 
+// The install's locale list, for the language of the auto-fix sentence. A
+// stub for the whole file: the real store would read (and cache) config
+// through the fake db.
+let defaultLocale = 'en';
+const configReads = [];
+const configStorePath = require.resolve(path.join(__dirname, '..', '..', '..', 'stores', 'configStore.js'));
+require.cache[configStorePath] = {
+    id: configStorePath, filename: configStorePath, loaded: true,
+    exports: {
+        getConfig: async (key) => {
+            configReads.push(key);
+            return key === 'i18n_locales' ? [{ code: 'en', isDefault: defaultLocale === 'en' }, { code: 'nl', isDefault: defaultLocale === 'nl' }] : null;
+        },
+        setConfig: async () => { throw new Error('the auto-fix must not write configuration'); },
+    },
+};
+
 const check = require('./art50-ai-disclosure');
 
-test.beforeEach(() => { agents = []; updates.length = 0; readError = null; ignoreParams = false; });
+test.beforeEach(() => { agents = []; updates.length = 0; readError = null; ignoreParams = false; defaultLocale = 'en'; configReads.length = 0; });
 
 function pgError(message, code) {
     const e = new Error(message);
@@ -149,6 +168,35 @@ test('org scoping: a platform-wide agent (organization_id IS NULL) is not one te
     const global = await check.evaluate(null);
     assert.equal(global.status, 'warn');
     assert.equal(global.evidence.missing_count, 1);
+
+    // The scheduler never sweeps null: the 'default' bucket (the org-less
+    // users, the only ones who see a platform agent) is where it is judged.
+    const bucket = await check.evaluate('default');
+    assert.equal(bucket.status, 'warn');
+    assert.equal(bucket.evidence.missing_count, 1);
+    assert.deepEqual(bucket.evidence.missing_disclosure.map(a => a.id), ['platform']);
+    ignoreParams = true;
+    assert.deepEqual((await check.evaluate('default')).evidence.missing_disclosure.map(a => a.id), ['platform']);
+});
+
+test('autoFix writes the Dutch sentence when the install default language is Dutch', async () => {
+    // Agents carry no language (the SELECT projects NULL), so the install
+    // default decides.
+    defaultLocale = 'nl';
+    agents = [{ id: 'a1', name: 'A', is_published: true, system_prompt: 'You are a rep.', published_system_prompt: null }];
+    const r = await check.autoFix(null, { actorId: 'admin' });
+    assert.equal(r.changed, 1);
+    assert.match(updates[0].params[0], /^Ik ben een AI-assistent/);
+    assert.equal(r.agents[0].language, 'nl');
+    assert.deepEqual(configReads, ['i18n_locales']);
+    // The Dutch sentence is itself a disclosure the check recognises.
+    assert.equal((await check.evaluate(null)).status, 'pass');
+
+    defaultLocale = 'en';
+    agents = [{ id: 'a2', name: 'B', is_published: true, system_prompt: 'You are a rep.', published_system_prompt: null }];
+    updates.length = 0;
+    await check.autoFix(null, { actorId: 'admin' });
+    assert.match(updates[0].params[0], /^I am an AI assistant/);
 });
 
 test('a failed register read is its own status — never the reassuring "No agents table yet"', async () => {

@@ -1,11 +1,11 @@
 {
   "en": {
     "compliance.check_data_act_export_coverage_title": "Every data kind can be exported",
-    "compliance.check_data_act_export_coverage_desc": "Customers must be able to take all their data when switching (Data Act Art. 30). Each kind of data held here needs a working export endpoint.",
+    "compliance.check_data_act_export_coverage_desc": "Customers must be able to take all their exportable data when switching (Data Act Art. 23(c), 25(2)(a) and (e)). Each kind of data held here needs a working export endpoint.",
     "compliance.check_data_act_export_coverage_fix": "Ship an export endpoint for the listed kinds (see the Portability matrix) or remove the data kind from the product.",
 
     "compliance.check_data_act_formats_title": "Exports use machine-readable formats",
-    "compliance.check_data_act_formats_desc": "Exported data must be in a structured, commonly used format (JSON, CSV, ZIP, DOCX). PDF-only exports do not allow migration.",
+    "compliance.check_data_act_formats_desc": "Exported data must be in a structured, commonly used and machine-readable format (Data Act Art. 30(5)), such as JSON, CSV, ZIP or DOCX. PDF-only exports do not allow migration.",
     "compliance.check_data_act_formats_fix": "Add a JSON or CSV variant to the flagged export endpoints.",
 
     "compliance.check_data_act_notice_period_title": "Switching notice period ≤ 2 months",
@@ -17,20 +17,21 @@
     "compliance.check_data_act_exit_procedure_fix": "Publish the exit-procedure policy under Compliance → Policies and perform (or attest) a full export at least yearly.",
 
     "compliance.check_dora_incident_path_title": "Incident reporting path to financial customers",
-    "compliance.check_dora_incident_path_desc": "Financial entities must report major ICT incidents within hours; as their provider you must notify them promptly (DORA Art. 30). Customer contacts and a notice window must be in place.",
+    "compliance.check_dora_incident_path_desc": "Financial entities must send an initial notification of a major ICT incident within 4 hours of classifying it, and no later than 24 hours after becoming aware of it (DORA Art. 19; Delegated Regulation (EU) 2025/301). Your contract with them must provide for your assistance when an ICT incident occurs (Art. 30(2)(f)) and, for services supporting critical or important functions, your notice periods and reporting obligations (Art. 30(3)(b)). Customer contacts and a notice window must be in place.",
     "compliance.check_dora_incident_path_fix": "Add customer incident contacts and the notice window under Compliance → Settings → DORA; stamp the customer notification on each incident.",
 
     "compliance.check_dora_register_title": "Register of ICT third-party providers",
-    "compliance.check_dora_register_desc": "DORA Art. 28(3) requires a register of all ICT third-party arrangements with contract references and criticality. The register is derived from the operators your workspace actually uses.",
+    "compliance.check_dora_register_desc": "DORA Art. 28(3) requires your financial customers to keep a register of information on all their ICT third-party arrangements, using the templates in Implementing Regulation (EU) 2024/2956, including the subcontractors that effectively underpin ICT services supporting their critical or important functions. As their provider, you must be able to hand over your part of that chain: which subcontractors you rely on, and where they provide the service and process data. The register is derived from the operators your workspace actually uses.",
     "compliance.check_dora_register_fix": "Complete the contract reference, country and criticality for each operator under Compliance → ROPA.",
 
     "compliance.check_dora_contract_clauses_title": "Contractual clauses confirmed",
-    "compliance.check_dora_contract_clauses_desc": "Contracts with financial entities must contain the DORA Art. 30 provisions (service descriptions, locations, service levels, audit rights, exit). Confirm your template yearly.",
+    "compliance.check_dora_contract_clauses_desc": "Contracts with financial entities must contain the DORA Art. 30(2) provisions (service descriptions, locations, data protection, data access and return, service levels, incident assistance, cooperation with supervisors, termination rights, participation in security-awareness training). Where you support a critical or important function, Art. 30(3) adds precise service levels, notice and reporting duties, contingency plans, participation in threat-led penetration testing, audit and access rights, and exit strategies. Confirm your template yearly.",
     "compliance.check_dora_contract_clauses_fix": "Confirm your contract template covers Art. 30 and link it under Compliance → Settings → DORA.",
 
     "compliance.pf_kind_automations": "Automations",
     "compliance.pf_kind_datatables": "Tables",
     "compliance.pf_kind_studio_apps": "App data",
+    "compliance.pf_kind_app_templates": "App templates",
     "compliance.pf_kind_cms_sites": "Websites (CMS)",
     "compliance.pf_kind_solutions": "Solution packages",
     "compliance.pf_kind_meeting_notes": "Meeting notes",
@@ -53,11 +54,11 @@
   },
   "nl": {
     "compliance.check_data_act_export_coverage_title": "Elke gegevenssoort is exporteerbaar",
-    "compliance.check_data_act_export_coverage_desc": "Klanten moeten al hun gegevens kunnen meenemen bij overstappen (Data Act art. 30). Elke soort gegevens die hier wordt bewaard heeft een werkend exportendpoint nodig.",
+    "compliance.check_data_act_export_coverage_desc": "Klanten moeten bij overstappen al hun exporteerbare gegevens kunnen meenemen (Data Act art. 23(c), 25(2)(a) en (e)). Elke soort gegevens die hier wordt bewaard heeft een werkend exportendpoint nodig.",
     "compliance.check_data_act_export_coverage_fix": "Lever een exportendpoint voor de genoemde soorten (zie de Portabiliteitsmatrix) of verwijder de gegevenssoort uit het product.",
 
     "compliance.check_data_act_formats_title": "Exports in machineleesbare formaten",
-    "compliance.check_data_act_formats_desc": "Geëxporteerde gegevens moeten in een gestructureerd, gangbaar formaat staan (JSON, CSV, ZIP, DOCX). Alleen-PDF-exports maken migratie onmogelijk.",
+    "compliance.check_data_act_formats_desc": "Geëxporteerde gegevens moeten in een gestructureerd, gangbaar en machineleesbaar formaat staan (Data Act art. 30(5)), zoals JSON, CSV, ZIP of DOCX. Alleen-PDF-exports maken migratie onmogelijk.",
     "compliance.check_data_act_formats_fix": "Voeg een JSON- of CSV-variant toe aan de gemarkeerde exportendpoints.",
 
     "compliance.check_data_act_notice_period_title": "Opzegtermijn bij overstappen ≤ 2 maanden",
@@ -69,20 +70,21 @@
     "compliance.check_data_act_exit_procedure_fix": "Publiceer het exitprocedure-beleid onder Compliance → Beleid en voer minstens jaarlijks een volledige export uit (of leg die vast).",
 
     "compliance.check_dora_incident_path_title": "Meldroute voor incidenten naar financiële klanten",
-    "compliance.check_dora_incident_path_desc": "Financiële instellingen moeten grote ICT-incidenten binnen uren melden; als hun leverancier moet je hen direct informeren (DORA art. 30). Klantcontacten en een meldtermijn moeten vastliggen.",
+    "compliance.check_dora_incident_path_desc": "Financiële instellingen moeten van een ernstig ICT-gerelateerd incident binnen 4 uur na de classificatie, en uiterlijk 24 uur nadat ze ervan op de hoogte zijn, een eerste melding doen (DORA art. 19; Gedelegeerde Verordening (EU) 2025/301). Je contract met hen moet regelen dat je bijstand verleent wanneer zich een ICT-incident voordoet (art. 30(2)(f)) en, voor diensten die kritieke of belangrijke functies ondersteunen, je kennisgevingstermijnen en rapportageverplichtingen vastleggen (art. 30(3)(b)). Klantcontacten en een meldtermijn moeten vastliggen.",
     "compliance.check_dora_incident_path_fix": "Voeg klantcontacten voor incidenten en de meldtermijn toe onder Compliance → Instellingen → DORA; leg de klantmelding vast op elk incident.",
 
     "compliance.check_dora_register_title": "Register van ICT-derden",
-    "compliance.check_dora_register_desc": "DORA art. 28(3) vereist een register van alle ICT-uitbestedingen met contractreferentie en kritikaliteit. Het register wordt afgeleid van de partijen die je werkruimte daadwerkelijk gebruikt.",
+    "compliance.check_dora_register_desc": "DORA art. 28(3) verplicht je financiële klanten een informatieregister bij te houden van al hun ICT-afspraken met derden, volgens de templates in Uitvoeringsverordening (EU) 2024/2956, inclusief de onderaannemers die ICT-diensten ter ondersteuning van hun kritieke of belangrijke functies daadwerkelijk dragen. Als hun leverancier moet je jouw deel van die keten kunnen aanleveren: op welke onderaannemers je steunt, en waar zij de dienst leveren en gegevens verwerken. Het register wordt afgeleid van de partijen die je werkruimte daadwerkelijk gebruikt.",
     "compliance.check_dora_register_fix": "Vul per partij de contractreferentie, het land en de kritikaliteit aan onder Compliance → Verwerkingsregister.",
 
     "compliance.check_dora_contract_clauses_title": "Contractbepalingen bevestigd",
-    "compliance.check_dora_contract_clauses_desc": "Contracten met financiële instellingen moeten de bepalingen van DORA art. 30 bevatten (dienstbeschrijving, locaties, serviceniveaus, auditrechten, exit). Bevestig je sjabloon jaarlijks.",
+    "compliance.check_dora_contract_clauses_desc": "Contracten met financiële instellingen moeten de bepalingen van DORA art. 30(2) bevatten (dienstbeschrijving, locaties, gegevensbescherming, toegang tot en teruggave van gegevens, serviceniveaus, bijstand bij incidenten, samenwerking met toezichthouders, beëindigingsrechten, deelname aan bewustmakingstrainingen). Ondersteun je een kritieke of belangrijke functie, dan voegt art. 30(3) daar precieze serviceniveaus, kennisgevings- en rapportageverplichtingen, noodplannen, deelname aan dreigingsgestuurde penetratietests, audit- en toegangsrechten en exitstrategieën aan toe. Bevestig je sjabloon jaarlijks.",
     "compliance.check_dora_contract_clauses_fix": "Bevestig dat je contractsjabloon art. 30 dekt en koppel het onder Compliance → Instellingen → DORA.",
 
     "compliance.pf_kind_automations": "Automatiseringen",
     "compliance.pf_kind_datatables": "Tabellen",
     "compliance.pf_kind_studio_apps": "App-gegevens",
+    "compliance.pf_kind_app_templates": "App-sjablonen",
     "compliance.pf_kind_cms_sites": "Websites (CMS)",
     "compliance.pf_kind_solutions": "Oplossingspakketten",
     "compliance.pf_kind_meeting_notes": "Vergadernotities",

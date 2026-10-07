@@ -135,7 +135,7 @@ function _isCurrent(row, now) {
 
 /**
  * Pure verdict.
- * @param {{ subject: {id: string, kind: string, projectId: string, aiMode: string}, kinds: string[], shieldOn: boolean, dpiaCurrent: boolean }} input
+ * @param {{ subject: {id: string, kind: string, projectId: string, aiMode: string}, kinds: string[], shieldOn: boolean, dpiaCurrent: boolean|null }} input
  */
 function verdict({ subject, kinds, shieldOn, dpiaCurrent }) {
     const special = signals.hasSpecialKinds(kinds);
@@ -221,7 +221,10 @@ module.exports = {
         const kinds = signal?.kinds || [];
         let shieldOn;
         try { shieldOn = await deps.shieldOn(orgId); } catch { shieldOn = false; }
-        let dpiaCurrent = false;
+        // null = not consulted: the DPIA register is only read when the
+        // project holds special-category data, and `false` would claim "no
+        // current DPIA" where nobody looked.
+        let dpiaCurrent = null;
         if (signals.hasSpecialKinds(kinds)) {
             const keys = [ORG_WIDE_DPIA_KEY, `project:${s.projectId}`, ...(s.agentId ? [String(s.agentId)] : [])];
             try {

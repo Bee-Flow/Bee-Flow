@@ -47,11 +47,18 @@ function _iso(v) {
     return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
 
+function _isDevSha(s) {
+    return String(s || '').trim().toLowerCase() === 'dev';
+}
+
+// 'dev' is the absence of a build sha (an unstamped server, a dispatch run
+// without one), so it ties a report to no build — not even to another 'dev'.
+// A prefix only counts from 7 characters, as with the SBOM check.
 function _shaMatches(a, b) {
-    if (!a || !b) return false;
-    const x = String(a).toLowerCase();
-    const y = String(b).toLowerCase();
-    if (x === 'dev' || y === 'dev') return x === y;
+    const x = typeof a === 'string' ? a.trim().toLowerCase() : '';
+    const y = typeof b === 'string' ? b.trim().toLowerCase() : '';
+    if (!x || !y || _isDevSha(x) || _isDevSha(y)) return false;
+    if (x.length < 7 || y.length < 7) return x === y;
     return x.startsWith(y) || y.startsWith(x);
 }
 
@@ -148,7 +155,9 @@ module.exports = {
         }
         if (evidence.stale) {
             const why = !shaMatch
-                ? `it was produced for build ${String(art.build_sha).slice(0, 12)}, the server runs ${String(buildSha).slice(0, 12)}`
+                ? ((_isDevSha(art.build_sha) || _isDevSha(buildSha))
+                    ? 'the report or this server carries no build sha ("dev"), so the report cannot be tied to the running build'
+                    : `it was produced for build ${String(art.build_sha).slice(0, 12)}, the server runs ${String(buildSha).slice(0, 12)}`)
                 : `it is ${Math.round(loaded.age_days)} days old (limit ${STALE_DAYS})`;
             return {
                 status: 'warn',

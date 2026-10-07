@@ -13,7 +13,9 @@
  * Status per check (in this order):
  *   1. mapped_check_id → the latest persisted result of that built-in check
  *      is copied (status + severity) with evidence { satisfied_by, source_run_at };
- *      no such row yet → 'warn' ("mapped check has not run").
+ *      a per-source check answers with its worst live verdict over its
+ *      subjects and its coverage row (retired slots excluded), a global check
+ *      with its global row; no such row yet → 'warn' ("mapped check has not run").
  *   2. latest attestation:
  *        none      → 'fail'  (or 'warn' during the 30-day grace after the framework was created)
  *        expired   → 'warn'
@@ -36,6 +38,9 @@ const OUTCOME_STATUS = Object.freeze({
 });
 
 const STATUS_RANK = { na: 0, pass: 1, warn: 2, fail: 3 };
+
+/** Built-in statuses, worst highest; not_applicable ranks below them all. */
+const MAPPED_RANK = { fail: 3, warn: 2, pass: 1 };
 
 /** The worse of two statuses — used to cap a 'pass' at 'warn' when evidence is missing. */
 function worst(a, b) {
@@ -153,11 +158,25 @@ async function runAll(orgId, { runType = 'scheduled' } = {}) {
     const builtinFor = async (checkId) => {
         if (!latestBuiltin) {
             const all = (await complianceStore.getLatestPerCheck(orgId)) || [];
-            latestBuiltin = new Map();
+            const byCheck = new Map();
             for (const r of all) {
-                // Prefer the global-scope row; fall back to the newest of any scope.
-                const existing = latestBuiltin.get(r.check_id);
-                if (!existing || (r.scope_type === 'global' && existing.scope_type !== 'global')) latestBuiltin.set(r.check_id, r);
+                // A retired slot is a subject that no longer exists.
+                if (r?.evidence?.retired === true) continue;
+                if (!byCheck.has(r.check_id)) byCheck.set(r.check_id, []);
+                byCheck.get(r.check_id).push(r);
+            }
+            latestBuiltin = new Map();
+            for (const [id, rows] of byCheck) {
+                // A per-source check answers for its whole population: the
+                // worst of its subject verdicts and its coverage row (which
+                // fails when there are things to examine but no verdicts).
+                // Its global slot only ever holds a placeholder ("No subjects
+                // to evaluate.") that is kept forever. A global check writes no
+                // coverage row, so it keeps its global row.
+                const pool = rows.filter(r => r.scope_type === 'per-source' || r.scope_type === 'coverage');
+                latestBuiltin.set(id, pool.length
+                    ? pool.reduce((a, b) => ((MAPPED_RANK[b.status] || 0) > (MAPPED_RANK[a.status] || 0) ? b : a))
+                    : (rows.find(r => r.scope_type === 'global') || rows[0]));
             }
         }
         return latestBuiltin.get(checkId) || null;

@@ -172,7 +172,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
     const apiKey = config.apiKey;
     const apiUrl = (config.url || '').replace(/\/+$/, '');
 
-    log.info(`[NotebookChat] Model: ${modelId} (tier: ${resolvedTier}${modelTier === 'auto' ? ', auto-selected' : ''}) for notebook: "${notebook.name}" (${readySources.length} sources)`);
+    log.info(`[NotebookChat] Model: ${modelId} (tier: ${resolvedTier}${modelTier === 'auto' ? ', auto-selected' : ''}) for notebook ${notebook.id} (${readySources.length} sources)`);
 
     // Set SSE headers
     res.writeHead(200, {
@@ -219,15 +219,17 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         // BEFORE any tokenization this turn, so doc/KB/message tokens reuse tokens
         // minted on earlier turns and survive a server restart. Idempotent.
         try { await dlpRunner.getConversationTokenMapAsync(notebookId); } catch (_) { /* best-effort */ }
-        // Resolve the org Privacy Shield ONCE — respect-the-shield: tokenization
-        // only runs when the admin has it enabled. Reused by the KB + doc scans.
-        const docShield = userOrgForTiers
-            ? await configStore.getConfig(`org_privacy_shield_${userOrgForTiers}`)
-            : null;
-        // The RESOLVED shield (the scans above read the stored document): the
-        // regex rules below, and the tool block lists on the injected
-        // passages and in the tool loop (BFSF-354).
+        // Resolve the Privacy Shield ONCE — respect-the-shield: tokenization
+        // only runs when it is enabled. The RESOLVED shape, never the stored
+        // org document: a personal account (no org) has only a user-level
+        // shield, which the stored-document read never saw, so its document,
+        // KB passages, attachments and typed message reached the model
+        // unscanned (the direct-chat equivalent was BFSF-290/291). The resolved
+        // shape also carries the tier clamps and the documented fail_closed
+        // default. Used by the KB, document, attachment and message scans, the
+        // regex rules below, and the tool block lists (BFSF-354).
         const orgShieldConfig = await resolveShieldFor({ orgId: userOrgForTiers, userId });
+        const docShield = orgShieldConfig;
         const toolPiiGate = require('../../core/privacy/toolPiiGate');
         // When the shield is on AND set to fail closed, a scan that throws must
         // abort the turn rather than silently sending raw PII to the model.
@@ -324,7 +326,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
                     // list applies as it does to notebook_kb_search (BFSF-354),
                     // before the tokenisation below. The citations stay real.
                     kbContext = await toolPiiGate.stripInjectedText(kbResult.contextPrompt, { shield: orgShieldConfig, tag: 'NotebookChat' });
-                    log.info(`[NotebookChat] Injected ${kbResult.chunks.length} KB chunks for notebook "${notebook.name}"`);
+                    log.info(`[NotebookChat] Injected ${kbResult.chunks.length} KB chunks for notebook ${notebook.id}`);
 
                     // Tokenize the retrieved KB context BEFORE it enters the prompt.
                     // Embeddings + stored source text stay REAL (ingest untouched) —
@@ -606,17 +608,30 @@ Now: ${formatLocalNow(timezone)}`;
             // Honors the org's chosen action and merges into the same notebook token
             // map so the streamed reply un-tokenises consistently. Reuses the same
             // scanner as direct chat + the KB/doc scans.
+            // Returns the verdict, not just text: `{ blocked }` when the shield
+            // blocks the attachment (or a fail-closed scan could not finish),
+            // `{ scanFailed }` when the scan threw under fail_closed, else
+            // `{ text }`. A block used to fall through to the ORIGINAL text, so
+            // the strictest setting sent the attachment to the provider; with
+            // an image in the turn the message gate below scans only the typed
+            // question, so nothing caught it afterwards. The caller aborts the
+            // turn (it cannot be thrown from here: the per-attachment
+            // try/catch would turn it into a "could not be read" note).
             const _scanAttBody = async (text, filename) => {
-                if (!text || !docShield?.enabled) return text;
+                if (!text || !docShield?.enabled) return { text };
                 try {
                     const { scanAttachmentText } = require('../../core/dlp/attachmentScanner');
                     const r = await scanAttachmentText({ text, filename: filename || 'attachment', orgShield: docShield, conversationId: notebookId });
+                    if (r?.action === 'block') return { blocked: true };
                     // Any scanner-produced text wins — on an incomplete scan it is
                     // the truncated document; keeping the original would re-add the
                     // pages nobody checked.
-                    if (r && typeof r.text === 'string') return r.text;
-                } catch (e) { log.warn('[NotebookChat] attachment PII scan failed:', e.message); }
-                return text;
+                    if (r && typeof r.text === 'string') return { text: r.text };
+                } catch (e) {
+                    log.warn('[NotebookChat] attachment PII scan failed:', e.message);
+                    if (_failClosed) return { scanFailed: true };
+                }
+                return { text };
             };
             for (const att of attachments) {
                 try {
@@ -625,7 +640,10 @@ Now: ${formatLocalNow(timezone)}`;
                     } else if (att.content && (isPdf(att) || isDocx(att) || isSpreadsheet(att))) {
                         const result = await extractAttachment(att, { modelSupportsVision: adapter.supportsVision?.(modelId) });
                         if (result.kind === 'text') {
-                            const _body = await _scanAttBody((result.text || '').slice(0, 20000), att.name);
+                            const _scan = await _scanAttBody((result.text || '').slice(0, 20000), att.name);
+                            if (_scan.blocked) return _abortBlocked('attachment');
+                            if (_scan.scanFailed) return _abortFailClosed('attachment');
+                            const _body = _scan.text;
                             contentParts.push({ type: 'text', text: `${formatTextHeader(att, result)}\n---\n${_body}\n---` });
                         } else if (result.kind === 'images' && Array.isArray(result.images)) {
                             contentParts.push({ type: 'text', text: formatImagesHeader(att, result) });
@@ -639,7 +657,10 @@ Now: ${formatLocalNow(timezone)}`;
                         // Plain-text / csv / code files — a UTF-8 decode is correct.
                         const textContent = att.content.startsWith('data:') ? Buffer.from(att.content.split(',')[1] || '', 'base64').toString('utf-8') : att.content;
                         if (textContent) {
-                            const _body = await _scanAttBody(textContent.slice(0, 8000), att.name);
+                            const _scan = await _scanAttBody(textContent.slice(0, 8000), att.name);
+                            if (_scan.blocked) return _abortBlocked('attachment');
+                            if (_scan.scanFailed) return _abortFailClosed('attachment');
+                            const _body = _scan.text;
                             contentParts.push({ type: 'text', text: `[File: ${att.name}]\n---\n${_body}\n---` });
                         }
                     }
@@ -693,7 +714,7 @@ Now: ${formatLocalNow(timezone)}`;
         let _userPiiCategories = [];
         let _showRawPayload = false;
         try {
-            const orgShield = userOrgForTiers ? await configStore.getConfig(`org_privacy_shield_${userOrgForTiers}`) : null;
+            const orgShield = docShield;
             const orgPiiEnabled = !!orgShield?.enabled;
             _showRawPayload = !!orgShield?.showRawPayload;
             // Hydrate the conversation-scoped token map (keyed on notebookId
@@ -786,18 +807,27 @@ Now: ${formatLocalNow(timezone)}`;
         // Resolve org-wide regex rules; mirrors directChat.js:2348-2393
         let regexConfig = mergeWithOrgShield(orgShieldConfig, null); // no notebook-local overrides
 
-        // Input regex check: block/redact before the model sees the message
+        // Input regex check: block/redact before the model sees the message.
+        // Match on the typed message, but redact the content the model will
+        // receive: the PII gate above may have tokenised it, and without an
+        // attachment image it also carries the attachment text. Redacting the
+        // raw `message` put the real values back and dropped the attachments.
+        const _rxLast = messages[messages.length - 1];
+        const _rxTextPart = Array.isArray(_rxLast?.content) ? _rxLast.content.find(p => p.type === 'text') : null;
         const inputRx = applyRegexGuardrails({
-            text: message, regexConfig, scope: 'userInput', emit: send, direction: 'input',
+            text: message,
+            redactBase: typeof _rxLast?.content === 'string' ? _rxLast.content : (_rxTextPart ? _rxTextPart.text : message),
+            regexConfig, scope: 'userInput', emit: send, direction: 'input',
             audit: { organization_id: userOrgForTiers || null, user_id: userId || null, conversation_id: notebookId || null, source: 'notebook' },
         });
         if (inputRx.action !== 'pass') {
             log.info(`[NotebookChat RegexGuard] User input violated rules: ${inputRx.ruleNames}, action: ${regexConfig.action}`);
         }
         if (inputRx.action === 'redact') {
-            const lastMsg = messages[messages.length - 1];
-            if (typeof lastMsg.content === 'string') {
-                lastMsg.content = inputRx.processedText;
+            if (typeof _rxLast.content === 'string') {
+                _rxLast.content = inputRx.processedText;
+            } else if (_rxTextPart) {
+                _rxTextPart.text = inputRx.processedText;
             }
         } else if (inputRx.action === 'block') {
             return res.end();

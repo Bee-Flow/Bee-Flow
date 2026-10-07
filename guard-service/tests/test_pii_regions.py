@@ -538,6 +538,11 @@ class PrecisionBudgetTests(unittest.TestCase):
         # Luhn admits ~1 in 10, but a 13-19 digit run is already rare in prose
         # and an undetected card number is a payment-data leak.
         ("CreditCardNumber", r"\b(?:\d[\s\-]?){12,18}\d\b"),
+        # Same Luhn rationale as the entry above. It re-emits only Luhn-valid
+        # bare runs that the pattern above lost by joining a neighbouring
+        # number (`klant 7 4111111111111111`), so it adds no new false
+        # positives beyond what that pattern already accepts.
+        ("CreditCardNumber", r"(?<!\d)\d{13,19}(?!\d)"),
     }
     _MIN_REJECTION = 0.95
 

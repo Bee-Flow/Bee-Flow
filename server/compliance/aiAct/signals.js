@@ -172,7 +172,11 @@ async function _markingEnabled(orgId) {
 // (rows created before organization_id was stamped resolve through the owner).
 const AUTOMATION_ORG_WHERE = 'COALESCE(a.organization_id, u."organizationId") = $1';
 
-/** The automation row when it belongs to the org, else null. Titles only — no owner data. */
+/**
+ * The automation row when it belongs to the org, else null. Titles only — no owner data.
+ * A trashed automation (soft delete, automationStore/lifecycle.js) is not
+ * found: it no longer runs, so it can neither be assessed nor attested.
+ */
 async function loadAutomation(orgId, automationId) {
     if (!orgId || automationId == null || String(automationId).trim() === '') return null;
     const params = [orgId, String(automationId)];
@@ -181,7 +185,7 @@ async function loadAutomation(orgId, automationId) {
                ${withPages ? '(SELECT COUNT(*)::int FROM automation_form_pages p WHERE p.automation_id = a.id)' : '0'} AS live_form_pages
           FROM automations a
           JOIN users u ON u.id = a.user_id
-         WHERE a.id = $2 AND ${AUTOMATION_ORG_WHERE}`;
+         WHERE a.id = $2 AND ${AUTOMATION_ORG_WHERE} AND a.deleted_at IS NULL`;
     let row;
     try {
         row = await getOne(select(true), params);
@@ -229,20 +233,32 @@ async function signalsForAgent(orgId, agentId) {
  * (generate_document / fill_document / presentation) downstream of an AI
  * step — the Art. 50(2) subjects and the calendar's
  * "affects" count. [{ id, title, is_active, is_draft, generating:[…], aiStepIds }]
+ *
+ * Judged on what RUNS: scheduled, form and app runs execute the live copy
+ * (`live_definition_json`), and a never-live automation (live NULL) runs its
+ * working copy. Trashed automations are left out — they no longer run.
+ *
+ * The list is the Art. 50(2) check's WHOLE population (retiresVanished), so
+ * a failed read THROWS: answering [] would retire every slot as if no
+ * automation were left. Only a missing table (fresh install) is an empty list.
  */
 async function listGeneratingAutomations(orgId) {
     if (!orgId) return [];
     let rows = [];
     try {
         rows = await getAll(
-            `SELECT a.id, a.title, a.is_active, a.is_draft, a.definition_json
+            `SELECT a.id, a.title, a.is_active, a.is_draft,
+                    COALESCE(a.live_definition_json, a.definition_json) AS definition_json
                FROM automations a
                JOIN users u ON u.id = a.user_id
-              WHERE ${AUTOMATION_ORG_WHERE}
+              WHERE ${AUTOMATION_ORG_WHERE} AND a.deleted_at IS NULL
               ORDER BY a.title ASC, a.id ASC`,
             [orgId],
         );
-    } catch { return []; }
+    } catch (e) {
+        if (e?.code === '42P01') return [];
+        throw e;
+    }
     const out = [];
     for (const r of rows || []) {
         const def = _parseDefinition(r.definition_json);

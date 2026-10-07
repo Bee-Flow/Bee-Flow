@@ -19,16 +19,31 @@
  * The span query is a parallel implementation of aia/art26-6-log-retention.js
  * (same table scoping: integration log per-org, guardrail log install-wide);
  * kept separate on purpose so the AIA retention check stays self-contained.
+ *
+ * The org-scoped ledgers (integration and authentication) write a NULL or ''
+ * organization_id for rows that belong to no organisation: auth/loginAudit.js
+ * does so for org-less accounts, unknown identifiers and throttled attempts.
+ * Those rows are the 'default' bucket's, the scope a single-tenant install is
+ * filed under, so for that scope _orgWhere includes them. The guardrail log
+ * stays install-wide on purpose: rows are only written when a violation
+ * happens, so per tenant a clean tenant would read as a dead ledger.
  */
 
 const { getOne } = require('../../../db');
 
 const ACTIVITY_WINDOW_DAYS = 30;
 
+/** SQL: the row belongs to the org in $1; the 'default' bucket also owns the org-less rows. */
+function _orgWhere(orgId) {
+    return orgId === 'default'
+        ? "(organization_id = $1 OR organization_id IS NULL OR organization_id = '')"
+        : 'organization_id = $1';
+}
+
 async function _oldestAgeDays(table, orgScoped, orgId, timeCol = 'timestamp') {
     try {
         const row = orgScoped
-            ? await getOne(`SELECT EXTRACT(EPOCH FROM (NOW() - MIN(${timeCol}))) / 86400 AS age FROM ${table} WHERE organization_id = $1`, [orgId])
+            ? await getOne(`SELECT EXTRACT(EPOCH FROM (NOW() - MIN(${timeCol}))) / 86400 AS age FROM ${table} WHERE ${_orgWhere(orgId)}`, [orgId])
             : await getOne(`SELECT EXTRACT(EPOCH FROM (NOW() - MIN(${timeCol}))) / 86400 AS age FROM ${table}`);
         return row?.age == null ? null : Math.floor(Number(row.age));
     } catch {
@@ -40,7 +55,7 @@ async function _recentCount(table, orgScoped, orgId, timeCol = 'timestamp', wher
     try {
         const clause = `${timeCol} >= NOW() - INTERVAL '${ACTIVITY_WINDOW_DAYS} days'${where}`;
         const row = orgScoped
-            ? await getOne(`SELECT COUNT(*)::int AS c FROM ${table} WHERE ${clause} AND organization_id = $1`, [orgId])
+            ? await getOne(`SELECT COUNT(*)::int AS c FROM ${table} WHERE ${clause} AND ${_orgWhere(orgId)}`, [orgId])
             : await getOne(`SELECT COUNT(*)::int AS c FROM ${table} WHERE ${clause}`);
         return row?.c ?? 0;
     } catch {
@@ -107,7 +122,7 @@ module.exports = {
             evidence,
             details: everLogged
                 ? `The ${quiet.join(' and the ')} recorded nothing in the last ${ACTIVITY_WINDOW_DAYS} days. On a quiet workspace this may be normal, but on an active one it means security events are going unrecorded — verify the ledgers still receive rows.`
-                : 'Neither security ledger has recorded any events yet. Expected on a young install; on an active workspace it means event logging is not wired up.',
+                : 'None of the three security ledgers has recorded any events yet. Expected on a young install; on an active workspace it means event logging is not wired up.',
         };
     },
 };

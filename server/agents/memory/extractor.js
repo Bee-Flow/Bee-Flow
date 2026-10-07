@@ -172,7 +172,7 @@ async function extractFromConversation(userId, agentId, messages, conversationId
         for (const memory of memories) {
             // VERIFY EVIDENCE: The quote must exist in the source text
             if (!verifyEvidence(memory, userText)) {
-                log.info(`[MemoryExtractor] Evidence verification failed: "${memory.evidence_quote?.slice(0, 30)}..."`);
+                log.info(`[MemoryExtractor] Evidence verification failed (${memory.type || '?'})`);
                 continue;
             }
 
@@ -184,10 +184,12 @@ async function extractFromConversation(userId, agentId, messages, conversationId
             if (existing) {
                 // Upsert: update if value changed, or bump confidence if same
                 if (existing.value !== memory.value) {
-                    log.info(`[MemoryExtractor] Updating memory: ${memory.subject}.${memory.attribute} = ${memory.value}`);
+                    // Ids and types only: a memory's value is what the user said about
+                    // themselves (a condition, a relative, a belief).
+                    log.info(`[MemoryExtractor] Updating memory ${existing.id} (${memory.type})`);
                     await memoryStore.updateMemoryValue(existing.id, memory.value, memory.content, memory.evidence_quote);
                 } else {
-                    log.info(`[MemoryExtractor] Confirming existing memory: "${memory.content.slice(0, 40)}..."`);
+                    log.info(`[MemoryExtractor] Confirming existing memory ${existing.id}`);
                     await memoryStore.confirmMemory(existing.id);
                 }
                 continue;
@@ -198,7 +200,7 @@ async function extractFromConversation(userId, agentId, messages, conversationId
             // Project memories belong only inside a project context. If there is
             // no projectId, skip them to avoid polluting global memory.
             if ((memory.type === 'project' || memory.subject === 'project') && !projectId) {
-                log.info(`[MemoryExtractor] Skipping project memory in user-global scope: "${memory.content?.slice(0, 50)}..."`);
+                log.info('[MemoryExtractor] Skipping project memory in user-global scope');
                 continue;
             }
             // The 6th positional argument is IMPORTANCE. This used to pass
@@ -295,7 +297,7 @@ function parseMemoryResponse(content) {
             // Filter out task-like content (secondary filter in case LLM misses)
             const taskVerbs = /^(the user wants to|user wants|create|write|fix|build|make|generate|show|explain|help|add|remove|update|delete|edit|modify|change|set|get|fetch|load|save|open|close|run|execute|deploy|test|debug|refactor)/i;
             if (taskVerbs.test(m.content.trim())) {
-                log.info(`[MemoryExtractor] Filtered task-like content: "${m.content.slice(0, 40)}..."`);
+                log.info('[MemoryExtractor] Filtered task-like content');
 
                 return false;
             }

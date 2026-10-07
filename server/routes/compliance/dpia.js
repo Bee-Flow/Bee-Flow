@@ -101,7 +101,11 @@ router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance')
         ...req.body,
         approved_by: actorId,
     });
-    runner.runOne(orgId, 'GDPR-Art35-dpia-high-risk', { subjectId: req.params.agentId }).catch(() => {});
+    // Re-judge the agent wherever it is a subject (the Art-35 DPIA check and
+    // AIA-Art26-human-oversight read this assessment). runOne with a subjectId
+    // would write "Subject not found." into the Art-35 check's global slot for
+    // an agent that is not on the high-risk list; see runner.runForSubject.
+    runner.runForSubject(orgId, [req.params.agentId], { runType: 'manual' }).catch(() => {});
     res.json(saved);
 });
 

@@ -248,7 +248,9 @@ async function dsrFindings(orgId, d, nowMs) {
             out.push(registerItem({
                 ...common, id: `dsr:${r.id}:overdue`, code: 'dsr_overdue', severity: 'critical', status: 'fail',
                 title: `DSR #${r.id} (${type}) is overdue`,
-                detail: days > 0 ? `The 30-day response window closed ${days} day(s) ago.` : 'The 30-day response window has closed.',
+                // Art. 12(3): one calendar month from receipt, or the extended
+                // deadline — `due_at` is whichever applies.
+                detail: days > 0 ? `The response deadline (one month from receipt, or the extended deadline) passed ${days} day(s) ago.` : 'The response deadline (one month from receipt, or the extended deadline) has passed.',
             }));
             continue;
         }
@@ -257,7 +259,7 @@ async function dsrFindings(orgId, d, nowMs) {
             out.push(registerItem({
                 ...common, id: `dsr:${r.id}:due_soon`, code: 'dsr_due_soon', severity: 'high', status: 'warn',
                 title: `DSR #${r.id} (${type}) is due in ${days} day(s)`,
-                detail: 'Fulfil or extend (once, +60 days with a reason) before the window closes.',
+                detail: 'Fulfil or extend (once, by two further months, with a reason) before the deadline.',
             }));
         }
         const created = toMs(r.created_at);
@@ -335,6 +337,16 @@ async function obligationFindings(orgId, d, nowMs) {
         }));
 }
 
+/**
+ * The article an expired AI Act self-assessment points at: the classification
+ * its recorded outcome rests on (Art. 5 prohibited practices, Art. 6 with
+ * Annex III high risk, Art. 50 transparency). A minimal or not-applicable
+ * outcome is an Art. 6 "not high-risk" classification. The 12-month expiry
+ * itself is Bee Flow's review interval (assess.VALID_MONTHS), not a
+ * statutory clock.
+ */
+const ATTESTATION_REF = Object.freeze({ prohibited: 'Art. 5', high_risk: 'Art. 6', transparency: 'Art. 50' });
+
 async function attestationFindings(orgId, d, nowMs) {
     const rows = await d.aiActAssessmentStore.listForOrg(orgId);
     return (rows || [])
@@ -344,7 +356,7 @@ async function attestationFindings(orgId, d, nowMs) {
             title: `AI Act self-assessment expired (${r.target_kind === 'agent' ? 'agent' : 'automation'})`,
             detail: `Recorded outcome "${r.outcome || 'unknown'}" expired ${new Date(r.expires_at).toISOString().slice(0, 10)} — reassess.`,
             section: 'frameworks', target: `${complianceSectionPath('frameworks')}?tab=per_automation`,
-            regulation: 'AIA', ref: 'Art. 53', at: toMs(r.expires_at),
+            regulation: 'AIA', ref: ATTESTATION_REF[r.outcome] || 'Art. 6', at: toMs(r.expires_at),
         }));
 }
 

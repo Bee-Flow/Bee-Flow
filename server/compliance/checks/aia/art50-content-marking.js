@@ -70,9 +70,21 @@ module.exports = {
     remediationKey: 'compliance.check_aia_art50_marking_fix',
     remediationLink: 'admin/compliance/settings',
 
-    /** [{ id: <automationId>, label, generating: [...], aiStepIds, is_active, is_draft }] — titles only, no owner data. */
+    // listGeneratingAutomations is every generating automation of the org and
+    // throws on a failed read, so an automation that was trashed or no longer
+    // turns model output into a document is retired instead of keeping its
+    // last warn/fail in the table, the rail and the score for good.
+    retiresVanished: true,
+    retiredDetails: 'This automation no longer turns model output into a document, or it was deleted.',
+
+    /**
+     * [{ id: <automationId>, label, generating: [...], aiStepIds, is_active, is_draft }] — titles only, no owner data.
+     * Past SUBJECT_LIMIT every subject carries `capped: true`: the list is then
+     * a window, and the runner must not retire what fell outside it.
+     */
     async listSubjects(orgId) {
         const rows = await _signals().listGeneratingAutomations(orgId);
+        const capped = rows.length > SUBJECT_LIMIT;
         return rows.slice(0, SUBJECT_LIMIT).map(r => ({
             id: String(r.id),
             label: r.title || String(r.id),
@@ -80,6 +92,7 @@ module.exports = {
             is_draft: !!r.is_draft,
             aiStepIds: r.aiStepIds,
             generating: r.generating,
+            ...(capped ? { capped: true } : {}),
         }));
     },
 

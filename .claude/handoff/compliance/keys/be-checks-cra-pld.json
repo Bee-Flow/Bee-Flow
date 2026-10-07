@@ -17,7 +17,7 @@
     "compliance.check_cra_support_period_fix": "Record the support policy URL, the end-of-support date and the security-update channel under Compliance → Settings. Renew or announce a successor when the date comes within twelve months.",
 
     "compliance.check_pld_release_record_title": "Release version and date recorded",
-    "compliance.check_pld_release_record_desc": "Strict liability attaches to the version placed on the market and to its date (PLD Art. 9, Art. 2(1)); a substantial modification starts a new liability window (Art. 8(2)). The running build and every published solution or webpage must have a recorded release, and entities modified long after their last release are flagged for a substantial-modification assessment.",
+    "compliance.check_pld_release_record_desc": "Strict liability attaches to the version placed on the market and to its date (PLD Art. 9, Art. 2(1)); a substantial modification restarts the 10-year expiry period for the modified product (Art. 17(1)(b)), and whoever makes it outside the manufacturer's control and then makes the product available is considered a manufacturer (Art. 8(2)). The running build and every published solution or webpage must have a recorded release, and entities modified long after their last release are flagged for a substantial-modification assessment.",
     "compliance.check_pld_release_record_fix": "Publish a release for the flagged solution or webpage from Studio; set APP_BUILD_SHA in the deployment so the platform release is stamped in the release log."
   },
   "nl": {
@@ -38,7 +38,7 @@
     "compliance.check_cra_support_period_fix": "Leg de URL van het ondersteuningsbeleid, de einddatum van de ondersteuning en het kanaal voor beveiligingsupdates vast onder Compliance → Instellingen. Verleng of kondig een opvolger aan zodra de datum binnen twaalf maanden komt.",
 
     "compliance.check_pld_release_record_title": "Releaseversie en -datum vastgelegd",
-    "compliance.check_pld_release_record_desc": "Risicoaansprakelijkheid hecht aan de versie die op de markt is gebracht en aan de datum waarop dat gebeurde (PLD art. 9, art. 2(1)); een substantiële wijziging start een nieuw aansprakelijkheidsvenster (art. 8(2)). De draaiende build en elke gepubliceerde oplossing of webpagina moeten een vastgelegde release hebben; entiteiten die lang na hun laatste release zijn gewijzigd worden gemarkeerd voor een beoordeling op substantiële wijziging.",
+    "compliance.check_pld_release_record_desc": "Risicoaansprakelijkheid hecht aan de versie die op de markt is gebracht en aan de datum waarop dat gebeurde (PLD art. 9, art. 2(1)); een substantiële wijziging laat de vervaltermijn van 10 jaar voor het gewijzigde product opnieuw ingaan (art. 17(1)(b)), en wie die wijziging buiten de controle van de fabrikant aanbrengt en het product daarna op de markt aanbiedt, geldt als fabrikant (art. 8(2)). De draaiende build en elke gepubliceerde oplossing of webpagina moeten een vastgelegde release hebben; entiteiten die lang na hun laatste release zijn gewijzigd worden gemarkeerd voor een beoordeling op substantiële wijziging.",
     "compliance.check_pld_release_record_fix": "Publiceer vanuit Studio een release voor de gemarkeerde oplossing of webpagina; stel APP_BUILD_SHA in de deployment in zodat de platformrelease in het releaselogboek wordt gestempeld."
   }
 }

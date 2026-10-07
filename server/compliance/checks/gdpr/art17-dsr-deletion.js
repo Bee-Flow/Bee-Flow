@@ -38,14 +38,18 @@ module.exports = {
                 details: 'No erasure requests received in the last 12 months.',
             };
         }
-        const status = stats.overdue > 0 ? 'fail' : (stats.open > 0 && stats.avg_days_to_fulfil > 25 ? 'warn' : 'pass');
+        // Overdue and nearing both read the open requests' own `due_at`
+        // (dsrStore.getSlaStats), so an extension is honoured. The average
+        // fulfilment time is over CLOSED requests and says nothing about how
+        // old an open one is.
+        const status = stats.overdue > 0 ? 'fail' : (stats.nearing > 0 ? 'warn' : 'pass');
         return {
             status,
             evidence: stats,
             details: status === 'pass'
                 ? `${stats.fulfilled}/${stats.total} erasure requests fulfilled (avg ${Number(stats.avg_days_to_fulfil || 0).toFixed(1)} days).`
                 : status === 'warn'
-                    ? `${stats.open} erasure request(s) still open and approaching the 30-day deadline.`
+                    ? `${stats.nearing} erasure request(s) are due within 5 days.`
                     : `${stats.overdue} erasure request(s) are overdue. Each missed deadline is a separate Art. 17 breach.`,
         };
     },

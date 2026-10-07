@@ -50,8 +50,9 @@ const FRAMEWORKS = Object.freeze([
         sources: [
             { label: 'Regulation (EU) 2016/679 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2016/679/oj' },
             { label: 'Uitvoeringswet AVG — wetten.overheid.nl', url: 'https://wetten.overheid.nl/BWBR0040940/' },
+            { label: 'Regulation (EU) 2025/2518 (GDPR cross-border enforcement procedure) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2025/2518/oj' },
         ],
-        legal_status_verified: '2026-10-06',
+        legal_status_verified: '2026-10-07',
         in_force_since: '2018-05-25',
         in_force_from: null,
         phases: [
@@ -116,6 +117,7 @@ const FRAMEWORKS = Object.freeze([
         // The legal source this entry was checked against, and when.
         sources: [
             { label: 'ISO/IEC 27001:2022 — iso.org', url: 'https://www.iso.org/standard/27001' },
+            { label: 'ISO/IEC 27001:2022/Amd 1:2024 (climate action changes) — iso.org', url: 'https://www.iso.org/standard/88435.html' },
         ],
         legal_status_verified: '2026-10-06',
         // A standard, not a law: nothing "enters into force".
@@ -138,6 +140,8 @@ const FRAMEWORKS = Object.freeze([
             { label: 'Directive (EU) 2022/2555 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/dir/2022/2555/oj' },
             { label: 'Cyberbeveiligingswet: registration and reporting — NCSC', url: 'https://www.ncsc.nl/cyberbeveiligingswet-nis2' },
             { label: 'Implementing Regulation (EU) 2024/2690 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg_impl/2024/2690/oj' },
+            { label: 'Cyberbeveiligingswet (Stb. 2026, 187) — wetten.overheid.nl', url: 'https://wetten.overheid.nl/BWBR0052872/' },
+            { label: 'Cyberbeveiligingsbesluit (Stb. 2026, 189) — wetten.overheid.nl', url: 'https://wetten.overheid.nl/BWBR0052875/' },
         ],
         legal_status_verified: '2026-10-06',
         in_force_since: '2026-08-15',
@@ -170,6 +174,8 @@ const FRAMEWORKS = Object.freeze([
         // The legal source this entry was checked against, and when.
         sources: [
             { label: 'Regulation (EU) 2024/2847 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2024/2847/oj' },
+            { label: 'Reporting under the Cyber Resilience Act — NCSC', url: 'https://www.ncsc.nl/wet-en-regelgeving/cyber-resilience-act-cra/melden' },
+            { label: 'CRA Single Reporting Platform — ENISA', url: 'https://www.enisa.europa.eu/topics/product-security/single-reporting-platform-srp' },
         ],
         legal_status_verified: '2026-10-06',
         // The reporting duty (Art. 14) applies first; the product requirements,
@@ -191,12 +197,13 @@ const FRAMEWORKS = Object.freeze([
         core: false,
         capability: 'compliance_hub_data_act',
         checks_dir: 'data-act',
-        regulation_code: 'Verordening (EU) 2023/2854',
+        regulation_code: 'Verordening (EU) 2023/2854 · Uitvoeringswet dataverordening',
         // The legal source this entry was checked against, and when.
         sources: [
             { label: 'Regulation (EU) 2023/2854 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2023/2854/oj' },
+            { label: 'Uitvoeringswet dataverordening — wetten.overheid.nl', url: 'https://wetten.overheid.nl/BWBR0051796/' },
         ],
-        legal_status_verified: '2026-10-06',
+        legal_status_verified: '2026-10-07',
         in_force_since: '2025-09-12',
         in_force_from: null,
         phases: [
@@ -218,11 +225,16 @@ const FRAMEWORKS = Object.freeze([
         // The legal source this entry was checked against, and when.
         sources: [
             { label: 'Directive (EU) 2024/2853 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/dir/2024/2853/oj' },
+            { label: 'Corrigendum to Directive (EU) 2024/2853 (OJ L 2026/90364, Art. 2(1)) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/dir/2024/2853/corrigendum/2026-05-07/oj' },
+            // The Dutch implementing bill; still before the Tweede Kamer on 6 Oct 2026.
+            { label: 'Wetsvoorstel 36906 — Tweede Kamer', url: 'https://www.tweedekamer.nl/kamerstukken/wetsvoorstellen/detail?cfg=wetsvoorsteldetails&qry=wetsvoorstel%3A36906' },
         ],
         legal_status_verified: '2026-10-06',
         // Applies to products placed on the market from this date — earlier
         // releases stay under the old regime, which is why the release date
-        // becomes legally meaningful (BRIEF §1.4).
+        // becomes legally meaningful (BRIEF §1.4). The day is exact since the
+        // corrigendum of 7 May 2026: Art. 2(1) now reads "after 8 December
+        // 2026" (it said "after 9 December 2026" before).
         in_force_since: null,
         in_force_from: '2026-12-09',
         phases: [
@@ -238,12 +250,13 @@ const FRAMEWORKS = Object.freeze([
         core: false,
         capability: 'compliance_hub_eaa',
         checks_dir: 'eaa',
-        regulation_code: 'Richtlijn (EU) 2019/882',
+        regulation_code: 'Richtlijn (EU) 2019/882 · Implementatiewet toegankelijkheidsvoorschriften producten en diensten',
         // The legal source this entry was checked against, and when.
         sources: [
             { label: 'Directive (EU) 2019/882 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/dir/2019/882/oj' },
+            { label: 'Implementatiewet toegankelijkheidsvoorschriften producten en diensten — wetten.overheid.nl', url: 'https://wetten.overheid.nl/BWBR0049571/' },
         ],
-        legal_status_verified: '2026-10-06',
+        legal_status_verified: '2026-10-07',
         in_force_since: '2025-06-28',
         in_force_from: null,
         phases: [
@@ -264,6 +277,9 @@ const FRAMEWORKS = Object.freeze([
         // The legal source this entry was checked against, and when.
         sources: [
             { label: 'Regulation (EU) 2022/2554 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2022/2554/oj' },
+            { label: 'Delegated Regulation (EU) 2025/301 (incident reporting content and time limits) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg_del/2025/301/oj' },
+            { label: 'Implementing Regulation (EU) 2025/302 (incident reporting forms) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg_impl/2025/302/oj' },
+            { label: 'Implementing Regulation (EU) 2024/2956 (register of information) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg_impl/2024/2956/oj' },
         ],
         legal_status_verified: '2026-10-06',
         in_force_since: '2025-01-17',
@@ -283,12 +299,13 @@ const FRAMEWORKS = Object.freeze([
         core: false,
         capability: 'compliance_hub_machinery',
         checks_dir: 'machinery',
-        regulation_code: 'Verordening (EU) 2023/1230',
+        regulation_code: 'Verordening (EU) 2023/1230 · gewijzigd bij Verordening (EU) 2026/1744',
         // The legal source this entry was checked against, and when.
         sources: [
             { label: 'Regulation (EU) 2023/1230 — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2023/1230/oj' },
+            { label: 'Regulation (EU) 2026/1744 (Digital Omnibus on AI, Art. 3 amends 2023/1230) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2026/1744/oj' },
         ],
-        legal_status_verified: '2026-10-06',
+        legal_status_verified: '2026-10-07',
         in_force_since: null,
         in_force_from: '2027-01-20',
         phases: [
@@ -321,7 +338,7 @@ const CORE_IDS = Object.freeze(FRAMEWORKS.filter(f => f.core).map(f => f.id));
 
 /**
  * The regulatory calendar: every dated milestone across the catalogue, plus
- * the two things still uncertain on 6 Oct 2026 (kind 'uncertain', date null,
+ * the three things still uncertain on 7 Oct 2026 (kind 'uncertain', date null,
  * `expected` names the quarter). `affects_kind` says which org objects a
  * milestone touches so the calendar route can count them:
  *   'marking'  → automations/agents that generate content (Art. 50(2))
@@ -345,6 +362,9 @@ const MILESTONES = Object.freeze([
     { id: 'pld_in_force', date: '2026-12-09', framework_id: 'pld', kind: 'in_force', affects_kind: 'releases' },
     { id: 'data_act_switching_charges', date: '2027-01-12', framework_id: 'data_act', kind: 'phase', affects_kind: null },
     { id: 'machinery_in_force', date: '2027-01-20', framework_id: 'machinery', kind: 'in_force', affects_kind: null },
+    // Regulation (EU) 2025/2518 (in force 1 Jan 2026): procedural rules for
+    // cross-border GDPR cases, for complaints and investigations from this date.
+    { id: 'gdpr_procedural_regulation', date: '2027-04-02', framework_id: 'gdpr', kind: 'phase', affects_kind: null },
     { id: 'aia_gpai_legacy_models', date: '2027-08-02', framework_id: 'aia', kind: 'transition_end', affects_kind: null },
     { id: 'data_act_chapter_iv_legacy_contracts', date: '2027-09-12', framework_id: 'data_act', kind: 'transition_end', affects_kind: null },
     { id: 'aia_annex_iii', date: '2027-12-02', framework_id: 'aia', kind: 'phase', affects_kind: null },
@@ -353,11 +373,14 @@ const MILESTONES = Object.freeze([
     { id: 'eaa_legacy_contracts_end', date: '2030-06-28', framework_id: 'eaa', kind: 'transition_end', affects_kind: 'a11y' },
     // Not dated: the data/privacy/NIS2 part of the Digital Omnibus (still a
     // proposal on 6 Oct 2026, no Council mandate yet, so the quarter is an
-    // estimate), and the Dutch AI Act implementation act (consultation closed
-    // 1 Jun 2026, bill not yet before parliament). Listed so the calendar can
-    // say "still uncertain" instead of staying silent.
+    // estimate), the Dutch AI Act implementation act (consultation closed
+    // 1 Jun 2026, bill not yet before parliament), and the Official Journal
+    // citation of EN 301 549 V4.1.1 under the EAA (published Sep 2026; the
+    // citation date is not announced, every estimate found falls in Q4 2026).
+    // Listed so the calendar can say "still uncertain" instead of staying silent.
     { id: 'omnibus_data_part', date: null, framework_id: 'gdpr', kind: 'uncertain', expected: '2027-Q2', affects_kind: null },
     { id: 'nl_uitvoeringswet_ai', date: null, framework_id: 'aia', kind: 'uncertain', expected: '2026-Q4', affects_kind: null },
+    { id: 'eaa_en301549_v4_citation', date: null, framework_id: 'eaa', kind: 'uncertain', expected: '2026-Q4', affects_kind: 'a11y' },
 ].map(m => Object.freeze({
     ...m,
     expected: m.expected || null,

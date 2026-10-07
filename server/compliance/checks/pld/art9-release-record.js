@@ -1,11 +1,11 @@
 /**
  * PLD Art. 9 (disclosure of evidence) / Art. 2(1) placing on the market /
- * Art. 8(2) substantial modification — every product has a recorded release.
+ * Art. 8(2) / Art. 17(1)(b) substantial modification — every product has a recorded release.
  *
  * Under Directive (EU) 2024/2853 strict liability attaches to the VERSION of a
  * product that was placed on the market and to the DATE that happened; a
- * substantial modification later on starts a new liability window. In a
- * dispute the manufacturer must be able to disclose that record. Two layers
+ * substantial modification later on restarts the 10-year expiry period
+ * (Art. 17(1)(b)). In a dispute the manufacturer must be able to disclose that record. Two layers
  * carry products with digital elements here:
  *
  *   PLATFORM (subject `platform`) — the running Bee Flow build. APP_BUILD_SHA
@@ -22,6 +22,10 @@
  *   snapshot exists; when the entity was modified more than 7 days after its
  *   last release it warns ("assess whether this is a substantial
  *   modification"); a published webpage without a frozen snapshot fails.
+ *   A webpage's frozen snapshot is a `source = 'published'` version or the
+ *   version `published_version_id` pins: the 2026-09 migration pinned legacy
+ *   pages to their newest existing ('manual') snapshot, which is exactly the
+ *   record of what the audience receives.
  *
  * `listSubjects` returns [] for organisations that place nothing on the
  * market (unless `framework_relevance.pld === 'relevant'` says otherwise), so
@@ -144,9 +148,9 @@ async function _webpageSubjects(orgId) {
         const rows = await db.getAll(`
             SELECT w.id, w.name, w.updated_at, w.published_version_id,
                    (SELECT COUNT(*)::int FROM webpage_versions v
-                     WHERE v.webpage_id = w.id AND v.source = 'published') AS release_count,
+                     WHERE v.webpage_id = w.id AND (v.source = 'published' OR v.id = w.published_version_id)) AS release_count,
                    (SELECT MAX(v.created_at) FROM webpage_versions v
-                     WHERE v.webpage_id = w.id AND v.source = 'published') AS last_release_at
+                     WHERE v.webpage_id = w.id AND (v.source = 'published' OR v.id = w.published_version_id)) AS last_release_at
             FROM webpages w
             WHERE w.organization_id = $1 AND w.is_published = TRUE
             ORDER BY w.updated_at DESC

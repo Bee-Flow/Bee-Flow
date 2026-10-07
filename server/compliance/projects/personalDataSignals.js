@@ -212,10 +212,33 @@ function makeSignalReader(overrides = {}) {
     const d = { ..._defaults(), ...overrides };
     const memo = new Map(); // orgId -> { at, promise }
 
-    /** A label as its canonical PII id, or null when it is not one. */
+    /**
+     * A label as its canonical PII id, or null when it is not one — or when
+     * it is one of the canonical ids that are not personal data on their own
+     * (Organization, URL, ApiKeyOrSecret: personalColumns'
+     * NOT_PERSONAL_CATEGORIES, for which kindOfCategory answers null). Those
+     * made a project a personal-data subject that "holds personal data ()".
+     */
     function _canonical(raw) {
         const c = d.normalizeCategory(raw);
-        return c && d.isCanonical(c) ? c : null;
+        return c && d.isCanonical(c) && d.kindOfCategory(c) ? c : null;
+    }
+
+    /**
+     * True when every label of `{label: n}` (a jsonb object, or its JSON text)
+     * is a canonical id that is NOT personal data — a file or content row that
+     * names only company names or URLs. Without this, dropping those labels
+     * would leave the row with no category, and a row without categories
+     * reads as generic personal data.
+     */
+    function _onlyNotPersonal(v) {
+        let o = v;
+        if (typeof o === 'string') { try { o = JSON.parse(o); } catch { return false; } }
+        const labels = o && typeof o === 'object' && !Array.isArray(o) ? Object.keys(o) : [];
+        return labels.length > 0 && labels.every((l) => {
+            const c = d.normalizeCategory(l);
+            return !!c && d.isCanonical(c) && !d.kindOfCategory(c);
+        });
     }
 
     /** `{label: n}` (a jsonb object, or its JSON text) → `{Canonical: n}`, PII ids only. */
@@ -241,10 +264,16 @@ function makeSignalReader(overrides = {}) {
         if (name === 'notebooks' || name === 'threads') return { generic: true };
         const categories = _canonicalCounts(r.categories);
         const found = Object.keys(categories).length > 0;
-        // A flagged file proves personal data even when it names no category.
-        if (name === 'files') return { categories, generic: !found || Number(r.uncategorised) > 0 };
+        // A flagged file proves personal data even when it names no category,
+        // but not when everything it names is known not to be personal data.
+        if (name === 'files') {
+            const uncategorised = Number(r.uncategorised) > 0;
+            if (!found && !uncategorised && _onlyNotPersonal(r.categories)) return null;
+            return { categories, generic: !found || uncategorised };
+        }
         if (name === 'content') {
             const kinds = Array.isArray(r.kinds) ? r.kinds.map(String) : [];
+            if (!found && !kinds.length && _onlyNotPersonal(r.categories)) return null;
             return { categories, kinds, generic: !found && !kinds.length };
         }
         // events, comments: a decision whose labels are no PII id proves nothing.

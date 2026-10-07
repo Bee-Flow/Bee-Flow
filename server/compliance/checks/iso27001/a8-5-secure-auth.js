@@ -15,7 +15,10 @@
  *   4. SSO — at least one identity provider is configured (configStore
  *      'providers' google/microsoft, or 'oauth' Nextcloud). Password-only
  *      sign-in degrades to warn: accounts are then managed per-app instead of
- *      by a central identity provider.
+ *      by a central identity provider. "Configured" is what the SSO screen
+ *      calls enabled (auth/oauth/ssoConfigRoutes.js): a client id AND a
+ *      client secret. No writer ever sets a provider's `enabled` flag, so
+ *      requiring it read every working SSO setup as password-only.
  */
 
 const fs = require('fs');
@@ -71,10 +74,10 @@ module.exports = {
         const providers = (await configStore.getConfig('providers')) || {};
         const ssoProviders = [];
         for (const [name, p] of Object.entries(providers)) {
-            if (p && p.enabled && p.clientId) ssoProviders.push(name);
+            if (p && p.clientId && p.clientSecret) ssoProviders.push(name);
         }
         const oauth = (await configStore.getConfig('oauth')) || {};
-        if (oauth.nextcloudUrl && oauth.clientId) ssoProviders.push('nextcloud');
+        if (oauth.nextcloudUrl && oauth.clientId && oauth.clientSecret) ssoProviders.push('nextcloud');
 
         const evidence = {
             lockout_mechanism: lockoutActive,

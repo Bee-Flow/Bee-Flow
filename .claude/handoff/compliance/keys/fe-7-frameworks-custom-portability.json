@@ -128,7 +128,7 @@
     "compliance.custom_err_upload": "The file could not be stored as evidence.",
 
     "compliance.pf_title": "Data Act export matrix",
-    "compliance.pf_intro": "Art. 30 asks that a customer can take their data along when they switch: every kind this platform holds, in a structured, commonly used, machine-readable format. A kind without a working export route is a gap in the exit procedure — it is listed here, not hidden.",
+    "compliance.pf_intro": "The Data Act asks that a customer can take all exportable data along when they switch (Art. 23(c), 25(2)(a) and (e)): every kind this platform holds, in a structured, commonly used and machine-readable format (Art. 30(5)). A kind without a working export route is a gap in the exit procedure — it is listed here, not hidden.",
     "compliance.pf_coverage": "{portable} of {total} kinds portable",
     "compliance.pf_footer": "{portable} of {total} kinds have a working export route. The gaps are product work, tracked with the Data Act checks — the exit procedure describes them honestly until they close.",
     "compliance.pf_read_failed": "The export matrix could not be read.",
@@ -147,7 +147,7 @@
     "compliance.pf_scope_platform": "platform-wide, not per organisation",
 
     "compliance.mach_title": "Machinery Regulation — safety components",
-    "compliance.mach_intro": "Software that steers or monitors a safety function is a safety component from 20 January 2027. The scan finds integrations that speak to machines; only you can say whether such an integration touches a safety function — declare it here, with evidence.",
+    "compliance.mach_intro": "Software that steers or monitors a safety function can be a safety component from 20 January 2027 — when it is placed on the market on its own (Art. 3(3)); built into a machine, it is assessed with the machine. The scan finds integrations that speak to machines; only you can say whether such an integration touches a safety function — declare it here, with evidence.",
     "compliance.mach_not_provisioned": "The industrial-integration detector is not installed on this deployment, so nothing was scanned. That is not the same as \"no machines found\".",
     "compliance.mach_read_failed": "The machine-integration scan could not be read.",
     "compliance.mach_col_subject": "Integration",
@@ -308,7 +308,7 @@
     "compliance.custom_err_upload": "Het bestand kon niet als bewijs worden opgeslagen.",
 
     "compliance.pf_title": "Data Act-exportmatrix",
-    "compliance.pf_intro": "Art. 30 vraagt dat een klant zijn gegevens kan meenemen bij overstappen: elke soort die dit platform bewaart, in een gestructureerd, gangbaar, machineleesbaar formaat. Een soort zonder werkende exportroute is een gat in de exit-procedure — die staat hier, niet verstopt.",
+    "compliance.pf_intro": "De Data Act vraagt dat een klant bij overstappen alle exporteerbare gegevens kan meenemen (art. 23(c), 25(2)(a) en (e)): elke soort die dit platform bewaart, in een gestructureerd, gangbaar en machineleesbaar formaat (art. 30(5)). Een soort zonder werkende exportroute is een gat in de exit-procedure — die staat hier, niet verstopt.",
     "compliance.pf_coverage": "{portable} van {total} soorten overdraagbaar",
     "compliance.pf_footer": "{portable} van {total} soorten hebben een werkende exportroute. De gaten zijn productwerk, bijgehouden met de Data Act-checks — de exit-procedure beschrijft ze eerlijk tot ze dicht zijn.",
     "compliance.pf_read_failed": "De exportmatrix kon niet worden gelezen.",
@@ -327,7 +327,7 @@
     "compliance.pf_scope_platform": "platformbreed, niet per organisatie",
 
     "compliance.mach_title": "Machineverordening — veiligheidscomponenten",
-    "compliance.mach_intro": "Software die een veiligheidsfunctie stuurt of bewaakt is vanaf 20 januari 2027 een veiligheidscomponent. De scan vindt integraties die met machines praten; alleen jij kunt zeggen of zo'n integratie een veiligheidsfunctie raakt — verklaar dat hier, met bewijs.",
+    "compliance.mach_intro": "Software die een veiligheidsfunctie stuurt of bewaakt, kan vanaf 20 januari 2027 een veiligheidscomponent zijn — als die zelfstandig in de handel wordt gebracht (art. 3(3)); ingebouwd in een machine wordt die samen met de machine beoordeeld. De scan vindt integraties die met machines praten; alleen jij kunt zeggen of zo'n integratie een veiligheidsfunctie raakt — verklaar dat hier, met bewijs.",
     "compliance.mach_not_provisioned": "De detector voor industriële integraties is niet geïnstalleerd op deze omgeving, dus er is niets gescand. Dat is iets anders dan \"geen machines gevonden\".",
     "compliance.mach_read_failed": "De scan op machine-integraties kon niet worden gelezen.",
     "compliance.mach_col_subject": "Integratie",

@@ -3,8 +3,9 @@
  *
  * `build(orgId)` gathers every statutory deadline the registers know about —
  * DSR response windows, breach/incident notification clocks (GDPR/NIS2/DORA),
- * CRA early-warning and full-report clocks on vulnerabilities, ISMS
- * obligations and expiring AI Act attestations — and returns them in the
+ * the CRA early-warning, notification and final-report clocks on
+ * vulnerabilities and severe incidents, ISMS obligations and expiring AI Act
+ * attestations — and returns them in the
  * shape the Overview "Deadlines" card and the mobile frame render (PLAN.md
  * §1.2 `GET /deadlines`):
  *
@@ -13,7 +14,8 @@
  *
  * `state` is decided HERE, from the regulation, so the client never invents an
  * urgency threshold (fe-shared-primitives ask): DSR 5 d, incident 24 h, CRA
- * early warning 6 h, CRA full report 24 h, obligation 7 d, attestation 30 d.
+ * early warning 6 h, CRA notification 24 h, CRA final report 24 h,
+ * obligation 7 d, attestation 30 d.
  * `pct` = elapsed share of the window, clamped to [0, 1] (overdue → 1).
  *
  * Privacy (BFSF-441): a DSR item is "#<id> · <type>" — the data subject's
@@ -39,6 +41,7 @@ const URGENT_BELOW_MS = Object.freeze({
     dsr: 5 * DAY,
     incident: 24 * HOUR,
     cra_early_warning: 6 * HOUR,
+    cra_notification: 24 * HOUR,
     cra_full_report: 24 * HOUR,
     obligation: 7 * DAY,
     attestation_expiry: 30 * DAY,
@@ -47,14 +50,41 @@ const URGENT_BELOW_MS = Object.freeze({
 const KINDS = Object.freeze(Object.keys(URGENT_BELOW_MS));
 
 // Article the clock comes from — rendered as the small ref next to the title.
+// An item may carry its own `meta.article` (it is spread after this default):
+// the authority item cites the regimes it covers (REGIME_ARTICLE), and a CRA
+// severe incident cites Art. 14(4) instead of the vulnerability's 14(2).
 const ARTICLE = Object.freeze({
     dsr: 'GDPR Art. 12(3)',
     incident: 'GDPR Art. 33',
     cra_early_warning: 'CRA Art. 14(2)(a)',
-    cra_full_report: 'CRA Art. 14(2)(b)',
+    cra_notification: 'CRA Art. 14(2)(b)',
+    cra_full_report: 'CRA Art. 14(2)(c)',
     obligation: 'ISO 27001 cl. 9',
-    attestation_expiry: 'AI Act Art. 53',
+    // No statutory clock: the 12-month validity is Bee Flow's review interval
+    // (assess.VALID_MONTHS), so no article is cited.
+    attestation_expiry: null,
 });
+
+// A severe incident under the CRA: the same three stages, Art. 14(4)(a)-(c).
+const CRA_SEVERE_INCIDENT_ARTICLE = Object.freeze({
+    cra_early_warning: 'CRA Art. 14(4)(a)',
+    cra_notification: 'CRA Art. 14(4)(b)',
+    cra_full_report: 'CRA Art. 14(4)(c)',
+});
+
+// The clock the authority ('incident') item tracks, per non-CRA regime. DORA
+// puts no notification duty on the provider itself: its clock is the
+// contractual notice to the financial entity, Art. 30(3)(b).
+const REGIME_ARTICLE = Object.freeze({
+    GDPR: 'GDPR Art. 33',
+    NIS2: 'NIS2 Art. 23(4)',
+    DORA: 'DORA Art. 30(3)(b)',
+});
+
+// CRA Art. 14(2)(b) / 14(4)(b): the notification 72 h after becoming aware.
+// The store's REGIME_CLOCKS is the source; this is the fallback for a store
+// double without it.
+const CRA_NOTIFICATION_HOURS = 72;
 
 const DEFAULT_LOADERS = {
     dsrStore: () => require('../stores/dsrStore'),
@@ -142,16 +172,40 @@ async function dsrItems(orgId, d, nowMs) {
     ));
 }
 
-// One incident can carry several clocks: the authority notification (GDPR /
-// NIS2 / DORA — `deadline_at` is the earliest of them) and, for a CRA
-// vulnerability, the early warning and the full report. A clock that has been
-// stamped (`*_sent_at` / `authority_notified_at`) is done and is not listed.
+/**
+ * The authority item's due date: the earliest still-open clock of the NON-CRA
+ * regimes (NIS2 24 h early warning, GDPR/NIS2 72 h notification, DORA customer
+ * notice), by the store's own rule (incidentStore.nextOpenDeadline). The row's
+ * `deadline_at` is the earliest over EVERY regime, so on a GDPR + CRA row it
+ * is the CRA 24 h early warning — a clock listed as its own item. The stored
+ * early-warning and final-report columns are cleared so they are recomputed
+ * for these regimes only; the stored customer notice (the org's DORA window)
+ * is kept. Without the store rule (a double), `deadline_at` stands in.
+ */
+function authorityDue(d, r, nonCra) {
+    const next = d.incidentStore?.nextOpenDeadline;
+    if (typeof next !== 'function') return toMs(r.deadline_at);
+    try {
+        return toMs(next({ ...r, regimes: nonCra, early_warning_due_at: null, final_report_due_at: null }));
+    } catch {
+        return toMs(r.deadline_at);
+    }
+}
+
+// One incident can carry several clocks: the authority notification of the
+// non-CRA regimes (GDPR / NIS2 / DORA) and, under the CRA, the early warning,
+// the notification and the final report of a vulnerability (Art. 14(2)) or a
+// severe incident (Art. 14(4)). A clock that has been stamped (`*_sent_at` /
+// `authority_notified_at`) is done and is not listed.
 async function incidentItems(orgId, d, nowMs) {
     const rows = await d.incidentStore.listOpenClocks(orgId);
+    const craNotificationHours = d.incidentStore.REGIME_CLOCKS?.CRA?.notificationHours || CRA_NOTIFICATION_HOURS;
     const out = [];
     for (const r of rows || []) {
         const started = toMs(r.detected_at || r.created_at);
-        const regimes = Array.isArray(r.regimes) ? r.regimes : (typeof r.regimes === 'string' ? safeJson(r.regimes, []) : []);
+        const parsed = Array.isArray(r.regimes) ? r.regimes : (typeof r.regimes === 'string' ? safeJson(r.regimes, []) : []);
+        // An unreadable regime list falls back to the column's own default.
+        const regimes = parsed.length ? parsed : [r.kind === 'vulnerability' ? 'CRA' : 'GDPR'];
         const isCra = r.kind === 'vulnerability' || regimes.includes('CRA');
         const base = {
             incident_kind: r.kind || 'breach',
@@ -162,23 +216,36 @@ async function incidentItems(orgId, d, nowMs) {
         const title = r.title ? String(r.title).slice(0, 120) : 'Incident';
         const target = complianceIncidentPath(r.id);
         if (isCra) {
+            const severe = r.kind !== 'vulnerability';
+            const craMeta = (kind, stage) => (severe
+                ? { ...base, stage, article: CRA_SEVERE_INCIDENT_ARTICLE[kind] }
+                : { ...base, stage });
             if (r.early_warning_due_at && !r.early_warning_sent_at) {
-                out.push(item('cra_early_warning', r.id, `INC-${r.id}`, title, { ...base, stage: 'early_warning' },
+                out.push(item('cra_early_warning', r.id, `INC-${r.id}`, title, craMeta('cra_early_warning', 'early_warning'),
                     started, toMs(r.early_warning_due_at), target, nowMs));
             }
+            // No column of its own: detected + 72 h, met by the authority
+            // notification stamp (the same pair as incidentStore.nextOpenDeadline).
+            if (started != null && !r.authority_notified_at) {
+                out.push(item('cra_notification', r.id, `INC-${r.id}`, title, craMeta('cra_notification', 'notification'),
+                    started, started + craNotificationHours * HOUR, target, nowMs));
+            }
             if (r.final_report_due_at && !r.final_report_sent_at) {
-                out.push(item('cra_full_report', r.id, `INC-${r.id}`, title, { ...base, stage: 'full' },
+                out.push(item('cra_full_report', r.id, `INC-${r.id}`, title, craMeta('cra_full_report', 'full'),
                     started, toMs(r.final_report_due_at), target, nowMs));
             }
         }
-        // The authority clock for the non-CRA regimes (GDPR 72 h, NIS2 24/72 h,
-        // DORA customer notice) — `deadline_at` when not yet notified.
+        // The authority clock of the non-CRA regimes (GDPR 72 h, NIS2 24/72 h,
+        // DORA customer notice), cited per regime. A CRA-only row has none:
+        // its notification is the cra_notification item above.
         const nonCra = regimes.filter(x => x !== 'CRA');
-        const hasAuthorityClock = r.kind !== 'vulnerability' || nonCra.length > 0;
-        if (hasAuthorityClock && r.deadline_at && !r.authority_notified_at) {
-            const due = toMs(r.deadline_at);
-            out.push(item('incident', r.id, `INC-${r.id}`, title, { ...base, regimes: nonCra.length ? nonCra : regimes },
-                started, due, target, nowMs));
+        if (nonCra.length > 0 && !r.authority_notified_at) {
+            const due = authorityDue(d, r, nonCra);
+            if (due != null) {
+                const article = nonCra.map(x => REGIME_ARTICLE[x]).filter(Boolean).join(' · ') || ARTICLE.incident;
+                out.push(item('incident', r.id, `INC-${r.id}`, title, { ...base, regimes: nonCra, article },
+                    started, due, target, nowMs));
+            }
         }
     }
     return out;
@@ -219,7 +286,7 @@ async function attestationItems(orgId, d, nowMs) {
 
 const SOURCES = Object.freeze([
     { kinds: ['dsr'], read: dsrItems },
-    { kinds: ['incident', 'cra_early_warning', 'cra_full_report'], read: incidentItems },
+    { kinds: ['incident', 'cra_early_warning', 'cra_notification', 'cra_full_report'], read: incidentItems },
     { kinds: ['obligation'], read: obligationItems },
     { kinds: ['attestation_expiry'], read: attestationItems },
 ]);
@@ -260,4 +327,4 @@ async function build(orgId, opts = {}) {
     };
 }
 
-module.exports = { build, clockState, URGENT_BELOW_MS, KINDS, ARTICLE, makeDeps };
+module.exports = { build, clockState, URGENT_BELOW_MS, KINDS, ARTICLE, CRA_SEVERE_INCIDENT_ARTICLE, REGIME_ARTICLE, makeDeps };

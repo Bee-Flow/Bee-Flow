@@ -52,6 +52,7 @@
 
 const dataFlow = require('../../../core/privacy/dataFlow');
 const personalColumns = require('../../../core/privacy/personalColumns');
+const { LEDGER_ORG_SQL } = require('../../lib/observedOperators');
 
 /** How far back the egress ledger is read. The same window Art. 44's check uses. */
 const EGRESS_WINDOW_DAYS = 30;
@@ -117,23 +118,23 @@ const isReadable = (row) => stepsOf(row).length > 0;
 /**
  * Every live automation of this org.
  *
- * This one does NOT swallow its errors when `listCoverage` calls it, and that
- * is the whole point of the flag. A short subject list is survivable — the
- * runner writes fewer verdicts. A short POPULATION is not: it would say "this
- * workspace has no live automations", i.e. "there is nothing we failed to look
- * at", which is the exact false reassurance coverage exists to prevent. A
- * database that cannot be read has to surface as unknown coverage, so the
- * error travels up to the runner.
+ * This one does NOT swallow its errors, for any caller. A short POPULATION
+ * would say "this workspace has no live automations", i.e. "there is nothing
+ * we failed to look at", which is the exact false reassurance coverage exists
+ * to prevent. A short SUBJECT LIST is no better since the check retires
+ * vanished subjects (`retiresVanished`): read as the whole population, an
+ * empty list would retire every automation's slot on one failed read. So the
+ * error travels up — to the runner, which records the listing as incomplete,
+ * or to `evaluate`, which says it could not judge this run.
  */
-async function _liveAutomations(orgId, deps, { swallow = false } = {}) {
+async function _liveAutomations(orgId, deps) {
     const sql = `
         SELECT a.id, a.title, a.definition_json
           FROM automations a
           JOIN users u ON u.id = a.user_id
          WHERE ${ORG_SQL} AND ${LIVE_SQL}
          ORDER BY a.title ASC, a.id ASC`;
-    if (!swallow) return (await deps.getAll(sql, [orgId])) || [];
-    try { return (await deps.getAll(sql, [orgId])) || []; } catch { return []; }
+    return (await deps.getAll(sql, [orgId])) || [];
 }
 
 /**
@@ -185,13 +186,14 @@ async function _personalFor(orgId, steps, deps) {
 async function _egressFor(orgId, automationId, deps) {
     try {
         const rows = await deps.getAll(`
-            SELECT tool_name, pii_categories_detected, COUNT(*)::int AS calls
+            SELECT tool_name, pii_categories_detected, COUNT(*)::int AS calls,
+                   COALESCE(pii_scan_enabled, FALSE) AS scanned
               FROM integration_activity_log
-             WHERE organization_id = $1
+             WHERE ${LEDGER_ORG_SQL}
                AND automation_id = $2
                AND timestamp >= NOW() - INTERVAL '${EGRESS_WINDOW_DAYS} days'
                AND COALESCE(is_dry_run, FALSE) = FALSE
-             GROUP BY tool_name, pii_categories_detected
+             GROUP BY tool_name, pii_categories_detected, COALESCE(pii_scan_enabled, FALSE)
              LIMIT ${EGRESS_GROUP_LIMIT}
         `, [orgId, String(automationId)]);
         return dataFlow.observedEgress(rows || []);
@@ -231,7 +233,14 @@ function verdict(name, flow) {
         // The ledger can answer what the definition could not: an automation that
         // has really been sending, with the PII scan reporting nothing
         // personal in any of it, has been observed rather than guessed at.
-        if (observed && observed.tools.length && !observed.kinds.length) {
+        // EVERY exit has to have been seen, each through its own tool: the rows
+        // of a tool that only reads acquit nothing, and an exit with no tool
+        // (an HTTP request, a code step) never reaches the ledger at all. And
+        // every call has to have been scanned — an empty category column
+        // written while the scan was off says nobody looked.
+        const exitsSeenClean = flow.exits.length > 0
+            && flow.exits.every((e) => e.observedCalls > 0 && !(e.observedKinds || []).length);
+        if (observed && exitsSeenClean && !observed.unscanned_calls) {
             return {
                 status: 'pass',
                 evidence: record,
@@ -300,10 +309,18 @@ module.exports = {
     remediationKey: 'compliance.checks.gdpr_art30_flows.fix',
     remediationLink: 'admin/compliance/ropa',
 
+    // The subject list is the WHOLE live, readable population (no LIMIT), so
+    // the runner may retire the slot of an automation that left it — switched
+    // off, made a draft, deleted, or no longer readable (which the coverage
+    // row still names). Otherwise its last warning stayed in the score for good.
+    retiresVanished: true,
+    retiredDetails: 'This automation is no longer live (switched off, made a draft or deleted), or its steps can no longer be read — see the coverage row.',
+
     async listSubjects(orgId, deps = defaultDeps()) {
-        // Swallows: a subject list that came up short costs verdicts, and
-        // `listCoverage` is what refuses to let that pass for completeness.
-        const rows = await _liveAutomations(orgId, deps, { swallow: true });
+        // Does not swallow: a failed read must reach the runner as an
+        // incomplete listing, never as "no automations", which would retire
+        // every slot (see `retiresVanished`).
+        const rows = await _liveAutomations(orgId, deps);
         return rows.filter(isReadable).map((r) => ({ id: `automation:${r.id}`, label: r.title || r.id }));
     },
 
@@ -312,7 +329,19 @@ module.exports = {
             return { status: 'not_applicable', evidence: {}, details: 'No live automation to examine.' };
         }
         const id = String(subject.id).replace(/^automation:/, '');
-        const rows = await _liveAutomations(orgId, deps, { swallow: true });
+        // A failed read is not "no longer switched on": that answer is
+        // not_applicable and drops the automation out of the score. Only the
+        // SQLSTATE travels — a raw error message can carry query text.
+        let rows;
+        try {
+            rows = await _liveAutomations(orgId, deps);
+        } catch (e) {
+            return {
+                status: 'warn',
+                evidence: { automation_id: id, error: 'automations_unreadable', sqlstate: e?.code || null },
+                details: 'The live automations could not be read, so this automation was not judged this run.',
+            };
+        }
         const row = rows.find((r) => String(r.id) === id);
         if (!row) {
             return { status: 'not_applicable', evidence: { automation_id: id }, details: 'That automation is no longer switched on.' };

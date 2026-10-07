@@ -1,5 +1,5 @@
 /**
- * EAA Art. 4 / Annex I §III–IV (EN 301 549 §9, WCAG 2.1 AA) — published pages
+ * EAA Art. 4 / Annex I §III–IV (EN 301 549 V3.2.1 §9 = WCAG 2.1 AA; V4.1.1 = WCAG 2.2 AA, not yet cited) — published pages
  * pass the static accessibility lint.
  *
  * Per-source over the pages the organisation itself publishes to the world:

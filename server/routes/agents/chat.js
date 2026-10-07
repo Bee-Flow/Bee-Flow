@@ -505,11 +505,13 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
                     .filter(Boolean)
                     .join(' | ');
 
-                log.info('[Title Gen] Triggering title generation with context:', userMessages.slice(0, 100));
+                // Shape only: the context is the user's messages, the title is
+                // generated from them (an encryption surface).
+                log.info(`[Title Gen] Triggering title generation (${userMessages.length} chars of context)`);
                 // Use the System Agent's configured model (default behavior)
                 try {
                     const title = await agentRuntime.generateChatTitle(userMessages, null, orgId, userId);
-                    log.info('[Title Gen] Generated title:', title);
+                    log.info(`[Title Gen] Generated title (${String(title || '').length} chars)`);
                     if (title && title !== 'New Chat') {
                         await agentStore.updateConversationTitle(result.conversationId, title);
                         log.info('[Title Gen] Updated conversation:', result.conversationId);

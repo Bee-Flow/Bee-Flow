@@ -1,5 +1,5 @@
 /**
- * Data Act Art. 25(2)(a)(e) / Art. 23(b) — an exit procedure exists and has
+ * Data Act Art. 25(2)(a),(b),(e) / Art. 23(a),(c) — an exit procedure exists and has
  * been exercised. Also DORA Art. 28(8): exit strategies for ICT services.
  *
  * Paper and practice:

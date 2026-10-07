@@ -94,10 +94,39 @@ test('the ledger can answer what the definition could not', () => {
     // sending, the PII scan was on, and nothing personal was in any of it.
     // Observed, not guessed — the same rule personalColumns applies when the
     // values can be read and the names cannot.
-    const seen = dataFlow.observedEgress([{ tool_name: 'gmail_compose', pii_categories_detected: null, calls: 40 }]);
+    const seen = dataFlow.observedEgress([{ tool_name: 'gmail_compose', pii_categories_detected: null, calls: 40, scanned: true }]);
     const v = CHK._verdict('Statusmail', flowOf([step('integration_action', { tool: 'gmail_compose' })], null, seen));
     assert.equal(v.status, 'pass');
     assert.match(v.details, /40 call\(s\) to gmail .* and no personal data in any of them/);
+});
+
+test('the ledger acquits only the exits it saw, and only calls that were scanned', () => {
+    // A tool that only READS (gmail_search) is not an exit, and an HTTP
+    // request never reaches the ledger at all: forty clean searches say
+    // nothing about where the HTTP step sent its data.
+    const readsOnly = dataFlow.observedEgress([{ tool_name: 'gmail_search', pii_categories_detected: null, calls: 40, scanned: true }]);
+    const http = CHK._verdict('Zoeker', flowOf([step('integration_action', { tool: 'gmail_search' }), step('http_request')], null, readsOnly));
+    assert.equal(http.status, 'warn');
+    assert.doesNotMatch(http.details, /no personal data in any of them/);
+
+    // An empty category column written while the PII scan was off means
+    // nobody looked — not "nothing personal".
+    const unscanned = dataFlow.observedEgress([{ tool_name: 'gmail_compose', pii_categories_detected: null, calls: 40, scanned: false }]);
+    assert.equal(unscanned.unscanned_calls, 40);
+    const blind = CHK._verdict('Statusmail', flowOf([step('integration_action', { tool: 'gmail_compose' })], null, unscanned));
+    assert.equal(blind.status, 'warn');
+    assert.doesNotMatch(blind.details, /no personal data in any of them/);
+});
+
+test('the ledger query says whether each group was scanned', async () => {
+    let sql = '';
+    await CHK._egressFor('orgA', 'aut_1', { getAll: async (q) => { sql = q; return []; } });
+    assert.match(sql, /COALESCE\(pii_scan_enabled, FALSE\) AS scanned/);
+    assert.match(sql, /GROUP BY tool_name, pii_categories_detected, COALESCE\(pii_scan_enabled, FALSE\)/);
+    // A single-tenant install writes its ledger rows with no organisation,
+    // and the scheduler sweeps it as 'default'.
+    await CHK._egressFor('default', 'aut_1', { getAll: async (q) => { sql = q; return []; } });
+    assert.match(sql, /organization_id IS NULL/);
 });
 
 test('an automation that sends nothing, and one whose columns hold nothing personal', () => {
@@ -195,6 +224,28 @@ test('it judges the live automations it can read, one row each', async () => {
     assert.equal((await CHK.evaluate('orgA', null, deps)).status, 'not_applicable');
 });
 
+test('a table whose columns are named in snake_case is not thereby free of personal data', async () => {
+    // `email_address` has no \b before "address" or after "email", so the
+    // name detector read it as nothing and the automation passed with "none of
+    // the columns it reads holds personal data".
+    const deps = depsFor(ROWS, { getTableMeta: async () => ({ fields: [{ key: 'email_address', name: 'email_address', type: 'text' }] }) });
+    const v = await CHK.evaluate('orgA', { id: 'automation:aut_1' }, deps);
+    assert.equal(v.status, 'warn');
+    assert.deepEqual(v.evidence.carries, ['email']);
+});
+
+test('an automation list that cannot be read is not "no longer switched on"', async () => {
+    // not_applicable drops the automation out of the score, so a transient
+    // read error between listSubjects and evaluate used to hide a failing
+    // automation. Only the SQLSTATE travels, never the error message.
+    const deps = depsFor(ROWS, { getAll: async () => { throw Object.assign(new Error('terminating connection due to administrator command'), { code: '57P01' }); } });
+    const v = await CHK.evaluate('orgA', { id: 'automation:aut_1' }, deps);
+    assert.equal(v.status, 'warn');
+    assert.equal(v.evidence.sqlstate, '57P01');
+    assert.equal(v.evidence.automation_id, 'aut_1');
+    assert.ok(!JSON.stringify(v).includes('terminating connection'), 'the raw error message stays out of the evidence');
+});
+
 test('an automation whose tables cannot be opened is not thereby clean', async () => {
     const deps = depsFor(ROWS, { getTableMeta: async () => { throw new Error('datatable store unavailable'); } });
     const v = await CHK.evaluate('orgA', { id: 'automation:aut_1' }, deps);
@@ -230,15 +281,23 @@ test('it reports the whole live population and names the ones it could not open'
 });
 
 test('an automation list that cannot be read is never reported as "no automations"', async () => {
-    // listSubjects swallows a read failure and returns a short subject list,
-    // which costs verdicts and is survivable. Doing that in listCoverage would
-    // claim the workspace runs no automations at all — "there is nothing we
-    // failed to look at" — which is the exact false reassurance coverage
-    // exists to prevent. The error goes up and the runner records the run as
-    // covering an unknown share.
+    // Swallowing a read failure in listCoverage would claim the workspace
+    // runs no automations at all — "there is nothing we failed to look at" —
+    // which is the exact false reassurance coverage exists to prevent. The
+    // error goes up and the runner records the run as covering an unknown
+    // share. listSubjects throws too: its list retires vanished slots, so an
+    // empty list read off a failed query would retire every automation.
     const boom = { getAll: async () => { throw new Error('relation "automations" does not exist'); } };
     await assert.rejects(() => CHK.listCoverage('orgA', boom), /relation "automations" does not exist/);
-    assert.deepEqual(await CHK.listSubjects('orgA', boom), []);
+    await assert.rejects(() => CHK.listSubjects('orgA', boom));
+});
+
+test('the subject list is the whole live population, so a switched-off automation is retired', async () => {
+    // Without this the runner never marks the list complete, and the last
+    // warning of an automation that was switched off stays in the score.
+    const { _asListing } = require('../../runner');
+    assert.equal(_asListing(CHK, await CHK.listSubjects('orgA', depsFor())).complete, true);
+    assert.equal(typeof CHK.retiredDetails, 'string');
 });
 
 test('an organisation running nothing reports an empty population, not a gap', async () => {

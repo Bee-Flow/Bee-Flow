@@ -30,7 +30,9 @@
  * One hanging evaluate() used to block the whole org sweep (and every org
  * after it — the scheduler runs orgs sequentially). Every evaluate() now races
  * a wall clock: past CHECK_TIMEOUT_MS the check is recorded as `fail` with the
- * timeout in its details, and the sweep moves on.
+ * timeout in its details, and the sweep moves on. listSubjects() and
+ * listCoverage() race the same clock: a listing that times out is an
+ * incomplete list, which retires nothing.
  *
  * COVERAGE — why a score is never allowed to stand alone (2026-09-21).
  *
@@ -85,6 +87,7 @@ const frameworks = require('./frameworks');
 const frameworkPolicy = require('./frameworkPolicy');
 const complianceStore = require('../stores/complianceStore');
 const { computeScore, scoresByFramework, scoreNumbers, SNAPSHOT_COLUMN } = require('./score');
+const { onEvidenceWriteFailed } = require('./evidence/writeFailures');
 const log = require('../telemetry/log');
 
 // Wall-clock budget per evaluate(). Env override exists for tests and for a
@@ -190,14 +193,28 @@ async function _persistResult(check, orgId, result, runType, subject, scope = nu
         run_type: runType,
         subject: _evidenceSubject(subject),
     };
-    await complianceStore.addEvidence({
+    // The chain append can fail on its own after the result row landed (a lock
+    // timeout, a terminated backend). That must neither abort the rest of the
+    // org's sweep nor vanish: writeFailures counts the hole, and verifyChain
+    // reports it as write_failures.
+    const evidenceRow = {
         organization_id: orgId,
         check_id: check.id,
         subject_type: scopeType,
         subject_id: scopeId,
         hash: _hashPayload(payload),
         payload,
-    });
+    };
+    await complianceStore.addEvidence(evidenceRow).catch(onEvidenceWriteFailed(evidenceRow));
+}
+
+/** listSubjects() under the same wall clock as evaluate(): a hung listing must not stall the sweep. */
+function _listSubjectsTimed(check, orgId) {
+    return _withTimeout(
+        Promise.resolve().then(() => check.listSubjects(orgId)),
+        CHECK_TIMEOUT_MS,
+        'listSubjects',
+    );
 }
 
 /**
@@ -457,7 +474,7 @@ async function _runVerdicts(check, orgId, runType) {
         // A list that could not be read is incomplete by definition.
         let listing = { subjects: [], complete: false };
         try {
-            listing = _asListing(check, await check.listSubjects(orgId));
+            listing = _asListing(check, await _listSubjectsTimed(check, orgId));
         } catch (e) {
             log.warn(`[ComplianceRunner] ${check.id} listSubjects failed:`, e.message);
         }
@@ -662,11 +679,7 @@ async function runForSubject(orgId, subjectIds, { runType = 'event' } = {}) {
         if (!active.has(check.regulation)) continue;
         let subjects;
         try {
-            subjects = _asListing(check, await _withTimeout(
-                Promise.resolve().then(() => check.listSubjects(orgId)),
-                CHECK_TIMEOUT_MS,
-                'listSubjects',
-            )).subjects;
+            subjects = _asListing(check, await _listSubjectsTimed(check, orgId)).subjects;
         } catch (e) {
             // One check that cannot enumerate its population must not stop the
             // others from judging this automation. Nothing is persisted for it —
@@ -705,7 +718,8 @@ async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } =
     if (!active.has(check.regulation)) throw new FrameworkDisabledError(check.id, check.regulation);
 
     if (check.scope === 'per-source' && typeof check.listSubjects === 'function') {
-        const listing = _asListing(check, await check.listSubjects(orgId));
+        // A timeout rejects to the caller, like any other listSubjects error.
+        const listing = _asListing(check, await _listSubjectsTimed(check, orgId));
         const whole = !subjectId && listing.complete;
         let subjects = listing.subjects;
         if (subjectId) subjects = subjects.filter(s => String(s.id) === String(subjectId));
@@ -733,9 +747,17 @@ async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } =
     return { check_id: check.id, scope: 'global', subject: null, ...r };
 }
 
+/** An option NAME worth recording: identifier-shaped, so a key cannot smuggle text in. */
+const OPT_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+
 /**
  * Invoke a check's autoFix(orgId, opts) handler if defined and persist an
  * evidence row capturing the action for audit. Returns the autofix output.
+ *
+ * Same activity gate as runOne: a stale tab must not apply a switched-off
+ * framework's fix. The check receives the full opts; the append-only chain
+ * gets the subject id and the option NAMES only — the route forwards the
+ * request body as it came, and free text in it must never become permanent.
  */
 async function autoFix(orgId, checkId, opts = {}) {
     const check = registry.get(checkId);
@@ -743,11 +765,17 @@ async function autoFix(orgId, checkId, opts = {}) {
     if (typeof check.autoFix !== 'function') {
         throw new Error(`Check ${checkId} does not support auto-fix`);
     }
+    const active = await frameworkPolicy.activeRegulations(orgId);
+    if (!active.has(check.regulation)) throw new FrameworkDisabledError(check.id, check.regulation);
     const result = await check.autoFix(orgId, opts);
     const payload = {
         action: 'auto-fix',
         check_id: checkId,
-        opts,
+        opts: { subjectId: opts?.subjectId ?? null },
+        opt_keys: Object.keys(opts || {})
+            .filter(k => k !== 'actorId' && OPT_KEY_RE.test(k))
+            .sort()
+            .slice(0, 20),
         result,
         actor: opts.actorId || null,
         at: new Date().toISOString(),

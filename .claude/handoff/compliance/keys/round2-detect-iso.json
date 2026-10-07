@@ -1,0 +1,8 @@
+{
+  "en": {
+    "compliance.checks.iso_project_orphaned_content.fix": "Reactivate the departed owner long enough to hand the project over or delete it. A chat shared by someone who left is encrypted with their key: it cannot be given to someone else, only archived or deleted."
+  },
+  "nl": {
+    "compliance.checks.iso_project_orphaned_content.fix": "Activeer de vertrokken eigenaar lang genoeg om het project over te dragen of te verwijderen. Een chat die is gedeeld door iemand die is vertrokken, is versleuteld met diens sleutel: die kan niet aan iemand anders worden gegeven, alleen worden gearchiveerd of verwijderd."
+  }
+}

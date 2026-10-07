@@ -90,7 +90,10 @@ const MOCKS = {
         }),
         openDuties: () => [],
     },
-    '../../compliance/runner': { runOne: async (...a) => { touched.push({ what: 'runOne', args: a }); } },
+    '../../compliance/runner': {
+        runOne: async (...a) => { touched.push({ what: 'runOne', args: a }); },
+        runForSubject: async (...a) => { touched.push({ what: 'runForSubject', args: a }); return []; },
+    },
     '../../compliance/events': { emit: () => {} },
     '../../compliance/evidence/writeFailures': { onEvidenceWriteFailed: () => () => {} },
     '../../auth/permissions': { requireAuth: pass, requirePermission: () => pass },
@@ -165,6 +168,11 @@ test('the quick attest and the questionnaire the DPIA drawer sends both still sa
     const quick = await dispatch({ method: 'POST', url: '/dpia/agent-7', body: { mode: 'attestation', risk_level: 'medium', expires_at: '2027-09-22T00:00:00.000Z' } });
     assert.strictEqual(quick.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'upsertAssessment').args[2].mode, 'attestation');
+    // The agent is re-judged where it is a subject; runOne with a subjectId
+    // wrote "Subject not found." into the Art-35 global slot for an agent
+    // that is not high-risk.
+    assert.deepStrictEqual(touched.find((t) => t.what === 'runForSubject')?.args, ['orgA', ['agent-7'], { runType: 'manual' }]);
+    assert.strictEqual(touched.some((t) => t.what === 'runOne'), false);
 
     touched.length = 0;
     const full = await dispatch({

@@ -261,6 +261,66 @@ test('runOne rejects an unknown check id', async () => {
     await assert.rejects(() => runner.runOne('org1', 'nope'), /Unknown check: nope/);
 });
 
+test('a listSubjects that hangs does not hold up the sweep', async () => {
+    const warn = console.warn; console.warn = () => {};
+    try {
+        fakeRegistry.register(check('GDPR-Art35-hang', 'GDPR', {
+            scope: 'per-source',
+            // Resolves well after the 40 ms budget, but soon enough not to keep the file alive.
+            listSubjects: () => new Promise(r => setTimeout(() => r([{ id: 'a' }]), 500)),
+        }));
+        fakeRegistry.register(check('GDPR-Art32-fast', 'GDPR'));
+        const started = Date.now();
+        const results = await runner.runAll('org1');
+        assert.ok(Date.now() - started < 400, `the sweep waited ${Date.now() - started} ms for the listing`);
+        assert.strictEqual(results.find(r => r.check_id === 'GDPR-Art32-fast').status, 'pass');
+        // An incomplete list: the subject-less placeholder, nothing retired.
+        const hung = results.find(r => r.check_id === 'GDPR-Art35-hang');
+        assert.strictEqual(hung.status, 'not_applicable');
+        // runOne lets the timeout reach its caller.
+        await assert.rejects(() => runner.runOne('org1', 'GDPR-Art35-hang'), (e) => e.code === 'check_timeout');
+    } finally { console.warn = warn; }
+});
+
+test('a failed evidence write is counted and does not abort the sweep', async () => {
+    const writeFailures = require('./evidence/writeFailures');
+    writeFailures._reset();
+    const warn = console.warn; console.warn = () => {};
+    const orig = fakeStore.addEvidence;
+    fakeStore.addEvidence = async (row) => {
+        if (row.check_id === 'GDPR-Art32-first') throw Object.assign(new Error('boom'), { code: '57P01' });
+        return orig(row);
+    };
+    try {
+        fakeRegistry.register(check('GDPR-Art32-first', 'GDPR'));
+        fakeRegistry.register(check('GDPR-Art32-second', 'GDPR'));
+        const results = await runner.runAll('org1');
+        assert.ok(results.some(r => r.check_id === 'GDPR-Art32-second'), 'the sweep went on');
+        assert.strictEqual(store.snapshots.length, 1, 'and still wrote its snapshot');
+        const summary = writeFailures.writeFailureSummary('org1');
+        assert.strictEqual(summary.count, 1);
+        assert.strictEqual(summary.recent[0].check_id, 'GDPR-Art32-first');
+        assert.strictEqual(summary.recent[0].error_type, '57P01');
+    } finally { fakeStore.addEvidence = orig; console.warn = warn; writeFailures._reset(); }
+});
+
+test('autoFix chains only the subject and refuses an inactive framework', async () => {
+    let called = 0;
+    let seenOpts = null;
+    fakeRegistry.register(check('GDPR-Art32-fixable', 'GDPR', { autoFix: async (_org, opts) => { called++; seenOpts = opts; return { changed: 1 }; } }));
+    await runner.autoFix('org1', 'GDPR-Art32-fixable', { subjectId: 'p1', actorId: 'u1', note: 'call Jan on 0612345678', 'jan@example.org': 1 });
+    const payload = store.evidence.at(-1).payload;
+    assert.deepStrictEqual(payload.opts, { subjectId: 'p1' });
+    assert.deepStrictEqual(payload.opt_keys, ['note', 'subjectId'], 'names only, identifier-shaped, no actorId');
+    assert.ok(!JSON.stringify(payload).includes('0612345678'));
+    assert.ok(!JSON.stringify(payload).includes('jan@example.org'));
+    assert.strictEqual(seenOpts.note, 'call Jan on 0612345678', 'the check itself still receives the full opts');
+
+    fakeRegistry.register(check('NIS2-fixable', 'NIS2', { autoFix: async () => { called++; return {}; } }));
+    await assert.rejects(runner.autoFix('org1', 'NIS2-fixable', {}), { code: 'framework_disabled' });
+    assert.strictEqual(called, 1);
+});
+
 // ── per-source expansion in runAll ───────────────────────────────────────
 
 test('a per-source check with no subjects yields one not_applicable row', async () => {

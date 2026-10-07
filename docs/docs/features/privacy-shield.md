@@ -4,7 +4,7 @@ title: Privacy shield
 
 # Privacy shield
 
-The Privacy Shield is the in-tenant filter that scans every prompt and tool result before it reaches the language model. It's available in **every tier**, including Community.
+The Privacy Shield is the in-tenant filter that scans chat messages (direct, agent and notebook chat) and attachments before they reach the language model. Tool results are scanned too: agent chat tokenises every detected category and removes the categories on your tool block lists; direct and notebook chat remove the block-list categories. Some surfaces are [not covered yet](#not-covered-yet). It's available in **every tier**, including Community.
 
 ## Detected categories
 
@@ -101,11 +101,26 @@ Not every surface behaves the same way when the guard is down:
 | Chat messages | Blocked (fail closed, the default) |
 | Large attachments | The unscanned part is cut off and marked, unless *attachment large-input policy* is set to fail closed |
 | Tool results, memory and knowledge-base passages | Passed through unscanned |
+| Tool calls whose arguments carry a blocked category | Refused when the action is Block; otherwise the call goes ahead unchecked |
 
 Patterns from **Your own data** (word lists and fixed formats) run on the Bee
 Flow server, so they still apply on the surfaces that pass through.
 
 Configure per-org in **Settings → Organisation → Privacy**, or per-agent in **Studio → Agents** (overrides the org default). The org-level config is stored in the `org_privacy_shield_<orgId>` record.
+
+## Not covered yet
+
+These surfaces send text to the language model without the message scan.
+Where tool block lists apply, they still apply there.
+
+- The Swarm tier in direct chat
+- Typed messages in template chat and in the web page builder chat (their
+  attachments are scanned)
+- Voice transcripts
+- The learning coach
+- The builder chats (automations, App Studio, CMS)
+- AI chat components in App Studio apps
+- AI on publicly shared and previewed web pages
 
 ## Org-level config fields
 
@@ -126,7 +141,7 @@ Configure per-org in **Settings → Organisation → Privacy**, or per-agent in 
 ## How redaction works
 
 1. Detect — matches in the outbound payload.
-2. Replace each match with a stable placeholder: `[email_1]`, `[iban_1]`, `[person_2]`, …
+2. Replace each match with a stable placeholder: `[email_1]`, `[internationalbankingaccountnumber_1]`, `[person_2]`, …
 3. Store the placeholder ↔ original mapping with the conversation, inside your own installation (see [Token map storage](#token-map-storage)).
 4. Send the redacted payload to the model.
 5. On the response, restore placeholders to original values **only on your screen**.
@@ -139,7 +154,7 @@ The model never sees the originals. The model provider's logs never contain the 
 |---|---|
 | Scope | Per conversation (and per notebook) |
 | Per-message | Tokens merged into the conversation's map |
-| Token format | `[<category>_<index>]` — e.g. `[email_1]`, `[phone_2]` |
+| Token format | `[<category id in lower case>_<index>]` — e.g. `[email_1]`, `[phonenumber_2]`; one of your own data types uses the placeholder key you gave it (`[project_code_1]`) |
 | Cap | 2,000 tokens per conversation, 5,000 per notebook; past the cap the oldest token is dropped and the drop is logged |
 | Storage | Written through to the conversation or notebook row in Postgres (encrypted when encryption is configured), and kept in memory on the replica for speed |
 

@@ -57,7 +57,7 @@
     "compliance.dpia_col_status": "DPIA",
     "compliance.dpia_empty_title": "No agent needs a DPIA",
     "compliance.dpia_on_record_short": "DPIA on record",
-    "compliance.dpia_questionnaire_hint": "Art. 35(7): purpose, data, necessity, measures.",
+    "compliance.dpia_questionnaire_hint": "Art. 35(7): description and purposes, necessity and proportionality, risks to the rights and freedoms of the people concerned, measures.",
     "compliance.dpia_q_mitigations_hint": "One per line",
 
     "compliance.set_loading": "Reading your compliance settings…",
@@ -82,7 +82,7 @@
     "compliance.set_group_ai_act": "AI Act",
     "compliance.set_group_ai_act_desc": "AI literacy (Art. 4) and the marking of AI-generated content (Art. 50(2)).",
     "compliance.set_ai_marking": "Mark AI-generated content",
-    "compliance.set_ai_marking_hint": "Required by AI Act Art. 50(2) since 2 August 2026 (systems already on the market before then: by 2 December 2026): documents and pages the AI writes carry a machine-readable marking and a visible note.",
+    "compliance.set_ai_marking_hint": "AI Act Art. 50(2) requires machine-readable marking of AI-generated output since 2 August 2026 (systems already on the market before then: by 2 December 2026). Bee Flow also adds a visible note.",
     "compliance.set_ai_marking_footer": "Visible footer text (optional)",
     "compliance.set_ai_marking_footer_hint": "Leave empty for the default sentence.",
 
@@ -214,7 +214,7 @@
     "compliance.dpia_col_status": "DPIA",
     "compliance.dpia_empty_title": "Geen agent heeft een DPIA nodig",
     "compliance.dpia_on_record_short": "DPIA vastgelegd",
-    "compliance.dpia_questionnaire_hint": "Art. 35(7): doel, gegevens, noodzaak, maatregelen.",
+    "compliance.dpia_questionnaire_hint": "Art. 35(7): beschrijving en doeleinden, noodzaak en evenredigheid, risico's voor de rechten en vrijheden van betrokkenen, maatregelen.",
     "compliance.dpia_q_mitigations_hint": "Eén per regel",
 
     "compliance.set_loading": "Je compliance-instellingen worden gelezen…",
@@ -239,7 +239,7 @@
     "compliance.set_group_ai_act": "AI-verordening",
     "compliance.set_group_ai_act_desc": "AI-geletterdheid (art. 4) en het markeren van AI-gegenereerde inhoud (art. 50(2)).",
     "compliance.set_ai_marking": "AI-gegenereerde inhoud markeren",
-    "compliance.set_ai_marking_hint": "Verplicht onder AI-verordening art. 50(2) sinds 2 augustus 2026 (systemen die daarvoor al op de markt waren: uiterlijk 2 december 2026): documenten en pagina's die de AI schrijft krijgen een machineleesbare markering en een zichtbare vermelding.",
+    "compliance.set_ai_marking_hint": "AI-verordening art. 50(2) vereist sinds 2 augustus 2026 een machineleesbare markering van door AI gegenereerde output (systemen die daarvoor al op de markt waren: uiterlijk 2 december 2026). Bee Flow voegt daarnaast een zichtbare vermelding toe.",
     "compliance.set_ai_marking_footer": "Zichtbare voettekst (optioneel)",
     "compliance.set_ai_marking_footer_hint": "Laat leeg voor de standaardzin.",
 

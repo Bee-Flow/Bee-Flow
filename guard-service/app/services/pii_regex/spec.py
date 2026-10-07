@@ -176,6 +176,14 @@ class PatternSpec:
     # number (the elfproef rejects ~10/11 of them; emitting those would flag
     # half of commerce). Guarded by the per-spec precision-budget test.
     near_miss: bool = False
+    # Does a checksum failure or anchor miss on this spec feed the near-miss
+    # counters? Off only for a TWIN that re-scans a shape another spec already
+    # covers (the any-case IBAN and bare card specs): there a failure is
+    # either the same candidate counted a second time or not a near miss at
+    # all (a lower-case word run, or a following word the greedy grouping
+    # absorbed), and the counters must keep meaning one increment per
+    # dropped candidate.
+    counts_near_miss: bool = True
 
     def __post_init__(self) -> None:
         # An anchored pattern only fires when a nearby keyword is present, so by

@@ -11,8 +11,11 @@
  * Identity:      unverified | verified_email_link | verified_manual
  *
  * Time is an axis here (Art. 12(3)): every request carries `due_at` —
- * received + 30 days — and may be extended ONCE by two further months
- * (`extended_until` = received + 90 days, `due_at` follows). The `timeline`
+ * received + one calendar month — and may be extended ONCE by two further
+ * months (`extended_until` = received + three calendar months, `due_at`
+ * follows). A month that lacks the start day ends on its last day (31 Jan →
+ * 28/29 Feb, utils/calendarMonths): a fixed 30 days ran past the legal
+ * deadline for every request whose month crosses February. The `timeline`
  * JSONB is the human-readable trail the register drawer shows:
  * [{ at, by, kind, text?, … }] with kinds received | started |
  * identity_verified | extended | fulfilled | rejected | note.
@@ -27,6 +30,7 @@
 const db = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
+const { addCalendarMonths } = require('../utils/calendarMonths');
 
 const initDB = makeStoreInit('DsrStore', _initDB);
 
@@ -52,7 +56,7 @@ async function _initDB() {
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_dsr_subject_email ON dsr_requests(subject_email)`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_dsr_type_created ON dsr_requests(request_type, created_at DESC)`);
     // Compliance Center redesign (2026-09): intake channel, identity
-    // verification, the 30-day clock with its one-time extension, the
+    // verification, the one-month clock with its one-time extension, the
     // timeline and the single-use verify token. The due_at backfill is
     // idempotent (WHERE due_at IS NULL) so it can sit in boot DDL.
     await runDdl('dsrStore', [
@@ -69,7 +73,8 @@ async function _initDB() {
         `ALTER TABLE dsr_requests ADD COLUMN IF NOT EXISTS due_at TIMESTAMPTZ`,
         `ALTER TABLE dsr_requests ADD COLUMN IF NOT EXISTS timeline JSONB NOT NULL DEFAULT '[]'::jsonb`,
         `ALTER TABLE dsr_requests ADD COLUMN IF NOT EXISTS verify_token_hash TEXT`,
-        `UPDATE dsr_requests SET due_at = created_at + INTERVAL '30 days' WHERE due_at IS NULL`,
+        // Postgres clamps a month the same way (2027-01-31 + 1 month = 2027-02-28).
+        `UPDATE dsr_requests SET due_at = created_at + INTERVAL '1 month' WHERE due_at IS NULL`,
         `CREATE INDEX IF NOT EXISTS idx_dsr_org_due ON dsr_requests(organization_id, due_at) WHERE status IN ('pending','in_progress')`,
     ]);
 }
@@ -80,10 +85,14 @@ const VALID_CHANNELS = new Set(['public_form', 'email_dpo', 'phone', 'letter', '
 const IDENTITY_STATUSES = new Set(['unverified', 'verified_email_link', 'verified_manual']);
 const OPEN_STATUSES = ['pending', 'in_progress'];
 
-/** Art. 12(3): one month, extendable by two further months. */
-const SLA_DAYS = 30;
-const EXTENDED_SLA_DAYS = 90;
-const DAY_MS = 86400 * 1000;
+/**
+ * Art. 12(3): one month, extendable by two further months — calendar months.
+ * A deadline on a weekend or public holiday is NOT moved to the next working
+ * day: holidays differ per Member State, and a clock that is early is safe
+ * where one that is late is not.
+ */
+const SLA_MONTHS = 1;
+const EXTENDED_SLA_MONTHS = 3;
 
 class AlreadyExtendedError extends Error {
     constructor(id) {
@@ -99,8 +108,8 @@ const LIST_COLUMNS = `id, request_type, subject_email, subject_user_id, status, 
                started_at, started_by, extended_until, extension_reason, extended_by, extended_at,
                due_at, timeline`;
 
-function _dueFrom(receivedAt, days) {
-    return new Date(new Date(receivedAt).getTime() + days * DAY_MS);
+function _dueFrom(receivedAt, months) {
+    return addCalendarMonths(new Date(receivedAt), months);
 }
 
 function _channel(v) {
@@ -138,7 +147,7 @@ function _withTimeline(row) {
 
 /**
  * Public-form intake (unauthenticated). The clock starts now: due_at =
- * created_at + 30 d, timeline opens with `received`.
+ * created_at + one calendar month, timeline opens with `received`.
  */
 async function createRequest(input) {
     await initDB();
@@ -164,7 +173,7 @@ async function createRequest(input) {
         channel,
         input.created_by || null,
         createdAt,
-        _dueFrom(createdAt, SLA_DAYS),
+        _dueFrom(createdAt, SLA_MONTHS),
         JSON.stringify(timeline),
     ]);
     return rows[0];
@@ -208,7 +217,7 @@ async function createManual(orgId, { subject_email, request_type, channel, notes
         now,
         created_by,
         receivedAt,
-        _dueFrom(receivedAt, SLA_DAYS),
+        _dueFrom(receivedAt, SLA_MONTHS),
         JSON.stringify(timeline),
     ]);
     return rows[0];
@@ -316,7 +325,7 @@ async function start(orgId, id, userId) {
 
 /**
  * Art. 12(3) extension — exactly once, with a reason the subject is told.
- * extended_until = received + 90 d and the deadline follows it.
+ * extended_until = received + three calendar months and the deadline follows it.
  * @throws {AlreadyExtendedError} on a second attempt (also under a race:
  *   the UPDATE is guarded by `extended_at IS NULL`).
  * @param orgId
@@ -331,7 +340,7 @@ async function extend(orgId, id, { reason, by } = {}) {
     if (!existing) return null;
     if (existing.extended_at) throw new AlreadyExtendedError(id);
     if (!OPEN_STATUSES.includes(existing.status)) throw new Error(`cannot extend a ${existing.status} request`);
-    const extendedUntil = _dueFrom(existing.created_at, EXTENDED_SLA_DAYS);
+    const extendedUntil = _dueFrom(existing.created_at, EXTENDED_SLA_MONTHS);
     const event = _event('extended', { by: by || null, text: text.slice(0, 2000), until: extendedUntil.toISOString() });
     const r = await db.run(`
         UPDATE dsr_requests SET
@@ -418,6 +427,9 @@ async function consumeVerifyToken(orgId, id, hash) {
  * SLA aggregates for the Art-15 / Art-17 checks. Returns counts and average
  * fulfilment time in days for the requested type over the rolling window.
  * "Overdue" is measured against `due_at`, so a granted extension moves it.
+ * "Nearing" is an open request whose `due_at` falls within the next 5 days —
+ * the age of the open requests themselves, which the average fulfilment time
+ * (over FULFILLED requests) cannot tell.
  */
 async function getSlaStats(orgId, requestType, windowDays = 365) {
     await initDB();
@@ -430,6 +442,11 @@ async function getSlaStats(orgId, requestType, windowDays = 365) {
                 WHERE status IN ('pending','in_progress')
                 AND due_at < NOW()
             )::int AS overdue,
+            COUNT(*) FILTER (
+                WHERE status IN ('pending','in_progress')
+                AND due_at >= NOW()
+                AND due_at < NOW() + INTERVAL '5 days'
+            )::int AS nearing,
             COALESCE(AVG(
                 EXTRACT(EPOCH FROM (fulfilled_at - created_at)) / 86400
             ) FILTER (WHERE status = 'fulfilled'), 0) AS avg_days_to_fulfil
@@ -437,7 +454,7 @@ async function getSlaStats(orgId, requestType, windowDays = 365) {
         WHERE organization_id = $1 AND request_type = $2
         AND created_at >= NOW() - ($3 || ' days')::interval
     `, [orgId, requestType, String(windowDays)]);
-    return row || { total: 0, fulfilled: 0, open: 0, overdue: 0, avg_days_to_fulfil: 0 };
+    return row || { total: 0, fulfilled: 0, open: 0, overdue: 0, nearing: 0, avg_days_to_fulfil: 0 };
 }
 
 module.exports = {
@@ -460,6 +477,6 @@ module.exports = {
     VALID_STATUSES: [...VALID_STATUSES],
     VALID_CHANNELS: [...VALID_CHANNELS],
     IDENTITY_STATUSES: [...IDENTITY_STATUSES],
-    SLA_DAYS,
-    EXTENDED_SLA_DAYS,
+    SLA_MONTHS,
+    EXTENDED_SLA_MONTHS,
 };

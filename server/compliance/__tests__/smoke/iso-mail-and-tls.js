@@ -14,13 +14,14 @@ module.exports = async function isoMailAndTls() {
     });
     await t('warn when enabled but never swept', async () => {
         resetState();
-        _state.isoConnectorConfigs['mail-security'] = { enabled: true };
+        _state.isoConnectorConfigs['mail-security'] = { enabled: true, settings: { domain: 'acme.nl' } };
         assertStatus(await checks.isoMailSecurity.evaluate('x'), 'warn', 'no snapshot yet');
     });
     await t('fail when neither SPF nor DMARC exists', async () => {
         resetState();
-        _state.isoConnectorConfigs['mail-security'] = { enabled: true };
+        _state.isoConnectorConfigs['mail-security'] = { enabled: true, settings: { domain: 'acme.nl' } };
         _state.isoSnapshots['mail-security'] = [{
+            subject_id: 'acme.nl',
             fetched_at: new Date().toISOString(),
             payload: { domain: 'acme.nl', spf: { present: false }, dmarc: { present: false }, dkim: { found_selectors: [] } },
         }];
@@ -28,8 +29,9 @@ module.exports = async function isoMailAndTls() {
     });
     await t('warn on a non-enforcing DMARC policy', async () => {
         resetState();
-        _state.isoConnectorConfigs['mail-security'] = { enabled: true };
+        _state.isoConnectorConfigs['mail-security'] = { enabled: true, settings: { domain: 'acme.nl' } };
         _state.isoSnapshots['mail-security'] = [{
+            subject_id: 'acme.nl',
             fetched_at: new Date().toISOString(),
             payload: { domain: 'acme.nl', spf: { present: true }, dmarc: { present: true, policy: 'none' }, dkim: { found_selectors: ['google'] } },
         }];
@@ -37,8 +39,9 @@ module.exports = async function isoMailAndTls() {
     });
     await t('pass with SPF + enforcing DMARC + DKIM', async () => {
         resetState();
-        _state.isoConnectorConfigs['mail-security'] = { enabled: true };
+        _state.isoConnectorConfigs['mail-security'] = { enabled: true, settings: { domain: 'acme.nl' } };
         _state.isoSnapshots['mail-security'] = [{
+            subject_id: 'acme.nl',
             fetched_at: new Date().toISOString(),
             payload: { domain: 'acme.nl', spf: { present: true }, dmarc: { present: true, policy: 'reject' }, dkim: { found_selectors: ['google'] } },
         }];
