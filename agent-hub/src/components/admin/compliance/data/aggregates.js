@@ -14,7 +14,9 @@ import { clockState, DAY_MS, HOUR_MS } from '../../../shared/deadlineMath';
 const noop = () => {};
 
 // ── Needs attention ────────────────────────────────────────────────────────
-export function useComplianceAttention({ enabled = true, limit = 5 } = {}) {
+// The whole list (the server caps `limit` at 50): the Overview shows five and
+// expands the rest inline, so every item is reachable without leaving the page.
+export function useComplianceAttention({ enabled = true, limit = 50 } = {}) {
     const res = useResource(`${API}/attention?limit=${limit}`, {
         enabled,
         parse: (b) => { const o = asObject(b); return o && Array.isArray(o.items) ? o : null; },
@@ -35,14 +37,15 @@ export function deadlinesFromRegisters({ requests = null, incidents = null, now 
         const started = r.created_at || r.received_at;
         const due = r.due_at || r.extended_until || (started ? new Date(new Date(started).getTime() + 30 * DAY_MS).toISOString() : null);
         const c = clockState({ dueAt: due, startedAt: started, now, urgentBelowMs: 5 * DAY_MS });
-        items.push({ id: `dsr:${r.id}`, kind: 'dsr', ref: `#${r.id}`, title: r.request_type || 'request', meta: { article: '12–22' },
+        // The same reference strings the server sends (compliance/deadlines.js ARTICLE): printed as-is.
+        items.push({ id: `dsr:${r.id}`, kind: 'dsr', ref: `#${r.id}`, title: r.request_type || 'request', meta: { article: 'GDPR Art. 12(3)' },
             started_at: started, due_at: due, state: c.state, pct: c.pct, target: { section: 'dsr', id: String(r.id) } });
     }
     for (const i of incidents || []) {
         if (!['open', 'assessing'].includes(i.status)) continue;
         const c = clockState({ dueAt: i.deadline_at, startedAt: i.detected_at || i.created_at, now, urgentBelowMs: 24 * HOUR_MS });
         items.push({ id: `incident:${i.id}`, kind: i.kind === 'vulnerability' ? 'cra_full_report' : 'incident', ref: `INC-${i.id}`, title: i.title,
-            meta: { article: '33' }, started_at: i.detected_at || i.created_at, due_at: i.deadline_at, state: c.state, pct: c.pct,
+            meta: { article: i.kind === 'vulnerability' ? 'CRA Art. 14(2)(b)' : 'GDPR Art. 33' }, started_at: i.detected_at || i.created_at, due_at: i.deadline_at, state: c.state, pct: c.pct,
             target: { section: i.kind === 'vulnerability' ? 'vulnerabilities' : 'incidents', id: String(i.id) } });
     }
     const rank = { overdue: 0, urgent: 1, ok: 2, none: 3, done: 4 };

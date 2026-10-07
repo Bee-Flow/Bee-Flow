@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import React, { useId, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { countdown, daysUntil, formatCalDate, resolveNow, splitByToday } from './calendarMath';
 
@@ -14,15 +14,19 @@ import { countdown, daysUntil, formatCalDate, resolveNow, splitByToday } from '.
  * client knows what day it is. `calendarMath.splitByToday` does the split;
  * this component only lays it out:
  *
- *   past rows      greyed one-liners, oldest first — except the two most
- *                  RECENT past dates, which keep secondary text, a bold title
- *                  and "n days ago": what just came into force is still news
+ *   past rows      the two most RECENT past dates, with secondary text, a
+ *                  bold title and "n days ago": what just came into force is
+ *                  still news. Older dates are greyed one-liners, oldest
+ *                  first, behind one "Show {n} earlier dates" toggle — history
+ *                  one click away instead of a screen of it above today
  *   today divider  two 2px lines in the kind colour around "today · 14 sep
  *                  2026" (full variant only; the compact card's header
  *                  already says which day it is)
  *   upcoming rows  bold tabular date, 500 title, an 11px meta line: detail ·
  *                  "affects 3 automations" · "in 79 days" — the countdown in
- *                  warning ink when it is 90 days or nearer, in months beyond
+ *                  warning ink when it is 90 days or nearer, in months beyond.
+ *                  The compact card keeps the meta to one line (full text in
+ *                  the title) and the countdown always visible beside it
  *   uncertain      a `--bg-secondary` footer box for items without a date
  *                  (Digital Omnibus, the Dutch AI implementation act)
  *
@@ -38,7 +42,7 @@ import { countdown, daysUntil, formatCalDate, resolveNow, splitByToday } from '.
  *                  'compact' (78px column, upcoming only)
  *   limitUpcoming  cap on upcoming rows (compact defaults to 3)
  *   onOpenCalendar compact: when more dates exist than shown, a "n more dates
- *                  ↗" footer link calls it
+ *                  ›" footer link calls it
  *   t / locale     translation function and reading locale; default to
  *                  useTranslation() so callers may omit them
  */
@@ -50,6 +54,8 @@ export default function RegulatoryCalendar({
     const t = tProp ?? hook.t;
     const locale = localeProp ?? hook.resolvedLocale ?? 'en';
     const nowMs = useMemo(() => resolveNow(now), [now]);
+    const [showEarlier, setShowEarlier] = useState(false);
+    const earlierId = useId();
 
     const { past, upcoming, uncertain } = useMemo(() => splitByToday(milestones, nowMs), [milestones, nowMs]);
 
@@ -68,37 +74,36 @@ export default function RegulatoryCalendar({
     const labelOf = (m) => m.label ?? (m.label_key ? t(m.label_key, m.id ?? '') : (m.id ?? ''));
     const detailOf = (m) => m.detail ?? (m.detail_key ? t(m.detail_key, '') : '');
     const recentFrom = Math.max(0, past.length - 2);
+    const earlier = recentFrom;
+    const pastProps = { t, cols, rowClass, nowMs, fmtDate, labelOf, detailOf };
 
     return (
         <div className={`flex flex-col ${className}`} data-testid={testId} data-variant={variant}>
-            {!compact && past.map((m, i) => {
-                const recent = i >= recentFrom;
-                const days = Math.abs(daysUntil(m.date, nowMs));
-                const detail = recent ? detailOf(m) : '';
-                return (
-                    <div
-                        key={m.id ?? `${m.framework_id}-${m.date}`}
-                        className={`${rowClass} ${recent ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}`}
-                        style={{ gridTemplateColumns: cols }}
-                        data-testid="cal-row"
-                        data-when={recent ? 'recent' : 'past'}
-                    >
-                        <span className="tabular-nums">{fmtDate(m)}</span>
-                        <span className="min-w-0">
-                            {recent
-                                ? <b className="font-semibold text-[var(--text-primary)]">{labelOf(m)}</b>
-                                : labelOf(m)}
-                            {detail ? <> · {detail}</> : null}
-                            {m.relevant === false
-                                ? <> · <span className="text-[11px]">{t('compliance.cal_not_relevant', 'not relevant')}</span></>
-                                : null}
-                            {recent
-                                ? <> · <span className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.cal_days_ago', '{days} days ago', { days })}</span></>
-                                : null}
-                        </span>
-                    </div>
-                );
-            })}
+            {!compact && earlier > 0 && (
+                <button
+                    type="button"
+                    onClick={() => setShowEarlier(v => !v)}
+                    aria-expanded={showEarlier}
+                    aria-controls={earlierId}
+                    data-testid="cal-earlier-toggle"
+                    className="-mx-1 mb-1 inline-flex items-center gap-1 self-start rounded px-1 py-0.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-transparent border-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                >
+                    {showEarlier
+                        ? t('compliance.ovw_show_fewer', 'Show fewer')
+                        : t('compliance.cal_show_earlier', 'Show {n} earlier dates', { n: earlier })}
+                    <ChevronDown size={12} aria-hidden="true" className={`transition-transform ${showEarlier ? 'rotate-180' : ''}`} />
+                </button>
+            )}
+            {!compact && showEarlier && earlier > 0 && (
+                <div id={earlierId} className="flex flex-col">
+                    {past.slice(0, recentFrom).map(m => (
+                        <PastRow key={m.id ?? `${m.framework_id}-${m.date}`} m={m} recent={false} {...pastProps} />
+                    ))}
+                </div>
+            )}
+            {!compact && past.slice(recentFrom).map(m => (
+                <PastRow key={m.id ?? `${m.framework_id}-${m.date}`} m={m} recent {...pastProps} />
+            ))}
 
             {!compact && (
                 <div className="flex items-center gap-2 py-2" data-testid="cal-today" role="separator"
@@ -114,7 +119,7 @@ export default function RegulatoryCalendar({
             {shown.map((m) => (
                 <UpcomingRow
                     key={m.id ?? `${m.framework_id}-${m.date}`}
-                    m={m} t={t} cols={cols} rowClass={rowClass}
+                    m={m} t={t} cols={cols} rowClass={rowClass} compact={compact}
                     date={fmtDate(m)} days={daysUntil(m.date, nowMs)} label={labelOf(m)} detail={detailOf(m)}
                 />
             ))}
@@ -133,7 +138,7 @@ export default function RegulatoryCalendar({
                     className="mt-auto inline-flex items-center gap-1 self-end pt-2 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-transparent border-0 p-0 cursor-pointer"
                 >
                     {t('compliance.cal_more', '{n} more dates', { n: hidden })}
-                    <ArrowUpRight style={{ width: 12, height: 12 }} aria-hidden="true" />
+                    <ChevronRight size={12} aria-hidden="true" />
                 </button>
             )}
 
@@ -181,30 +186,64 @@ function countdownText(cd, t) {
     return t('compliance.cal_in_months', 'in {months} months', { months: cd.n });
 }
 
-function UpcomingRow({ m, t, cols, rowClass, date, days, label, detail }) {
+/** A past date: greyed one-liner, or — for the two most recent — bold with its detail and "n days ago". */
+function PastRow({ m, recent, t, cols, rowClass, nowMs, fmtDate, labelOf, detailOf }) {
+    const days = Math.abs(daysUntil(m.date, nowMs));
+    const detail = recent ? detailOf(m) : '';
+    return (
+        <div
+            className={`${rowClass} ${recent ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}`}
+            style={{ gridTemplateColumns: cols }}
+            data-testid="cal-row"
+            data-when={recent ? 'recent' : 'past'}
+        >
+            <span className="tabular-nums">{fmtDate(m)}</span>
+            <span className="min-w-0">
+                {recent
+                    ? <b className="font-semibold text-[var(--text-primary)]">{labelOf(m)}</b>
+                    : labelOf(m)}
+                {detail ? <> · {detail}</> : null}
+                {m.relevant === false
+                    ? <> · <span className="text-[11px]">{t('compliance.cal_not_relevant', 'not relevant')}</span></>
+                    : null}
+                {recent
+                    ? <> · <span className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.cal_days_ago', '{days} days ago', { days })}</span></>
+                    : null}
+            </span>
+        </div>
+    );
+}
+
+function UpcomingRow({ m, t, cols, rowClass, compact, date, days, label, detail }) {
     const cd = countdown(days);
     const meta = [detail, affectsText(m.affects, t)].filter(Boolean);
     if (m.relevant === false) meta.push(t('compliance.cal_not_relevant', 'not relevant'));
+    const countdownNode = cd ? (
+        <span
+            data-testid="cal-countdown"
+            className={cd.soon ? 'font-medium' : ''}
+            style={cd.soon ? { color: 'var(--warning-ink)' } : undefined}
+        >
+            {countdownText(cd, t)}
+        </span>
+    ) : null;
     return (
         <div className={rowClass} style={{ gridTemplateColumns: cols }} data-testid="cal-row" data-when="upcoming" data-soon={cd?.soon ? 'true' : 'false'}>
             <span className="font-semibold tabular-nums text-[var(--text-primary)]">{date}</span>
             <div className="min-w-0">
                 <div className="font-medium text-[var(--text-primary)]">{label}</div>
-                <div className="text-[11px] text-[var(--text-tertiary)]">
-                    {meta.map((part, i) => <React.Fragment key={i}>{i > 0 ? ' · ' : null}{part}</React.Fragment>)}
-                    {cd ? (
-                        <>
-                            {meta.length ? ' · ' : null}
-                            <span
-                                data-testid="cal-countdown"
-                                className={cd.soon ? 'font-medium' : ''}
-                                style={cd.soon ? { color: 'var(--warning-ink)' } : undefined}
-                            >
-                                {countdownText(cd, t)}
-                            </span>
-                        </>
-                    ) : null}
-                </div>
+                {compact ? (
+                    // One line: the meta truncates (full text in the title), the countdown never does.
+                    <div className="flex min-w-0 text-[11px] text-[var(--text-tertiary)]" data-testid="cal-meta">
+                        {meta.length ? <span className="line-clamp-1 min-w-0" title={meta.join(' · ')}>{meta.join(' · ')}</span> : null}
+                        {countdownNode ? <span className="shrink-0 whitespace-nowrap">{meta.length ? '\u00a0· ' : null}{countdownNode}</span> : null}
+                    </div>
+                ) : (
+                    <div className="text-[11px] text-[var(--text-tertiary)]" data-testid="cal-meta">
+                        {meta.map((part, i) => <React.Fragment key={i}>{i > 0 ? ' · ' : null}{part}</React.Fragment>)}
+                        {countdownNode ? <>{meta.length ? ' · ' : null}{countdownNode}</> : null}
+                    </div>
+                )}
             </div>
         </div>
     );

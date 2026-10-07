@@ -307,6 +307,75 @@ describe('ComplianceMobile — the overview segment', () => {
     });
 });
 
+/* ══ The Overview's other tabs ═══════════════════════════════════════════ */
+describe('ComplianceMobile — the calendar and the reports are reachable from home', () => {
+    it.each([
+        ['calendar', 'mobile-entry-calendar', 'Regulatory calendar'],
+        ['reports', 'mobile-entry-reports', 'Reports and downloads'],
+    ])('the %s entry opens that tab, which renders the page under a back row', async (tab, entry, title) => {
+        const user = userEvent.setup();
+        const onTab = vi.fn();
+        const { rerender, navigate, onBack, data } = mount({ onTab });
+        await user.click(screen.getByTestId(entry));
+        expect(onTab).toHaveBeenLastCalledWith(tab);
+        expect(navigate).not.toHaveBeenCalled();
+
+        const props = { navigate, onBack, data, onTab, page: <div data-testid="page-node">page</div> };
+        rerender(<ComplianceMobile active="overview" tab={tab} {...props} />);
+        expect(screen.getByTestId('compliance-mobile').dataset.view).toBe('tab');
+        const frame = screen.getByTestId('mobile-home-tab');
+        expect(within(frame).getByRole('heading', { name: title })).toBeInTheDocument();
+        expect(within(frame).getByTestId('page-node')).toBeInTheDocument();
+        expect(screen.queryByTestId('mobile-home-overview')).toBeNull();
+
+        // Both ways back land on the Overview's status tab, never out of Settings.
+        const back = screen.getByTestId('mobile-home-tab-back');
+        expect(back).toHaveAccessibleName('Back to overview');
+        expect(back.className).toContain('min-h-[44px]');
+        await user.click(back);
+        expect(onTab).toHaveBeenLastCalledWith('status');
+        expect(screen.getByTestId('mobile-back')).toHaveAccessibleName('Back to overview');
+        await user.click(screen.getByTestId('mobile-back'));
+        expect(onTab).toHaveBeenCalledTimes(3);
+        expect(onTab).toHaveBeenLastCalledWith('status');
+        expect(onBack).not.toHaveBeenCalled();
+    });
+
+    it('the attention card folds after five rows behind one "Show all {n}" row, like the desktop list', async () => {
+        const user = userEvent.setup();
+        const items = Array.from({ length: 7 }, (_, i) => ({
+            id: `r${i}`, title: `Open item ${i + 1}`, status: 'warn', source: 'register',
+            meta: { severity: 'high', verification: 'register', frameworks: [{ regulation: 'ISO27001', ref: 'cl. 9' }] },
+            action: { target: '/app/admin/compliance/training' },
+        }));
+        mount({ data: makeData({ attention: { items } }) });
+        const card = screen.getByTestId('mobile-attention-card');
+        const rows = () => within(card).getAllByRole('button').filter(b => b.dataset.testid?.startsWith('mobile-attention-r'));
+        expect(rows()).toHaveLength(5);
+        const toggle = screen.getByTestId('mobile-attention-toggle');
+        expect(toggle).toHaveTextContent('Show all 7');
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(toggle.className).toContain('min-h-[44px]');
+        await user.click(toggle);
+        expect(rows()).toHaveLength(7);
+        expect(toggle).toHaveTextContent('Show fewer');
+        // The meta reads like the desktop one: the reference once, no 'register', no dangling dot.
+        const meta = rows()[0].textContent.replace('Open item 1', '');
+        expect(meta).toBe('ISO cl. 9 · high');
+    });
+
+    it('a framework row says what the number is: "· 2 open"', () => {
+        mount();
+        expect(screen.getByTestId('mobile-fw-gdpr')).toHaveTextContent(/ · 2 open$/);
+    });
+
+    it('the status tab is the home screen', () => {
+        mount({ tab: 'status' });
+        expect(screen.getByTestId('mobile-home-overview')).toBeInTheDocument();
+        expect(screen.queryByTestId('mobile-home-tab')).toBeNull();
+    });
+});
+
 /* ══ The list views ══════════════════════════════════════════════════════ */
 describe('ComplianceMobile — the rail as a phone list', () => {
     it('hides a growing-set framework until the org has it', () => {

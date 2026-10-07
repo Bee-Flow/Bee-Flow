@@ -171,7 +171,12 @@ test('the quick attest and the questionnaire the DPIA drawer sends both still sa
         method: 'POST', url: '/dpia/agent-7',
         body: {
             mode: 'questionnaire', risk_level: 'high', expires_at: '2027-09-22T00:00:00.000Z',
-            answers: { purpose: 'Support triage', automated_decisions: false },
+            // The three answers a questionnaire cannot do without
+            // (dpia.validation.test.js pins the refusals).
+            answers: {
+                purpose: 'Support triage', data_categories: 'Ticket text',
+                automated_decisions: false, human_oversight: 'An agent sends every reply',
+            },
             mitigations: ['PII redaction before the model call'],
         },
     });

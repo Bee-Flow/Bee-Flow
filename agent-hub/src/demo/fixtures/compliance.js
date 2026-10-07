@@ -250,8 +250,8 @@ const aia26Row = (subject) => {
     }
     return {
         status: 'pass',
-        evidence: { ...evidence, human_oversight: dpia.human_oversight },
-        details: `Human oversight recorded for "${subject.label}": ${dpia.human_oversight}`,
+        evidence: { ...evidence, human_oversight: dpia.answers.human_oversight },
+        details: `Human oversight recorded for "${subject.label}": ${dpia.answers.human_oversight}`,
     };
 };
 
@@ -746,36 +746,44 @@ const ROPA = () => {
 
 /* ── DPIAs ──────────────────────────────────────────────────────────── */
 
+// Rows in dpiaStore's shape: the questionnaire's answers under `answers`,
+// the measures as a list, and the twelve-month expiry the drawer sets.
 const DPIA = () => ([
     {
         id: 'dpia_4', organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_intake', agent_name: 'Polisintake',
-        purpose: 'Extract structured application fields from documents a broker submits.',
-        data_categories: 'Name, address, date of birth, policy history. No special categories.',
-        automated_decisions: false,
-        human_oversight: 'A broker reviews and confirms every extracted field before the application is created.',
-        mitigations: 'Runs against the local model; PII redaction on; retention capped at 365 days.',
+        answers: {
+            purpose: 'Extract structured application fields from documents a broker submits.',
+            data_categories: 'Name, address, date of birth, policy history. No special categories.',
+            automated_decisions: false,
+            human_oversight: 'A broker reviews and confirms every extracted field before the application is created.',
+        },
+        mitigations: ['Runs against the local model', 'PII redaction on', 'Retention capped at 365 days'],
         risk_level: 'low', risk_reason: 'No decision is taken by the system and no special-category data is processed.',
-        status: 'approved', approved_at: iso(days(74)),
+        status: 'approved', approved_at: iso(days(74)), expires_at: iso(-days(291)),
     },
     {
         id: 'dpia_3', organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_helpdesk', agent_name: 'Klantenservice-assistent',
-        purpose: 'Answer policyholder questions from the published product documentation.',
-        data_categories: 'Question text, policy number where the caller supplies it.',
-        automated_decisions: false,
-        human_oversight: 'Answers are drafted for a service agent, who sends them.',
-        mitigations: 'Knowledge scoped to published documentation only; no claim files in retrieval.',
+        answers: {
+            purpose: 'Answer policyholder questions from the published product documentation.',
+            data_categories: 'Question text, policy number where the caller supplies it.',
+            automated_decisions: false,
+            human_oversight: 'Answers are drafted for a service agent, who sends them.',
+        },
+        mitigations: ['Knowledge scoped to published documentation only', 'No claim files in retrieval'],
         risk_level: 'low', risk_reason: 'Retrieval is limited to material that is already public.',
-        status: 'approved', approved_at: iso(days(66)),
+        status: 'approved', approved_at: iso(days(66)), expires_at: iso(-days(299)),
     },
     {
         id: 'dpia_2', organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_kifid', agent_name: 'Klachtdossier',
-        purpose: 'Assemble a complaint file from correspondence already on record.',
-        data_categories: 'Correspondence, claim history, health information where the complaint concerns a disability policy.',
-        automated_decisions: false,
-        human_oversight: 'The file is assembled for a complaints officer, who writes the response.',
-        mitigations: 'EU-hosted models only for this assistant; access limited to the complaints group.',
+        answers: {
+            purpose: 'Assemble a complaint file from correspondence already on record.',
+            data_categories: 'Correspondence, claim history, health information where the complaint concerns a disability policy.',
+            automated_decisions: false,
+            human_oversight: 'The file is assembled for a complaints officer, who writes the response.',
+        },
+        mitigations: ['EU-hosted models only for this assistant', 'Access limited to the complaints group'],
         risk_level: 'medium', risk_reason: 'Special-category data can appear in disability complaints, so the residency restriction is doing real work here.',
-        status: 'approved', approved_at: iso(days(38)),
+        status: 'approved', approved_at: iso(days(38)), expires_at: iso(-days(327)),
     },
 ]);
 
@@ -973,7 +981,8 @@ const RISKS = () => {
         stats: {
             total: risks.length,
             open,
-            high: risks.filter(r => r.score >= 9 && r.status !== 'closed').length,
+            // riskStore.getStats' rule: HIGH_SCORE is 10, closed risks drop out.
+            high: risks.filter(r => r.score >= 10 && r.status !== 'closed').length,
             overdue_reviews: risks.filter(r => r.status !== 'closed' && new Date(r.review_due_at).getTime() < now()).length,
         },
     };
@@ -1043,10 +1052,11 @@ const TRAINING = () => {
             attested_at: attested,
             attested_note: attested ? 'Read and understood the security policy set.' : null,
         })),
+        // Kinds from the server's OBLIGATION_KINDS (routes/compliance/isoProcess.js).
         obligations: [
             { id: 'obl_3', title: 'Annual security awareness refresher', kind: 'training', subject: 'All personnel', owner_user_id: 'u_joost', due_at: iso(days(26)), recur_months: 12, completed_at: null },
-            { id: 'obl_2', title: 'Phishing simulation', kind: 'exercise', subject: 'All personnel', owner_user_id: 'u_farah', due_at: iso(days(4)), recur_months: 6, completed_at: null },
-            { id: 'obl_1', title: 'Incident response tabletop', kind: 'exercise', subject: 'Security team', owner_user_id: 'u_farah', due_at: inDays(33), recur_months: 12, completed_at: iso(days(2)) },
+            { id: 'obl_2', title: 'Phishing simulation', kind: 'training', subject: 'All personnel', owner_user_id: 'u_farah', due_at: iso(days(4)), recur_months: 6, completed_at: null },
+            { id: 'obl_1', title: 'Incident response tabletop', kind: 'training', subject: 'Security team', owner_user_id: 'u_farah', due_at: inDays(33), recur_months: 12, completed_at: iso(days(2)) },
         ],
     };
 };
@@ -2383,14 +2393,25 @@ export const ROUTES = {
     'GET /api/compliance/iso/readiness': () => ISO_READINESS(),
 
     'GET /api/compliance/iso/docs': ({ state }) => state.docs,
+    // Mirrors ismsDocStore.getDoc: the working draft plus the frozen current
+    // version (`published`), which the policy drawer compares before it
+    // offers Publish. PUT keeps the text as the draft; publishing freezes it.
     'GET /api/compliance/iso/docs/:slug': ({ state, params }) => {
         const d = state.docs.documents.find(x => x.slug === params.slug);
-        return d ? { ...d, body: DOC_BODY(d), draft_body: d.status === 'draft' ? DOC_BODY(d) : null } : null;
+        if (!d) return null;
+        const frozen = d.published_body ?? DOC_BODY(d);
+        const published = d.status === 'published' && d.current_version
+            ? { version: d.current_version, title: d.published_title ?? d.title, body: frozen }
+            : null;
+        return { ...d, draft_body: d.draft_body ?? frozen, published };
     },
     'PUT /api/compliance/iso/docs/:slug': ({ state, params, body }) => {
+        const { body: text, ...meta } = body || {};
         state.docs = {
             ...state.docs,
-            documents: state.docs.documents.map(d => (d.slug === params.slug ? { ...d, ...(body || {}), edited: true } : d)),
+            documents: state.docs.documents.map(d => (d.slug === params.slug
+                ? { ...d, ...meta, ...(typeof text === 'string' ? { draft_body: text } : {}), edited: true }
+                : d)),
         };
         return state.docs.documents.find(d => d.slug === params.slug);
     },
@@ -2398,7 +2419,10 @@ export const ROUTES = {
         state.docs = {
             ...state.docs,
             documents: state.docs.documents.map(d => (d.slug === params.slug
-                ? { ...d, status: 'published', current_version: (d.current_version || 0) + 1 }
+                ? {
+                    ...d, status: 'published', current_version: (d.current_version || 0) + 1,
+                    published_title: d.title, published_body: d.draft_body ?? d.published_body ?? DOC_BODY(d),
+                }
                 : d)),
         };
         return state.docs.documents.find(d => d.slug === params.slug);
@@ -2436,7 +2460,10 @@ export const ROUTES = {
             ...state.risks,
             risks: state.risks.risks.map(r => {
                 if (r.id !== params.id) return r;
-                const next = { ...r, ...(body || {}) };
+                // As riskStore.update: every write bumps updated_at, and the first
+                // move to 'accepted' stamps who (the demo's admin) and when.
+                const next = { ...r, ...(body || {}), updated_at: new Date(now()).toISOString() };
+                if (next.status === 'accepted' && !r.accepted_at) Object.assign(next, { accepted_at: next.updated_at, accepted_by: 'u_marieke' });
                 next.score = (next.likelihood || 0) * (next.impact || 0);
                 return next;
             }),

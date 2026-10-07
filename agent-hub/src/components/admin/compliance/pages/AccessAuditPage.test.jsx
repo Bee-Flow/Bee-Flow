@@ -1,7 +1,9 @@
+import { render, screen, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import AccessAuditPage, { metaFor, subjectOf, detailOf } from './AccessAuditPage';
+import { metaFor, subjectOf, detailOf, actionLabel, humanizeAction } from './accessAuditLabels';
+import AccessAuditPage from './AccessAuditPage';
 
 // t(key, fallback, params) — the real signature. Returning the rendered
 // FALLBACK rather than the key is deliberate here: the redaction tests below
@@ -46,6 +48,21 @@ const PUBLIC_URL = {
     new_values: { appName: 'Expense claims', tokenPrefix: 'pub_9f…', reachableWithoutAccount: true },
 };
 
+const DSR_VIEWED = {
+    id: '3',
+    action: 'dsr.subject_viewed',
+    target_type: 'dsr_request',
+    target_id: 'dsr_2417',
+    changed_by: 'u_marieke',
+    created_at: '2026-10-06T21:16:45Z',
+    new_values: { reason: 'handling the request' },
+};
+
+const USERS = [
+    { id: 'u_marieke', displayName: 'Marieke de Wit', email: 'm.dewit@example.test' },
+    { id: 'usr_owner', displayName: 'Joost Mulder', email: 'j.mulder@example.test' },
+];
+
 function props({ entries, extra = {}, hook = {}, ...rest } = {}) {
     return {
         section: { id: 'access_audit' }, tab: null, onTab: vi.fn(), navigate: vi.fn(), focusId: null,
@@ -62,6 +79,7 @@ function props({ entries, extra = {}, hook = {}, ...rest } = {}) {
                 exportUrl: '/api/compliance/access-audit/export?',
                 ...hook,
             },
+            orgUsers: USERS,
         },
         ...rest,
     };
@@ -85,25 +103,52 @@ describe('AccessAuditPage', () => {
         expect(document.body.textContent).not.toContain('app_1');
     });
 
-    it('filtering goes to the server, not to the rendered page', () => {
+    it('filtering goes to the server, not to the rendered page', async () => {
+        const user = userEvent.setup();
         const setFilter = vi.fn();
         render(<AccessAuditPage {...props({ entries: [FAILED_UNKNOWN, PUBLIC_URL], hook: { setFilter } })} />);
-        fireEvent.click(screen.getByTestId('access-audit-pill-login_failed'));
+        await user.click(screen.getByTestId('access-audit-pill-login_failed'));
         expect(setFilter).toHaveBeenCalledWith({ action: 'login_failed' });
         // And nothing was filtered locally in the meantime.
         expect(screen.getByText('Public URL created')).toBeTruthy();
     });
 
-    it('the date and account filters also go to the server', () => {
+    it('the date and account filters also go to the server; the account is picked by name', async () => {
+        const user = userEvent.setup();
         const setFilter = vi.fn();
         render(<AccessAuditPage {...props({ entries: [FAILED_UNKNOWN], hook: { setFilter } })} />);
-        fireEvent.click(screen.getByTestId('access-audit-filters-toggle'));
-        fireEvent.change(screen.getByTestId('access-audit-since'), { target: { value: '2026-09-01' } });
+        await user.click(screen.getByTestId('access-audit-filters-toggle'));
+        await user.type(screen.getByTestId('access-audit-since'), '2026-09-01');
         expect(setFilter).toHaveBeenCalledWith({ since: '2026-09-01' });
-        fireEvent.change(screen.getByTestId('access-audit-actor'), { target: { value: 'usr_1' } });
-        expect(setFilter).toHaveBeenCalledWith({ actor: 'usr_1' });
-        fireEvent.click(screen.getByTestId('access-audit-clear'));
+        const actor = screen.getByTestId('access-audit-actor');
+        expect(within(actor).getByRole('option', { name: /Marieke de Wit/ })).toBeTruthy();
+        await user.selectOptions(actor, 'u_marieke');
+        expect(setFilter).toHaveBeenCalledWith({ actor: 'u_marieke' });
+        await user.click(screen.getByTestId('access-audit-clear'));
         expect(setFilter).toHaveBeenCalledWith({});
+    });
+
+    it('an account filter on a former member stays selected', async () => {
+        const user = userEvent.setup();
+        render(<AccessAuditPage {...props({ entries: [FAILED_UNKNOWN], hook: { filter: { actor: 'usr_gone' } } })} />);
+        await user.click(screen.getByTestId('access-audit-filters-toggle'));
+        expect(screen.getByTestId('access-audit-actor').value).toBe('usr_gone');
+    });
+
+    it('an actor the log names but the roster does not (a former member, the platform) can be filtered on', async () => {
+        const user = userEvent.setup();
+        const setFilter = vi.fn();
+        const gone = { ...DSR_VIEWED, id: '7', changed_by: 'usr_gone' };
+        const system = { ...PUBLIC_URL, id: '8', changed_by: 'system' };
+        render(<AccessAuditPage {...props({ entries: [gone, system, FAILED_UNKNOWN], hook: { setFilter } })} />);
+        await user.click(screen.getByTestId('access-audit-filters-toggle'));
+        const actor = screen.getByTestId('access-audit-actor');
+        expect(within(actor).getByRole('option', { name: 'usr_gone' })).toBeTruthy();
+        expect(within(actor).getByRole('option', { name: 'System' })).toBeTruthy();
+        // Nobody (a sign-in without an account) is not an account to pick.
+        expect(within(actor).queryByRole('option', { name: 'anonymous' })).toBeNull();
+        await user.selectOptions(actor, 'usr_gone');
+        expect(setFilter).toHaveBeenCalledWith({ actor: 'usr_gone' });
     });
 
     it('the filter list is what the log holds, with counts', () => {
@@ -153,10 +198,11 @@ describe('AccessAuditPage', () => {
         expect(screen.getByTestId('access-audit-export').getAttribute('href')).toBe('/api/compliance/access-audit/export?');
     });
 
-    it('paging asks the server for the next offset', () => {
+    it('paging asks the server for the next offset', async () => {
+        const user = userEvent.setup();
         const setOffset = vi.fn();
         render(<AccessAuditPage {...props({ entries: [FAILED_UNKNOWN], extra: { total: 250, limit: 100, offset: 0 }, hook: { setOffset } })} />);
-        fireEvent.click(screen.getByTestId('access-audit-pager-next'));
+        await user.click(screen.getByTestId('access-audit-pager-next'));
         expect(setOffset).toHaveBeenCalledWith(100);
     });
 
@@ -180,10 +226,75 @@ describe('AccessAuditPage', () => {
         expect(detailOf({}, t)).toBe('—');
     });
 
-    it('an unknown action still renders as itself', () => {
+    it('an unknown action reads as words, never as its raw key', () => {
         const meta = metaFor('something_new');
         expect(meta.key).toBeNull();
-        expect(meta.en).toBe('something_new');
+        expect(meta.en).toBe('Something new');
+        expect(humanizeAction('dsr.subject_reidentified')).toBe('Subject reidentified');
+        expect(humanizeAction('')).toBe('—');
         expect(subjectOf({ target_type: 'other', target_id: 'x1' }, (k, f) => f)).toBe('x1');
+    });
+
+    it('the data-subject request events have their own words', () => {
+        const t = (k, f) => f;
+        expect(actionLabel('dsr.subject_viewed', t)).toBe('Request opened');
+        expect(actionLabel('dsr.discovery_run', t)).toBe('Data search run');
+        expect(actionLabel('dsr.dossier_exported', t)).toBe('Dossier exported');
+    });
+
+    it('a request row reads "Request opened · Request #2417 · by Marieke de Wit", with no raw key or id', () => {
+        render(<AccessAuditPage {...props({ entries: [DSR_VIEWED] })} />);
+        const row = screen.getByTestId('access-audit-row-3');
+        expect(row.textContent).toContain('Request opened');
+        expect(row.textContent).toContain('Request #2417');
+        expect(screen.getByTestId('access-audit-actor-3').textContent).toBe('Marieke de Wit');
+        // The id stays reachable, in the tooltip.
+        expect(screen.getByTestId('access-audit-actor-3').getAttribute('title')).toBe('u_marieke');
+        // The folded-column line under the subject names the actor too.
+        expect(row.textContent).toContain('by Marieke de Wit');
+        expect(row.textContent).not.toMatch(/dsr\.|dsr_2417|u_marieke/);
+    });
+
+    it('the detail repeats under the subject while the Detail column is folded, and only then', () => {
+        render(<AccessAuditPage {...props({ entries: [FAILED_UNKNOWN, PUBLIC_URL] })} />);
+        const folded = screen.getByTestId('access-audit-folded-detail-1');
+        expect(folded.textContent).toBe('password · invalid_credentials · 203.0.113.9 · same-name tag d6e7f8');
+        expect(folded.className).toContain('@max-[1180px]/ctable:inline');
+        // A row without a detail adds no empty line.
+        expect(screen.queryByTestId('access-audit-folded-detail-2')).toBeNull();
+    });
+
+    it('"Request #2417" opens that request', async () => {
+        const user = userEvent.setup();
+        const navigate = vi.fn();
+        render(<AccessAuditPage {...props({ entries: [DSR_VIEWED], navigate })} />);
+        await user.click(screen.getByRole('button', { name: 'Request #2417' }));
+        expect(navigate).toHaveBeenCalledWith('dsr', 'dsr_2417');
+    });
+
+    it('an actor the roster does not know keeps the id; nobody and the platform read as such', () => {
+        render(<AccessAuditPage {...props({ entries: [
+            { ...PUBLIC_URL, id: '4', changed_by: 'usr_gone' },
+            { ...PUBLIC_URL, id: '5', changed_by: 'system' },
+            FAILED_UNKNOWN,
+        ] })} />);
+        expect(screen.getByTestId('access-audit-actor-4').textContent).toBe('usr_gone');
+        expect(screen.getByTestId('access-audit-actor-5').textContent).toBe('System');
+        expect(screen.getByTestId('access-audit-actor-1').textContent).toBe('—');
+    });
+
+    it('filter entries may be bare action strings: no crash, and words on the pills', () => {
+        render(<AccessAuditPage {...props({ entries: [DSR_VIEWED], hook: { actions: ['dsr.subject_viewed', 'login_succeeded', '', null, { action: 'dsr.discovery_run', count: 2 }] } })} />);
+        expect(screen.getByTestId('access-audit-pill-dsr.subject_viewed').textContent).toContain('Request opened');
+        expect(screen.getByTestId('access-audit-pill-login_succeeded').textContent).toContain('Signed in');
+        expect(screen.getByTestId('access-audit-pill-dsr.discovery_run').textContent).toContain('Data search run');
+        expect(document.body.textContent).not.toContain('dsr.');
+    });
+
+    it('a phone card names the actor', () => {
+        render(<AccessAuditPage {...props({ entries: [DSR_VIEWED], isMobile: true })} />);
+        const card = screen.getByTestId('access-audit-card-3');
+        expect(card.textContent).toContain('by Marieke de Wit');
+        expect(card.className).not.toMatch(/\bpx-|\bpy-/);
     });
 });

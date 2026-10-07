@@ -1,15 +1,17 @@
-import React from 'react';
 import { Bot, Workflow } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
 import DeadlineClock from '../../../../shared/DeadlineClock';
 import EmptyState from '../../../../shared/EmptyState';
-import StatusPill from '../../shared/StatusPill';
 import { useAiActAssessments } from '../../data/aggregates';
+import { useDateFormat } from '../../shared/formatDates';
+import StatusPill from '../../shared/StatusPill';
 
 /**
  * PerAutomationTab — the AI Act ladder outcome per automation / agent
- * (Frameworks page, tab `per_automation`). Rows are `GET /ai-act/assessments`:
+ * (AI Act page, tab `systems`; the old More frameworks › Per automation link
+ * lands there through sections.js legacyTabs). Rows are `GET /ai-act/assessments`:
  *   [{ target_kind, target_id, title, outcome, attested_by, attested_at, expires_at, current }]
  * The row action calls `onOpenLadder(kind, id)` — fe-8 owns the modal.
  * A failed read is its own state; an unshipped endpoint (404) reads as failed too.
@@ -36,6 +38,9 @@ const KIND_ICON = Object.freeze({ agent: Bot, automation: Workflow });
 
 export default function PerAutomationTab({ onOpenLadder, isMobile = false, testId = 'fw-per-automation' }) {
     const { t } = useTranslation();
+    const { formatDay: formatDayIn } = useDateFormat();
+    // A row without a readable date shows a dash, never "Invalid Date".
+    const formatDay = (value) => formatDayIn(value) || '—';
     const { assessments, failed } = useAiActAssessments({ enabled: true });
     const rows = Array.isArray(assessments) ? assessments : [];
     const loading = !failed && assessments === null;
@@ -43,14 +48,14 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
     const columns = [
         { id: 'target', width: '1fr', label: t('compliance.fw_pa_col_target', 'Automation / agent') },
         { id: 'outcome', width: '150px', label: t('compliance.fw_pa_col_outcome', 'Outcome') },
-        { id: 'attested', width: '120px', label: t('compliance.fw_pa_col_attested', 'Attested'), foldBelow: 1180 },
+        { id: 'attested', width: '120px', label: t('compliance.fw_pa_col_attested', 'Attested'), foldBelow: 900 },
         { id: 'expiry', width: '150px', label: t('compliance.fw_pa_col_expiry', 'Valid') },
         { id: 'action', width: '96px', label: '' },
     ];
 
     if (failed) {
         return (
-            <div className="p-3.5" data-testid={`${testId}-failed`}>
+            <div data-testid={`${testId}-failed`}>
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3.5 py-3 text-xs text-[var(--text-tertiary)]">
                     {t('compliance.fw_pa_read_failed', 'The AI Act assessments could not be read.')}
                 </div>
@@ -59,14 +64,15 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
     }
 
     return (
-        <div className="h-full min-h-0 overflow-y-auto p-3.5" data-testid={testId}>
+        // The framework page around it owns the frame (padding, scroll).
+        <div className="min-w-0" data-testid={testId}>
             <DataTable
                 columns={columns}
                 rows={rows}
                 loading={loading}
                 isMobile={isMobile}
                 rowKey={(r) => `${r.target_kind}:${r.target_id}`}
-                ariaLabel={t('compliance.tab_frameworks_per_automation', 'Per automation')}
+                ariaLabel={t('compliance.tab_aia_systems', 'Systems')}
                 testId={`${testId}-table`}
                 empty={(
                     <EmptyState
@@ -141,10 +147,4 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
             />
         </div>
     );
-}
-
-function formatDay(value) {
-    const ms = value ? new Date(value).getTime() : NaN;
-    if (Number.isNaN(ms)) return '—';
-    return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }

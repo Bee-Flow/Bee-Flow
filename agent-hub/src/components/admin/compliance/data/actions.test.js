@@ -58,7 +58,8 @@ describe('compliance actions — every emitted path is admin/compliance/<canonic
     it('resolveTarget → { section, id, tab }, with the legacy tab aliases applied', () => {
         expect(resolveTarget('admin/compliance/audits?tab=obligations')).toEqual({ section: 'training' });
         expect(resolveTarget('admin/compliance/iso_audit?tab=obligations')).toEqual({ section: 'training' });
-        expect(resolveTarget('admin/compliance/frameworks?tab=per_automation')).toEqual({ section: 'frameworks', tab: 'per_automation' });
+        expect(resolveTarget('admin/compliance/frameworks?tab=per_automation')).toEqual({ section: 'aia', tab: 'systems' });
+        expect(resolveTarget('admin/compliance/frameworks?tab=calendar')).toEqual({ section: 'overview', tab: 'calendar' });
         expect(resolveTarget('admin/compliance/dsr/req%2F1')).toEqual({ section: 'dsr', id: 'req/1' });
         expect(resolveTarget('admin/compliance/audits?tab=ncs')).toEqual({ section: 'audits', tab: 'ncs' });
         expect(resolveTarget('admin/compliance')).toEqual({ section: 'overview' });

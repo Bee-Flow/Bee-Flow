@@ -35,7 +35,7 @@ vi.mock('./pages/OverviewPage', async () => {
         default: ({ navigate, tab }) => (
             <div data-testid="overview-page" data-tab={tab}>
                 <DeadlinesCard items={items} navigate={navigate} />
-                <button type="button" onClick={() => navigate('frameworks', undefined, 'calendar')}>open-calendar</button>
+                <button type="button" onClick={() => navigate('aia', undefined, 'systems')}>open-systems</button>
             </div>
         ),
     };
@@ -48,8 +48,8 @@ vi.mock('./pages/FrameworksPage', () => ({
 vi.mock('./pages/FrameworkPage', async () => {
     const { frameworkOf } = await import('./sections');
     return {
-        default: ({ section, focusId }) => (
-            <div data-testid="checks-page" data-regulation={frameworkOf(section.id)} data-focus={focusId || ''} />
+        default: ({ section, focusId, tab }) => (
+            <div data-testid="checks-page" data-regulation={frameworkOf(section.id)} data-focus={focusId || ''} data-tab={tab} />
         ),
     };
 });
@@ -236,7 +236,8 @@ describe('ComplianceHub navigation — tabs, legacy tabs and the leave guard', (
         await user.click(rows[0].querySelector('button'));
         expect(onNavigate).toHaveBeenLastCalledWith('admin/compliance/training');
         await user.click(rows[1].querySelector('button'));
-        expect(onNavigate).toHaveBeenLastCalledWith('admin/compliance/frameworks?tab=per_automation');
+        // More frameworks › Per automation moved to AI Act › Systems (sections.js legacyTabs).
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/compliance/aia?tab=systems');
     });
 
     it('a legacy ?tab= redirects once, replacing the old URL', async () => {
@@ -250,7 +251,7 @@ describe('ComplianceHub navigation — tabs, legacy tabs and the leave guard', (
         } finally { window.history.replaceState({}, '', '/'); }
     });
 
-    it('a tab set by navigate survives the host pushing a new pathname (Overview › Calendar)', async () => {
+    it('a tab set by navigate survives the host pushing a new pathname (Overview → AI Act › Systems)', async () => {
         const user = userEvent.setup();
         // The Settings host, reduced: the URL owns the section, and a click
         // pushes the rewritten URL — the pathname changes, so the hub re-reads ?tab=.
@@ -266,9 +267,9 @@ describe('ComplianceHub navigation — tabs, legacy tabs and the leave guard', (
         window.history.replaceState({}, '', '/app/settings/organisation/compliance/overview');
         try {
             render(<Host />);
-            await user.click(await screen.findByText('open-calendar'));
-            await waitFor(() => expect(screen.getByTestId('frameworks-page').dataset.tab).toBe('calendar'));
-            expect(window.location.pathname + window.location.search).toBe('/app/settings/organisation/compliance/frameworks?tab=calendar');
+            await user.click(await screen.findByText('open-systems'));
+            await waitFor(() => expect(screen.getByTestId('checks-page').dataset.tab).toBe('systems'));
+            expect(window.location.pathname + window.location.search).toBe('/app/settings/organisation/compliance/aia?tab=systems');
             // Back: the Overview entry kept its own (absent) tab, not the next page's.
             await act(async () => { window.history.back(); await new Promise(r => setTimeout(r, 30)); });
             expect(window.location.search).toBe('');

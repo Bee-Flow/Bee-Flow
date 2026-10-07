@@ -1,15 +1,14 @@
+import { ArrowLeft, FileJson, FolderKanban, Pencil } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, FileJson, FolderKanban, Pencil, Plus } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import ScoreRing from '../shared/ScoreRing';
-import StatusPill from '../shared/StatusPill';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import { API, asArray, asObject, fetchJson, jsonInit, json } from '../data/api';
 import useResource from '../data/useResource';
+import ScoreRing from '../shared/ScoreRing';
+import StatusPill from '../shared/StatusPill';
+import AttestDrawer from './custom/AttestDrawer';
 import CustomChecksTable, { indexResults } from './custom/CustomChecksTable';
 import FrameworkEditorDrawer from './custom/FrameworkEditorDrawer';
 import QuestionnaireImport from './custom/QuestionnaireImport';
-import AttestDrawer from './custom/AttestDrawer';
 
 /**
  * CustomFrameworksPage — org-defined frameworks (CHECK-CATALOGUE §3): a
@@ -299,12 +298,10 @@ export default function CustomFrameworksPage(props) {
         <div className="relative h-full min-h-0 overflow-y-auto p-3.5 @[1100px]/cpage:px-7 @[1100px]/cpage:py-[18px] flex flex-col gap-3.5 text-xs" data-testid="custom-page">
             <div className="flex items-start gap-2.5">
                 <FolderKanban size={15} className="text-[var(--text-secondary)] shrink-0 mt-px" aria-hidden="true" />
+                {/* "New framework" is the header's primary action (setHeaderActions → onAddFramework). */}
                 <p className="text-[var(--text-secondary)] leading-4 max-w-[70ch]">
                     {t('compliance.custom_intro', 'A customer questionnaire, a sector code or an internal standard: attest the items yourself — with evidence, an expiry date and the same clocks as a built-in check. An item that a built-in check already answers can point at it instead.')}
                 </p>
-                <button type="button" className="ml-auto inline-flex items-center gap-1 px-[9px] py-1 rounded-lg text-[12px] font-semibold" style={PRIMARY_ACTION_STYLE} onClick={openNew} data-testid="custom-new">
-                    <Plus size={12} aria-hidden="true" />{t('compliance.custom_new', 'New framework')}
-                </button>
             </div>
 
             {listFailed ? (

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import TimelinePhases, { layoutPhases } from './TimelinePhases';
 
@@ -8,10 +8,10 @@ import TimelinePhases, { layoutPhases } from './TimelinePhases';
 const NOW = new Date(2026, 8, 14, 15, 30).getTime();
 
 const AIA_PHASES = [
-    { date: '2025-02-02', title: '2 Feb 2025', subtitle: 'Art. 4 · Art. 5', state: 'done' },
-    { date: '2026-08-02', title: '2 Aug 2026', subtitle: 'Art. 50 transparency', state: 'done' },
-    { date: '2026-12-02', title: '2 Dec 2026', subtitle: 'marking transition', state: 'upcoming', daysLeft: 79 },
-    { date: '2027-08-02', title: '2 Aug 2027', subtitle: 'Annex III', state: 'future' },
+    { date: '2025-02-02', title: 'Literacy · prohibitions', subtitle: 'Art. 4 · Art. 5', state: 'done' },
+    { date: '2026-08-02', title: 'Art. 50 transparency', subtitle: 'disclosure and marking for new systems', state: 'done' },
+    { date: '2026-12-02', title: 'Marking transition', subtitle: 'existing systems', state: 'upcoming', daysLeft: 79 },
+    { date: '2027-08-02', title: 'Annex III', subtitle: 'high risk', state: 'future' },
 ];
 
 describe('TimelinePhases.layoutPhases — label rows', () => {
@@ -39,7 +39,7 @@ describe('TimelinePhases.layoutPhases — label rows', () => {
     });
     it('grows the track by one label row per extra row', () => {
         render(<TimelinePhases phases={SIX} now={NOW} />);
-        const track = screen.getByTestId('timeline-phases');
+        const track = screen.getByTestId('timeline-phases-track');
         expect(Number(track.dataset.rows)).toBeGreaterThan(1);
         expect(track.className).not.toContain('h-[72px]');
         expect(track.className).toMatch(/h-\[(102|132)px\]/);
@@ -84,7 +84,7 @@ describe('TimelinePhases — the 72px track (artboard 1e)', () => {
 
     it('draws the base line, the progressed segment up to today and the today marker in the kind colour', () => {
         render(<TimelinePhases phases={AIA_PHASES} now={NOW} />);
-        const root = screen.getByTestId('timeline-phases');
+        const root = screen.getByTestId('timeline-phases-track');
         // 72px per artboard, plus one 30px label row for every extra row of labels.
         expect(root.className).toContain(['h-[72px]', 'h-[102px]', 'h-[132px]'][Number(root.dataset.rows) - 1]);
         expect(root.querySelector('.bg-\\[var\\(--bg-tertiary\\)\\].top-\\[9px\\]')).not.toBeNull();
@@ -119,31 +119,53 @@ describe('TimelinePhases — the 72px track (artboard 1e)', () => {
         expect(done.querySelector('svg')).not.toBeNull();
         expect(done.querySelector('svg').style.color).toBe('var(--bg-card)');
 
-        expect(missed.style.background).toBe('var(--error)');
+        expect(missed.className).toContain('bg-[var(--error)]');
         expect(missed.querySelector('svg')).not.toBeNull();
 
-        expect(upcoming.style.border).toBe('2px solid var(--warning)');
+        expect(upcoming.className).toContain('border-2 border-[var(--warning)]');
         expect(upcoming.className).toContain('bg-[var(--bg-card)]');
         expect(upcoming.querySelector('svg')).toBeNull();
 
-        expect(future.style.border).toBe('2px solid var(--border-default)');
+        expect(future.className).toContain('border-2 border-[var(--border-default)]');
         expect(future.querySelector('svg')).toBeNull();
 
         for (const m of [done, missed, upcoming, future]) expect(m.className).toContain('w-5 h-5 rounded-full');
     });
 
-    it('labels: bold date, subtitle in secondary text, daysLeft in warning ink', () => {
+});
+
+describe('TimelinePhases — labels: short title, date, countdown', () => {
+    it('labels: the short title (bold, capped at 16ch), the date and daysLeft in warning ink — never the subtitle', () => {
         render(<TimelinePhases phases={AIA_PHASES} now={NOW} />);
         const upcoming = screen.getAllByTestId('timeline-phases-phase')[2];
-        const label = upcoming.querySelector('span.text-\\[10px\\]');
+        const label = upcoming.querySelector('[data-testid="timeline-phases-label"]');
         expect(label.className).toContain('text-[var(--text-secondary)]');
-        expect(label.querySelector('b')).toHaveTextContent('2 Dec 2026');
-        expect(label).toHaveTextContent('marking transition');
-        const days = [...label.querySelectorAll('span')].find(s => s.style.color === 'var(--warning-ink)');
-        expect(days).toHaveTextContent('79 d');
+        const title = label.querySelector('b');
+        expect(title).toHaveTextContent('Marking transition');
+        expect(title.className).toContain('max-w-[16ch]');
+        expect(title.className).toContain('truncate');
+        expect(label).toHaveTextContent('2 Dec 2026');
+        expect(screen.getAllByTestId('timeline-phases-days')).toHaveLength(1);
+        expect(screen.getByTestId('timeline-phases-days')).toHaveTextContent('79 d');
+        expect(screen.getByTestId('timeline-phases-days').className).toContain('text-[var(--warning-ink)]');
+        // The subtitle is not in the visible label (it ran over its neighbours there) …
+        const visible = label.cloneNode(true);
+        visible.querySelectorAll('.sr-only').forEach(el => el.remove());
+        expect(visible.textContent).not.toContain('existing systems');
+        expect(label.textContent.includes('\n')).toBe(false);
+        // … but in the tooltip and the screen-reader text, with the full title.
+        expect(label.getAttribute('title')).toBe('Marking transition — existing systems');
+        expect(label.querySelector('.sr-only')).toHaveTextContent('Marking transition — existing systems');
+        expect(title.getAttribute('aria-hidden')).toBe('true');
         // a phase without daysLeft prints no countdown
         const done = screen.getAllByTestId('timeline-phases-phase')[0];
-        expect([...done.querySelectorAll('span')].some(s => s.style.color === 'var(--warning-ink)')).toBe(false);
+        expect(done.querySelector('[data-testid="timeline-phases-days"]')).toBeNull();
+        expect(done.querySelector('[data-testid="timeline-phases-label"]').getAttribute('title')).toBe('Literacy · prohibitions — Art. 4 · Art. 5');
+    });
+
+    it('a phase without a subtitle has the title alone as its tooltip', () => {
+        render(<TimelinePhases phases={[{ date: '2026-08-02', title: 'Art. 50', state: 'done' }]} now={NOW} />);
+        expect(screen.getByTestId('timeline-phases-label').getAttribute('title')).toBe('Art. 50');
     });
 
     it('the first label anchors left, the last right, the rest are centred with translateX(-50%)', () => {
@@ -168,5 +190,36 @@ describe('TimelinePhases — the 72px track (artboard 1e)', () => {
         const only = screen.getByTestId('timeline-phases-phase');
         expect(only.style.left).toBe('0px');
         expect(only.style.right).toBe('');
+    });
+});
+
+describe('TimelinePhases — the vertical stepper below 640px', () => {
+    it('is its own @container: the track hides and the stepper shows under the container breakpoint', () => {
+        render(<TimelinePhases phases={AIA_PHASES} now={NOW} />);
+        expect(screen.getByTestId('timeline-phases').className).toContain('@container');
+        expect(screen.getByTestId('timeline-phases-track').className).toContain('@max-[640px]:hidden');
+        const stepper = screen.getByTestId('timeline-phases-stepper');
+        expect(stepper.tagName).toBe('OL');
+        expect(stepper.className).toContain('hidden');
+        expect(stepper.className).toContain('@max-[640px]:flex');
+    });
+
+    it('one step per phase in date order, the whole title, the date and the countdown, with "today" between past and future', () => {
+        render(<TimelinePhases phases={AIA_PHASES} now={NOW} />);
+        const stepper = screen.getByTestId('timeline-phases-stepper');
+        const steps = within(stepper).getAllByTestId('timeline-phases-step');
+        expect(steps.map(s => s.dataset.state)).toEqual(['done', 'done', 'upcoming', 'future']);
+        expect(steps[2]).toHaveTextContent('Marking transition');
+        expect(steps[2]).toHaveTextContent('2 Dec 2026 · 79 d');
+        expect(steps[2].querySelector('.max-w-\\[16ch\\]')).toBeNull();
+        const rows = [...stepper.children].map(li => li.dataset.testid);
+        expect(rows).toEqual(['timeline-phases-step', 'timeline-phases-step', 'timeline-phases-step-today', 'timeline-phases-step', 'timeline-phases-step']);
+        expect(within(stepper).getByTestId('timeline-phases-step-today')).toHaveTextContent('today');
+    });
+
+    it('today after every phase puts the divider last', () => {
+        render(<TimelinePhases phases={AIA_PHASES.slice(0, 2)} now={NOW} />);
+        const stepper = screen.getByTestId('timeline-phases-stepper');
+        expect(stepper.lastElementChild.dataset.testid).toBe('timeline-phases-step-today');
     });
 });

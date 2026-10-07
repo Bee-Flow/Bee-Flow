@@ -1,7 +1,7 @@
-import React from 'react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FrameworkPage from './FrameworkPage';
 import { sectionById } from '../sections';
@@ -186,6 +186,40 @@ describe('FrameworkPage — timeline and evidence tabs', () => {
         expect(screen.getByTestId('timeline-tab-failed')).toBeInTheDocument();
     });
 
+    it('timeline (AI Act): the passed Art. 50 phase is "missed" while a disclosure check fails, done once it passes', () => {
+        const calendar = {
+            milestones: [
+                { id: 'aia_art4_art5', date: '2025-02-02', framework_id: 'aia', kind: 'phase', label: 'Literacy · prohibitions' },
+                { id: 'aia_art50_enforcement', date: '2026-08-02', framework_id: 'aia', kind: 'phase', label: 'Art. 50 transparency' },
+                { id: 'aia_annex_iii', date: '2027-12-02', framework_id: 'aia', kind: 'phase', label: 'Annex III' },
+            ],
+        };
+        // CHECKS carries a failing AIA Art. 50 check.
+        const { unmount } = renderPage({ section: sectionById('aia'), tab: 'timeline', data: { core: core(), calendar } });
+        expect(screen.getAllByTestId('timeline-tab-phases-phase').map((p) => p.dataset.state)).toEqual(['done', 'missed', 'future']);
+        unmount();
+        const passing = CHECKS.map((c) => (c.regulation === 'AIA' ? { ...c, status: 'pass' } : c));
+        renderPage({ section: sectionById('aia'), tab: 'timeline', data: { core: core({ checks: passing }), calendar } });
+        expect(screen.getAllByTestId('timeline-tab-phases-phase').map((p) => p.dataset.state)).toEqual(['done', 'done', 'future']);
+    });
+
+    it('timeline: the track takes the catalogue\'s short phase label; the calendar list keeps the full one', () => {
+        const calendar = {
+            milestones: [
+                { id: 'aia_gpai', date: '2025-08-02', framework_id: 'aia', kind: 'phase', label: 'AI Act GPAI rules', detail: 'obligations for providers of general-purpose AI models' },
+                { id: 'aia_gpai_legacy_models', date: '2027-08-02', framework_id: 'aia', kind: 'transition_end', label: 'AI Act GPAI: models placed on the market before Aug 2025' },
+            ],
+        };
+        const frameworks = { active: [{ id: 'aia', phases: [{ date: '2025-08-02', label: 'GPAI rules' }] }] };
+        renderPage({ section: sectionById('aia'), tab: 'timeline', data: { core: core(), calendar, frameworks } });
+        const labels = screen.getAllByTestId('timeline-tab-phases-label');
+        expect(labels[0].querySelector('b').textContent).toBe('GPAI rules');
+        expect(labels[0].getAttribute('title')).toBe('GPAI rules — obligations for providers of general-purpose AI models');
+        // no catalogue phase on that date: the milestone's own label
+        expect(labels[1].querySelector('b').textContent).toBe('AI Act GPAI: models placed on the market before Aug 2025');
+        expect(screen.getByTestId('timeline-tab-calendar')).toHaveTextContent('AI Act GPAI rules');
+    });
+
     it('evidence: fetches GET /evidence?regulation=&limit=&offset= through authFetch, renders rows + pager, pages on Next', async () => {
         authFetch.mockImplementation((url) => {
             const u = new URL(url, 'http://x');
@@ -239,6 +273,62 @@ describe('FrameworkPage — timeline and evidence tabs', () => {
         await waitFor(() => expect(screen.getByTestId('evidence-tab-row-1')).toBeInTheDocument());
         expect(screen.queryByTestId('evidence-tab-pager-range')).toBeNull();
         expect(screen.queryByRole('link')).toBeNull();
+    });
+});
+
+describe('FrameworkPage — the AI Act systems tab (per-agent classification)', () => {
+    const ROWS = [
+        { target_kind: 'automation', target_id: 'a1', title: 'Intake bot', outcome: 'transparency', attested_at: '2026-06-01T00:00:00Z', expires_at: '2027-06-01T00:00:00Z', current: true },
+        { target_kind: 'agent', target_id: 'g1', title: null, outcome: 'not_applicable', attested_at: '2025-01-01T00:00:00Z', expires_at: '2026-01-01T00:00:00Z', current: false },
+    ];
+
+    it('the AI Act has a systems tab; other frameworks do not', () => {
+        expect(sectionById('aia').tabs).toContain('systems');
+        expect(sectionById('gdpr').tabs).not.toContain('systems');
+        renderPage({ section: sectionById('gdpr'), tab: 'systems' });
+        // a tab the section does not have falls back to its checks
+        expect(screen.getByTestId('framework-page').dataset.tab).toBe('checks');
+    });
+
+    it('lists GET /ai-act/assessments with the Attested column, and the row action calls onOpenLadder(kind, id, title)', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const user = userEvent.setup();
+        authFetch.mockImplementation(() => ok(ROWS));
+        const onOpenLadder = vi.fn();
+        renderPage({ section: sectionById('aia'), tab: 'systems', onOpenLadder });
+        expect(screen.getByTestId('framework-page').dataset.tab).toBe('systems');
+        await waitFor(() => expect(screen.getAllByTestId('fw-per-automation-row')).toHaveLength(2));
+        expect(authFetch.mock.calls[0][0]).toMatch(/\/ai-act\/assessments$/);
+        expect(screen.getByRole('columnheader', { name: 'Attested' })).toBeInTheDocument();
+        const pills = screen.getAllByTestId('fw-per-automation-outcome');
+        expect(pills[0].textContent).toBe('Art. 4 + Art. 50');
+        expect(pills[0].dataset.tone).toBe('warning');
+        const buttons = screen.getAllByTestId('fw-per-automation-open');
+        expect(buttons[1].textContent).toBe('Reassess');
+        await user.click(buttons[0]);
+        expect(onOpenLadder).toHaveBeenCalledWith('automation', 'a1', 'Intake bot');
+    });
+
+    it('on a phone: the card list, same outcome pill and a 44px ladder action', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const user = userEvent.setup();
+        authFetch.mockImplementation(() => ok([ROWS[0]]));
+        const onOpenLadder = vi.fn();
+        renderPage({ section: sectionById('aia'), tab: 'systems', onOpenLadder, isMobile: true });
+        await waitFor(() => expect(screen.getAllByTestId('fw-per-automation-card')).toHaveLength(1));
+        expect(screen.getByTestId('fw-per-automation-table').dataset.view).toBe('cards');
+        expect(screen.queryAllByTestId('fw-per-automation-row')).toHaveLength(0);
+        expect(screen.getByTestId('fw-per-automation-card').textContent).toMatch(/Intake bot/);
+        const open = screen.getByTestId('fw-per-automation-open');
+        expect(open.className).toMatch(/min-h-\[44px\]/);
+        await user.click(open);
+        expect(onOpenLadder).toHaveBeenCalledWith('automation', 'a1', 'Intake bot');
+    });
+
+    it('a 404 (endpoint not shipped) is a failed state, not an empty table', async () => {
+        authFetch.mockImplementation(() => Promise.resolve({ ok: false, status: 404, statusText: 'Not Found', json: () => Promise.resolve({}) }));
+        renderPage({ section: sectionById('aia'), tab: 'systems' });
+        await waitFor(() => expect(screen.getByTestId('fw-per-automation-failed')).toBeInTheDocument());
     });
 });
 

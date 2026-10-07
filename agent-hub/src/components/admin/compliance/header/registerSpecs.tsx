@@ -13,7 +13,7 @@
  * page may set, besides the data objects the hub passes itself:
  *   onCaptureRequest, onRecordIncident, onRecordVulnerability, onAddRisk,
  *   onSeedRisks             the register's create actions
- *   onMarkRopaReviewed, onRegenerateRopa, ropaBusy   ROPA (wired in P08)
+ *   onMarkRopaReviewed, onRegenerateRopa, ropaBusy   ROPA (RopaPage)
  *   portabilityCoverage, onRefreshPortability        Data portability
  *   onAddFramework, onRefreshMachinery               own frameworks, machinery
  *   primaryAction           { label, icon, onClick, disabled? }: a generic

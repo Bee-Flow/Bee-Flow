@@ -3,7 +3,6 @@ import { ArrowLeftRight, Check, TriangleAlert, X } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import { TONES } from '../../../shared/statusTone';
-import StatusPill from '../shared/StatusPill';
 import { API, asArray } from '../data/api';
 import useResource from '../data/useResource';
 
@@ -96,24 +95,15 @@ export default function PortabilityPage(props) {
 
     return (
         <div className="h-full min-h-0 overflow-y-auto p-3.5 @[1100px]/cpage:px-7 @[1100px]/cpage:py-[18px] flex flex-col gap-3.5 text-xs" data-testid="portability-page">
+            {/* The coverage is said twice already: the header pill and the
+                table's footer sentence. The intro only explains the matrix. */}
             <section
-                className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex items-start gap-2.5"
-                style={{ boxShadow: 'var(--shadow-sm)' }}
+                className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex items-start gap-2.5 shadow-[var(--shadow-sm)]"
                 data-testid="pf-intro"
             >
                 <ArrowLeftRight size={15} className="text-[var(--text-secondary)] shrink-0 mt-px" aria-hidden="true" />
                 <div className="min-w-0 flex flex-col gap-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold">{t('compliance.pf_title', 'Data Act export matrix')}</span>
-                        {summary && (
-                            <StatusPill
-                                tone={summary.portable === summary.total ? 'success' : 'warning'}
-                                testId="pf-coverage"
-                            >
-                                {t('compliance.pf_coverage', '{portable} of {total} kinds portable', summary)}
-                            </StatusPill>
-                        )}
-                    </div>
+                    <span className="font-semibold">{t('compliance.pf_title', 'Data Act export matrix')}</span>
                     <p className="text-[var(--text-secondary)] leading-4">
                         {t('compliance.pf_intro', 'Art. 30 asks that a customer can take their data along when they switch: every kind this platform holds, in a structured, commonly used, machine-readable format. A kind without a working export route is a gap in the exit procedure — it is listed here, not hidden.')}
                     </p>

@@ -58,10 +58,10 @@ describe('MobileHomeOverview — every deadline row opens its target', () => {
         expect(navigate).toHaveBeenCalledWith('training', undefined, undefined);
     });
 
-    it('keeps the tab of a target that carries one', async () => {
+    it('keeps the tab of a target that carries one (a moved tab goes where it went)', async () => {
         const { navigate, user } = mount();
         await user.click(screen.getByTestId('mobile-deadline-attestation_expiry:agent:a1'));
-        expect(navigate).toHaveBeenCalledWith('frameworks', undefined, 'per_automation');
+        expect(navigate).toHaveBeenCalledWith('aia', undefined, 'systems');
     });
 
     it('still follows a client-fallback object target', async () => {
@@ -74,7 +74,7 @@ describe('MobileHomeOverview — every deadline row opens its target', () => {
 describe('attentionTarget', () => {
     it('keeps the tab and applies the legacy alias', () => {
         expect(attentionTarget({ action: { target: '/app/admin/compliance/frameworks?tab=per_automation' } }))
-            .toEqual({ section: 'frameworks', id: null, tab: 'per_automation' });
+            .toEqual({ section: 'aia', id: null, tab: 'systems' });
         expect(attentionTarget({ action: { target: '/app/admin/compliance/audits?tab=obligations' } }))
             .toEqual({ section: 'training', id: null });
         expect(attentionTarget({ action: { target: '/app/settings/organisation/compliance/dpia/ag%2F9' } }))

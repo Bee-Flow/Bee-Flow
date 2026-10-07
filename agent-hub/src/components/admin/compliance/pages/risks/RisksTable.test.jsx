@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import RisksTable, {
     RISK_COLUMNS, severityOfScore, scoreOf, toneOfRiskStatus, isReviewOverdue, ownerName, riskRef,
@@ -101,13 +102,21 @@ describe('RisksTable — pure helpers', () => {
 });
 
 describe('RisksTable — the register rows', () => {
-    it('lays the columns out 58px 1fr 110px 110px 92px with the artboard headings', () => {
+    it('lays the columns out 64px 1fr 110px 150px 120px; the status column is called "Status", as its filter', () => {
         renderTable({ testId: 'risk-table' });
         const header = screen.getByTestId('risk-table-header');
-        expect(header.style.getPropertyValue('--ct-cols')).toBe('58px 1fr 110px 110px 92px');
-        expect(RISK_COLUMNS.map(c => c.width)).toEqual(['58px', '1fr', '110px', '110px', '92px']);
+        expect(header.style.getPropertyValue('--ct-cols')).toBe('64px 1fr 110px 150px 120px');
+        // Below 900px of card width the Owner column folds and gives its track back.
+        expect(header.style.getPropertyValue('--ct-cols-900')).toBe('64px 1fr 110px 150px');
+        expect(RISK_COLUMNS.map(c => c.width)).toEqual(['64px', '1fr', '110px', '150px', '120px']);
         expect(within(header).getAllByRole('columnheader').map(c => c.textContent))
-            .toEqual(['Risk', 'Title · scenario', 'Score', 'Treatment', 'Owner']);
+            .toEqual(['Risk', 'Title · scenario', 'Score', 'Status', 'Owner']);
+    });
+
+    it('keeps the reference on one line', () => {
+        renderTable();
+        const ref = screen.getByTestId('risk-table-row-1').querySelector('[role="cell"]');
+        expect(ref.className).toMatch(/\bwhitespace-nowrap\b/);
     });
 
     it('draws R-{id}, the title with its category · scenario line, and the owner (— when nobody owns it)', () => {
@@ -146,18 +155,44 @@ describe('RisksTable — the register rows', () => {
         expect(screen.getByTestId('risk-table-score-3').getAttribute('data-severity')).toBe('low');
     });
 
-    it('counts the treatments on the status pill and leaves a risk without any uncounted', () => {
+});
+
+describe('RisksTable — status, flags, selection and phone cards', () => {
+    it('draws the status in the register vocabulary with "· {n} actions" beside it, and nothing for no actions', () => {
         renderTable();
-        expect(screen.getByTestId('risk-table-row-2').textContent).toMatch(/Treating.*· 2/);
+        expect(screen.getByTestId('risk-table-status-2').dataset.state).toBe('treating');
+        expect(screen.getByTestId('risk-table-status-2').textContent).toBe('Treating');
+        expect(screen.getByTestId('risk-table-actions-2').textContent).toBe('· 2 actions');
         expect(screen.getByTestId('risk-table-row-1').textContent).toMatch(/Open/);
+        expect(screen.queryByTestId('risk-table-actions-1')).toBeNull();
         expect(screen.getByTestId('risk-table-row-1').textContent).not.toMatch(/· 0/);
+        cleanup();
+        renderTable({ treatmentsByRisk: new Map([[2, [{ id: 7, risk_id: 2, option: 'mitigate' }]]]) });
+        expect(screen.getByTestId('risk-table-actions-2').textContent).toBe('· 1 action');
     });
 
-    it('flags an overdue review on a live risk only', () => {
+    it('flags an overdue review on a live risk only, at the start of the second line, never beside the title', () => {
         renderTable();
-        expect(screen.getByTestId('risk-table-overdue-1')).toBeTruthy();
+        const flag = screen.getByTestId('risk-table-overdue-1');
+        const meta = screen.getByTestId('risk-table-meta-1');
+        expect(meta.contains(flag)).toBe(true);
+        expect(meta.firstElementChild).toBe(flag);
+        expect(meta.textContent).toMatch(/^\s*review overdue · /);
+        // The title line holds the title alone, so the flag cannot shrink it.
+        expect(meta.previousElementSibling.textContent).toBe('Provider outage');
         expect(screen.queryByTestId('risk-table-overdue-3')).toBeNull(); // closed
         expect(screen.queryByTestId('risk-table-overdue-2')).toBeNull(); // due in a month
+    });
+
+    it('puts a separator only between parts on screen: the folded owner carries its own', () => {
+        const bare = { id: 9, title: 'No scenario yet', likelihood: 3, impact: 3, status: 'open', owner_user_id: 'u1', review_due_at: iso(-DAY) };
+        renderTable({ rows: [bare] });
+        const meta = screen.getByTestId('risk-table-meta-9');
+        // With no category or scenario, nothing follows the owner, and the
+        // owner (shown only while its column is folded) brings its own dot.
+        expect(meta.textContent.trim()).toBe('review overdue · T. Smit');
+        const owner = within(meta).getByText((_, el) => el?.tagName === 'SPAN' && el.textContent === ' · T. Smit');
+        expect(owner.className).toContain('@max-[900px]/ctable:inline');
     });
 
     it('stripes the row in its STATUS tone, and the selected row in the area colour', () => {
@@ -169,10 +204,11 @@ describe('RisksTable — the register rows', () => {
         expect(selected.getAttribute('data-accent')).toBe('kind');
     });
 
-    it('hands the clicked row back to the page', () => {
+    it('hands the clicked row back to the page', async () => {
+        const user = userEvent.setup();
         const onSelect = vi.fn();
         renderTable({ onSelect });
-        fireEvent.click(screen.getByTestId('risk-table-row-2'));
+        await user.click(screen.getByTestId('risk-table-row-2'));
         expect(onSelect).toHaveBeenCalledWith(RISKS[1]);
     });
 
@@ -184,11 +220,16 @@ describe('RisksTable — the register rows', () => {
         expect(screen.getByText('No risks yet')).toBeTruthy();
     });
 
-    it('phones get the card list, not the grid', () => {
+    it('phones get the card list, not the grid: status, the overdue flag and the owner', () => {
         renderTable({ isMobile: true });
         expect(screen.getByTestId('risk-table').getAttribute('data-view')).toBe('cards');
         const card = screen.getByTestId('risk-table-card-1');
         expect(card.textContent).toMatch(/R-1/);
         expect(card.textContent).toMatch(/Provider outage/);
+        expect(card.textContent).toMatch(/Open/);
+        expect(screen.getByTestId('risk-table-card-overdue-1')).toBeTruthy();
+        expect(screen.getByTestId('risk-table-card-owner-1').textContent).toBe('T. Smit');
+        expect(screen.getByTestId('risk-table-card-owner-3').textContent).toBe('No owner');
+        expect(screen.getByTestId('risk-table-card-2').textContent).toMatch(/· 2 actions/);
     });
 });

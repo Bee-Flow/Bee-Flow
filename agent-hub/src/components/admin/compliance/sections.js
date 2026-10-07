@@ -54,13 +54,16 @@ export const SECTIONS = Object.freeze([
     }),
     // ── Kaders ──
     fw('gdpr', 'GDPR', Fingerprint, 'compliance.nav_gdpr', 'GDPR'),
-    fw('aia', 'AIA', Bot, 'compliance.nav_aia', 'AI Act'),
+    // The AI Act adds `systems`: the ladder outcome per agent / automation.
+    fw('aia', 'AIA', Bot, 'compliance.nav_aia', 'AI Act', { tabs: Object.freeze([...FRAMEWORK_TABS, 'systems']) }),
     // iso_overview's readiness numbers move into the ISO header pill and its five
     // downloads into Overview › Reports, so both old ids land on the one ISO page.
     fw('iso', 'ISO27001', ShieldCheck, 'compliance.fw_iso', 'ISO 27001', { aliases: Object.freeze(['iso_overview', 'iso_controls']) }),
     Object.freeze({
         id: 'frameworks', group: 'frameworks', icon: Layers, labelKey: 'compliance.rail_frameworks', labelFallback: 'More frameworks',
-        regulation: null, tabs: Object.freeze(['all', 'calendar', 'per_automation']), aliases: Object.freeze(['kaders']), legacyTabs: NO_LEGACY_TABS,
+        // One view: the calendar is its right column; the per-agent AI Act table lives on the AI Act page.
+        regulation: null, tabs: Object.freeze([]), aliases: Object.freeze(['kaders']),
+        legacyTabs: legacy({ calendar: { section: 'overview', tab: 'calendar' }, per_automation: { section: 'aia', tab: 'systems' } }),
     }),
     // The growing set — a row appears in the rail only once the org has enabled it.
     fw('nis2', 'NIS2', Network, 'compliance.rail_nis2', 'NIS2', { optional: true }),
@@ -81,7 +84,8 @@ export const SECTIONS = Object.freeze([
     reg('ropa', BookOpen, 'compliance.rail_ropa', 'Processing register (ROPA)'),
     reg('dpia', ClipboardCheck, 'compliance.rail_dpia', 'DPIAs'),
     reg('risks', TriangleAlert, 'compliance.rail_risks', 'Risk register', { aliases: Object.freeze(['iso_risks']) }),
-    reg('soa', ListChecks, 'compliance.rail_soa', 'SoA (Annex A)', { tabs: Object.freeze(['controls', 'history', 'export']), aliases: Object.freeze(['iso_soa']) }),
+    // The Export tab's two downloads live in the header's Export menu.
+    reg('soa', ListChecks, 'compliance.rail_soa', 'SoA (Annex A)', { tabs: Object.freeze(['controls', 'history']), aliases: Object.freeze(['iso_soa']), legacyTabs: legacy({ export: { section: 'soa', tab: 'controls' } }) }),
     reg('policies', ScrollText, 'compliance.rail_policies', 'Policies', { aliases: Object.freeze(['iso_policies']) }),
     reg('audits', SearchCheck, 'compliance.rail_audits', 'Audits & reviews', {
         tabs: Object.freeze(['audits', 'reviews', 'ncs', 'objectives']), aliases: Object.freeze(['iso_audit']),

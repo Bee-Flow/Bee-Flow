@@ -1,13 +1,19 @@
-import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import FrameworkCandidateCard, { OwnFrameworkCard, statusChipOf, enableIsPrimary } from './FrameworkCandidateCard';
+import FrameworkCandidateCard, { OwnFrameworkCard, statusChipOf, enableIsPrimary, countLabel, recommendedReason } from './FrameworkCandidateCard';
 import { frameworkIcon, FRAMEWORK_ICONS } from './frameworkIcons';
 
 vi.mock('../../../../../hooks/useTranslation', () => {
+    // Descriptions are translated with an empty fallback, so the two the tests read live here.
+    const DICT = {
+        'compliance.test_long_desc': `Report actively exploited vulnerabilities and severe incidents through ENISA's single reporting platform: early warning within 24 h, notification within 72 h, a final report 14 days after a fix, and the CE marking in full.`,
+        'compliance.test_short_desc': 'Duty of care and incident reporting.',
+    };
     const useTranslation = () => ({
         t: (key, fallback, params) => {
-            let out = typeof fallback === 'string' ? fallback : key;
+            let out = DICT[key] ?? (typeof fallback === 'string' ? fallback : key);
             for (const [k, v] of Object.entries(params || {})) out = out.split(`{${k}}`).join(String(v));
             return out;
         },
@@ -101,10 +107,82 @@ describe('FrameworkCandidateCard — enable / disable', () => {
 
     it('the meta line names checks, registers and calendar dates, and omits the zeroes', () => {
         const { unmount } = render(<FrameworkCandidateCard framework={base()} now={NOW} />);
-        expect(screen.getByTestId('fw-meta').textContent).toBe('3 checks · 1 registers · 2 calendar dates');
+        expect(screen.getByTestId('fw-meta').textContent).toBe('3 checks · 1 register · 2 calendar dates');
         unmount();
         render(<FrameworkCandidateCard framework={base({ registers: [], calendar_count: 0 })} now={NOW} />);
         expect(screen.getByTestId('fw-meta').textContent).toBe('3 checks');
+    });
+
+    it('a count of one is singular everywhere: meta, the enabled line and the affects counts', () => {
+        const { unmount } = render(<FrameworkCandidateCard framework={base({ checks_count: 1, registers: ['incidents'], calendar_count: 1, affects: { webpages: 1, forms: 2 } })} now={NOW} />);
+        expect(screen.getByTestId('fw-meta').textContent).toBe('1 check · 1 register · 1 calendar date');
+        expect(screen.getByTestId('fw-affects-counts').textContent).toBe(' · 1 web page · 2 public forms');
+        unmount();
+        render(<FrameworkCandidateCard framework={base({ id: 'eaa', enabled: true, checks_count: 1 })} now={NOW} />);
+        expect(screen.getByTestId('fw-enabled-meta').textContent).toBe('Enabled · 1 check');
+    });
+
+    it('countLabel picks <key>_one only for exactly one', () => {
+        const t = vi.fn((key, fallback, params) => `${key}|${String(fallback).replace('{n}', params?.n)}`);
+        expect(countLabel(t, 'compliance.fw_meta_checks', 1, '{n} checks', '1 check')).toBe('compliance.fw_meta_checks_one|1 check');
+        expect(countLabel(t, 'compliance.fw_meta_checks', 0, '{n} checks', '1 check')).toBe('compliance.fw_meta_checks|0 checks');
+        expect(countLabel(t, 'compliance.fw_meta_checks', 2, '{n} checks')).toBe('compliance.fw_meta_checks|2 checks');
+        expect(countLabel(t, 'compliance.fw_meta_checks', 1, '{n} checks')).toBe('compliance.fw_meta_checks_one|1 checks');
+    });
+});
+
+describe('FrameworkCandidateCard — name, description and the Recommended chip', () => {
+    it('the name wraps instead of truncating, and the header lets the status chip move under it', () => {
+        render(<FrameworkCandidateCard framework={base({ id: 'nis2', name: 'NIS2 · Cybersecurity of network and information systems' })} now={NOW} />);
+        const name = screen.getByTestId('fw-name');
+        expect(name.textContent).toBe('NIS2 · Cybersecurity of network and information systems');
+        expect(name.className).not.toContain('truncate');
+        expect(name.parentElement.parentElement.className).toContain('flex-wrap');
+    });
+
+    it('a long description is clamped to three lines with a More / Less toggle', async () => {
+        const user = userEvent.setup();
+        render(<FrameworkCandidateCard framework={base({ description_key: 'compliance.test_long_desc' })} now={NOW} />);
+        const desc = screen.getByTestId('fw-desc');
+        expect(desc.className).toContain('line-clamp-3');
+        const toggle = screen.getByTestId('fw-desc-toggle');
+        expect(toggle.textContent).toBe('More');
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        await user.click(toggle);
+        expect(desc.className).not.toContain('line-clamp-3');
+        expect(toggle.textContent).toBe('Less');
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        await user.click(toggle);
+        expect(desc.className).toContain('line-clamp-3');
+        expect(toggle.textContent).toBe('More');
+    });
+
+    it('a short description has no toggle', () => {
+        render(<FrameworkCandidateCard framework={base({ description_key: 'compliance.test_short_desc' })} now={NOW} />);
+        expect(screen.getByTestId('fw-desc').textContent).toBe('Duty of care and incident reporting.');
+        expect(screen.queryByTestId('fw-desc-toggle')).toBeNull();
+    });
+
+    it('"Recommended" shows when Enable is the primary action, with the reason as its title', () => {
+        const { unmount } = render(<FrameworkCandidateCard framework={base({ recently_in_force: true })} now={NOW} />);
+        const chip = screen.getByTestId('fw-recommended');
+        expect(chip.textContent).toContain('Recommended');
+        expect(chip.getAttribute('title')).toBe('Recently entered into force');
+        expect(chip.querySelector('.sr-only').textContent).toBe(': Recently entered into force');
+        unmount();
+        const { unmount: u2 } = render(<FrameworkCandidateCard framework={base({ relevance: 'relevant' })} now={NOW} />);
+        expect(screen.getByTestId('fw-recommended').getAttribute('title')).toBe('You marked this framework as relevant');
+        u2();
+        // not for an ordinary candidate, an enabled framework or a locked one
+        const { unmount: u3 } = render(<FrameworkCandidateCard framework={base()} now={NOW} />);
+        expect(screen.queryByTestId('fw-recommended')).toBeNull();
+        u3();
+        const { unmount: u4 } = render(<FrameworkCandidateCard framework={base({ recently_in_force: true, enabled: true })} now={NOW} />);
+        expect(screen.queryByTestId('fw-recommended')).toBeNull();
+        u4();
+        render(<FrameworkCandidateCard framework={base({ recently_in_force: true, locked: 'ceiling' })} now={NOW} />);
+        expect(screen.queryByTestId('fw-recommended')).toBeNull();
+        expect(recommendedReason({ relevance: 'unknown' }, (k, f) => f)).toBeNull();
     });
 });
 

@@ -1,7 +1,10 @@
 /**
  * MobileHomeOverview — the "Overzicht" segment of the phone frame (artboard
- * 1h): the framework score rows, the Needs-attention list and the running
- * deadlines, stacked as cards with rows of at least 44px.
+ * 1h): the framework score rows, the Needs-attention list (five rows, then
+ * "Show all {n}" inline, like the desktop list), the running deadlines, the
+ * upcoming dates and two entry rows into the Overview's Calendar and Reports
+ * tabs, stacked as cards with rows of at least 44px. Without those two rows
+ * the calendar, the reports and the PDF were unreachable on a phone.
  *
  * Every number comes from the hub's data object as-is. A count the server
  * has not stated (`undefined`) renders nothing, a list that is `null` renders
@@ -14,8 +17,8 @@
  * to the section that scores its first framework, with the check code as the
  * focus id.
  */
-import { ChevronRight } from 'lucide-react';
-import React from 'react';
+import { CalendarDays, ChevronDown, ChevronRight, FileDown } from 'lucide-react';
+import React, { useId, useState } from 'react';
 import { MobileCard, MOBILE_ROW_CLASS } from './MobileRailList';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import DeadlineClock from '../../../shared/DeadlineClock';
@@ -27,10 +30,18 @@ import { visibleSections } from '../ComplianceRail';
 import { complianceActionPath, resolveTarget } from '../data/actions';
 import { openChecksFor } from '../data/openChecks';
 import { countFor } from '../data/useComplianceCounts';
-import { targetOf } from '../pages/overview/DeadlinesCard';
+import { deadlineRef, deadlineSubjectKind, targetOf } from '../pages/overview/deadlineRows';
+import UpcomingDatesCard from '../pages/overview/UpcomingDatesCard';
 import { railScore } from '../railMeta';
 import { sectionsInGroup, sectionForRegulation } from '../sections';
+import { formatArticleRef } from '../shared/ArticleRef';
 import ScoreRing from '../shared/ScoreRing';
+import { VERIFICATION_KINDS } from '../shared/VerificationChip';
+
+/** Attention rows before "Show all {n}" — the same five as the desktop list. */
+const ATTENTION_FOLDED = 5;
+/** References on a meta line before "+k". */
+const MAX_REFS = 2;
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
@@ -53,15 +64,21 @@ export function attentionTarget(item) {
     return { section: sectionForRegulation(regulation), id: item?.source === 'check' ? (item.code || item.id || null) : null };
 }
 
+/** "GDPR Art. 35 · Should fix · Self-attested": the desktop meta line as text. */
 function attentionMeta(item, t) {
     const parts = [];
-    for (const f of item?.meta?.frameworks || []) {
-        if (f?.regulation || f?.ref) parts.push([f.regulation, f.ref].filter(Boolean).join(' '));
+    const refs = (item?.meta?.frameworks || [])
+        .map(f => formatArticleRef(f?.regulation, f?.ref, t))
+        .filter(Boolean);
+    if (refs.length) {
+        const more = refs.length - MAX_REFS;
+        parts.push(refs.slice(0, MAX_REFS).join(' · ') + (more > 0 ? ` · ${t('compliance.ref_more', '+{n}', { n: more })}` : ''));
     }
     const sev = item?.meta?.severity || item?.severity;
     if (sev) parts.push(t(`compliance.sev_${sev}`, sev));
+    // A register item says 'register' — not a verification kind, so nothing to print.
     const ver = item?.meta?.verification;
-    if (ver) parts.push(t(`compliance.verification_${ver}`, ver));
+    if (VERIFICATION_KINDS.includes(ver)) parts.push(t(`compliance.verification_${ver}`, ver));
     return parts.join(' · ');
 }
 
@@ -82,8 +99,10 @@ function Note({ children, tone = 'neutral', testId }) {
     );
 }
 
-export default function MobileHomeOverview({ data, navigate }) {
+export default function MobileHomeOverview({ data, navigate, onTab = undefined }) {
     const { t } = useTranslation();
+    const [attentionExpanded, setAttentionExpanded] = useState(false);
+    const attentionListId = useId();
     const counts = data?.counts || null;
     const checks = data?.core?.checks;
     const frameworks = data?.frameworks;
@@ -95,6 +114,12 @@ export default function MobileHomeOverview({ data, navigate }) {
     const runningDeadlines = Array.isArray(deadlines.items)
         ? deadlines.items.filter(d => d?.state !== 'done' && d?.state !== 'none')
         : null;
+    const attentionItems = Array.isArray(attention.items) ? attention.items : null;
+    const canExpand = !!attentionItems && attentionItems.length > ATTENTION_FOLDED;
+    const shownAttention = attentionItems && canExpand && !attentionExpanded ? attentionItems.slice(0, ATTENTION_FOLDED) : attentionItems;
+    const attentionTotal = attention.attention?.total;
+    const elsewhere = attentionItems && typeof attentionTotal === 'number' ? Math.max(0, attentionTotal - attentionItems.length) : 0;
+    const calendar = data?.calendar || {};
 
     return (
         <div data-testid="mobile-home-overview" className="flex flex-col gap-3">
@@ -117,7 +142,7 @@ export default function MobileHomeOverview({ data, navigate }) {
                                 </span>
                                 <span className="block text-[11px] truncate" style={{ color: ink }}>
                                     {t(key, HEADLINE_FALLBACK[key])}
-                                    {isNum(open) && open > 0 ? ` · ${open}` : ''}
+                                    {isNum(open) && open > 0 ? ` · ${t('compliance.mob_fw_open', '{n} open', { n: open })}` : ''}
                                 </span>
                             </span>
                             <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
@@ -131,13 +156,13 @@ export default function MobileHomeOverview({ data, navigate }) {
                 {t('compliance.mob_needs_attention', 'Needs attention')}
             </Head>
             <MobileCard testId="mobile-attention-card">
-                {attention.items === null || attention.items === undefined ? (
+                {attentionItems === null ? (
                     attention.failed
                         ? <Note tone="error" testId="mobile-attention-failed">{t('compliance.mob_attention_failed', 'Could not load the open items.')}</Note>
                         : <Note testId="mobile-attention-loading">{t('compliance.mob_loading', 'Loading…')}</Note>
-                ) : attention.items.length === 0 ? (
+                ) : attentionItems.length === 0 ? (
                     <Note testId="mobile-attention-empty">{t('compliance.mob_attention_empty', 'Nothing needs attention right now.')}</Note>
-                ) : attention.items.map((item) => {
+                ) : <div id={attentionListId}>{shownAttention.map((item) => {
                     const tone = toneOfCheckStatus(item.status);
                     const Glyph = glyphOfCheckStatus(item.status);
                     const target = attentionTarget(item);
@@ -154,7 +179,22 @@ export default function MobileHomeOverview({ data, navigate }) {
                             <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                         </button>
                     );
-                })}
+                })}</div>}
+                {attentionItems && elsewhere > 0 && (attentionExpanded || !canExpand) ? (
+                    <Note testId="mobile-attention-elsewhere">{t('compliance.ovw_more_elsewhere', '{n} more on the framework pages', { n: elsewhere })}</Note>
+                ) : null}
+                {canExpand ? (
+                    <button type="button" data-testid="mobile-attention-toggle" onClick={() => setAttentionExpanded(v => !v)}
+                        aria-expanded={attentionExpanded} aria-controls={attentionListId}
+                        className={`${MOBILE_ROW_CLASS} border-t border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)]`}>
+                        <span className="flex-1">
+                            {attentionExpanded
+                                ? t('compliance.ovw_show_fewer', 'Show fewer')
+                                : t('compliance.ovw_show_all', 'Show all {n}', { n: attentionItems.length })}
+                        </span>
+                        <ChevronDown size={16} aria-hidden="true" className={`flex-shrink-0 text-[var(--text-tertiary)] transition-transform ${attentionExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                ) : null}
             </MobileCard>
 
             {/* ── Deadlines ── */}
@@ -175,8 +215,10 @@ export default function MobileHomeOverview({ data, navigate }) {
                 ) : runningDeadlines.map((d) => {
                     const target = targetOf(d);
                     const kindLabel = d.kind ? t(`compliance.deadline_kind_${d.kind}`, d.kind) : null;
-                    const meta = [kindLabel, d.meta?.article ? t('compliance.mob_article', 'Art. {ref}', { ref: d.meta.article }) : null].filter(Boolean).join(' · ');
-                    const title = [d.ref, d.title].filter(Boolean).join(' · ');
+                    // The article as the server wrote it ("GDPR Art. 12(3)") and, for an
+                    // obligation or attestation, the subject kind instead of a ref.
+                    const meta = [kindLabel, d.meta?.article || null, deadlineSubjectKind(d)].filter(Boolean).join(' · ');
+                    const title = [deadlineRef(d), d.title].filter(Boolean).join(' · ');
                     return (
                         <button key={d.id} type="button" data-testid={`mobile-deadline-${d.id}`}
                             onClick={() => { if (target?.section) navigate(target.section, target.id || undefined, target.tab); }}
@@ -191,6 +233,28 @@ export default function MobileHomeOverview({ data, navigate }) {
                     );
                 })}
             </MobileCard>
+
+            {/* ── Upcoming dates, then the Overview's other two tabs ── */}
+            <UpcomingDatesCard milestones={calendar.milestones ?? null} failed={!!calendar.failed}
+                onOpenCalendar={onTab ? () => onTab('calendar') : undefined} testId="mobile-upcoming-dates" />
+            <MobileCard testId="mobile-overview-entries">
+                <EntryRow icon={CalendarDays} label={t('compliance.mob_calendar_entry', 'Regulatory calendar')}
+                    onClick={() => onTab?.('calendar')} testId="mobile-entry-calendar" />
+                <EntryRow icon={FileDown} label={t('compliance.mob_reports_entry', 'Reports and downloads')}
+                    onClick={() => onTab?.('reports')} testId="mobile-entry-reports" />
+            </MobileCard>
         </div>
+    );
+}
+
+function EntryRow({ icon, label, onClick, testId }) {
+    const Icon = icon;
+    return (
+        <button type="button" data-testid={testId} onClick={onClick}
+            className={`${MOBILE_ROW_CLASS} border-b border-[var(--border-default)] last:border-b-0`}>
+            <Icon size={16} aria-hidden="true" className="flex-shrink-0 text-[var(--text-secondary)]" />
+            <span className="flex-1 min-w-0 truncate text-[13px] font-medium text-[var(--text-primary)]">{label}</span>
+            <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0 text-[var(--text-tertiary)]" />
+        </button>
     );
 }

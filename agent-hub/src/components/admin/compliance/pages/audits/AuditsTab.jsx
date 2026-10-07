@@ -1,15 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Play, CheckCircle2, ArrowRight } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
-import SideDrawer, { DrawerSection } from '../../../../shared/SideDrawer';
-import FindingRow from '../../../../shared/FindingRow';
-import EmptyState from '../../../../shared/EmptyState';
-import StatusPill from '../../shared/StatusPill';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     AUDIT_STATUS, FINDING_SEVERITY, labelOf, toneOf, userName, fmtDate,
     Field, TextInput, TextArea, DateInput, Select, UserSelect, ActionButton, Fact, Intro, RegisterLayout,
 } from './auditForms';
+import { notRaisedCount } from './isoProcessHelpers';
+import useHeaderPrimary from './useHeaderPrimary';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
+import EmptyState from '../../../../shared/EmptyState';
+import FindingRow from '../../../../shared/FindingRow';
+import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
+import RegisterStatePill from '../../shared/RegisterStatePill';
+import StatusPill from '../../shared/StatusPill';
+import useDrawerMode from '../../shared/useDrawerMode';
 
 /**
  * AuditsTab — internal audits (clause 9.2): planned → in progress → closed,
@@ -18,21 +22,33 @@ import {
  *
  * Every mutation goes through the hook's handlers (data.audit.createAudit /
  * updateAudit / addFinding / createNc) — the toasts live there.
+ *
+ * The state steps live in the drawer only. "Close audit" has no way back,
+ * so it asks first, and the question counts what is still open: how many
+ * findings there are and how many of the weighty ones were never raised as
+ * a nonconformity (isoProcessHelpers' notRaisedCount).
  */
 const EMPTY_DRAFT = Object.freeze({ title: '', scope_note: '', auditor_user_id: '', planned_at: '' });
 const EMPTY_FINDING = Object.freeze({ severity: 'observation', control_ref: '', clause: '', description: '', evidence_ref: '' });
 
-export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId = null }) {
+export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }) {
     const { t, resolvedLocale } = useTranslation();
     const { audits, findings, busy, independenceWarning, createAudit, updateAudit, addFinding, createNc } = audit;
     const loading = audits === null || audits === undefined || findings === null || findings === undefined;
-    const list = Array.isArray(audits) ? audits : [];
+    const list = useMemo(() => (Array.isArray(audits) ? audits : []), [audits]);
 
     const [selectedId, setSelectedId] = useState(focusId || null);
     const [creating, setCreating] = useState(false);
     const [draft, setDraft] = useState(EMPTY_DRAFT);
     const [findingDrafts, setFindingDrafts] = useState({});
+    // The audit whose "Close audit?" question is open; another row asks afresh.
+    const [confirmCloseId, setConfirmCloseId] = useState(null);
+    const [frameRef, drawerMode] = useDrawerMode({ isMobile });
     useEffect(() => { if (focusId) setSelectedId(String(focusId)); }, [focusId]);
+    const planLabel = t('compliance.audit_plan', 'Plan audit');
+    const headerHasCreate = useHeaderPrimary(setHeaderActions, {
+        label: planLabel, icon: Plus, onClick: () => { setSelectedId(null); setCreating(true); },
+    });
 
     const findingsByAudit = useMemo(() => {
         const map = new Map();
@@ -47,10 +63,9 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
     const columns = [
         { id: 'title', width: '1fr', label: t('compliance.audit_f_title', 'Audit title') },
         { id: 'status', width: '120px', label: t('compliance.obj_col_status', 'Status') },
-        { id: 'auditor', width: '140px', label: t('compliance.audit_f_auditor', 'Auditor'), foldBelow: 1180 },
-        { id: 'planned', width: '104px', label: t('compliance.audit_f_planned', 'Planned date'), foldBelow: 1180 },
+        { id: 'auditor', width: '140px', label: t('compliance.audit_f_auditor', 'Auditor'), foldBelow: 900 },
+        { id: 'planned', width: '104px', label: t('compliance.audit_f_planned', 'Planned date'), foldBelow: 900 },
         { id: 'findings', width: '84px', label: t('compliance.audit_findings', 'Findings'), align: 'right' },
-        { id: 'actions', width: '132px', label: '' },
     ];
 
     const submitCreate = () => {
@@ -89,22 +104,42 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
         });
     };
 
-    const transition = (a) => {
+    /** The drawer's footer: Start audit, or Close audit behind its question. */
+    const transition = (a, rows) => {
         if (a.status === 'planned') {
-            return <ActionButton size="sm" variant="warning" icon={Play} disabled={busy} onClick={(e) => { e.stopPropagation(); updateAudit(a.id, { status: 'in_progress' }); }} data-testid={`audit-start-${a.id}`}>{t('compliance.audit_start', 'Start audit')}</ActionButton>;
+            return (
+                <DrawerFooter testId="audit-footer"
+                    primary={<ActionButton variant="primary" icon={Play} disabled={busy} onClick={() => updateAudit(a.id, { status: 'in_progress' })} data-testid={`audit-start-${a.id}`}>{t('compliance.audit_start', 'Start audit')}</ActionButton>} />
+            );
         }
-        if (a.status === 'in_progress') {
-            return <ActionButton size="sm" variant="success" icon={CheckCircle2} disabled={busy} onClick={(e) => { e.stopPropagation(); updateAudit(a.id, { status: 'closed' }); }} data-testid={`audit-close-${a.id}`}>{t('compliance.audit_close', 'Close audit')}</ActionButton>;
+        if (a.status !== 'in_progress') return null;
+        if (String(confirmCloseId) !== String(a.id)) {
+            return (
+                <DrawerFooter testId="audit-footer"
+                    primary={<ActionButton variant="success" icon={CheckCircle2} disabled={busy} onClick={() => setConfirmCloseId(a.id)} data-testid={`audit-close-${a.id}`}>{t('compliance.audit_close', 'Close audit')}</ActionButton>} />
+            );
         }
-        return null;
+        return (
+            <div className="flex flex-col gap-2 pt-3 border-t border-[var(--border-default)]" role="group" aria-labelledby={`audit-close-q-${a.id}`} data-testid="audit-close-confirm">
+                <div id={`audit-close-q-${a.id}`} className="text-xs text-[var(--text-primary)]">
+                    {t('compliance.audit_close_confirm', 'Close audit? {n} findings, {m} not raised as NC.', { n: rows.length, m: notRaisedCount(rows) })}
+                </div>
+                <div className="flex items-center gap-2">
+                    <ActionButton onClick={() => setConfirmCloseId(null)} data-testid="audit-close-cancel">{t('compliance.audit_cancel', 'Cancel')}</ActionButton>
+                    <ActionButton variant="primary" icon={CheckCircle2} disabled={busy} className="ml-auto" autoFocus
+                        onClick={() => { setConfirmCloseId(null); updateAudit(a.id, { status: 'closed' }); }} data-testid="audit-close-confirm-yes">
+                        {t('compliance.audit_close', 'Close audit')}
+                    </ActionButton>
+                </div>
+            </div>
+        );
     };
 
-    const drawerMode = isMobile ? 'modal' : 'inline';
     let drawer = null;
     if (creating) {
         drawer = (
-            <SideDrawer open onClose={() => setCreating(false)} mode={drawerMode} ariaLabel={t('compliance.audit_plan', 'Plan audit')} testId="audit-create-drawer"
-                header={<div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('compliance.audit_plan', 'Plan audit')}</div>}
+            <SideDrawer open onClose={() => setCreating(false)} mode={drawerMode} ariaLabel={planLabel} testId="audit-create-drawer"
+                header={<div className="text-[13px] font-semibold text-[var(--text-primary)]">{planLabel}</div>}
                 footer={(
                     <div className="flex gap-2">
                         <ActionButton variant="primary" disabled={busy || !draft.title.trim()} onClick={submitCreate} data-testid="audit-create-submit">{t('compliance.audit_create', 'Plan audit')}</ActionButton>
@@ -124,7 +159,7 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                     <DateInput value={draft.planned_at} onChange={v => setDraft(d => ({ ...d, planned_at: v }))} />
                 </Field>
                 {independenceWarning && (
-                    <FindingRow severity="warning" label={t('compliance.audit_independence_title', 'Auditor independence')} message={independenceWarning} testId="audit-independence" />
+                    <FindingRow size="sm" severity="warning" label={t('compliance.audit_independence_title', 'Auditor independence')} message={independenceWarning} testId="audit-independence" />
                 )}
             </SideDrawer>
         );
@@ -133,14 +168,14 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
         const rows = findingsByAudit.get(a.id) || [];
         const fd = findingDrafts[a.id] || EMPTY_FINDING;
         drawer = (
-            <SideDrawer open onClose={() => setSelectedId(null)} mode={drawerMode} ariaLabel={a.title} testId="audit-drawer"
+            <SideDrawer open onClose={() => { setSelectedId(null); setConfirmCloseId(null); }} mode={drawerMode} ariaLabel={a.title} testId="audit-drawer"
                 header={(
                     <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{a.title}</span>
-                        <StatusPill tone={toneOf(AUDIT_STATUS, a.status)}>{labelOf(t, AUDIT_STATUS, a.status)}</StatusPill>
+                        <RegisterStatePill state={a.status} testId="audit-drawer-state">{labelOf(t, AUDIT_STATUS, a.status)}</RegisterStatePill>
                     </div>
                 )}
-                footer={transition(a) ? <div className="flex gap-2">{transition(a)}</div> : null}>
+                footer={transition(a, rows)}>
                 <DrawerSection label={t('compliance.audit_f_scope', 'Scope')}>
                     <div className="text-xs text-[var(--text-secondary)] whitespace-pre-wrap">{a.scope_note || '—'}</div>
                     <Fact label={t('compliance.audit_f_auditor', 'Auditor')}>{userName(orgUsers, a.auditor_user_id) || '—'}</Fact>
@@ -202,11 +237,11 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
     }
 
     return (
-        <RegisterLayout isMobile={isMobile} testId="audits-tab" drawer={drawer}
+        <RegisterLayout isMobile={isMobile} drawerMode={drawerMode} frameRef={frameRef} testId="audits-tab" drawer={drawer}
             toolbar={(
                 <>
                     <Intro>{t('compliance.audit_subtitle', 'Plan and run internal audits (clause 9.2). Record what was examined and what was found — findings with real weight become nonconformities with corrective actions.')}</Intro>
-                    <ActionButton variant="primary" icon={Plus} onClick={() => { setSelectedId(null); setCreating(true); }} data-testid="audit-plan">{t('compliance.audit_plan', 'Plan audit')}</ActionButton>
+                    {!headerHasCreate && <ActionButton variant="primary" icon={Plus} onClick={() => { setSelectedId(null); setCreating(true); }} data-testid="audit-plan">{planLabel}</ActionButton>}
                 </>
             )}>
             <DataTable
@@ -225,20 +260,19 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                         <div className="w-full min-w-0 flex items-center gap-2" data-testid={`audit-card-${a.id}`} data-selected={isSelected || undefined}>
                             <button
                                 type="button"
-                                onClick={() => { setCreating(false); setSelectedId(prev => (String(prev) === String(a.id) ? null : a.id)); }}
+                                onClick={() => { setCreating(false); setConfirmCloseId(null); setSelectedId(prev => (String(prev) === String(a.id) ? null : a.id)); }}
                                 aria-selected={isSelected || undefined}
                                 className="flex-1 min-w-0 text-left min-h-[44px] flex flex-col justify-center gap-1"
                             >
                                 <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{a.title}</span>
                                 {a.scope_note && <span className="text-[11px] text-[var(--text-tertiary)] truncate">{a.scope_note}</span>}
                                 <span className="flex items-center gap-2 min-w-0 text-[11px] text-[var(--text-secondary)]">
-                                    <StatusPill tone={toneOf(AUDIT_STATUS, a.status)}>{labelOf(t, AUDIT_STATUS, a.status)}</StatusPill>
+                                    <RegisterStatePill state={a.status} testId={`audit-card-state-${a.id}`}>{labelOf(t, AUDIT_STATUS, a.status)}</RegisterStatePill>
                                     <span className="truncate">{userName(orgUsers, a.auditor_user_id) || '—'}</span>
                                     <span className="tabular-nums whitespace-nowrap">{fmtDate(a.planned_at, resolvedLocale)}</span>
                                     <span className="tabular-nums">{t('compliance.audit_findings', 'Findings')} {n}</span>
                                 </span>
                             </button>
-                            {transition(a)}
                         </div>
                     );
                 }}
@@ -247,16 +281,21 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                     const isSelected = !creating && String(selectedId) === String(a.id);
                     return (
                         <TableRow key={a.id} columns={ctx.columns} accent={toneOf(AUDIT_STATUS, a.status)} selected={isSelected}
-                            onClick={() => { setCreating(false); setSelectedId(prev => (String(prev) === String(a.id) ? null : a.id)); }} testId={`audit-row-${a.id}`}>
+                            onClick={() => { setCreating(false); setConfirmCloseId(null); setSelectedId(prev => (String(prev) === String(a.id) ? null : a.id)); }} testId={`audit-row-${a.id}`}>
                             <TableCell column={ctx.columns[0]} className="min-w-0">
                                 <div className="font-semibold text-[var(--text-primary)] truncate">{a.title}</div>
                                 {a.scope_note && <div className="text-[11px] text-[var(--text-tertiary)] truncate">{a.scope_note}</div>}
+                                {/* Auditor and planned date while their own columns are folded. */}
+                                <div className="text-[11px] text-[var(--text-secondary)] truncate">
+                                    <span className={TABLE_FOLDED_ONLY[900]} data-testid={`audit-folded-${a.id}`}>
+                                        {t('compliance.audit_auditor_planned', '{auditor} · planned {date}', { auditor: userName(orgUsers, a.auditor_user_id) || '—', date: fmtDate(a.planned_at, resolvedLocale) })}
+                                    </span>
+                                </div>
                             </TableCell>
-                            <TableCell column={ctx.columns[1]}><StatusPill tone={toneOf(AUDIT_STATUS, a.status)}>{labelOf(t, AUDIT_STATUS, a.status)}</StatusPill></TableCell>
+                            <TableCell column={ctx.columns[1]}><RegisterStatePill state={a.status} testId={`audit-state-${a.id}`}>{labelOf(t, AUDIT_STATUS, a.status)}</RegisterStatePill></TableCell>
                             <TableCell column={ctx.columns[2]} className="truncate text-[var(--text-secondary)]">{userName(orgUsers, a.auditor_user_id) || '—'}</TableCell>
                             <TableCell column={ctx.columns[3]} className="text-[var(--text-secondary)] tabular-nums">{fmtDate(a.planned_at, resolvedLocale)}</TableCell>
                             <TableCell column={ctx.columns[4]} className="tabular-nums text-[var(--text-secondary)]">{n}</TableCell>
-                            <TableCell column={ctx.columns[5]}>{transition(a)}</TableCell>
                         </TableRow>
                     );
                 }}

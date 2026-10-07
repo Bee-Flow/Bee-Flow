@@ -137,7 +137,8 @@ describe('compliance fixture — arithmetic that is visible on screen', () => {
         for (const r of risks) expect(r.score).toBe(r.likelihood * r.impact);
         expect(stats.total).toBe(risks.length);
         expect(stats.open).toBe(risks.filter(r => r.status === 'open' || r.status === 'treating').length);
-        expect(stats.high).toBe(risks.filter(r => r.score >= 9 && r.status !== 'closed').length);
+        // The server's rule (riskStore HIGH_SCORE = 10), so header, rail and the "High" filter agree.
+        expect(stats.high).toBe(risks.filter(r => r.score >= 10 && r.status !== 'closed').length);
     });
 });
 
@@ -520,7 +521,7 @@ describe('compliance fixture — every url the hub asks for is answered', () => 
         '/api/compliance/settings', '/api/compliance/org-users', '/api/compliance/checks?framework=dora',
         // data/useComplianceCounts.js + data/aggregates.js
         '/api/compliance/counts', '/api/compliance/counts?keys=attention_open',
-        '/api/compliance/attention?limit=5', '/api/compliance/deadlines',
+        '/api/compliance/attention?limit=50', '/api/compliance/deadlines',
         '/api/compliance/frameworks', '/api/compliance/calendar', '/api/compliance/calendar?all=1',
         '/api/compliance/ai-act/assessments',
         '/api/compliance/ai-act/assessments/agent/agent_helpdesk',
