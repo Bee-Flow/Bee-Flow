@@ -21,9 +21,12 @@ const COLLAB = require('./add-nl-collaboration-wave2-documents-compliance-transl
 /** What a fresh install seeds for a key: the generated map, or the catalogue that owns the key's family. */
 const seeded = (k) => SEED[k] ?? COLLAB.NL_TRANSLATIONS[k];
 
+function sha256Of(file) {
+    return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+
 test('the pinned hash is the data file\'s, so a data change re-runs the migration', () => {
-    const data = fs.readFileSync(path.join(__dirname, 'data', 'compliance-ui-2026-10-nl.json'));
-    assert.strictEqual(crypto.createHash('sha256').update(data).digest('hex'), DATA_SHA256);
+    assert.strictEqual(sha256Of(path.join(__dirname, 'data', 'compliance-ui-2026-10-nl.json')), DATA_SHA256);
 });
 
 test('every key exists in the English catalog, has Dutch, and is not the English copied over', () => {
