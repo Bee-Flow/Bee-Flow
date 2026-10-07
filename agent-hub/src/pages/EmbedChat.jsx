@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MessageItem from '../components/chat/MessageItem';
-import { embedSourcesAllowed } from '../components/chat/MessageItem/messageItemHelpers';
+import EmbedAiDisclosure from '../components/embed/EmbedAiDisclosure';
+import EmbedMonitoringNotice from '../components/embed/EmbedMonitoringNotice';
+import useEmbedVisitorState from '../components/embed/useEmbedVisitorState';
 import WelcomeScreen from '../components/shell/WelcomeScreen';
 import InputArea from '../components/chat/InputArea';
 import { Sun, Moon } from 'lucide-react';
@@ -25,11 +27,11 @@ const EmbedChat = ({ agentId }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isStreaming, setIsStreaming] = useState(false);
     const [error, setError] = useState(null);
-    // Whether this agent's owner allows the sources behind an answer to be
-    // shown on the public widget. Starts CLOSED and only ever opens on an
-    // explicit yes from the embed payload — a failed fetch, an old server that
-    // does not send the field, or a half-loaded page all leave it shut.
-    const [sourcesAllowed, setSourcesAllowed] = useState(false);
+    // What the embed payload decides for the visitor: whether the sources
+    // behind an answer may be shown (closed unless the payload says yes), the
+    // chat-signals notice and its marker, and "Don't count my messages"
+    // (React state only). See useEmbedVisitorState.
+    const visitor = useEmbedVisitorState();
     // InputArea expects input/setInput as controlled props.
     const [input, setInput] = useState('');
     const messagesEndRef = useRef(null);
@@ -98,6 +100,7 @@ const EmbedChat = ({ agentId }) => {
 
     // Fetch agent metadata
     useEffect(() => {
+        const applyEmbedPayload = visitor.applyEmbedPayload;
         const fetchAgent = async () => {
             try {
                 const res = await authFetch(`${API_BASE}/agents/${agentId}/embed`);
@@ -118,7 +121,7 @@ const EmbedChat = ({ agentId }) => {
                     starter_prompts: data.starterPrompts || [],
                     copy_enabled: data.copyEnabled ? 1 : 0
                 });
-                setSourcesAllowed(embedSourcesAllowed(data));
+                applyEmbedPayload(data);
                 setIsLoading(false);
             } catch (err) {
                 setError('Failed to connect to server.');
@@ -126,7 +129,7 @@ const EmbedChat = ({ agentId }) => {
             }
         };
         fetchAgent();
-    }, [agentId]);
+    }, [agentId, visitor.applyEmbedPayload]);
 
     // Smart auto-scroll: force on send, respect user scroll-back during streaming
     const scrollToBottom = (behavior = 'smooth') => {
@@ -185,7 +188,9 @@ const EmbedChat = ({ agentId }) => {
                         { role: 'user', content: agentMessage }
                     ],
                     attachments,
-                    ephemeral: true
+                    ephemeral: true,
+                    // Announced equals counted: the marker exists only while the notice is up.
+                    ...visitor.turnFields(),
                 })
             });
 
@@ -469,11 +474,16 @@ const EmbedChat = ({ agentId }) => {
 
             {/* Messages Area */}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                {/* Who answers, before the first message and above every later one. */}
+                <EmbedAiDisclosure />
                 {messages.length === 0 ? (
-                    <WelcomeScreen
-                        agent={agent}
-                        onSendMessage={(text) => { shouldForceScrollRef.current = true; sendMessage(text); }}
-                    />
+                    <>
+                        <EmbedMonitoringNotice notice={visitor.notice} dontCount={visitor.dontCount} onDontCountChange={visitor.setDontCount} />
+                        <WelcomeScreen
+                            agent={agent}
+                            onSendMessage={(text) => { shouldForceScrollRef.current = true; sendMessage(text); }}
+                        />
+                    </>
                 ) : (
                     <div className="max-w-3xl mx-auto space-y-6 pb-4">
                         {messages.filter(m => !m.parentId).map((msg, idx) => (
@@ -490,13 +500,17 @@ const EmbedChat = ({ agentId }) => {
                                 // document titles, headings, page numbers and
                                 // the full retrieved passage. Off unless this
                                 // agent's own settings said otherwise.
-                                showSources={sourcesAllowed}
+                                showSources={visitor.sourcesAllowed}
                             />
                         ))}
                         <div ref={messagesEndRef} />
                     </div>
                 )}
             </div>
+
+            {messages.length > 0 && (
+                <EmbedMonitoringNotice notice={visitor.notice} dontCount={visitor.dontCount} onDontCountChange={visitor.setDontCount} compact />
+            )}
 
             {/* Input Area - same as main app */}
             <InputArea

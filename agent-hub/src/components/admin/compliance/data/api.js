@@ -24,7 +24,9 @@ export const OPTS = Object.freeze({ credentials: 'include' });
  * A refused request throws an Error whose message stays `"<status> <statusText>"`
  * (callers test it with /^404\b/), and which also carries what the server
  * said: `status`, `code` and `serverMessage` from its `{ error, code }` body,
- * so a control can word the refusal instead of saying only "failed".
+ * so a control can word the refusal instead of saying only "failed". A body
+ * with a `details` object (a 422 listing the missing field codes) hands that
+ * over as `details`; anything else leaves it null.
  */
 export async function fetchJson(url, init) {
     const r = await authFetch(url, { ...OPTS, ...(init || {}) });
@@ -35,10 +37,23 @@ export async function fetchJson(url, init) {
         err.status = r.status;
         err.code = body && typeof body.code === 'string' ? body.code : null;
         err.serverMessage = body && typeof body.error === 'string' ? body.error : null;
+        err.details = body && body.details && typeof body.details === 'object' && !Array.isArray(body.details) ? body.details : null;
         throw err;
     }
     return r.json();
 }
+
+/**
+ * Chat signals (Compliance Settings card). Every route the card talks to,
+ * in one place, so a change on the server side is a one-line change here.
+ */
+export const chatMonitoringUrls = Object.freeze({
+    config: () => `${API}/chat-monitoring`,
+    summary: (days) => `${API}/chat-monitoring/summary?days=${days === 90 ? 90 : 30}`,
+    counts: () => `${API}/chat-monitoring/counts`,
+    dpia: () => `${API}/dpia/chat_monitoring`,
+    ropa: () => `${API}/ropa`,
+});
 
 /** `{ method, headers, body }` for a JSON write; `body` undefined → `'{}'` so an empty POST still parses server-side. */
 export function jsonInit(method, body) {

@@ -55,6 +55,12 @@ const DirectTurnBody = orEmpty(z.object({
     activeSkillIds: list('activeSkillIds').nullish(),
     activatedSessionSkillIds: list('activatedSessionSkillIds').nullish(),
     knowledgeBaseIds: list('knowledgeBaseIds').nullish(),
+    // Chat signals (core/privacy/chatSignals.js): the notice marker the
+    // composer sends when it showed the chat-signals line for exactly this
+    // configuration (`direct@<version>`), and the person's "don't count my
+    // chat turns" switch. A turn without the marker is not counted.
+    chatSignalsNotice: text('chatSignalsNotice', 120).nullish(),
+    chatSignalsOptOut: onOff('chatSignalsOptOut').nullish(),
 }, { invalid_type_error: 'A chat turn is a JSON object.' }).passthrough());
 
 /**

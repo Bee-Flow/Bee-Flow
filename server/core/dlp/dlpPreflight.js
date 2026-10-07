@@ -37,7 +37,15 @@
  * @param {boolean}  [p.hasAttachments]  the turn carries attachments (scanned separately).
  * @returns {Promise<{outcome:'allow'|'redacted'|'blocked'|'scan_failed', blocked:boolean,
  *   reason?:string, tokenMap?:Object, redactedText?:(string|null),
- *   userPrivacyMeta?:Object, assistantTokenisationInfo?:Object}>}
+ *   userPrivacyMeta?:Object, assistantTokenisationInfo?:Object,
+ *   scanStatus:string, categories:string[], tooShort:boolean, override?:boolean}>}
+ *
+ * Every return also says what the scan itself saw, so a caller can tell the
+ * outcomes apart without a second scan (chat signals, core/privacy/chatSignals.js
+ * outcomeFromDlp): `scanStatus` ('ok' | 'failed' | 'skipped'), `categories` (the
+ * distinct category ids or labels of the findings, never a span or a value),
+ * `tooShort` (the last message is under 3 characters, so nothing could be
+ * detected), and `override: true` when the person chose "send anyway".
  */
 async function runDlpPreflight({
     messages,
@@ -77,6 +85,13 @@ async function runDlpPreflight({
         phase.end();
     }
     const scanMs = Date.now() - scanStart;
+    // What the scan saw, on every return (see @returns). Category ids or
+    // labels only: never the matched text.
+    const seen = {
+        scanStatus: dlpResult.scanStatus,
+        categories: [...new Set((dlpResult.findings || []).map(f => f && (f.category || f.label)).filter(c => typeof c === 'string' && c.length > 0))],
+        tooShort: messageText(messages[messages.length - 1]).length < 3,
+    };
 
     // Both callers' auditBase carried conversation_id; inject it here so the
     // caller-supplied `audit` stays the small org/user/agent/model/source base.
@@ -147,6 +162,7 @@ async function runDlpPreflight({
             redactedText: appliedText,
             userPrivacyMeta,
             assistantTokenisationInfo,
+            ...seen,
         };
     };
 
@@ -157,7 +173,7 @@ async function runDlpPreflight({
             reason: dlpResult.reason || 'policy_block',
         });
         guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
-        return { outcome: 'blocked', blocked: true, reason: 'policy_block' };
+        return { outcome: 'blocked', blocked: true, reason: 'policy_block', ...seen };
     }
 
     if (dlpResult.action === 'redact') {
@@ -208,7 +224,7 @@ async function runDlpPreflight({
             // Timeout or abort → treat as block under fail-closed semantics.
             emit?.('dlp_blocked', { reason: err.code === 'DLP_TIMEOUT' ? 'timeout' : 'rejected', findings: [], provider: dlpResult.provider });
             guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
-            return { outcome: 'blocked', blocked: true, reason: 'ask_timeout' };
+            return { outcome: 'blocked', blocked: true, reason: 'ask_timeout', ...seen };
         }
 
         if (decision.rememberForConversation && decision.choice !== 'block') {
@@ -218,7 +234,7 @@ async function runDlpPreflight({
         if (decision.choice === 'block') {
             emit?.('dlp_blocked', { reason: 'user_blocked', findings: [], provider: dlpResult.provider });
             guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
-            return { outcome: 'blocked', blocked: true, reason: 'user_blocked' };
+            return { outcome: 'blocked', blocked: true, reason: 'user_blocked', ...seen };
         }
 
         if (decision.choice === 'redact') {
@@ -265,16 +281,16 @@ async function runDlpPreflight({
             decisionMs: Date.now() - scanStart,
         });
         guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'allowed' }).catch(() => {});
-        return { outcome: 'allow', blocked: false };
+        return { outcome: 'allow', blocked: false, ...seen, override: true };
     }
 
     if (dlpResult.scanStatus === 'failed') {
         // fail-open took this path — still record for audit.
         guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: 'scan_failed', action_taken: 'scan_failed' }).catch(() => {});
-        return { outcome: 'scan_failed', blocked: false };
+        return { outcome: 'scan_failed', blocked: false, ...seen };
     }
 
-    return { outcome: 'allow', blocked: false };
+    return { outcome: 'allow', blocked: false, ...seen };
 }
 
 module.exports = { runDlpPreflight };

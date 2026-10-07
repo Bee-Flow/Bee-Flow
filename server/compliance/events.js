@@ -63,6 +63,10 @@ const EVENTS = {
     // files, archiving. Payload { orgId, projectId, reason } — ids only.
     // Emitted by ROUTES (stores cannot require compliance).
     PROJECT_CHANGED: 'project_changed',
+    // Chat signals were saved, deleted, or their DPIA changed. Payload
+    // { orgId } — ids only. Emitted by routes/compliance/chatMonitoring.js and
+    // its DPIA middleware.
+    CHAT_MONITORING_CHANGED: 'chat_monitoring_changed',
 };
 
 // Best-effort: the counts endpoint caches 60 s per org; anything that changes
@@ -344,4 +348,17 @@ function _resetProjectReruns() {
     _projectReruns.clear();
 }
 
+// ─────────────── Chat signals ───────────────
+//
+// Both chat signals checks read the effective state and the suppressed
+// totals, so a save, a delete or a DPIA for 'chat_monitoring' re-runs them.
+
+const CHAT_SIGNAL_CHECKS = Object.freeze(['GDPR-Art32-chat-shield-coverage', 'GDPR-Art35-chat-monitoring-safeguards']);
+_bus.on(EVENTS.CHAT_MONITORING_CHANGED, async ({ orgId }) => {
+    if (!orgId) return;
+    for (const id of CHAT_SIGNAL_CHECKS) await _rerun(orgId, id);
+    _invalidateCounts(orgId);
+});
+
 module.exports = { emit, EVENTS, _bus, PROJECT_RERUN_CHECKS, _resetProjectReruns, _projectRerunCount: () => _projectReruns.size };
+module.exports.CHAT_SIGNAL_CHECKS = CHAT_SIGNAL_CHECKS;

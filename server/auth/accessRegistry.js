@@ -249,8 +249,24 @@ module.exports = {
         'GET /api/privacy/shield-status': {
             enforcement: 'middleware',
             scope: { kind: 'selfOnly' },
-            note: 'routes/privacyShieldStatus.js — route-level requireAuth; anonymous → 401 before any resolution. Self-scoped summary of what the runtime would do with the CALLER\'s next message (enabled / source / action / failMode / guardReachable / euMode / coworkEnabled), read from the same resolution layer the message path runs. Never 500s and carries no ids, names or error text (BFSF-441): an unreadable configuration reads as "off", the safe direction for a status pill — no shield claim pre-auth, no green lock while the detector is unreachable.',
+            note: 'routes/privacyShieldStatus.js — route-level requireAuth; anonymous → 401 before any resolution. Self-scoped summary of what the runtime would do with the CALLER\'s next message (enabled / source / action / failMode / guardReachable / euMode / coworkEnabled / chatMonitoring), read from the same resolution layer the message path runs. chatMonitoring is the chat-signals notice for the caller\'s effective org (state, start date, version, chat types, signals, the org\'s own https notice URL) from core/entitlements/chatMonitoringFlag, the resolver the recorder reads too. Never 500s and carries no ids, names or error text (BFSF-441): an unreadable configuration reads as "off", the safe direction for a status pill — no shield claim pre-auth, no green lock while the detector is unreachable.',
             verifiedBy: 'routes/privacyShieldStatus.test.js',
+        },
+        // ── Chat signals: the caller's own "Don't count my chat turns" ──
+        // preference (GDPR Art. 21). requireAuth on each route; the user is
+        // the session's, never an input, and nothing returns an id. There is
+        // deliberately no admin equivalent, list or count.
+        'GET /api/privacy/chat-signals/preference': {
+            enforcement: 'middleware',
+            scope: { kind: 'selfOnly' },
+            note: 'routes/privacyChatSignals.js — route-level requireAuth; anonymous → 401. Answers { counted } for the CALLER only (stores/chatSignalObjectionStore.isObjecting on req.session.user.id); takes no query. No admin path exists: an objection is never visible to anyone else.',
+            verifiedBy: 'routes/privacyChatSignals.test.js',
+        },
+        'PUT /api/privacy/chat-signals/preference': {
+            enforcement: 'middleware',
+            scope: { kind: 'selfOnly' },
+            note: 'routes/privacyChatSignals.js — route-level requireAuth; anonymous → 401. Body { counted: boolean } (strict); writes the CALLER\'s own objection only (setObjecting on req.session.user.id) and answers { counted }.',
+            verifiedBy: 'routes/privacyChatSignals.test.js',
         },
     },
 

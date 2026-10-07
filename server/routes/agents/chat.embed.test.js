@@ -39,6 +39,8 @@ const Module = require('module');
 
 const seen = [];
 const pass = (req, res, next) => next();
+/** What the chat-signals resolver answers, and which org keys it was asked about. */
+const monitoring = { answer: null, asked: [] };
 
 /**
  * A published agent that belongs to no organisation, with every setting as
@@ -105,6 +107,10 @@ const MOCKS = {
         sendSSEError: (res, err) => { res.body = { error: err }; res.statusCode = 402; },
     },
     './crud': { canModifyAgent: async () => false, canReadAgent: async () => false },
+    // Chat signals: the resolver for the agent's org (the embed's notice).
+    '../../core/entitlements/chatMonitoringFlag': {
+        resolveChatMonitoring: async (orgKey) => { monitoring.asked.push(orgKey); return monitoring.answer; },
+    },
 };
 
 const MOCK_IDS = {};
@@ -152,7 +158,7 @@ function dispatch({ method = 'POST', url, body, user = null }) {
     });
 }
 
-test.beforeEach(() => { seen.length = 0; agent = { ...BASE_AGENT }; });
+test.beforeEach(() => { seen.length = 0; agent = { ...BASE_AGENT }; monitoring.answer = null; monitoring.asked = []; });
 
 const turn = (user) => dispatch({ url: '/a1/chat/stream', body: { message: 'hi', ephemeral: true }, user });
 
@@ -268,3 +274,68 @@ test('a signed-in account still reaches a published org-less agent with Web embe
     assert.strictEqual(seen.length, 1);
     assert.strictEqual(seen[0].userId, 'user7');
 });
+
+// ═══ GET /:id/embed: the chat-signals notice for website visitors ═══
+
+const NOTICE_OFF = { state: 'off', from: null, version: null, signals: [], privacyNoticeUrl: null };
+const ON_FOR_VISITORS = {
+    state: 'on', version: '2026-10-14T09:00:00.000Z', from: '2026-10-14',
+    surfaces: ['direct', 'agent_public'], paused: [{ surface: 'agent', missing: ['dpia_missing'] }],
+    signals: ['outcomes', 'kinds'], noticeUrl: 'https://acme.example/chat-signals', visitorNoticeUrl: 'https://acme.example/privacy',
+    retentionDays: 30,
+};
+
+test('chat signals: the notice appears only when website visitors are counted, from the agent\'s org', async () => {
+    agent = { ...BASE_AGENT, embed_enabled: true, organization_id: 'org-acme-42' };
+    monitoring.answer = ON_FOR_VISITORS;
+    const res = await dispatch({ method: 'GET', url: '/a1/embed' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.complianceNotice, {
+        state: 'on', from: '2026-10-14', version: '2026-10-14T09:00:00.000Z', signals: ['outcomes', 'kinds'],
+        privacyNoticeUrl: 'https://acme.example/privacy',
+    });
+    assert.deepStrictEqual(monitoring.asked, ['org-acme-42']);
+
+    monitoring.answer = { ...ON_FOR_VISITORS, state: 'scheduled' };
+    const scheduled = await dispatch({ method: 'GET', url: '/a1/embed' });
+    assert.strictEqual(scheduled.body.complianceNotice.state, 'scheduled');
+});
+
+test('chat signals: the off shape when visitors are not counted, the state is off or the agent has no org', async () => {
+    agent = { ...BASE_AGENT, embed_enabled: true, organization_id: 'org-acme-42' };
+    monitoring.answer = { ...ON_FOR_VISITORS, surfaces: ['direct', 'agent'] };
+    assert.deepStrictEqual((await dispatch({ method: 'GET', url: '/a1/embed' })).body.complianceNotice, NOTICE_OFF);
+    monitoring.answer = { ...ON_FOR_VISITORS, state: 'off' };
+    assert.deepStrictEqual((await dispatch({ method: 'GET', url: '/a1/embed' })).body.complianceNotice, NOTICE_OFF);
+
+    // An agent without an org is never counted, so nothing is announced and
+    // the resolver is not even asked.
+    agent = { ...BASE_AGENT, embed_enabled: true, organization_id: null };
+    monitoring.asked = [];
+    monitoring.answer = ON_FOR_VISITORS;
+    assert.deepStrictEqual((await dispatch({ method: 'GET', url: '/a1/embed' })).body.complianceNotice, NOTICE_OFF);
+    assert.deepStrictEqual(monitoring.asked, []);
+});
+
+test('chat signals: a resolver failure reads off; a non-https notice link is dropped', async () => {
+    agent = { ...BASE_AGENT, embed_enabled: true, organization_id: 'org-acme-42' };
+    monitoring.answer = { ...ON_FOR_VISITORS, visitorNoticeUrl: 'http://acme.example/privacy' };
+    assert.strictEqual((await dispatch({ method: 'GET', url: '/a1/embed' })).body.complianceNotice.privacyNoticeUrl, null);
+    monitoring.answer = Promise.reject(new Error('ECONNREFUSED postgres://beeflow:hunter2@db'));
+    monitoring.answer.catch(() => {});
+    const res = await dispatch({ method: 'GET', url: '/a1/embed' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.complianceNotice, NOTICE_OFF);
+});
+
+test('chat signals: the public body carries no org id, no paused list and no employee notice', async () => {
+    agent = { ...BASE_AGENT, embed_enabled: true, organization_id: 'org-acme-42' };
+    monitoring.answer = ON_FOR_VISITORS;
+    const res = await dispatch({ method: 'GET', url: '/a1/embed' });
+    assert.deepStrictEqual(Object.keys(res.body.complianceNotice).sort(), ['from', 'privacyNoticeUrl', 'signals', 'state', 'version']);
+    const wire = JSON.stringify(res.body);
+    for (const leak of ['org-acme-42', 'dpia_missing', 'paused', 'chat-signals', 'retention']) {
+        assert.ok(!wire.includes(leak), `the public embed body carries "${leak}"`);
+    }
+});
+

@@ -9,6 +9,7 @@
 
 const agentStore = require('../../../stores/agentStore');
 const { encryptionOpts } = require('./shared');
+const chatSignalsTurn = require('./chatSignalsTurn');
 const log = require('../../../telemetry/log');
 
 async function runSwarmTierTurn({ req, res, userId, message, conversationId, attachments }) {
@@ -46,6 +47,12 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
         if (!fallbackModelId) {
             return res.status(400).json({ error: 'No model is configured for the Swarm tier. Ask an admin to set one in Chat Model Tiers → Swarm (Direct).' });
         }
+
+        // Chat signals: the swarm's workers get the message without an input
+        // scan, so the turn counts as 'unscanned' with an unknown destination.
+        // Fire-and-forget (./chatSignalsTurn.js); the marker and the opt-out
+        // come from the same body as a regular direct turn.
+        chatSignalsTurn.countFixedTurn({ req, userId, surface: 'direct', outcome: 'unscanned', providerConfig: null });
 
         // SSE handshake (mirror of the block further down for the regular
         // direct-chat path — kept inline so the swarm branch is self-contained).

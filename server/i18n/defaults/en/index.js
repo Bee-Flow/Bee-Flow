@@ -37,6 +37,7 @@ const NAMESPACES = {
     "billing":         require('./billing.js'),
     "changepw":        require('./changepw.js'),
     "chat":            require('./chat.js'),
+    "chat_monitoring": require('./chat_monitoring.js'),
     "checkout":        require('./checkout.js'),
     "code_step":       require('./code_step.js'),
     "comments":        require('./comments.js'),

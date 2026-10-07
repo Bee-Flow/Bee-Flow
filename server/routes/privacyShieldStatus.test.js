@@ -41,10 +41,17 @@ function resetFixture() {
     fx.endpoint = { url: null, apiKey: '' };
     fx.health = null;           // probeGuardHealth
     fx.circuitOpen = false;
-    fx.throwOn = null;          // 'orgId' | 'aiConfig' | 'orgShield' | 'userShield'
-    fx.calls = { resolveEffectiveOrgId: 0, resolveOrgShield: [], resolveUserShield: [], probe: 0 };
+    fx.throwOn = null;          // 'orgId' | 'aiConfig' | 'orgShield' | 'userShield' | 'chatMonitoring'
+    fx.monitoring = null;       // resolveChatMonitoring
+    fx.calls = { resolveEffectiveOrgId: 0, resolveOrgShield: [], resolveUserShield: [], probe: 0, monitoring: [] };
 }
 resetFixture();
+
+// What the real resolver answers when chat signals are off.
+const OFF_MONITORING_RESOLVED = Object.freeze({
+    state: 'off', version: null, from: null, surfaces: [], paused: [], signals: [], noticeUrl: null, visitorNoticeUrl: null, retentionDays: 90,
+});
+const CHAT_MONITORING_OFF = { state: 'off', from: null, version: null, surfaces: [], signals: [], noticeUrl: null };
 
 // Free text that must never reach the client (BFSF-441).
 const SECRET_ERROR = 'ECONNREFUSED postgres://beeflow:hunter2@db:5432/beeflow_core';
@@ -101,6 +108,13 @@ const stubs = {
     '../services/guardInstaller': {
         async probeGuardHealth() { fx.calls.probe++; return fx.health; },
     },
+    '../core/entitlements/chatMonitoringFlag': {
+        async resolveChatMonitoring(orgKey) {
+            fx.calls.monitoring.push(orgKey);
+            if (fx.throwOn === 'chatMonitoring') throw new Error(SECRET_ERROR);
+            return fx.monitoring || OFF_MONITORING_RESOLVED;
+        },
+    },
 };
 const restore = installResolveStub(stubs);
 const router = require('./privacyShieldStatus');
@@ -129,7 +143,7 @@ const USER = { id: 'u-4711', email: 'ada@example.org', name: 'Ada Lovelace', org
 const SIGNED_IN = { isAuthenticated: true, user: USER };
 const ANON = undefined;
 
-const KEYS = ['action', 'coworkEnabled', 'enabled', 'euMode', 'failMode', 'guardReachable', 'source'];
+const KEYS = ['action', 'chatMonitoring', 'coworkEnabled', 'enabled', 'euMode', 'failMode', 'guardReachable', 'source'];
 
 // A resolved org shield the way resolveOrgShield returns it (subset).
 const ORG_SHIELD = {
@@ -178,6 +192,7 @@ test('signed in with an org shield and a healthy guard: the exact payload', asyn
         guardReachable: true,
         euMode: false,
         coworkEnabled: false,
+        chatMonitoring: CHAT_MONITORING_OFF,
     });
     assert.equal(res.headers['Cache-Control'], 'no-store', 'a proxy-cached claim is a stale green lock');
 });
@@ -193,7 +208,8 @@ test('the key set is fixed and the payload carries no personal data, rules or gu
     for (const leak of [USER.id, USER.email, 'Ada', 'Lovelace', USER.organizationId, 'IBAN', 'Nightingale', 'Traceback', 'cuda', 'guard:8000']) {
         assert.ok(!wire.includes(leak), `payload must not contain "${leak}": ${wire}`);
     }
-    for (const v of Object.values(res.body)) {
+    for (const [k, v] of Object.entries(res.body)) {
+        if (k === 'chatMonitoring') continue; // its own allow-list, pinned below
         assert.ok(v === null || typeof v === 'boolean' || typeof v === 'string', 'booleans and enums only');
     }
 });
@@ -213,7 +229,7 @@ test('nothing configured reads as off — a healthy guard alone is no claim', as
     const res = await dispatch(SIGNED_IN);
     assert.deepEqual(res.body, {
         enabled: false, source: 'off', action: null, failMode: 'fail_closed',
-        guardReachable: true, euMode: false, coworkEnabled: false,
+        guardReachable: true, euMode: false, coworkEnabled: false, chatMonitoring: CHAT_MONITORING_OFF,
     });
 });
 
@@ -434,3 +450,87 @@ test('a query naming another org is refused, not answered with the caller\'s own
     assert.equal(res.body.error, 'The Privacy Shield status is always your own; it takes no query parameters.');
     assert.equal(fx.calls.resolveEffectiveOrgId, 0, 'nothing was resolved for it');
 });
+
+// ── Chat signals: the in-chat notice rides on this status ────────────
+const SCHEDULED = Object.freeze({
+    state: 'scheduled', version: '2026-10-14T09:00:00.000Z', from: '2026-10-14',
+    surfaces: ['direct', 'agent_public'], paused: [{ surface: 'agent', missing: ['works_council_pending'] }],
+    signals: ['outcomes', 'kinds'], noticeUrl: 'https://acme.example/chat-signals', visitorNoticeUrl: 'https://acme.example/privacy',
+    retentionDays: 30,
+});
+
+test('chat signals off: the off block, and it is the same in OFF', async () => {
+    assert.deepEqual(router.OFF.chatMonitoring, CHAT_MONITORING_OFF);
+    const res = await dispatch(SIGNED_IN);
+    assert.deepEqual(res.body.chatMonitoring, CHAT_MONITORING_OFF);
+});
+
+test('chat signals scheduled: the chat types, the date and the version; paused types are never listed', async () => {
+    fx.orgId = 'org-acme-42';
+    fx.monitoring = SCHEDULED;
+    const res = await dispatch(SIGNED_IN);
+    assert.deepEqual(res.body.chatMonitoring, {
+        state: 'scheduled', from: '2026-10-14', version: '2026-10-14T09:00:00.000Z',
+        surfaces: ['direct', 'agent_public'], signals: ['outcomes', 'kinds'], noticeUrl: 'https://acme.example/chat-signals',
+    });
+    assert.deepEqual(fx.calls.monitoring, ['org-acme-42'], 'the caller\'s effective org, as the recorder keys it');
+    const wire = JSON.stringify(res.body.chatMonitoring);
+    for (const leak of ['agent"', 'works_council', 'paused', 'privacy', 'retention', 'org-acme-42']) {
+        assert.ok(!wire.includes(leak), `chatMonitoring carries "${leak}": ${wire}`);
+    }
+});
+
+test('chat signals: a caller without an org is told about the default bucket, independent of the shield', async () => {
+    fx.monitoring = { ...SCHEDULED, state: 'on' };
+    const res = await dispatch(SIGNED_IN);
+    assert.equal(res.body.enabled, false, 'no shield at all…');
+    assert.equal(res.body.chatMonitoring.state, 'on', '…and still the notice: transparency does not depend on the shield');
+    assert.deepEqual(fx.calls.monitoring, ['default']);
+});
+
+test('chat signals: a non-https notice link is dropped; unknown chat types and signals are filtered', async () => {
+    fx.monitoring = { ...SCHEDULED, noticeUrl: 'http://acme.example/n', surfaces: ['direct', 'project_chat', 'talk'], signals: ['outcomes', 'health'] };
+    const res = await dispatch(SIGNED_IN);
+    assert.equal(res.body.chatMonitoring.noticeUrl, null);
+    assert.deepEqual(res.body.chatMonitoring.surfaces, ['direct']);
+    assert.deepEqual(res.body.chatMonitoring.signals, ['outcomes']);
+    fx.monitoring = { ...SCHEDULED, noticeUrl: 'javascript:alert(1)' };
+    assert.equal((await dispatch(SIGNED_IN)).body.chatMonitoring.noticeUrl, null);
+});
+
+test('chat signals: a state that cannot be tied to a version reads off (no version, no marker, no notice)', async () => {
+    for (const bad of [
+        { ...SCHEDULED, version: null },
+        { ...SCHEDULED, version: '14 October 2026' },
+        { ...SCHEDULED, state: 'maybe' },
+        { ...SCHEDULED, surfaces: [] },
+        { ...SCHEDULED, signals: ['kinds'] },
+    ]) {
+        fx.monitoring = bad;
+        assert.deepEqual((await dispatch(SIGNED_IN)).body.chatMonitoring, CHAT_MONITORING_OFF, JSON.stringify(bad));
+    }
+});
+
+test('chat signals: a resolver failure reads off with 200 and no error text; the shield answer is unaffected', async () => {
+    fx.orgId = 'org-acme-42';
+    fx.orgShield = ORG_SHIELD;
+    healthyGuard();
+    fx.throwOn = 'chatMonitoring';
+    const res = await dispatch(SIGNED_IN);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.chatMonitoring, CHAT_MONITORING_OFF);
+    assert.equal(res.body.enabled, true);
+    assert.ok(!JSON.stringify(res.body).includes('hunter2'));
+});
+
+test('chat signals: the pure fold sanitises whatever it is handed', () => {
+    const on = router.summarizeShield({
+        aiConfig: fx.aiConfig, orgShield: null, userShield: null, orgId: null, coworkFlagOn: false, guardReachable: false, euMode: false,
+        chatMonitoring: { ...SCHEDULED, extra: 'org-acme-42', surfaces: ['agent', 'direct', 'agent'] },
+    });
+    assert.deepEqual(Object.keys(on.chatMonitoring).sort(), ['from', 'noticeUrl', 'signals', 'state', 'surfaces', 'version']);
+    assert.deepEqual(on.chatMonitoring.surfaces, ['direct', 'agent'], 'vocabulary order, no duplicates');
+    const none = router.summarizeShield({ aiConfig: fx.aiConfig, orgShield: null, userShield: null, orgId: null, coworkFlagOn: false, guardReachable: false, euMode: false });
+    assert.deepEqual(none.chatMonitoring, CHAT_MONITORING_OFF, 'no answer is the off answer');
+});
+

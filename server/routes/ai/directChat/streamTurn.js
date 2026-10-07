@@ -57,6 +57,7 @@ const { claimSharedThreadTurn } = require('./sharedThreadLock');
 const { swapModelForActiveStage } = require('./stageModelSwap');
 const { processAttachmentsAndUserMessage } = require('./attachmentIntake');
 const { runInputGates } = require('./inputGates');
+const { countDirectTurn } = require('./chatSignalsTurn');
 const { compactConversation } = require('./compactionPhase');
 const { buildChatOptions } = require('./chatOptions');
 const { computeStepMachineGuard, pipelineNeedsWrapUp, callAdapterWithFallback } = require('./stepMachine');
@@ -208,11 +209,17 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         // call one and surfaced "I don't have the tool!" (BFSF-127). Removed.
         // The real path for Gmail attachments is gmail_read_attachment; the
         // system prompt now steers the model there (see GMAIL/ATTACHMENT note).
+        // Chat signals: the gates fill this in with what they decided.
+        const chatSignal = { pii: {}, dlp: null, allowlistedHosts: [] };
         const inputGates = await runInputGates({
             req, res, send, userId, convId: turn.convId, message, messages: turn.messages, modelId: turn.modelId,
             config: turn.config, hasAttachments: !!(attachments && attachments.length > 0),
-            volatileMessage: turn.volatileMessage,
+            volatileMessage: turn.volatileMessage, chatSignal,
         });
+        // Reached on a normal return AND on every gate that ended the stream
+        // (undefined); a throw skips it, so an unexpected error is never
+        // counted. Fire-and-forget: see ./chatSignalsTurn.js.
+        countDirectTurn({ req, userId, chatSignal, config: turn.config });
         if (!inputGates) return;
         Object.assign(turn, inputGates);
 

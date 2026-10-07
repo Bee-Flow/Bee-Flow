@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import followToBottom from './followToBottom';
+import useChatSignals from '../components/chat/chatSignals/useChatSignals';
 import { directChatKbList } from '../components/chat/knowledgeBaseClaim';
 import useChatEngine from '../hooks/useChatEngine';
+import { chatSignalsSurfaceFor, resolveTurnEndpoint } from '../hooks/useChatEngine/turnEndpoint';
 import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
 import { API_BASE, authFetch, generateMessageId } from '../utils/helpers';
 import { hasRenderableContent, normalizeLoadedMessages } from '../utils/messageShape';
@@ -110,6 +112,24 @@ const useAgentHubData = ({
     // conversation its own turn created (useProjectChatStart), never whichever
     // chat happens to be on screen when the turn ends.
     const [turnConversation, setTurnConversation] = useState(null);
+
+    // Chat signals: the notice for the endpoint the next turn really goes to
+    // (resolved by the same function the engine uses, so a webpage panel,
+    // which reroutes the turn, has no notice), and the marker the engine adds
+    // to that turn. The engine reads the latest getter through a ref, so a
+    // change of notice never rebuilds sendMessage.
+    const chatSignals = useChatSignals({
+        user,
+        surface: chatSignalsSurfaceFor(resolveTurnEndpoint({
+            isDirectMode: !!directChatMode,
+            customEndpoint: sidePanelWebpageId ? '/ai/chat/webpage/stream' : undefined,
+            agentId: selectedAgent?.id,
+        })),
+        agentId: selectedAgent?.id,
+    });
+    const chatSignalsPayloadRef = useRef(chatSignals.payloadFor);
+    useEffect(() => { chatSignalsPayloadRef.current = chatSignals.payloadFor; }, [chatSignals.payloadFor]);
+    const getChatSignalsPayload = useCallback((surface) => chatSignalsPayloadRef.current?.(surface) ?? null, []);
 
     // Chat engine hook — owns messages, isLoading, sendMessage, stopGenerating
     const { messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate } = useChatEngine({
@@ -250,6 +270,7 @@ const useAgentHubData = ({
                 .filter(m => m.role !== 'tool' && m.role !== 'system' && hasRenderableContent(m))
                 .map(({ toolCall, isStreaming, ...clean }) => clean);
         }, [directChatMode, currentDirectConversation?.id, currentConversation?.id, selectedAgent?.id]),
+        getChatSignalsPayload,
     });
 
     // Once a thread has a message in it the mode is settled — see
@@ -788,7 +809,7 @@ const useAgentHubData = ({
 
     return {
         messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
-        turnConversation,
+        turnConversation, chatSignals,
         conversationStarted, handleVoiceTurnComplete,
         handleToggleSkill, agentAttachedSkillIds,
         designMode, setDesignMode,

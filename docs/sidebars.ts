@@ -233,6 +233,7 @@ const sidebars: SidebarsConfig = {
           label: 'Compliance',
           items: [
             'admin/audit-and-compliance',
+            'admin/chat-signals',
           ],
         },
       ],

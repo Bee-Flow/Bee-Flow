@@ -34,6 +34,10 @@ const DirectChatView = ({
     retryMessage, editAndRegenerate,
     renderSidePanels,
     activeProject = null, onOpenActiveProject, onLeaveActiveProject,
+    // useChatSignals() from useAgentHubData: the chat-signals notice for the
+    // endpoint this chat posts to, and the person's own switch. Both composers
+    // below get it, so the empty state and the conversation say the same.
+    chatSignals = null,
 }) => {
     return (
                     /* Direct Chat Mode */
@@ -154,6 +158,8 @@ const DirectChatView = ({
                                                     onToggleSkill={handleToggleSkill}
                                                     messages={messages}
                                                     onVoiceTurnComplete={handleVoiceTurnComplete}
+                                                    chatSignalsNotice={chatSignals?.notice ?? null}
+                                                    onChatSignalsCounted={chatSignals?.setCounted ?? null}
                                                     cowork={coworkComposer}
                                                     coworkMode={coworkMode}
                                                     onCoworkModeChange={setCoworkMode}
@@ -237,6 +243,8 @@ const DirectChatView = ({
                                             onToggleSkill={handleToggleSkill}
                                             messages={messages}
                                             onVoiceTurnComplete={handleVoiceTurnComplete}
+                                            chatSignalsNotice={chatSignals?.notice ?? null}
+                                            onChatSignalsCounted={chatSignals?.setCounted ?? null}
                                             cowork={coworkComposer}
                                             coworkMode={coworkMode}
                                             onCoworkModeChange={setCoworkMode}

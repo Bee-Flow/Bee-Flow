@@ -19,7 +19,7 @@ const { applyRegexGuardrails } = require('../../../core/agentRuntime/guardrailsR
 const orgHealth = require('../../../services/orgHealth');
 const log = require('../../../telemetry/log');
 
-async function runInputGates({ req, res, send, userId, convId, message, messages, modelId, config, hasAttachments = false, volatileMessage = null }) {
+async function runInputGates({ req, res, send, userId, convId, message, messages, modelId, config, hasAttachments = false, volatileMessage = null, chatSignal = null }) {
     // Per-turn addenda go on the VOLATILE system block, never on messages[0].
     // The stable block is the provider-cached prefix: one appended byte there
     // re-reads the whole prompt on a self-hosted model and re-writes the 1h
@@ -109,6 +109,9 @@ async function runInputGates({ req, res, send, userId, convId, message, messages
             }
         }
         const webSearchGuardEnabled = !!(orgShield?.enabled && orgShield?.webSearchGuardEnabled);
+        // Chat signals (./chatSignalsTurn.js): the caller's accumulator learns
+        // what the gates below decide. Host names and decisions only.
+        if (chatSignal) chatSignal.allowlistedHosts = Array.isArray(orgShield?.dlpAllowlistedHosts) ? orgShield.dlpAllowlistedHosts : [];
 
         // Content moderation (Hate/Violence/Sexual/Self-Harm) was removed when
         // the Azure Content Safety backend was dropped. PII detection still
@@ -180,7 +183,7 @@ async function runInputGates({ req, res, send, userId, convId, message, messages
             const _ps = startPrivacyScanPhase(send, messageText(messages[messages.length - 1]));
             let piiResult;
             try {
-                piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, null, null, { vaultUserId: userId, onProgress: _ps.onProgress });
+                piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, null, null, { vaultUserId: userId, onProgress: _ps.onProgress, report: chatSignal ? chatSignal.pii : undefined });
                 log.info(`[DirectChat] PII validateInputForPii returned: ${piiResult ? `entities=${piiResult.entities?.length ?? 'n/a'} tokenized=${!!piiResult.tokenizedText}` : 'null'}`);
             } catch (innerErr) {
                 log.error(`[DirectChat] PII INNER ERROR: ${innerErr.message}\n${innerErr.stack}`);
@@ -364,6 +367,7 @@ async function runInputGates({ req, res, send, userId, convId, message, messages
                     source: 'direct',
                 },
             });
+            if (chatSignal) chatSignal.dlp = { outcome: dlp.outcome, scanStatus: dlp.scanStatus, categories: Array.isArray(dlp.categories) ? dlp.categories : [], override: dlp.override === true, tooShort: dlp.tooShort === true };
             if (dlp.blocked) {
                 // Metadata only — outcome/policy, never the scanned content.
                 orgHealth.problem('chat.dlp_blocked', {

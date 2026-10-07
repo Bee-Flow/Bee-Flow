@@ -28,6 +28,13 @@
  * everything, which is the safe direction for evidence and the wrong one for
  * minimisation. That trade is the operator's.
  *
+ * ── Chat signals counts: always, on the org's own retention ──────────────
+ * chat_signal_counts (stores/chatSignalStore.js) holds weekly and daily
+ * counters of how the Privacy Shield handled chat messages. Each org chose
+ * 30-90 days for them (90 when unset), so that purge runs on every pass, also
+ * when both windows above are off: an operator switch must not be able to
+ * keep counts longer than the organisation promised its people.
+ *
  * MULTI-POD SAFE: Postgres advisory lock 0xBEEF10B (pattern from
  * jobs/usageOpenObservePush.js) — one pod per pass.
  */
@@ -98,10 +105,10 @@ const ACCESS_AUDIT_RETENTION_DAYS = (() => {
     return env;
 })();
 
-async function _deleteBatches(table, cutoff, timeCol = 'timestamp') {
+async function _deleteBatches(table, cutoff, timeCol = 'timestamp', runSql = run) {
     let deleted = 0;
     for (let i = 0; i < MAX_BATCHES; i++) {
-        const res = await run(`
+        const res = await runSql(`
             DELETE FROM ${table}
             WHERE id IN (SELECT id FROM ${table} WHERE ${timeCol} < $1 ORDER BY id LIMIT ${BATCH_SIZE})
         `, [cutoff]);
@@ -112,48 +119,80 @@ async function _deleteBatches(table, cutoff, timeCol = 'timestamp') {
     return deleted;
 }
 
-async function monitoringRetentionPass() {
-    // Two independent windows: either may be off while the other runs.
-    if (!RETENTION_DAYS && !ACCESS_AUDIT_RETENTION_DAYS) {
-        return { deleted: 0, disabled: true, ts: new Date().toISOString() };
-    }
-    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60_000).toISOString();
-    const t0 = Date.now();
-    let acquired = false;
-    let client;
-    let ok = true;
-    const deleted = {};
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) return { skipped: 'lock', ts: new Date().toISOString() }; // another pod owns this pass
-        if (RETENTION_DAYS) {
-            for (const table of TABLES) {
-                deleted[table] = await _deleteBatches(table, cutoff);
-            }
-        }
-        if (ACCESS_AUDIT_RETENTION_DAYS) {
-            const auditCutoff = new Date(Date.now() - ACCESS_AUDIT_RETENTION_DAYS * 24 * 60 * 60_000).toISOString();
-            deleted[ACCESS_AUDIT_TABLE] = await _deleteBatches(ACCESS_AUDIT_TABLE, auditCutoff, 'created_at');
-        }
-    } catch (e) {
-        ok = false;
-        log.error('[monitoringRetention] pass error:', e.message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
-            client.release();
-        }
-        if (acquired) recordJobRun({ job: 'monitoring_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
-    }
-    const total = Object.values(deleted).reduce((a, b) => a + b, 0);
-    if (total) log.info(`[monitoringRetention] deleted ${JSON.stringify(deleted)} older than ${RETENTION_DAYS}d (cutoff ${cutoff})`);
-    return { deleted, cutoff, ts: new Date().toISOString() };
+/** The chat signals purge, required lazily so this job loads without the store. */
+function _purgeChatSignals() {
+    return require('../stores/chatSignalStore').purgeExpired();
 }
+
+/**
+ * One retention pass over injectable dependencies; the job below runs the
+ * real ones. Tests pass their own pool, SQL runner, purge and windows instead
+ * of reaching into the module system.
+ * @param {{ pool: { connect: () => Promise<any> }, run: (sql: string, params?: any[]) => Promise<any>,
+ *   purgeChatSignals: () => Promise<number>, recordJobRun: (row: object) => void,
+ *   retentionDays: number, accessAuditRetentionDays: number }} deps
+ */
+function makeMonitoringRetentionPass(deps) {
+    const retentionDays = deps.retentionDays;
+    const accessAuditRetentionDays = deps.accessAuditRetentionDays;
+    return async function monitoringRetentionPass() {
+        // Two independent windows (either may be off while the other runs) and
+        // the chat signals purge, which always runs — so the lock is always taken.
+        const cutoff = retentionDays ? new Date(Date.now() - retentionDays * 24 * 60 * 60_000).toISOString() : null;
+        const t0 = Date.now();
+        let acquired = false;
+        let client;
+        let ok = true;
+        const deleted = {};
+        try {
+            client = await deps.pool.connect();
+            const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [LOCK_KEY]);
+            acquired = !!lockRes.rows[0]?.locked;
+            if (!acquired) return { skipped: 'lock', ts: new Date().toISOString() }; // another pod owns this pass
+            if (retentionDays) {
+                for (const table of TABLES) {
+                    deleted[table] = await _deleteBatches(table, cutoff, 'timestamp', deps.run);
+                }
+            }
+            if (accessAuditRetentionDays) {
+                const auditCutoff = new Date(Date.now() - accessAuditRetentionDays * 24 * 60 * 60_000).toISOString();
+                deleted[ACCESS_AUDIT_TABLE] = await _deleteBatches(ACCESS_AUDIT_TABLE, auditCutoff, 'created_at', deps.run);
+            }
+            // Outside the retentionDays gate on purpose: see the header.
+            try {
+                deleted.chat_signal_counts = await deps.purgeChatSignals();
+            } catch (e) {
+                ok = false;
+                log.error('[monitoringRetention] chat signals purge error:', e && e.code ? e.code : 'error');
+            }
+        } catch (e) {
+            ok = false;
+            log.error('[monitoringRetention] pass error:', e.message);
+        } finally {
+            if (client) {
+                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
+                client.release();
+            }
+            if (acquired) deps.recordJobRun({ job: 'monitoring_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
+        }
+        const total = Object.values(deleted).reduce((a, b) => a + b, 0);
+        if (total) log.info(`[monitoringRetention] deleted ${JSON.stringify(deleted)}${cutoff ? ` (monitoring ledgers older than ${retentionDays}d, cutoff ${cutoff})` : ''}`);
+        return { deleted, cutoff, ts: new Date().toISOString() };
+    };
+}
+
+const monitoringRetentionPass = makeMonitoringRetentionPass({
+    pool,
+    run,
+    purgeChatSignals: _purgeChatSignals,
+    recordJobRun,
+    retentionDays: RETENTION_DAYS,
+    accessAuditRetentionDays: ACCESS_AUDIT_RETENTION_DAYS,
+});
 
 module.exports = {
     monitoringRetentionPass,
+    makeMonitoringRetentionPass,
     RETENTION_DAYS,
     ACCESS_AUDIT_RETENTION_DAYS,
     MIN_ACCESS_AUDIT_DAYS,

@@ -36,7 +36,7 @@ The overall score (0–100, severity-weighted) always shows the split — a pass
 | **Incidents** | Breach registry (Art. 33/34): recording starts the 72-hour clock; email the configured breach recipients; record the authority notification (attestation with reference number) and, for high-risk incidents, the data-subject notification. Bulk-decrypt anomalies create a draft incident automatically. |
 | **ROPA** | The Art. 30 register, auto-generated from live configuration (agents → activities, observed egress operators → processors, settings → controller). Review-and-confirm instead of typing; per-operator SCC/DPA attestation; PDF export. |
 | **DPIA** | Art. 35 assessments per high-risk agent (heuristic flags automated-decision keywords, PII categories, external models): quick attestation or a short questionnaire (incl. the Art. 26 human-oversight answer); PDF export per assessment. |
-| **Settings** | DPO contact, legal bases, data residency, memory-retention window, privacy-notice URL, AI-literacy attestation (Art. 4), breach recipients. A first-run wizard prefills these from your live configuration. |
+| **Settings** | DPO contact, legal bases, data residency, memory-retention window, privacy-notice URL, AI-literacy attestation (Art. 4), breach recipients. A first-run wizard prefills these from your live configuration. Below them, the optional [Chat signals](chat-signals.md) card: counts that show whether the Privacy Shield works in chat, never used to evaluate employees, off by default. |
 
 ### Public data-subject request form
 
@@ -68,6 +68,7 @@ Each PDF footer carries the SHA-256 of its source data, and generating one write
 | `compliance_checks` / `compliance_evidence` | Check results time-series + the append-only hashed evidence chain. |
 | `dsr_requests`, `compliance_incidents`, `dpia_assessments` | The DSR, incident and DPIA registers. |
 | `access_audit_log` | Access-control changes (users, roles, groups, invitations, organisations) **and every authentication event** — see below. |
+| `chat_signal_counts` | Only when [chat signals](chat-signals.md) are switched on (off by default): weekly (employees) or daily (website visitors) counts of how the Privacy Shield handled chat messages. No user, conversation or agent, no message text, no values found; 30 to 90 days. |
 
 ### Authentication events (ISO/IEC 27001 A.8.15, A.5.16)
 
@@ -179,5 +180,6 @@ deliberate edit with a reason.
 
 ## Where to next
 
+- [Chat signals](chat-signals.md) — optional counts that show whether the Privacy Shield works in chat, with their preconditions, notice and objection switches.
 - [Privacy shield](../features/privacy-shield.md) — the detection engine that produces guardrail events.
 - [Reference → Telemetry](../reference/telemetry.md) — operational metrics.
