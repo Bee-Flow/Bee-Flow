@@ -11,9 +11,9 @@ import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Text } from '@/shared/ui';
 
-import { isPending } from './ladderModel';
-import { outcomeText, savedStamp, step2OpenLine } from './ladderWords';
 import type { AiActLadder } from './useAiActLadder';
+import { isPending } from '../model/ladderModel';
+import { outcomeText, savedStamp, step2OpenLine } from '../model/ladderWords';
 
 export function LadderOutcomeStep({ ladder }: { ladder: AiActLadder }) {
     const t = useTranslation();

@@ -3,15 +3,15 @@
  * (a faint red wash when failing), the title in its ink, the detail below.
  */
 
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, Text, tint, tonePair } from '@/shared/ui';
 
-import type { SubCardWords } from './ladderCards';
+import type { SubCardWords } from '../model/ladderCards';
 
-export function LadderSubCard({ card, testID }: { card: SubCardWords; testID: string }) {
+export function LadderSubCard({ card, testID, children }: { card: SubCardWords; testID: string; children?: ReactNode }) {
     const styles = useThemedStyles(makeStyles);
     const ink = styles[`${card.tone}Ink`];
     return (
@@ -25,6 +25,7 @@ export function LadderSubCard({ card, testID }: { card: SubCardWords; testID: st
             <Text variant="caption" tone="secondary">
                 {card.detail}
             </Text>
+            {children}
         </View>
     );
 }

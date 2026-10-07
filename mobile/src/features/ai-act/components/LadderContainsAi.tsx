@@ -9,10 +9,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import type { AiActSignals } from '@/features/flow-editor/api';
 import { Icon, Text } from '@/shared/ui';
 
-import { containsAiWords } from './ladderWords';
+import type { AiActSignals } from '../api';
+import { containsAiWords } from '../model/ladderWords';
 
 export function LadderContainsAi({ signals }: { signals: AiActSignals | null }) {
     const t = useTranslation();

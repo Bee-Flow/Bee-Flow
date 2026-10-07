@@ -12,11 +12,11 @@ import { useTranslation } from '@/core/i18n';
 import { Text } from '@/shared/ui';
 
 import { LadderAnnexQuestion } from './LadderAnnexQuestion';
-import { orderByHints } from './ladderModel';
-import { annexAnsweredCount, annexArticlesFor } from './ladderOutcome';
 import { LadderStepHeader } from './LadderStepHeader';
-import { ANNEX_QUESTIONS, step3Verdict, stepWords } from './ladderWords';
 import type { AiActLadder } from './useAiActLadder';
+import { orderByHints } from '../model/ladderModel';
+import { annexAnsweredCount, annexArticlesFor } from '../model/ladderOutcome';
+import { ANNEX_QUESTIONS, step3Verdict, stepWords } from '../model/ladderWords';
 
 export function LadderAnnexStep({ ladder }: { ladder: AiActLadder }) {
     const t = useTranslation();

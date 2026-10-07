@@ -10,11 +10,11 @@ import { StyleSheet, View } from 'react-native';
 
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import type { AiActYesNo } from '@/features/flow-editor/api';
 import { Chip, Text } from '@/shared/ui';
 
-import { ANNEX_III_ARTICLES, type AnnexDomain } from './ladderOutcome';
-import type { Worded } from './ladderWords';
+import type { AiActYesNo } from '../api';
+import { ANNEX_III_ARTICLES, type AnnexDomain } from '../model/ladderOutcome';
+import type { Worded } from '../model/ladderWords';
 
 export function LadderAnnexQuestion({
     question,

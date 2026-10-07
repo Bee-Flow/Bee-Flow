@@ -18,7 +18,6 @@ export const flowKeys = {
     webhooks: (id: string) => ['automate', 'flow', id, 'webhooks'] as const,
     formLinks: (id: string) => ['automate', 'flow', id, 'forms'] as const,
     builderSession: (id: string) => ['automate', 'flow', id, 'builder-session'] as const,
-    aiAct: (id: string) => ['automate', 'flow', id, 'ai-act'] as const,
     /** The pending count a save's answer leaves out (GET /:id/counts). */
     counts: (id: string) => ['automate', 'flow', id, 'counts'] as const,
 

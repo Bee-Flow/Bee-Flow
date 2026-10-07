@@ -20,8 +20,7 @@
  * ladderModel.lockstep.test.ts.
  */
 
-import type { AiActAnswers, AiActYesNo } from '@/features/flow-editor/api';
-
+import type { AiActAnswers, AiActYesNo } from '../api';
 import {
     ANNEX_III_CATEGORIES,
     annexAnswerFromDomains,

@@ -6,7 +6,8 @@
  */
 
 import type { TranslateFn } from '@/core/i18n';
-import type { AiActAssessment, AiActOutcome } from '@/features/flow-editor/api';
+
+import type { AiActAssessment, AiActOutcome } from '../api';
 
 export const OUTCOME_LABEL: Readonly<Record<AiActOutcome, { key: string; en: string }>> = {
     not_applicable: { key: 'compliance.ladder_outcome_chip_not_applicable', en: 'AI Act not applicable' },
@@ -57,3 +58,12 @@ export function signalsLine(assessment: AiActAssessment | null, t: TranslateFn):
     if (s.generatesContent === true) parts.push(t('compliance.ladder_sig_generates', 'generates content'));
     return parts.length ? parts.join(' · ') : null;
 }
+
+/** The Systems list's outcome pill tones — the web's OUTCOME_PILL (pages/frameworks/PerAutomationTab.jsx). */
+export const OUTCOME_TONE: Readonly<Record<AiActOutcome, ChipTone>> = {
+    prohibited: 'error',
+    high_risk: 'error',
+    transparency: 'warning',
+    minimal: 'success',
+    not_applicable: 'neutral',
+};

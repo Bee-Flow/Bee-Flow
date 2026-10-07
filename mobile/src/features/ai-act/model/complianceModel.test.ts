@@ -7,15 +7,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { AiActAssessment, AiActSignals } from '@/features/flow-editor/api';
-
+import type { AiActAssessment, AiActSignals } from '../api';
 import { chipLabel, chipState, OUTCOME_LABEL, outcomeWords, signalsLine } from './complianceModel';
 
 const t = (_key: string, fallback: string, params?: Record<string, unknown>) =>
     fallback.replace(/\{(\w+)\}/g, (_, k: string) => String(params?.[k] ?? ''));
 
 const WEB = fs.readFileSync(
-    path.resolve(__dirname, '../../../../../../agent-hub/src/components/admin/compliance/ladder/ComplianceBlock.jsx'),
+    path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/compliance/ladder/ComplianceBlock.jsx'),
     'utf8',
 );
 

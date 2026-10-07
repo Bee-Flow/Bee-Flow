@@ -20,7 +20,11 @@ const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
 jest.mock('expo-router', () => jest.requireActual('@/shared/testing/screenMocks').focusedRouter(() => mockRouter));
 jest.mock('@/core/api/client', () => jest.requireActual('@/shared/testing/screenMocks').apiClient());
 let mockManage = true;
-jest.mock('@/core/access', () => ({ ...jest.requireActual('@/core/access'), useHasPermission: () => mockManage }));
+let mockCompliance = false;
+jest.mock('@/core/access', () => ({
+    ...jest.requireActual('@/core/access'),
+    useHasPermission: (p: string) => (p === 'admin_compliance' ? mockCompliance : mockManage),
+}));
 
 const AGENT = {
     id: 'a1',
@@ -46,6 +50,7 @@ const wrap = (ui: ReactElement) => renderWithProviders(<ToastProvider><ConfirmPr
 
 beforeEach(() => {
     mockManage = true;
+    mockCompliance = false;
     agent = { ...AGENT };
     jest.clearAllMocks();
     (api.get as jest.Mock).mockImplementation((path: string) => {
@@ -110,5 +115,28 @@ describe('AgentEditScreen', () => {
         await wrap(<AgentEditScreen id="a1" />);
         await fireEvent.press(await screen.findByText('Publish new version'));
         await waitFor(() => expect(api.post).toHaveBeenCalledWith('/agents/a1/publish-version', undefined, { retry: false }));
+    });
+});
+
+describe('the AI Act compliance block', () => {
+    const ROW = { outcome: 'minimal', attested_at: '2026-09-01T10:00:00Z', expires_at: '2099-01-01T00:00:00Z', current: true, signals: { contains_ai: true }, answers: null };
+
+    it('shows the agent’s declaration and opens the agent ladder for someone who may see compliance', async () => {
+        mockCompliance = true;
+        const base = (api.get as jest.Mock).getMockImplementation() as (p: string) => Promise<unknown>;
+        (api.get as jest.Mock).mockImplementation((path: string) =>
+            path === '/api/compliance/ai-act/assessments/agent/a1' ? Promise.resolve(ROW) : base(path),
+        );
+        await wrap(<AgentEditScreen id="a1" />);
+        expect(await screen.findByText('Minimal risk')).toBeTruthy();
+        await fireEvent.press(screen.getByTestId('flow-compliance-assess'));
+        expect(screen.getByText('Does the AI Act apply to this agent?')).toBeTruthy();
+    });
+
+    it('stays away without the compliance permission', async () => {
+        await wrap(<AgentEditScreen id="a1" />);
+        expect(await screen.findByDisplayValue('Helpdesk')).toBeTruthy();
+        expect(screen.queryByTestId('flow-compliance-chip')).toBeNull();
+        expect(api.get).not.toHaveBeenCalledWith('/api/compliance/ai-act/assessments/agent/a1');
     });
 });

@@ -10,7 +10,7 @@ import { StyleSheet, View } from 'react-native';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Text, tint, tonePair, type TextTone } from '@/shared/ui';
 
-import type { StepState } from './ladderModel';
+import type { StepState } from '../model/ladderModel';
 
 const VERDICT_TONE: Record<StepState, TextTone> = { done: 'success', failing: 'error', open: 'secondary' };
 

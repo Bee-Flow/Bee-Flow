@@ -7,8 +7,8 @@
  */
 
 import type { TranslateFn } from '@/core/i18n';
-import type { AiActAssessment, AiActSignals } from '@/features/flow-editor/api';
 
+import type { AiActAssessment, AiActSignals } from '../api';
 import { isPending } from './ladderModel';
 import {
     ANNEX_III_CATEGORIES,

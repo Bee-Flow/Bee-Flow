@@ -16,16 +16,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { AiActSignals } from '@/features/flow-editor/api';
 import { loadWebFunctions } from '@/shared/testing/webModule';
 
+import type { AiActSignals } from '../api';
 import { disclosureCard, markingCard } from './ladderCards';
 import { answerDomain, art5FromDenied, canRecord, orderByHints, prefill, step2State, toggleDenied } from './ladderModel';
 import { ANNEX_III_CATEGORIES, ART5_PRACTICES, outcome, type Verdict } from './ladderOutcome';
 import { ANNEX_QUESTIONS, ART5_CHIPS, containsAiWords, outcomeText, step2Verdict, step3Verdict } from './ladderWords';
 
 const LADDER = 'components/admin/compliance/ladder';
-const WEB_DIR = path.resolve(__dirname, `../../../../../../agent-hub/src/${LADDER}`);
+const WEB_DIR = path.resolve(__dirname, `../../../../../agent-hub/src/${LADDER}`);
 const MODAL = fs.readFileSync(`${WEB_DIR}/AiActLadderModal.jsx`, 'utf8');
 const BLOCK = fs.readFileSync(`${WEB_DIR}/ComplianceBlock.jsx`, 'utf8');
 
@@ -69,10 +69,13 @@ describe('the questions', () => {
 describe('the words', () => {
     const webWords = new Map<string, Set<string>>();
     for (const [key, en] of [...ladderCalls(MODAL), ...ladderCalls(BLOCK)]) webWords.set(key, (webWords.get(key) ?? new Set()).add(en));
-    const mine = fs
-        .readdirSync(__dirname)
-        .filter((f) => /^(Ladder|ladder|AiActLadder|useAiActLadder|Compliance)\w*\.tsx?$/.test(f) && !f.includes('.test.'))
-        .flatMap((f) => ladderCalls(fs.readFileSync(path.join(__dirname, f), 'utf8')).map(([key, en]) => [f, key, en] as const));
+    const dirs = [__dirname, path.join(__dirname, '../components')];
+    const mine = dirs.flatMap((dir) =>
+        fs
+            .readdirSync(dir)
+            .filter((f) => /^(Ladder|ladder|AiActLadder|useAiActLadder|AiActCompliance)\w*\.tsx?$/.test(f) && !f.includes('.test.'))
+            .flatMap((f) => ladderCalls(fs.readFileSync(path.join(dir, f), 'utf8')).map(([key, en]) => [f, key, en] as const)),
+    );
 
     it('finds the sheet’s sentences', () => {
         expect(mine.length).toBeGreaterThan(50);
