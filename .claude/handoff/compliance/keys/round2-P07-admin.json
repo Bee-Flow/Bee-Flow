@@ -23,8 +23,7 @@
     "compliance.conn_status_findings": "Swept with findings",
     "compliance.conn_connection_missing": "Linked connection not found ({id})",
     "compliance.ai_literacy_confirmed_at": "Confirmed {date}",
-    "compliance.settings.datatable_review_days": "Register review every (days)",
-    "compliance.settings.project_retention_days": "Project retention (days)"
+    "compliance.settings.datatable_review_days": "Register review every (days)"
   },
   "nl": {
     "compliance.set_section_accountability": "Verantwoording",
@@ -50,7 +49,6 @@
     "compliance.conn_status_findings": "Sweep met bevindingen",
     "compliance.conn_connection_missing": "Gekoppelde verbinding niet gevonden ({id})",
     "compliance.ai_literacy_confirmed_at": "Bevestigd op {date}",
-    "compliance.settings.datatable_review_days": "Register herzien elke (dagen)",
-    "compliance.settings.project_retention_days": "Bewaartermijn projecten (dagen)"
+    "compliance.settings.datatable_review_days": "Register herzien elke (dagen)"
   }
 }

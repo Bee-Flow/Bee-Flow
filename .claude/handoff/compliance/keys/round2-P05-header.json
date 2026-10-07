@@ -38,7 +38,7 @@
     "compliance.hdr_portability_coverage": "{n} van {total} soorten overdraagbaar",
     "compliance.hdr_machinery_scan": "Opnieuw scannen",
     "compliance.hdr_custom_new": "Nieuw kader",
-    "compliance.mob_run_at": "run {date} {time}",
+    "compliance.mob_run_at": "run op {date} om {time}",
     "compliance.rail_audits": "Audits & beoordelingen"
   }
 }
