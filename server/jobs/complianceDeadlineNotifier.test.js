@@ -315,6 +315,25 @@ test('the legacy Art. 33 sweep skips CRA-only rows, so a CRA clock is never nudg
     assert.deepStrictEqual(art33.map(n => n.message.match(/Incident #(\d+)/)[1]), ['42'], 'only the row that is also a GDPR matter');
 });
 
+test('the legacy sweep cites each regime\'s own article: a NIS2-only row is never labelled Art. 33', async () => {
+    const { deps, sent } = harness({ incidentStore: {
+        listNeedingAttention: async () => [
+            { id: 50, kind: 'security_incident', regimes: ['NIS2'], deadline_at: at(10 * HOUR) },
+            { id: 51, kind: 'breach', regimes: ['GDPR', 'NIS2'], deadline_at: at(-HOUR) },
+            { id: 52, kind: 'security_incident', regimes: ['DORA'], deadline_at: at(2 * HOUR) },
+            { id: 53, kind: 'breach', regimes: null, deadline_at: at(10 * HOUR) },
+        ],
+        listOpenClocks: async () => [],
+    } });
+    await run(deps);
+    const titleOf = (id) => sent.find(n => n.message.includes(`Incident #${id} `))?.title;
+    assert.strictEqual(titleOf(50), 'Incident approaching its notification deadline (NIS2 Art. 23(4))');
+    assert.strictEqual(titleOf(51), 'Incident past its notification deadline (GDPR Art. 33 · NIS2 Art. 23(4))');
+    assert.strictEqual(titleOf(52), 'Incident approaching its notification deadline (DORA Art. 30(3)(b))');
+    assert.strictEqual(titleOf(53), 'Incident approaching its notification deadline (GDPR Art. 33)', 'no regimes is the GDPR column default');
+    assert.doesNotMatch(titleOf(50), /Art\. 33|72-hour/);
+});
+
 test('legacy Art. 33 incident sweep is deduped too and names the incident by id, not title', async () => {
     const { deps, sent } = harness({ incidentStore: {
         listNeedingAttention: async () => [{ id: 5, title: 'Laptop of J. Jansen (jan@example.org) stolen', deadline_at: at(10 * HOUR) }],

@@ -13,7 +13,7 @@
 
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
-const { SUPPLIER_ROW } = require('../../../stores/integrationLocationSql');
+const { SUPPLIER_ROW, LEDGER_ORG_SQL } = require('../../../stores/integrationLocationSql');
 
 module.exports = {
     id: 'ISO27001-A.5.20-suppliers',
@@ -37,7 +37,8 @@ module.exports = {
                        BOOL_OR(COALESCE(is_eu, false)) AS is_eu,
                        COUNT(*)::int AS calls
                 FROM integration_activity_log
-                WHERE organization_id = $1
+                -- The 'default' bucket also owns the org-less rows (LEDGER_ORG_SQL).
+                WHERE ${LEDGER_ORG_SQL}
                   AND timestamp >= NOW() - INTERVAL '30 days'
                   -- Not local, and not a row without operator or location:
                   -- a global network (Cloudflare, …) is a supplier and stays.

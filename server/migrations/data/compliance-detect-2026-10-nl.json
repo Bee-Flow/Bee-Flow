@@ -25,7 +25,8 @@
     "compliance.checks.aia_art13.title": "Transparantie: agent beschreven",
     "compliance.checks.aia_art13.fix": "Vul voor elke agent onder Beheer → Agents een betekenisvolle beschrijving in (minstens 30 tekens).",
     "compliance.checks.aia_art53.title": "Inventaris van AI-modellen voor algemene doeleinden",
-    "compliance.checks.aia_art53.fix": "Bekijk de modelinventaris in het bewijs van deze check en bevestig de SCC/verwerkersovereenkomst voor elke externe aanbieder onder Compliance → Verwerkingsregister."
+    "compliance.checks.aia_art53.fix": "Bekijk de modelinventaris in het bewijs van deze check en bevestig de SCC/verwerkersovereenkomst voor elke externe aanbieder onder Compliance → Verwerkingsregister.",
+    "dsr_public.subtitle": "Op grond van de AVG kun je vragen welke persoonsgegevens we over je verwerken, en ze laten corrigeren, exporteren of verwijderen. Dien je verzoek hieronder in — je krijgt binnen één maand na ontvangst antwoord; indien nodig kan die termijn met nog eens twee maanden worden verlengd."
   },
   "reworded": {
     "compliance.dsr_error_already_extended": {

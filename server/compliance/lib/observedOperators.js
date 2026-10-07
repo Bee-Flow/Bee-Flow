@@ -28,7 +28,7 @@
 
 const { getAll } = require('../../db');
 const configStore = require('../../stores/configStore');
-const { SUPPLIER_ROW } = require('../../stores/integrationLocationSql');
+const { SUPPLIER_ROW, LEDGER_ORG_SQL } = require('../../stores/integrationLocationSql');
 
 const WINDOW_DAYS = 30;
 
@@ -40,17 +40,9 @@ const WINDOW_DAYS = 30;
  */
 const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
-/**
- * The org filter for `integration_activity_log`, with `$1` the org id.
- *
- * logToolEgress writes `organization_id` NULL for a user with no organisation,
- * which on a single-tenant install is every user — while the scheduler sweeps
- * that install as the 'default' bucket. A plain `organization_id = $1` meant
- * 'default' never saw its own traffic. The NULL/'' rows count for 'default'
- * only, never for a real org, and the comparisons stay on the bare column so
- * the org index is still usable.
- */
-const LEDGER_ORG_SQL = "(organization_id = $1 OR ($1::text = 'default' AND (organization_id IS NULL OR organization_id = '')))";
+// LEDGER_ORG_SQL, the org filter for `integration_activity_log` (the 'default'
+// bucket also owns org-less rows), lives in stores/integrationLocationSql.js
+// and is re-exported below for the readers that import it from here.
 
 // Provider types that run on the org's own infrastructure. Read from the local
 // runtime register when it is available so a new runtime is excluded the day

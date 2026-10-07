@@ -24,6 +24,7 @@
 const fs = require('fs');
 const path = require('path');
 const configStore = require('../../../stores/configStore');
+const { configuredSsoProviders } = require('../../lib/ssoProviders');
 // Cached boot-time verdict on OPAQUE_SERVER_SETUP; never loads the WASM.
 const { getServerSetupStatus } = require('../../../auth/opaqueSetup');
 
@@ -71,13 +72,11 @@ module.exports = {
             minPasswordLength = require(path.join(AUTH_DIR, 'passwordPolicy')).MIN_PASSWORD_LENGTH;
         } catch { /* policy module missing — reported below */ }
 
-        const providers = (await configStore.getConfig('providers')) || {};
-        const ssoProviders = [];
-        for (const [name, p] of Object.entries(providers)) {
-            if (p && p.clientId && p.clientSecret) ssoProviders.push(name);
-        }
-        const oauth = (await configStore.getConfig('oauth')) || {};
-        if (oauth.nextcloudUrl && oauth.clientId && oauth.clientSecret) ssoProviders.push('nextcloud');
+        // One predicate with NIS2 Art. 21(2)(j): lib/ssoProviders.js.
+        const ssoProviders = configuredSsoProviders(
+            await configStore.getConfig('providers'),
+            await configStore.getConfig('oauth'),
+        );
 
         const evidence = {
             lockout_mechanism: lockoutActive,

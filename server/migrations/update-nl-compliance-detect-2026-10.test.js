@@ -16,14 +16,25 @@ const path = require('node:path');
 
 const { NL_TRANSLATIONS, NL_REWORDED, applyNl, DATA_SHA256 } = require('./update-nl-compliance-detect-2026-10');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
-const SEED = require('./data/compliance-center-nl.json');
 const { NL_TRANSLATIONS: BOOT_LIST } = require('../boot/bootMigrations');
+// What a fresh install seeds before this migration runs: the Compliance Center
+// map, plus the collaboration catalogue, which owns the project-check families
+// (compliance.checks.iso_project_* and co.) and so holds their Dutch instead of
+// the map. No key is in both (that catalogue's own test pins it).
+const SEED = {
+    ...require('./add-nl-collaboration-wave2-documents-compliance-translations').NL_TRANSLATIONS,
+    ...require('./data/compliance-center-nl.json'),
+};
 
 const placeholders = (s) => [...String(s).matchAll(/\{([a-z_]+)\}/gi)].map((m) => m[1]).sort();
 
+/** sha256 of a file's bytes: the assertion is about a data file's hash, not about source text. */
+function sha256Of(file) {
+    return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+
 test('the pinned hash is the data file\'s, so a data change re-runs the migration', () => {
-    const data = fs.readFileSync(path.join(__dirname, 'data', 'compliance-detect-2026-10-nl.json'));
-    assert.strictEqual(crypto.createHash('sha256').update(data).digest('hex'), DATA_SHA256);
+    assert.strictEqual(sha256Of(path.join(__dirname, 'data', 'compliance-detect-2026-10-nl.json')), DATA_SHA256);
 });
 
 test('every key exists in the English catalog, has Dutch, and is not the English copied over', () => {
@@ -53,6 +64,8 @@ test('the DSR clock reads one month, and an extension two months, in Dutch too (
     const clock = [
         'compliance.dsr_toast_captured', 'compliance.hdr_dsr_window', 'compliance.ovw_deadlines_hint', 'compliance.dsr_subtitle',
         'compliance.nav_dsr_desc', 'compliance.dsr_capture_desc', 'compliance.dsr_pf_intro',
+        // The public request form's promise to the data subject.
+        'dsr_public.subtitle',
     ];
     for (const k of clock) {
         assert.doesNotMatch(SEED[k], /30[- ]?dag/i, `${k}: still 30 days in the seed`);

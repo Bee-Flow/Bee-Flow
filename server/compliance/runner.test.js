@@ -132,12 +132,58 @@ test('a check that exceeds the wall clock is recorded as fail with a timeout det
     assert.strictEqual(store.results.filter(r => r.check_id === 'GDPR-Art32-slow')[0].status, 'fail');
 });
 
-test('a throwing check is recorded as fail with the exception, not as a timeout', async () => {
+test('a throwing check is recorded as fail with the exception class, not as a timeout', async () => {
     fakeRegistry.register(check('GDPR-Art32-boom', 'GDPR', { evaluate: async () => { throw new Error('db gone'); } }));
     const [r] = await runner.runAll('org1');
     assert.strictEqual(r.status, 'fail');
-    assert.match(r.details, /Check raised an exception: db gone/);
-    assert.deepStrictEqual(r.evidence, { error: 'db gone' });
+    assert.strictEqual(r.details, 'The check stopped with an error; see the server log for the reference.');
+    assert.deepStrictEqual(r.evidence, { error: 'check_exception', name: 'Error', code: null });
+});
+
+/** Run fn with console.error / console.warn captured (the test-mode logger writes there). */
+async function captureConsole(fn) {
+    const lines = [];
+    const orig = { error: console.error, warn: console.warn };
+    console.error = (...a) => lines.push(a.map(String).join(' '));
+    console.warn = (...a) => lines.push(a.map(String).join(' '));
+    try { await fn(); } finally { Object.assign(console, orig); }
+    return lines.join('\n');
+}
+
+test('a database error message never reaches the row, the details, the evidence chain or the log', async () => {
+    // A pg error quotes the value that broke the query.
+    const pgError = Object.assign(
+        new Error('duplicate key value violates unique constraint "users_email_key"\nDETAIL: Key (email)=(jan@example.com) already exists.'),
+        { code: '23505' },
+    );
+    fakeRegistry.register(check('GDPR-Art32-pg', 'GDPR', { evaluate: async () => { throw pgError; } }));
+    let r;
+    const logged = await captureConsole(async () => { [r] = await runner.runAll('org1'); });
+
+    assert.strictEqual(r.status, 'fail');
+    assert.deepStrictEqual(r.evidence, { error: 'check_exception', name: 'Error', code: '23505' });
+    assert.strictEqual(r.details, 'The check stopped with an error; see the server log for the reference.');
+    const written = JSON.stringify({ results: store.results, evidence: store.evidence });
+    assert.ok(!written.includes('jan@example.com'), 'the chained evidence and the result row carry no driver message');
+    assert.ok(!written.includes('duplicate key'), 'not even the non-personal part of the message');
+    assert.match(logged, /GDPR-Art32-pg threw Error \(code 23505\)/, 'the log names the check, the class and the SQLSTATE');
+    assert.ok(!logged.includes('jan@example.com') && !logged.includes('duplicate key'), 'the log carries no driver message either');
+});
+
+test('a listCoverage that throws a database error records its class and code, never its message', async () => {
+    const pgError = Object.assign(new Error('invalid input syntax for type uuid: "jan@example.com"'), { code: '22P02' });
+    fakeRegistry.register(check('GDPR-Art30-datatables', 'GDPR', { listCoverage: async () => { throw pgError; } }));
+    let results;
+    const logged = await captureConsole(async () => { results = await runner.runAll('org1'); });
+    const cov = results.find(r => r.scope === 'coverage');
+
+    assert.strictEqual(cov.status, 'warn');
+    assert.strictEqual(cov.evidence.error, 'coverage_exception');
+    assert.strictEqual(cov.evidence.error_name, 'Error');
+    assert.strictEqual(cov.evidence.error_code, '22P02');
+    const written = JSON.stringify({ results: store.results, evidence: store.evidence });
+    assert.ok(!written.includes('jan@example.com') && !written.includes('invalid input syntax'));
+    assert.ok(!logged.includes('jan@example.com'), 'the coverage log line carries no driver message');
 });
 
 // ── runAll: snapshot ─────────────────────────────────────────────────────
@@ -694,7 +740,7 @@ test('a check that throws while judging the subject is recorded as a failure, no
     const out = await runner.runForSubject('org1', ['auto-1']);
     assert.strictEqual(out.length, 1);
     assert.strictEqual(out[0].status, 'fail');
-    assert.match(store.results[0].details, /raised an exception/);
+    assert.match(store.results[0].details, /stopped with an error/);
 });
 
 test('runForSubject with no org or no subject is a no-op rather than a throw', async () => {

@@ -34,6 +34,7 @@ const crypto = require('crypto');
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const htmlLint = require('../../a11y/htmlLint');
+const { errorLabel } = require('../../lib/errorShape');
 
 const SUBJECT_CAP = 200;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
@@ -267,10 +268,11 @@ module.exports = {
             if (NOT_PROVISIONED.has(e?.code)) {
                 return { status: 'warn', evidence: { ...extra, subject_id: subject.id, reason: 'not provisioned yet' }, details: 'not provisioned yet' };
             }
+            // Class and code only: a store or driver message can quote values (lib/errorShape.js).
             return {
                 status: 'warn',
-                evidence: { ...extra, subject_id: subject.id, reason: 'read_failed', error: String(e?.message || e).slice(0, 160) },
-                details: `Could not read the published HTML of "${subject.label}" — ${String(e?.message || e).slice(0, 160)}`,
+                evidence: { ...extra, subject_id: subject.id, reason: 'read_failed', error: errorLabel(e) },
+                details: `Could not read the published HTML of "${subject.label}" (${errorLabel(e)}).`,
             };
         }
 

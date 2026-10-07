@@ -4,19 +4,13 @@
     "compliance.checks.gdpr_art30_flows.desc": "Art. 30(1)(d) requires the register to name the recipients of personal data. This check follows every automation step that sends data out of Bee Flow and confirms the destination is recorded or protected.",
     "compliance.checks.gdpr_art30_flows.fix": "Open the automation and add a Privacy Shield step before the outbound step, or record the recipient in the Processing register.",
     "compliance.tbl_act_fix": "Fix",
-    "compliance.tbl_what_found": "What we found",
-    "compliance.finding_state.snooze": "Snooze",
-    "compliance.finding_state.snooze_7_short": "7 days",
-    "compliance.finding_state.snooze_30_short": "30 days"
+    "compliance.tbl_what_found": "What we found"
   },
   "nl": {
     "compliance.checks.gdpr_art30_flows.title": "Persoonsgegevens die via automatiseringen naar buiten gaan, zijn vastgelegd",
     "compliance.checks.gdpr_art30_flows.desc": "Art. 30(1)(d) vraagt dat het verwerkingsregister de ontvangers van persoonsgegevens noemt. Deze check volgt elke automatiseringsstap die gegevens buiten Bee Flow verstuurt en controleert of de bestemming is vastgelegd of beschermd.",
     "compliance.checks.gdpr_art30_flows.fix": "Open de automatisering en zet een Privacy Shield-stap vóór de uitgaande stap, of leg de ontvanger vast in het verwerkingsregister.",
     "compliance.tbl_act_fix": "Herstellen",
-    "compliance.tbl_what_found": "Wat we vonden",
-    "compliance.finding_state.snooze": "Uitstellen",
-    "compliance.finding_state.snooze_7_short": "7 dagen",
-    "compliance.finding_state.snooze_30_short": "30 dagen"
+    "compliance.tbl_what_found": "Wat we vonden"
   }
 }

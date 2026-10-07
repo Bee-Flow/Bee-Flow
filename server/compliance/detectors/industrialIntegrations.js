@@ -44,6 +44,7 @@
  */
 
 const db = require('../../db');
+const { errorLabel } = require('../lib/errorShape');
 
 const HEURISTICS_VERSION = '1.0.0';
 const ACTIVITY_WINDOW_DAYS = 90;
@@ -281,7 +282,9 @@ async function _source(name, skipped, fn) {
     try {
         return await fn();
     } catch (e) {
-        skipped.push({ source: name, reason: _isNotProvisioned(e) ? 'not provisioned' : `query failed: ${String(e?.message || e).slice(0, 120)}` });
+        // Class and SQLSTATE only: a driver message can quote row values, and
+        // `skipped` enters the evidence chain (lib/errorShape.js).
+        skipped.push({ source: name, reason: _isNotProvisioned(e) ? 'not provisioned' : `query failed: ${errorLabel(e)}` });
         return null;
     }
 }

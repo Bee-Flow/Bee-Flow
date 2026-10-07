@@ -287,6 +287,8 @@ test('extend: once only, needs a reason, due_at = extended_until = created_at + 
 
     await assert.rejects(() => store.extend('orgA', row.id, { reason: 'again', by: 'dpo-1' }), store.AlreadyExtendedError);
     await assert.rejects(() => store.extend('orgA', row.id, { reason: 'again', by: 'dpo-1' }), /code: 'dsr_already_extended'|already extended/);
+    // GDPR Art. 12(3): the extension is by two further months, not "one extension" of an unstated length.
+    await assert.rejects(() => store.extend('orgA', row.id, { reason: 'again', by: 'dpo-1' }), { message: /Art\. 12\(3\) allows one extension by two further months/ });
     assert.strictEqual(row.timeline.length, 2, 'the refused attempt left no trace');
 });
 

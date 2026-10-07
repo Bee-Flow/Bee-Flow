@@ -2,8 +2,9 @@
 /**
  * Dutch for the Compliance Center's round 2 detection and legal-wording fixes
  * (Oct 2026): the DSR clock is one calendar month (GDPR Art. 12(3)), not 30
- * days; the CRA notification and final report are separate deadlines; DORA,
- * Data Act, EAA, PLD, Machinery and AI Act texts follow the law's own terms
+ * days, on the public request form too (dsr_public.subtitle); the CRA
+ * notification and final report are separate deadlines; DORA, Data Act,
+ * EAA, PLD, Machinery and AI Act texts follow the law's own terms
  * ("applies", not "in force"; deployer duties; Art. 30(5) formats); the
  * encryption-at-rest check names the real encryption levels; two new
  * calendar milestones (the GDPR procedural regulation, EN 301 549 V4.1.1).
@@ -38,7 +39,7 @@ const DATA = require(path.join(__dirname, 'data', 'compliance-detect-2026-10-nl.
  * migration when THIS FILE's checksum changes and knows nothing about the data
  * file, so the data's hash is pinned here (the test fails until it is updated).
  */
-const DATA_SHA256 = '39658b369f0c08f1b60ce018b4000e5b2d8daf8151a088bb2d1bb6542f3f0aad';
+const DATA_SHA256 = '417346a735d8fcf8ab6c43b3aa5febcc0f65dfe42414b482ffeb65f917acfb4b';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 const NL_REWORDED = Object.freeze(Object.fromEntries(

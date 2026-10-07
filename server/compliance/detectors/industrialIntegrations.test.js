@@ -255,11 +255,12 @@ test('unprovisioned tables are skipped, never thrown; other sources still run', 
     assert.equal(r.matches.length, 1);
 });
 
-test('an unexpected query error is recorded as a skip with a truncated reason', async () => {
-    state.rows = { automations: new Error('connection refused') };
+test('an unexpected query error is recorded as a skip with its class and code, never its message', async () => {
+    state.rows = { automations: Object.assign(new Error('invalid input syntax for type uuid: "jan@example.com"'), { code: '22P02' }) };
     const r = await det.detect('org1');
     const s = r.skipped.find(x => x.source === 'automations');
-    assert.match(s.reason, /^query failed: connection refused/);
+    assert.strictEqual(s.reason, 'query failed: Error (code 22P02)');
+    assert.ok(!JSON.stringify(r).includes('jan@example.com'), 'the driver message reaches no part of the detector output');
 });
 
 test('detector output carries no e-mail addresses or credentials', async () => {

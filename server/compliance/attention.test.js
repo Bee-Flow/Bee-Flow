@@ -236,6 +236,27 @@ test('register findings: DSR overdue / due soon / unverified > 7 d, incident clo
     assert.deepEqual(out.items.find(i => i.code === 'ai_act_attestation_expired').meta.frameworks, [{ regulation: 'AIA', ref: 'Art. 50' }]);
 });
 
+test('a CRA severe incident\'s early warning cites Art. 14(4)(a); a vulnerability\'s Art. 14(2)(a)', async () => {
+    const out = await attention.build('org1', {
+        now: NOW, limit: 50,
+        deps: deps({
+            complianceStore: { getLatestPerCheck: async () => [], getSettings: async () => ({ breach_recipients: ['dpo@example.org'] }) },
+            incidentStore: {
+                listOpenClocks: async () => [
+                    { id: 8, kind: 'vulnerability', regimes: ['CRA'], detected_at: at(NOW - 20 * H), early_warning_due_at: at(NOW + 4 * H), early_warning_sent_at: null },
+                    { id: 9, kind: 'security_incident', regimes: ['CRA'], detected_at: at(NOW - 20 * H), early_warning_due_at: at(NOW + 4 * H), early_warning_sent_at: null },
+                ],
+            },
+        }),
+    });
+    const early = (id) => out.items.find(i => i.id === `register:incident:${id}:cra_early_warning`);
+    assert.deepEqual(early(8).meta.frameworks, [{ regulation: 'CRA', ref: 'Art. 14(2)(a)' }]);
+    assert.match(early(8).meta.detail, /actively exploited vulnerability.*Art\. 14\(2\)\(a\)/);
+    assert.deepEqual(early(9).meta.frameworks, [{ regulation: 'CRA', ref: 'Art. 14(4)(a)' }]);
+    assert.match(early(9).meta.detail, /severe incident.*Art\. 14\(4\)\(a\)/);
+    assert.doesNotMatch(early(9).meta.detail, /vulnerability/, 'a severe incident is not an exploited vulnerability');
+});
+
 test('an expired AI Act self-assessment cites the article its outcome rests on', async () => {
     const refFor = async (outcome) => {
         const out = await attention.build('org1', {

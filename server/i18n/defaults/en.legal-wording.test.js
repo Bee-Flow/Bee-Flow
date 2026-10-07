@@ -84,6 +84,14 @@ test('GDPR Art. 12(3): DSR strings speak of one month, extendable by at most two
     }
 });
 
+test('GDPR Art. 12(3): the public request form promises one month from receipt, extendable by two further months', () => {
+    // A data subject reads this line without an account; it is the promise the controller makes.
+    const subtitle = GUI_DEFAULTS['dsr_public.subtitle'];
+    assert.doesNotMatch(subtitle, /30[- ]days?/);
+    assert.match(subtitle, /one month of receipt/);
+    assert.match(subtitle, /two further months where necessary/);
+});
+
 test('GDPR Chapter V: an adequacy decision or SCCs make a transfer lawful; a DPA alone does not', () => {
     const art44 = s('checks.gdpr_art44.desc');
     assert.match(art44, /outside the EEA/);

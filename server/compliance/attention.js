@@ -274,6 +274,27 @@ async function dsrFindings(orgId, d, nowMs) {
     return out;
 }
 
+/**
+ * The CRA early warning a row owes, by kind. An actively exploited
+ * vulnerability's is Art. 14(2)(a); a severe incident having an impact on the
+ * security of the product has its own early warning in Art. 14(4)(a). The
+ * split follows stores/incidentClocks.js (_isCraSevereIncident): a row with a
+ * kind other than 'vulnerability' is a severe incident, and a row without a
+ * kind runs the vulnerability clock.
+ */
+function _craEarlyWarning(kind) {
+    if (kind && kind !== 'vulnerability') {
+        return {
+            ref: 'Art. 14(4)(a)',
+            detail: 'Report the severe incident affecting the security of the product to the CSIRT and ENISA within 24 hours of becoming aware of it (Art. 14(4)(a)).',
+        };
+    }
+    return {
+        ref: 'Art. 14(2)(a)',
+        detail: 'Report the actively exploited vulnerability to ENISA / the CSIRT within 24 hours of awareness (Art. 14(2)(a)).',
+    };
+}
+
 async function incidentFindings(orgId, d, nowMs) {
     const [rows, settings] = await Promise.all([
         d.incidentStore.listOpenClocks(orgId),
@@ -298,13 +319,14 @@ async function incidentFindings(orgId, d, nowMs) {
         const earlyDue = toMs(r.early_warning_due_at);
         if (isCra && earlyDue != null && !r.early_warning_sent_at && earlyDue - nowMs <= 6 * HOUR) {
             const overdue = earlyDue <= nowMs;
+            const early = _craEarlyWarning(r.kind);
             out.push(registerItem({
                 id: `incident:${r.id}:cra_early_warning`, code: 'cra_early_warning_due', severity: 'critical', status: overdue ? 'fail' : 'warn',
                 title: overdue
                     ? `INC-${r.id}: CRA early warning is overdue`
                     : `INC-${r.id}: CRA early warning due within ${Math.max(1, Math.ceil((earlyDue - nowMs) / HOUR))} h`,
-                detail: 'Report the actively exploited vulnerability to ENISA / the CSIRT within 24 hours of awareness (Art. 14(2)(a)).',
-                section: 'vulnerabilities', target, regulation: 'CRA', ref: 'Art. 14(2)(a)', at,
+                detail: early.detail,
+                section: 'vulnerabilities', target, regulation: 'CRA', ref: early.ref, at,
             }));
         }
     }

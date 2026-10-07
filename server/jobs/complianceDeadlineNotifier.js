@@ -1,7 +1,9 @@
 /**
  * Compliance Deadline Notifier — daily nudges for the statutory clocks:
- *   1. Incidents: GDPR/NIS2 72-hour Art. 33 window (legacy sweep, CRA-only
- *      rows excluded) plus the CRA Art. 14 clocks — early warning (24 h)
+ *   1. Incidents: the authority clock of the non-CRA regimes (legacy sweep,
+ *      CRA-only rows excluded), labelled per regime the way
+ *      compliance/deadlines.js cites it (GDPR Art. 33, NIS2 Art. 23(4), DORA
+ *      Art. 30(3)(b)), plus the CRA Art. 14 clocks — early warning (24 h)
  *      within 6 h / overdue, the notification (72 h) within 24 h / overdue
  *      and the final report within 24 h / overdue — skipping stamped ones.
  *   2. Open DSRs on `due_at` (Art. 12(3)): due in 5 days, due tomorrow,
@@ -23,6 +25,7 @@
 const { recordJobRun } = require('../telemetry/metrics');
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
+const { REGIME_ARTICLE } = require('../compliance/deadlines');
 
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -118,21 +121,38 @@ function _regimesOf(inc) {
     return list.length ? list : [inc.kind === 'vulnerability' ? 'CRA' : 'GDPR'];
 }
 
+/**
+ * The citation of a row's authority clock: one article per non-CRA regime,
+ * from compliance/deadlines.js REGIME_ARTICLE, so a NIS2-only row cites
+ * NIS2 Art. 23(4) and never GDPR Art. 33. `deadline_at` is the earliest of
+ * those clocks (24 h for a NIS2 early warning, 72 h for GDPR, the DORA
+ * customer notice), so the label names no fixed number of hours.
+ */
+function _authorityArticle(regimes) {
+    const cited = regimes.filter(r => r !== 'CRA').map(r => REGIME_ARTICLE[r]).filter(Boolean);
+    return cited.length ? cited.join(' · ') : REGIME_ARTICLE.GDPR;
+}
+
 async function _sweepIncidents(d, orgId, nowMs) {
-    // Legacy 72 h Art. 33 sweep (GDPR/NIS2) — the store decides what needs attention.
+    // Legacy authority-clock sweep (GDPR / NIS2 / DORA): the store decides
+    // what needs attention; the notice cites each regime's own article.
     try {
         const incidents = d.incidentStore.listNeedingAttention ? await d.incidentStore.listNeedingAttention(orgId) : [];
         for (const inc of incidents || []) {
-            // A CRA-only row is not an Art. 33 matter: its clocks are the CRA
-            // tiers below, which would otherwise fire alongside this nudge.
-            if (_regimesOf(inc).every(r => r === 'CRA')) continue;
+            const regimes = _regimesOf(inc);
+            // A CRA-only row has no authority clock here: its clocks are the
+            // CRA tiers below, which would otherwise fire alongside this nudge.
+            if (regimes.every(r => r === 'CRA')) continue;
+            const article = _authorityArticle(regimes);
             const overdue = new Date(inc.deadline_at).getTime() < nowMs;
+            // The claim keys keep their historical art33_* names, so a row
+            // already nudged under them is not nudged again.
             const key = overdue ? `art33_overdue:${dayKey(nowMs)}` : 'art33_24h';
             if (!(await _claim(d, orgId, 'incident', inc.id, key))) continue;
             await _notifyAdmins(d,
                 orgId,
-                overdue ? 'Incident past the 72-hour Art. 33 deadline' : 'Incident approaching the 72-hour Art. 33 deadline',
-                `Incident #${inc.id} ${overdue ? 'passed' : 'reaches'} its authority-notification deadline ${overdue ? '' : 'within 24 hours '}(${new Date(inc.deadline_at).toLocaleString()}). Record the notification or close the incident with an assessment.`,
+                overdue ? `Incident past its notification deadline (${article})` : `Incident approaching its notification deadline (${article})`,
+                `Incident #${inc.id} ${overdue ? 'passed' : 'reaches'} its notification deadline ${overdue ? '' : 'within 24 hours '}(${new Date(inc.deadline_at).toLocaleString()}). Record the notification or close the incident with an assessment.`,
                 complianceIncidentPath(inc.id),
             );
         }

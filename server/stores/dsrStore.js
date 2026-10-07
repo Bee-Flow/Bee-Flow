@@ -96,7 +96,9 @@ const EXTENDED_SLA_MONTHS = 3;
 
 class AlreadyExtendedError extends Error {
     constructor(id) {
-        super(`DSR request ${id} was already extended — Art. 12(3) allows one extension`);
+        // Art. 12(3): the period "may be extended by two further months where
+        // necessary"; dsrStore.extend applies that once, as one step.
+        super(`DSR request ${id} was already extended — Art. 12(3) allows one extension by two further months`);
         this.name = 'AlreadyExtendedError';
         this.code = 'dsr_already_extended';
     }

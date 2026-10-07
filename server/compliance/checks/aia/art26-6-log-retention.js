@@ -16,6 +16,7 @@
 
 const { getOne } = require('../../../db');
 const { addCalendarMonths } = require('../../../utils/calendarMonths');
+const { LEDGER_ORG_SQL } = require('../../../stores/integrationLocationSql');
 
 const REQUIRED_MONTHS = 6;
 const DAY_MS = 86400 * 1000;
@@ -30,11 +31,16 @@ function requiredDays(nowMs) {
 // must never be reported as "no logs recorded yet".
 const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
-/** `{ age }` in whole days (null: no rows or not provisioned), plus `failed` (the SQLSTATE) on a failed read. */
+/**
+ * `{ age }` in whole days (null: no rows or not provisioned), plus `failed`
+ * (the SQLSTATE) on a failed read. An org-scoped read is the integration
+ * ledger's, filtered with LEDGER_ORG_SQL so the 'default' bucket also counts
+ * the org-less rows logToolEgress writes for users without an organisation.
+ */
 async function _oldestAgeDays(table, orgScoped, orgId) {
     try {
         const row = orgScoped
-            ? await getOne(`SELECT EXTRACT(EPOCH FROM (NOW() - MIN(timestamp))) / 86400 AS age FROM ${table} WHERE organization_id = $1`, [orgId])
+            ? await getOne(`SELECT EXTRACT(EPOCH FROM (NOW() - MIN(timestamp))) / 86400 AS age FROM ${table} WHERE ${LEDGER_ORG_SQL}`, [orgId])
             : await getOne(`SELECT EXTRACT(EPOCH FROM (NOW() - MIN(timestamp))) / 86400 AS age FROM ${table}`);
         return { age: row?.age == null ? null : Math.floor(Number(row.age)) };
     } catch (e) {
