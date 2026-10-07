@@ -7,8 +7,7 @@
  * does not warn forever; a tenant keeps the bare org filter; the guardrail
  * ledger stays install-wide; and the empty-install text counts three ledgers.
  *
- * The check destructures getOne from db at require time, so db.getOne is
- * replaced on the real singleton BEFORE the check is required.
+ * db.getOne is replaced before the check is required (testUtils/recordGetOne).
  *
  * Run: cd server && node --test compliance/checks/iso27001/a8-15-logging.test.js
  */
@@ -17,9 +16,9 @@ const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 
 const db = require('../../../db');
-const calls = [];
-let answer = async () => null;
-db.getOne = async (sql, params) => { calls.push({ sql, params }); return answer(sql, params); };
+const { recordGetOne } = require('../../../testUtils/recordGetOne');
+const rec = recordGetOne(db);
+const { calls } = rec;
 
 const check = require('./a8-15-logging');
 
@@ -33,14 +32,14 @@ function liveExceptOrglessAuth(sql) {
 }
 
 test("the default bucket counts the org-less sign-ins and passes", async () => {
-    answer = async (sql) => liveExceptOrglessAuth(sql);
+    rec.answer = async (sql) => liveExceptOrglessAuth(sql);
     const r = await check.evaluate('default');
     assert.equal(r.status, 'pass');
     assert.equal(r.evidence.authentication_recent_events, 5);
 });
 
 test('a tenant keeps the bare org filter; the guardrail ledger stays install-wide', async () => {
-    answer = async (sql) => liveExceptOrglessAuth(sql);
+    rec.answer = async (sql) => liveExceptOrglessAuth(sql);
     const r = await check.evaluate('org-a');
     assert.equal(r.status, 'warn', 'org-less sign-ins are not a tenant\'s');
     const auth = calls.find(c => /COUNT\(\*\)::int AS c FROM access_audit_log/.test(c.sql));
@@ -53,7 +52,7 @@ test('a tenant keeps the bare org filter; the guardrail ledger stays install-wid
 });
 
 test('an install with no events at all says none of the three ledgers recorded any', async () => {
-    answer = async (sql) => (/MIN\(/.test(sql) ? { age: null } : { c: 0 });
+    rec.answer = async (sql) => (/MIN\(/.test(sql) ? { age: null } : { c: 0 });
     const r = await check.evaluate('org-a');
     assert.equal(r.status, 'warn');
     assert.match(r.details, /None of the three security ledgers/);

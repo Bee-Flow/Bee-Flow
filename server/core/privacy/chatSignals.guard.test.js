@@ -15,12 +15,9 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 
-const ROOT = path.resolve(__dirname, '..', '..');
+const { requireEdges } = require('../../testUtils/requireEdges');
 const TARGETS = new Set(['core/privacy/chatSignals', 'core/privacy/chatHints']);
-const SKIP = new Set(['node_modules', 'migrations', 'prompts', 'assets']);
 
 /** Areas between people, as path prefixes relative to server/. */
 const HUMAN_TO_HUMAN_AREAS = [
@@ -28,32 +25,7 @@ const HUMAN_TO_HUMAN_AREAS = [
     'integrations/nextcloudTalk', 'routes/nextcloudTaskProcessing.js',
 ];
 
-function walk(dir, out = []) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (e.name.startsWith('.')) continue;
-        const full = path.join(dir, e.name);
-        if (e.isDirectory()) { if (!SKIP.has(e.name)) walk(full, out); }
-        else if (/\.js$/.test(e.name) && !/\.test\.js$/.test(e.name)) out.push(full);
-    }
-    return out;
-}
-
-const REQUIRE = /require\(\s*['"](\.[^'"]+)['"]\s*\)/g;
-
-/** Every (file -> target) edge into the recorder, as posix paths relative to server/. */
-function edgesIntoRecorder() {
-    const out = [];
-    for (const file of walk(ROOT)) {
-        const rel = path.relative(ROOT, file).split(path.sep).join('/');
-        for (const m of fs.readFileSync(file, 'utf8').matchAll(REQUIRE)) {
-            const target = path.relative(ROOT, path.resolve(path.dirname(file), m[1])).split(path.sep).join('/').replace(/\.js$/, '');
-            if (TARGETS.has(target)) out.push({ from: rel, to: target });
-        }
-    }
-    return out;
-}
-
-const EDGES = edgesIntoRecorder();
+const EDGES = requireEdges({ targets: TARGETS });
 
 test('nothing that carries messages between people requires the chat signals recorder', () => {
     const bad = EDGES

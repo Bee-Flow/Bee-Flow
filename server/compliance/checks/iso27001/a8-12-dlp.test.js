@@ -6,8 +6,7 @@
  * the install's, and the 'default' bucket sees its NULL-org events. A count
  * that FAILED warns, naming only the SQLSTATE.
  *
- * The check destructures getOne from db at require time, so db.getOne is
- * replaced on the real singleton BEFORE the check is required.
+ * db.getOne is replaced before the check is required (testUtils/recordGetOne).
  *
  * Run: cd server && node --test compliance/checks/iso27001/a8-12-dlp.test.js
  */
@@ -16,9 +15,9 @@ const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 
 const db = require('../../../db');
-const calls = [];
-let answer = async () => null;
-db.getOne = async (sql, params) => { calls.push({ sql, params }); return answer(sql, params); };
+const { recordGetOne } = require('../../../testUtils/recordGetOne');
+const rec = recordGetOne(db);
+const { calls } = rec;
 
 const configStore = require('../../../stores/configStore');
 configStore.getConfig = async (key) => (key.startsWith('org_privacy_shield_') ? { enabled: true, collectionIds: ['c'] } : null);
@@ -28,7 +27,7 @@ const check = require('./a8-12-dlp');
 beforeEach(() => { calls.length = 0; });
 
 test('the default bucket counts its NULL-org guardrail events and passes a working shield', async () => {
-    answer = async (sql) => {
+    rec.answer = async (sql) => {
         if (/ai_usage_log/.test(sql)) return { c: 100 };
         // Events only exist for the bucket's "resolves to no organisation" rows.
         return /IS NULL\)\)/.test(sql)
@@ -41,7 +40,7 @@ test('the default bucket counts its NULL-org guardrail events and passes a worki
 });
 
 test("a tenant's traffic is its own, scoped like its events", async () => {
-    answer = async (sql) => (/ai_usage_log/.test(sql) ? { c: 0 } : { total_events: 0, blocked_events: 0, redacted_events: 0 });
+    rec.answer = async (sql) => (/ai_usage_log/.test(sql) ? { c: 0 } : { total_events: 0, blocked_events: 0, redacted_events: 0 });
     await check.evaluate('org-a');
     const traffic = calls.find(c => /ai_usage_log/.test(c.sql));
     assert.match(traffic.sql, /t\.organization_id = \$1/);
@@ -53,7 +52,7 @@ test("a tenant's traffic is its own, scoped like its events", async () => {
 });
 
 test('a count that fails warns with the SQLSTATE; a missing table is not a failure', async () => {
-    answer = async (sql) => {
+    rec.answer = async (sql) => {
         if (/ai_usage_log/.test(sql)) return { c: 100 };
         throw Object.assign(new Error('canceling statement due to statement timeout'), { code: '57014' });
     };
@@ -62,7 +61,7 @@ test('a count that fails warns with the SQLSTATE; a missing table is not a failu
     assert.match(broken.details, /guardrail_events \(SQL state 57014\)/);
     assert.ok(!JSON.stringify(broken).includes('canceling'), 'no driver message');
 
-    answer = async (sql) => {
+    rec.answer = async (sql) => {
         if (/ai_usage_log/.test(sql)) return { c: 100 };
         throw Object.assign(new Error('x'), { code: '42P01' });
     };

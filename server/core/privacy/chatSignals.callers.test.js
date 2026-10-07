@@ -23,12 +23,9 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const V = require('../../stores/lib/chatMonitoringVocab');
+const { requireEdges } = require('../../testUtils/requireEdges');
 
-const ROOT = path.resolve(__dirname, '..', '..');
-const SKIP = new Set(['node_modules', 'migrations', 'prompts', 'assets', 'coverage']);
 
 /** What counts a turn: the recorder, a future hint module, and direct chat's hook helper. */
 const TARGETS = new Set([
@@ -54,32 +51,7 @@ const BETWEEN_PEOPLE = [
     'routes/comments', 'routes/mail', 'integrations/mail',
 ];
 
-function walk(dir, out = []) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (e.name.startsWith('.')) continue;
-        const full = path.join(dir, e.name);
-        if (e.isDirectory()) { if (!SKIP.has(e.name)) walk(full, out); }
-        else if (/\.js$/.test(e.name) && !/\.test\.js$/.test(e.name)) out.push(full);
-    }
-    return out;
-}
-
-const REQUIRE = /require\(\s*['"](\.[^'"]+)['"]\s*\)/g;
-
-/** Every production edge into a target, as `from -> to` (posix, relative to server/). */
-function edgesIntoTargets() {
-    const out = [];
-    for (const file of walk(ROOT)) {
-        const from = path.relative(ROOT, file).split(path.sep).join('/');
-        for (const m of fs.readFileSync(file, 'utf8').matchAll(REQUIRE)) {
-            const to = path.relative(ROOT, path.resolve(path.dirname(file), m[1])).split(path.sep).join('/').replace(/\.js$/, '');
-            if (TARGETS.has(to)) out.push(`${from} -> ${to}`);
-        }
-    }
-    return [...new Set(out)].sort();
-}
-
-const EDGES = edgesIntoTargets();
+const EDGES = [...new Set(requireEdges({ targets: TARGETS }).map(e => `${e.from} -> ${e.to}`))].sort();
 
 test('the files that reach the recorder are exactly the reviewed list', () => {
     assert.deepEqual(EDGES, [...ALLOWED.keys()].sort(),
