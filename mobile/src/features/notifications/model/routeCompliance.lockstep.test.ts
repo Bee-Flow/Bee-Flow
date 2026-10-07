@@ -9,8 +9,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { targetRoute } from '@/features/compliance/model/navigation';
-import { SECTIONS, sectionById } from '@/features/compliance/model/sections';
+import { parseTarget, targetRoute, type Target } from '@/features/compliance/model/navigation';
+import { LEGACY_TABS, SECTIONS, sectionById, tabsOfSection } from '@/features/compliance/model/sections';
 
 import { translateWebLink } from './route';
 import { COMPLIANCE_ALIASES, COMPLIANCE_SECTION_IDS } from './routeCompliance';
@@ -48,5 +48,24 @@ describe('the Compliance Center deep links', () => {
     it('opens the hub for the Compliance Center itself, and says a section it does not know is only close', () => {
         expect(translateWebLink('/app/admin/compliance')).toEqual({ href: '/org/compliance' });
         expect(translateWebLink('/app/admin/compliance/some-new-register/r1')).toEqual({ href: '/org/compliance', approximate: true });
+    });
+
+    const tabPaths = [
+        ...Object.entries(LEGACY_TABS).flatMap(([section, tabs]) => Object.keys(tabs).map((tab) => `${section}?tab=${tab}`)),
+        ...['dsr', 'soa', 'aia'].flatMap((id) => tabsOfSection(sectionById(id)!).map((tab) => `${id}?tab=${tab.id}`)),
+        'audits/a1?tab=obligations',
+        'soa/c1?tab=controls',
+    ];
+
+    it.each(tabPaths.map((p) => [p]))('/app/admin/compliance/%s keeps or moves its tab as the hub would', (rest) => {
+        const path = `/app/admin/compliance/${rest}`;
+        expect(translateWebLink(path)?.href).toBe(targetRoute(parseTarget(path) as Target));
+    });
+
+    it('opens the calendar for the deadline notices, and the moved tabs where they went', () => {
+        expect(translateWebLink('/app/admin/compliance/frameworks?tab=calendar')?.href).toBe('/org/compliance/calendar');
+        expect(translateWebLink('/app/admin/compliance/overview?tab=calendar')?.href).toBe('/org/compliance/calendar');
+        expect(translateWebLink('/app/admin/compliance/frameworks?tab=per_automation')?.href).toBe('/org/compliance/aia?tab=systems');
+        expect(translateWebLink('/app/admin/compliance/audits?tab=obligations')?.href).toBe('/org/compliance/training?tab=obligations');
     });
 });

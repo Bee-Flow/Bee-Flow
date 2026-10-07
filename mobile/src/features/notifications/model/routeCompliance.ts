@@ -11,8 +11,10 @@
  * old alias) and targetRoute (a section's page, or one record in it: a
  * register's record under its first record type) — ported rather than
  * imported, for the reason routeOrg.ts gives. routeCompliance.lockstep.test.ts
- * runs both on every section and alias. Other query params (`?tab=calendar`)
- * name a tab the phone's section has no address for, and are dropped.
+ * runs both on every section, alias and moved tab. `?tab=` is kept on a
+ * section's page; a tab that moved (sections.ts LEGACY_TABS) goes where it
+ * went — the calendar is a hub page of its own (jobs/complianceDeadlineNotifier.js
+ * links frameworks?tab=calendar and overview?tab=calendar).
  */
 
 import { queryValue } from './query';
@@ -45,20 +47,42 @@ export const COMPLIANCE_ALIASES: Readonly<Record<string, string>> = {
 /** A register whose first record type is not its own id: a record opens under the type. */
 const RECORD_SEGMENT: Readonly<Record<string, string>> = { training: 'personnel' };
 
+/** sections.ts HUB_PAGES: hub pages that are not a section. */
+const HUB_PAGES: ReadonlySet<string> = new Set(['calendar', 'setup', 'chat_signals']);
+
+/** sections.ts LEGACY_TABS, as the route each moved tab opens. Spelled out, so src/meta/routes.test.ts checks them. */
+export const COMPLIANCE_MOVED_TABS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+    overview: { calendar: '/org/compliance/calendar' },
+    frameworks: { calendar: '/org/compliance/calendar', per_automation: '/org/compliance/aia?tab=systems' },
+    dsr: { settings: '/org/compliance/settings' },
+    soa: { export: '/org/compliance/soa?tab=controls' },
+    audits: { obligations: '/org/compliance/training?tab=obligations' },
+};
+
 function sectionOf(raw: string | undefined): string | null {
     const key = (raw ?? '').trim();
     if (COMPLIANCE_SECTION_IDS.has(key)) return key;
     return COMPLIANCE_ALIASES[key] ?? null;
 }
 
-/** `/app/admin/compliance/<segment>[/<id>]`, the id also as `?id=`. */
+function movedTab(section: string, tab: string | null): string | null {
+    const map = COMPLIANCE_MOVED_TABS[section];
+    return tab && map && Object.prototype.hasOwnProperty.call(map, tab) ? (map[tab] as string) : null;
+}
+
+/** `/app/admin/compliance/<segment>[/<id>][?tab=]`, the id also as `?id=`. */
 export function complianceTarget(segment: string | undefined, id: string | undefined, query: string): NotificationTarget {
     if (!segment) return { href: HUB };
+    if (HUB_PAGES.has(segment)) return { href: `/org/compliance/${segment}` };
     const section = sectionOf(segment);
     // A section this build does not know: the hub, which lists the ones it does.
     if (!section) return { href: HUB, approximate: true };
+    const tab = queryValue(query, 'tab') || null;
+    const moved = movedTab(section, tab);
+    if (moved) return { href: moved };
     if (section === 'overview') return { href: HUB };
     const record = id || queryValue(query, 'id');
     // Spelled out rather than from HUB, so src/meta/routes.test.ts checks both against app/.
-    return { href: record ? `/org/compliance/${RECORD_SEGMENT[section] ?? section}/${record}` : `/org/compliance/${section}` };
+    if (record) return { href: `/org/compliance/${RECORD_SEGMENT[section] ?? section}/${record}` };
+    return { href: tab ? `/org/compliance/${section}?tab=${tab}` : `/org/compliance/${section}` };
 }

@@ -12,6 +12,7 @@
 
 import type { IconName } from '@/shared/ui';
 
+import { recordType } from './registry';
 import type { Label } from './types';
 
 export type SectionGroup = 'frameworks' | 'registers' | 'admin';
@@ -134,4 +135,97 @@ export function visibleSections(
         const id = frameworkIdOf(s);
         return scored.has(id) || enabled.has(id);
     });
+}
+
+/** One header tab of a section; `type` is the record type the tab lists. */
+export interface SectionTab {
+    readonly id: string;
+    readonly type?: string;
+}
+
+/** Tabs a framework section carries (web sections.js FRAMEWORK_TABS). */
+const FRAMEWORK_TABS: readonly string[] = ['checks', 'timeline', 'evidence'];
+
+/** The section's header tabs, in order; [] for a section with one page. */
+export function tabsOfSection(section: ComplianceSection): SectionTab[] {
+    if (section.view === 'checks') {
+        return [...FRAMEWORK_TABS, ...(section.id === 'aia' ? ['systems'] : [])].map((id) => ({ id }));
+    }
+    if (section.id === 'dsr') return [{ id: 'requests', type: 'dsr' }, { id: 'public_form' }];
+    if (section.id === 'soa') return [{ id: 'controls', type: 'soa' }, { id: 'history' }];
+    if (section.view === 'records') return (section.types ?? []).map((type) => ({ id: type, type }));
+    return [];
+}
+
+/** Sections whose tabs have a web label key (`compliance.tab_<section>_<tab>`). */
+const WEB_TAB_KEYS: ReadonlySet<string> = new Set(['dsr', 'soa', 'audits']);
+
+/** A tab's label: the web key where the web has the tab, else the record type's plural. */
+export function tabLabel(sectionId: string, tabId: string): Label {
+    const section = sectionById(sectionId);
+    const tab = section ? tabsOfSection(section).find((t) => t.id === tabId) : undefined;
+    const type = tab?.type ? recordType(tab.type) : null;
+    if (section && (section.view === 'checks' || WEB_TAB_KEYS.has(section.id))) {
+        return { i18nKey: `compliance.tab_${section.id}_${tabId}`, en: type?.plural.en ?? TAB_EN[tabId] ?? tabId };
+    }
+    return type ? type.plural : { i18nKey: `compliance.tab_${sectionId}_${tabId}`, en: TAB_EN[tabId] ?? tabId };
+}
+
+const TAB_EN: Readonly<Record<string, string>> = {
+    checks: 'Checks',
+    timeline: 'Timeline',
+    evidence: 'Evidence',
+    systems: 'Systems',
+    requests: 'Requests',
+    public_form: 'Public form',
+    controls: 'Controls',
+    history: 'History',
+};
+
+/** Hub pages that are not a section: never a section id or alias. */
+export const HUB_PAGES = ['calendar', 'setup', 'chat_signals'] as const;
+export type HubPage = (typeof HUB_PAGES)[number];
+
+/** Where a moved tab went: another section (and tab), or a hub page. */
+export interface MovedTab {
+    readonly section?: string;
+    readonly tab?: string;
+    readonly page?: HubPage;
+}
+
+/**
+ * Tabs that no longer live on their section (web sections.js legacyTabs). The
+ * phone has no overview calendar tab: it is the calendar page; and the
+ * obligations open on their own tab of Training.
+ */
+export const LEGACY_TABS: Readonly<Record<string, Readonly<Record<string, MovedTab>>>> = {
+    overview: { calendar: { page: 'calendar' } },
+    frameworks: { calendar: { page: 'calendar' }, per_automation: { section: 'aia', tab: 'systems' } },
+    dsr: { settings: { section: 'settings' } },
+    soa: { export: { section: 'soa', tab: 'controls' } },
+    audits: { obligations: { section: 'training', tab: 'obligations' } },
+};
+
+export interface ResolvedTab {
+    section: string;
+    tab: string | null;
+    page: HubPage | null;
+}
+
+/** Where `?tab=<tab>` on a section lands (web sections.js resolveTab / movedTab). */
+export function resolveTab(sectionId: string, tab: string | null | undefined): ResolvedTab {
+    const section = sectionById(sectionId)?.id ?? 'overview';
+    const map = LEGACY_TABS[section];
+    const moved = tab && map && Object.prototype.hasOwnProperty.call(map, tab) ? map[tab] : undefined;
+    if (!moved) return { section, tab: tab || null, page: null };
+    return { section: sectionById(moved.section)?.id ?? section, tab: moved.tab ?? null, page: moved.page ?? null };
+}
+
+/** A hub page's route (model/navigation.ts HUB_ROUTE + the page id). */
+export function pageRoute(id: HubPage): string {
+    return `/org/compliance/${id}`;
+}
+
+export function isHubPage(id: unknown): id is HubPage {
+    return typeof id === 'string' && (HUB_PAGES as readonly string[]).includes(id);
 }
