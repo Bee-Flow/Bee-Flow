@@ -98,11 +98,16 @@ export function actorName(row: AccessAuditRow | null | undefined, orgUsers: OrgU
 /**
  * What a row is ABOUT, in one line — never the raw payload, and never the
  * fingerprint: an account name that matched nothing is shown as exactly that.
+ * A sign-in names the account by its id (auth/loginAudit.js), so the subject
+ * is that account's name when the roster knows it.
  */
-export function subjectOf(row: AccessAuditRow, t: Translate): string | null | undefined {
+export function subjectOf(row: AccessAuditRow, t: Translate, orgUsers: OrgUser[] | null = null): string | null | undefined {
     const d = row.new_values || {};
     if (row.target_type === 'login_identifier') {
         return t('compliance.aa_subject_unknown_account', 'an account name that matched nothing');
+    }
+    if (row.target_type === 'user' && row.target_id) {
+        return userName(orgUsers, row.target_id) as string | null;
     }
     if (row.target_type === 'studio_app') {
         return (typeof d.appName === 'string' && d.appName) || row.target_id;
@@ -113,12 +118,36 @@ export function subjectOf(row: AccessAuditRow, t: Translate): string | null | un
     return row.target_id;
 }
 
+/**
+ * The reason codes auth/loginAudit.js callers write for a refused or blocked
+ * sign-in, in words. Lower case: they sit mid-line in the detail.
+ */
+const REASON_META: Readonly<Record<string, { key: string; en: string }>> = {
+    invalid_credentials: { key: 'compliance.aa_reason_invalid_credentials', en: 'wrong credentials' },
+    throttled: { key: 'compliance.aa_reason_throttled', en: 'too many attempts' },
+    account_suspended: { key: 'compliance.aa_reason_account_suspended', en: 'account suspended' },
+    mfa_invalid_code: { key: 'compliance.aa_reason_mfa_invalid_code', en: 'wrong verification code' },
+    security_key_rejected: { key: 'compliance.aa_reason_security_key_rejected', en: 'security key rejected' },
+    password_login_disabled: { key: 'compliance.aa_reason_password_login_disabled', en: 'password sign-in is off' },
+};
+
+/**
+ * A row's `reason` as words: a known code in the language on screen, another
+ * code ('protocol_error') humanised, never printed raw, and free text as written.
+ */
+export function reasonLabel(reason: unknown, t: Translate): string | null {
+    if (typeof reason !== 'string' || !reason) return null;
+    const known = Object.hasOwn(REASON_META, reason) ? REASON_META[reason] : undefined;
+    if (known) return t(known.key, known.en);
+    return /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(reason) ? reason.replace(/_/g, ' ') : reason;
+}
+
 /** The detail line, from an explicit allow-list of payload keys. */
 export function detailOf(row: AccessAuditRow, t: Translate): string {
     const d = row.new_values || {};
     return [
         d.method,
-        d.reason,
+        reasonLabel(d.reason, t),
         d.audience,
         d.ip,
         d.identifierFingerprint

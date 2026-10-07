@@ -35,8 +35,8 @@ import { TONES } from '../../../shared/statusTone';
  */
 
 /** The subject cell: a request is a link to it, anything else is text. */
-function Subject({ row, t, navigate, className = '' }) {
-    const text = subjectOf(row, t);
+function Subject({ row, t, navigate, orgUsers = null, className = '' }) {
+    const text = subjectOf(row, t, orgUsers);
     if (row.target_type === 'dsr_request' && row.target_id && typeof navigate === 'function') {
         return (
             <button type="button" onClick={() => navigate('dsr', row.target_id)} data-testid={`access-audit-subject-${row.id}`}
@@ -226,7 +226,7 @@ export default function AccessAuditPage({ data = {}, isMobile = false, exportsEn
                                 </span>
                             </TableCell>
                             <TableCell column={ctx.columns[2]}>
-                                <Subject row={r} t={t} navigate={navigate} className="text-[var(--text-primary)] [overflow-wrap:anywhere]" />
+                                <Subject row={r} t={t} navigate={navigate} orgUsers={orgUsers} className="text-[var(--text-primary)] [overflow-wrap:anywhere]" />
                                 {/* The actor while the By column is folded. */}
                                 {by && <div className="text-[11px] text-[var(--text-tertiary)] truncate"><span className={TABLE_FOLDED_ONLY[900]} title={r.changed_by}>{by}</span></div>}
                                 {/* The detail (method, reason, address, same-name tag) while its own column is folded. */}
@@ -243,13 +243,15 @@ export default function AccessAuditPage({ data = {}, isMobile = false, exportsEn
                 }}
                 renderCard={(r) => {
                     const by = byLine(r);
+                    const detail = detailOf(r, t);
                     return (
                         <div className="flex flex-col gap-0.5 min-w-0" data-testid={`access-audit-card-${r.id}`}>
                             <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">{when(r.created_at, resolvedLocale)}</span>
                             <span className="text-xs font-semibold text-[var(--text-primary)]">{actionLabel(r.action, t)}</span>
-                            <Subject row={r} t={t} navigate={navigate} className="text-[11px] text-[var(--text-secondary)] [overflow-wrap:anywhere]" />
+                            <Subject row={r} t={t} navigate={navigate} orgUsers={orgUsers} className="text-[11px] text-[var(--text-secondary)] [overflow-wrap:anywhere]" />
                             {by && <span className="text-[11px] text-[var(--text-secondary)]" title={r.changed_by}>{by}</span>}
-                            <span className="text-[11px] text-[var(--text-tertiary)]">{detailOf(r, t)}</span>
+                            {/* As in the table: a row without a detail adds no empty line. */}
+                            {detail !== '—' && <span className="text-[11px] text-[var(--text-tertiary)]" data-testid={`access-audit-card-detail-${r.id}`}>{detail}</span>}
                         </div>
                     );
                 }}

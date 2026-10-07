@@ -135,7 +135,7 @@
     },
     "compliance.ovw_deadlines_hint": {
       "was": "30 dagen · 72 uur · 24 uur — één klok",
-      "now": "1 maand · 72 uur · 24 uur — één klok"
+      "now": "Wettelijke reactietermijnen, meest urgente eerst"
     },
     "compliance.dsr_intake_note": {
       "was": "Verzoeken komen binnen via het openbare formulier /dsr (zonder account, rate-limited, gelinkt vanuit de privacyverklaring) of worden hier handmatig vastgelegd. De 30-dagenklok start bij ontvangst, niet bij het starten.",

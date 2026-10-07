@@ -62,7 +62,9 @@ test('the seed map carries the same new Dutch, so a fresh install and an upgrade
 
 test('the DSR clock reads one month, and an extension two months, in Dutch too (GDPR Art. 12(3))', () => {
     const clock = [
-        'compliance.dsr_toast_captured', 'compliance.hdr_dsr_window', 'compliance.ovw_deadlines_hint', 'compliance.dsr_subtitle',
+        // compliance.ovw_deadlines_hint is not here: the UI round replaced the clock lengths with
+        // 'Legal response deadlines, most urgent first', and both NL updates now rewrite to that.
+        'compliance.dsr_toast_captured', 'compliance.hdr_dsr_window', 'compliance.dsr_subtitle',
         'compliance.nav_dsr_desc', 'compliance.dsr_capture_desc', 'compliance.dsr_pf_intro',
         // The public request form's promise to the data subject.
         'dsr_public.subtitle',

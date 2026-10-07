@@ -35,14 +35,17 @@ describe('incidentClocks — vulnerability clocks (CRA Art. 14)', () => {
     });
 
     it('prefers the server columns and reports the early warning as done once sent', () => {
+        // deadline_at is the server's EARLIEST open clock, not the notification:
+        // the notification has no column and is 72 h after detection.
         const inc = {
             kind: 'vulnerability', status: 'early_warning_sent', detected_at: T0,
             early_warning_due_at: plus(20 * HOUR_MS), early_warning_sent_at: plus(3 * HOUR_MS),
-            deadline_at: plus(70 * HOUR_MS), final_report_due_at: plus(13 * DAY_MS),
+            deadline_at: plus(72 * HOUR_MS), final_report_due_at: plus(13 * DAY_MS),
         };
         const clocks = clocksOf(inc);
         expect(clocks[0]).toMatchObject({ stage: 'early_warning', dueAt: plus(20 * HOUR_MS), sentAt: plus(3 * HOUR_MS), derived: false });
-        expect(clocks[1]).toMatchObject({ stage: 'notification', dueAt: plus(70 * HOUR_MS), sentAt: null, derived: false });
+        expect(clocks[1]).toMatchObject({ stage: 'notification', dueAt: plus(72 * HOUR_MS), sentAt: null, derived: true });
+        expect(clocks[2]).toMatchObject({ stage: 'final_report', dueAt: plus(13 * DAY_MS), derived: false });
         expect(nextClock(inc).stage).toBe('notification');
         expect(nextCraStage(inc)).toBe('notification');
         expect(lastDone(inc).stage).toBe('early_warning');
@@ -80,20 +83,23 @@ describe('incidentClocks — GDPR breach clocks', () => {
         expect(lastDone(done).sentAt).toBe(plus(10 * HOUR_MS));
     });
 
-    it('a NIS2 + DORA row lists early warning, notification, final report and the customer notice; nothing is derived', () => {
+    it('a NIS2 + DORA row lists early warning, notification, final report and the customer notice; only the notification is derived', () => {
+        // As the server stores it: deadline_at is the earliest open clock, here the DORA customer notice.
         const inc = {
             kind: 'security_incident', status: 'open', detected_at: T0, regimes: ['GDPR', 'NIS2', 'DORA'],
-            early_warning_due_at: plus(24 * HOUR_MS), deadline_at: plus(72 * HOUR_MS), final_report_due_at: plus(30 * DAY_MS), customer_notice_due_at: plus(4 * HOUR_MS),
+            early_warning_due_at: plus(24 * HOUR_MS), deadline_at: plus(4 * HOUR_MS), final_report_due_at: plus(30 * DAY_MS), customer_notice_due_at: plus(4 * HOUR_MS),
         };
         const clocks = clocksOf(inc);
         expect(clocks.map(c => c.stage)).toEqual(['early_warning', 'notification', 'final_report', 'customer_notice']);
-        expect(clocks.some(c => c.derived)).toBe(false);
+        expect(clocks.filter(c => c.derived).map(c => c.stage)).toEqual(['notification']);
+        expect(clocks[1].dueAt).toBe(plus(72 * HOUR_MS));
         expect(nextClock(inc).stage).toBe('customer_notice'); // the earliest due wins
         expect(nextCraStage(inc)).toBe(null);
     });
 
     it('a closed breach that was deliberately not notified: notFiled, no running clock, "closed · not notified"', () => {
-        const inc = { status: 'closed', detected_at: T0, deadline_at: plus(72 * HOUR_MS), recipients_notified_at: plus(HOUR_MS) };
+        // The server empties deadline_at once an incident is closed (incidentStore.nextOpenDeadline).
+        const inc = { status: 'closed', detected_at: T0, deadline_at: null, recipients_notified_at: plus(HOUR_MS) };
         expect(clocksOf(inc)).toEqual([expect.objectContaining({ stage: 'notification', sentAt: null, notFiled: true })]);
         expect(nextClock(inc)).toBe(null);
         expect(isClosedUnfiled(inc)).toBe(true);
@@ -105,6 +111,19 @@ describe('incidentClocks — GDPR breach clocks', () => {
         expect(filedCount(notified)).toEqual({ filed: 1, total: 1 });
         // an open breach is never notFiled
         expect(clocksOf({ ...inc, status: 'assessing' })[0].notFiled).toBe(false);
+    });
+
+    it('a notified breach keeps its filed notification after the server cleared deadline_at', () => {
+        const inc = { status: 'authority_notified', detected_at: T0, deadline_at: null, authority_notified_at: plus(30 * HOUR_MS), authority_reference: 'AP-1' };
+        expect(clocksOf(inc)).toEqual([expect.objectContaining({ stage: 'notification', dueAt: plus(72 * HOUR_MS), sentAt: plus(30 * HOUR_MS) })]);
+        expect(filedCount(inc)).toEqual({ filed: 1, total: 1 });
+        expect(reportingRowsOf(inc).find(r => r.id === 'notification')).toMatchObject({ reference: 'AP-1', filedAt: plus(30 * HOUR_MS) });
+    });
+
+    it('a DORA-only incident has the customer notice and no authority notification', () => {
+        const inc = { kind: 'security_incident', status: 'open', detected_at: T0, regimes: ['DORA'], deadline_at: plus(4 * HOUR_MS), customer_notice_due_at: plus(4 * HOUR_MS) };
+        expect(clocksOf(inc).map(c => c.stage)).toEqual(['customer_notice']);
+        expect(stepsOf(inc).primary).toBe('customers');
     });
 
     it('a row without any clock has none', () => {

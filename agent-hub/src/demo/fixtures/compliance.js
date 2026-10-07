@@ -35,9 +35,14 @@
  * subtracts. compliance.test.js pins the ones that would fail silently.
  */
 
+import { ACCESS_LOG_ROUTES, accessAuditSeed, logAccess } from './complianceAccessLog';
 import {
     CHECK_DEFS, ISO_CONTROLS, ISO_THEMES, ISO_CONNECTORS, FRAMEWORKS, MILESTONES,
 } from './complianceCatalog';
+import { INCIDENT_OPEN_STATUSES, incidentRoutes, incidentSeed } from './complianceIncidents';
+import {
+    PROJECT_CHECK_ID, projectActivities, projectSubjects, projectVerdict, ropaProjectRoutes, ropaProjectsSeed,
+} from './complianceRopaProjects';
 // The hub's own masker, not a second one: the register shows "h.•••@example.nl"
 // in exactly the shape the product uses (BFSF-441, artboard 1c).
 import { maskEmail } from '../../components/admin/compliance/shared/maskEmail';
@@ -288,6 +293,9 @@ const PER_SOURCE = {
     'GDPR-Art35-dpia-high-risk': { subjects: () => HIGH_RISK_AGENTS, row: art35Row },
     'AIA-Art26-human-oversight': { subjects: () => HIGH_RISK_AGENTS, row: aia26Row },
     'AIA-Art50-content-marking': { subjects: () => DOC_AUTOMATIONS, row: markingRow },
+    // One row per collaborative project with personal data, judged against its
+    // processing record (complianceRopaProjects): the broker channel has none.
+    [PROJECT_CHECK_ID]: { subjects: () => projectSubjects(ropaProjectsSeed()), row: (s) => projectVerdict(ropaProjectsSeed(), s.project) },
 };
 
 /* The Art. 50 pair carries a NEWER stamp than the sweep: both are re-run by an
@@ -518,7 +526,7 @@ const tl = (kind, at, extra = {}) => ({ kind, at, label_key: `compliance.dsr_tim
 
 const DSR = () => ([
     dsrRow({
-        id: 'dsr_2417',
+        id: 2417,
         subject_email: 'h.veenstra@example.nl', request_type: 'access',
         status: 'in_progress', created_at: iso(days(27)),
         channel: 'public_form', identity_status: 'verified_email_link', identity_verified_at: iso(days(27) - hours(2)),
@@ -532,7 +540,7 @@ const DSR = () => ([
         ],
     }),
     dsrRow({
-        id: 'dsr_2416',
+        id: 2416,
         subject_email: 'a.dekker@example.nl', request_type: 'deletion',
         status: 'pending', created_at: iso(days(9)),
         channel: 'public_form', identity_status: 'unverified',
@@ -540,7 +548,7 @@ const DSR = () => ([
         timeline: [tl('received', iso(days(9))), tl('ack_sent', iso(days(9)))],
     }),
     dsrRow({
-        id: 'dsr_2415',
+        id: 2415,
         subject_email: 'r.oosterhuis@example.nl', request_type: 'rectification',
         status: 'fulfilled', created_at: iso(days(34)), fulfilled_at: iso(days(21)), fulfilled_by: 'u_marieke',
         channel: 'email_dpo', identity_status: 'verified_manual', identity_verified_at: iso(days(33)),
@@ -554,7 +562,7 @@ const DSR = () => ([
         ],
     }),
     dsrRow({
-        id: 'dsr_2414',
+        id: 2414,
         subject_email: 'broker@example.com', request_type: 'portability',
         status: 'rejected', created_at: iso(days(48)), fulfilled_at: iso(days(40)), fulfilled_by: 'u_farah',
         channel: 'email_dpo', identity_status: 'unverified',
@@ -566,7 +574,7 @@ const DSR = () => ([
         ],
     }),
     dsrRow({
-        id: 'dsr_2413',
+        id: 2413,
         subject_email: 'k.smits@example.nl', request_type: 'objection',
         status: 'fulfilled', created_at: iso(days(61)), fulfilled_at: iso(days(38)), fulfilled_by: 'u_marieke',
         channel: 'phone', identity_status: 'verified_manual', identity_verified_at: iso(days(60)),
@@ -607,95 +615,8 @@ const dsrListRow = (r) => {
 /** The audited detail: the one read that shows the address, timeline included. */
 const dsrDetail = (r) => ({ ...r, ...dsrClock(r) });
 
-/* ── Breach register ─────────────────────────────────────────────────
-   `deadline_at = detected_at + 72h` — the store's rule (incidentStore.js).
-   Computed rather than typed so the countdown on screen is real. */
-
-const DORA_CUSTOMER_NOTICE_HOURS = 4;
-
-const incident = (o) => {
-    const detected = new Date(o.detected_at).getTime();
-    const regimes = o.regimes || ['GDPR'];
-    const isCra = o.kind === 'vulnerability' || regimes.includes('CRA');
-    return {
-        kind: 'breach',
-        cve_ids: null,
-        affected_products: null,
-        exploited_in_wild: false,
-        reported_via: null,
-        early_warning_due_at: null,
-        early_warning_sent_at: null,
-        final_report_due_at: null,
-        final_report_sent_at: null,
-        customer_notice_due_at: null,
-        customer_notified_at: null,
-        ...o,
-        regimes,
-        organization_id: ORG,
-        // The authority clock. GDPR Art. 33 and NIS2 Art. 23(4) both land on
-        // 72 hours from awareness; the store keeps the EARLIEST of the regimes
-        // it carries, which for every row here is that one.
-        deadline_at: new Date(detected + hours(72)).toISOString(),
-        // CRA Art. 14: 24 h early warning, 14 days for the full report.
-        ...(isCra ? {
-            early_warning_due_at: o.early_warning_due_at ?? new Date(detected + hours(24)).toISOString(),
-            final_report_due_at: o.final_report_due_at ?? new Date(detected + days(14)).toISOString(),
-        } : {}),
-        // DORA Art. 30: the financial customers this org serves are told
-        // within the window their contract names (settings, 4 h here).
-        ...(regimes.includes('DORA') && !o.customer_notified_at ? {
-            customer_notice_due_at: o.customer_notice_due_at
-                ?? new Date(detected + hours(DORA_CUSTOMER_NOTICE_HOURS)).toISOString(),
-        } : {}),
-    };
-};
-
-const INCIDENTS = () => ([
-    // An ICT incident that reaches the insurers this office works for: under
-    // DORA the provider tells its financial customers inside the window the
-    // contract names, and the register carries that clock beside the GDPR one.
-    incident({
-        id: 'inc_32', kind: 'security_incident', regimes: ['GDPR', 'DORA'],
-        title: 'Policy-system connector down for 3 hours after a token rotation',
-        description: 'An expired credential stopped the nightly sync with two insurers. No data was exposed; the backlog was replayed. Reported here because the outage touches services two financial entities depend on.',
-        severity: 'medium', high_risk: false,
-        detected_at: iso(hours(3)), occurred_at: iso(hours(6)),
-        status: 'open',
-        authority_notified_at: null, authority_reference: null,
-        subjects_notified_at: null, recipients_notified_at: null,
-        notes: 'Credential rotated and the sync replayed. Customer notification still to be stamped.',
-    }),
-    incident({
-        id: 'inc_31', title: 'Claim summary emailed to the wrong broker',
-        description: 'An assistant-drafted summary was sent to a broker address from a different policy. One data subject affected; content included name, policy number and a description of the damage.',
-        severity: 'medium', high_risk: false,
-        detected_at: iso(hours(19)), occurred_at: iso(hours(26)),
-        status: 'assessing',
-        authority_notified_at: null, authority_reference: null,
-        subjects_notified_at: null, recipients_notified_at: iso(hours(18)),
-        notes: 'Recipient confirmed deletion in writing. Assessing whether Art. 33 notification is required.',
-    }),
-    incident({
-        id: 'inc_30', title: 'Shared mailbox credential found in a support ticket',
-        description: 'A password for a shared claims mailbox was pasted into a ticket body by a member. Rotated within the hour; access logs show no use from an unknown address.',
-        severity: 'high', high_risk: false,
-        detected_at: iso(days(12)), occurred_at: iso(days(12) + hours(3)),
-        status: 'closed',
-        authority_notified_at: null, authority_reference: null,
-        subjects_notified_at: null, recipients_notified_at: iso(days(12) - hours(1)),
-        notes: 'Assessed as unlikely to result in a risk (Art. 33(1)); documented rather than notified. Credential rotated, mailbox access reviewed.',
-    }),
-    incident({
-        id: 'inc_29', title: 'Misconfigured export exposed a claims folder',
-        description: 'A document export ran with the wrong scope and wrote 214 claim files to a folder readable by all staff for 4 days.',
-        severity: 'high', high_risk: true,
-        detected_at: iso(days(63)), occurred_at: iso(days(67)),
-        status: 'closed',
-        authority_notified_at: iso(days(62)), authority_reference: 'AP-2026-0043118',
-        subjects_notified_at: iso(days(59)), recipients_notified_at: iso(days(63)),
-        notes: 'Notified to the Autoriteit Persoonsgegevens within 41 hours. Affected policyholders informed by post.',
-    }),
-]);
+/* The incident register (rows, clocks and write routes) is complianceIncidents.ts,
+   the access log complianceAccessLog.ts, the project records complianceRopaProjects.ts. */
 
 /* ── ROPA ───────────────────────────────────────────────────────────── */
 
@@ -714,9 +635,9 @@ const ACTIVITY_SEEDS = [
     { activity_id: 'agent_kifid', name: 'Klachtdossier', purpose: 'Assembles the file for a Kifid complaint from the correspondence already on record.' },
 ];
 
-const ROPA = () => {
+const ROPA = (state = null) => {
     const processors = PROCESSORS();
-    const s = SETTINGS();
+    const s = state?.settings || SETTINGS();
     return {
         organization_id: ORG,
         controller: { name: 'Van Dael Assurantiën B.V.', dpo_name: s.dpo_name, dpo_email: s.dpo_email, dpo_phone: s.dpo_phone },
@@ -739,7 +660,7 @@ const ROPA = () => {
                 'Access logging via guardrail_events',
                 'DLP / PII redaction (where enabled)',
             ],
-        })),
+        })).concat(projectActivities(state?.ropaProjects || ropaProjectsSeed())),
         processors,
     };
 };
@@ -750,7 +671,7 @@ const ROPA = () => {
 // the measures as a list, and the twelve-month expiry the drawer sets.
 const DPIA = () => ([
     {
-        id: 'dpia_4', organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_intake', agent_name: 'Polisintake',
+        id: 4, organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_intake', agent_name: 'Polisintake',
         answers: {
             purpose: 'Extract structured application fields from documents a broker submits.',
             data_categories: 'Name, address, date of birth, policy history. No special categories.',
@@ -762,7 +683,7 @@ const DPIA = () => ([
         status: 'approved', approved_at: iso(days(74)), expires_at: iso(-days(291)),
     },
     {
-        id: 'dpia_3', organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_helpdesk', agent_name: 'Klantenservice-assistent',
+        id: 3, organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_helpdesk', agent_name: 'Klantenservice-assistent',
         answers: {
             purpose: 'Answer policyholder questions from the published product documentation.',
             data_categories: 'Question text, policy number where the caller supplies it.',
@@ -774,7 +695,7 @@ const DPIA = () => ([
         status: 'approved', approved_at: iso(days(66)), expires_at: iso(-days(299)),
     },
     {
-        id: 'dpia_2', organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_kifid', agent_name: 'Klachtdossier',
+        id: 2, organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_kifid', agent_name: 'Klachtdossier',
         answers: {
             purpose: 'Assemble a complaint file from correspondence already on record.',
             data_categories: 'Correspondence, claim history, health information where the complaint concerns a disability policy.',
@@ -887,9 +808,20 @@ const ISO_DOCS = () => ({
             edited: i === 1,
             updated_at: iso(days(30 + i * 4)),
         };
+    }).map((d, i) => {
+        // isms_documents keeps the working draft (`draft_body`) on every row;
+        // publishing freezes it as the current version. A published policy's
+        // draft is its published text, except the security policy, where the
+        // owner has an unpublished change waiting (so Publish v4 is offered).
+        const body = DOC_BODY(d);
+        const draft = i === 1 ? `${body}\n\n## Remote work\n\nWork from home follows the same rules as the office; public Wi-Fi only through the company VPN.` : body;
+        return { ...d, draft_body: draft, published_body: d.status === 'published' ? body : null, published_title: d.status === 'published' ? d.title : null };
     }),
     missing_seeds: [],
 });
+
+/** A document as ismsDocStore.listDocs serves it: the row, without the demo's frozen copy of the published version. */
+const docListRow = ({ published_body: _body, published_title: _title, ...row }) => row;
 
 const ISO_READINESS = () => {
     const rows = CHECK_ROWS().filter(r => r.regulation === 'ISO27001');
@@ -928,12 +860,16 @@ const ISO_READINESS = () => {
     };
 };
 
+// Keyed by the catalogue's own ids (ISO_CONNECTORS). The collector writes
+// 'ok' with no error, or 'error' with the message (jobs/isoEvidenceCollector
+// markSweep); GitHub's last sweep hit the API rate limit. YouTrack is
+// configured but switched off.
 const CONNECTOR_STATE = {
-    afas: { enabled: true, last_status: 'ok', connection_id: 'conn_afas_prod' },
-    entra: { enabled: true, last_status: 'ok', connection_id: 'conn_entra_prod' },
-    'dns-tls': { enabled: true, last_status: 'ok', connection_id: null },
-    github: { enabled: true, last_status: 'warn', connection_id: 'conn_github_org', last_error: 'Branch protection is off on 1 of 7 repositories.' },
-    jira: { enabled: false, last_status: null, connection_id: null },
+    afas: { enabled: true, last_status: 'ok', connection_id: 'conn_afas_prod', swept: hours(9), snapshots: 46 },
+    'microsoft-entra': { enabled: true, last_status: 'ok', connection_id: 'conn_entra_prod', swept: hours(9), snapshots: 52 },
+    'tls-endpoints': { enabled: true, last_status: 'ok', connection_id: null, swept: hours(9), snapshots: 3 },
+    github: { enabled: true, last_status: 'error', connection_id: 'conn_github_org', swept: hours(3), snapshots: 7, last_error: 'GitHub API rate limit exceeded — retry on the next sweep' },
+    youtrack: { enabled: false, last_status: 'ok', connection_id: 'conn_youtrack', swept: days(20), snapshots: 0 },
 };
 
 const ISO_CONNECTOR_ROWS = () => ISO_CONNECTORS.map((c) => {
@@ -944,73 +880,84 @@ const ISO_CONNECTOR_ROWS = () => ISO_CONNECTORS.map((c) => {
             enabled: st.enabled,
             connection_id: st.connection_id,
             settings: {},
-            last_sweep_at: st.enabled ? iso(hours(9)) : null,
+            last_sweep_at: iso(st.swept),
             last_status: st.last_status,
             last_error: st.last_error || null,
         } : null,
-        snapshots: [],
+        // routes/compliance/isoConnectors.js: a count of the latest snapshots, for enabled connectors only.
+        snapshots: st?.enabled ? st.snapshots : 0,
     };
 });
 
 const RISKS = () => {
     const risks = [
-        { id: 'risk_11', title: 'Policyholder data reaches a model outside the EEA', category: 'privacy', description: 'A member selects a US-hosted model for a claim conversation containing health information.', likelihood: 3, impact: 4, status: 'treating', owner_user_id: 'u_marieke', review_due_at: iso(days(34)) },
-        { id: 'risk_10', title: 'Supplier without a processing agreement', category: 'supplier', description: 'A processor is in use before the DPA is countersigned.', likelihood: 2, impact: 4, status: 'open', owner_user_id: 'u_joost', review_due_at: inDays(6) },
-        { id: 'risk_09', title: 'Assistant output relied on without review', category: 'operational', description: 'A handler treats a drafted claim assessment as a decision rather than a draft.', likelihood: 3, impact: 3, status: 'treating', owner_user_id: 'u_farah', review_due_at: iso(days(12)) },
-        { id: 'risk_08', title: 'Shared credential in a support conversation', category: 'access', description: 'Members paste credentials into tickets or chats.', likelihood: 2, impact: 3, status: 'treating', owner_user_id: 'u_farah', review_due_at: iso(days(58)) },
-        { id: 'risk_07', title: 'Knowledge base retains documents past their retention period', category: 'privacy', description: 'Source documents outlive the retention policy because deletion is manual.', likelihood: 3, impact: 2, status: 'open', owner_user_id: 'u_marieke', review_due_at: inDays(21) },
-        { id: 'risk_06', title: 'Single administrator for the workspace', category: 'operational', description: 'One person holds every administrative permission.', likelihood: 2, impact: 3, status: 'accepted', owner_user_id: 'u_joost', review_due_at: iso(days(90)), accepted_at: iso(days(44)), accepted_by: 'u_joost' },
-        { id: 'risk_05', title: 'Laptop loss exposes cached exports', category: 'access', description: 'Exported PDFs are kept in local downloads folders.', likelihood: 2, impact: 2, status: 'closed', owner_user_id: 'u_farah', review_due_at: iso(days(120)) },
+        { id: 11, title: 'Policyholder data reaches a model outside the EEA', category: 'confidentiality', description: 'A member selects a US-hosted model for a claim conversation containing health information.', likelihood: 3, impact: 4, status: 'treating', owner_user_id: 'u_marieke', review_due_at: iso(days(34)) },
+        { id: 10, title: 'Supplier without a processing agreement', category: 'compliance', description: 'A processor is in use before the DPA is countersigned.', likelihood: 2, impact: 4, status: 'open', owner_user_id: 'u_joost', review_due_at: inDays(6) },
+        { id: 9, title: 'Assistant output relied on without review', category: 'integrity', description: 'A handler treats a drafted claim assessment as a decision rather than a draft.', likelihood: 3, impact: 3, status: 'treating', owner_user_id: 'u_farah', review_due_at: iso(days(12)) },
+        { id: 8, title: 'Shared credential in a support conversation', category: 'confidentiality', description: 'Members paste credentials into tickets or chats.', likelihood: 2, impact: 3, status: 'treating', owner_user_id: 'u_farah', review_due_at: iso(days(58)) },
+        { id: 7, title: 'Knowledge base retains documents past their retention period', category: 'compliance', description: 'Source documents outlive the retention policy because deletion is manual.', likelihood: 3, impact: 2, status: 'open', owner_user_id: 'u_marieke', review_due_at: inDays(21) },
+        { id: 6, title: 'Single administrator for the workspace', category: 'availability', description: 'One person holds every administrative permission.', likelihood: 2, impact: 3, status: 'accepted', owner_user_id: 'u_joost', review_due_at: iso(days(90)), accepted_at: iso(days(44)), accepted_by: 'u_joost' },
+        { id: 5, title: 'Laptop loss exposes cached exports', category: 'confidentiality', description: 'Exported PDFs are kept in local downloads folders.', likelihood: 2, impact: 2, status: 'closed', owner_user_id: 'u_farah', review_due_at: iso(days(120)) },
     ].map(r => ({
         ...r,
         organization_id: ORG,
+        source: 'manual',
         score: r.likelihood * r.impact,
         created_at: iso(days(120)),
+        updated_at: r.accepted_at || iso(days(30)),
     }));
     const treatments = [
-        { id: 'rt_5', risk_id: 'risk_11', option: 'reduce', description: 'Model allowlist per assistant; the claims assistants are pinned to EU-hosted models.', due_at: iso(days(20)), done_at: iso(days(22)), owner_user_id: 'u_marieke' },
-        { id: 'rt_4', risk_id: 'risk_11', option: 'reduce', description: 'Privacy Shield set to redact health terms before any outbound call.', due_at: inDays(30), done_at: null, owner_user_id: 'u_farah' },
-        { id: 'rt_3', risk_id: 'risk_09', option: 'reduce', description: 'Assistant output carries a standing "draft — a handler decides" banner, and the handbook says the same.', due_at: iso(days(9)), done_at: iso(days(10)), owner_user_id: 'u_farah' },
-        { id: 'rt_2', risk_id: 'risk_08', option: 'reduce', description: 'Secret detection on outbound messages; credentials are blocked rather than redacted.', due_at: inDays(14), done_at: null, owner_user_id: 'u_farah' },
-        { id: 'rt_1', risk_id: 'risk_10', option: 'avoid', description: 'Processor suspended until the agreement is signed.', due_at: inDays(3), done_at: null, owner_user_id: 'u_joost' },
+        { id: 5, risk_id: 11, option: 'mitigate', description: 'Model allowlist per assistant; the claims assistants are pinned to EU-hosted models.', due_at: iso(days(20)), done_at: iso(days(22)), owner_user_id: 'u_marieke' },
+        { id: 4, risk_id: 11, option: 'mitigate', description: 'Privacy Shield set to redact health terms before any outbound call.', due_at: inDays(30), done_at: null, owner_user_id: 'u_farah' },
+        { id: 3, risk_id: 9, option: 'mitigate', description: 'Assistant output carries a standing "draft — a handler decides" banner, and the handbook says the same.', due_at: iso(days(9)), done_at: iso(days(10)), owner_user_id: 'u_farah' },
+        { id: 2, risk_id: 8, option: 'mitigate', description: 'Secret detection on outbound messages; credentials are blocked rather than redacted.', due_at: inDays(14), done_at: null, owner_user_id: 'u_farah' },
+        { id: 1, risk_id: 10, option: 'avoid', description: 'Processor suspended until the agreement is signed.', due_at: inDays(3), done_at: null, owner_user_id: 'u_joost' },
     ];
-    const open = risks.filter(r => r.status === 'open' || r.status === 'treating').length;
+    return { risks, treatments, stats: riskStats(risks) };
+};
+
+/** riskStore.getStats, over the rows as they are now: HIGH_SCORE is 10, closed risks drop out of high and overdue. */
+const riskStats = (risks) => {
+    const by = (status) => risks.filter(r => r.status === status).length;
     return {
-        risks,
-        treatments,
-        stats: {
-            total: risks.length,
-            open,
-            // riskStore.getStats' rule: HIGH_SCORE is 10, closed risks drop out.
-            high: risks.filter(r => r.score >= 10 && r.status !== 'closed').length,
-            overdue_reviews: risks.filter(r => r.status !== 'closed' && new Date(r.review_due_at).getTime() < now()).length,
-        },
+        total: risks.length,
+        open: by('open'), treating: by('treating'), accepted: by('accepted'), closed: by('closed'),
+        high: risks.filter(r => r.score >= 10 && r.status !== 'closed').length,
+        overdue_reviews: risks.filter(r => r.status !== 'closed' && r.review_due_at && new Date(r.review_due_at).getTime() < now()).length,
     };
 };
 
 const AUDIT = () => {
     const audits = [
-        { id: 'aud_2', title: 'Internal audit 2026-H1 — Annex A 5, 6 and 8', scope_note: 'Organisational, people and technological controls. Excludes physical (inherited).', auditor_user_id: 'u_joost', status: 'in_progress', planned_at: iso(days(20)), started_at: iso(days(6)), closed_at: null, organization_id: ORG },
-        { id: 'aud_1', title: 'Internal audit 2025-H2 — full ISMS', scope_note: 'First full pass after the ISMS went live.', auditor_user_id: 'u_joost', status: 'closed', planned_at: iso(days(190)), started_at: iso(days(178)), closed_at: iso(days(160)), organization_id: ORG },
+        { id: 2, title: 'Internal audit 2026-H1 — Annex A 5, 6 and 8', scope_note: 'Organisational, people and technological controls. Excludes physical (inherited).', auditor_user_id: 'u_joost', status: 'in_progress', planned_at: iso(days(20)), started_at: iso(days(6)), closed_at: null, organization_id: ORG },
+        { id: 1, title: 'Internal audit 2025-H2 — full ISMS', scope_note: 'First full pass after the ISMS went live.', auditor_user_id: 'u_joost', status: 'closed', planned_at: iso(days(190)), started_at: iso(days(178)), closed_at: iso(days(160)), organization_id: ORG },
     ];
     const findings = [
-        { id: 'f_4', audit_id: 'aud_2', clause: 'A.5.20', control_ref: 'A.5.20', severity: 'major', description: 'One processor is in use without a signed processing agreement.', evidence_ref: 'Supplier register, row 5', nonconformity_id: 'nc_2', created_at: iso(days(5)) },
-        { id: 'f_3', audit_id: 'aud_2', clause: 'A.8.8', control_ref: 'A.8.8', severity: 'minor', description: 'Dependency scanning ran 41 days ago; the policy requires 30.', evidence_ref: 'CI history', nonconformity_id: 'nc_1', created_at: iso(days(5)) },
-        { id: 'f_2', audit_id: 'aud_2', clause: '9.3', control_ref: null, severity: 'observation', description: 'Management review minutes record decisions but not the inputs considered.', evidence_ref: 'MR minutes, 12 Feb', nonconformity_id: null, created_at: iso(days(4)) },
-        { id: 'f_1', audit_id: 'aud_1', clause: 'A.5.15', control_ref: 'A.5.15', severity: 'minor', description: 'Access review for the claims group was not evidenced.', evidence_ref: 'Access review folder', nonconformity_id: null, created_at: iso(days(170)) },
+        { id: 4, audit_id: 2, clause: 'A.5.20', control_ref: 'A.5.20', severity: 'major', description: 'One processor is in use without a signed processing agreement.', evidence_ref: 'Supplier register, row 5', nonconformity_id: 2, created_at: iso(days(5)) },
+        { id: 3, audit_id: 2, clause: 'A.8.8', control_ref: 'A.8.8', severity: 'minor', description: 'Dependency scanning ran 41 days ago; the policy requires 30.', evidence_ref: 'CI history', nonconformity_id: 1, created_at: iso(days(5)) },
+        { id: 2, audit_id: 2, clause: '9.3', control_ref: null, severity: 'observation', description: 'Management review minutes record decisions but not the inputs considered.', evidence_ref: 'MR minutes, 12 Feb', nonconformity_id: null, created_at: iso(days(4)) },
+        { id: 1, audit_id: 1, clause: 'A.5.15', control_ref: 'A.5.15', severity: 'minor', description: 'Access review for the claims group was not evidenced.', evidence_ref: 'Access review folder', nonconformity_id: null, created_at: iso(days(170)) },
     ];
     const ncs = [
-        { id: 'nc_2', title: 'Processor without a signed agreement', description: 'Raised from internal audit 2026-H1, finding f_4.', severity: 'major', source: 'internal_audit', status: 'corrective_action', owner_user_id: 'u_joost', due_at: iso(days(9)), corrective_action: 'Suspend the processor, countersign the agreement, and add a pre-use gate to the supplier checklist.', effectiveness_review_due_at: inDays(60), effectiveness_confirmed_at: null, effectiveness_confirmed_by: null, closed_at: null, created_at: iso(days(5)) },
-        { id: 'nc_1', title: 'Dependency scanning behind policy', description: 'Raised from internal audit 2026-H1, finding f_3.', severity: 'minor', source: 'internal_audit', status: 'effectiveness_review', owner_user_id: 'u_farah', due_at: iso(days(2)), corrective_action: 'Scan moved into the nightly pipeline rather than a manual step.', effectiveness_review_due_at: inDays(45), effectiveness_confirmed_at: null, effectiveness_confirmed_by: null, closed_at: null, created_at: iso(days(5)) },
+        { id: 2, title: 'Processor without a signed agreement', description: 'Raised from internal audit 2026-H1, finding 4.', severity: 'major', source: 'internal_audit', status: 'corrective_action', owner_user_id: 'u_joost', due_at: iso(days(9)), corrective_action: 'Suspend the processor, countersign the agreement, and add a pre-use gate to the supplier checklist.', effectiveness_review_due_at: inDays(60), effectiveness_confirmed_at: null, effectiveness_confirmed_by: null, closed_at: null, created_at: iso(days(5)) },
+        { id: 1, title: 'Dependency scanning behind policy', description: 'Raised from internal audit 2026-H1, finding 3.', severity: 'minor', source: 'internal_audit', status: 'effectiveness_review', owner_user_id: 'u_farah', due_at: iso(days(2)), corrective_action: 'Scan moved into the nightly pipeline rather than a manual step.', effectiveness_review_due_at: inDays(45), effectiveness_confirmed_at: null, effectiveness_confirmed_by: null, closed_at: null, created_at: iso(days(5)) },
     ];
+    // Attendees as ReviewsTab stores them: { id, name }, so a former member still reads by name.
+    const person = (id) => ({ id, name: ORG_USERS().find(u => u.id === id)?.displayName || id });
     const reviews = [
-        { id: 'mr_2', held_at: iso(days(47)), attendees: ['u_marieke', 'u_joost', 'u_farah'], decisions: 'Approved the SoA as it stands. Agreed to bring the supplier register under the same review cycle as the policy set. Next review in Q3.', inputs: {}, organization_id: ORG },
-        { id: 'mr_1', held_at: iso(days(168)), attendees: ['u_marieke', 'u_joost'], decisions: 'ISMS scope confirmed. Accepted the single-administrator risk for one cycle with a named deputy to be appointed.', inputs: {}, organization_id: ORG },
+        {
+            id: 2, held_at: iso(days(47)), attendees: ['u_marieke', 'u_joost', 'u_farah'].map(person),
+            decisions: 'Approved the SoA as it stands. Agreed to bring the supplier register under the same review cycle as the policy set. Next review in Q3.',
+            // The 9.3.2 agenda as it stood on the day (mr_inputs, snapshotted with the minutes).
+            inputs: { score_now: 71, score_90d_ago: 54, failing_checks: 3, open_nonconformities: 1, open_incidents: 0, risks_open: 2, risks_high: 1, soa_approved: '28/93', last_internal_audit: iso(days(160)) },
+            minutes_evidence_ref: 'MR minutes, Q2', organization_id: ORG,
+        },
+        { id: 1, held_at: iso(days(168)), attendees: ['u_marieke', 'u_joost'].map(person), decisions: 'ISMS scope confirmed. Accepted the single-administrator risk for one cycle with a named deputy to be appointed.', inputs: {}, minutes_evidence_ref: null, organization_id: ORG },
     ];
     const objectives = [
-        { id: 'obj_3', title: 'Every applicable Annex A control has an approved SoA decision', measure: 'Approved SoA rows / applicable controls', target: '100%', owner_user_id: 'u_marieke', review_due_at: inDays(40), status: 'active' },
-        { id: 'obj_2', title: 'No nonconformity open past its due date', measure: 'Overdue nonconformities', target: '0', owner_user_id: 'u_farah', review_due_at: inDays(18), status: 'active' },
-        { id: 'obj_1', title: 'All staff attest to the security policy set each year', measure: 'Attestations / personnel', target: '100%', owner_user_id: 'u_joost', review_due_at: iso(days(30)), status: 'achieved' },
+        { id: 3, title: 'Every applicable Annex A control has an approved SoA decision', measure: 'Approved SoA rows / applicable controls', target: '100%', owner_user_id: 'u_marieke', review_due_at: inDays(40), status: 'active' },
+        { id: 2, title: 'No nonconformity open past its due date', measure: 'Overdue nonconformities', target: '0', owner_user_id: 'u_farah', review_due_at: inDays(18), status: 'active' },
+        { id: 1, title: 'All staff attest to the security policy set each year', measure: 'Attestations / personnel', target: '100%', owner_user_id: 'u_joost', review_due_at: iso(days(30)), status: 'achieved' },
     ];
     const soa = SOA().stats;
     const risk = RISKS().stats;
@@ -1021,7 +968,7 @@ const AUDIT = () => {
             score_90d_ago: 54,
             failing_checks: CHECK_ROWS().filter(r => r.status === 'fail').length,
             open_nonconformities: ncs.filter(n => n.status !== 'closed').length,
-            open_incidents: INCIDENTS().filter(i => i.status !== 'closed').length,
+            open_incidents: incidentSeed(ORG).filter(i => INCIDENT_OPEN_STATUSES.includes(i.status)).length,
             risks_open: risk.open,
             risks_high: risk.high,
             soa_approved: `${soa.approved}/${soa.total}`,
@@ -1029,6 +976,13 @@ const AUDIT = () => {
         },
     };
 };
+
+/** An iso_obligations row: the store's defaults around what differs. */
+const obligation = ({ id, title, kind, subject, owner, due_at, recur_months }) => ({
+    id, organization_id: ORG, title, kind, subject, owner_user_id: owner, due_at, recur_months,
+    notify_offsets: [30, 7, 0], completed_at: null, completed_by: null, created_by: 'u_marieke',
+    created_at: iso(days(120)), updated_at: iso(days(120)),
+});
 
 const TRAINING = () => {
     const publishedTotal = ISO_DOCS().documents.filter(d => d.status === 'published').length;
@@ -1052,11 +1006,13 @@ const TRAINING = () => {
             attested_at: attested,
             attested_note: attested ? 'Read and understood the security policy set.' : null,
         })),
-        // Kinds from the server's OBLIGATION_KINDS (routes/compliance/isoProcess.js).
+        // The open obligations (the route lists completed_at IS NULL only), with
+        // kinds from the server's OBLIGATION_KINDS (routes/compliance/isoProcess.js).
+        // One open row per kind and subject: the store's unique index.
         obligations: [
-            { id: 'obl_3', title: 'Annual security awareness refresher', kind: 'training', subject: 'All personnel', owner_user_id: 'u_joost', due_at: iso(days(26)), recur_months: 12, completed_at: null },
-            { id: 'obl_2', title: 'Phishing simulation', kind: 'training', subject: 'All personnel', owner_user_id: 'u_farah', due_at: iso(days(4)), recur_months: 6, completed_at: null },
-            { id: 'obl_1', title: 'Incident response tabletop', kind: 'training', subject: 'Security team', owner_user_id: 'u_farah', due_at: inDays(33), recur_months: 12, completed_at: iso(days(2)) },
+            obligation({ id: 3, title: 'Annual security awareness refresher', kind: 'training', subject: 'All personnel', owner: 'u_joost', due_at: iso(days(26)), recur_months: 12 }),
+            obligation({ id: 2, title: 'Quarterly access review — claims group', kind: 'access_review', subject: 'Claims group', owner: 'u_farah', due_at: iso(days(4)), recur_months: 3 }),
+            obligation({ id: 1, title: 'Annual supplier review', kind: 'supplier_review', subject: 'Processors', owner: 'u_joost', due_at: inDays(33), recur_months: 12 }),
         ],
     };
 };
@@ -1520,6 +1476,17 @@ const EVIDENCE = (state) => {
             captured_at: i.detected_at,
         });
     }
+    for (const r of state.ropaProjects?.registrations || []) {
+        // routes/compliance/projectRegistrations.js: ids and the basis only, never the purpose text.
+        push({
+            check_id: PROJECT_CHECK_ID, subject_type: 'processing-record', subject_id: `project:${r.subject_id}`,
+            payload: {
+                action: 'project_processing_recorded', project_id: r.subject_id, lawful_basis: r.lawful_basis,
+                retention_days: r.retention_days, has_purpose: !!r.purpose, actor: r.confirmed_by, at: r.confirmed_at,
+            },
+            captured_at: r.confirmed_at,
+        });
+    }
     for (const a of state.aiAct) {
         push({
             check_id: 'AIA-Art53-model-inventory', subject_type: 'ai_act_assessment', subject_id: `${a.target_kind}:${a.target_id}`,
@@ -1539,7 +1506,7 @@ const EVIDENCE = (state) => {
         .map((o, i) => {
             const seq = i + 1;
             return {
-                id: `ev_${String(seq).padStart(4, '0')}`,
+                id: seq,
                 organization_id: ORG,
                 seq,
                 prev_hash: seq === 1 ? null : fakeHash(seq - 1),
@@ -1796,20 +1763,6 @@ const MACHINERY_DETECTIONS = () => ({
     classifications: MACHINERY_CLASSIFICATIONS,
 });
 
-/* ── GET /access-audit (A.8.15) ──────────────────────────────────────── */
-
-const ACCESS_AUDIT_ROWS = () => ([
-    { id: 'aa_9', action: 'login_succeeded', target_type: 'user', target_id: 'm.dewit@vandael.example', changed_by: 'u_marieke', created_at: iso(hours(1)), new_values: { method: 'sso', ip: '82.94.xxx.xxx' } },
-    { id: 'aa_8', action: 'dsr.subject_viewed', target_type: 'dsr_request', target_id: 'dsr_2417', changed_by: 'u_marieke', created_at: iso(hours(2)), new_values: { reason: 'handling the request' } },
-    { id: 'aa_7', action: 'dsr.discovery_run', target_type: 'dsr_request', target_id: 'dsr_2417', changed_by: 'u_marieke', created_at: iso(hours(2)), new_values: {} },
-    { id: 'aa_6', action: 'login_failed', target_type: 'login_identifier', target_id: null, changed_by: null, created_at: iso(hours(9)), new_values: { ip: '45.13.xxx.xxx', identifierFingerprint: 'f1a9c47b' } },
-    { id: 'aa_5', action: 'login_succeeded', target_type: 'user', target_id: 'f.elamrani@vandael.example', changed_by: 'u_farah', created_at: iso(hours(11)), new_values: { method: 'sso', ip: '82.94.xxx.xxx' } },
-    { id: 'aa_4', action: 'dsr.dossier_exported', target_type: 'dsr_request', target_id: 'dsr_2415', changed_by: 'u_marieke', created_at: iso(days(21)), new_values: { audience: 'internal file' } },
-    { id: 'aa_3', action: 'studio_app_published', target_type: 'studio_app', target_id: 'app_intake', changed_by: 'u_joost', created_at: iso(days(26)), new_values: { appName: 'Polisintake' } },
-    { id: 'aa_2', action: 'login_blocked', target_type: 'login_identifier', target_id: null, changed_by: null, created_at: iso(days(31)), new_values: { ip: '45.13.xxx.xxx', reason: 'rate limit' } },
-    { id: 'aa_1', action: 'studio_app_public_page_created', target_type: 'studio_app', target_id: 'app_intake', changed_by: 'u_joost', created_at: iso(days(40)), new_values: { appName: 'Polisintake', audience: 'public link' } },
-]);
-
 /* ── GET /counts ─────────────────────────────────────────────────────── */
 
 const SWEEP_INTERVAL_HOURS = 6;
@@ -1880,7 +1833,8 @@ const COUNTS = (state) => {
             due_soon: openDsr.filter(r => dsrClock(r).state === 'urgent').length,
         };
         body.incidents = {
-            open: openIncidents.length,
+            // getDeadlineStats: "open" is nothing filed with an authority yet.
+            open: openIncidents.filter(i => INCIDENT_OPEN_STATUSES.includes(i.status)).length,
             next_deadline_at: nextDeadline == null ? null : new Date(nextDeadline).toISOString(),
             next_stage: nextClock.stage,
             hours_left: nextDeadline == null ? null : hoursAwayFromZero(nextDeadline - now()),
@@ -1892,7 +1846,7 @@ const COUNTS = (state) => {
         body.dpia = { todo: HIGH_RISK_AGENTS.length - state.dpia.length };
     }
     if (isoOn) {
-        body.risks = { total: state.risks.stats.total, high: state.risks.stats.high };
+        body.risks = (({ total, high }) => ({ total, high }))(riskStats(state.risks.risks));
         body.soa = { approved: state.soa.stats.approved, total: state.soa.stats.total, todo: state.soa.stats.todo };
         body.policies = {
             total: docs.length,
@@ -1918,7 +1872,7 @@ export function createState() {
         settings: SETTINGS(),
         checks: CHECK_ROWS(),
         dsr: DSR(),
-        incidents: INCIDENTS(),
+        incidents: incidentSeed(ORG),
         dpia: DPIA(),
         soa: SOA(),
         docs: ISO_DOCS(),
@@ -1941,7 +1895,9 @@ export function createState() {
             checks: CUSTOM_CHECKS(),
             attestations: CUSTOM_ATTESTATIONS(),
         },
-        accessAudit: ACCESS_AUDIT_ROWS(),
+        // The access log (A.8.15) lives in complianceAccessLog: server-shaped rows and actions.
+        accessAudit: accessAuditSeed(ORG),
+        ropaProjects: ropaProjectsSeed(),
         evidence: [],
     };
     // The ledger is built LAST: every row in it is the trace of something
@@ -1955,16 +1911,23 @@ function reseal(state) {
     state.evidence = EVIDENCE(state);
 }
 
+/** After a project's record changes: re-run its GDPR-Art30-project-personal-data slot, as the route does. */
+function rejudgeProject(state, projectId) {
+    const project = state.ropaProjects.projects.find(p => p.project_id === projectId);
+    if (project) {
+        const v = projectVerdict(state.ropaProjects, project);
+        const at = new Date().toISOString();
+        state.checks = state.checks.map(c => (c.check_id === PROJECT_CHECK_ID && c.scope_id === `project:${projectId}`
+            ? { ...c, ...v, evidence: { ...c.evidence, ...v.evidence }, run_at: at, run_type: 'event' }
+            : c));
+    }
+    reseal(state);
+}
+
 const ok = () => ({ ok: true });
 
-/** The next free `<prefix><n>` id in a list — ids stay readable and unique. */
-const nextId = (rows, prefix) => {
-    const highest = rows.reduce((m, r) => {
-        const n = parseInt(String(r.id).slice(prefix.length), 10);
-        return Number.isFinite(n) && n > m ? n : m;
-    }, 0);
-    return highest + 1;
-};
+/** The next free id in a register: the registers are SERIAL columns, so a number. */
+const nextId = (rows) => rows.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0) + 1;
 
 /** A demo 4xx: the same body the server sends, so the UI shows its real error. */
 const refuse = (error, status = 400, extra = {}) => new Response(
@@ -1984,6 +1947,9 @@ const refuse = (error, status = 400, extra = {}) => new Response(
 const EMPTY_AZURE = Object.fromEntries(
     ['summary', 'by-type', 'by-user'].map((ep) => [`GET /api/usage/azure-services/${ep}`, ep === 'summary' ? () => ({}) : () => ([])]),
 );
+
+/** Route params are strings; the registers' ids are numbers, as the server's SERIAL columns are. */
+const sameId = (a, b) => String(a) === String(b);
 
 export const ROUTES = {
     ...EMPTY_AZURE,
@@ -2139,7 +2105,7 @@ export const ROUTES = {
     'POST /api/dsr/requests/manual': ({ state, body }) => {
         const created = body?.received_at || new Date().toISOString();
         const row = dsrRow({
-            id: `dsr_${nextId(state.dsr, 'dsr_')}`,
+            id: nextId(state.dsr),
             subject_email: body?.subject_email || 'onbekend@example.nl',
             request_type: body?.request_type || 'access',
             status: 'pending',
@@ -2157,13 +2123,13 @@ export const ROUTES = {
         return dsrListRow(row);
     },
     'GET /api/dsr/requests/:id/timeline': ({ state, params }) => {
-        const r = state.dsr.find(x => x.id === params.id);
-        return { id: params.id, timeline: r ? r.timeline : [] };
+        const r = state.dsr.find(x => sameId(x.id, params.id));
+        return { id: r ? r.id : Number(params.id), timeline: r ? r.timeline : [] };
     },
     // The read-only subject scan. Counts only, no addresses, and one source
     // the product deliberately does NOT scan — saying so is the point.
     'GET /api/dsr/requests/:id/discovery': ({ state, params }) => {
-        const r = state.dsr.find(x => x.id === params.id);
+        const r = state.dsr.find(x => sameId(x.id, params.id));
         if (!r) return null;
         return {
             subject: { email_masked: r.subject_email_masked, user_id: null },
@@ -2186,16 +2152,16 @@ export const ROUTES = {
     },
     'POST /api/dsr/requests/:id/start': ({ state, params }) => {
         const at = new Date().toISOString();
-        state.dsr = state.dsr.map(r => (r.id === params.id
+        state.dsr = state.dsr.map(r => (sameId(r.id, params.id)
             ? { ...r, status: 'in_progress', started_at: r.started_at || at, started_by: 'u_marieke', timeline: [...r.timeline, tl('started', at, { by: 'u_marieke' })] }
             : r));
-        return dsrListRow(state.dsr.find(r => r.id === params.id));
+        return dsrListRow(state.dsr.find(r => sameId(r.id, params.id)));
     },
     // Art. 12(3) allows ONE extension of two months, with a reason. The
     // second attempt is refused with the same 409 the server sends, because a
     // demo that lets you extend twice teaches the wrong rule.
     'POST /api/dsr/requests/:id/extend': ({ state, params, body }) => {
-        const r = state.dsr.find(x => x.id === params.id);
+        const r = state.dsr.find(x => sameId(x.id, params.id));
         if (!r) return refuse('not_found', 404);
         if (r.extended_at) return refuse('already_extended', 409);
         if (DSR_CLOSED.has(r.status)) return refuse('not_open', 409);
@@ -2213,7 +2179,7 @@ export const ROUTES = {
     },
     'POST /api/dsr/requests/:id/verify-identity': ({ state, params, body }) => {
         const at = new Date().toISOString();
-        state.dsr = state.dsr.map(r => (r.id === params.id
+        state.dsr = state.dsr.map(r => (sameId(r.id, params.id)
             ? {
                 ...r, identity_status: 'verified_manual', identity_verified_at: at,
                 timeline: [
@@ -2223,12 +2189,12 @@ export const ROUTES = {
                 ],
             }
             : r));
-        return dsrListRow(state.dsr.find(r => r.id === params.id));
+        return dsrListRow(state.dsr.find(r => sameId(r.id, params.id)));
     },
     'POST /api/dsr/requests/:id/fulfil': ({ state, params, body }) => {
         const at = new Date().toISOString();
         const status = body?.status === 'rejected' ? 'rejected' : 'fulfilled';
-        state.dsr = state.dsr.map(r => (r.id === params.id
+        state.dsr = state.dsr.map(r => (sameId(r.id, params.id)
             ? {
                 ...r, status, result_summary: body?.result_summary || r.result_summary, pending: false,
                 fulfilled_at: at, fulfilled_by: 'u_marieke',
@@ -2239,112 +2205,28 @@ export const ROUTES = {
             }
             : r));
         reseal(state);
-        return dsrListRow(state.dsr.find(r => r.id === params.id));
+        return dsrListRow(state.dsr.find(r => sameId(r.id, params.id)));
     },
     // The ONE read that shows the address in full — and the one that writes an
     // access-audit row, which the demo's access log then shows you.
     'GET /api/dsr/requests/:id': ({ state, params }) => {
-        const r = state.dsr.find(x => x.id === params.id);
+        const r = state.dsr.find(x => sameId(x.id, params.id));
         if (!r) return null;
-        state.accessAudit = [{
-            id: `aa_${state.accessAudit.length + 10}`,
-            action: 'dsr.subject_viewed', target_type: 'dsr_request', target_id: r.id,
-            changed_by: 'u_marieke', created_at: new Date().toISOString(),
-            new_values: { reason: 'opened in the register' },
-        }, ...state.accessAudit];
+        // routes/dsr.js: the request id and its type, never the address.
+        logAccess(state, {
+            action: 'dsr.subject_viewed', target_type: 'dsr_request', target_id: String(r.id),
+            changed_by: 'u_marieke', new_values: { request_type: r.request_type },
+        });
         return dsrDetail(r);
     },
 
-    'GET /api/compliance/incidents': ({ state, query }) => {
-        const kind = query.get('kind');
-        const status = query.get('status');
-        let rows = state.incidents;
-        if (kind) rows = rows.filter(i => (i.kind || 'breach') === kind);
-        if (status) rows = rows.filter(i => i.status === status);
-        return rows;
-    },
-    'POST /api/compliance/incidents': ({ state, body }) => {
-        const detected_at = body?.detected_at || new Date().toISOString();
-        const regimes = Array.isArray(body?.regimes) && body.regimes.length ? body.regimes : ['GDPR'];
-        const kind = ['breach', 'security_incident', 'vulnerability'].includes(body?.kind) ? body.kind : 'breach';
-        // The CRA register only exists for an org that switched the CRA on —
-        // the server refuses the row rather than storing an orphan.
-        if ((kind === 'vulnerability' || regimes.includes('CRA')) && !state.frameworks.enabled.includes('cra')) {
-            return refuse('framework_disabled', 409, { regulation: 'CRA', framework: 'cra' });
-        }
-        const created = incident({
-            id: `inc_${nextId(state.incidents, 'inc_')}`,
-            kind,
-            regimes,
-            title: body?.title || 'Untitled incident',
-            description: body?.description || '',
-            severity: body?.severity || 'medium',
-            high_risk: !!body?.high_risk,
-            detected_at,
-            occurred_at: body?.occurred_at || detected_at,
-            status: 'open',
-            authority_notified_at: null, authority_reference: null,
-            subjects_notified_at: null, recipients_notified_at: null,
-            cve_ids: body?.cve_ids || null,
-            affected_products: body?.affected_products || null,
-            exploited_in_wild: !!(body?.exploited_in_wild ?? body?.actively_exploited),
-            notes: '',
-        });
-        state.incidents = [created, ...state.incidents];
-        reseal(state);
-        return created;
-    },
-    // CRA Art. 14: the early warning (24 h) and the full report (72 h) are
-    // stamped separately, each with the channel they went out through.
-    'POST /api/compliance/incidents/:id/cra-report': ({ state, params, body }) => {
-        const stage = body?.stage;
-        if (stage !== 'early_warning' && stage !== 'full') return refuse('invalid_stage');
-        const i = state.incidents.find(x => x.id === params.id);
-        if (!i) return refuse('not_found', 404);
-        if (i.kind !== 'vulnerability' && !(i.regimes || []).includes('CRA')) return refuse('not_cra_incident', 409);
-        const at = new Date().toISOString();
-        // `full` stamps the final report AND the notification, as incidentStore.stampCraReport does.
-        const patch = stage === 'early_warning' ? { early_warning_sent_at: at } : { final_report_sent_at: at, authority_notified_at: i.authority_notified_at || at };
-        state.incidents = state.incidents.map(x => (x.id === i.id
-            ? { ...x, ...patch, reported_via: body?.reported_via || x.reported_via, authority_reference: body?.reference || x.authority_reference }
-            : x));
-        reseal(state);
-        return state.incidents.find(x => x.id === i.id);
-    },
-    // DORA Art. 30: the financial customers have been told.
-    'POST /api/compliance/incidents/:id/customer-notified': ({ state, params }) => {
-        const at = new Date().toISOString();
-        state.incidents = state.incidents.map(x => (x.id === params.id
-            ? { ...x, customer_notified_at: at, customer_notice_due_at: null }
-            : x));
-        reseal(state);
-        return state.incidents.find(x => x.id === params.id);
-    },
-    // As incidentStore.updateIncident: a status stamps its column once, a note
-    // is appended to the log (the Art. 33(5) reason a breach was closed unnotified).
-    'PATCH /api/compliance/incidents/:id': ({ state, params, body }) => {
-        const at = new Date().toISOString();
-        const { note, ...patch } = body || {};
-        state.incidents = state.incidents.map(i => {
-            if (i.id !== params.id) return i;
-            const log = Array.isArray(i.notes) ? i.notes : (i.notes ? [{ at: i.detected_at, by: null, text: String(i.notes) }] : []);
-            return {
-                ...i, ...patch, updated_at: at,
-                authority_notified_at: patch.status === 'authority_notified' ? (i.authority_notified_at || at) : i.authority_notified_at,
-                subjects_notified_at: patch.status === 'subjects_notified' ? (i.subjects_notified_at || at) : i.subjects_notified_at,
-                notes: note ? [...log, { at, by: 'u_marieke', text: String(note) }] : i.notes,
-            };
-        });
-        return state.incidents.find(i => i.id === params.id);
-    },
-    'POST /api/compliance/incidents/:id/notify-recipients': ({ state, params }) => {
-        const at = new Date().toISOString();
-        state.incidents = state.incidents.map(i => (i.id === params.id ? { ...i, recipients_notified_at: at } : i));
-        // Nothing is sent from a demo, and saying so beats a silent success.
-        return { notified: 0, demo_not_sent: true };
-    },
+    ...incidentRoutes({ org: ORG, reseal, refuse }),
 
-    'GET /api/compliance/ropa': () => ROPA(),
+    'GET /api/compliance/ropa': ({ state }) => ROPA(state),
+    // Collaborative projects with personal data and their processing records
+    // (complianceRopaProjects). A write re-judges that project's
+    // GDPR-Art30-project-personal-data row and lands in the evidence chain.
+    ...ropaProjectRoutes(rejudgeProject),
     'POST /api/compliance/ropa/review': ({ state }) => {
         const at = new Date().toISOString();
         state.settings = { ...state.settings, ropa_reviewed_at: at };
@@ -2364,7 +2246,7 @@ export const ROUTES = {
     'POST /api/compliance/dpia/:agentId': ({ state, params, body }) => {
         const existing = state.dpia.find(d => d.agent_id === params.agentId);
         const saved = {
-            ...(existing || { id: `dpia_${state.dpia.length + 1}`, organization_id: ORG, agent_id: params.agentId }),
+            ...(existing || { id: nextId(state.dpia), organization_id: ORG, agent_id: params.agentId }),
             ...(body || {}),
             status: 'approved',
             approved_at: new Date().toISOString(),
@@ -2392,7 +2274,7 @@ export const ROUTES = {
 
     'GET /api/compliance/iso/readiness': () => ISO_READINESS(),
 
-    'GET /api/compliance/iso/docs': ({ state }) => state.docs,
+    'GET /api/compliance/iso/docs': ({ state }) => ({ ...state.docs, documents: state.docs.documents.map(docListRow) }),
     // Mirrors ismsDocStore.getDoc: the working draft plus the frozen current
     // version (`published`), which the policy drawer compares before it
     // offers Publish. PUT keeps the text as the draft; publishing freezes it.
@@ -2403,7 +2285,7 @@ export const ROUTES = {
         const published = d.status === 'published' && d.current_version
             ? { version: d.current_version, title: d.published_title ?? d.title, body: frozen }
             : null;
-        return { ...d, draft_body: d.draft_body ?? frozen, published };
+        return { ...docListRow(d), draft_body: d.draft_body ?? frozen, published };
     },
     'PUT /api/compliance/iso/docs/:slug': ({ state, params, body }) => {
         const { body: text, ...meta } = body || {};
@@ -2413,7 +2295,7 @@ export const ROUTES = {
                 ? { ...d, ...meta, ...(typeof text === 'string' ? { draft_body: text } : {}), edited: true }
                 : d)),
         };
-        return state.docs.documents.find(d => d.slug === params.slug);
+        return docListRow(state.docs.documents.find(d => d.slug === params.slug));
     },
     'POST /api/compliance/iso/docs/:slug/publish': ({ state, params }) => {
         state.docs = {
@@ -2425,30 +2307,30 @@ export const ROUTES = {
                 }
                 : d)),
         };
-        return state.docs.documents.find(d => d.slug === params.slug);
+        return docListRow(state.docs.documents.find(d => d.slug === params.slug));
     },
     'POST /api/compliance/iso/docs/seed': ({ state }) => ({ seeded: state.docs.missing_seeds.length }),
 
     'GET /api/compliance/iso/connectors': ({ state }) => state.connectors,
     'GET /api/compliance/iso/connectors/:id/connections': () => ([]),
     'PUT /api/compliance/iso/connectors/:id': ({ state, params, body }) => {
-        state.connectors = state.connectors.map(c => (c.id === params.id
+        state.connectors = state.connectors.map(c => (sameId(c.id, params.id)
             ? { ...c, config: { ...(c.config || { settings: {}, last_sweep_at: null, last_status: null, last_error: null }), ...(body || {}) } }
             : c));
-        return state.connectors.find(c => c.id === params.id);
+        return state.connectors.find(c => sameId(c.id, params.id));
     },
     'POST /api/compliance/iso/connectors/:id/sweep': ({ state, params }) => {
         const at = new Date().toISOString();
-        state.connectors = state.connectors.map(c => (c.id === params.id
+        state.connectors = state.connectors.map(c => (sameId(c.id, params.id)
             ? { ...c, config: { ...(c.config || {}), last_sweep_at: at, last_status: 'ok', last_error: null } }
             : c));
         return { swept: true, at };
     },
 
-    'GET /api/compliance/iso/risks': ({ state }) => state.risks,
+    'GET /api/compliance/iso/risks': ({ state }) => ({ ...state.risks, stats: riskStats(state.risks.risks) }),
     'POST /api/compliance/iso/risks': ({ state, body }) => {
         const r = {
-            id: `risk_${12 + state.risks.risks.length}`, organization_id: ORG,
+            id: nextId(state.risks.risks), organization_id: ORG, created_at: new Date().toISOString(),
             likelihood: 2, impact: 2, status: 'open', ...(body || {}),
         };
         r.score = (r.likelihood || 0) * (r.impact || 0);
@@ -2459,7 +2341,7 @@ export const ROUTES = {
         state.risks = {
             ...state.risks,
             risks: state.risks.risks.map(r => {
-                if (r.id !== params.id) return r;
+                if (!sameId(r.id, params.id)) return r;
                 // As riskStore.update: every write bumps updated_at, and the first
                 // move to 'accepted' stamps who (the demo's admin) and when.
                 const next = { ...r, ...(body || {}), updated_at: new Date(now()).toISOString() };
@@ -2468,10 +2350,10 @@ export const ROUTES = {
                 return next;
             }),
         };
-        return state.risks.risks.find(r => r.id === params.id);
+        return state.risks.risks.find(r => sameId(r.id, params.id));
     },
     'POST /api/compliance/iso/risks/:id/treatments': ({ state, params, body }) => {
-        const t = { id: `rt_${6 + state.risks.treatments.length}`, risk_id: params.id, ...(body || {}) };
+        const t = { id: nextId(state.risks.treatments), risk_id: Number(params.id), done_at: null, ...(body || {}) };
         state.risks = { ...state.risks, treatments: [t, ...state.risks.treatments] };
         return t;
     },
@@ -2484,44 +2366,48 @@ export const ROUTES = {
         owns_controls: params.userId === 'u_joost' ? [] : ['A.8.2', 'A.8.15'],
     }),
     'POST /api/compliance/iso/audits': ({ state, body }) => {
-        const a = { id: `aud_${3 + state.audit.audits.length}`, status: 'planned', organization_id: ORG, ...(body || {}) };
+        const a = { id: nextId(state.audit.audits), status: 'planned', organization_id: ORG, closed_at: null, ...(body || {}) };
         state.audit = { ...state.audit, audits: [a, ...state.audit.audits] };
         return a;
     },
     'PUT /api/compliance/iso/audits/:id': ({ state, params, body }) => {
-        state.audit = { ...state.audit, audits: state.audit.audits.map(a => (a.id === params.id ? { ...a, ...(body || {}) } : a)) };
-        return state.audit.audits.find(a => a.id === params.id);
+        state.audit = { ...state.audit, audits: state.audit.audits.map(a => (sameId(a.id, params.id) ? { ...a, ...(body || {}) } : a)) };
+        return state.audit.audits.find(a => sameId(a.id, params.id));
     },
     'POST /api/compliance/iso/audits/:id/findings': ({ state, params, body }) => {
-        const f = { id: `f_${5 + state.audit.findings.length}`, audit_id: params.id, created_at: new Date().toISOString(), ...(body || {}) };
+        const f = { id: nextId(state.audit.findings), audit_id: Number(params.id), created_at: new Date().toISOString(), ...(body || {}) };
         state.audit = { ...state.audit, findings: [f, ...state.audit.findings] };
         return f;
     },
     'POST /api/compliance/iso/reviews': ({ state, body }) => {
-        const r = { id: `mr_${3 + state.audit.reviews.length}`, organization_id: ORG, ...(body || {}) };
+        const r = { id: nextId(state.audit.reviews), organization_id: ORG, ...(body || {}) };
         state.audit = { ...state.audit, reviews: [r, ...state.audit.reviews] };
         return r;
     },
     'POST /api/compliance/iso/ncs': ({ state, body }) => {
-        const n = { id: `nc_${3 + state.audit.ncs.length}`, status: 'open', created_at: new Date().toISOString(), ...(body || {}) };
+        const n = { id: nextId(state.audit.ncs), status: 'open', created_at: new Date().toISOString(), ...(body || {}) };
         state.audit = { ...state.audit, ncs: [n, ...state.audit.ncs] };
         return n;
     },
     'PUT /api/compliance/iso/ncs/:id': ({ state, params, body }) => {
-        state.audit = { ...state.audit, ncs: state.audit.ncs.map(n => (n.id === params.id ? { ...n, ...(body || {}) } : n)) };
-        return state.audit.ncs.find(n => n.id === params.id);
+        state.audit = { ...state.audit, ncs: state.audit.ncs.map(n => (sameId(n.id, params.id) ? { ...n, ...(body || {}) } : n)) };
+        return state.audit.ncs.find(n => sameId(n.id, params.id));
     },
     'POST /api/compliance/iso/objectives': ({ state, body }) => {
-        const o = { id: `obj_${4 + state.audit.objectives.length}`, status: 'active', ...(body || {}) };
+        const o = { id: nextId(state.audit.objectives), status: 'active', ...(body || {}) };
         state.audit = { ...state.audit, objectives: [o, ...state.audit.objectives] };
         return o;
     },
     'PUT /api/compliance/iso/objectives/:id': ({ state, params, body }) => {
-        state.audit = { ...state.audit, objectives: state.audit.objectives.map(o => (o.id === params.id ? { ...o, ...(body || {}) } : o)) };
-        return state.audit.objectives.find(o => o.id === params.id);
+        state.audit = { ...state.audit, objectives: state.audit.objectives.map(o => (sameId(o.id, params.id) ? { ...o, ...(body || {}) } : o)) };
+        return state.audit.objectives.find(o => sameId(o.id, params.id));
     },
 
-    'GET /api/compliance/iso/training': ({ state }) => state.training,
+    // The route lists the OPEN obligations only, soonest first.
+    'GET /api/compliance/iso/training': ({ state }) => ({
+        ...state.training,
+        obligations: state.training.obligations.filter(o => !o.completed_at).sort((a, b) => new Date(a.due_at) - new Date(b.due_at)),
+    }),
     'POST /api/compliance/iso/training/:userId/attest': ({ state, params, body }) => {
         const at = new Date().toISOString();
         state.training = {
@@ -2533,17 +2419,36 @@ export const ROUTES = {
         return ok();
     },
     'POST /api/compliance/iso/obligations': ({ state, body }) => {
-        const o = { id: `obl_${4 + state.training.obligations.length}`, completed_at: null, ...(body || {}) };
+        const b = body || {};
+        const o = {
+            ...obligation({ id: nextId(state.training.obligations), title: b.title, kind: b.kind || 'custom', subject: b.subject || '', owner: b.owner_user_id || null, due_at: b.due_at, recur_months: b.recur_months ?? null }),
+            created_at: iso(0), updated_at: iso(0),
+        };
         state.training = { ...state.training, obligations: [o, ...state.training.obligations] };
         return o;
     },
+    // isoObligationStore.completeObligation: stamp it, and a recurring one
+    // opens its next occurrence `recur_months` after the old due date.
     'POST /api/compliance/iso/obligations/:id/complete': ({ state, params }) => {
+        const existing = state.training.obligations.find(o => sameId(o.id, params.id));
+        if (!existing) return null;
+        if (existing.completed_at) return { completed: existing, next: null };
         const at = new Date().toISOString();
+        const completed = { ...existing, completed_at: at, completed_by: 'u_marieke', updated_at: at };
+        let next = null;
+        if (existing.recur_months) {
+            const due = new Date(existing.due_at);
+            due.setUTCMonth(due.getUTCMonth() + existing.recur_months);
+            next = {
+                ...obligation({ ...existing, id: nextId(state.training.obligations), owner: existing.owner_user_id, due_at: due.toISOString() }),
+                created_at: at, updated_at: at,
+            };
+        }
         state.training = {
             ...state.training,
-            obligations: state.training.obligations.map(o => (o.id === params.id ? { ...o, completed_at: at } : o)),
+            obligations: [...(next ? [next] : []), ...state.training.obligations.map(o => (o.id === existing.id ? completed : o))],
         };
-        return ok();
+        return { completed, next };
     },
 
     /* ── AI Act assessments (the ladder, and the register behind it) ──── */
@@ -2607,7 +2512,7 @@ export const ROUTES = {
         return fw;
     },
     'GET /api/compliance/custom/frameworks/:id/export.json': ({ state, params }) => {
-        const fw = state.custom.frameworks.find(f => f.id === params.id);
+        const fw = state.custom.frameworks.find(f => sameId(f.id, params.id));
         if (!fw) return refuse('not_found', 404);
         const { organization_id: _org, ...rest } = fw; // eslint-disable-line no-unused-vars
         return {
@@ -2618,7 +2523,7 @@ export const ROUTES = {
     },
     'POST /api/compliance/custom/frameworks/:id/checks': ({ state, params, body }) => {
         const rows = Array.isArray(body) ? body : (body?.checks || body?.rows || []);
-        const fw = state.custom.frameworks.find(f => f.id === params.id);
+        const fw = state.custom.frameworks.find(f => sameId(f.id, params.id));
         if (!fw) return refuse('not_found', 404);
         const added = rows.map((r, i) => ({
             id: `cck_${fw.code.toLowerCase()}_${state.custom.checks.length + i + 1}`,
@@ -2636,7 +2541,7 @@ export const ROUTES = {
         return { checks: added, count: added.length };
     },
     'GET /api/compliance/custom/frameworks/:id': ({ state, params }) => {
-        const fw = state.custom.frameworks.find(f => f.id === params.id);
+        const fw = state.custom.frameworks.find(f => sameId(f.id, params.id));
         if (!fw) return refuse('not_found', 404);
         return { ...fw, checks: state.custom.checks.filter(c => c.framework_id === fw.id).map(c => customCheckRow(state, c)) };
     },
@@ -2644,23 +2549,23 @@ export const ROUTES = {
         if (body && 'code' in body) return refuse('code_immutable');
         state.custom = {
             ...state.custom,
-            frameworks: state.custom.frameworks.map(f => (f.id === params.id ? { ...f, ...(body || {}), updated_at: new Date().toISOString() } : f)),
+            frameworks: state.custom.frameworks.map(f => (sameId(f.id, params.id) ? { ...f, ...(body || {}), updated_at: new Date().toISOString() } : f)),
         };
-        return state.custom.frameworks.find(f => f.id === params.id) || refuse('not_found', 404);
+        return state.custom.frameworks.find(f => sameId(f.id, params.id)) || refuse('not_found', 404);
     },
     'DELETE /api/compliance/custom/frameworks/:id': ({ state, params }) => {
         state.custom = {
             ...state.custom,
-            frameworks: state.custom.frameworks.map(f => (f.id === params.id ? { ...f, status: 'archived' } : f)),
+            frameworks: state.custom.frameworks.map(f => (sameId(f.id, params.id) ? { ...f, status: 'archived' } : f)),
         };
         return { ok: true, status: 'archived' };
     },
     'DELETE /api/compliance/custom/checks/:id': ({ state, params }) => {
-        state.custom = { ...state.custom, checks: state.custom.checks.filter(c => c.id !== params.id) };
+        state.custom = { ...state.custom, checks: state.custom.checks.filter(c => !sameId(c.id, params.id)) };
         return ok();
     },
     'GET /api/compliance/custom/checks/:id/attestations': ({ state, params }) => {
-        const c = state.custom.checks.find(x => x.id === params.id);
+        const c = state.custom.checks.find(x => sameId(x.id, params.id));
         if (!c) return refuse('not_found', 404);
         return state.custom.attestations
             .filter(a => a.check_id === c.check_id)
@@ -2670,7 +2575,7 @@ export const ROUTES = {
     // statement and the refs, and refused when the item demands evidence and
     // none is given.
     'POST /api/compliance/custom/checks/:id/attest': ({ state, params, body }) => {
-        const c = state.custom.checks.find(x => x.id === params.id);
+        const c = state.custom.checks.find(x => sameId(x.id, params.id));
         if (!c) return refuse('not_found', 404);
         const outcome = body?.outcome;
         if (!['compliant', 'partial', 'non_compliant', 'not_applicable'].includes(outcome)) return refuse('invalid_outcome');
@@ -2751,16 +2656,7 @@ export const ROUTES = {
         themes: ISO_THEMES,
     }),
 
-    'GET /api/compliance/access-audit': ({ state, query }) => {
-        const action = query.get('action');
-        const offset = Math.max(0, parseInt(query.get('offset'), 10) || 0);
-        const limit = Math.min(200, Math.max(1, parseInt(query.get('limit'), 10) || 50));
-        const rows = action ? state.accessAudit.filter(r => r.action === action) : state.accessAudit;
-        return { entries: rows.slice(offset, offset + limit), total: rows.length, limit, offset, scope: ORG };
-    },
-    'GET /api/compliance/access-audit/actions': ({ state }) => ({
-        actions: [...new Set(state.accessAudit.map(r => r.action))],
-    }),
+    ...ACCESS_LOG_ROUTES,
 };
 
 // Policy bodies are one short, real-sounding paragraph each rather than lorem:
