@@ -1,10 +1,10 @@
-fastapi==0.141.1
+fastapi==0.142.2
 uvicorn[standard]==0.54.0
 # CUDA-enabled PyTorch for GPU inference. Unpinned: the versions on the
 # PyTorch wheel index cannot be read from the pinning box.
 --extra-index-url https://download.pytorch.org/whl/cu121
 torch
-transformers==5.17.0
+transformers==5.18.0
 huggingface_hub==1.33.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
