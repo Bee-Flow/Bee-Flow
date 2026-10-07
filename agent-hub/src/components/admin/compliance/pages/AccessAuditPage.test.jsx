@@ -2,7 +2,7 @@ import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { metaFor, subjectOf, detailOf, actionLabel, humanizeAction } from './accessAuditLabels';
+import { metaFor, subjectOf, detailOf, actionLabel, humanizeAction, reasonLabel } from './accessAuditLabels';
 import AccessAuditPage from './AccessAuditPage';
 
 // t(key, fallback, params) — the real signature. Returning the rendered
@@ -233,6 +233,20 @@ describe('AccessAuditPage', () => {
         expect(humanizeAction('dsr.subject_reidentified')).toBe('Subject reidentified');
         expect(humanizeAction('')).toBe('—');
         expect(subjectOf({ target_type: 'other', target_id: 'x1' }, (k, f) => f)).toBe('x1');
+        // A sign-in names the account by its id (loginAudit); the subject reads as that member's name.
+        const signIn = { action: 'login_succeeded', target_type: 'user', target_id: 'u7' };
+        expect(subjectOf(signIn, (k, f) => f, [{ id: 'u7', displayName: 'Marieke de Wit' }])).toBe('Marieke de Wit');
+        expect(subjectOf(signIn, (k, f) => f, [])).toBe('u7');
+    });
+
+    it('a refusal reason reads as words: a known code translated, another humanised, free text as written', () => {
+        const t = (k, f) => (k === 'compliance.aa_reason_throttled' ? 'te veel pogingen' : f);
+        expect(reasonLabel('throttled', t)).toBe('te veel pogingen');
+        expect(reasonLabel('invalid_credentials', t)).toBe('wrong credentials');
+        expect(reasonLabel('protocol_error', t)).toBe('protocol error');
+        expect(reasonLabel('handling the request', t)).toBe('handling the request');
+        expect(reasonLabel(undefined, t)).toBeNull();
+        expect(detailOf({ new_values: { method: 'opaque', reason: 'account_suspended' } }, t)).toBe('opaque · account suspended');
     });
 
     it('the data-subject request events have their own words', () => {
@@ -258,7 +272,7 @@ describe('AccessAuditPage', () => {
     it('the detail repeats under the subject while the Detail column is folded, and only then', () => {
         render(<AccessAuditPage {...props({ entries: [FAILED_UNKNOWN, PUBLIC_URL] })} />);
         const folded = screen.getByTestId('access-audit-folded-detail-1');
-        expect(folded.textContent).toBe('password · invalid_credentials · 203.0.113.9 · same-name tag d6e7f8');
+        expect(folded.textContent).toBe('password · wrong credentials · 203.0.113.9 · same-name tag d6e7f8');
         expect(folded.className).toContain('@max-[1180px]/ctable:inline');
         // A row without a detail adds no empty line.
         expect(screen.queryByTestId('access-audit-folded-detail-2')).toBeNull();
@@ -296,5 +310,13 @@ describe('AccessAuditPage', () => {
         const card = screen.getByTestId('access-audit-card-3');
         expect(card.textContent).toContain('by Marieke de Wit');
         expect(card.className).not.toMatch(/\bpx-|\bpy-/);
+        expect(screen.getByTestId('access-audit-card-detail-3').textContent).toBe('handling the request');
+    });
+
+    it('a phone card adds no "—" line for a row without a detail', () => {
+        render(<AccessAuditPage {...props({ entries: [PUBLIC_URL, FAILED_UNKNOWN], isMobile: true })} />);
+        expect(screen.getByTestId('access-audit-card-2')).toBeTruthy();
+        expect(screen.queryByTestId('access-audit-card-detail-2')).toBeNull();
+        expect(screen.getByTestId('access-audit-card-detail-1').textContent).toBe('password · wrong credentials · 203.0.113.9 · same-name tag d6e7f8');
     });
 });

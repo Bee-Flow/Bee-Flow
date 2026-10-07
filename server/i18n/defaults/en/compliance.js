@@ -2666,4 +2666,17 @@ module.exports = {
     'compliance.pol_publish_go': 'Publish v{n}',
     'compliance.pol_publish_nothing': 'Nothing changed since the published version',
     // ── end round 2 · P11-iso-registers ──
+    // round 2 · P12-final — the toasts after switching a framework on or off
+    // (data/aggregates.js useFrameworks) had English fallbacks but no key.
+    'compliance.fw_toast_enabled': 'Framework enabled — its checks are running',
+    'compliance.fw_toast_disabled': 'Framework disabled',
+    // The access log's refusal reasons (accessAuditLabels REASON_META): the
+    // codes auth/loginAudit.js callers write, in words for the detail line.
+    'compliance.aa_reason_invalid_credentials': 'wrong credentials',
+    'compliance.aa_reason_throttled': 'too many attempts',
+    'compliance.aa_reason_account_suspended': 'account suspended',
+    'compliance.aa_reason_mfa_invalid_code': 'wrong verification code',
+    'compliance.aa_reason_security_key_rejected': 'security key rejected',
+    'compliance.aa_reason_password_login_disabled': 'password sign-in is off',
+    // ── end round 2 · P12-final ──
 };
