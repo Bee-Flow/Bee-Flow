@@ -215,7 +215,7 @@ const DETAILS = {
    DERIVED from the DPIA fixture rather than declared, so the two can never
    disagree about which assistant is missing what. */
 const HIGH_RISK_AGENTS = [
-    { id: 'agent_claims', label: 'Schadebeoordeling', risk_reason: 'system prompt mentions automated decisions' },
+    { id: 'agent_claims', label: 'Schadebeoordeling', risk_reason: 'has a system prompt that mentions automated decisions' },
     { id: 'agent_intake', label: 'Polisintake', risk_reason: 'routes data to external provider (openai)' },
     { id: 'agent_helpdesk', label: 'Klantenservice-assistent', risk_reason: 'routes data to external provider (openai)' },
     { id: 'agent_kifid', label: 'Klachtdossier', risk_reason: 'processes PII categories: health, correspondence' },
@@ -315,7 +315,9 @@ const rowsForCheck = (d, i) => {
                 run_at,
                 run_type,
                 ...r,
-                evidence: { ...r.evidence, sha256: `demo${String(i).padStart(4, '0')}${j}` },
+                // The runner stamps the subject's label on the result row
+                // (runner._rowEvidence), so each per-subject row names its agent or automation.
+                evidence: { ...r.evidence, subject_label: subject.label, sha256: `demo${String(i).padStart(4, '0')}${j}` },
             };
         });
     }
@@ -2078,11 +2080,24 @@ export const ROUTES = {
             : c));
         return { fixed: true };
     },
-    'GET /api/compliance/checks/:id/history': ({ params }) => ([
-        { check_id: params.id, status: 'pass', run_at: iso(hours(6)), details: null },
-        { check_id: params.id, status: 'pass', run_at: iso(days(7)), details: null },
-        { check_id: params.id, status: 'warn', run_at: iso(days(14)), details: 'First observed as a warning.' },
-    ]),
+    // One trail per slot, as compliance_checks keeps it: the newest row is the
+    // slot's current result, older runs behind it. `?scope_id=` narrows it to
+    // one subject's slot, as the server does (getCheckHistory).
+    'GET /api/compliance/checks/:id/history': ({ state, params, query }) => {
+        const scope = query.get('scope_id');
+        const slots = (state.checks || []).filter(c => c.check_id === params.id);
+        const trail = (slot) => {
+            const scope_id = slot?.scope_id ?? null;
+            const status = slot?.status || 'pass';
+            return [
+                { check_id: params.id, scope_id, status, run_at: slot?.run_at || iso(hours(6)), run_type: slot?.run_type || 'scheduled', details: slot?.details ?? null },
+                { check_id: params.id, scope_id, status: status === 'fail' ? 'fail' : 'pass', run_at: iso(days(7)), run_type: 'scheduled', details: null },
+                { check_id: params.id, scope_id, status: 'warn', run_at: iso(days(14)), run_type: 'scheduled', details: 'First observed as a warning.' },
+            ];
+        };
+        const rows = (slots.length ? slots : [null]).flatMap(trail);
+        return scope ? rows.filter(r => r.scope_id === scope) : rows;
+    },
     /* ── The evidence ledger ──────────────────────────────────────────
        Order matters here: the transport matches the FIRST route whose
        pattern fits, so `/evidence` and `/evidence/chain` must be declared
@@ -2278,7 +2293,8 @@ export const ROUTES = {
         if (!i) return refuse('not_found', 404);
         if (i.kind !== 'vulnerability' && !(i.regimes || []).includes('CRA')) return refuse('not_cra_incident', 409);
         const at = new Date().toISOString();
-        const patch = stage === 'early_warning' ? { early_warning_sent_at: at } : { final_report_sent_at: at };
+        // `full` stamps the final report AND the notification, as incidentStore.stampCraReport does.
+        const patch = stage === 'early_warning' ? { early_warning_sent_at: at } : { final_report_sent_at: at, authority_notified_at: i.authority_notified_at || at };
         state.incidents = state.incidents.map(x => (x.id === i.id
             ? { ...x, ...patch, reported_via: body?.reported_via || x.reported_via, authority_reference: body?.reference || x.authority_reference }
             : x));
@@ -2294,8 +2310,21 @@ export const ROUTES = {
         reseal(state);
         return state.incidents.find(x => x.id === params.id);
     },
+    // As incidentStore.updateIncident: a status stamps its column once, a note
+    // is appended to the log (the Art. 33(5) reason a breach was closed unnotified).
     'PATCH /api/compliance/incidents/:id': ({ state, params, body }) => {
-        state.incidents = state.incidents.map(i => (i.id === params.id ? { ...i, ...(body || {}) } : i));
+        const at = new Date().toISOString();
+        const { note, ...patch } = body || {};
+        state.incidents = state.incidents.map(i => {
+            if (i.id !== params.id) return i;
+            const log = Array.isArray(i.notes) ? i.notes : (i.notes ? [{ at: i.detected_at, by: null, text: String(i.notes) }] : []);
+            return {
+                ...i, ...patch, updated_at: at,
+                authority_notified_at: patch.status === 'authority_notified' ? (i.authority_notified_at || at) : i.authority_notified_at,
+                subjects_notified_at: patch.status === 'subjects_notified' ? (i.subjects_notified_at || at) : i.subjects_notified_at,
+                notes: note ? [...log, { at, by: 'u_marieke', text: String(note) }] : i.notes,
+            };
+        });
         return state.incidents.find(i => i.id === params.id);
     },
     'POST /api/compliance/incidents/:id/notify-recipients': ({ state, params }) => {

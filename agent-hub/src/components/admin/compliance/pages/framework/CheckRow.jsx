@@ -1,14 +1,13 @@
-import { ArrowRight, ArrowUpRight, ChevronDown, ChevronUp, RefreshCw, Wrench } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { ArrowRight, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
 import { affectedProjects } from './AffectedProjects';
 import {
-    isOpen, otherFrameworkRefs, articleForRegulation, resolveRemediation, autoFixCount, formatRunAt,
+    isOpen, otherFrameworkRefs, articleForRegulation, resolveRemediation, formatRunAt, rowKeyOf, subjectLabel,
 } from './checkSort';
 import { FindingStateChip } from './FindingDecision';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { TableRow, TableCell } from '../../../../shared/DataTable';
 import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { sectionById } from '../../sections';
 import ArticleRef, { formatArticleRef, formatRef } from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
@@ -17,18 +16,23 @@ import VerificationChip from '../../shared/VerificationChip';
 /**
  * CheckRow — one check in the framework table (artboard 1b).
  *
- * glyph | title · severity (open rows only) · "also counts for …" · details | article | verification | last run | actions
+ * glyph | title · severity · decision / subject / "also counts for …" / details | article | verification | last run | actions
  *
  * The stripe follows the STATUS (design rule 5): a passing critical check is
- * green, and the severity word appears only when the row is open (fail/warn).
- * Rows that do not apply read in tertiary text — they are on the page so the
- * count adds up, not to be looked at.
+ * green. The severity word appears only when the row is open (fail/warn), in
+ * neutral text, since the stripe and glyph already carry the colour. Rows that
+ * do not apply read in tertiary text: they are on the page so the count adds
+ * up, not to be looked at.
  *
- * The actions cell offers what the row can DO: for an open row the fix
- * (remediation link → "Open fix ↗" / "Go to <section> →" / "Configure ↗",
- * auto-fix → Wrench "Auto-fix · n" with the legacy confirm step rendered as a
- * full-width strip under the row), for a quiet row the rerun button. Every
- * button stops the click before the row toggles.
+ * A per-source check has one row per subject, so the row names its subject
+ * (`subjectLabel`) under the title; four "DPIA for high-risk agents" rows
+ * must be told apart at a glance.
+ *
+ * The actions cell holds ONE compact action for an open row: "Fix" (or
+ * "Handle" for the request queue) with the full destination as its title and
+ * in its accessible name. Auto-fix and Re-run live in the expansion, one
+ * click deeper, where Auto-fix asks before it changes anything. Every button
+ * stops the click before the row toggles.
  */
 
 export const SECONDARY_BTN = 'inline-flex items-center gap-1 h-7 px-2 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] font-medium text-[var(--text-primary)] whitespace-nowrap hover:bg-[var(--bg-secondary)] disabled:opacity-60 disabled:cursor-not-allowed';
@@ -50,50 +54,49 @@ export function remediationLabel(rem, t) {
     return { text: t('compliance.tbl_act_open_fix', 'Open fix'), Icon: ArrowUpRight };
 }
 
+/**
+ * The row's compact action: the short word on the button ("Fix", or
+ * "Handle" for the request queue) and where it goes, spelled out for the
+ * tooltip and the accessible name ("Go to Processing register (ROPA)"). An
+ * admin escape has no section to name, so its destination is "Open fix".
+ */
+export function compactRemediation(rem, t) {
+    if (!rem) return null;
+    const full = remediationLabel(rem, t);
+    const short = rem.kind === 'section' && rem.sectionId === 'dsr'
+        ? t('compliance.tbl_act_handle', 'Handle')
+        : t('compliance.tbl_act_fix', 'Fix');
+    const named = rem.kind === 'section' || rem.kind === 'settings';
+    let destination = full.text;
+    if (named) {
+        const section = sectionById(rem.sectionId);
+        destination = t('compliance.tbl_act_go_to', 'Go to {section}', { section: t(section.labelKey, section.labelFallback) });
+    }
+    return { short, destination, named, Icon: full.Icon };
+}
+
 function stop(fn) {
     return (e) => { e.stopPropagation(); fn?.(e); };
 }
 
-export function AutoFixConfirm({ check, columns, accent, busy, onConfirm, onCancel, testId }) {
-    const { t } = useTranslation();
-    const affected = Array.isArray(check.evidence?.missing_disclosure) ? check.evidence.missing_disclosure : [];
-    return (
-        <TableRow accent={accent} expanded columns={[{ id: 'confirm', width: '1fr' }]} testId={testId} className="items-start">
-            <div className="pl-7 pr-1 py-1 flex flex-col gap-2" role="group" aria-label={t('compliance.auto_fix_confirm_title', 'Apply the automatic fix?')}>
-                <div className="text-[12px] font-semibold text-[var(--text-primary)]">{t('compliance.auto_fix_confirm_title', 'Apply the automatic fix?')}</div>
-                <div className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{t('compliance.auto_fix_confirm_desc', 'This applies the automated remediation for this check to every affected item below. The change is recorded in the evidence log and you can adjust the result afterwards.')}</div>
-                {affected.length > 0 && (
-                    <div>
-                        <div className="text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)]">{t('compliance.auto_fix_affected', 'Affected agents')}</div>
-                        <ul className="m-0 pl-4 text-[11px] text-[var(--text-secondary)] list-disc">
-                            {affected.map((a) => <li key={a.id || a.name}>{a.name || a.id}</li>)}
-                        </ul>
-                    </div>
-                )}
-                <div className="flex items-center gap-2">
-                    <button type="button" onClick={stop(onConfirm)} disabled={busy} data-testid={testId ? `${testId}-apply` : undefined}
-                        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[8px] text-[11px] font-semibold disabled:opacity-60"
-                        style={PRIMARY_ACTION_STYLE}>
-                        <Wrench size={12} /> {t('compliance.auto_fix_apply', 'Apply fix')}
-                    </button>
-                    <button type="button" onClick={stop(onCancel)} className={SECONDARY_BTN} data-testid={testId ? `${testId}-cancel` : undefined}>
-                        {t('compliance.auto_fix_cancel', 'Cancel')}
-                    </button>
-                </div>
-            </div>
-        </TableRow>
-    );
+function checkTitle(check, t) {
+    // A built-in check carries a dictionary key; a CUSTOM framework's check is
+    // written by the org itself and carries the literal title instead. Falling
+    // back to the id would print `CUSTOM-ACME-3` where a sentence belongs.
+    return check.titleKey ? t(check.titleKey, check.check_id) : (check.title || check.check_id);
 }
 
 /**
- * CheckCard — the same check on a phone (artboard 1h): the glyph, the title
- * on one line, and the columns that survive 390px folded into one 11px meta
- * line (article · verification · last run), with the chevron on the right.
+ * CheckCard — the same check as a card (artboard 1h): on a phone, and in any
+ * table card narrower than the table's `cardsBelow` (a 1024 window, a table
+ * beside an open drawer). The glyph, the whole title (it wraps rather than
+ * losing words), the finding on one line, and the columns that survive folded
+ * into one 11px meta line led by the subject (subject · article ·
+ * verification · last run), with the chevron on the right.
  *
  * It is the whole tappable row, ≥44px, and it opens the SAME `CheckExpansion`
- * the desktop row opens (which already folds to one column inside the table's
- * container query) — the fix buttons live there, so the card does not repeat
- * them. No new copy: every string is the desktop row's.
+ * the desktop row opens — the fix, Auto-fix and Re-run live there, so the
+ * card does not repeat them. No new copy: every string is the desktop row's.
  */
 export function CheckCard({
     check,
@@ -111,13 +114,14 @@ export function CheckCard({
     const tone = toneOfCheckStatus(status);
     const Glyph = glyphOfCheckStatus(status);
     const Chevron = expanded ? ChevronUp : ChevronDown;
-    const title = check.titleKey ? t(check.titleKey, check.check_id) : (check.title || check.check_id);
+    const title = checkTitle(check, t);
+    const subject = check.scope_id ? subjectLabel(check) : null;
     const article = articleForRegulation(check, regulation);
     const runAt = formatRunAt(check.run_at ?? check.last_run_at ?? lastRunAt, { now: now ?? Date.now(), locale });
     return (
         <button
             type="button"
-            onClick={() => onToggle?.(check.check_id)}
+            onClick={() => onToggle?.(rowKeyOf(check))}
             aria-expanded={expanded}
             data-testid={testId}
             data-status={status || undefined}
@@ -125,14 +129,21 @@ export function CheckCard({
         >
             <Glyph size={16} aria-hidden="true" style={{ color: TONES[tone].ink, flexShrink: 0 }} data-testid={testId ? `${testId}-glyph` : undefined} />
             <span className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span className="flex items-center gap-2 min-w-0">
-                    <span className="text-[12px] font-medium truncate">{title}</span>
-                    {open && <SeverityTag severity={check.severity} testId={testId ? `${testId}-severity` : undefined} />}
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
+                    <span className="text-[12px] font-medium break-words min-w-0" data-testid={testId ? `${testId}-title` : undefined}>{title}</span>
+                    {open && <SeverityTag severity={check.severity} tone="neutral" testId={testId ? `${testId}-severity` : undefined} />}
+                    {open && <FindingStateChip state={check.finding_state} testId={testId ? `${testId}-state` : undefined} />}
                 </span>
-                <span className="flex items-center gap-2 min-w-0 text-[11px] text-[var(--text-tertiary)]">
+                {check.details && (
+                    <span className={`block text-[11px] truncate ${na ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}`} title={check.details} data-testid={testId ? `${testId}-details` : undefined}>
+                        {check.details}
+                    </span>
+                )}
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0 text-[11px] text-[var(--text-tertiary)]">
+                    {subject && <span className="min-w-0 max-w-full truncate text-[var(--text-secondary)] font-medium" data-testid={testId ? `${testId}-subject` : undefined}>{subject}</span>}
                     <ArticleRef testId={testId ? `${testId}-article` : undefined}>{article ? formatRef(article) : null}</ArticleRef>
-                    <VerificationChip verification={check.verification} testId={testId ? `${testId}-verification` : undefined} />
-                    {runAt && <span className="tabular-nums truncate" data-testid={testId ? `${testId}-last-run` : undefined}>{runAt}</span>}
+                    <VerificationChip verification={check.verification} compact testId={testId ? `${testId}-verification` : undefined} />
+                    {runAt && <span className="tabular-nums whitespace-nowrap" data-testid={testId ? `${testId}-last-run` : undefined}>{runAt}</span>}
                 </span>
             </span>
             <Chevron size={16} aria-hidden="true" className="flex-shrink-0 text-[var(--text-tertiary)]" />
@@ -147,10 +158,6 @@ export default function CheckRow({
     expanded = false,
     onToggle,
     focus = false,
-    rerunning = false,
-    autoFixing = false,
-    onRerun,
-    onAutoFix,
     onOpenLink,
     canOpenLink = () => true,
     lastRunAt = null,
@@ -159,31 +166,27 @@ export default function CheckRow({
 }) {
     const { t, locale } = useTranslation();
     const rootRef = useRef(null);
-    const [confirmFix, setConfirmFix] = useState(false);
 
     const status = check.status;
     const open = isOpen(status);
     const na = status === 'not_applicable';
     const tone = toneOfCheckStatus(status);
     const Glyph = glyphOfCheckStatus(status);
-    // A built-in check carries a dictionary key; a CUSTOM framework's check is
-    // written by the org itself and carries the literal title instead. Falling
-    // back to the id would print `CUSTOM-ACME-3` where a sentence belongs.
-    const title = check.titleKey ? t(check.titleKey, check.check_id) : (check.title || check.check_id);
+    const title = checkTitle(check, t);
     const others = otherFrameworkRefs(check, regulation);
     const alsoText = others.map(r => formatArticleRef(r?.regulation, r?.ref, t)).filter(Boolean).join(' · ');
     const article = articleForRegulation(check, regulation);
     const rem = open ? resolveRemediation(check.remediationLink) : null;
-    const remLabel = rem && canOpenLink(rem) && typeof onOpenLink === 'function' ? remediationLabel(rem, t) : null;
-    const canAutoFix = open && !!check.autoFixId && typeof onAutoFix === 'function';
-    const fixCount = autoFixCount(check);
+    const action = rem && canOpenLink(rem) && typeof onOpenLink === 'function' ? compactRemediation(rem, t) : null;
     const runAt = formatRunAt(check.run_at ?? check.last_run_at ?? lastRunAt, { now: now ?? Date.now(), locale });
     const cells = Object.fromEntries((columns || []).map((c) => [c.id, c]));
-    // A per-subject row about ONE project names it (its current name, resolved
-    // by the server) and offers the way into it.
+    // A per-subject row names what it is about: the agent, automation or
+    // project (current name, resolved by the server).
+    const subject = check.scope_id ? subjectLabel(check) : null;
+    // ...and, when it is about ONE project with a path, offers the way into it.
     const projects = check.scope_id ? affectedProjects(check) : [];
-    const subject = projects.length === 1 ? projects[0] : null;
-    const subjectRem = subject && subject.path ? { kind: 'external', path: subject.path } : null;
+    const project = projects.length === 1 ? projects[0] : null;
+    const subjectRem = project && project.path ? { kind: 'external', path: project.path } : null;
     const canOpenSubject = !!subjectRem && typeof onOpenLink === 'function' && canOpenLink(subjectRem);
 
     // Navigated here from the overview: scroll the row into view once. The
@@ -201,99 +204,74 @@ export default function CheckRow({
     const textTone = na ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]';
 
     return (
-        <>
-            <TableRow
-                accent={tone}
-                expanded={expanded}
-                onClick={() => onToggle?.(check.check_id)}
-                ariaExpanded={expanded}
-                columns={columns}
-                testId={testId}
-                className={focus ? 'ring-2 ring-inset ring-[var(--kind-compliance)]' : ''}
-                style={{ color: na ? 'var(--text-tertiary)' : undefined }}
-            >
-                <TableCell column={cells.glyph} className="flex items-center">
-                    {/* The anchor for scrollIntoView sits INSIDE the row: TableRow does not forward a ref. */}
-                    <span ref={rootRef} className="inline-flex" data-testid={testId ? `${testId}-anchor` : undefined}>
-                        <Glyph size={16} aria-hidden="true" style={{ color: TONES[tone].ink, flexShrink: 0 }} data-testid={testId ? `${testId}-glyph` : undefined} />
-                    </span>
-                </TableCell>
-                <TableCell column={cells.check} className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <span className={`text-[12px] font-medium truncate ${textTone}`}>{title}</span>
-                        {open && <SeverityTag severity={check.severity} testId={testId ? `${testId}-severity` : 'severity-tag'} />}
-                        {open && <FindingStateChip state={check.finding_state} testId={testId ? `${testId}-state` : 'check-state'} />}
+        <TableRow
+            accent={tone}
+            expanded={expanded}
+            onClick={() => onToggle?.(rowKeyOf(check))}
+            ariaExpanded={expanded}
+            columns={columns}
+            testId={testId}
+            className={`${na ? 'text-[var(--text-tertiary)]' : ''} ${focus ? 'ring-2 ring-inset ring-[var(--kind-compliance)]' : ''}`}
+        >
+            <TableCell column={cells.glyph} className="flex items-center">
+                {/* The anchor for scrollIntoView sits INSIDE the row: TableRow does not forward a ref. */}
+                <span ref={rootRef} className="inline-flex" data-testid={testId ? `${testId}-anchor` : undefined}>
+                    <Glyph size={16} aria-hidden="true" style={{ color: TONES[tone].ink, flexShrink: 0 }} data-testid={testId ? `${testId}-glyph` : undefined} />
+                </span>
+            </TableCell>
+            <TableCell column={cells.check} className="flex flex-col gap-0.5">
+                {/* Wraps: a long title keeps its line and the severity word drops under it. */}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
+                    <span className={`text-[12px] font-medium truncate min-w-0 ${textTone}`} title={title} data-testid={testId ? `${testId}-title` : undefined}>{title}</span>
+                    {open && <SeverityTag severity={check.severity} tone="neutral" testId={testId ? `${testId}-severity` : 'severity-tag'} />}
+                    {open && <FindingStateChip state={check.finding_state} testId={testId ? `${testId}-state` : 'check-state'} />}
+                </div>
+                {subject && (
+                    <div className="text-[11px] font-medium text-[var(--text-secondary)] truncate" title={subject} data-testid={testId ? `${testId}-subject` : 'check-subject'}>{subject}</div>
+                )}
+                {others.length > 0 && (
+                    <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1 min-w-0" data-testid={testId ? `${testId}-also` : 'check-also-counts'}>
+                        {/* One line that ends in an ellipsis: a check that counts for six
+                            frameworks used to wrap the label and run the refs over the
+                            Article column. The full list is the tooltip. */}
+                        <span className="shrink-0 whitespace-nowrap">· {t('compliance.tbl_also_counts', 'also counts for')}</span>
+                        <span className="block min-w-0 truncate" title={alsoText}>
+                            <ArticleRef refs={others} className="!text-[10px] !text-[var(--text-tertiary)]" testId={testId ? `${testId}-also-ref` : 'check-also-ref'} />
+                        </span>
                     </div>
-                    {subject && (
-                        <div className="text-[11px] text-[var(--text-secondary)] truncate" data-testid={testId ? `${testId}-subject` : 'check-subject'}>{subject.name}</div>
-                    )}
-                    {others.length > 0 && (
-                        <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1 min-w-0" data-testid={testId ? `${testId}-also` : 'check-also-counts'}>
-                            {/* One line that ends in an ellipsis: a check that counts for six
-                                frameworks used to wrap the label and run the refs over the
-                                Article column. The full list is the tooltip. */}
-                            <span className="shrink-0 whitespace-nowrap">· {t('compliance.tbl_also_counts', 'also counts for')}</span>
-                            <span className="block min-w-0 truncate" title={alsoText}>
-                                <ArticleRef refs={others} className="!text-[10px] !text-[var(--text-tertiary)]" testId={testId ? `${testId}-also-ref` : 'check-also-ref'} />
-                            </span>
-                        </div>
-                    )}
-                    {check.details && (
-                        <div className={`text-[11px] truncate ${na ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}`} title={check.details}>{check.details}</div>
-                    )}
-                </TableCell>
-                <TableCell column={cells.article}>
-                    <ArticleRef testId={testId ? `${testId}-article` : 'article-ref'}>{article ? formatRef(article) : null}</ArticleRef>
-                </TableCell>
-                <TableCell column={cells.verification}>
-                    <VerificationChip verification={check.verification} testId={testId ? `${testId}-verification` : 'verification-chip'} />
-                </TableCell>
-                <TableCell column={cells.last_run} className="text-[11px] text-[var(--text-tertiary)] tabular-nums" testId={testId ? `${testId}-last-run` : undefined}>
-                    {runAt}
-                </TableCell>
-                <TableCell column={cells.actions} className="flex items-center justify-end gap-1" align="right">
-                    {canOpenSubject && (
-                        <button type="button" className={ICON_BTN} onClick={stop(() => onOpenLink(subjectRem, check))}
-                            aria-label={t('compliance.tbl_open_subject', 'Open the affected item')} title={t('compliance.tbl_open_subject', 'Open the affected item')}
-                            data-testid={testId ? `${testId}-open-subject` : 'check-open-subject'}>
-                            <ArrowUpRight size={13} aria-hidden="true" />
-                        </button>
-                    )}
-                    {remLabel && (
-                        <button type="button" className={SECONDARY_BTN} onClick={stop(() => onOpenLink(rem, check))} data-testid={testId ? `${testId}-fix` : 'check-fix'}>
-                            {remLabel.text} <remLabel.Icon size={11} aria-hidden="true" />
-                        </button>
-                    )}
-                    {canAutoFix && (
-                        <button type="button" className={SECONDARY_BTN} disabled={autoFixing || confirmFix}
-                            onClick={stop(() => setConfirmFix(true))} data-testid={testId ? `${testId}-autofix` : 'check-autofix'}
-                            title={t('compliance.auto_fix', 'Fix automatically')}>
-                            <Wrench size={11} aria-hidden="true" className={autoFixing ? 'animate-spin' : ''} />
-                            {autoFixing ? t('compliance.auto_fixing', 'Applying fix...') : t('compliance.tbl_act_auto_fix', 'Auto-fix')}
-                            {!autoFixing && fixCount != null && <span className="text-[var(--text-tertiary)] tabular-nums">· {fixCount}</span>}
-                        </button>
-                    )}
-                    {!open && typeof onRerun === 'function' && (
-                        <button type="button" className={ICON_BTN} disabled={rerunning} onClick={stop(() => onRerun(check.check_id))}
-                            aria-label={t('compliance.rerun_check', 'Re-run this check')} title={t('compliance.rerun_check', 'Re-run this check')}
-                            data-testid={testId ? `${testId}-rerun` : 'check-rerun'} data-busy={rerunning || undefined}>
-                            <RefreshCw size={13} aria-hidden="true" className={rerunning ? 'animate-spin' : ''} />
-                        </button>
-                    )}
-                    <span className={ICON_BTN} aria-hidden="true"><Chevron size={14} /></span>
-                </TableCell>
-            </TableRow>
-            {confirmFix && canAutoFix && (
-                <AutoFixConfirm
-                    check={check}
-                    columns={columns}
-                    accent={tone}
-                    busy={autoFixing}
-                    onConfirm={() => { setConfirmFix(false); onAutoFix(check.check_id); }}
-                    onCancel={() => setConfirmFix(false)}
-                    testId={testId ? `${testId}-confirm` : 'check-autofix-confirm'}
-                />
-            )}
-        </>
+                )}
+                {check.details && (
+                    <div className={`text-[11px] truncate ${na ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}`} title={check.details} data-testid={testId ? `${testId}-details` : undefined}>{check.details}</div>
+                )}
+            </TableCell>
+            <TableCell column={cells.article}>
+                <ArticleRef testId={testId ? `${testId}-article` : 'article-ref'}>{article ? formatRef(article) : null}</ArticleRef>
+            </TableCell>
+            <TableCell column={cells.verification} className="flex items-center">
+                <VerificationChip verification={check.verification} compact testId={testId ? `${testId}-verification` : 'verification-chip'} />
+            </TableCell>
+            <TableCell column={cells.last_run} className="text-[11px] text-[var(--text-tertiary)] tabular-nums" testId={testId ? `${testId}-last-run` : undefined}>
+                {runAt}
+            </TableCell>
+            <TableCell column={cells.actions} className="flex items-center justify-end gap-1 min-w-0 overflow-hidden" align="right">
+                {canOpenSubject && (
+                    <button type="button" className={ICON_BTN} onClick={stop(() => onOpenLink(subjectRem, check))}
+                        aria-label={t('compliance.tbl_open_subject', 'Open the affected item')} title={t('compliance.tbl_open_subject', 'Open the affected item')}
+                        data-testid={testId ? `${testId}-open-subject` : 'check-open-subject'}>
+                        <ArrowUpRight size={13} aria-hidden="true" />
+                    </button>
+                )}
+                {action && (
+                    <button type="button" className={SECONDARY_BTN} onClick={stop(() => onOpenLink(rem, check))}
+                        title={action.destination} data-testid={testId ? `${testId}-fix` : 'check-fix'}>
+                        {action.short}
+                        {/* The word on the button is short; the accessible name says where it goes. */}
+                        {action.named && <>{' '}<span className="sr-only">{`— ${action.destination}`}</span></>}
+                        <action.Icon size={11} aria-hidden="true" />
+                    </button>
+                )}
+                <span className={ICON_BTN} aria-hidden="true"><Chevron size={14} /></span>
+            </TableCell>
+        </TableRow>
     );
 }

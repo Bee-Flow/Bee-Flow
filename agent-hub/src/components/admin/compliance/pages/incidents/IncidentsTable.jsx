@@ -1,40 +1,51 @@
 import React from 'react';
-import { Mail, Landmark, Users, Siren, FileText, Building2 } from 'lucide-react';
+import { filedCount, isClosedUnfiled, isVulnerability, lastDone, nextClock, startedAtOf, STATUS_LABEL } from './incidentClocks';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
-import DeadlineClock from '../../../../shared/DeadlineClock';
-import { TONES } from '../../../../shared/statusTone';
-import StatusPill from '../../shared/StatusPill';
-import SeverityTag from '../../shared/SeverityTag';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
+import DeadlineClock, { useNow } from '../../../../shared/DeadlineClock';
+import { clockState } from '../../../../shared/deadlineMath';
 import { DrawerId } from '../../../../shared/SideDrawer';
-import { isVulnerability, lastDone, nextClock, startedAtOf, toneOfIncidentStatus, STATUS_LABEL } from './incidentClocks';
+import { useDateFormat } from '../../shared/formatDates';
+import RegisterStatePill from '../../shared/RegisterStatePill';
+import SeverityTag from '../../shared/SeverityTag';
 
 /**
- * IncidentsTable — Clock · Incident · Occurred · Reported · Status (the 1c
+ * IncidentsTable — Clock · Incident · Occurred · Next step · Status (the 1c
  * table pattern). Serves both registers: for a vulnerability row the clock
- * is the next open CRA stage and the "reported" stamps are the CRA ones.
+ * is the next open CRA stage and the next step names that CRA stage.
+ *
+ * "Next step" says in words which filing the row is waiting for (the stage
+ * whose clock runs), or "All filed" / "Closed", with "{n} of {total} filed"
+ * for a screen reader; it replaced a column of colour-only stamp icons. The
+ * row's stripe follows the clock's urgency only, never the status or the
+ * severity. Occurred folds under the title when the table is narrow (an open
+ * drawer beside it), so the title keeps its room.
  */
 export const INCIDENT_COLUMNS = Object.freeze([
     Object.freeze({ id: 'clock', width: '118px', labelKey: 'compliance.inc_col_clock', fallback: 'Deadline' }),
     Object.freeze({ id: 'incident', width: '1fr', labelKey: 'compliance.inc_col_incident', fallback: 'Incident' }),
-    Object.freeze({ id: 'occurred', width: '104px', labelKey: 'compliance.inc_col_occurred', fallback: 'Occurred' }),
-    Object.freeze({ id: 'reported', width: '110px', labelKey: 'compliance.inc_col_reported', fallback: 'Reported' }),
-    Object.freeze({ id: 'status', width: '92px', labelKey: 'compliance.inc_col_status', fallback: 'Status' }),
+    Object.freeze({ id: 'occurred', width: '104px', labelKey: 'compliance.inc_col_occurred', fallback: 'Occurred', foldBelow: 900 }),
+    Object.freeze({ id: 'next', width: '150px', labelKey: 'compliance.inc_col_next_step', fallback: 'Next step' }),
+    Object.freeze({ id: 'status', width: '128px', labelKey: 'compliance.inc_col_status', fallback: 'Status' }),
 ]);
 
 export const incidentRef = (inc) => (isVulnerability(inc) ? `VULN-${inc.id}` : `INC-${inc.id}`);
 
-export function formatWhen(value, t) {
-    const ms = value ? new Date(value).getTime() : NaN;
-    if (Number.isNaN(ms)) return '—';
-    const d = new Date(ms);
-    const now = new Date();
-    const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-    if (sameDay) return t('compliance.inc_today_at', 'today {time}', { time: d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) });
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const sameId = (a, b) => a !== null && a !== undefined && String(a) === String(b);
+
+/** The row's stripe: red when the running clock is overdue, amber when urgent, none otherwise. */
+export function accentOf(incident, now = Date.now()) {
+    const next = nextClock(incident);
+    if (!next) return null;
+    const { state } = clockState({ dueAt: next.dueAt, startedAt: startedAtOf(incident), urgentBelowMs: next.urgentBelowMs, now });
+    return state === 'overdue' ? 'error' : state === 'urgent' ? 'warning' : null;
 }
 
-/** The row's clock: the next open stage; a fully reported/closed row shows its completion. */
+/**
+ * The row's clock: the next open stage; a fully reported row shows its
+ * completion; a closed incident none of whose stages was filed reads
+ * "closed · not notified" in quiet ink, never a red "overdue".
+ */
 export function IncidentClock({ incident, variant = 'row', testId }) {
     const { t } = useTranslation();
     const next = nextClock(incident);
@@ -45,6 +56,12 @@ export function IncidentClock({ incident, variant = 'row', testId }) {
             </DeadlineClock>
         );
     }
+    if (isClosedUnfiled(incident)) {
+        const text = t('compliance.inc_closed_not_notified', 'closed · not notified');
+        return variant === 'block'
+            ? <div className="rounded-lg bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-tertiary)]" data-testid={testId} data-state="not_filed">{text}</div>
+            : <span className="text-[11px] text-[var(--text-tertiary)]" data-testid={testId} data-state="not_filed">{text}</span>;
+    }
     const done = lastDone(incident);
     if (done) {
         return <DeadlineClock variant={variant} dueAt={done.dueAt} startedAt={startedAtOf(incident)} doneAt={done.sentAt} testId={testId} />;
@@ -52,59 +69,43 @@ export function IncidentClock({ incident, variant = 'row', testId }) {
     return <DeadlineClock variant={variant} dueAt={null} testId={testId} />;
 }
 
-/** One stamp glyph: success ink when done, tertiary otherwise; the title says which. */
-function Stamp({ icon: Icon, done, label }) {
-    return (
-        <span
-            title={label}
-            aria-label={label}
-            data-done={done ? 'true' : 'false'}
-            className="inline-flex"
-            style={{ color: done ? TONES.success.ink : 'var(--text-tertiary)' }}
-        >
-            <Icon size={13} aria-hidden="true" />
-        </span>
-    );
-}
-
-/** The "Reported" cell — GDPR: recipients · authority · subjects; CRA: early warning · full report · customers. */
-export function ReportedStamps({ incident }) {
+/** "Next step": the stage the row waits for, or All filed / Closed, with the filed count for a screen reader. */
+export function NextStep({ incident, testId }) {
     const { t } = useTranslation();
-    if (isVulnerability(incident)) {
-        return (
-            <span className="inline-flex items-center gap-1.5" data-testid="reported-stamps">
-                <Stamp icon={Siren} done={!!incident.early_warning_sent_at} label={t('compliance.vuln_stamp_early_warning', 'Early warning')} />
-                <Stamp icon={FileText} done={!!(incident.notification_sent_at || incident.authority_notified_at || incident.reported_at)} label={t('compliance.vuln_stamp_full_report', 'Full report')} />
-                <Stamp icon={Building2} done={!!incident.customer_notified_at} label={t('compliance.vuln_stamp_customers', 'Customers notified')} />
-            </span>
-        );
-    }
+    const next = nextClock(incident);
+    const { filed, total } = filedCount(incident);
+    let text = '—';
+    if (incident.status === 'closed') text = t('compliance.inc_status_closed', 'Closed');
+    else if (next) text = t(next.labelKey, next.fallback);
+    else if (total > 0) text = t('compliance.inc_all_filed', 'All filed');
     return (
-        <span className="inline-flex items-center gap-1.5" data-testid="reported-stamps">
-            <Stamp icon={Mail} done={!!incident.recipients_notified_at} label={t('compliance.inc_stamp_recipients', 'Internal recipients')} />
-            <Stamp icon={Landmark} done={!!incident.authority_notified_at} label={t('compliance.inc_stamp_authority', 'Supervisory authority (Art. 33)')} />
-            {incident.high_risk && <Stamp icon={Users} done={!!incident.subjects_notified_at} label={t('compliance.inc_stamp_subjects', 'Data subjects (Art. 34)')} />}
+        <span className="block min-w-0 truncate text-[11px] text-[var(--text-secondary)]" title={text} data-testid={testId}>
+            {text}
+            {total > 0 && <span className="sr-only"> · {t('compliance.inc_filed_count', '{n} of {total} filed', { n: filed, total })}</span>}
         </span>
     );
 }
 
-export function IncidentStatusPill({ status }) {
+export function IncidentStatusPill({ status, testId }) {
     const { t } = useTranslation();
     const meta = STATUS_LABEL[status] || STATUS_LABEL.open;
-    return <StatusPill tone={toneOfIncidentStatus(status)} className="whitespace-nowrap">{t(meta.key, meta.en)}</StatusPill>;
+    return <RegisterStatePill state={status || 'open'} testId={testId}>{t(meta.key, meta.en)}</RegisterStatePill>;
 }
 
 export default function IncidentsTable({ rows, selectedId, onSelect, loading = false, isMobile = false, footer, empty, testId = 'inc-table' }) {
     const { t } = useTranslation();
-    const columns = INCIDENT_COLUMNS.map(c => ({ id: c.id, width: c.width, label: t(c.labelKey, c.fallback) }));
+    const { formatDayTime } = useDateFormat();
+    const now = useNow();
+    const columns = INCIDENT_COLUMNS.map(c => ({ id: c.id, width: c.width, foldBelow: c.foldBelow, label: t(c.labelKey, c.fallback) }));
     const openSeverity = (inc) => inc.status !== 'closed' && inc.severity;
+    const occurredOf = (inc) => formatDayTime(inc.occurred_at ?? inc.detected_at) || '—';
 
     const renderRow = (inc, ctx) => (
         <TableRow
             key={inc.id}
             columns={ctx.columns}
-            selected={selectedId === inc.id}
-            accent={inc.status === 'closed' ? null : (inc.status === 'open' ? 'error' : 'warning')}
+            selected={sameId(selectedId, inc.id)}
+            accent={accentOf(inc, now)}
             onClick={() => onSelect?.(inc)}
             testId={`${testId}-row-${inc.id}`}
         >
@@ -113,18 +114,19 @@ export default function IncidentsTable({ rows, selectedId, onSelect, loading = f
                 <div className="flex items-center gap-2 min-w-0">
                     <DrawerId>{incidentRef(inc)}</DrawerId>
                     <span className="truncate font-medium text-[var(--text-primary)]">{inc.title}</span>
-                    {openSeverity(inc) && <SeverityTag severity={inc.severity} />}
+                    {openSeverity(inc) && <SeverityTag severity={inc.severity} vocabulary="incident" tone="neutral" testId={`${testId}-severity-${inc.id}`} />}
                 </div>
+                <div className={`${TABLE_FOLDED_ONLY[900]} text-[11px] text-[var(--text-tertiary)]`}>{occurredOf(inc)}</div>
                 {isVulnerability(inc) && Array.isArray(inc.cve_ids) && inc.cve_ids.length > 0 && (
                     <div className="truncate font-mono text-[10px] text-[var(--text-tertiary)]">
                         {inc.cve_ids.join(' · ')}
-                        {inc.exploited_in_wild && <span className="ml-1.5 font-sans font-semibold" style={{ color: TONES.error.ink }}>{t('compliance.vuln_exploited', 'exploited')}</span>}
+                        {inc.exploited_in_wild && <span className="ml-1.5 font-sans font-semibold text-[var(--error-ink)]">{t('compliance.vuln_exploited', 'exploited')}</span>}
                     </div>
                 )}
             </TableCell>
-            <TableCell column={ctx.columns[2]} className="text-[11px] text-[var(--text-secondary)]">{formatWhen(inc.occurred_at ?? inc.detected_at, t)}</TableCell>
-            <TableCell column={ctx.columns[3]}><ReportedStamps incident={inc} /></TableCell>
-            <TableCell column={ctx.columns[4]}><IncidentStatusPill status={inc.status} /></TableCell>
+            <TableCell column={ctx.columns[2]} className="text-[11px] text-[var(--text-secondary)] tabular-nums">{occurredOf(inc)}</TableCell>
+            <TableCell column={ctx.columns[3]}><NextStep incident={inc} testId={`${testId}-next-${inc.id}`} /></TableCell>
+            <TableCell column={ctx.columns[4]}><IncidentStatusPill status={inc.status} testId={`${testId}-status-${inc.id}`} /></TableCell>
         </TableRow>
     );
 
@@ -132,7 +134,10 @@ export default function IncidentsTable({ rows, selectedId, onSelect, loading = f
         <button type="button" onClick={() => onSelect?.(inc)} className="w-full text-left px-3.5 py-2.5 grid grid-cols-[1fr_104px] gap-2 border-b border-[var(--border-default)]" data-testid={`${testId}-card-${inc.id}`}>
             <div className="min-w-0 flex flex-col gap-1">
                 <div className="flex items-center gap-2 min-w-0"><DrawerId>{incidentRef(inc)}</DrawerId><span className="truncate text-xs font-medium text-[var(--text-primary)]">{inc.title}</span></div>
-                <IncidentStatusPill status={inc.status} />
+                <div className="flex items-center gap-2 min-w-0">
+                    <IncidentStatusPill status={inc.status} />
+                    <NextStep incident={inc} />
+                </div>
             </div>
             <IncidentClock incident={inc} />
         </button>

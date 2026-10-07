@@ -197,9 +197,24 @@ router.get('/checks', requireAuth, requirePermission('admin_compliance'), valida
     res.json(rows);
 });
 
-router.get('/checks/:id/history', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+/**
+ * `?scope_id=` narrows a per-source check's history to one subject's slot
+ * (one agent, one automation): the expanded row of the DPIA check for one
+ * agent must not list another agent's runs. Without it every slot comes back.
+ */
+const HistoryQuery = z.object({
+    scope_id: z.string({ invalid_type_error: 'scope_id must be a subject id.' })
+        .min(1, 'scope_id must not be empty.')
+        .max(200, 'scope_id is at most 200 characters.')
+        .optional(),
+}).strict();
+
+router.get('/checks/:id/history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), async (req, res) => {
     const orgId = await resolveOrgId(req);
-    const rows = await complianceStore.getCheckHistory(orgId, req.params.id, 100);
+    const scopeId = typeof req.query.scope_id === 'string' ? req.query.scope_id : null;
+    const rows = scopeId
+        ? await complianceStore.getCheckHistory(orgId, req.params.id, 100, { scopeId })
+        : await complianceStore.getCheckHistory(orgId, req.params.id, 100);
     res.json(rows);
 });
 

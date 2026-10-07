@@ -112,6 +112,16 @@ const STAGES = ['early_warning', 'full'];
 const moment = (name) => worded(`${name} must be a date.`)
     .refine((v) => !Number.isNaN(new Date(v).getTime()), `${name} must be a date.`);
 
+/**
+ * When the organisation became aware of the incident: the GDPR Art. 33 /
+ * NIS2 / CRA clocks run from it, so a moment in the future would hand a late
+ * breach extra hours. Five minutes cover a browser clock that runs ahead.
+ */
+const AWARENESS_SKEW_MS = 5 * 60 * 1000;
+const awareness = (name) => moment(name)
+    // An unreadable date is moment()'s refusal; this one only judges a real date.
+    .refine((v) => { const ms = new Date(v).getTime(); return Number.isNaN(ms) || ms <= Date.now() + AWARENESS_SKEW_MS; }, `${name} cannot be in the future.`);
+
 /** The two list fields take a comma/newline string, plain names, or {name, version_range} rows. */
 const nameList = z.union([
     z.string(),
@@ -126,7 +136,7 @@ const CreateIncident = bodyOf({
     severity: oneOf('severity', SEVERITIES).optional(),
     high_risk: z.boolean({ invalid_type_error: 'high_risk is true or false.' }).optional(),
     occurred_at: moment('occurred_at').nullish(),
-    detected_at: moment('detected_at').nullish(),
+    detected_at: awareness('detected_at').nullish(),
     // Text only — the route answers a wrong VALUE with invalid_kind/invalid_regime.
     kind: worded('kind must be text.').nullish(),
     regimes: z.union([z.string(), z.array(z.string())], {

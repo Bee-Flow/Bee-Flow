@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import DsrDrawer, { discoveryChips, fallbackTimeline, normaliseTimelineRow, readDiscovery } from './DsrDrawer';
+import DsrDrawer, { discoveryChips, readDiscovery } from './DsrDrawer';
+import { actorName, fallbackTimeline, normaliseTimelineRow } from './dsrTimeline';
 import { DAY_MS } from '../../../../shared/deadlineMath';
 
 /**
@@ -35,12 +37,15 @@ const OPEN = {
 const PENDING = { id: 2044, request_type: 'portability', status: 'pending', subject_email: 'anna@vandijkgroep.nl', channel: 'form', created_at: iso(NOW - DAY_MS) };
 const EXTENDED = { ...OPEN, id: 2039, extended_until: iso(NOW + 40 * DAY_MS), due_at: iso(NOW + 40 * DAY_MS) };
 const DONE = { id: 2036, request_type: 'access', status: 'fulfilled', subject_email: 'p.q@outlook.com', channel: 'phone', created_at: iso(NOW - 48 * DAY_MS), completed_at: iso(NOW - 39 * DAY_MS), result_summary: 'Export e-mailed 21 Aug' };
+// Exactly as GET /api/dsr/requests sends it: `state` is the CLOCK, `status` the lifecycle.
+const REJECTED = { id: 2414, request_type: 'portability', status: 'rejected', state: 'none', subject_email_masked: 'b.•••@example.com', channel: 'email_dpo', identity_status: 'unverified', created_at: iso(NOW - 48 * DAY_MS), due_at: iso(NOW - 18 * DAY_MS), fulfilled_at: iso(NOW - 40 * DAY_MS), result_summary: 'Rejected under Art. 12(6).' };
+const ORG_USERS = [{ id: 'u_marieke', displayName: 'Marieke de Wit', email: 'm.dewit@example.org' }];
 
 beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: true }); vi.setSystemTime(NOW); });
 afterEach(() => { vi.useRealTimers(); });
 
 function renderDrawer(props) {
-    const handlers = { onClose: vi.fn(), onFulfil: vi.fn(), onReject: vi.fn(), onExtend: vi.fn(), onStart: vi.fn() };
+    const handlers = { onClose: vi.fn(), onFulfil: vi.fn(), onReject: vi.fn(), onExtend: vi.fn(), onStart: vi.fn(), onVerifyIdentity: vi.fn() };
     const utils = render(<DsrDrawer open request={OPEN} exportUrl="/api/dsr/requests/2038/export" {...handlers} {...props} />);
     return { ...utils, ...handlers };
 }
@@ -73,17 +78,34 @@ describe('DsrDrawer — header, clock, data subject', () => {
         expect(container.textContent).not.toContain('john.doe@gmail.com');
         expect(screen.getByTestId('dsr-drawer-identity')).toHaveAttribute('data-identity', 'verified_link');
         expect(screen.getByTestId('dsr-drawer-identity')).toHaveTextContent('identity confirmed via e-mail link');
-        expect(screen.getByTestId('dsr-drawer-identity').style.color).toBe('var(--success-ink)');
+        expect(screen.getByTestId('dsr-drawer-identity').className).toContain('text-[var(--success-ink)]');
         expect(screen.getByTestId('dsr-drawer-subject')).toHaveTextContent('visible only to the DPO and the handler');
         expect(screen.getByTestId('dsr-drawer-notes')).toHaveTextContent('Please delete everything.');
     });
 
-    it('an unconfirmed identity is the dashed chip', () => {
-        renderDrawer({ request: PENDING });
+    it('an open request with an unconfirmed identity offers "Confirm identity…", which asks how it was checked and posts it', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        const { onVerifyIdentity } = renderDrawer({ request: PENDING });
         const chip = screen.getByTestId('dsr-drawer-identity');
         expect(chip).toHaveAttribute('data-identity', 'unknown');
-        expect(chip.style.border).toBe('1px dashed var(--text-tertiary)');
-        expect(chip).toHaveTextContent('identity not yet confirmed');
+        const confirm = screen.getByRole('button', { name: /Confirm identity…/ });
+        expect(confirm).toHaveAccessibleName(/identity not yet confirmed/);
+        expect(confirm).toHaveAttribute('aria-expanded', 'false');
+        await user.click(confirm);
+        expect(confirm).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByLabelText('How was the identity checked?')).toHaveFocus();
+        const save = screen.getByTestId('dsr-drawer-identity-save');
+        expect(save).toBeDisabled();
+        await user.type(screen.getByLabelText('How was the identity checked?'), 'Passport checked at the front desk');
+        await user.click(save);
+        expect(onVerifyIdentity).toHaveBeenCalledWith({ method: 'manual', note: 'Passport checked at the front desk' });
+        await waitFor(() => expect(screen.queryByTestId('dsr-drawer-identity-form')).toBeNull());
+    });
+
+    it('a closed request only reads its identity: no confirm button', () => {
+        renderDrawer({ request: REJECTED });
+        expect(screen.getByTestId('dsr-drawer-identity')).toHaveTextContent('identity not yet confirmed');
+        expect(screen.queryByTestId('dsr-drawer-identity-confirm')).toBeNull();
     });
 });
 
@@ -157,6 +179,17 @@ describe('DsrDrawer — a completed request is read-only', () => {
         expect(screen.getByTestId('dsr-drawer-clock')).toHaveTextContent('completed in 9 days');
         expect(screen.getByTestId('dsr-drawer-clock')).toHaveAttribute('data-state', 'done');
     });
+
+    it('a server-shaped rejected row ({status:"rejected", state:"none"}) is read-only too: Export only, never a second e-mail', () => {
+        renderDrawer({ request: REJECTED, exportUrl: '/api/dsr/requests/2414/export' });
+        expect(screen.getByTestId('dsr-drawer-body')).toHaveAttribute('data-readonly', 'true');
+        for (const id of ['fulfil', 'reject', 'extend', 'start', 'summary-input']) {
+            expect(screen.queryByTestId(`dsr-drawer-${id}`)).toBeNull();
+        }
+        expect(screen.getByTestId('dsr-drawer-export')).toHaveAttribute('href', '/api/dsr/requests/2414/export');
+        expect(screen.getByTestId('dsr-drawer-clock')).toHaveAttribute('data-state', 'done');
+        expect(screen.getByTestId('dsr-drawer-clock')).not.toHaveTextContent(/overdue/);
+    });
 });
 
 describe('DsrDrawer — timeline and discovery degrade', () => {
@@ -169,14 +202,14 @@ describe('DsrDrawer — timeline and discovery degrade', () => {
             expect.stringMatching(/11 Sep \d{2}:\d{2}Deadline passed/),
         ]);
         expect(items[2]).toHaveAttribute('data-tone', 'error');
-        expect(items[2].style.color).toBe('var(--error-ink)');
+        expect(items[2].className).toContain('text-[var(--error-ink)]');
     });
 
     it('a server timeline replaces the fallback; a failing loader (404) falls back; discovery renders chips or hides the section', async () => {
         const loadTimeline = vi.fn().mockResolvedValue([
             { at: iso(NOW - 33 * DAY_MS), kind: 'received', text: 'Received via /dsr · clock started' },
             { at: iso(NOW - 33 * DAY_MS + 60_000), kind: 'ack_sent', text: 'Acknowledgement e-mailed' },
-            { at: iso(NOW - 3 * DAY_MS), kind: 'overdue', text: 'Deadline passed · DPO notified', by: 'system' },
+            { at: iso(NOW - 3 * DAY_MS), kind: 'overdue', text: 'Deadline passed · DPO notified', by: 'u_marieke' },
         ]);
         const loadDiscovery = vi.fn().mockResolvedValue({
             sources: [
@@ -186,12 +219,13 @@ describe('DsrDrawer — timeline and discovery degrade', () => {
                 { kind: 'kb_documents', count: 0 },
             ],
         });
-        renderDrawer({ loadTimeline, loadDiscovery });
+        renderDrawer({ loadTimeline, loadDiscovery, orgUsers: ORG_USERS });
         expect(screen.queryByTestId('dsr-drawer-found')).toBeNull();
         await waitFor(() => expect(within(screen.getByTestId('dsr-drawer-timeline')).getAllByRole('listitem')).toHaveLength(3));
         expect(loadTimeline).toHaveBeenCalledWith(2038);
         expect(screen.getByTestId('dsr-drawer-timeline')).toHaveTextContent('Acknowledgement e-mailed');
-        expect(screen.getByTestId('dsr-drawer-timeline')).toHaveTextContent('Deadline passed · DPO notified · by system');
+        expect(screen.getByTestId('dsr-drawer-timeline')).toHaveTextContent('Deadline passed · DPO notified · by Marieke de Wit');
+        expect(screen.getByTestId('dsr-drawer-timeline')).not.toHaveTextContent('u_marieke');
         const found = await screen.findByTestId('dsr-drawer-found');
         expect(within(found).getByTestId('dsr-drawer-chip-memories')).toHaveTextContent('2 memories');
         expect(within(found).getByTestId('dsr-drawer-chip-rows')).toHaveTextContent('14 rows · Customers, Quotes');
@@ -233,6 +267,32 @@ describe('DsrDrawer — timeline and discovery degrade', () => {
         expect(byId.projects.label).toBe('5 project items');
         expect(byId.kb_documents.label).toBe('1 knowledge-base documents');
         expect(readDiscovery({ sources: [{ kind: 'project_participation', count: null }] }).projects).toBeNull();
+    });
+
+});
+
+describe('DsrDrawer — timeline words and actors', () => {
+    it('a row without text reads its kind through compliance.dsr_timeline_<kind> (or its own label_key)', () => {
+        const spy = vi.fn((key, fallback) => (key === 'compliance.dsr_timeline_ack_sent' ? 'Acknowledgement e-mailed to the data subject' : t(key, fallback)));
+        expect(normaliseTimelineRow(spy, { at: iso(NOW), kind: 'ack_sent', text: null, by: null }))
+            .toEqual({ at: NOW, text: 'Acknowledgement e-mailed to the data subject', tone: null });
+        expect(spy).toHaveBeenCalledWith('compliance.dsr_timeline_ack_sent', 'ack_sent');
+        normaliseTimelineRow(spy, { at: iso(NOW), kind: 'received', label_key: 'compliance.dsr_timeline_received' });
+        expect(spy).toHaveBeenCalledWith('compliance.dsr_timeline_received', 'received');
+        expect(normaliseTimelineRow(spy, { at: iso(NOW), kind: 'email_failed' }).tone).toBe('error');
+    });
+
+    it('the actor is a name from the roster, or "a handler" — never the raw id; a system row names nobody', () => {
+        expect(actorName(t, 'u_marieke', ORG_USERS)).toBe('Marieke de Wit');
+        expect(actorName(t, 'u_unknown', ORG_USERS)).toBe('a handler');
+        expect(actorName(t, 'u_unknown', null)).toBe('a handler');
+        expect(actorName(t, null, ORG_USERS)).toBeNull();
+        expect(actorName(t, 'u_marieke', ORG_USERS, 'T. Smit')).toBe('T. Smit');
+        expect(normaliseTimelineRow(t, { at: iso(NOW), kind: 'started', by: 'u_x' }, ORG_USERS).text).toBe('started · by a handler');
+        expect(fallbackTimeline(t, { ...OPEN, started_by_name: undefined, started_by: 'u_marieke' }, NOW, ORG_USERS).map(r => r.text))
+            .toContain('Started by Marieke de Wit');
+        expect(fallbackTimeline(t, { ...OPEN, started_by_name: undefined, started_by: 'u_gone' }, NOW, ORG_USERS).map(r => r.text))
+            .toContain('Started by a handler');
     });
 
     it('fallbackTimeline for a completed request ends with the fulfilment row and has no overdue row', () => {

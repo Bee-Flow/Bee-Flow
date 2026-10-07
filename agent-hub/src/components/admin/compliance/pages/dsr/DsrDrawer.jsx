@@ -7,23 +7,26 @@
  * (BFSF-441): the drawer shows the masked address, the export is the file of
  * this request — not the data — and fulfilling e-mails the subject server-side.
  *
- * `mode`: 'inline' (≥1180, beside the table) | 'overlay' (below 1180, over
- * the table; the host is `relative`) | 'modal' (phones: Modal placement="right").
+ * `mode`: 'inline' (beside the table) | 'overlay' (over the table; the host
+ * is `relative`) | 'modal' (phones: Modal placement="right"), decided by the
+ * page from the width it has (useDrawerMode).
+ *
+ * The data subject's identity, and confirming it, is DsrIdentity; the
+ * timeline rows are read by dsrTimeline (actors by name, never a raw id).
  */
-import React, { useEffect, useMemo, useState } from 'react';
 import {
-    BadgeCheck, BookOpen, ClipboardList, FileJson, MailCheck, MessageSquareText, Play, ShieldCheck, Table, FolderKanban, MessagesSquare,
+    BookOpen, ClipboardList, FileJson, MailCheck, MessageSquareText, Play, ShieldCheck, Table, FolderKanban, MessagesSquare,
 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { articleOf, channelOf, clockPropsOf, dueAtOf, isClosed, receivedAtOf, stateOf } from './dsrArticles';
+import DsrIdentity from './DsrIdentity';
+import { channelLabel, formatDateTime, shownEmailOf, typeLabel } from './DsrTable';
+import { fallbackTimeline, normaliseTimelineRow } from './dsrTimeline';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerId, DrawerSection } from '../../../../shared/SideDrawer';
 import DeadlineClock from '../../../../shared/DeadlineClock';
 import Modal from '../../../../shared/Modal';
+import SideDrawer, { DrawerId, DrawerSection } from '../../../../shared/SideDrawer';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import { TONES } from '../../../../shared/statusTone';
-import {
-    articleOf, channelOf, clockPropsOf, completedAtOf, dueAtOf, identityOf, isClosed, isOverdue, receivedAtOf, stateOf,
-} from './dsrArticles';
-import { channelLabel, formatDateTime, shownEmailOf, typeLabel } from './DsrTable';
 
 const SECONDARY = 'flex-1 inline-flex items-center justify-center gap-1.5 h-[30px] px-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)] disabled:opacity-50';
 const INPUT = 'w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-2 text-[12px] text-[var(--text-primary)] leading-4 outline-none focus:border-[var(--kind-compliance)]';
@@ -32,36 +35,6 @@ function toMs(v) {
     if (v === null || v === undefined || v === '') return null;
     const n = v instanceof Date ? v.getTime() : typeof v === 'number' ? v : new Date(v).getTime();
     return Number.isFinite(n) ? n : null;
-}
-
-/** Tolerant read of one server timeline row → { at, text, tone }. */
-export function normaliseTimelineRow(t, row) {
-    if (!row || typeof row !== 'object') return null;
-    const at = toMs(row.at ?? row.occurred_at ?? row.created_at ?? row.ts ?? row.timestamp);
-    const text = row.label ?? row.text ?? row.message ?? row.description ?? row.event ?? row.kind ?? '';
-    const actor = row.actor_name ?? row.actor ?? row.by ?? null;
-    const tone = row.tone === 'error' || row.severity === 'error' || /overdue|expired|verstreken/i.test(String(row.event ?? row.kind ?? '')) ? 'error' : null;
-    return { at, text: actor ? t('compliance.dsr_tl_by', '{text} · by {actor}', { text: String(text), actor: String(actor) }) : String(text), tone };
-}
-
-/** The facts we always have when the server has no timeline yet. */
-export function fallbackTimeline(t, request, now = Date.now()) {
-    const rows = [];
-    const received = receivedAtOf(request);
-    if (received !== null) rows.push({ at: received, text: t('compliance.dsr_tl_received', 'Received via {channel} · clock started', { channel: channelLabel(t, channelOf(request)) }), tone: null });
-    const started = toMs(request?.started_at);
-    if (started !== null) {
-        const by = request?.started_by_name ?? request?.started_by ?? null;
-        rows.push({ at: started, text: by ? t('compliance.dsr_tl_started_by', 'Started by {name}', { name: String(by) }) : t('compliance.dsr_tl_started', 'Started'), tone: null });
-    }
-    const extended = toMs(request?.extended_until);
-    if (extended !== null) rows.push({ at: toMs(request?.extended_at) ?? started ?? received, text: t('compliance.dsr_tl_extended', 'Extended to {date}', { date: formatDateTime(extended) }), tone: null });
-    if (isOverdue(request, now)) rows.push({ at: dueAtOf(request), text: t('compliance.dsr_tl_overdue', 'Deadline passed'), tone: 'error' });
-    const completed = completedAtOf(request);
-    if (completed !== null) {
-        rows.push({ at: completed, text: stateOf(request) === 'rejected' ? t('compliance.dsr_tl_rejected', 'Rejected') : t('compliance.dsr_tl_fulfilled', 'Fulfilled · data subject e-mailed'), tone: null });
-    }
-    return rows.sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
 }
 
 function count(v) {
@@ -145,12 +118,11 @@ function useLazy(loader, id) {
     return value;
 }
 
-function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, onStart, loadTimeline, loadDiscovery, testId }) {
+function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, onStart, onVerifyIdentity, loadTimeline, loadDiscovery, orgUsers, testId }) {
     const { t, resolvedLocale, locale } = useTranslation();
     const lang = resolvedLocale || locale;
     const closed = isClosed(request);
     const state = stateOf(request);
-    const identity = identityOf(request);
     const [summary, setSummary] = useState('');
     const [rejecting, setRejecting] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
@@ -167,9 +139,9 @@ function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, on
     const discovery = useLazy(loadDiscovery, request?.id);
 
     const timeline = useMemo(() => {
-        const rows = Array.isArray(timelineRaw) ? timelineRaw.map(r => normaliseTimelineRow(t, r)).filter(Boolean) : null;
-        return rows && rows.length ? rows : fallbackTimeline(t, request);
-    }, [timelineRaw, request, t]);
+        const rows = Array.isArray(timelineRaw) ? timelineRaw.map(r => normaliseTimelineRow(t, r, orgUsers)).filter(Boolean) : null;
+        return rows && rows.length ? rows : fallbackTimeline(t, request, Date.now(), orgUsers);
+    }, [timelineRaw, request, t, orgUsers]);
 
     const chips = useMemo(() => discoveryChips(t, discovery), [discovery, t]);
     const read = useMemo(() => readDiscovery(discovery), [discovery]);
@@ -203,23 +175,7 @@ function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, on
             <DrawerSection label={t('compliance.dsr_sec_subject', 'Data subject')} testId={`${testId}-subject`}>
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-[12px]" data-testid={`${testId}-email`}>{shownEmailOf(request)}</span>
-                    {identity === 'verified_link' || identity === 'verified_manual' ? (
-                        <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: TONES.success.ink }} data-testid={`${testId}-identity`} data-identity={identity}>
-                            <BadgeCheck size={11} aria-hidden="true" />
-                            {identity === 'verified_manual'
-                                ? t('compliance.dsr_identity_verified_manual', 'identity confirmed by the handler')
-                                : t('compliance.dsr_identity_verified_link', 'identity confirmed via e-mail link')}
-                        </span>
-                    ) : identity === 'employee' ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)]" data-testid={`${testId}-identity`} data-identity="employee">
-                            <BadgeCheck size={11} aria-hidden="true" />{t('compliance.dsr_identity_employee', 'employee')}
-                        </span>
-                    ) : (
-                        <span className="inline-flex items-center text-[11px] px-2 py-[1px] rounded-full text-[var(--text-secondary)]" style={{ border: '1px dashed var(--text-tertiary)' }}
-                            data-testid={`${testId}-identity`} data-identity={identity}>
-                            {t('compliance.dsr_identity_pending', 'identity not yet confirmed')}
-                        </span>
-                    )}
+                    <DsrIdentity request={request} canConfirm={!closed} busy={busy} onVerifyIdentity={onVerifyIdentity} testId={testId} />
                 </div>
                 <div className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.dsr_full_address_note', 'The full address is visible only to the DPO and the handler.')}</div>
                 {request?.notes && (
@@ -232,7 +188,7 @@ function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, on
             <DrawerSection label={t('compliance.dsr_sec_timeline', 'Timeline')} testId={`${testId}-timeline`}>
                 <div className="flex flex-col gap-[3px] text-[11px] text-[var(--text-secondary)]" role="list">
                     {timeline.map((row, i) => (
-                        <div key={i} role="listitem" className="flex gap-2" style={row.tone === 'error' ? { color: TONES.error.ink } : undefined} data-tone={row.tone || undefined}>
+                        <div key={i} role="listitem" className={`flex gap-2 ${row.tone === 'error' ? 'text-[var(--error-ink)]' : ''}`} data-tone={row.tone || undefined}>
                             <span className={`w-[78px] shrink-0 ${row.tone === 'error' ? '' : 'text-[var(--text-tertiary)]'}`}>{formatDateTime(row.at, lang)}</span>
                             <span className="min-w-0">{row.text}</span>
                         </div>
@@ -340,7 +296,7 @@ function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, on
                     </div>
                 )}
                 <div className="flex items-start gap-1.5 text-[11px] text-[var(--text-tertiary)] leading-[15px]">
-                    <ShieldCheck size={12} aria-hidden="true" className="shrink-0 mt-px" style={{ color: 'var(--kind-compliance)' }} />
+                    <ShieldCheck size={12} aria-hidden="true" className="shrink-0 mt-px text-[var(--kind-compliance)]" />
                     <span>{t('compliance.dsr_privacy_note', 'Personal data leaves Bee Flow only by e-mail to the data subject. The export is the file of this request, not the data.')}</span>
                 </div>
             </div>
@@ -375,8 +331,10 @@ export default function DsrDrawer({
     onReject,
     onExtend,
     onStart,
+    onVerifyIdentity,
     loadTimeline,
     loadDiscovery,
+    orgUsers = null,
     testId = 'dsr-drawer',
 }) {
     const { t } = useTranslation();
@@ -391,8 +349,10 @@ export default function DsrDrawer({
             onReject={onReject}
             onExtend={onExtend}
             onStart={onStart}
+            onVerifyIdentity={onVerifyIdentity}
             loadTimeline={loadTimeline}
             loadDiscovery={loadDiscovery}
+            orgUsers={orgUsers}
             testId={testId}
         />
     );

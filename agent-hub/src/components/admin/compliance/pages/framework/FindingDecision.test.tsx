@@ -27,7 +27,8 @@ describe('FindingDecision', () => {
         expect(screen.getByRole('group', { name: 'Decide about this finding' })).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /Acknowledge/ }));
         expect(onDecide).toHaveBeenCalledWith('GDPR-Art32-project-access', 'project:p1', { state: 'acknowledged' });
-        await user.click(screen.getByRole('button', { name: /Snooze 30 days/ }));
+        await user.click(screen.getByRole('button', { name: /Snooze/ }));
+        await user.click(screen.getByRole('menuitem', { name: '30 days' }));
         expect(onDecide).toHaveBeenLastCalledWith('GDPR-Art32-project-access', 'project:p1', { state: 'snoozed', days: 30 });
     });
 
@@ -154,5 +155,34 @@ describe('AffectedProjects', () => {
         expect(affectedProjects({ scope_id: 'project:p9', evidence: { link: '/app/projects/p9' }, project_names: {} }))
             .toEqual([{ id: 'p9', name: 'project:p9', path: 'projects/p9' }]);
         expect(affectedProjects({ scope_id: null, evidence: {} })).toEqual([]);
+    });
+});
+
+describe('FindingDecision — the Snooze menu', () => {
+    it('three decisions on an open finding: Acknowledge, Accept risk…, and one Snooze menu with 7 and 30 days', async () => {
+        const { onDecide, user } = renderDecision(OPEN);
+        const group = screen.getByRole('group', { name: 'Decide about this finding' });
+        const buttons = [...group.querySelectorAll('button')].map((b) => b.textContent?.trim());
+        expect(buttons).toEqual(['Acknowledge', 'Accept risk…', 'Snooze']);
+        const snooze = screen.getByRole('button', { name: 'Snooze' });
+        expect(snooze).toHaveAttribute('aria-haspopup', 'menu');
+        expect(snooze).toHaveAttribute('aria-expanded', 'false');
+        await user.click(snooze);
+        expect(snooze).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['7 days', '30 days']);
+        await user.click(screen.getByRole('menuitem', { name: '7 days' }));
+        expect(onDecide).toHaveBeenCalledWith('GDPR-Art32-project-access', null, { state: 'snoozed', days: 7 });
+        await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    });
+
+    it('the Snooze menu opens from the keyboard and Escape closes it', async () => {
+        const { onDecide, user } = renderDecision(OPEN);
+        screen.getByRole('button', { name: 'Snooze' }).focus();
+        await user.keyboard('{ArrowDown}');
+        expect(screen.getByRole('menu')).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByRole('menuitem', { name: '7 days' })).toHaveFocus());
+        await user.keyboard('{Escape}');
+        await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+        expect(onDecide).not.toHaveBeenCalled();
     });
 });

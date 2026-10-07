@@ -767,7 +767,8 @@ module.exports = {
     'compliance.inc_f_severity': 'Severity',
     'compliance.inc_f_occurred': 'Occurred at (if known)',
     'compliance.inc_f_high_risk': 'High risk for the people involved (triggers Art. 34)',
-    'compliance.inc_clock_hint': 'Recording starts the 72-hour clock from now. If the breach was detected earlier, the clock legally started then — do not delay recording.',
+    // round 2 · P04-dsr-incidents: one sentence; the "Became aware at" field carries the rest
+    'compliance.inc_clock_hint': 'The reporting clocks run from the moment your organisation became aware of the breach.',
     'compliance.inc_create': 'Record — start the clock',
     'compliance.inc_start_assess': 'Start assessment',
     'compliance.inc_notify_recipients': 'Notify breach recipients',
@@ -866,7 +867,8 @@ module.exports = {
     'compliance.settings_ai_literacy_desc': 'Take measures that support the AI literacy of staff operating AI systems (AI Act Art. 4 as amended in July 2026: no specific level has to be guaranteed). Confirm your training or guidelines yearly; the tool records the attestation, not the training itself.',
     'compliance.ai_literacy_url': 'Training material URL (optional)',
     'compliance.ai_literacy_confirm': 'Confirm measures now',
-    'compliance.ai_literacy_confirmed_at': 'Confirmed {date} — remember to save',
+    // round 2 · P07-admin: a saved stamp no longer says "remember to save"; ai_literacy_confirmed_unsaved does, while it differs
+    'compliance.ai_literacy_confirmed_at': 'Confirmed {date}',
     'compliance.ai_literacy_never': 'Not confirmed yet',
     'compliance.settings_breach': 'Breach notification recipients',
     'compliance.settings_breach_desc': 'Emails alerted on anomalous data-access events.',
@@ -958,7 +960,8 @@ module.exports = {
     'compliance.checks.gdpr_art30_datatables.title': 'Registered processing still matches the table',
     'compliance.checks.gdpr_art30_datatables.desc': 'Every Studio table you recorded a legal basis or a retention period for is read again: the basis is still one of the six, the date column the retention counts from still exists, no rows sit outside the window the register promises, and someone has confirmed it within the interval you set.',
     'compliance.checks.gdpr_art30_datatables.fix': 'Open Compliance → Processing register, open the table this is about, and correct the basis, the retention period or the date it is counted from.',
-    'compliance.settings.datatable_review_days': 'Re-confirm a registered processing every (days)',
+    // round 2 · P07-admin: short enough to share a row with the other day fields; the hint keeps the detail
+    'compliance.settings.datatable_review_days': 'Register review every (days)',
     'compliance.settings.datatable_review_days_hint': 'How long an entry in the processing register may stand before someone reads it again. 180 days when left empty.',
 
     'compliance.checks.gdpr_art35.title': 'DPIA for high-risk agents',
@@ -2217,7 +2220,7 @@ module.exports = {
     'compliance.rail_risks': 'Risk register',
     'compliance.rail_soa': 'SoA (Annex A)',
     'compliance.rail_policies': 'Policies',
-    'compliance.rail_audits': 'Audits & management review',
+    // compliance.rail_audits: see the round 2 · P05-header block
     'compliance.rail_training': 'Training & competence',
     'compliance.rail_access_log': 'Access log',
     'compliance.rail_portability': 'Data portability',
@@ -2338,7 +2341,8 @@ module.exports = {
     'compliance.checks.aia_project_ai_edits.title': 'AI-written changes in projects are attributed to the AI',
     'compliance.checks.aia_project_ai_edits.desc': 'The version history of project documents and notebooks records who wrote each version. A version the AI wrote must name the AI among its contributors, so machine-written text is never presented as a person’s.',
     'compliance.checks.aia_project_ai_edits.fix': 'Nothing to configure: this is a product guarantee. If it fails, report it — the version history recorded an AI change without its author.',
-    'compliance.settings.project_retention_days': 'Keep unused projects with personal data for (days)',
+    // round 2 · P07-admin: short enough to share a row with the other day fields; the hint keeps the detail
+    'compliance.settings.project_retention_days': 'Project retention (days)',
     'compliance.settings.project_retention_days_hint': 'How long a collaborative project may go unused while it holds personal data. 365 days when left empty.',
     'compliance.settings.project_owner_hints_enabled': 'Show project owners one gentle hint they can act on',
     'compliance.settings.project_owner_hints_enabled_hint': 'At most one dismissible suggestion per project — members from outside, accounts that are gone, files not checked. Never about personal data in the project; that stays with you.',
@@ -2451,4 +2455,90 @@ module.exports = {
     'compliance.rail_meta_failing': '{n} to fix',
     'compliance.rail_meta_high': '{n} high',
     // ── end round 2 · P01-nav ──
+    // round 2 · P03-checks — the check table: the copy of the Art. 30(1)(d)
+    // flows check, the row's compact "Fix", the finding in full, one Snooze menu
+    'compliance.checks.gdpr_art30_flows.title': 'Personal data leaving through automations is recorded',
+    'compliance.checks.gdpr_art30_flows.desc': 'Art. 30(1)(d) requires the register to name the recipients of personal data. This check follows every automation step that sends data out of Bee Flow and confirms the destination is recorded or protected.',
+    'compliance.checks.gdpr_art30_flows.fix': 'Open the automation and add a Privacy Shield step before the outbound step, or record the recipient in the Processing register.',
+    'compliance.tbl_act_fix': 'Fix',
+    'compliance.tbl_what_found': 'What we found',
+    'compliance.finding_state.snooze': 'Snooze',
+    'compliance.finding_state.snooze_7_short': '7 days',
+    'compliance.finding_state.snooze_30_short': '30 days',
+    // ── end round 2 · P03-checks ──
+    // round 2 · P04-dsr-incidents — requests: confirm identity, the toolbar's
+    // form link, actors by name; incidents: when the organisation became aware,
+    // one Reporting list, the next step, closing without notifying (Art. 33(5))
+    'compliance.dsr_identity_confirm': 'Confirm identity…',
+    'compliance.dsr_identity_how': 'How was the identity checked?',
+    'compliance.dsr_identity_confirm_cta': 'Confirm',
+    'compliance.dsr_toast_identity_verified': 'Identity confirmed',
+    'compliance.dsr_public_form_link': 'Public form',
+    'compliance.dsr_search_short': 'Search # or e-mail',
+    'compliance.dsr_handler_unknown': 'a handler',
+    'compliance.inc_became_aware': 'Became aware at',
+    'compliance.inc_became_aware_hint': 'The 72-hour clock runs from here',
+    'compliance.vuln_became_aware_hint': 'The CRA clocks run from here',
+    'compliance.inc_reporting': 'Reporting',
+    'compliance.inc_stage_filed': 'filed {date}',
+    'compliance.inc_stage_due': 'due {date}',
+    'compliance.inc_stage_not_filed': 'not filed (decision logged)',
+    'compliance.inc_stage_ref': 'ref {ref}',
+    'compliance.inc_closed_not_notified': 'closed · not notified',
+    'compliance.inc_col_next_step': 'Next step',
+    'compliance.inc_all_filed': 'All filed',
+    'compliance.inc_filed_count': '{n} of {total} filed',
+    'compliance.inc_close_reason': 'Why was the authority not notified? (Art. 33(5))',
+    'compliance.vuln_close_reason': 'Why was it not reported? (CRA Art. 14)',
+    // ── end round 2 · P04-dsr-incidents ──
+    // round 2 · P05-header — the section header: the incident clock by stage,
+    // the SoA Export menu, the ROPA / portability / own-framework / machinery
+    // actions, and the phone subtitle for a run on another day
+    'compliance.hdr_inc_open_stage': '{n} open · {stage} in {hours} h',
+    'compliance.hdr_inc_open_stage_overdue': '{n} open · {stage} {hours} h overdue',
+    'compliance.hdr_inc_stage_early_warning': 'early warning',
+    'compliance.hdr_inc_stage_authority': 'authority notice',
+    'compliance.hdr_inc_stage_final_report': 'final report',
+    'compliance.hdr_inc_stage_customer_notice': 'customer notice',
+    'compliance.hdr_export': 'Export',
+    'compliance.hdr_export_bundle': 'Evidence bundle (zip)',
+    'compliance.hdr_downloads_off': 'Downloads are switched off in this workspace',
+    'compliance.hdr_ropa_reviewed': 'Reviewed {date}',
+    'compliance.hdr_ropa_review_due': 'Review overdue',
+    'compliance.hdr_ropa_never': 'Never reviewed',
+    'compliance.hdr_ropa_regenerate': 'Regenerate from live configuration',
+    'compliance.hdr_ropa_mark_reviewed': 'Mark as reviewed',
+    'compliance.hdr_portability_coverage': '{n} of {total} kinds portable',
+    'compliance.hdr_machinery_scan': 'Scan again',
+    'compliance.hdr_custom_new': 'New framework',
+    'compliance.mob_run_at': 'run {date} {time}',
+    // CHANGED (was 'Audits & management review'): the rail row and the header title
+    'compliance.rail_audits': 'Audits & reviews',
+    // ── end round 2 · P05-header ──
+    // round 2 · P07-admin — Settings: sub-headings, progress per group, one
+    // disclosure for the frameworks that are off, a leave guard; connectors:
+    // what collects apart from what is available, one status vocabulary
+    'compliance.set_section_accountability': 'Accountability',
+    'compliance.set_section_lawful': 'Lawful processing',
+    'compliance.set_section_public': 'Public addresses',
+    'compliance.set_section_alerts': 'Alerts & identity',
+    'compliance.set_group_progress': '{n} of {total} answered',
+    'compliance.set_frameworks_off': 'Frameworks that are off ({n})',
+    'compliance.set_frameworks_off_note': 'The answers are kept and start counting when you turn the framework on.',
+    'compliance.set_fill_member': 'Fill from member',
+    'compliance.set_leave_confirm': 'Discard unsaved settings?',
+    'compliance.set_leave_discard': 'Discard changes',
+    'compliance.set_leave_desc': 'The changes you made here have not been saved.',
+    'compliance.ai_literacy_confirmed_unsaved': 'Confirmed {date} — not saved yet',
+    'compliance.set_recipient_add_ph': 'Add an e-mail or pick a member',
+    'compliance.set_recipient_remove': 'Remove {email}',
+    'compliance.conn_group_active': 'Collecting ({n})',
+    'compliance.conn_group_available': 'Available ({n})',
+    'compliance.conn_none_collecting': 'Nothing collects yet. Set up a connector below.',
+    'compliance.conn_col_sweep': 'Sweep',
+    'compliance.conn_setup': 'Set up',
+    'compliance.conn_sweep_cell': 'Swept {last} · next ~{next}',
+    'compliance.conn_status_findings': 'Swept with findings',
+    'compliance.conn_connection_missing': 'Linked connection not found ({id})',
+    // ── end round 2 · P07-admin ──
 };

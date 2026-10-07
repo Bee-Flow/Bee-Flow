@@ -1,14 +1,19 @@
 // An admin's decision about ONE open finding, in the check table: acknowledge,
 // accept the risk (with a reason and an optional review date), snooze for 7 or
-// 30 days, or re-open. The decision only takes the finding off "Needs
+// 30 days (one "Snooze" menu button), or re-open. The decision only takes the finding off "Needs
 // attention" while it stays exactly the same (the server holds its
 // fingerprint); the check keeps running and the row keeps its status.
 //
 // `FindingStateChip` is the small label the row shows while a decision exists.
 
-import { BellOff, CheckCheck, RotateCcw, ShieldQuestion } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { BellOff, CheckCheck, ChevronDown, RotateCcw, ShieldQuestion } from 'lucide-react';
+import React, { useId, useRef, useState } from 'react';
+import type { ComponentType } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
+import AnchoredMenuJs from '../../../../shared/AnchoredMenu';
+
+// A .jsx module whose `= null` defaults would type the props as null-only.
+const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
 
 export type FindingStateName = 'acknowledged' | 'accepted_risk' | 'snoozed';
 
@@ -229,6 +234,56 @@ function AcceptRiskForm({ busy, onSave, onCancel, testId }: {
     );
 }
 
+const MENU_ITEM = 'w-full flex items-center px-2.5 h-8 rounded-[6px] text-left text-[12px] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] focus:outline-none focus-visible:bg-[var(--bg-secondary)]';
+
+/** One "Snooze" button with a small menu: 7 days or 30 days. */
+function SnoozeMenu({ busy, onSnooze, testId }: {
+    busy: boolean;
+    onSnooze: (days: 7 | 30) => void;
+    testId: string;
+}) {
+    const { t } = useTranslation();
+    const anchorRef = useRef<HTMLButtonElement | null>(null);
+    const [open, setOpen] = useState(false);
+    const pick = (days: 7 | 30) => { setOpen(false); onSnooze(days); };
+    return (
+        <>
+            <button
+                ref={anchorRef}
+                type="button"
+                className={BTN}
+                disabled={busy}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                onClick={() => setOpen((v) => !v)}
+                onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); } }}
+                data-testid={`${testId}-snooze`}
+            >
+                <BellOff size={11} aria-hidden="true" /> {t('compliance.finding_state.snooze', 'Snooze')}
+                <ChevronDown size={11} aria-hidden="true" />
+            </button>
+            <AnchoredMenu
+                open={open}
+                onClose={() => setOpen(false)}
+                anchorRef={anchorRef}
+                align="left"
+                minWidth={140}
+                role="menu"
+                aria-label={t('compliance.finding_state.snooze', 'Snooze')}
+                className="p-1"
+                data-testid={`${testId}-snooze-menu`}
+            >
+                <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => pick(7)} data-testid={`${testId}-snooze-7`}>
+                    {t('compliance.finding_state.snooze_7_short', '7 days')}
+                </button>
+                <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => pick(30)} data-testid={`${testId}-snooze-30`}>
+                    {t('compliance.finding_state.snooze_30_short', '30 days')}
+                </button>
+            </AnchoredMenu>
+        </>
+    );
+}
+
 function DecisionButtons({ open, hasDecision, busy, onSend, onAccept, testId }: {
     open: boolean;
     hasDecision: boolean;
@@ -248,12 +303,7 @@ function DecisionButtons({ open, hasDecision, busy, onSend, onAccept, testId }: 
                     <button type="button" className={BTN} disabled={busy} onClick={onAccept} data-testid={`${testId}-accept`}>
                         <ShieldQuestion size={11} aria-hidden="true" /> {t('compliance.finding_state.accept_risk', 'Accept risk…')}
                     </button>
-                    <button type="button" className={BTN} disabled={busy} onClick={() => onSend({ state: 'snoozed', days: 7 })} data-testid={`${testId}-snooze-7`}>
-                        <BellOff size={11} aria-hidden="true" /> {t('compliance.finding_state.snooze_7', 'Snooze 7 days')}
-                    </button>
-                    <button type="button" className={BTN} disabled={busy} onClick={() => onSend({ state: 'snoozed', days: 30 })} data-testid={`${testId}-snooze-30`}>
-                        {t('compliance.finding_state.snooze_30', 'Snooze 30 days')}
-                    </button>
+                    <SnoozeMenu busy={busy} onSnooze={(days) => onSend({ state: 'snoozed', days })} testId={testId} />
                 </>
             ) : null}
             {hasDecision ? (

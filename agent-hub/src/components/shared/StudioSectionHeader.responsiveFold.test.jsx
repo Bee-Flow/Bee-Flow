@@ -59,6 +59,18 @@ describe('StudioSectionHeader — the responsive fold stays wired', () => {
         expect(src).toMatch(/action: '@max-\[1180px\]\/objhead:hidden'/);
     });
 
+    it('tabsFold="compact" folds the strip at 900px; the default keeps the 1180px pair', async () => {
+        const src = await readSource();
+        // The opt-in pair, for a header that sits beside a wide side rail…
+        expect(src).toMatch(/compact: Object\.freeze\(\{ strip: 'flex-shrink-0 @max-\[900px\]\/objhead:hidden', menu: 'hidden @max-\[900px\]\/objhead:block' \}\)/);
+        expect(src).toMatch(/compact: '@max-\[900px\]\/objhead:hidden'/);
+        // …and the default every Studio caller still gets.
+        expect(src).toMatch(/default: Object\.freeze\(\{ strip: 'flex-shrink-0 @max-\[1180px\]\/objhead:hidden', menu: 'hidden @max-\[1180px\]\/objhead:block' \}\)/);
+        expect(src).toMatch(/TAB_FOLD\[fold\] \|\| TAB_FOLD\.default/);
+        // titleMin keeps the name from collapsing; without it the name may shrink.
+        expect(src).toMatch(/titleMin \? 'shrink-0' : 'min-w-0'/);
+    });
+
     it('spells every fold class as a literal — never built from the container name', async () => {
         const src = await readSource();
         // A template like `@max-[1440px]/${name}:hidden` is invisible to Tailwind.

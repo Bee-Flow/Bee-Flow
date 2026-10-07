@@ -208,6 +208,28 @@ test('the datetime-local value the form posts is a date, and is accepted', async
     assert.strictEqual(res.statusCode, 201);
 });
 
+test('a detected_at in the future is refused: the 72-hour clock runs from awareness and cannot start tomorrow', async () => {
+    const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    const res = await refuses({ method: 'POST', url: '/incidents', body: { title: 'x', detected_at: tomorrow } }, 'body.detected_at');
+    assert.strictEqual(res.body.error, 'detected_at cannot be in the future.');
+});
+
+test('the awareness moment the form sends (now, or yesterday) reaches the store; a browser a minute ahead is fine', async () => {
+    const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const res = await dispatch({ method: 'POST', url: '/incidents', body: { kind: 'breach', title: 'Found yesterday', detected_at: yesterday } });
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(touched.find((t) => t.what === 'createIncident').args[0].detected_at, yesterday);
+    touched.length = 0;
+    const aheadByAMinute = new Date(Date.now() + 60 * 1000).toISOString();
+    const ahead = await dispatch({ method: 'POST', url: '/incidents', body: { title: 'x', detected_at: aheadByAMinute } });
+    assert.strictEqual(ahead.statusCode, 201);
+});
+
+test('an unreadable detected_at is refused once, as not a date', async () => {
+    const res = await refuses({ method: 'POST', url: '/incidents', body: { title: 'x', detected_at: 'yesterday' } }, 'body.detected_at');
+    assert.strictEqual(res.body.error, 'detected_at must be a date.');
+});
+
 test('a misspelled create key is refused rather than dropped from the row', async () => {
     await refuses({ method: 'POST', url: '/incidents', body: { title: 'x', hgih_risk: true } }, 'body');
 });

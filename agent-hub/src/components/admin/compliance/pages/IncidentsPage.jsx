@@ -1,14 +1,16 @@
-import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
+import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import FilterPills from '../../../shared/FilterPills';
 import EmptyState from '../../../shared/EmptyState';
+import FilterPills from '../../../shared/FilterPills';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import { API, fetchJson, jsonInit } from '../data/api';
-import IncidentsTable from './incidents/IncidentsTable';
-import IncidentDrawer from './incidents/IncidentDrawer';
-import IncidentCreateModal from './incidents/IncidentCreateModal';
+import useDrawerMode from '../shared/useDrawerMode';
+import { PAGE_FRAME } from './audits/auditForms';
 import { kindsOfSection, matchesSection, nextClock } from './incidents/incidentClocks';
+import IncidentCreateModal from './incidents/IncidentCreateModal';
+import IncidentDrawer from './incidents/IncidentDrawer';
+import IncidentsTable from './incidents/IncidentsTable';
 
 /**
  * IncidentsPage — the incident register (GDPR Art. 33/34 · NIS2 Art. 23 ·
@@ -32,6 +34,10 @@ import { kindsOfSection, matchesSection, nextClock } from './incidents/incidentC
  * host that instead signals with `headerAction="create"` (+
  * `onHeaderActionHandled`) is served too; with neither, the page draws its
  * own primary in the toolbar so the register works standalone.
+ *
+ * The register opens on its Open filter. Ids are compared as strings: the
+ * server's are numbers, a deep link's (`focusId`) a path segment. Where the
+ * drawer goes follows the width the register has (useDrawerMode).
  */
 export const HEADER_ACTION_CREATE = 'create';
 
@@ -66,6 +72,9 @@ export function sortIncidents(rows) {
 
 const isNotFound = (e) => /^404\b/.test(String(e?.message || ''));
 
+/** A row or deep-link id as the string the page compares by (server ids are numbers, path segments strings). */
+const idOf = (id) => (id === null || id === undefined || id === '' ? null : String(id));
+
 export default function IncidentsPage(props) {
     const { section, focusId, data = {}, isMobile = false, headerAction, onHeaderActionHandled, setHeaderActions } = props;
     const { t } = useTranslation();
@@ -82,16 +91,17 @@ export default function IncidentsPage(props) {
     const loading = list === undefined || list === null;
     const failed = !loading && !Array.isArray(list);
 
-    const [filter, setFilter] = useState('all');
+    const [filter, setFilter] = useState('open');
     const [query, setQuery] = useState('');
-    const [selectedId, setSelectedId] = useState(focusId != null ? Number(focusId) || null : null);
+    const [selectedId, setSelectedId] = useState(idOf(focusId));
     const [showCreate, setShowCreate] = useState(false);
     const [craUnavailable, setCraUnavailable] = useState(false);
     const [seenFocusId, setSeenFocusId] = useState(focusId);
     if (seenFocusId !== focusId) {
         setSeenFocusId(focusId);
-        if (focusId != null) setSelectedId(Number(focusId) || null);
+        if (focusId != null) setSelectedId(idOf(focusId));
     }
+    const [frameRef, drawerMode] = useDrawerMode({ isMobile });
     const openCreateFromHeader = useEffectEvent(() => { setShowCreate(true); onHeaderActionHandled?.(); });
     useEffect(() => {
         if (headerAction === HEADER_ACTION_CREATE) openCreateFromHeader();
@@ -119,7 +129,7 @@ export default function IncidentsPage(props) {
         return sortIncidents(rows.filter(r => (filter === 'all' || bucketOf(r) === filter)
             && (!q || `inc-${r.id} vuln-${r.id} ${r.title || ''} ${(r.cve_ids || []).join(' ')}`.toLowerCase().includes(q))));
     }, [rows, filter, query]);
-    const selected = useMemo(() => rows.find(r => r.id === selectedId) || null, [rows, selectedId]);
+    const selected = useMemo(() => (selectedId === null ? null : rows.find(r => String(r.id) === selectedId) || null), [rows, selectedId]);
 
     // ── mutations: hook first, legacy route second ──
     const call = async (fn, url, init) => {
@@ -151,12 +161,13 @@ export default function IncidentsPage(props) {
             onCustomerNotified={customerNotified}
             craUnavailable={craUnavailable}
             onClose={() => setSelectedId(null)}
-            mode={isMobile ? 'modal' : 'inline'}
+            mode={drawerMode}
         />
     );
+    const inline = drawerMode === 'inline';
 
     return (
-        <div className="relative h-full min-h-0 flex flex-col gap-3 p-3.5" data-testid={vuln ? 'vuln-page' : 'inc-page'} data-kind={kind}>
+        <div className={`relative h-full min-h-0 ${PAGE_FRAME}`} data-testid={vuln ? 'vuln-page' : 'inc-page'} data-kind={kind} data-drawer-mode={drawer ? drawerMode : undefined}>
             <div className="flex flex-wrap items-center gap-2">
                 <FilterPills value={filter} onChange={setFilter} options={pillOptions} ariaLabel={t('compliance.inc_col_status', 'Status')} testId="inc-filter" />
                 <label className="ml-auto inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-xs text-[var(--text-secondary)] min-w-[160px]">
@@ -174,7 +185,7 @@ export default function IncidentsPage(props) {
                 )}
             </div>
 
-            <div className="flex-1 min-h-0 flex gap-3 items-start">
+            <div ref={frameRef} className="flex-1 min-h-0 flex gap-3 items-start">
                 <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
                     {failed ? (
                         <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3.5 py-3 text-xs text-[var(--text-tertiary)]" data-testid="inc-failed">
@@ -184,7 +195,7 @@ export default function IncidentsPage(props) {
                         <IncidentsTable
                             rows={visible}
                             selectedId={selectedId}
-                            onSelect={(inc) => setSelectedId(prev => (prev === inc.id ? null : inc.id))}
+                            onSelect={(inc) => setSelectedId(prev => (prev === String(inc.id) ? null : String(inc.id)))}
                             loading={loading}
                             isMobile={isMobile}
                             empty={(
@@ -198,9 +209,9 @@ export default function IncidentsPage(props) {
                         />
                     )}
                 </div>
-                {!isMobile && drawer}
+                {inline && drawer}
             </div>
-            {isMobile && drawer}
+            {!inline && drawer}
 
             <IncidentCreateModal
                 open={showCreate}

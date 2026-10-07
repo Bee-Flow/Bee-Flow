@@ -22,6 +22,10 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *   verification  'automated' | 'attestation' | 'hybrid' — anything else renders nothing
  *   minimal       glyph + label only, 10px, no border (the attention list's
  *                 meta line: "· ✎ zelf verklaard")
+ *   compact       the check table: `automated`, the common case, is only its
+ *                 ScanSearch glyph (label for screen readers, hint as title),
+ *                 so the bordered chips that remain are the exceptions —
+ *                 attestation and hybrid keep the full chip
  */
 const KIND = Object.freeze({
     automated: {
@@ -46,13 +50,28 @@ const KIND = Object.freeze({
 
 export const VERIFICATION_KINDS = Object.freeze(Object.keys(KIND));
 
-export default function VerificationChip({ verification, minimal = false, className = '', testId = 'verification-chip' }) {
+export default function VerificationChip({ verification, minimal = false, compact = false, className = '', testId = 'verification-chip' }) {
     const { t } = useTranslation();
     const kind = KIND[verification];
     if (!kind) return null;
     const label = t(kind.labelKey, kind.labelEn);
     const hint = t(kind.hintKey, kind.hintEn);
     const glyphSize = minimal ? 10 : 11;
+
+    if (compact && verification === 'automated') {
+        return (
+            <span
+                title={hint}
+                data-testid={testId}
+                data-verification={verification}
+                data-compact="true"
+                className={`inline-flex items-center text-[var(--text-tertiary)] ${className}`}
+            >
+                <ScanSearch size={13} aria-hidden="true" />
+                <span className="sr-only">{label}</span>
+            </span>
+        );
+    }
 
     return (
         <span

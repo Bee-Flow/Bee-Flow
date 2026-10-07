@@ -21,8 +21,9 @@
  * project checks hand over the set of offending projects, so one more offender
  * re-opens the finding while a re-run that finds exactly the same thing does
  * not. Without one, every scalar evidence field counts except the ones that
- * move on every run by nature (timestamps, ages, durations). A finding that
- * turns from warn into fail always re-opens: the status is in the hash.
+ * move on every run by nature (timestamps, ages, durations) and the subject's
+ * display label. A finding that turns from warn into fail always re-opens:
+ * the status is in the hash.
  *
  * Pure. The store keeps the rows (stores/complianceStore.js), the route writes
  * them (routes/compliance/checks.js), attention.js and the check table read
@@ -36,6 +37,10 @@ const GLOBAL_SCOPE_KEY = 'global';
 
 // Evidence keys that differ between two runs over an unchanged workspace.
 const VOLATILE_KEY = /(_at|_ms|_hours|_age|age_hours|_days_ago|heartbeat|elapsed|timeout|generated|checked|run_type)$/i;
+// Evidence keys that NAME what was found rather than describe it: the runner
+// stamps `subject_label` (an agent's or automation's current title) on the
+// result row, and renaming the agent is not a different finding.
+const LABEL_KEYS = new Set(['subject_label']);
 
 /** The slot key a state is stored under: the row's scope_id, or 'global'. */
 function scopeKeyOf(row) {
@@ -48,7 +53,7 @@ function stableSubset(evidence) {
     const out = {};
     if (!evidence || typeof evidence !== 'object') return out;
     for (const key of Object.keys(evidence).sort()) {
-        if (VOLATILE_KEY.test(key)) continue;
+        if (VOLATILE_KEY.test(key) || LABEL_KEYS.has(key)) continue;
         const v = evidence[key];
         if (v === null || ['string', 'number', 'boolean'].includes(typeof v)) out[key] = v;
     }

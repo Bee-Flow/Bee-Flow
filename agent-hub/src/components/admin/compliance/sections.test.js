@@ -93,7 +93,7 @@ describe('compliance sections registry', () => {
         expect(tabsOf('gdpr')).toEqual(['checks', 'timeline', 'evidence']);
         expect(tabsOf('iso_controls')).toEqual(['checks', 'timeline', 'evidence']);
         expect(tabsOf('frameworks')).toEqual(['all', 'calendar', 'per_automation']);
-        expect(tabsOf('dsr')).toEqual(['requests', 'public_form', 'settings']);
+        expect(tabsOf('dsr')).toEqual(['requests', 'public_form']);
         expect(tabsOf('soa')).toEqual(['controls', 'history', 'export']);
         expect(tabsOf('audits')).toEqual(['audits', 'reviews', 'ncs', 'objectives']);
         expect(tabsOf('incidents')).toEqual([]);
@@ -109,6 +109,8 @@ describe('compliance sections registry', () => {
         expect(resolveTab('audits', 'obligations')).toEqual({ section: 'training', tab: null });
         expect(resolveTab('iso_audit', 'obligations')).toEqual({ section: 'training', tab: null });
         expect(resolveTab('audits', 'ncs')).toEqual({ section: 'audits', tab: 'ncs' });
+        expect(resolveTab('dsr', 'settings')).toEqual({ section: 'settings', tab: null });
+        expect(resolveTab('dsr', 'public_form')).toEqual({ section: 'dsr', tab: 'public_form' });
         expect(resolveTab('frameworks', 'calendar')).toEqual({ section: 'frameworks', tab: 'calendar' });
         expect(resolveTab('gdpr', null)).toEqual({ section: 'gdpr', tab: null });
         expect(resolveTab('nope', '')).toEqual({ section: 'overview', tab: null });

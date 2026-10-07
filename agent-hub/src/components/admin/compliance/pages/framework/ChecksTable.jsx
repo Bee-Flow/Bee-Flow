@@ -5,21 +5,30 @@ import DataTable from '../../../../shared/DataTable';
 import FilterPills from '../../../../shared/FilterPills';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import EmptyState from '../../../../shared/EmptyState';
-import VerificationChip from '../../shared/VerificationChip';
 import CheckRow, { CheckCard } from './CheckRow';
 import CheckExpansion from './CheckExpansion';
 import {
-    STATUS_PILLS, PILL_TONE, SORT_MODES, countByStatus, filterByStatus, filterBySearch, sortChecks,
+    PILL_TONE, SORT_MODES, countByStatus, filterByStatus, filterBySearch, sortChecks, rowKeyOf, focusRowKey,
+    visiblePills, isBusyRow,
 } from './checkSort';
 
 /**
  * ChecksTable — toolbar + the checks DataTable of a framework page (1b).
  *
  * The toolbar owns the view state (pill, sort, search); the table owns which
- * rows are open. `focusId` is the row the overview sent us to: it starts
- * open and CheckRow scrolls it into view once. The list passed in is already
- * the framework's (FrameworkPage filters by regulation) so the counts on the
+ * rows are open. Every piece of row state — open, focus, the rerun and
+ * auto-fix spinners — is keyed by `rowKeyOf` (check + subject), because a
+ * per-source check has one row per subject and one click must open one row.
+ *
+ * `focusId` is the row the overview sent us to, as a row key or a bare check
+ * id (then the first row of that check in the sorted list): it starts open
+ * and CheckRow scrolls it into view once. The list passed in is already the
+ * framework's (FrameworkPage filters by regulation) so the counts on the
  * pills are the framework's counts.
+ *
+ * A card narrower than 860px (a 1024 window, or beside an open drawer) shows
+ * the checks as cards, which open the same expansion, instead of a table
+ * whose title column would be squeezed to a word.
  */
 
 export const PILL_LABEL = Object.freeze({
@@ -30,6 +39,9 @@ export const PILL_LABEL = Object.freeze({
     not_applicable: ['compliance.status_na', 'Not applicable'],
 });
 
+/** Below this card width the rows become cards (DataTable `cardsBelow`). */
+export const CHECK_CARDS_BELOW = 860;
+
 /** The six columns — one array so header and rows can never drift apart. */
 export function checkColumns(t) {
     return [
@@ -37,16 +49,16 @@ export function checkColumns(t) {
         { id: 'check', width: '1fr', label: t('compliance.tbl_col_check', 'Check') },
         { id: 'article', width: '84px', label: t('compliance.tbl_col_article', 'Article') },
         { id: 'verification', width: '150px', label: t('compliance.tbl_col_verification', 'Verification') },
-        { id: 'last_run', width: '84px', label: t('compliance.tbl_col_last_run', 'Last run'), foldBelow: 1180 },
-        // Room for the widest pair a row can carry ("Open fix ↗" + "Auto-fix ·
-        // n") plus the chevron: at 170px that pair ran over the Verification chip.
-        { id: 'actions', width: '204px', label: '', align: 'right' },
+        { id: 'last_run', width: '84px', label: t('compliance.tbl_col_last_run', 'Last run'), foldBelow: 900 },
+        // One compact action ("Fix ->", or the project arrow + "Fix") plus the
+        // chevron; Auto-fix and Re-run live in the expansion.
+        { id: 'actions', width: '112px', label: '', align: 'right' },
     ];
 }
 
 export function ChecksToolbar({ pill, onPill, counts, sort, onSort, query, onQuery, testId = 'checks-toolbar' }) {
     const { t } = useTranslation();
-    const pillOptions = STATUS_PILLS.map((value) => {
+    const pillOptions = visiblePills(counts, pill).map((value) => {
         const [key, en] = PILL_LABEL[value];
         return { value, label: t(key, en), count: counts ? counts[value] : undefined, tone: PILL_TONE[value] };
     });
@@ -58,11 +70,7 @@ export function ChecksToolbar({ pill, onPill, counts, sort, onSort, query, onQue
         <div className="flex items-center gap-3 flex-wrap" data-testid={testId}>
             <FilterPills value={pill} onChange={onPill} options={pillOptions} ariaLabel={t('compliance.tbl_filter_aria', 'Filter checks by status')} testId={`${testId}-pill`} />
             <SegmentedControl size="sm" value={sort} onChange={onSort} options={sortOptions} ariaLabel={t('compliance.tbl_sort_aria', 'Sort checks')} />
-            <div className="hidden md:flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]" data-testid={`${testId}-legend`}>
-                <VerificationChip verification="automated" testId={`${testId}-legend-auto`} />
-                <VerificationChip verification="attestation" testId={`${testId}-legend-attested`} />
-            </div>
-            <label className="ml-auto relative flex items-center" style={{ width: 200 }}>
+            <label className="ml-auto relative flex items-center w-[200px] max-w-full">
                 <Search size={12} aria-hidden="true" className="absolute left-2 text-[var(--text-tertiary)]" />
                 <input
                     type="search"
@@ -106,35 +114,63 @@ export default function ChecksTable({
     const [pill, setPill] = useState('all');
     const [sort, setSort] = useState(SORT_MODES[0]);
     const [query, setQuery] = useState('');
-    const [openIds, setOpenIds] = useState(() => new Set(focusId ? [focusId] : []));
+    // The row whose button started the current rerun / auto-fix.
+    const [asked, setAsked] = useState({ rerun: null, autoFix: null });
 
-    // A new focus target (navigated again from the overview) opens too.
+    const list = useMemo(() => (Array.isArray(checks) ? checks : []), [checks]);
+    const sorted = useMemo(() => sortChecks(list, sort, regulation), [list, sort, regulation]);
+    const focusKey = useMemo(() => focusRowKey(sorted, focusId), [sorted, focusId]);
+    const [openIds, setOpenIds] = useState(() => new Set(focusKey ? [focusKey] : []));
+
+    // A focus target that resolves later (the list arrives after mount) or
+    // anew (navigated again from the overview) opens too.
     useEffect(() => {
-        if (!focusId) return;
-        setOpenIds((prev) => (prev.has(focusId) ? prev : new Set([...prev, focusId])));
-    }, [focusId]);
+        if (!focusKey) return;
+        setOpenIds((prev) => (prev.has(focusKey) ? prev : new Set([...prev, focusKey])));
+    }, [focusKey]);
 
-    const toggle = useCallback((id) => {
+    const toggle = useCallback((key) => {
         setOpenIds((prev) => {
             const next = new Set(prev);
-            if (next.has(id)) next.delete(id); else next.add(id);
+            if (next.has(key)) next.delete(key); else next.add(key);
             return next;
         });
     }, []);
 
-    const list = Array.isArray(checks) ? checks : [];
     const counts = useMemo(() => countByStatus(list), [list]);
-    const titleOf = useCallback((c) => t(c.titleKey, c.check_id), [t]);
+    const titleOf = useCallback((c) => (c.titleKey ? t(c.titleKey, c.check_id) : (c.title || c.check_id)), [t]);
     const rows = useMemo(
-        () => sortChecks(filterBySearch(filterByStatus(list, pill), query, titleOf), sort, regulation),
-        [list, pill, query, titleOf, sort, regulation],
+        () => filterBySearch(filterByStatus(sorted, pill), query, titleOf),
+        [sorted, pill, query, titleOf],
     );
     const columns = useMemo(() => checkColumns(t), [t]);
 
+    const expansionFor = (check, key, rowTestId) => (
+        <CheckExpansion
+            check={check}
+            regulation={regulation}
+            exportsEnabled={exportsEnabled}
+            dl={dl}
+            loadTrail={loadTrail}
+            onOpenLink={onOpenLink}
+            canOpenLink={canOpenLink}
+            onAutoFix={typeof onAutoFix === 'function' ? (id) => { setAsked((a) => ({ ...a, autoFix: key })); onAutoFix(id); } : undefined}
+            autoFixing={isBusyRow(autoFixingId, check, asked.autoFix)}
+            onRerun={typeof onRerun === 'function' ? (id) => { setAsked((a) => ({ ...a, rerun: key })); onRerun(id); } : undefined}
+            rerunning={isBusyRow(rerunningId, check, asked.rerun)}
+            onDecide={onDecide}
+            testId={`${rowTestId}-expansion`}
+        />
+    );
+
+    // Test ids stay `row-<check_id>` for a global check; a per-subject row
+    // adds its scope so every row has its own.
+    const rowTestIdOf = (check) => `${testId}-row-${check.scope_id ? `${check.check_id}:${check.scope_id}` : check.check_id}`;
+
     const renderRow = (check) => {
-        const id = check.check_id;
-        const expanded = openIds.has(id);
-        const rowTestId = `${testId}-row-${id}`;
+        const key = rowKeyOf(check);
+        const expanded = openIds.has(key);
+        const rowTestId = rowTestIdOf(check);
         return (
             <>
                 <CheckRow
@@ -143,43 +179,25 @@ export default function ChecksTable({
                     columns={columns}
                     expanded={expanded}
                     onToggle={toggle}
-                    focus={focusId === id}
-                    rerunning={rerunningId === id}
-                    autoFixing={autoFixingId === id}
-                    onRerun={onRerun}
-                    onAutoFix={onAutoFix}
+                    focus={focusKey === key}
                     onOpenLink={onOpenLink}
                     canOpenLink={canOpenLink}
                     lastRunAt={lastRunAt}
                     now={now}
                     testId={rowTestId}
                 />
-                {expanded && (
-                    <CheckExpansion
-                        check={check}
-                        regulation={regulation}
-                        exportsEnabled={exportsEnabled}
-                        dl={dl}
-                        loadTrail={loadTrail}
-                        onOpenLink={onOpenLink}
-                        canOpenLink={canOpenLink}
-                        onAutoFix={onAutoFix}
-                        autoFixing={autoFixingId === id}
-                        onDecide={onDecide}
-                        testId={`${rowTestId}-expansion`}
-                    />
-                )}
+                {expanded && expansionFor(check, key, rowTestId)}
             </>
         );
     };
 
-    // Phone (1h): one ≥44px card per check; tapping opens the same expansion.
+    // Phone (1h) and narrow cards: one ≥44px card per check; tapping opens the same expansion.
     const renderCard = (check) => {
-        const id = check.check_id;
-        const expanded = openIds.has(id);
-        const rowTestId = `${testId}-row-${id}`;
+        const key = rowKeyOf(check);
+        const expanded = openIds.has(key);
+        const rowTestId = rowTestIdOf(check);
         return (
-            <div className="w-full min-w-0 flex flex-col" data-testid={`${testId}-card-${id}`}>
+            <div className="w-full min-w-0 flex flex-col" data-testid={rowTestId.replace(`${testId}-row-`, `${testId}-card-`)}>
                 <CheckCard
                     check={check}
                     regulation={regulation}
@@ -189,21 +207,7 @@ export default function ChecksTable({
                     now={now}
                     testId={rowTestId}
                 />
-                {expanded && (
-                    <CheckExpansion
-                        check={check}
-                        regulation={regulation}
-                        exportsEnabled={exportsEnabled}
-                        dl={dl}
-                        loadTrail={loadTrail}
-                        onOpenLink={onOpenLink}
-                        canOpenLink={canOpenLink}
-                        onAutoFix={onAutoFix}
-                        autoFixing={autoFixingId === id}
-                        onDecide={onDecide}
-                        testId={`${rowTestId}-expansion`}
-                    />
-                )}
+                {expanded && expansionFor(check, key, rowTestId)}
             </div>
         );
     };
@@ -223,10 +227,11 @@ export default function ChecksTable({
             <DataTable
                 columns={columns}
                 rows={failed ? [] : rows}
-                rowKey={(c) => `${c.check_id}:${c.scope_id || ''}`}
+                rowKey={rowKeyOf}
                 renderRow={renderRow}
                 renderCard={renderCard}
                 isMobile={isMobile}
+                cardsBelow={CHECK_CARDS_BELOW}
                 loading={loading && list.length === 0}
                 empty={empty}
                 ariaLabel={t('compliance.tbl_aria', 'Compliance checks')}

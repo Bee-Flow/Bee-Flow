@@ -129,6 +129,7 @@ export function TableCell({ column = null, children = null, className = '', alig
     );
 }
 
+/** The header row. A column's `ariaSort` ('ascending' | 'descending') marks the column the rows are sorted by. */
 export function TableHeader({ columns = [], className = '', testId = undefined }) {
     return (
         <div
@@ -142,6 +143,7 @@ export function TableHeader({ columns = [], className = '', testId = undefined }
                     key={c.id}
                     role="columnheader"
                     data-column={c.id}
+                    aria-sort={c.ariaSort || undefined}
                     className={`min-w-0 truncate ${foldClass(c)} ${alignClass(c.align)}`.replace(/\s+/g, ' ').trim()}
                 >
                     {c.label}

@@ -74,7 +74,8 @@ export const SECTIONS = Object.freeze([
     fw('machinery', 'MACHINERY', Factory, 'compliance.rail_machinery', 'Machinery Regulation', { optional: true, tabs: Object.freeze([]) }),
     fw('custom', 'CUSTOM', FolderKanban, 'compliance.rail_custom', 'Own frameworks', { optional: true, tabs: Object.freeze([]) }),
     // ── Registers ──
-    reg('dsr', Inbox, 'compliance.rail_dsr', 'Requests (DSR)', { tabs: Object.freeze(['requests', 'public_form', 'settings']) }),
+    // The DPO / acknowledgement settings live with the other compliance settings (reached through the rail).
+    reg('dsr', Inbox, 'compliance.rail_dsr', 'Requests (DSR)', { tabs: Object.freeze(['requests', 'public_form']), legacyTabs: legacy({ settings: { section: 'settings' } }) }),
     reg('incidents', Siren, 'compliance.rail_incidents', 'Incidents & breaches'),
     reg('vulnerabilities', ShieldAlert, 'compliance.rail_vulnerabilities', 'Vulnerability register', { optional: true }),
     reg('ropa', BookOpen, 'compliance.rail_ropa', 'Processing register (ROPA)'),
@@ -82,7 +83,7 @@ export const SECTIONS = Object.freeze([
     reg('risks', TriangleAlert, 'compliance.rail_risks', 'Risk register', { aliases: Object.freeze(['iso_risks']) }),
     reg('soa', ListChecks, 'compliance.rail_soa', 'SoA (Annex A)', { tabs: Object.freeze(['controls', 'history', 'export']), aliases: Object.freeze(['iso_soa']) }),
     reg('policies', ScrollText, 'compliance.rail_policies', 'Policies', { aliases: Object.freeze(['iso_policies']) }),
-    reg('audits', SearchCheck, 'compliance.rail_audits', 'Audits & management review', {
+    reg('audits', SearchCheck, 'compliance.rail_audits', 'Audits & reviews', {
         tabs: Object.freeze(['audits', 'reviews', 'ncs', 'objectives']), aliases: Object.freeze(['iso_audit']),
         // The ISMS obligations moved to Training & competence.
         legacyTabs: legacy({ obligations: { section: 'training' } }),
@@ -165,11 +166,12 @@ export function sectionsInGroup(groupId) {
 
 /**
  * Sections whose page shows an org-member picker (DPO, owners, auditors,
- * attesters) or names members (the Access log shows who acted). `/org-users`
+ * attesters) or names members (the Access log shows who acted, the DSR
+ * timeline who handled a request). `/org-users`
  * is fetched only for these — the nav test pins that the GDPR page never asks
  * for the directory.
  */
-export const SECTIONS_WITH_PICKERS = Object.freeze(['settings', 'soa', 'policies', 'risks', 'audits', 'training', 'custom', 'access_log']);
+export const SECTIONS_WITH_PICKERS = Object.freeze(['settings', 'soa', 'policies', 'risks', 'audits', 'training', 'custom', 'access_log', 'dsr']);
 
 /** i18n key of a header tab label: `compliance.tab_<section>_<tab>`. */
 export function tabLabelKey(sectionId, tabId) {

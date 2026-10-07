@@ -798,15 +798,23 @@ async function getLatestForChecks(orgId, checkIds, { maxAgeDays = 3 } = {}) {
     `, [orgId, ids, String(Math.max(1, Math.trunc(Number(maxAgeDays) || 3)))]);
 }
 
-async function getCheckHistory(orgId, checkId, limit = 100) {
+/**
+ * One check's result rows, newest first. `scopeId` narrows them to one
+ * subject's slot (a per-source check has a row per agent or automation, and
+ * one row's audit trail must not show another subject's runs). Without it
+ * every slot is returned, as before.
+ */
+async function getCheckHistory(orgId, checkId, limit = 100, { scopeId } = {}) {
     await initDB();
+    const scoped = typeof scopeId === 'string' && scopeId !== '';
     return getAll(`
         SELECT status, details, run_at, run_type, evidence, scope_type, scope_id, framework_code
         FROM compliance_checks
         WHERE organization_id = $1 AND check_id = $2
+        ${scoped ? 'AND scope_id IS NOT DISTINCT FROM $4' : ''}
         ORDER BY run_at DESC
         LIMIT $3
-    `, [orgId, checkId, limit]);
+    `, scoped ? [orgId, checkId, limit, scopeId] : [orgId, checkId, limit]);
 }
 
 // ───────────────────────── Score history ─────────────────────────
