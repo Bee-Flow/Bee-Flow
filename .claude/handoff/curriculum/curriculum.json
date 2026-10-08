@@ -852,7 +852,11 @@
               "purpose": "Send a message with an obviously fake name and open its privacy panel (check: shield-seen — GET /ai/direct/conversations/:id shows a message carrying shield metadata)"
             }
           ],
-          "gate": {}
+          "gate": {},
+          "video": {
+            "id": "shield-basics",
+            "titleFallback": "What happens before your message leaves"
+          }
         },
         {
           "id": "shield-review",
@@ -1257,7 +1261,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "projects-shared-workspace",
+            "titleFallback": "Run it as a project, not as four private chats"
+          }
         },
         {
           "id": "settings-account-security",
@@ -1377,7 +1385,11 @@
               "purpose": "The detail pane: assignment, figures, What happened"
             }
           ],
-          "gate": {}
+          "gate": {},
+          "video": {
+            "id": "cowork-basics",
+            "titleFallback": "Work that runs without you"
+          }
         },
         {
           "id": "cowork-briefs",
@@ -1490,7 +1502,11 @@
               "purpose": "When to split a brief instead of debugging it"
             }
           ],
-          "gate": {}
+          "gate": {},
+          "video": {
+            "id": "cowork-hands-on",
+            "titleFallback": "Ship one real delegation — and repair it"
+          }
         },
         {
           "id": "cowork-run-as-agent",
@@ -1678,7 +1694,11 @@
               "purpose": "Ground one chat, or attach the document if the pill is not offered to you (check: chat-grounded-or-attached — GET /ai/direct/conversations/:id returns knowledgeBaseIds or an attachment)"
             }
           ],
-          "gate": {}
+          "gate": {},
+          "video": {
+            "id": "research-grounded-chat",
+            "titleFallback": "Answer from our documents, not the internet"
+          }
         },
         {
           "id": "research-notebooks",
@@ -1735,7 +1755,11 @@
               "kind": "action",
               "purpose": "Build a two-source notebook (check: notebook-with-source — GET /api/notebooks returns a notebook of yours with at least one ready source)"
             }
-          ]
+          ],
+          "video": {
+            "id": "research-notebooks",
+            "titleFallback": "From sources to a briefing"
+          }
         },
         {
           "id": "research-swarm",
@@ -1910,7 +1934,11 @@
               "kind": "slide",
               "purpose": "Failure states, the stored reason, and when a retry is possible"
             }
-          ]
+          ],
+          "video": {
+            "id": "meetings-capture",
+            "titleFallback": "Capture it properly the first time"
+          }
         },
         {
           "id": "meetings-speakers-and-summary",
@@ -2015,7 +2043,11 @@
               "kind": "slide",
               "purpose": "Deleting a note that a knowledge base still feeds on"
             }
-          ]
+          ],
+          "video": {
+            "id": "meetings-actions-and-sharing",
+            "titleFallback": "Make the actions actually happen"
+          }
         },
         {
           "id": "meetings-insights-and-transcript",
@@ -2145,7 +2177,11 @@
               "kind": "slide",
               "purpose": "Autosave is not publishing — what colleagues see so far"
             }
-          ]
+          ],
+          "video": {
+            "id": "creating-agents",
+            "titleFallback": "Create an agent from one sentence"
+          }
         },
         {
           "id": "refining-prompt",
@@ -2320,7 +2356,11 @@
               "kind": "slide",
               "purpose": "Only the last twenty runs are kept, and testing as a group"
             }
-          ]
+          ],
+          "video": {
+            "id": "agent-test-set",
+            "titleFallback": "Questions it must keep answering"
+          }
         },
         {
           "id": "agent-publish-and-audience",
@@ -2886,7 +2926,11 @@
               "kind": "action",
               "purpose": "Run one test and fix one step from its verdict (check: skill-tested — GET /api/skills/:id/test-runs returns a run)"
             }
-          ]
+          ],
+          "video": {
+            "id": "skills-examples-and-test",
+            "titleFallback": "Show it what good looks like"
+          }
         },
         {
           "id": "skills-attach-and-apply",
@@ -2937,7 +2981,11 @@
               "kind": "slide",
               "purpose": "Deleting lives under Used by, next to what it breaks"
             }
-          ]
+          ],
+          "video": {
+            "id": "skills-attach-and-apply",
+            "titleFallback": "Make it change real answers"
+          }
         },
         {
           "id": "skills-audience-and-sharing",
@@ -3123,7 +3171,11 @@
               "kind": "slide",
               "purpose": "Where a condition, a loop or a wait belongs"
             }
-          ]
+          ],
+          "video": {
+            "id": "automation-anatomy",
+            "titleFallback": "Triggers and steps"
+          }
         },
         {
           "id": "automation-builder-tour",
@@ -3300,7 +3352,11 @@
               "kind": "slide",
               "purpose": "Folders, naming, and finding it again in three months"
             }
-          ]
+          ],
+          "video": {
+            "id": "automation-hands-on",
+            "titleFallback": "Build it for real"
+          }
         },
         {
           "id": "automation-practice",
@@ -3423,7 +3479,11 @@
               "kind": "action",
               "purpose": "Add a condition to a real automation and dry-run it (check: automation-dry-run — GET /api/automation/:id/runs returns a run with mode dry_run)"
             }
-          ]
+          ],
+          "video": {
+            "id": "automation-triggers-and-data",
+            "titleFallback": "Getting data from step to step"
+          }
         },
         {
           "id": "automation-steps-that-persist",
@@ -3490,7 +3550,11 @@
               "kind": "action",
               "purpose": "Write to a table from an automation (check: automation-writes-table — GET /api/datatables/:id/usage names an automation of yours)"
             }
-          ]
+          ],
+          "video": {
+            "id": "automation-steps-that-persist",
+            "titleFallback": "Steps that leave something behind"
+          }
         },
         {
           "id": "automation-runs-and-failures",
@@ -3672,7 +3736,11 @@
               "kind": "action",
               "purpose": "Add an approval step and dry-run it (check: automation-has-approval — GET /api/automation/:id shows a step of type approval)"
             }
-          ]
+          ],
+          "video": {
+            "id": "approvals-design",
+            "titleFallback": "Stop and ask a human"
+          }
         },
         {
           "id": "automation-reusable-steps",
@@ -3721,7 +3789,11 @@
               "kind": "action",
               "purpose": "Publish a reusable Step (check: step-published — GET /api/automation returns an item of kind Step that you own)"
             }
-          ]
+          ],
+          "video": {
+            "id": "automation-reusable-steps",
+            "titleFallback": "Stop copying the same five nodes"
+          }
         },
         {
           "id": "automation-extra-triggers",
@@ -3773,7 +3845,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "automation-extra-triggers",
+            "titleFallback": "A second way into the same automation"
+          }
         },
         {
           "id": "automation-shield-step",
@@ -3826,7 +3902,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "automation-shield-step",
+            "titleFallback": "Hide the customer, keep the work"
+          }
         }
       ]
     },
@@ -3956,7 +4036,11 @@
               "kind": "action",
               "purpose": "Add one column safely (check: datatable-column — GET /api/datatables/:id/schema shows the new column and GET /api/datatables/:id/usage still lists its consumer)"
             }
-          ]
+          ],
+          "video": {
+            "id": "datatables-columns-safely",
+            "titleFallback": "Changing a table things depend on"
+          }
         },
         {
           "id": "datatables-share-and-retain",
@@ -4010,7 +4094,11 @@
               "kind": "slide",
               "purpose": "About to expire, and the mirrors that refuse retention entirely"
             }
-          ]
+          ],
+          "video": {
+            "id": "datatables-share-and-retain",
+            "titleFallback": "Who may read it, and for how long"
+          }
         },
         {
           "id": "forms-create-and-draft",
@@ -4132,7 +4220,11 @@
               "kind": "slide",
               "purpose": "Multi-page journeys, one history row, and where a download field may not go"
             }
-          ]
+          ],
+          "video": {
+            "id": "forms-audience-answers-and-links",
+            "titleFallback": "Live, shared, and collecting"
+          }
         },
         {
           "id": "datatables-rows-and-repair",
@@ -4185,7 +4277,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "datatables-rows-and-repair",
+            "titleFallback": "The rows themselves, and the delete at the end"
+          }
         },
         {
           "id": "forms-appearance-and-stopping",
@@ -4235,7 +4331,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "forms-appearance-and-stopping",
+            "titleFallback": "The look of the page, and switching it off"
+          }
         }
       ]
     },
@@ -4364,7 +4464,11 @@
               "kind": "action",
               "purpose": "Add a table and put a working form on a screen (check: app-has-table — GET /api/studio-apps/:id/data/tables returns a table)"
             }
-          ]
+          ],
+          "video": {
+            "id": "apps-data-and-screens",
+            "titleFallback": "Tables, screens and what shows when"
+          }
         },
         {
           "id": "apps-actions-and-automations",
@@ -4418,7 +4522,11 @@
               "kind": "action",
               "purpose": "Wire a button to an automation and test it (check: app-has-action — GET /api/studio-apps/:id shows a definition with actions)"
             }
-          ]
+          ],
+          "video": {
+            "id": "apps-actions-and-automations",
+            "titleFallback": "Make the buttons do real work"
+          }
         },
         {
           "id": "apps-roles-and-publish",
@@ -4475,7 +4583,11 @@
               "kind": "action",
               "purpose": "Add a role with a row rule and publish (check: app-published — GET /api/studio-apps/mine shows isPublished with a published version)"
             }
-          ]
+          ],
+          "video": {
+            "id": "apps-roles-and-publish",
+            "titleFallback": "Who sees which rows"
+          }
         },
         {
           "id": "webpages-build-and-bind",
@@ -4636,7 +4748,11 @@
               "kind": "slide",
               "purpose": "History, restore, ZIP export and what deletion cannot check for you"
             }
-          ]
+          ],
+          "video": {
+            "id": "webpages-publish-and-public",
+            "titleFallback": "Published safely, inside and outside"
+          }
         },
         {
           "id": "apps-edit-the-canvas",
@@ -4689,7 +4805,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "apps-edit-the-canvas",
+            "titleFallback": "Change it yourself on the canvas"
+          }
         },
         {
           "id": "webpages-share-links",
@@ -4741,7 +4861,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "webpages-share-links",
+            "titleFallback": "One link, one recipient"
+          }
         }
       ]
     },
@@ -4867,7 +4991,11 @@
               "kind": "action",
               "purpose": "Preview a described recipe (check: playbook-recipe — GET /api/playbooks/:id returns a composed recipe with at least two phases)"
             }
-          ]
+          ],
+          "video": {
+            "id": "playbooks-describe-your-own",
+            "titleFallback": "Describe your own playbook"
+          }
         },
         {
           "id": "solutions-bundle-and-check",
@@ -4976,7 +5104,11 @@
               "kind": "action",
               "purpose": "Install a Blueprint and activate one piece of it (check: blueprint-installed — GET /api/projects returns a project created from a blueprint)"
             }
-          ]
+          ],
+          "video": {
+            "id": "solutions-install-and-upgrade",
+            "titleFallback": "Install one, then ship version two"
+          }
         }
       ]
     },
@@ -5363,7 +5495,11 @@
               "kind": "slide",
               "purpose": "The two gaps to write down before the next chapter"
             }
-          ]
+          ],
+          "video": {
+            "id": "shield-org-turn-on",
+            "titleFallback": "Switch it on properly"
+          }
         },
         {
           "id": "shield-org-detection",
@@ -5415,7 +5551,11 @@
               "kind": "action",
               "purpose": "Add one company term and one exception (check: shield-terms — GET /api/org-privacy-shield/:orgId returns at least one custom term)"
             }
-          ]
+          ],
+          "video": {
+            "id": "shield-org-detection",
+            "titleFallback": "What we look for"
+          }
         },
         {
           "id": "shield-org-outbound",
@@ -5472,7 +5612,11 @@
               "kind": "action",
               "purpose": "Turn the pre-flight on and verify it on a test message (check: shield-dlp — GET /api/org-privacy-shield/:orgId/effective shows the review mode you chose)"
             }
-          ]
+          ],
+          "video": {
+            "id": "shield-org-outbound",
+            "titleFallback": "What happens, and what may leave"
+          }
         },
         {
           "id": "shield-org-evidence",
@@ -5526,7 +5670,11 @@
               "kind": "exercise",
               "purpose": "Write the paragraph you would send your board about last month"
             }
-          ]
+          ],
+          "video": {
+            "id": "shield-org-evidence",
+            "titleFallback": "Prove it"
+          }
         }
       ]
     },
@@ -5714,7 +5862,11 @@
               "kind": "action",
               "purpose": "Complete onboarding and run the checks (check: compliance-onboarded — GET /api/compliance/counts shows onboarded true)"
             }
-          ]
+          ],
+          "video": {
+            "id": "compliance-setup-and-score",
+            "titleFallback": "First score on the board"
+          }
         },
         {
           "id": "compliance-dsr-and-incidents",
@@ -5837,7 +5989,11 @@
               "kind": "slide",
               "purpose": "Turning on an extra framework, and what locked versus disabled means"
             }
-          ]
+          ],
+          "video": {
+            "id": "compliance-registers-and-iso",
+            "titleFallback": "The documents an auditor asks for"
+          }
         },
         {
           "id": "compliance-risk-register",
@@ -5890,7 +6046,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "compliance-risk-register",
+            "titleFallback": "Seed it, score it, own it, review it"
+          }
         },
         {
           "id": "compliance-training-and-literacy",
@@ -5943,7 +6103,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "compliance-training-and-literacy",
+            "titleFallback": "AI literacy, and who is trained"
+          }
         },
         {
           "id": "compliance-public-dsr-form",
@@ -5996,7 +6160,11 @@
               "kind": "slide",
               "purpose": "What you can do now"
             }
-          ]
+          ],
+          "video": {
+            "id": "compliance-public-dsr-form",
+            "titleFallback": "The intake form with no login"
+          }
         }
       ]
     },
@@ -6068,7 +6236,11 @@
               "kind": "exercise",
               "purpose": "Name your three biggest cost drivers over thirty days, and what you will do about each"
             }
-          ]
+          ],
+          "video": {
+            "id": "org-usage",
+            "titleFallback": "What the workspace costs"
+          }
         },
         {
           "id": "usage-caps-and-quality",
