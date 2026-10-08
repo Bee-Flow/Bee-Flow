@@ -51,7 +51,7 @@ env:
   PUBLISHED_SERVICES: server,agent-hub,guard
   # Mirrorable in principle; several have never been built to GHCR, so `all`
   # is mostly useful with dry_run to see what exists.
-  EXTRA_SERVICES: pii,search-api,whisperx,search-inference-gpu,reranker,install-wizard,pwt-runner,connector
+  EXTRA_SERVICES: pii,search-api,whisperx,search-inference-gpu,reranker,install-wizard,pwt-runner
 
 jobs:
   mirror:

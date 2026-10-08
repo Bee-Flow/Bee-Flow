@@ -28,8 +28,8 @@ on:
         default: ''
         required: false
       services:
-        description: 'Services to build: "all" or comma-separated (server,agent-hub,search,guard,pii,classify,whisperx,wizard,reranker,pwt-runner,connector)'
-        default: 'server,agent-hub,connector'
+        description: 'Services to build: "all" or comma-separated (server,agent-hub,search,guard,pii,classify,whisperx,wizard,reranker,pwt-runner)'
+        default: 'server,agent-hub'
         required: true
 
 # Tags by trigger:
@@ -91,7 +91,6 @@ jobs:
       wizard:     ${{ steps.filter.outputs.wizard    || steps.manual.outputs.wizard }}
       reranker:   ${{ steps.filter.outputs.reranker  || steps.manual.outputs.reranker }}
       pwt-runner: ${{ steps.filter.outputs.pwt-runner || steps.manual.outputs.pwt-runner }}
-      connector:  ${{ steps.filter.outputs.connector  || steps.manual.outputs.connector }}
       # Release channel flags consumed by every build job's tag block.
       release_prod: ${{ steps.flags.outputs.release_prod }}
       release_dev:  ${{ steps.flags.outputs.release_dev }}
@@ -160,8 +159,6 @@ jobs:
               - 'reranker/**'
             pwt-runner:
               - 'server/pwt-runner/**'
-            connector:
-              - 'nextcloud-connector/**'
               - 'agent-hub/**'
       - id: manual
         if: github.event_name == 'workflow_dispatch'
@@ -186,7 +183,7 @@ jobs:
             echo "::error::channel=prod with services=all is refused: 'all' includes whisperx and search-gpu (via 'search'), whose cold CUDA builds have never finished. List the services explicitly and release whisperx / search-gpu in a separate manual run once a full cold build has succeeded."
             exit 1
           fi
-          KNOWN="server agent-hub search guard pii classify whisperx wizard reranker pwt-runner connector"
+          KNOWN="server agent-hub search guard pii classify whisperx wizard reranker pwt-runner"
           # Reject unknown names outright. A typo used to select nothing and
           # look like a deliberately narrow build.
           if [[ "$SVCS" != "all" ]]; then
@@ -259,13 +256,12 @@ jobs:
           WIZARD:         ${{ steps.filter.outputs.wizard         || steps.manual.outputs.wizard }}
           RERANKER:       ${{ steps.filter.outputs.reranker       || steps.manual.outputs.reranker }}
           PWT_RUNNER:     ${{ steps.filter.outputs.pwt-runner     || steps.manual.outputs.pwt-runner }}
-          CONNECTOR:      ${{ steps.filter.outputs.connector      || steps.manual.outputs.connector }}
         run: |
           CSV=""
           for pair in "server:$SERVER" "agent-hub:$AGENT_HUB" "search:$SEARCH" \
                       "guard:$GUARD" "pii:$PII" "classify:$CLASSIFY" "whisperx:$WHISPERX" \
                       "wizard:$WIZARD" "reranker:$RERANKER" \
-                      "pwt-runner:$PWT_RUNNER" "connector:$CONNECTOR"; do
+                      "pwt-runner:$PWT_RUNNER"; do
             key="${pair%%:*}"; val="${pair#*:}"
             if [[ "$val" == "true" ]]; then CSV="${CSV:+$CSV,}$key"; fi
           done
@@ -989,58 +985,6 @@ jobs:
           cache-from: type=gha,scope=wizard
           cache-to:   type=gha,scope=wizard,mode=max
 
-  connector:
-    needs: [changes, ci, release-security]
-    if: >-
-      ${{ !cancelled() && needs.changes.result == 'success'
-      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
-      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
-      && needs.changes.outputs.connector == 'true' }}
-    outputs:
-      digest: ${{ steps.image.outputs.digest }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Stage the candidate frontend for the connector image
-        run: |
-          mkdir -p "$RUNNER_TEMP/connector-hive/spa"
-          rsync -a --exclude node_modules --exclude dist --exclude .git --exclude '.env' --exclude '.env.*' agent-hub/ "$RUNNER_TEMP/connector-hive/spa/"
-      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - id: meta
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
-        with:
-          images: ${{ env.IMAGE_PREFIX }}/connector
-          tags: |
-            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - id: image
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ./nextcloud-connector
-          build-contexts: hive-src=${{ runner.temp }}/connector-hive
-          platforms: linux/amd64,linux/arm64
-          push: true
-          provenance: true
-          sbom: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=connector
-          cache-to:   type=gha,scope=connector,mode=max
-
-
   # ── Reranker (CPU cross-encoder) ────────────────────────────
   reranker:
     needs: [changes, ci, release-security]
@@ -1239,7 +1183,7 @@ jobs:
   #
   # BEST-EFFORT THROUGHOUT. A changelog must never be the reason a build fails.
   release-notes:
-    needs: [changes, ci, server, agent-hub, search-api, search-gpu, guard, pii, classify, whisperx, wizard, reranker, pwt-runner, connector]
+    needs: [changes, ci, server, agent-hub, search-api, search-gpu, guard, pii, classify, whisperx, wizard, reranker, pwt-runner]
     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1433,7 +1377,7 @@ jobs:
 
   # ── Immutable release candidates ──────────────────────────
   candidate-images:
-    needs: [changes, ci, release-security, server, agent-hub, search-api, search-gpu, guard, pii, classify, whisperx, wizard, reranker, pwt-runner, connector]
+    needs: [changes, ci, release-security, server, agent-hub, search-api, search-gpu, guard, pii, classify, whisperx, wizard, reranker, pwt-runner]
     if: ${{ always() && !cancelled() && needs.changes.outputs.release_prod == 'true' && needs.release-security.result == 'success' && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10

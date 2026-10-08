@@ -1,16 +1,37 @@
-# Mirror the approved connector source and immutable digest to Bee-Flow/connector.
-# Its carried release workflow rechecks production evidence, promotes the image
-# and signs the App Store package using the signing key held only in that repo.
-# The source manifest and changelog determine the connector version.
+# Nextcloud connector (ExApp) release — driven from THIS repo, executed by the
+# connector repo's existing pipeline.
+#
+# The connector's source lives here in nextcloud-connector/, but the release
+# machinery lives in Bee-Flow/connector: its release.yml builds the multi-arch
+# image, cosign-signs it (keyless via OIDC), generates an SBOM, signs the App
+# Store tarball with NC_APP_SIGNING_KEY and posts the release to
+# apps.nextcloud.com. That key is deliberately NOT duplicated here — a
+# code-signing key should exist in exactly one place.
+#
+# So this workflow does the two things that must happen from the source of
+# truth, and hands off:
+#   1. mirror  — push nextcloud-connector/ to Bee-Flow/connector
+#   2. tag     — push v<version>, which is the trigger their release.yml waits on
+#
+# You start a release from this repo's Actions tab; everything downstream runs
+# where the signing key already is.
+#
+# VERSIONING: nothing to type. The version is read from
+# nextcloud-connector/appinfo/info.xml — the same value the Nextcloud App Store
+# keys the release off, and the same value CHANGELOG.md documents. There is no
+# version input and no tag to compose by hand.
+#
+# Why not synthesise a version (manifest + run number, say)? Because the App
+# Store shows the CHANGELOG entry whose heading matches that version to *users*
+# as the release notes. A generated version would have no matching entry, and
+# generating the entry too would put commit shorthand in front of Nextcloud
+# customers. The manifest is where a release is declared; this workflow just
+# refuses to guess.
 name: Connector release
 
 on:
   workflow_dispatch:
     inputs:
-      approved_release:
-        description: 'Published Bee Flow release containing the validated connector digest and staging evidence (required for a real release)'
-        required: false
-        default: ''
       nightly:
         description: 'Publish to the Nextcloud App Store NIGHTLY channel instead of stable (default: stable)'
         type: boolean
@@ -29,7 +50,6 @@ env:
 # the org's connector-release GitHub App (see "Mint a token" below).
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: connector-release
@@ -71,38 +91,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .nvmrc
-      - name: Require an approved immutable connector release
-        id: approval
-        if: ${{ !inputs.dry_run }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          APPROVED_RELEASE: ${{ inputs.approved_release }}
-        run: |
-          set -euo pipefail
-          [[ "$APPROVED_RELEASE" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]]
-          gh release view "$APPROVED_RELEASE" --json isDraft,isPrerelease --jq 'if .isDraft or .isPrerelease then error("A published production release is required") else true end'
-          gh release download "$APPROVED_RELEASE" --pattern release-candidate.json --pattern staging-acceptance.json --dir "$RUNNER_TEMP/approved-release"
-          node scripts/release-manifest.mjs verify "$RUNNER_TEMP/approved-release/release-candidate.json" "$RUNNER_TEMP/approved-release/staging-acceptance.json"
-          node - <<'NODE'
-          const fs=require('fs'),p=process.env.RUNNER_TEMP+'/approved-release/';
-          const candidate=JSON.parse(fs.readFileSync(p+'release-candidate.json'));
-          if(!candidate.images.connector)throw Error('The approved release must contain the connector image');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,`commit=${candidate.commit}\n`);
-          fs.writeFileSync(p+'release-source.json',JSON.stringify({repository:process.env.GITHUB_REPOSITORY,release:process.env.APPROVED_RELEASE,commit:candidate.commit}));
-          NODE
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: ${{ !inputs.dry_run }}
-        with:
-          ref: ${{ steps.approval.outputs.commit }}
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Recheck dependencies of the approved source
-        if: ${{ !inputs.dry_run }}
-        run: node scripts/audit-ratchet.mjs --release
-
       # The mirror is written with a token from the org's connector-release
       # GitHub App: minted per run, scoped to the mirror alone, expired within
       # the hour. It replaced a fine-grained PAT, which belongs to one person
@@ -123,7 +111,6 @@ jobs:
           repositories: connector
           permission-contents: write
           permission-environments: write
-          permission-workflows: write
 
       # ── Preflight: everything that can be wrong, said plainly, before
       #    anything is pushed anywhere. ────────────────────────────────────
@@ -262,18 +249,6 @@ jobs:
           rsync -a --exclude '.git' --exclude 'node_modules' --exclude 'coverage' \
             --exclude '.env' --exclude '.env.*' \
             nextcloud-connector/ "$WORK/"
-          # Carry the approved digest into the mirror. Its pipeline promotes
-          # and signs the App Store package; it cannot rebuild a different production image.
-          cp "$RUNNER_TEMP/approved-release/release-source.json" "$WORK/release-source.json"
-          mkdir -p "$WORK/release-gates" "$WORK/.github/security" "$WORK/.github/workflows"
-          cp scripts/release-manifest.mjs scripts/container-release-gate.mjs scripts/audit-ratchet.mjs scripts/entry-point.mjs scripts/check-release-container.sh "$WORK/release-gates/"
-          cp .github/security/container-exceptions.json "$WORK/.github/security/"
-          cp nextcloud-connector/.github/workflows/release.yml "$WORK/.github/workflows/release.yml"
-          WORK_PATH="$WORK" node - <<'NODE'
-          const fs=require('fs');const b=require('./.github/security/audit-baseline.json');
-          b.targets={'.':b.targets['nextcloud-connector']};b.counts={'.':b.counts['nextcloud-connector']};b.advisories={'.':b.advisories['nextcloud-connector']};
-          fs.writeFileSync(process.env.WORK_PATH+'/.github/security/audit-baseline.json',JSON.stringify(b,null,2));
-          NODE
           cd "$WORK"
           git config user.name  "bee-flow-ci"
           git config user.email "ci@beeflow.nl"
@@ -286,8 +261,8 @@ jobs:
           fi
 
       # Pushing the tag is the handoff: the mirror's release.yml triggers on
-      # v*.*.* and validates evidence before promoting the digest and signing
-      # the App Store tarball.
+      # v*.*.* and takes it from here (image → cosign → SBOM → signed tarball →
+      # App Store).
       - name: Tag ${{ steps.pre.outputs.tag }} — hands off to the connector pipeline
         if: ${{ !inputs.dry_run }}
         env:
@@ -302,7 +277,7 @@ jobs:
           {
             echo ""
             echo "🚀 Tagged \`$TAG\` on [${MIRROR_REPO}](https://github.com/${MIRROR_REPO}/releases/tag/${TAG})."
-            echo "Its release workflow verifies the approved digest, promotes the image and signs the App Store tarball:"
+            echo "Its release workflow now builds and signs the image, the SBOM and the App Store tarball:"
             echo "https://github.com/${MIRROR_REPO}/actions"
           } >> "$GITHUB_STEP_SUMMARY"
 
