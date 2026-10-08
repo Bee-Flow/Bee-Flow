@@ -227,7 +227,7 @@ test('upload-clip stores an mp4 under a cms/ key and returns the asset url', asy
     const src = mp4Bytes(4096);
     const { status, body } = await post('/admin/upload-clip', src, 'My Demo (v2).mp4', 'video/mp4');
     assert.strictEqual(status, 200);
-    assert.match(body.key, /^cms\/\d+-\d+-My_Demo__v2_\.mp4$/);
+    assert.match(body.key, /^cms\/\d+-[0-9a-f]{12}-My_Demo__v2_\.mp4$/);
     assert.strictEqual(body.url, `/api/cms/asset/${body.key.split('/').map(encodeURIComponent).join('/')}`);
     const stored = objects.get(body.key);
     assert.strictEqual(stored.contentType, 'video/mp4');

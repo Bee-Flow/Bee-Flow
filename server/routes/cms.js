@@ -1080,7 +1080,7 @@ router.get(/^\/asset\/(.+)$/, async (req, res) => {
         const { stream, contentType: storedType, contentLength, metadata } = await storageStore.streamFile(key, { range });
         // Captions are always served as UTF-8 WebVTT, whatever the object
         // metadata says.
-        const isVtt = /\.vtt$/i.test(key);
+        const isVtt = key.toLowerCase().endsWith('.vtt');
         const contentType = isVtt ? 'text/vtt; charset=utf-8' : storedType;
         const sanitized = metadata && (metadata.sanitized === '1' || metadata.Sanitized === '1');
 

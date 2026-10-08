@@ -10,6 +10,7 @@
  */
 'use strict';
 
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -72,7 +73,7 @@ const clipUpload = multer({
         destination: (req, file, cb) => {
             try { cb(null, ensureTmpDir()); } catch (e) { cb(e, ''); }
         },
-        filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}.upload`),
+        filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.upload`),
     }),
     limits: { fileSize: CLIP_MAX_BYTES, files: 1 },
     fileFilter: (req, file, cb) => {
@@ -142,7 +143,7 @@ async function handleClipUpload(req, res) {
         const safeBase = (file.originalname || 'clip')
             .replace(/[^a-zA-Z0-9._-]/g, '_')
             .replace(/\.[^.]+$/, '');
-        const key = `cms/${Date.now()}-${Math.round(Math.random() * 1e9)}-${safeBase}${ext}`;
+        const key = `cms/${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeBase}${ext}`;
         await streamIntoStorage(file.path, file.size, key, file.mimetype);
 
         const url = `/api/cms/asset/${key.split('/').map(encodeURIComponent).join('/')}`;
