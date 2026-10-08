@@ -27,7 +27,8 @@ test('accounts do not share a bucket, and the key is a hash, never the token', (
     assert.equal(quota.reserve(b, 20, 0), 0);
 });
 
-test('withQuota passes calls through unchanged, charging the method\'s units', async () => {
+test('withQuota passes calls through unchanged, charging the method\'s units', async (t) => {
+    t.mock.method(Date, 'now', () => 1_000_000);
     quota._buckets.clear();
     const calls = [];
     const gmail = { users: { messages: {
@@ -44,7 +45,8 @@ test('withQuota passes calls through unchanged, charging the method\'s units', a
     assert.equal(quota._buckets.get(quota.accountKey(session)).units <= quota.BURST - 40 + 1, true);
 });
 
-test('withQuota works on the real, frozen client google.gmail() returns', async () => {
+test('withQuota works on the real, frozen client google.gmail() returns', async (t) => {
+    t.mock.method(Date, 'now', () => 1_000_000);
     // googleapis freezes the client, so `users` is a read-only,
     // non-configurable property. A Proxy over the client itself that hands
     // back a wrapped `users` breaks a JavaScript invariant and threw

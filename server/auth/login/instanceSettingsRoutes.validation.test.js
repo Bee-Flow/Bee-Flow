@@ -97,5 +97,5 @@ test('a whole-form save still writes all three, and a blank secret keeps the sto
     const saved = touched.find((t) => t.what === 'saveConfig').args[0];
     assert.strictEqual(saved.oauth.nextcloudUrl, 'https://nc.example.test');
     assert.strictEqual(saved.oauth.clientId, 'cid2');
-    assert.strictEqual(saved.oauth.clientSecret, 'kept');
+    assert.strictEqual(saved.oauth.clientSecret, undefined, 'omitted secret delegates preservation to the atomic storage layer');
 });

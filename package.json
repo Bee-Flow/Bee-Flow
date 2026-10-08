@@ -3,7 +3,7 @@
   "private": true,
   "description": "Root workspace for the Bee Flow AI monorepo: dev orchestration, image builds, and secret-scan scripts. The deployable services live in their own directories (see REPO-STRUCTURE.md).",
   "engines": {
-    "node": ">=22.12.0 <23.0.0"
+    "node": ">=22.15.0 <23.0.0"
   },
   "packageManager": "npm@10.9.0",
   "scripts": {

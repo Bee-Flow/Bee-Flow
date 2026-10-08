@@ -366,7 +366,7 @@ const Sidebar = ({
     // (BFSF-172). Gate it on the same view flags the other nav items use.
     const _otherViewActive = showMarketplace || showSettings
         || showSkillsPanel
-        || ['studio', 'admin', 'cowork', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
+        || ['studio', 'admin', 'cowork', 'documents', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
 
     // Studio sections for the sidebar group — the same registry + gates the
     // Studio shell renders from (built-ins first, then runtime modules).
@@ -492,6 +492,9 @@ const Sidebar = ({
             ? [{ key: 'approvals', label: t('sidebar.approvals', 'Approvals'), icon: ShieldCheck, onClick: () => onNavigate && onNavigate('studio/approvals'), active: currentPage === 'studio' && studioRoute?.section === 'approvals', badge: pendingApprovalCount }]
             : []),
         { key: 'search', label: t('sidebar.search'), icon: Search, onClick: onOpenSearch, active: false },
+        // Personal and shared documents need no Studio builder permissions.
+        // The desktop editors keep the existing restriction on phone access.
+        ...(!isMobile ? [{ key: 'documents', label: t('documents.title', 'Documents'), icon: FileText, onClick: () => onNavigate && onNavigate('documents'), active: currentPage === 'documents' }] : []),
     ];
 
     const secondaryNav = [

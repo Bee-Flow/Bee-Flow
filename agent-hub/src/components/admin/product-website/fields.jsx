@@ -3,6 +3,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import AppIcon from '../../icons/AppIcon';
 import IconPicker from './controls/IconPicker';
 import AssetPickerDialog from './dialogs/AssetPickerDialog';
+import { uploadCmsFile } from './cmsUpload';
 
 /**
  * Optional context for "+ Create new page…" inside any LinkField. The
@@ -240,8 +241,15 @@ export function ImageField({
     // default: every ImageField call site lives in the CMS admin, and the
     // button hides itself anyway when the library is unavailable.
     allowBrowse = true,
+    // Optional — 'upload-clip' sends the file to the 500 MB clip endpoint and
+    // shows upload progress; 'upload' (default) is the 25 MB image/loop one.
+    uploadPath = 'upload',
+    // Optional — which kind the media library lists: 'image' | 'video' |
+    // 'captions'. Defaults from previewKind.
+    libraryKind,
 }) {
     const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(null);
     const [error, setError] = useState(null);
     const [browsing, setBrowsing] = useState(false);
     const libraryAvailable = useAssetLibraryAvailable(allowBrowse);
@@ -250,7 +258,13 @@ export function ImageField({
         if (!file) return;
         setUploading(true);
         setError(null);
+        setProgress(null);
         try {
+            if (uploadPath === 'upload-clip') {
+                const result = await uploadCmsFile(file, { path: 'upload-clip', onProgress: setProgress });
+                onChange(result.url);
+                return;
+            }
             const fd = new FormData();
             fd.append('file', file);
             const res = await authFetch(`${API_BASE}/api/cms/admin/upload`, {
@@ -267,16 +281,24 @@ export function ImageField({
             setError(err.message);
         } finally {
             setUploading(false);
+            setProgress(null);
         }
     };
 
-    const previewIsVideo = previewKind === 'video';
+    const previewIsVideo = previewKind === 'video' || previewKind === 'clip';
+    const pickerKind = libraryKind || (previewIsVideo ? 'video' : (previewKind === 'captions' ? 'captions' : 'image'));
     return (
         <FieldRow label={label}>
             <div className="flex items-start gap-3">
                 <div className="w-16 h-16 rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-default)] overflow-hidden flex items-center justify-center text-xs text-[var(--text-muted)]">
                     {value ? (
-                        previewIsVideo ? (
+                        previewKind === 'captions' ? (
+                            <span aria-hidden="true">{'CC'}</span>
+                        ) : previewKind === 'clip' ? (
+                            // A still frame only: preload=metadata keeps a
+                            // 100 MB clip from downloading into a thumbnail.
+                            <video src={resolveCmsAssetUrl(value)} muted preload="metadata" playsInline className="w-full h-full object-contain" />
+                        ) : previewIsVideo ? (
                             <video src={resolveCmsAssetUrl(value)} muted autoPlay loop playsInline className="w-full h-full object-contain" />
                         ) : (
                             <img src={resolveCmsAssetUrl(value)} alt="" className="w-full h-full object-contain" />
@@ -293,7 +315,7 @@ export function ImageField({
                     />
                     <div className="flex items-center gap-2">
                         <label className="px-3 py-1.5 text-xs rounded-md cursor-pointer bg-[var(--bg-tertiary)] border border-[var(--border-default)] hover:border-[var(--accent-primary)] transition-colors">
-                            {uploading ? 'Uploading…' : (uploadLabel || 'Upload image')}
+                            {uploading ? (progress === null ? 'Uploading…' : `Uploading… ${progress}%`) : (uploadLabel || 'Upload image')}
                             <input
                                 type="file"
                                 accept={accept}
@@ -321,12 +343,20 @@ export function ImageField({
                             </button>
                         ) : null}
                     </div>
-                    {error ? <span className="text-xs text-red-400">{error}</span> : null}
+                    {uploading && progress !== null ? (
+                        <progress
+                            className="w-full h-1.5"
+                            value={progress}
+                            max={100}
+                            aria-label={`Upload progress ${progress}%`}
+                        />
+                    ) : null}
+                    {error ? <span className="text-xs text-red-400" role="alert">{error}</span> : null}
                 </div>
             </div>
             {browsing ? (
                 <AssetPickerDialog
-                    accept={previewIsVideo ? 'video' : 'image'}
+                    accept={pickerKind}
                     onPick={onChange}
                     onClose={() => setBrowsing(false)}
                 />

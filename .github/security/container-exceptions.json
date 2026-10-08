@@ -1,0 +1,295 @@
+{
+  "accepted": [
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-76642",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "versions": [
+        "1:2.41.5-0+deb13u1",
+        "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "2.41.5-0+deb13u1"
+      ],
+      "reason": "Debian reports no fixed trixie build; privileged mount post-hooks are absent.",
+      "reachability": "The image removes mount and umount and all /usr SUID/SGID bits. The default process is UID 1000. The required runtime check verifies these conditions on the exact release digest.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-76642"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-78408",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "versions": [
+        "1:2.41.5-0+deb13u1",
+        "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "2.41.5-0+deb13u1"
+      ],
+      "reason": "Debian reports no fixed trixie build; nsenter cgroup authority is absent.",
+      "reachability": "nsenter is removed, no privileged namespace launcher is installed, and all /usr SUID/SGID bits are stripped. The default UID and absent binaries are verified on the exact release digest.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-78408"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-78409",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "versions": [
+        "1:2.41.5-0+deb13u1",
+        "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "2.41.5-0+deb13u1"
+      ],
+      "reason": "Debian reports no fixed trixie build; the restricted mount CLI is absent.",
+      "reachability": "X-mount.subdir processing requires mount; mount/umount are removed. UID 1000 and the absence of mount and SUID/SGID bits are verified on the exact release digest.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-78409"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-78410",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "versions": [
+        "1:2.41.5-0+deb13u1",
+        "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "2.41.5-0+deb13u1"
+      ],
+      "reason": "Debian reports no fixed trixie build; the restricted bind mount CLI is absent.",
+      "reachability": "The vulnerable fstab-authorized privileged mount path is removed. The runtime gate checks mount/umount absence, UID 1000 and stripped SUID/SGID bits.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-78410"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-54369",
+      "packages": [
+        "libacl1"
+      ],
+      "versions": [
+        "2.3.2-2+b1"
+      ],
+      "reason": "Debian libacl fix is not available for trixie; privileged ACL callers are absent.",
+      "reachability": "The application does not invoke pathname ACL APIs. getfacl/setfacl are absent; the runtime gate verifies UID 1000 and no SUID/SGID executables. No privileged ACL service is started by the container entrypoint.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-54369"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-16742",
+      "packages": [
+        "libsystemd0",
+        "libudev1"
+      ],
+      "versions": [
+        "257.13-1~deb13u1"
+      ],
+      "reason": "The systemd libraries retain an advisory for an uninstalled systemd-homed service.",
+      "reachability": "systemd-homed is not installed or run; its executable path and command absence are asserted on the immutable digest. The container starts Node as UID 1000.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-16742"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2025-69720",
+      "packages": [
+        "libtinfo6",
+        "ncurses-base",
+        "ncurses-bin"
+      ],
+      "versions": [
+        "6.5+20250216-2"
+      ],
+      "reason": "The advisory targets infocmp CLI analysis; that executable is removed.",
+      "reachability": "infocmp is absent; the application does not expose ncurses analysis-string parsing. The required runtime check verifies command absence on the exact immutable image.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-9538",
+      "packages": [
+        "perl-base"
+      ],
+      "versions": [
+        "5.40.1-6+deb13u1"
+      ],
+      "reason": "The Perl source-package advisory targets Archive::Tar, which is removed.",
+      "reachability": "All Archive/Tar module files are removed. The application does not execute Perl archive parsing. The required runtime check asserts module absence on the immutable digest.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-93748",
+      "package": "http-cache-semantics",
+      "versions": [
+        "4.2.0"
+      ],
+      "pathPrefix": "usr/local/lib/node_modules/npm/",
+      "reason": "Only the global npm installer contains this package; the application HTTP stack does not use it.",
+      "reachability": "The finding is restricted to global npm, used for allowlisted component installation in core/cms/componentManager.js. npm uses a local package cache and does not serve client HTTP requests or cached application session cookies. User Cache-Control/max-stale headers are not forwarded to npm. A future application copy is excluded from this exception by its path scope.",
+      "references": [
+        "https://github.com/kornelski/http-cache-semantics/issues/56",
+        "server/core/cms/componentManager.js"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-41567",
+      "package": "github.com/docker/docker",
+      "versions": [
+        "v28.5.2+incompatible"
+      ],
+      "scanTarget": "usr/libexec/docker/cli-plugins/docker-buildx",
+      "reason": "The flagged Go module is embedded in the Buildx client, while the affected implementation is the Docker daemon archive API.",
+      "reachability": "The image runs the Docker CLI/Buildx client and contains no dockerd. The runtime check verifies daemon absence. Staging acceptance separately requires dockerHostPatched: the actual deployment Docker Engine must be 29.5.1 or newer. This client-only exception does not approve an old host daemon.",
+      "references": [
+        "https://github.com/moby/moby/security/advisories/GHSA-x86f-5xw2-fm2r"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-42306",
+      "package": "github.com/docker/docker",
+      "versions": [
+        "v28.5.2+incompatible"
+      ],
+      "scanTarget": "usr/libexec/docker/cli-plugins/docker-buildx",
+      "reason": "The flagged Go module is embedded in the Buildx client, while the affected implementation is the Docker daemon archive API.",
+      "reachability": "The image runs the Docker CLI/Buildx client and contains no dockerd. The runtime check verifies daemon absence. Staging acceptance separately requires dockerHostPatched: the actual deployment Docker Engine must be 29.5.1 or newer. This client-only exception does not approve an old host daemon.",
+      "references": [
+        "https://github.com/moby/moby/security/advisories/GHSA-rg2x-37c3-w2rh"
+      ]
+    },
+    {
+      "id": "CVE-2026-93687",
+      "images": [
+        "server",
+        "connector"
+      ],
+      "package": "braces",
+      "versions": [
+        "3.0.3"
+      ],
+      "reviewedAt": "2026-10-08",
+      "expires": "2026-11-08",
+      "reason": "CVE alias of the reviewed GHSA-vfj7-8cjw-p6xm transitive proxy dependency; no fixed release exists.",
+      "reachability": "Production http-proxy-middleware uses configured fixed routes and does not pass user input into a glob pathFilter. The application does not call braces/micromatch directly. The existing npm audit review scopes the same advisory to server and connector runtime dependencies.",
+      "references": [
+        "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+        ".github/security/audit-baseline.json"
+      ]
+    }
+  ]
+}

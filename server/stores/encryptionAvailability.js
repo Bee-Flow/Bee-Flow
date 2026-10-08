@@ -223,8 +223,32 @@ async function isEncryptionEnabledForUser(userId) {
     }
 }
 
+/**
+ * Must an SSO user choose / enter an encryption PIN at login?
+ *
+ * Only when the org's tier makes the user's own secret the key: `zk`. On
+ * `managed` the content key is always the org-escrowed DEK and the session DEK
+ * is ignored (stores/agent/messageCrypto.js), so a PIN would protect nothing
+ * and only add a prompt. SSO users have no password to derive a key from, which
+ * is why the PIN exists at all.
+ *
+ * @param {string} userId
+ * @returns {Promise<boolean>}
+ */
+async function isSsoPinRequiredForUser(userId) {
+    try {
+        if (!(await isEncryptionEnabledForUser(userId))) return false;
+        const userStore = require('./userStore');
+        const user = await userStore.getUser(userId);
+        return (await resolvePolicy(user?.organizationId)).tier !== 'managed';
+    } catch (_) {
+        return false;
+    }
+}
+
 module.exports = {
     FEATURE,
+    isSsoPinRequiredForUser,
     NOT_ENTITLED_REASON,
     isOrgEntitled,
     isEncryptionEnabledForUser,

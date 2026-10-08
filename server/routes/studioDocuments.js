@@ -61,6 +61,7 @@
 const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
+router.use(require('../stores/lib/documentCrypto').withDocumentEncryptionSession);
 
 const { requireAuth, requirePermission, hasPermission } = require('../auth/permissions');
 const documentStore = require('../stores/documentStore');
@@ -79,6 +80,7 @@ const { describePeople } = require('../core/documents/documentPeople');
 const { wordStats } = require('../stores/lib/documentText');
 const notebookLibraryRouter = require('./studioDocuments/notebooks');
 const sheetRouter = require('./studioDocuments/sheet');
+router.use(require('./studioDocuments/sharing').makeDocumentSharingRouter());
 
 // ── What a request may send ──────────────────────────────────────────
 // Every query, and every body except three, is closed. What that closes:
@@ -206,8 +208,8 @@ function imageResolverFor(req, doc) {
  * project viewer; every other reader keeps the answers they always had.
  */
 function refuseReadOnly(res, doc) {
-    if (doc?.projectRole !== 'viewer') return false;
-    res.status(403).json({ error: 'You can read this document, but only the project\'s editors can change it.', code: 'document_read_only' });
+    if (doc?.projectRole !== 'viewer' && doc?.sharingRole !== 'viewer') return false;
+    res.status(403).json({ error: 'You can read this document, but only its editors can change it.', code: 'document_read_only' });
     return true;
 }
 

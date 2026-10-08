@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "private": true,
   "type": "module",
-  "description": "Bee Flow \u2014 frontend SPA. The React + Vite client for every Bee Flow deployment (SaaS, self-hosted, Nextcloud ExApp).",
+  "description": "Bee Flow — frontend SPA. The React + Vite client for every Bee Flow deployment (SaaS, self-hosted, Nextcloud ExApp).",
   "license": "SEE LICENSE IN LICENSE.md",
   "homepage": "https://beeflow.nl",
   "repository": {
@@ -29,7 +29,7 @@
     "README.md"
   ],
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.15.0 <23.0.0"
   },
   "packageManager": "npm@10.9.0",
   "scripts": {
@@ -125,5 +125,8 @@
     "vite": "^7.2.4",
     "vitest": "^5.0.2",
     "world-atlas": "^2.0.2"
+  },
+  "overrides": {
+    "lodash-es": "4.18.1"
   }
 }

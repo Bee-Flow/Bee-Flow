@@ -22,10 +22,10 @@ function configuredSsoProviders(providers, oauth) {
     const names = [];
     if (providers && typeof providers === 'object') {
         for (const [name, p] of Object.entries(providers)) {
-            if (p && p.clientId && p.clientSecret) names.push(name);
+            if (p && p.clientId && (p.hasClientSecret || p.clientSecret)) names.push(name);
         }
     }
-    if (oauth && oauth.nextcloudUrl && oauth.clientId && oauth.clientSecret) names.push('nextcloud');
+    if (oauth && oauth.nextcloudUrl && oauth.clientId && (oauth.hasClientSecret || oauth.clientSecret)) names.push('nextcloud');
     return names;
 }
 

@@ -2,6 +2,17 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    'azure.identity_admin_title': 'Microsoft identities and directory sync',
+    'azure.identity_admin_help': 'Verify the person and their tenant before linking an identity. An email match alone is insufficient.',
+    'azure.identity_local_user': 'Local user ID',
+    'azure.identity_confirm': 'Confirm identity link',
+    'azure.sync_target_organization': 'Directory sync organization ID',
+    'azure.sync_target_tenant': 'Directory sync tenant GUID',
+    'azure.sync_confirm_binding': 'Save directory sync binding',
+    'azure.identity_disconnect_user': 'Disconnect Microsoft identity for local user ID',
+    'azure.identity_disconnect_confirm': 'I confirm this account must stop accepting its current Microsoft identity.',
+    'azure.identity_disconnect': 'Disconnect identity',
+
     // ── Azure Configuration ─────────────────────────────────────
     'azure.title': 'Azure Configuration',
     'azure.subtitle': 'Manage Azure services for your platform. Changes here apply to the same configuration used in the admin dashboard.',

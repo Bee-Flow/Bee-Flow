@@ -7,7 +7,7 @@ import {
     X, ExternalLink, Copy, Download, FileDown,
     Check, Loader2, ChevronDown, FileText,
 } from 'lucide-react';
-import { renderMermaidToSVG, svgToPngDataUrl } from '../../pages/notebooks/MermaidBlock';
+import { renderMermaidToSVG, svgToPngDataUrl } from '../../pages/documents/notebook/MermaidBlock';
 
 /* ── Embed images as base64 for export ───────────────────────── */
 async function embedImagesAsBase64(html) {

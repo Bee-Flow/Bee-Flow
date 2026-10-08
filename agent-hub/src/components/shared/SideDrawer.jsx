@@ -9,7 +9,7 @@ import useTranslation from '../../hooks/useTranslation';
  *
  * It is a CARD, not a modal. `Modal placement="right"` portals, traps focus
  * and dims the page — right for a confirmation, wrong for a panel you keep
- * open while you read the table beside it. pages/notebooks/shell/Drawer.jsx
+ * open while you read the table beside it. pages/documents/notebook/shell/Drawer.jsx
  * has the right behaviour (push, no scrim, no trap) but paints a flat
  * `--bg-secondary` panel with no header or footer slot, so this is the
  * Studio-shaped sibling: rounded-xl, hairline border, popover shadow, a

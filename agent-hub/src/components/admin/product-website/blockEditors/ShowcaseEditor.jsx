@@ -3,6 +3,7 @@ import { TextField, ImageField } from '../fields';
 import { InlineHint, CollapsibleCard, FieldSelect, MonoTextarea, BackgroundCard } from '../primitives';
 import VariantPicker from './VariantPicker';
 import { set, SectionHeaderFields } from './shared';
+import { ClipFields } from './ClipFields';
 
 // One FramedMedia slot editor — shared media shape
 // { src, srcDark, alt, frame, kind }. Used for `media` and (in the pair
@@ -10,18 +11,22 @@ import { set, SectionHeaderFields } from './shared';
 function MediaSlotFields({ media = {}, onChange }) {
     const update = (key, value) => onChange({ ...media, [key]: value });
     const isVideo = media.kind === 'video';
+    const isClip = media.kind === 'clip';
     return (
         <>
             <FieldSelect
                 label="Media type"
-                value={isVideo ? 'video' : 'image'}
+                value={isVideo ? 'video' : (isClip ? 'clip' : 'image')}
                 options={[
                     { value: 'image', label: 'Image' },
                     { value: 'video', label: 'Video loop (no audio)' },
+                    { value: 'clip',  label: 'Clip (video with sound)' },
                 ]}
                 onChange={v => update('kind', v)}
             />
-            {isVideo ? (
+            {isClip ? (
+                <ClipFields value={media} onPatch={patch => onChange({ ...media, ...patch })} />
+            ) : isVideo ? (
                 <ImageField
                     label="Video"
                     value={media.src || ''}

@@ -5,7 +5,7 @@
 import { BookOpen, FileText, NotebookPen, Plus, Presentation, Sheet } from 'lucide-react';
 import React from 'react';
 import Modal from '../../../components/shared/Modal';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation, { readingLocale } from '../../../hooks/useTranslation';
 import { useStarters, type Starter } from '../documentQueries';
 
 export type NewChoice = { type: 'page' } | { type: 'notebook' } | { type: 'spreadsheet' } | { type: 'designed'; starter: Starter | null } | { type: 'deck'; starter: Starter | null };
@@ -35,8 +35,8 @@ function Tile({ icon, title, hint, onClick, busy, testId }: { icon: React.ReactN
 }
 
 export default function StarterGallery({ open, busy, error, notebooks = false, spreadsheets = false, onChoose, onClose }: StarterGalleryProps) {
-    const { t, locale } = useTranslation();
-    const starters = useStarters(locale || 'en', open);
+    const { t, locale: preferred, strings } = useTranslation();
+    const starters = useStarters(readingLocale(preferred, strings, ['documents.new.title']) || 'en', open);
     const list = starters.data || [];
     const params = (s: Starter) => t('documents.new.parameters', '{count} fields to fill in', { count: s.settings?.contract?.parameters?.length || 0 });
     return (

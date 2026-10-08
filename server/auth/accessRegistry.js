@@ -113,6 +113,17 @@ module.exports = {
             note: 'adminRoutes.js:707 — same body gate as the GET. Changing the per-surface `scope` additionally requires a super admin; the tier change itself is open to the org admin.',
         },
 
+        'POST /auth/organizations/:id/encryption/backfill': {
+            enforcement: 'handler',
+            scope: { kind: 'orgAdminOfParam', param: 'id' },
+            note: 'orgRoutes.js — same requireStrictOrgAdmin gate as the encryption settings routes; starts the background "encrypt existing data" job for that org only. 409 when the tier is none or a job is already running.',
+        },
+        'GET /auth/organizations/:id/encryption/backfill': {
+            enforcement: 'handler',
+            scope: { kind: 'orgAdminOfParam', param: 'id' },
+            note: 'orgRoutes.js — same requireStrictOrgAdmin gate; reports the in-memory backfill job state for that org.',
+        },
+
         // ── Org-admin over the caller's OWN org (no path parameter) ───
         'GET /auth/admin/connector-health/mine': {
             enforcement: 'handler',

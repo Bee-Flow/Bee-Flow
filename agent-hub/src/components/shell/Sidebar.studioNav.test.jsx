@@ -138,6 +138,25 @@ const openStudioFlyout = () => fireEvent.click(screen.getByTestId('nav-studio'))
 // menu until there is something published for this person to open.
 const openAppsFlyout = async () => fireEvent.click(await screen.findByTestId('nav-apps'));
 
+describe('Sidebar — member documents', () => {
+    beforeEach(resetSidebarMocks);
+
+    it.each([true, false])('opens documents without Studio rights, with sidebar open=%s', (isOpen) => {
+        const onNavigate = vi.fn();
+        renderSidebar({ isOpen, onNavigate, user: { id: 'member', permissions: ['page_chat'] }, hasPermission: () => false, currentPage: 'documents', directChatMode: true });
+        expect(screen.queryByTestId('nav-studio')).toBeNull();
+        expect(screen.getByTestId('nav-documents')).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByTestId('nav-new-chat')).not.toHaveAttribute('aria-current');
+        fireEvent.click(screen.getByTestId('nav-documents'));
+        expect(onNavigate).toHaveBeenCalledWith('documents');
+    });
+
+    it('keeps the desktop document editors out of the phone menu', () => {
+        renderSidebar({ isMobile: true });
+        expect(screen.queryByTestId('nav-documents')).toBeNull();
+    });
+});
+
 // A Community org: no licence features, nothing effective, and every gated
 // capability either outside the plan ('ceiling') or, for Skills, inside the
 // plan but not switched on ('not_granted').

@@ -52,10 +52,17 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ── RustFS — S3-compatible Object Storage ──────────────────────
+  # Pinned on purpose: upgrades are a deliberate decision — bump the tag
+  # explicitly after reading the release notes. 1.0.0 is the GA release.
   rustfs:
-    image: rustfs/rustfs:latest
+    image: rustfs/rustfs:1.0.0
     container_name: beeflow-rustfs
     profiles: [ "core" ]
     environment:
@@ -67,6 +74,11 @@ services:
     networks:
       - beeflow-network
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ── Backend Server ─────────────────────────────────────────────
   server:
@@ -135,7 +147,6 @@ services:
       - COOKIE_SECURE=${COOKIE_SECURE:-false}
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
       - COOKIE_SAMESITE=${COOKIE_SAMESITE:-lax}
-      - DEMO_MODE_ENABLED=${DEMO_MODE_ENABLED:-false}
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
       # ── Licence validation ──
       # The server verifies licence-key JWTs against the licence public key
@@ -305,11 +316,16 @@ services:
       rustfs:
         condition: service_started
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT:-3001}/api/health" ]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT:-3001}/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ── Shared headless browser (PDF export, thumbnails, SPA ingestion, browse_web)
   # The server image carries no Chromium. This sidecar is the Playwright server
@@ -370,6 +386,19 @@ services:
     networks:
       - beeflow-network
     restart: unless-stopped
+    # /healthz is answered by nginx itself (never proxied), so this stays
+    # green even when the backend is down. The image is nginx:alpine, which
+    # ships busybox wget.
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost/healthz" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ════════════════════════════════════════════════════════════════
   # SEARCH SERVICE (profile: search)
@@ -395,6 +424,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ── Search Redis ───────────────────────────────────────────────
   search-redis:
@@ -412,6 +446,11 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ── Search API (FastAPI) ───────────────────────────────────────
   search-api:
@@ -448,6 +487,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ════════════════════════════════════════════════════════════════
   # SEARCH GPU INFERENCE (profile: search-gpu)
@@ -610,6 +654,11 @@ services:
       timeout: 10s
       start_period: 60s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ── Guard Redis ────────────────────────────────────────────────
   guard-redis:
@@ -627,6 +676,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 
   # ════════════════════════════════════════════════════════════════
@@ -638,13 +692,16 @@ services:
     container_name: whisperx-service
     profiles: [ "whisperx" ]
     ports:
-      - "8787:8787"
+      # Loopback-only: this API has no authentication, so it must not answer
+      # on every interface. The server reaches it over the compose network
+      # (WHISPERX_URL=http://whisperx:8787) regardless of this mapping.
+      - "127.0.0.1:8787:8787"
     environment:
       - HF_TOKEN=${HF_TOKEN}
       - WHISPER_MODEL=large-v3
       - SERVICES_API_KEY=${SERVICES_API_KEY:-}
     volumes:
-      - whisperx-cache:/root/.cache
+      - whisperx-cache:/cache
     # Without this the service lands on the compose default network while the
     # server (whose env hardcodes WHISPERX_URL=http://whisperx:8787) lives on
     # beeflow-network — the integration silently never connects.
@@ -658,6 +715,11 @@ services:
               count: 1
               capabilities: [ gpu ]
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ════════════════════════════════════════════════════════════════
   # LOCAL LLM RUNTIME (profile: local-llm)
@@ -674,7 +736,9 @@ services:
   # toolkit) to get usable speed on anything above ~8B parameters.
 
   ollama:
-    image: ollama/ollama:latest
+    # Pinned on purpose: upgrades are a deliberate decision — bump the tag
+    # explicitly after reading the release notes (ollama/ollama releases).
+    image: ollama/ollama:0.40.1
     container_name: beeflow-ollama
     profiles: [ "local-llm" ]
     # Loopback-only by default: this port is an unauthenticated inference API,
@@ -700,6 +764,11 @@ services:
     #           count: all
     #           capabilities: [ gpu ]
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ════════════════════════════════════════════════════════════════
   # PII SERVICE (profile: pii)
@@ -716,6 +785,17 @@ services:
     networks:
       - beeflow-network
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8200/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ════════════════════════════════════════════════════════════════
   # CLASSIFY SERVICE (profile: classify)
@@ -774,7 +854,11 @@ services:
   # re-run — create the database once with:
   #   docker compose exec postgres psql -U $DB_USER -d $DB_NAME -c 'CREATE DATABASE umami;'
   umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
+    # Pinned on purpose: upgrades are a deliberate decision — bump the tag
+    # explicitly after reading the release notes. 3.4.0 is the latest stable
+    # release; v3 ships ONE unified image (the database comes from
+    # DATABASE_URL), the postgresql-* tag line ends at v2.x.
+    image: ghcr.io/umami-software/umami:3.4.0
     container_name: beeflow-umami
     profiles: [ "analytics" ]
     ports:
@@ -801,6 +885,11 @@ services:
       timeout: 10s
       start_period: 40s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 # ════════════════════════════════════════════════════════════════
 # VOLUMES

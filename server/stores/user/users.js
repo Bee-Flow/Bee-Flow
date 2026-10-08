@@ -103,7 +103,7 @@ async function getAllUsers() {
                "avatarType", role, groups, "orgRole", "organizationId",
                "ssoEncryptionSetup", "passwordResetRequired",
                "dekUnwrapFailures", "dekLockoutUntil", "kdfMode", "createdAt",
-               status, "activeIconPackId", "azureUserId",
+               status, "activeIconPackId", "azureUserId", "azureTenantId",
                "nc_uid", "provider", "auto_provisioned",
                mfa_enabled, last_seen_at
         FROM users
@@ -236,8 +236,8 @@ async function createUser(userData) {
     try {
         const mwDek = userData.masterWrappedDEK ? (typeof userData.masterWrappedDEK === 'string' ? userData.masterWrappedDEK : JSON.stringify(userData.masterWrappedDEK)) : null;
         const wDek = userData.wrappedDEK ? (typeof userData.wrappedDEK === 'string' ? userData.wrappedDEK : JSON.stringify(userData.wrappedDEK)) : null;
-        await run(`INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+        await run(`INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at, "azureTenantId")
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
             [id, username, displayName || username, firstName || null, lastName || null, email || null, phone || null,
                 avatar || null, avatarType || null, passwordHash, role || 'user',
                 JSON.stringify(groups || []), mwDek, wDek, orgRole || '', organizationId || '',
@@ -247,7 +247,7 @@ async function createUser(userData) {
                 // now; one provisioned without one (SSO) keeps NULL = unknown.
                 // "createdAt" cannot stand in for this — it is a date-only TEXT
                 // column and it never moves when the password later changes.
-                isNewCredential(userData) ? new Date() : null]);
+                isNewCredential(userData) ? new Date() : null, userData.azureTenantId || null]);
         return true;
     } catch (e) { log.error(e); return false; }
 }
@@ -655,7 +655,7 @@ async function updateUser(userId, updates) {
         recoveryUnwrapFailures: 'recoveryUnwrapFailures', recoveryLockoutUntil: 'recoveryLockoutUntil',
         orgWrappedDEK: 'orgWrappedDEK',
         opaqueRecord: 'opaqueRecord', kdfMode: 'kdfMode',
-        status: 'status', activeIconPackId: 'activeIconPackId', azureUserId: 'azureUserId',
+        status: 'status', activeIconPackId: 'activeIconPackId', azureUserId: 'azureUserId', azureTenantId: 'azureTenantId',
         ncUid: 'nc_uid', provider: 'provider', autoProvisioned: 'auto_provisioned',
         // MFA (TOTP) + self-service password reset
         mfaEnabled: 'mfa_enabled', mfaSecret: 'mfa_secret', mfaEnrolledAt: 'mfa_enrolled_at',
@@ -804,7 +804,7 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
             userData.azureUserId || null, userData.ncUid || null,
             userData.provider || null, userData.autoProvisioned ? true : false,
             // Same rule as createUser — see the note there.
-            isNewCredential(userData) ? new Date() : null,
+            isNewCredential(userData) ? new Date() : null, userData.azureTenantId || null,
         ];
     })();
 
@@ -843,8 +843,8 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
             }
 
             await client.query(
-                `INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+                `INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at, "azureTenantId")
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
                 insertParams
             );
             await client.query('COMMIT');

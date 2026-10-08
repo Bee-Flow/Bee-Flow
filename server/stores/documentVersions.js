@@ -198,16 +198,21 @@ async function writeRevision(client, doc, meta = {}, previous = null) {
     const { rows: seqRows } = await client.query(
         'UPDATE studio_documents SET version_seq = version_seq + 1 WHERE id = $1 RETURNING version_seq', [doc.id]);
     const seq = seqRows[0] ? Number(seqRows[0].version_seq) : null;
+    const contentCrypto = require('./lib/documentCrypto');
+    const resource = { ...contentCrypto.resourceOfDocument(doc), type: 'document-version', id: doc.versionId };
     const snapshot = { ...doc };
     delete snapshot.projectRole;
+    delete snapshot.sharingRole;
+    delete snapshot.cryptoContext;
+    const stored = await contentCrypto.sealFields({ body_html: doc.bodyHtml || '', css: doc.css || '', snapshot }, resource, { body_html: false, css: false, snapshot: true });
     await client.query(
         `INSERT INTO studio_document_versions
             (id, document_id, summary, body_html, css, snapshot, seq, source, name, created_by, contributors, stats,
              content_hash, restored_from, session_base_id, session_started_at, created_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,COALESCE($16::timestamptz, NOW()), clock_timestamp())
          ON CONFLICT (id) DO NOTHING`,
-        [doc.versionId, doc.id, String(meta.summary || '').slice(0, 500), doc.bodyHtml || '', doc.css || '',
-            JSON.stringify(snapshot), seq, source, meta.name ? String(meta.name).slice(0, MAX_VERSION_NAME) : null, actorId,
+        [doc.versionId, doc.id, String(meta.summary || '').slice(0, 500), stored.body_html, stored.css,
+            JSON.stringify(stored.snapshot), seq, source, meta.name ? String(meta.name).slice(0, MAX_VERSION_NAME) : null, actorId,
             JSON.stringify(contributors), stats ? JSON.stringify(stats) : null, contentHash(doc),
             meta.restoredFrom || null, sessionBaseId, sessionStartedAt],
     );

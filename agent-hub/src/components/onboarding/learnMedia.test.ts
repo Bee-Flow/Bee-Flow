@@ -86,7 +86,7 @@ describe('loadLearnManifest', () => {
         ]);
         const c = await loadLearnManifest({ fetchImpl, base: '/m' });
         expect(fetchImpl).toHaveBeenCalledTimes(1);
-        expect(fetchImpl.mock.calls[0]).toEqual(['/m/manifest.json', expect.objectContaining({ credentials: 'omit' })]);
+        expect(fetchImpl.mock.calls[0]).toEqual(['/m/manifest.json', expect.objectContaining({ credentials: 'same-origin' })]);
         expect(a).toEqual({ status: 'ready', manifest: { version: '', videos: {} }, base: '/m' });
         expect(b).toBe(a);
         expect(c).toBe(a);

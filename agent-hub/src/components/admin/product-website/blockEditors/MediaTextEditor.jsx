@@ -9,6 +9,7 @@ import {
     BackgroundCard,
 } from '../primitives';
 import { set } from './shared';
+import { ClipFields } from './ClipFields';
 
 // ── Media + Text ─────────────────────────────────────────────────────
 
@@ -156,6 +157,7 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
                         { value: 'gif',          label: 'GIF / Animation' },
                         { value: 'video',        label: 'Video (embed URL)' },
                         { value: 'video-silent', label: 'Video loop (no audio)' },
+                        { value: 'clip',         label: 'Clip (video with sound)' },
                     ]}
                     onChange={v => updateMedia('kind', v)}
                 />
@@ -194,6 +196,11 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
                             placeholder="Describe the video"
                         />
                     </>
+                ) : media.kind === 'clip' ? (
+                    <ClipFields
+                        value={media}
+                        onPatch={patch => setField('media', { ...media, ...patch })}
+                    />
                 ) : media.kind === 'video' ? (
                     <TextField
                         label="Video embed URL"

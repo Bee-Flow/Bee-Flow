@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-08",
+  "scope": "Local shared working tree. Remaining shared-server failures were fixed under the user's follow-up authorization; unrelated concurrent work is preserved.",
+  "productionReleased": false,
+  "staging": "Not run: authenticated read-only GitHub inspection succeeds for Bee-Flow/Bee-Flow, but lists only the release environment. No staging environment, Azure repository variables or Azure repository secrets exist; no local staging URL or Azure settings are configured. Staging details requested from the user.",
+  "checks": {
+    "azureIdentitySyncSecretsAndUpgradeRegressions": {
+      "passed": 78,
+      "failed": 0
+    },
+    "releaseAndRepositoryScripts": {
+      "passed": 309,
+      "failed": 0
+    },
+    "frontendIdentityAdministration": {
+      "passed": 4,
+      "failed": 0
+    },
+    "exportAndAzureSdkRegressions": {
+      "passed": 88,
+      "failed": 0
+    },
+    "nextcloudProxySuite": {
+      "passed": 240,
+      "failed": 0
+    },
+    "frontendFullSuiteEarlierCheckpoint": {
+      "passed": 20619,
+      "failed": 0
+    },
+    "fastRepositoryGates": {
+      "passed": 19,
+      "failed": 0
+    },
+    "dependencyReleaseAudit": "passed with the dated braces reachability exception",
+    "frontendTypecheck": "passed after the shared-server import/type repairs",
+    "serverTypecheck": {
+      "status": "passed",
+      "checkedFiles": 770,
+      "errors": 0
+    },
+    "serverFullSuite": {
+      "passed": 25951,
+      "failed": 0,
+      "skipped": 29,
+      "todo": 2,
+      "files": 2320,
+      "failedFiles": []
+    },
+    "gitleaksChangedFiles": "passed: 187 changed/untracked files; no leaks",
+    "modifiedReleaseWorkflowActionlint": "passed",
+    "sharedServerFailureRegressions": {
+      "passed": 77,
+      "failed": 0
+    },
+    "serverLint": "passed"
+  },
+  "containers": {
+    "server": {
+      "digest": "sha256:6f47cdd856cae3cb31e6247848c998959086ca4cececab542f0466ff8fd1f9bb",
+      "high": 47,
+      "critical": 0,
+      "unreviewed": 0,
+      "runtimePrerequisites": "passed"
+    },
+    "agent-hub": {
+      "digest": "sha256:04ef5bc884193d02dfc5e95a9c05b22cf78390af0f6f4947fb4f1aed37046dcd",
+      "high": 0,
+      "critical": 0,
+      "unreviewed": 0
+    },
+    "connector": {
+      "digest": "sha256:4976e0a3d68fd7e0f32eb9cd85ca1ca25c040f1ab9fdddb44e70584c9f3a1e38",
+      "high": 1,
+      "critical": 0,
+      "unreviewed": 0,
+      "runtimePrerequisites": "passed"
+    }
+  },
+  "containerReviewExpiry": "2026-11-08",
+  "blockers": [
+    "Provide an accessible Azure staging deployment and credentials, then validate both installation paths, backup restoration, Microsoft SSO/admin linking/scoped sync, secret rotation and real Azure capabilities.",
+    "Only the protected promotion workflow may release the validated immutable candidate."
+  ],
+  "runbook": "docs/docs/self-hosting/azure-sso-release-upgrade.md",
+  "localCandidatesOnly": true,
+  "additionalSessionRepair": "Microsoft login identity and latest binding-audit revision are carried in cookies/bridges and checked against a fresh database snapshot. Unlink/relink of the same identity and integration credential changes do not restore prior login sessions.",
+  "sharedServerRepairs": [
+    "Document encryption uses the correct database import without an unresolved fallback.",
+    "Document/sharing/spreadsheet encryption imports the shared HTTP error class without growing platform-to-core dependencies.",
+    "Encryption backfill dependencies and transcript column values have explicit types; legacy cleanup ordering converts boolean comparisons to numbers.",
+    "Notebook route fixtures model the row lock and verify a numeric-string current version succeeds while a numeric-string stale version returns 409."
+  ]
+}

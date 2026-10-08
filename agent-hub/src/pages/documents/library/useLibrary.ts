@@ -6,7 +6,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { createDocument, createSpreadsheet, deleteDocument, documentRequest, unarchiveDocument, updateDocument } from '../documentsApi';
-import { notebookApi } from '../../notebooks/hooks/notebookApi';
+import { notebookApi } from '../notebook/hooks/notebookApi';
 import { docKeys, type LibraryFilters, type LibraryRow, type StudioDocument } from '../documentQueries';
 
 export const PAGE_SIZE = 30;

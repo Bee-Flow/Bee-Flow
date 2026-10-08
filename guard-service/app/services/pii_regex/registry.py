@@ -384,6 +384,8 @@ _SPECS: tuple[PatternSpec, ...] = (
         nl._BSN_CANDIDATE_RE,
         validate=nl._is_valid_bsn,
         complete=True,
+        # not required (a bare BSN is still a BSN), but "BSN 123456782" says so
+        context_anchor=nl._BSN_ANCHOR_RE,
     ),
     # near_miss: the dashed 3-2-4 grouping is distinctive on its own; a
     # range-check failure (000/9xx area) on that exact layout is a mistyped
@@ -562,6 +564,7 @@ def detect_regex_pii(
             validate=spec.validate,
             confidence=spec.confidence,
             pre_anchor=spec.pre_anchor,
+            context_anchor=spec.context_anchor,
             near_miss_counts=near_miss if spec.counts_near_miss else None,
             near_miss=spec.near_miss,
         ):

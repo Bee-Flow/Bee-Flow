@@ -38,6 +38,7 @@ const fs = require('node:fs');
  * Elk idempotent; de reden staat erbij zodat niemand ze "opruimt".
  */
 const LOOSE_MIGRATIONS = [
+    'microsoft-sso-hardening-2026-10',
     // Vouwt subscription_plans.allowed_mcp_servers in allowed_integrations en
     // verhuist legacy mcp:<id>-grants; no-op zodra beide leeg zijn.
     'mcp-as-integration-2026-06',
@@ -131,6 +132,7 @@ const LOOSE_MIGRATIONS = [
  * draaien is een harde eis (read-modify-write van dezelfde rij).
  */
 const NL_TRANSLATIONS = [
+    'add-nl-microsoft-identity-translations',
     'add-nl-signup-mfa-reset-auth-translations',
     'add-nl-signup-welcome-neutral-translation',
     'add-nl-login-email-relabel',
@@ -196,6 +198,8 @@ const NL_TRANSLATIONS = [
     'add-nl-project-tasks-translations',       // Project tasks: list and board, priority, labels, checklist, tasks from a meeting, comments; team chat threads and tagged items
     'add-nl-learning-foundations-translations', // Leerstof van de Bee Flow Basis-cursus (BFSF-474): lessen, quizzen, sims, de introtour en de actiechecklijsten
     'add-nl-notebooks-as-documents-translations', // A notebook as a document type: in the Documents library, and the notebook workspace's header and sources rail
+    'add-nl-document-sharing-translations', // Sharing every document type with organisation, users and groups
+    'add-nl-document-encryption-translations', // Documents: unlock-encryption prompt and the encryption error sentences
     'add-nl-spreadsheet-documents-translations', // Spreadsheets in Documents: the type in the library and gallery, the grid editor and its formula errors
     'add-nl-condition-node-translations', // Condition node: rule rows, File type, outputs and Otherwise, Suggest outputs, follow-the-route and whole-list notices, Filter a list
     'add-nl-flatten-node-translations', // Flatten a list: the step card, Simple editor sentences, Choose fields, More options, run sentences

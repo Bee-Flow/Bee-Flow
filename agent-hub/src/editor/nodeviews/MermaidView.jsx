@@ -3,7 +3,7 @@
  * Reuses the existing, TipTap-free MermaidBlock component verbatim.
  */
 import React from 'react';
-import MermaidBlock from '../../pages/notebooks/MermaidBlock.jsx';
+import MermaidBlock from '../../pages/documents/notebook/MermaidBlock.jsx';
 
 export default function MermaidView({ node, view, editable }) {
   return (

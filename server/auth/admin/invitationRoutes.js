@@ -124,7 +124,13 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     // admin can't queue up more redemptions than seats.
     try {
         const limits = await userStore.getEffectiveLimits(orgId);
-        const maxUsers = limits?.max_users;
+        let maxUsers = limits?.max_users;
+        // A licence seat cap applies too (same rule as createUserWithSeatCheck):
+        // the lower of plan limit and licence max_seats wins.
+        try {
+            const seatCap = await require('../../license').getMaxSeatsForOrg(orgId);
+            if (seatCap != null && (maxUsers == null || maxUsers === -1 || seatCap < maxUsers)) maxUsers = seatCap;
+        } catch (_) { /* licence module unavailable: plan limit only */ }
         if (maxUsers != null && maxUsers !== -1) {
             const activeSeats = await userStore.getActiveSeatCount(orgId);
             let pendingInvites = 0;

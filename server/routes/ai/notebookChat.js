@@ -11,6 +11,7 @@ const express = require('express');
 const { formatLocalNow } = require('../../core/llm/clock');
 const log = require('../../telemetry/log');
 const router = express.Router();
+router.use(require('../../stores/lib/documentCrypto').withDocumentEncryptionSession);
 const {
     getAIConfig,
     getProviderForModel,

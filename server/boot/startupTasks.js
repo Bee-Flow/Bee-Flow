@@ -736,6 +736,15 @@ function runStartupTasks() {
         log.warn('[Server] KB source refresh load failed:', err.message);
     }
 
+    // Learning Center videos: install the pack this release pins into
+    // LEARN_MEDIA_DIR, ~15 s after boot and never blocking it. Off in tests and
+    // with LEARN_MEDIA_AUTO=off; a build without a pin skips quietly.
+    try {
+        require('../learning/learnMediaSync').startLearnMediaSync();
+    } catch (err) {
+        log.warn('[Server] Learn media sync load failed:', err.message);
+    }
+
     // Org-health retention — daily prune of timeline events (90d), resolved
     // problems (30d) and unattributable domain/unknown buckets (30d).
     // Idempotent DELETEs — safe on multi-replica double runs.

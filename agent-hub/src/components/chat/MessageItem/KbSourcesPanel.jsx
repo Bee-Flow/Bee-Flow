@@ -1,5 +1,5 @@
 import { groupByDocument } from './citationGroups';
-import { whenLabel } from '../../../pages/notebooks/citationText';
+import { whenLabel } from '../../../pages/documents/notebook/citationText';
 import RelevanceBar from '../../shared/RelevanceBar';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import useTranslation from '../../../hooks/useTranslation';

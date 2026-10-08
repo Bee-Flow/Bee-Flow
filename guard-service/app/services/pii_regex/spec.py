@@ -90,6 +90,7 @@ def _scan(  # noqa: PLR0913
     validate: Callable[[str], bool] | None = None,
     confidence: float = 0.99,
     pre_anchor: re.Pattern[str] | None = None,
+    context_anchor: re.Pattern[str] | None = None,
     near_miss_counts: dict[str, int] | None = None,
     near_miss: bool = False,
 ) -> Iterable[dict]:
@@ -144,7 +145,12 @@ def _scan(  # noqa: PLR0913
         # Record that surrounding words, not the digits, are what identified
         # this span. _pick_label needs it to separate categories that are
         # arithmetically identical — see _CONTEXT_SEPARABLE_SIBLINGS.
-        if pre_anchor is not None:
+        # A soft ``context_anchor`` never gates the match; when its keyword is
+        # there anyway ("BSN 123456782") it is the same evidence, so it counts.
+        if pre_anchor is not None or (
+            context_anchor is not None
+            and context_anchor.search(text[max(0, m.start() - 40) : m.start()])
+        ):
             ent["context_hit"] = True
         yield ent
 
@@ -160,6 +166,12 @@ class PatternSpec:
     pattern: re.Pattern[str]
     validate: Callable[[str], bool] | None = None
     pre_anchor: re.Pattern[str] | None = None
+    # SOFT anchor: never required (the spec still fires without it, so it may be
+    # `complete`), but a keyword found in the same window marks the entity
+    # ``context_hit``. That is how a BSN written as "BSN 123456782" beats a
+    # model span calling the same nine digits a tax number: the two are
+    # context-separable siblings (pii/ranking.py) and only words can decide.
+    context_anchor: re.Pattern[str] | None = None
     confidence: float = 0.99
     # May this spec suppress GLiNER for its category? See
     # regex_complete_categories. Off by default: suppressing the model is the

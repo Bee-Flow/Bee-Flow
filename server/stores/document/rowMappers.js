@@ -1,4 +1,5 @@
 'use strict';
+const { sharingOf } = require('../lib/documentSharing');
 /**
  * Pure row -> API-shape mappers for studio documents (no DB access).
  * Split out of documentStore.js; the store re-exports them.
@@ -21,6 +22,8 @@ function mapRow(row) {
         settings,
         organizationId: row.organization_id || null,
         kind: row.kind || 'document', visibility: row.visibility || 'private',
+        sharing: sharingOf(row),
+        cryptoContext: row._contentCryptoContext || null,
         folderId: row.folder_id || null, categories: row.categories || [],
         versionId: row.version_id || null, baselineVersionId: row.baseline_version_id || null,
         archived: row.archived === true,

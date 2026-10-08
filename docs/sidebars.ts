@@ -64,7 +64,9 @@ const sidebars: SidebarsConfig = {
           label: 'Operations',
           items: [
             'self-hosting/env',
+            'self-hosting/learning-videos',
             'self-hosting/upgrades',
+            'self-hosting/azure-sso-release-upgrade',
           ],
         },
       ],

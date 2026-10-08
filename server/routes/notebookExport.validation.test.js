@@ -72,7 +72,7 @@ const MOCKS = {
         },
     },
     '../stores/configStore': { getConfig: async () => ({ nextcloudUrl: 'https://cloud.example' }) },
-    'html-to-docx': async (...args) => { touched.push({ what: 'docx', args }); return Buffer.from('PK'); },
+    '@turbodocx/html-to-docx': async (...args) => { touched.push({ what: 'docx', args }); return Buffer.from('PK'); },
 };
 
 const MOCK_IDS = {};

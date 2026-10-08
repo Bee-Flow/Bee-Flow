@@ -55,7 +55,9 @@ async function getSessionToken(token) {
     const r = getRedis();
     if (r) {
         const val = await r.get(`bf:stok:${token}`);
-        return val ? JSON.parse(val) : null;
+        const data = val ? JSON.parse(val) : null;
+        if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(data)) { await r.del(`bf:stok:${token}`); return null; }
+        return data;
     }
     const entry = _sessionTokenFallback.get(token);
     if (!entry) return null;
@@ -63,6 +65,7 @@ async function getSessionToken(token) {
         _sessionTokenFallback.delete(token);
         return null;
     }
+    if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(entry.data)) { _sessionTokenFallback.delete(token); return null; }
     return entry.data;
 }
 
@@ -164,11 +167,12 @@ async function claimPickup(pickupId) {
         const key = `bf:pickup:${pickupId}`;
         const val = await r.get(key);
         if (val) await r.del(key);
-        return val ? JSON.parse(val) : null;
+        const pickup = val ? JSON.parse(val) : null;
+        return pickup && await getSessionToken(pickup.sessionToken) ? pickup : null;
     }
     const data = _pickupFallback.get(pickupId);
     if (data) _pickupFallback.delete(pickupId);
-    return data || null;
+    return data && await getSessionToken(data.sessionToken) ? data : null;
 }
 
 function generateToken() {

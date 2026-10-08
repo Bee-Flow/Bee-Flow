@@ -46,6 +46,10 @@ const MOCKS = {
         requireAuth: pass,
         isOrgAdminForOrg: async () => true,
         isSuperAdmin: () => fx.superAdmin,
+        saveConfig: async patch => {
+            if ('providers' in fx.stored) { /* read failures must propagate */ }
+            touched.push({ what: 'saveConfig', args: [patch] }); return true;
+        },
         loadConfig: async () => ({
             admin: { username: 'admin', passwordHash: 'hash' },
             oauth: {},
@@ -54,6 +58,7 @@ const MOCKS = {
     },
     '../integrations/azureGroupSync': {
         syncAzureGroupsToOrg: async (orgId) => { touched.push({ what: 'sync', args: [orgId] }); return { ok: true }; },
+        assertSyncBinding: async () => ({ syncOrganizationId: 'org1', syncTenantId: '11111111-1111-1111-1111-111111111111' }),
         getSyncSettings: async () => ({}),
         setSyncSettings: async (orgId, updates) => { touched.push({ what: 'setSyncSettings', args: [orgId, updates] }); return updates; },
         getSyncStatus: async () => ({}),
@@ -203,13 +208,14 @@ test('an SSO save writes the providers key alone — never admin or oauth', asyn
         section: 'sso', ssoClientId: ' new-id ', ssoClientSecret: '', ssoTenantId: 'Organizations', autoApproveSSO: true,
     });
     assert.strictEqual(res.statusCode, 200);
-    const writes = touched.filter((t) => t.what === 'setConfig');
-    assert.deepStrictEqual(writes.map((w) => w.args[0]), ['providers']);
-    const providers = writes[0].args[1];
-    assert.strictEqual(providers.microsoft.clientId, 'new-id');
-    assert.strictEqual(providers.microsoft.tenantId, 'Organizations');
-    assert.strictEqual(providers.microsoft.clientSecret, undefined, 'a blank secret keeps what is stored');
-    assert.deepStrictEqual(providers.google, { clientId: 'g' }, 'the other provider is untouched');
+    const writes = touched.filter(t => t.what === 'saveConfig');
+    assert.strictEqual(writes.length, 1);
+    const patch = writes[0].args[0];
+    assert.deepStrictEqual(Object.keys(patch), ['providers']);
+    assert.strictEqual(patch.providers.microsoft.clientId, 'new-id');
+    assert.strictEqual(patch.providers.microsoft.tenantId, 'Organizations');
+    assert.ok(!patch.providers.microsoft.clientSecret, 'blank secret delegates preservation to the atomic storage layer');
+    assert.strictEqual(patch.providers.google, undefined, 'the other provider is not rewritten');
     assert.deepStrictEqual(touched.find((t) => t.what === 'updateOrganization').args, ['org1', { autoApproveSSO: true }]);
 });
 

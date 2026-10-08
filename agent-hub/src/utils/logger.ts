@@ -5,9 +5,11 @@
 // and `error` still log because they correlate with real problems we
 // want to see in the browser console + via reportClientError.
 //
-// Migration target: every existing `console.log(...)` (~106 instances)
-// becomes `logger.debug(...)`, every `console.warn` stays as
-// `logger.warn`, etc. Done file-by-file in Phase 13.1.
+// Migration done (Phase 13.1): the ~106 stray `console.log(...)` tracing
+// calls all go through `logger.debug(...)` now. What remains on `console`
+// directly is intentional: a few `warn`/`error` calls (they behave exactly
+// like logger.warn/error — still shown in prod) and the odd deliberate
+// user-facing output. New verbose tracing belongs on `logger.debug`.
 
 const isProd = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD;
 

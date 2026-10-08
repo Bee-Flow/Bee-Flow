@@ -30,7 +30,8 @@
  */
 
 const crypto = require('crypto');
-const { run, getOne, getAll, exec, withTransaction } = require('../db');
+const contentCrypto = require('./lib/documentCrypto');
+const { run, getOne, getAll, exec, withTransaction } = contentCrypto.readingDb(require('../db'));
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl, CODES } = require('./lib/_ddl');
 const { projectRoleOf, canEditAs } = require('./lib/projectRole');
@@ -39,6 +40,7 @@ const { isCoEdited } = require('./lib/coEditGuard');
 const solutionTemplates = require('./document/solutionTemplates');
 const managedParts = require('./lib/managedParts');
 const notebookLibrary = require('./notebookLibrary');
+const { sharingDdl, sharingSql, visibilitySql } = require('./lib/documentSharing');
 const { SHEET_DOC_TYPE, applySheetRules, keepSheetOnUpdate, sheetSettingsForCreate } = require('./lib/sheetDocument');
 
 // A document is a person-sized artefact. 512 KB of markup is already a very
@@ -145,6 +147,8 @@ const initDB = makeStoreInit('DocumentStore', async () => {
                     'kind', kind, 'versionId', version_id, 'organizationId', organization_id)
             FROM studio_documents ON CONFLICT (id) DO NOTHING;
     `);
+    await exec(sharingDdl('studio_documents'));
+    await exec(`CREATE TABLE IF NOT EXISTS studio_sheet_documents (datatable_id TEXT PRIMARY KEY, document_id TEXT NOT NULL REFERENCES studio_documents(id) ON DELETE CASCADE)`);
     // Project membership (projects/membership.js, kind 'document').
     //
     // A NULL project_id is today's document exactly: its owner's, private. A set
@@ -185,7 +189,7 @@ const initDB = makeStoreInit('DocumentStore', async () => {
             FROM studio_document_versions v
             JOIN studio_documents d ON d.id = v.document_id
             JOIN studio_document_versions b ON b.id = d.baseline_version_id
-            WHERE v.id > $1 AND (v.snapshot IS NULL OR NOT (COALESCE(v.snapshot->'settings','{}'::jsonb) ? 'resolvedHouseStyleCss'))
+            WHERE v.id > $1 AND NOT (COALESCE(v.snapshot, '{}'::jsonb) ? '_bfenc') AND (v.snapshot IS NULL OR NOT (COALESCE(v.snapshot->'settings','{}'::jsonb) ? 'resolvedHouseStyleCss'))
             ORDER BY v.id LIMIT 100`, [afterId]);
         if (!revisions.length) break;
         for (const revision of revisions) {
@@ -296,25 +300,29 @@ async function createDocument(input) {
         folderId: d.folderId || null, categories: d.categories, versionId, baselineVersionId: versionId };
     doc.settings = { ...doc.settings, resolvedHouseStyleCss: await require('../core/documents/renderFilledDocument').houseStyleCssFor(doc,org) };
     return withTransaction(async client => {
+        const resource = { ...contentCrypto.resourceOfDocument(doc), projectId };
+        const stored = await contentCrypto.sealFields({ body_html: doc.bodyHtml, css: doc.css, settings: doc.settings }, resource, contentCrypto.DOCUMENT_FIELDS);
         await client.query(`INSERT INTO studio_documents
             (id,user_id,organization_id,name,doc_type,description,body_html,css,settings,kind,visibility,folder_id,categories,version_id,baseline_version_id,project_id,updated_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14,$15,$2)`,
-        [id,d.userId,org,doc.name,doc.docType,doc.description,doc.bodyHtml,doc.css,JSON.stringify(doc.settings),doc.kind,doc.visibility,doc.folderId,JSON.stringify(doc.categories),versionId,projectId]);
-        await versions.writeRevision(client, doc, { summary: 'Created', source: 'created', actorId: d.userId });
+        [id,d.userId,org,doc.name,doc.docType,doc.description,stored.body_html,stored.css,JSON.stringify(stored.settings),doc.kind,doc.visibility,doc.folderId,JSON.stringify(doc.categories),versionId,projectId]);
+        if (docType === SHEET_DOC_TYPE) await require('./lib/sheetCrypto').attach(client, doc);
+        await versions.writeRevision(client, { ...doc, projectId }, { summary: 'Created', source: 'created', actorId: d.userId });
         const { rows } = await client.query('SELECT * FROM studio_documents WHERE id = $1', [id]);
         return rows[0] ? mapRow(rows[0]) : { ...doc, projectId };
     });
 }
 function accessSql(alias = 'd', write = false) {
-    return `((${alias}.user_id = $2 AND (${alias}.organization_id IS NULL OR ${alias}.organization_id = (SELECT "organizationId" FROM users WHERE id = $2))) OR (${alias}.visibility = 'team' AND ${alias}.kind IN ('template','section')
-        AND ${alias}.organization_id = (SELECT "organizationId" FROM users WHERE id = $2)${write ? ' AND $3::boolean' : ''}))`;
+    const sharing = write ? '' : ` OR (${alias}.archived = false AND ${sharingSql(alias)})`;
+    return `(((${alias}.user_id = $2 AND (${alias}.organization_id IS NULL OR ${alias}.organization_id = (SELECT "organizationId" FROM users WHERE id = $2))) OR (${alias}.visibility = 'team' AND ${alias}.sharing_audience IS NULL AND ${alias}.kind IN ('template','section')
+        AND ${alias}.organization_id = (SELECT "organizationId" FROM users WHERE id = $2)${write ? ' AND $3::boolean' : ''}))${sharing})`;
 }
 // A document a project member may see: filed, a plain document (templates and
 // sections have their own team sharing and are never project content), and not
 // archived by its owner.
 // What a library row reads, in the order notebookLibrary.notebookBranchSql
 // answers them, so the two halves of the library UNION line up.
-const LIBRARY_COLUMNS = `d.id, d.user_id, d.name, d.doc_type, d.description, d.kind, d.visibility, d.folder_id, d.categories,
+const LIBRARY_COLUMNS = `d.id, d.user_id, d.name, d.doc_type, d.description, d.kind, ${visibilitySql('d')} AS visibility, d.folder_id, d.categories,
     d.version_id, OCTET_LENGTH(d.body_html) AS html_size, d.project_id, d.updated_by, d.archived, d.created_at, d.updated_at,
     NULL::int AS source_count`;
 const PROJECT_DOCUMENT_SQL = `d.project_id IS NOT NULL AND d.kind = 'document' AND d.archived = false`;
@@ -331,12 +339,19 @@ const PROJECT_DOCUMENT_SQL = `d.project_id IS NOT NULL AND d.kind = 'document' A
 async function getDocument(documentId, context) {
     await initDB(); const a = actor(context);
     const own = await getOne(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND ${accessSql()}`, [documentId, a.userId]);
-    if (own) return mapRow(own);
+    if (own) {
+        const doc = mapRow(own);
+        if (own.user_id === a.userId || (own.visibility === 'team' && own.sharing_audience === null)) return doc;
+        const role = own.project_id ? await projectRoleOf(a.userId, own.project_id) : null;
+        return { ...doc, ...(role ? { projectRole: role } : {}), sharingRole: canEditAs(role) ? 'editor' : 'viewer' };
+    }
     if (!documentId || !a?.userId) return null;
-    const shared = await getOne(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND ${PROJECT_DOCUMENT_SQL}`, [documentId]);
-    if (!shared) return null;
-    const role = await projectRoleOf(a.userId, shared.project_id);
+    const filed = await getOne(`SELECT d.id, d.project_id FROM studio_documents d WHERE d.id = $1 AND ${PROJECT_DOCUMENT_SQL}`, [documentId]);
+    if (!filed) return null;
+    const role = await projectRoleOf(a.userId, filed.project_id);
     if (!role) return null;
+    const shared = await getOne(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND d.project_id = $2 AND ${PROJECT_DOCUMENT_SQL}`, [documentId, filed.project_id]);
+    if (!shared) return null;
     return { ...mapRow(shared), projectRole: role };
 }
 async function getDocumentVersion(documentId, context, versionId) {
@@ -348,7 +363,7 @@ async function getDocumentVersion(documentId, context, versionId) {
     const snapshot = typeof v.snapshot === 'string' ? JSON.parse(v.snapshot) : v.snapshot;
     // A revision is the document's CONTENT at that time; where the document is
     // filed now is today's fact, never the one frozen into an old snapshot.
-    return { ...doc, ...(snapshot || { bodyHtml: v.body_html, css: v.css }), versionId: id, projectId: doc.projectId };
+    return { ...doc, ...(snapshot || { bodyHtml: v.body_html, css: v.css }), versionId: id, projectId: doc.projectId, sharingRole: doc.sharingRole, projectRole: doc.projectRole };
 }
 /**
  * The library list, one page of it, and how many there are in all.
@@ -365,7 +380,7 @@ async function listDocumentsPage(context, options = {}) {
     const bind = (value) => { params.push(value); return '$' + params.length; };
     const where = archived ? [accessSql(), 'd.archived = true', 'd.user_id = $2'] : [accessSql(), 'd.archived = false'];
     // The filters a notebook row answers too, by placeholder (notebookLibrary).
-    const shared = { query: '', folder: null, folderSet: folderId !== undefined, category: '' };
+    const shared = { query: '', folder: null, folderSet: folderId !== undefined, category: '', visibility };
     if (query) {
         shared.query = bind('%' + String(query).slice(0, 200) + '%');
         where.push(`(d.name ILIKE ${shared.query} OR d.description ILIKE ${shared.query})`);
@@ -380,7 +395,7 @@ async function listDocumentsPage(context, options = {}) {
         where.push(`d.doc_type <> ${bind(DECK_DOC_TYPE)}`, `d.doc_type <> ${bind(PAGE_DOC_TYPE)}`, `d.doc_type <> ${bind(SHEET_DOC_TYPE)}`);
     } else if (options.docType === notebookLibrary.NOTEBOOK_DOC_TYPE) where.push('false');
     else if (options.docType && DOC_TYPES.includes(options.docType)) where.push(`d.doc_type = ${bind(options.docType)}`);
-    if (visibility) where.push(`d.visibility = ${bind(visibility)}`);
+    if (visibility) where.push(`${visibilitySql('d')} = ${bind(visibility)}`);
     if (shared.folderSet) {
         if (folderId) shared.folder = bind(folderId);
         where.push(folderId ? `d.folder_id = ${shared.folder}` : 'd.folder_id IS NULL');
@@ -534,10 +549,21 @@ async function updateDocument(documentId, context, updates = {}) {
         next.settings = { ...next.settings, resolvedHouseStyleCss: await houseStyleCssFor(next, next.organizationId) };
         if (updates.source === 'restore') await writePreRestore(client, current, a.userId);
         next.versionId = crypto.randomUUID();
+        const visibilityChanged = next.visibility !== current.visibility;
+        if (visibilityChanged) next.sharing = { audience: next.visibility === 'team' ? 'organisation' : 'private', sharedGroups: [], sharedUserIds: [] };
+        const stored = await contentCrypto.sealFields({ body_html: next.bodyHtml, css: next.css, settings: next.settings }, contentCrypto.resourceOfDocument(next), contentCrypto.DOCUMENT_FIELDS);
         const result = await client.query(`UPDATE studio_documents SET name=$2,doc_type=$3,description=$4,body_html=$5,css=$6,settings=$7,
-            kind=$8,visibility=$9,folder_id=$10,categories=$11,version_id=$12,updated_by=$13,updated_at=NOW() WHERE id=$1 RETURNING *`,
-        [documentId,String(next.name).slice(0,200),normaliseType(next.docType),String(next.description).slice(0,2000),next.bodyHtml,next.css,JSON.stringify(next.settings),next.kind,next.visibility,next.folderId,JSON.stringify(next.categories),next.versionId,a.userId || null]);
-        const saved = mapRow(result.rows[0]);
+            kind=$8,visibility=$9,folder_id=$10,categories=$11,version_id=$12,updated_by=$13,updated_at=NOW(),
+            sharing_audience = CASE WHEN $14 THEN NULL ELSE sharing_audience END,
+            shared_groups = CASE WHEN $14 THEN '[]'::jsonb ELSE shared_groups END,
+            shared_user_ids = CASE WHEN $14 THEN '[]'::jsonb ELSE shared_user_ids END WHERE id=$1 RETURNING *`,
+        [documentId,String(next.name).slice(0,200),normaliseType(next.docType),String(next.description).slice(0,2000),stored.body_html,stored.css,JSON.stringify(stored.settings),next.kind,next.visibility,next.folderId,JSON.stringify(next.categories),next.versionId,a.userId || null,visibilityChanged]);
+        let saved = mapRow(result.rows[0]);
+        if (visibilityChanged) {
+            await require('./lib/documentSharingCrypto').transition(client, 'document', result.rows[0], next.sharing.audience);
+            saved = mapRow((await client.query('SELECT * FROM studio_documents WHERE id = $1', [documentId])).rows[0]);
+        }
+        if (saved.docType === SHEET_DOC_TYPE) await require('./lib/sheetCrypto').attach(client, saved);
         await versions.writeRevision(client, saved, {
             summary: updates.summary || (merge ? 'Merged with changes made meanwhile' : 'Edited'),
             source: updates.source || 'autosave', actorId: a.userId || null,
@@ -613,15 +639,18 @@ async function setDocumentProject(documentId, userId, projectId, callerOrgIds = 
     if (!documentId || !userId || !projectId) return false;
     // `callerOrgIds`: the organisations the owner belongs to (auth/orgScope), so a document of someone whose
     // organisation only comes from a group (none on the document) can be filed into that organisation's project.
-    const { rowCount } = await run(
-        `UPDATE studio_documents d SET project_id = $1
-          WHERE d.id = $2 AND d.user_id = $3 AND d.kind = 'document' AND d.archived = false
-            AND EXISTS (SELECT 1 FROM projects p
-                         WHERE p.id = $1 AND (COALESCE(p.organization_id, '') = COALESCE(d.organization_id, '')
-                            OR (COALESCE(d.organization_id, '') = '' AND p.organization_id = ANY($4::text[]))))`,
-        [projectId, documentId, userId, [...callerOrgIds]]
-    );
-    return (rowCount || 0) > 0;
+    return withTransaction(async (client) => {
+        const { rows } = await client.query(
+            `UPDATE studio_documents d SET project_id = $1
+              WHERE d.id = $2 AND d.user_id = $3 AND d.kind = 'document' AND d.archived = false
+                AND EXISTS (SELECT 1 FROM projects p
+                    WHERE p.id = $1 AND (COALESCE(p.organization_id, '') = COALESCE(d.organization_id, '')
+                        OR (COALESCE(d.organization_id, '') = '' AND p.organization_id = ANY($4::text[])))) RETURNING d.*`,
+            [projectId, documentId, userId, [...callerOrgIds]]);
+        if (!rows[0]) return false;
+        await require('./lib/documentSharingCrypto').transition(client, 'document', rows[0], rows[0].sharing_audience || 'private');
+        return true;
+    });
 }
 
 /**

@@ -1,204 +1,113 @@
 name: release
-
-# Triggered by tags shaped like v0.1.0. Runs only after the connector has
-# been extracted to its own public repo and the Nextcloud signing cert has
-# been merged into github.com/nextcloud/app-certificate-requests.
-#
-# Build strategy: each architecture is built NATIVELY in parallel — amd64 on
-# ubuntu-latest, arm64 on the free ubuntu-24.04-arm runner (free because this
-# repo is public). No QEMU emulation. The per-arch images are pushed by digest
-# and stitched into a multi-arch manifest list in the `merge` job. Per-platform
-# GHA build cache keeps the expensive spa-build stage (hive clone + npm ci +
-# Vite build) warm across releases.
-#
-# Required GitHub Actions secrets (configure on the `release` environment):
-#   NC_APP_SIGNING_KEY  — RSA private key matching the merged cert
-#   NCAPPSTORE_TOKEN    — apps.nextcloud.com API token (Settings → API tokens)
-#   GITHUB_TOKEN        — provided automatically; used for the GHCR push and
-#                         the GitHub release upload
-#
-# Third-party actions are pinned to a full commit, the version in a comment:
-# `merge` holds the App Store signing key and token, and a tag can be moved
-# upstream.
-
+# The monorepo builds, scans and validates the immutable connector on staging.
+# The public mirror promotes that exact digest and signs the App Store package.
 on:
   push:
     tags: ['v*']
-
 permissions:
   contents: write
   packages: write
-
+concurrency:
+  group: connector-production-release
+  cancel-in-progress: false
 env:
   APP_ID: bee_flow
-  # Must match <docker-install><image> in appinfo/info.xml so AppAPI pulls
-  # the same image admins see referenced in the manifest.
   IMAGE: ghcr.io/bee-flow/connector
-  HIVE_REPO: Bee-Flow/hive
-
 jobs:
-  # ── prepare: resolve version + frontend ref, fail fast on metadata drift ──
   prepare:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     outputs:
-      version: ${{ steps.ver.outputs.version }}
-      hive_sha: ${{ steps.hive.outputs.sha }}
+      version: ${{ steps.evidence.outputs.version }}
+      image: ${{ steps.evidence.outputs.image }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-
-      - name: Resolve version
-        id: ver
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Verify info.xml version matches tag
-        run: |
-          xml_ver=$(grep -oPm1 '(?<=<version>)[^<]+' appinfo/info.xml)
-          if [ "$xml_ver" != "${{ steps.ver.outputs.version }}" ]; then
-            echo "::error::info.xml version ($xml_ver) does not match tag (${{ steps.ver.outputs.version }})"
-            exit 1
-          fi
-
-      - name: Verify CHANGELOG has matching heading
-        run: |
-          if ! grep -qE "^## \[?${{ steps.ver.outputs.version }}\]?" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md is missing a heading for ${{ steps.ver.outputs.version }}"
-            exit 1
-          fi
-
-      # Resolve hive main → an immutable commit SHA, ONCE. Both arch builds and
-      # the SBOM then reference the identical frontend commit, and the GHA cache
-      # key for the spa-build stage is stable for the whole release (pinning to
-      # the moving `main` ref instead would defeat reproducibility).
-      - name: Resolve hive main SHA
-        id: hive
-        run: |
-          sha=$(git ls-remote "https://github.com/${HIVE_REPO}.git" refs/heads/main | cut -f1)
-          if [ -z "$sha" ]; then echo "::error::could not resolve ${HIVE_REPO} main"; exit 1; fi
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          echo "hive main → $sha"
-
-  # ── build: one native runner per arch, push by digest (no tags) ──
-  build:
-    needs: prepare
-    runs-on: ${{ matrix.runner }}
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      # Don't let one arch flaking kill an already-finished arch; `merge`
-      # requires both via `needs`, so a partial failure still blocks release.
-      fail-fast: false
-      matrix:
-        include:
-          - platform: linux/amd64
-            runner: ubuntu-latest
-            arch: amd64
-          - platform: linux/arm64
-            runner: ubuntu-24.04-arm
-            arch: arm64
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      # No setup-qemu-action: each job runs on its own native architecture.
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-
-      - name: Log in to GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push by digest
-        id: build
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: ${{ matrix.platform }}
-          # Pin the frontend to the exact hive commit resolved in `prepare`.
-          build-args: |
-            HIVE_REF=${{ needs.prepare.outputs.hive_sha }}
-          cache-from: type=gha,scope=connector-${{ matrix.arch }}
-          cache-to: type=gha,scope=connector-${{ matrix.arch }},mode=max
-          # Reproducible builds matter for App Store audits.
-          provenance: true
-          sbom: true
-          # Push by digest only — no tags. Each arch produces an untagged image
-          # in GHCR; the merge job stitches them into the tagged manifest list.
-          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-
-      - name: Export digest
+          node-version: '22.23.2'
+      - name: Verify the published upstream release and staging evidence
+        id: evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
-
-      - name: Upload digest
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+          set -euo pipefail
+          repo=$(jq -er '.repository' release-source.json)
+          tag=$(jq -er '.release' release-source.json)
+          [[ "$repo" =~ ^Bee-Flow/[A-Za-z0-9_.-]+$ ]]
+          [[ "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]]
+          gh release view "$tag" --repo "$repo" --json isDraft,isPrerelease --jq 'if .isDraft or .isPrerelease then error("A published production release is required") else true end'
+          gh release download "$tag" --repo "$repo" --pattern release-candidate.json --pattern staging-acceptance.json --dir "$RUNNER_TEMP/evidence"
+          node release-gates/release-manifest.mjs verify "$RUNNER_TEMP/evidence/release-candidate.json" "$RUNNER_TEMP/evidence/staging-acceptance.json"
+          VERSION="${GITHUB_REF_NAME#v}"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' appinfo/info.xml | head -1 | tr -d '[:space:]')" = "$VERSION"
+          grep -qF "## [$VERSION]" CHANGELOG.md
+          test "$(jq -r .commit release-source.json)" = "$(jq -r .commit "$RUNNER_TEMP/evidence/release-candidate.json")"
+          IMAGE_REF=$(jq -er '.images.connector | .image + "@" + .digest' "$RUNNER_TEMP/evidence/release-candidate.json")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+      - name: Recheck dependency reachability exceptions
+        run: node release-gates/audit-ratchet.mjs --release --standalone-connector
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          name: digest-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-
-  # ── merge: assemble the multi-arch manifest, then publish once ──
+          image-ref: ${{ steps.evidence.outputs.image }}
+          format: json
+          output: container-scan.json
+          severity: HIGH,CRITICAL
+          scanners: vuln
+          ignore-unfixed: false
+          exit-code: '0'
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify approved connector runtime
+        id: runtime
+        env:
+          IMAGE_REF: ${{ steps.evidence.outputs.image }}
+        run: bash release-gates/check-release-container.sh connector "$IMAGE_REF"
+      - env:
+          IMAGE_REF: ${{ steps.evidence.outputs.image }}
+          CONTAINER_RUNTIME_VERIFIED: ${{ steps.runtime.outputs.verified }}
+        run: node release-gates/container-release-gate.mjs container-scan.json "$IMAGE_REF"
   merge:
-    needs: [prepare, build]
+    needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: release
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
-
-      - name: Download digests
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          path: /tmp/digests
-          pattern: digest-*
-          merge-multiple: true
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-
-      - name: Log in to GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      - name: Install pinned crane
+        env:
+          CRANE_VERSION: v0.20.2
+          CRANE_SHA256: c14340087103ba9dadf61d45acd20675490fd0ccbd56ac7901fc1b502137f44b
+        run: |
+          set -euo pipefail
+          curl -sSfL -o "$RUNNER_TEMP/crane.tar.gz" "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz"
+          echo "${CRANE_SHA256}  $RUNNER_TEMP/crane.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/crane.tar.gz" -C "$RUNNER_TEMP" crane
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Stitch the per-arch digests into one multi-arch manifest list, tagged
-      # :<version> and :latest. AppAPI pulls :latest (info.xml
-      # <image-tag>latest</image-tag>), so :latest MUST cover both arches.
-      - name: Create manifest list and push
-        working-directory: /tmp/digests
+      - name: Promote the validated manifest without rebuilding
+        env:
+          IMAGE_REF: ${{ needs.prepare.outputs.image }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          docker buildx imagetools create \
-            -t ${{ env.IMAGE }}:${{ needs.prepare.outputs.version }} \
-            -t ${{ env.IMAGE }}:latest \
-            $(printf '${{ env.IMAGE }}@sha256:%s ' *)
-
-      # Fail loudly if a platform is missing rather than silently shipping a
-      # single-arch :latest that breaks arm64 installs.
-      - name: Inspect manifest
-        run: |
-          docker buildx imagetools inspect ${{ env.IMAGE }}:${{ needs.prepare.outputs.version }}
-          for plat in linux/amd64 linux/arm64; do
-            if ! docker buildx imagetools inspect ${{ env.IMAGE }}:${{ needs.prepare.outputs.version }} \
-                --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{end}}' \
-                | grep -qw "$plat"; then
-              echo "::error::manifest is missing $plat"; exit 1
-            fi
+          set -euo pipefail
+          test "$(crane digest "$IMAGE_REF")" = "${IMAGE_REF##*@}"
+          crane manifest "$IMAGE_REF" > "$RUNNER_TEMP/connector-manifest.json"
+          for architecture in amd64 arm64; do
+            jq -e --arg arch "$architecture" '.manifests | any(.platform.os == "linux" and .platform.architecture == $arch)' "$RUNNER_TEMP/connector-manifest.json" >/dev/null
           done
-
+          crane tag "$IMAGE_REF" "$VERSION"
+          crane tag "$IMAGE_REF" latest
       - name: Build app tarball
         run: |
           mkdir -p dist staging/${{ env.APP_ID }}

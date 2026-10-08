@@ -5,7 +5,7 @@
 // no archive), after a confirmation that says so. Loading, empty and failed are three different
 // screens; while the next page or search loads, the current list stays.
 
-import { ArchiveRestore, BookOpen, Copy, FileText, NotebookPen, Presentation, Sheet, Trash2 } from 'lucide-react';
+import { ArchiveRestore, BookOpen, Copy, FileText, NotebookPen, Presentation, Sheet, Share2, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import ConfirmDialog from '../../../components/shared/ConfirmDialog';
 import EmptyState from '../../../components/shared/EmptyState';
@@ -26,6 +26,7 @@ export interface LibraryListProps {
     selection: string[];
     onSelect: (ids: string[]) => void;
     onOpen: (row: LibraryRow) => void;
+    onShare?: (row: LibraryRow) => void;
     onDuplicate: (row: LibraryRow) => void;
     /** Archives a document; deletes a notebook (the row says which it is). */
     onArchive: (row: LibraryRow) => Promise<unknown>;
@@ -79,6 +80,7 @@ function Row({ row, props, onAskArchive }: { row: LibraryRow; props: LibraryList
                 </button>
             ) : (
                 <>
+                    {row.userId === props.currentUserId && props.onShare && <button type="button" className={ACTION} onClick={() => props.onShare?.(row)} aria-label={t('documents.sharing.title', 'Share {name}', { name: row.name })}><Share2 size={15} aria-hidden="true" /></button>}
                     {!notebook && (
                         <button type="button" className={ACTION} disabled={props.busyId === row.id} onClick={() => props.onDuplicate(row)} aria-label={t('documents.library.duplicate', 'Make a copy of {name}', { name: row.name })}><Copy size={15} aria-hidden="true" /></button>
                     )}

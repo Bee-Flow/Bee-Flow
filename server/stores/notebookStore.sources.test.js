@@ -23,7 +23,10 @@ const mockDb = {
     getOne: async (sql, params = []) => { calls.getOne.push({ sql, params }); return answers.getOne; },
     getAll: async (sql, params = []) => { calls.getAll.push({ sql, params }); return answers.getAll; },
     exec: async () => undefined,
-    withTransaction: async (fn) => fn({ query: async () => ({ rows: [] }) }),
+    withTransaction: async (fn) => fn({ query: async (sql, params) => {
+        if (/SELECT (?:n\.\*|\*) FROM notebooks/i.test(sql)) return { rows: [{ id: 'n1', user_id: 'alice', organization_id: null }] };
+        return mockDb.run(sql, params);
+    } }),
 };
 
 const Module = require('module');
@@ -71,7 +74,7 @@ test('getSourceContent is the one getter that reads content_text', async () => {
     reset();
     answers.getOne = { content_text: 'hello' };
     assert.strictEqual(await notebookStore.getSourceContent('s1'), 'hello');
-    assert.match(calls.getOne[0].sql, /SELECT content_text FROM notebook_sources/i);
+    assert.match(calls.getOne[0].sql, /SELECT id, content_text FROM notebook_sources/i);
 });
 
 test('addSource takes its position in a single INSERT ... SELECT (no separate MAX read)', async () => {

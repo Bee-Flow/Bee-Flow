@@ -34,6 +34,8 @@ export const PAGE_ROUTES = {
     // detail page of its own — its public address IS the page — so rows here
     // open /f/<token> rather than a /app/forms/:id.
     forms: '/app/forms',
+    // The member library keeps the normal sidebar and omits Studio management.
+    documents: '/app/documents',
     reports: '/app/reports',
     components: '/app/components',
     // Kept for /app/meeting-notes backward-compat — the page now renders
@@ -148,6 +150,18 @@ const PATH_TO_PAGE = Object.fromEntries(
     Object.entries(PAGE_ROUTES).map(([page, path]) => [path, page])
 );
 
+/** The member library's selected document, including notebook/<id> references. */
+export function parseDocumentUrl(pathname) {
+    const ref = pathname.match(/^\/app\/documents\/(.+?)\/?$/)?.[1];
+    if (!ref) return null;
+    try { return ref.split('/').map(decodeURIComponent).join('/'); }
+    catch { return null; }
+}
+
+export function documentRoutePath(ref = null) {
+    return ref ? `${PAGE_ROUTES.documents}/${ref.split('/').map(encodeURIComponent).join('/')}` : PAGE_ROUTES.documents;
+}
+
 export function pageFromPath(pathname) {
     // Root → agents (redirect to /app)
     if (pathname === '/') return 'agents';
@@ -187,6 +201,7 @@ export function pageFromPath(pathname) {
     // bookmarks and the old sidebar entry still land somewhere.
     if (pathname === '/app/cowork' || pathname.startsWith('/app/cowork/')) return 'cowork';
     if (pathname === '/app/work' || pathname.startsWith('/app/work/')) return 'cowork';
+    if (pathname.startsWith('/app/documents/')) return 'documents';
     // Legacy /app/notebooks[/:id] → Studio's Documents section, where notebooks
     // live now (parseStudioUrl maps the id). Before the generic /app/* match.
     if (pathname === '/app/notebooks' || pathname.startsWith('/app/notebooks/')) return 'studio';

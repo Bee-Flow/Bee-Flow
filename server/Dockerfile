@@ -9,7 +9,7 @@
 # or against BROWSER_WS_ENDPOINT, so `playwright` stays a thin client.
 
 # ── deps ─────────────────────────────────────────────────────────────────────
-FROM node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS deps
+FROM node:22.23.2-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS deps
 
 WORKDIR /app
 
@@ -59,7 +59,7 @@ CMD ["node_modules/.bin/nodemon", "--ignore", "data/", "--ignore", "components/"
 # metadata marker with its database_type. A failed download FAILS THE BUILD,
 # because an image without it records every call as "unknown location";
 # GEO_DB_OPTIONAL=1 builds without it for a hotfix when download.db-ip.com is down.
-FROM node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS geo
+FROM node:22.23.2-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS geo
 
 ARG GEO_DB_MONTH=""
 ARG GEO_DB_OPTIONAL=0
@@ -102,8 +102,20 @@ RUN set -eu; \
     fi; \
     ls -l /geo
 
+# Buildx 0.38.0 with the corrected archive extractor; API/CLI stays unchanged.
+FROM golang:1.27.1-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414 AS buildx-build
+RUN apk add --no-cache git
+WORKDIR /src
+RUN git init -q . \
+    && git remote add origin https://github.com/docker/buildx.git \
+    && git fetch --depth=1 origin 0dbe87f36ed472fe36b6796c3f70b4210a731fc5 \
+    && git checkout -q FETCH_HEAD \
+    && go get github.com/moby/go-archive@v0.3.0 \
+    && go mod tidy \
+    && CGO_ENABLED=0 go build -mod=mod -trimpath -ldflags='-s -w -X github.com/docker/buildx/version.Version=v0.38.0 -X github.com/docker/buildx/version.Revision=0dbe87f36ed472fe36b6796c3f70b4210a731fc5' -o /out/docker-buildx ./cmd/buildx
+
 # ── runtime ──────────────────────────────────────────────────────────────────
-FROM node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS runtime
+FROM node:22.23.2-trixie-slim@sha256:c5849ff9c9ebcd66615412f0b548ca5b8ecaef84003dc9ac2e077ebe46aaa3f6 AS runtime
 
 # The gid that owns /var/run/docker.sock on the host. The server runs as `node`
 # and still shells out to `docker build` / `docker run` (services/pwtRunner.js,
@@ -115,19 +127,30 @@ ARG DOCKER_GID=999
 
 WORKDIR /app
 
-# wget serves the HEALTHCHECK; docker-buildx-plugin because pwtRunner builds
-# with DOCKER_BUILDKIT=1, which the CLI refuses without the plugin.
+# Buildx is pinned separately because the distribution plugin embeds an older
+# archive extractor. Health checks use Node's built-in HTTP client.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl gnupg wget \
+    && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
     && install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
     && chmod a+r /etc/apt/keyrings/docker.gpg \
     && . /etc/os-release \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $VERSION_CODENAME stable" > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends docker-ce-cli docker-buildx-plugin \
-    && apt-get purge -y --auto-remove gnupg \
+    && apt-get install -y --no-install-recommends docker-ce-cli \
+    && apt-get purge -y --auto-remove gnupg curl \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=buildx-build /out/docker-buildx /usr/libexec/docker/cli-plugins/docker-buildx
+
+# The runtime uses npm for administrator-authorized component installs.
+# Update its bundled dependency tree independently of the pinned Node runtime.
+RUN npm install --global npm@12.2.0 --no-audit --no-fund \
+    && npm install --prefix /tmp/npm-security-patches --ignore-scripts --no-save --no-package-lock --no-audit --no-fund brace-expansion@5.0.11 undici@6.28.1 \
+    && rm -rf /usr/local/lib/node_modules/npm/node_modules/brace-expansion /usr/local/lib/node_modules/npm/node_modules/undici \
+    && cp -a /tmp/npm-security-patches/node_modules/. /usr/local/lib/node_modules/npm/node_modules/ \
+    && rm -rf /tmp/npm-security-patches
 
 RUN if ! getent group "$DOCKER_GID" >/dev/null; then groupadd -g "$DOCKER_GID" docker; fi \
     && usermod -aG "$(getent group "$DOCKER_GID" | cut -d: -f1)" node
@@ -174,6 +197,18 @@ COPY --chmod=a+rX,go-w . .
 # compliance/lib/sbomLocator.js probes one stable path; it is only ever read.
 RUN mkdir -p /app/sbom /app/data /components && chown node:node /app/data /components
 
+# These utilities/modules have no application call sites. Removing their
+# entry points and privilege bits bounds the remaining OS advisory reviews.
+RUN rm -f /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/infocmp \
+    && find /usr -type f -path '*/Archive/Tar*' -delete \
+    && find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} +
+
+# Compose files from releases up to 2026-09 healthcheck with
+# `wget -q --spider .../api/health` and gate other services on it. The image
+# has no wget, so a localhost-only Node stand-in answers that one form
+# (scripts/healthcheck-wget.js; check-release-container.sh accepts only it).
+RUN install -m 0755 /app/scripts/healthcheck-wget.js /usr/local/bin/wget
+
 ENV NODE_ENV=production
 ENV PORT=3001
 
@@ -185,7 +220,7 @@ ENV APP_BUILD_SHA=$APP_BUILD_SHA
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget -q --spider http://localhost:3001/api/health || exit 1
+    CMD node -e 'fetch("http://localhost:3001/api/health",{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
 
 USER node
 

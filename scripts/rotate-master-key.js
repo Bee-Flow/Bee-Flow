@@ -110,6 +110,13 @@ const ORG_VAULT_TAG = 'routine-vault-v1';
 const DEFAULT_ORG_SENTINEL = '__default_org__';
 function deriveOrgVaultKey(master, orgId) {
     return crypto.createHmac('sha256', master)
+        .update(`beeflow:routine-vault:v1:org:${orgId}`)
+        .digest();
+}
+// What builds from 2026-10-04 until the fix derived (orgVault.js MISDERIVED_LABEL).
+// Read-only: a row sealed that way is rotated onto the right label.
+function deriveMisderivedOrgVaultKey(master, orgId) {
+    return crypto.createHmac('sha256', master)
         .update(`beeflow:automation-vault:v1:org:${orgId}`)
         .digest();
 }
@@ -324,7 +331,7 @@ async function main() {
                 let envelope;
                 try { envelope = JSON.parse(raw); } catch (_) { envelope = null; }
                 if (!envelope || envelope._encrypted !== ORG_VAULT_TAG) { skipped++; continue; }
-                const oldPt = tryDecrypt(envelope, keyOld);
+                const oldPt = tryDecrypt(envelope, keyOld) ?? tryDecrypt(envelope, deriveMisderivedOrgVaultKey(oldMaster, orgId));
                 if (oldPt !== null) {
                     await client.query(
                         `UPDATE ${table} SET ${col} = $1 WHERE ${idCol} = $2`,

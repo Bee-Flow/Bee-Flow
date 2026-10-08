@@ -168,8 +168,11 @@ export function loadLearnManifest(
             timer = setTimeout(() => { ctrl?.abort(); resolve(null); }, timeoutMs);
         });
         try {
+            // 'same-origin', not 'omit': inside Nextcloud the pack is reached through
+            // AppAPI's proxy, whose catch-all route is USER-level, so a cookieless
+            // request gets a 404 and every video vanished. A CDN base still gets none.
             const res = await Promise.race([
-                doFetch(mediaUrl(base, 'manifest.json'), { credentials: 'omit', signal: ctrl?.signal }),
+                doFetch(mediaUrl(base, 'manifest.json'), { credentials: 'same-origin', signal: ctrl?.signal }),
                 timeout,
             ]);
             if (!res || !res.ok) return { status: 'unavailable' };

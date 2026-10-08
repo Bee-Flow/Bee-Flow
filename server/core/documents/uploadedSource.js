@@ -37,11 +37,11 @@ function sourceTypeOf(fileName) {
  * `<prefix>_<ms>_<random>_<name>`, the name reduced to [a-zA-Z0-9._-].
  *
  * @param {{ originalname: string, mimetype: string, buffer: Buffer }} file
- * @param {{ userId: string, prefix: string, folder: string, storage?: any }} opts
+ * @param {{ userId: string, prefix: string, folder: string, storage?: any, protectBuffer?: ((buffer: Buffer, key: string) => Promise<Buffer>)|null }} opts
  *   `storage` defaults to stores/storageStore (injectable for tests).
  * @returns {Promise<{ fileName: string, mimeType: string, buffer: Buffer, type: string, storageKey: string|null }>}
  */
-async function keepUploadedSource(file, { userId, prefix, folder, storage = require('../../stores/storageStore') }) {
+async function keepUploadedSource(file, { userId, prefix, folder, storage = require('../../stores/storageStore'), protectBuffer = null }) {
     const fileName = file.originalname;
     const mimeType = file.mimetype;
     const buffer = file.buffer;
@@ -49,7 +49,8 @@ async function keepUploadedSource(file, { userId, prefix, folder, storage = requ
     if (storage.isAvailable()) {
         const storageName = `${prefix}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
         storageKey = storage.buildKey(userId, folder, storageName);
-        await storage.uploadFile(storageKey, buffer, mimeType);
+        const stored = protectBuffer ? await protectBuffer(buffer, storageKey) : buffer;
+        await storage.uploadFile(storageKey, stored, protectBuffer ? 'application/octet-stream' : mimeType);
     }
     return { fileName, mimeType, buffer, type: sourceTypeOf(fileName), storageKey };
 }

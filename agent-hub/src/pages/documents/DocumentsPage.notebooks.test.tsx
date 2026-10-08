@@ -21,11 +21,11 @@ const { api, notebookApi, client } = vi.hoisted(() => ({
     client: { get: vi.fn() },
 }));
 vi.mock('./documentsApi', () => api);
-vi.mock('../notebooks/hooks/notebookApi', () => ({ notebookApi }));
+vi.mock('./notebook/hooks/notebookApi', () => ({ notebookApi }));
 vi.mock('../../api/client', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../api/client')>()), apiClient: client, default: client }));
 vi.mock('./DocumentEditor', () => ({ default: ({ documentId }: { documentId: string }) => <div data-testid="editor-stub">editor {documentId}</div> }));
 vi.mock('./HouseStylePanel', () => ({ default: () => <div data-testid="house-style-stub" /> }));
-vi.mock('../notebooks/detail/NotebookDetail', () => ({
+vi.mock('./notebook/detail/NotebookDetail', () => ({
     default: ({ notebookId, onBack }: { notebookId: string; onBack: () => void }) => (
         <div data-testid="notebook-stub">notebook {notebookId}<button type="button" onClick={onBack}>back</button></div>
     ),

@@ -56,6 +56,34 @@ test('encryptJSON / decryptJSON round-trip an object', () => {
     assert.deepStrictEqual(vault.decryptJSON(env, 'org-Z'), blob);
 });
 
+// Seal with an explicit derivation label, independent of the module's code.
+function sealWithLabel(label, plaintext, orgId) {
+    const crypto = require('crypto');
+    const key = crypto.createHmac('sha256', process.env.MASTER_ENCRYPTION_KEY).update(`${label}${orgId}`).digest();
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const data = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    return JSON.stringify({ _encrypted: 'routine-vault-v1', iv: iv.toString('hex'), authTag: cipher.getAuthTag().toString('hex'), data: data.toString('hex') });
+}
+
+test('reads what every older release wrote (routine-vault label), so an upgrade keeps its org keys', () => {
+    assert.strictEqual(vault.decrypt(sealWithLabel('beeflow:routine-vault:v1:org:', 'org-root', 'org-A'), 'org-A'), 'org-root');
+});
+
+test('writes with the routine-vault label, so an older release can still read it after a rollback', () => {
+    const crypto = require('crypto');
+    const env = JSON.parse(vault.encrypt('x', 'org-A'));
+    const key = crypto.createHmac('sha256', process.env.MASTER_ENCRYPTION_KEY).update('beeflow:routine-vault:v1:org:org-A').digest();
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(env.iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(env.authTag, 'hex'));
+    assert.strictEqual(decipher.update(Buffer.from(env.data, 'hex')) + decipher.final('utf8'), 'x');
+});
+
+test('still reads what the 2026-10-04 builds wrote under the automation-vault label', () => {
+    assert.strictEqual(vault.decrypt(sealWithLabel('beeflow:automation-vault:v1:org:', 'written-in-between', 'org-A'), 'org-A'), 'written-in-between');
+    assert.strictEqual(vault.decrypt(sealWithLabel('beeflow:automation-vault:v1:org:', 'x', 'org-A'), 'org-B'), null);
+});
+
 test('decryptJSON wrong org → null', () => {
     const env = vault.encryptJSON({ a: 1 }, 'org-Z');
     assert.strictEqual(vault.decryptJSON(env, 'org-Y'), null);

@@ -9,6 +9,7 @@ import type { ChatAttachment } from './useChatEngine/historyAttachment';
 import type { ChatMessage, SseDispatchIds, SseEventData } from './useChatEngine/types';
 import useTranslation from './useTranslation';
 import { API_BASE, generateMessageId, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 import scopedStorage from '../utils/scopedStorage';
 
 // Re-exported so the module's public surface is unchanged — the colocated unit
@@ -699,7 +700,7 @@ export default function useChatEngine({
                             workRef
                         });
                     } catch (e) {
-                        console.debug('[useChatEngine] SSE event parse skipped', currentEvent, e);
+                        logger.debug('[useChatEngine] SSE event parse skipped', currentEvent, e);
                     }
                 }
             };
@@ -763,7 +764,7 @@ export default function useChatEngine({
             if (err.name !== 'AbortError' && sawDone) {
                 // The turn already finished on the server. Close the message out
                 // quietly rather than appending a notice to a complete answer.
-                console.debug('[useChatEngine] stream teardown after done', err);
+                logger.debug('[useChatEngine] stream teardown after done', err);
                 setMessages(prev => prev.map(m =>
                     m.id === assistantMsgId ? { ...m, isStreaming: false } : m
                 ));

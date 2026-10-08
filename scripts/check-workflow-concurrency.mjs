@@ -26,6 +26,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WORKFLOWS = path.join(ROOT, '.github/workflows');
 
 const MUST_NOT_CANCEL = {
+    'promote-release.yml': 'production tag promotion must finish without leaving a partly promoted release',
+    'staging-release-validation.yml': 'staging acceptance is durable evidence for a specific release candidate and must retain its verdict',
     'build-push-ghcr.yml':
         'cancelling mid-push leaves a half-written multi-arch manifest and can move the :dev tags to an image that was never finished',
     'release-dockerhub.yml': 'cancelling can leave Docker Hub :latest moved to an image whose push never completed',

@@ -289,40 +289,11 @@ const OAUTH_PROVIDERS = {
 
 // Load config from persistent storage
 async function loadConfig() {
-    try {
-        const configStore = require('../stores/configStore');
-        const admin = await configStore.getConfig('admin') || { username: 'admin', passwordHash: '' };
-        const oauth = await configStore.getConfig('oauth') || { nextcloudUrl: '', clientId: '', clientSecret: '' };
-        const providers = await configStore.getConfig('providers') || {
-            google: { clientId: '', clientSecret: '', enabled: false },
-            microsoft: { clientId: '', clientSecret: '', tenantId: 'common', enabled: false }
-        };
-        return { admin, oauth, providers };
-    } catch (err) {
-        log.error('Error loading config:', err);
-    }
-    return {
-        admin: { username: 'admin', passwordHash: '' },
-        oauth: { nextcloudUrl: '', clientId: '', clientSecret: '' },
-        providers: {
-            google: { clientId: '', clientSecret: '', enabled: false },
-            microsoft: { clientId: '', clientSecret: '', tenantId: 'common', enabled: false }
-        }
-    };
+    return require('../stores/authConfigStore').load();
 }
 
-// Save config to persistent storage
-function saveConfig(config) {
-    try {
-        const configStore = require('../stores/configStore');
-        if (config.admin) configStore.setConfig('admin', config.admin);
-        if (config.oauth) configStore.setConfig('oauth', config.oauth);
-        if (config.providers) configStore.setConfig('providers', config.providers);
-        return true;
-    } catch (err) {
-        log.error('Error saving config:', err);
-        return false;
-    }
+async function saveConfig(config) {
+    return require('../stores/authConfigStore').save(config);
 }
 
 // Middleware to check authentication
@@ -483,6 +454,10 @@ const requireAuth = async (req, res, next) => {
     if (!req.session || !req.session.isAuthenticated || !req.session.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
+
+    let microsoftSessionAccepted = false;
+    await require('./microsoftSession').validateMicrosoftSession(req, res, () => { microsoftSessionAccepted = true; });
+    if (!microsoftSessionAccepted) return;
 
     // Verify user still exists in DB (cached for 5s to avoid DB spam)
     const userId = req.session.user?.id;

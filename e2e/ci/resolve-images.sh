@@ -31,6 +31,7 @@ IMAGE_PREFIX="${IMAGE_PREFIX:-ghcr.io/bee-flow}"
 BUILT="${BUILT:-}"
 SHA="${SHA:-}"
 FALLBACK_TAG="${FALLBACK_TAG:-prod}"
+CANDIDATE_DIGESTS="${CANDIDATE_DIGESTS:-}"
 
 # workflow-key:image-name pairs (keep in sync with build-push-ghcr.yml).
 MAPPING=(
@@ -60,7 +61,13 @@ built_this_run() {
 for pair in "${MAPPING[@]}"; do
   key="${pair%%:*}"
   img="${pair#*:}"
-  if [[ -n "$SHA" ]] && built_this_run "$key"; then
+  if [[ -n "$CANDIDATE_DIGESTS" ]] && built_this_run "$key"; then
+    job="$key"
+    [[ "$key" == search ]] && job=search-api
+    digest="$(jq -er --arg job "$job" '.[$job].outputs.digest // empty' <<< "$CANDIDATE_DIGESTS")"
+    [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::Invalid candidate digest for $key"; exit 1; }
+    src="$IMAGE_PREFIX/$img@$digest"
+  elif [[ -n "$SHA" ]] && built_this_run "$key"; then
     src="$IMAGE_PREFIX/$img:sha-$SHA"
   else
     src="$IMAGE_PREFIX/$img:$FALLBACK_TAG"

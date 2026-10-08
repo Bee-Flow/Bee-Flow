@@ -13,6 +13,7 @@ import useConfirm from '../components/shared/useConfirm';
 import useChatEngine from '../hooks/useChatEngine';
 import { formatRelativeTime } from '../utils/dateFormatters';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 // Normalize parameter — supports both string "Name" and { name, description } formats
 function getParam(p) {
@@ -244,7 +245,7 @@ export default function TemplatesPage({ user, onBack }) {
             // JSON.parse threw — the assistant emitted a code block that
             // wasn't valid JSON. Safe to ignore at the user level, but log
             // for telemetry so a regression in the model prompt is visible.
-            console.debug('[TemplatesPage] JSON parameter block parse skipped', e);
+            logger.debug('[TemplatesPage] JSON parameter block parse skipped', e);
         }
     }, [chatMessages, chatLoading, fillTemplate?.id]);
 

@@ -328,6 +328,22 @@ async function _initDB() {
         },
 
         // ── Azure AD Group Sync columns ──
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "azureTenantId" TEXT`,
+        `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "azureTenantId" TEXT`,
+        `CREATE TABLE IF NOT EXISTS microsoft_sso_link_requests (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id TEXT NOT NULL, object_id TEXT NOT NULL,
+            email TEXT NOT NULL DEFAULT '', expires_at TIMESTAMPTZ NOT NULL,
+            UNIQUE (tenant_id, object_id))`,
+        `CREATE TABLE IF NOT EXISTS azure_sync_memberships (
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            group_id TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+            organization_id TEXT NOT NULL, tenant_id TEXT NOT NULL,
+            PRIMARY KEY (user_id,group_id))`,
+        `CREATE TABLE IF NOT EXISTS microsoft_sso_binding_audit (
+            id BIGSERIAL PRIMARY KEY, actor_id TEXT NOT NULL, user_id TEXT NOT NULL,
+            tenant_id TEXT, object_id TEXT, action TEXT NOT NULL CHECK (action IN ('bind','unbind','migrate')),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
+        `CREATE INDEX IF NOT EXISTS idx_microsoft_sso_binding_revision ON microsoft_sso_binding_audit(user_id,id DESC)`,
         `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "azureGroupId" TEXT`,
         `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "source" TEXT DEFAULT 'manual'`,
         `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "lastSyncedAt" TEXT`,
@@ -345,6 +361,8 @@ async function _initDB() {
         // transitional NC opt-out (enable-wins) so existing deployments don't loosen.
         `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "granted_capabilities" TEXT DEFAULT '[]'`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS "azureUserId" TEXT`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_microsoft_identity ON users (LOWER("azureTenantId"), LOWER("azureUserId")) WHERE "azureTenantId" IS NOT NULL AND "azureUserId" IS NOT NULL`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_microsoft_identity ON groups ("organizationId", LOWER("azureTenantId"), LOWER("azureGroupId")) WHERE "azureTenantId" IS NOT NULL AND "azureGroupId" IS NOT NULL`,
     ]);
 
     await runDdl('userSchema', [

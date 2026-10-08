@@ -30,7 +30,7 @@ const NO_TIERS: ModelTierMap = Object.freeze({});
  *     returns (beta revoked, custom tier deleted), snap back to 'auto' so
  *     the picker doesn't show an undefined slot.
  *
- * NOTE: distinct from pages/notebooks/hooks/useModelTiers.js, which fetches
+ * NOTE: distinct from pages/documents/notebook/hooks/useModelTiers.js, which fetches
  * the unfiltered /ai/config/chat-models list and keeps no selection state.
  */
 export default function useModelTierSelection(
