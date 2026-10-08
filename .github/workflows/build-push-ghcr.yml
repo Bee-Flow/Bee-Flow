@@ -173,14 +173,14 @@ jobs:
           # so the fail-fast guard is happy, and a prod release is cut whose
           # agent-hub image is whatever :prod already pointed at.
           SVCS="$(echo "$SVCS" | tr -d '[:space:]')"
-          # A prod release may not select `all`: it includes whisperx, and
-          # search-gpu through the `search` key, and neither CUDA image has
-          # ever finished a cold build (see the note above the jobs). Cut the
-          # release from an explicit list instead, and give those two a
-          # manual, individual release run once a full cold build has
-          # succeeded — never silently as part of `all`.
+          # A prod release may not select `all`: it includes whisperx, whose
+          # CUDA image has never finished a cold build (see the note above
+          # the jobs). Cut the release from an explicit list instead, and give
+          # whisperx a manual, individual release run once a full cold build
+          # has succeeded — never silently as part of `all`. (search-gpu is no
+          # longer built at all; see its job.)
           if [[ "$CHANNEL" == "prod" && "$SVCS" == "all" ]]; then
-            echo "::error::channel=prod with services=all is refused: 'all' includes whisperx and search-gpu (via 'search'), whose cold CUDA builds have never finished. List the services explicitly and release whisperx / search-gpu in a separate manual run once a full cold build has succeeded."
+            echo "::error::channel=prod with services=all is refused: 'all' includes whisperx, whose cold CUDA build has never finished. List the services explicitly and release whisperx in a separate manual run once a full cold build has succeeded."
             exit 1
           fi
           KNOWN="server agent-hub search guard pii classify whisperx wizard reranker pwt-runner"
@@ -656,10 +656,13 @@ jobs:
           cache-to:   type=gha,scope=search-api,mode=max
 
   # ── Search GPU Inference ───────────────────────────────────
+  # Not built any more: the product no longer uses this image (2026-10-08).
+  # The job stays so it can be switched back on by removing `false &&`; until
+  # then `search` builds search-api only, and this job is always skipped.
   search-gpu:
     needs: [changes, ci, release-security]
     if: >-
-      ${{ !cancelled() && needs.changes.result == 'success'
+      ${{ false && !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
       && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.search == 'true' }}
