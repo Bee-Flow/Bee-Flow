@@ -1116,7 +1116,7 @@ jobs:
   # smoke suite's llm-capability scenarios talk to a model, so the repo
   # secret must exist or a prod release stops here by design.
   e2e-smoke:
-    needs: [changes, server, agent-hub, search-api]
+    needs: [changes, server, agent-hub, search-api, pwt-runner]
     if: >-
       ${{ !cancelled() && needs.changes.outputs.release_prod == 'true'
       && !contains(needs.*.result, 'failure') }}
@@ -1144,7 +1144,7 @@ jobs:
   # Not a gate: nothing below needs it, so axe flakiness never blocks a
   # release; the compliance check grades the committed file at runtime.
   a11y-conformance:
-    needs: [changes, server, agent-hub, search-api]
+    needs: [changes, server, agent-hub, search-api, pwt-runner]
     if: >-
       ${{ !cancelled() && needs.changes.outputs.release_prod == 'true'
       && !contains(needs.*.result, 'failure') }}
