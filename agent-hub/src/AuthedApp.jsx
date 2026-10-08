@@ -71,7 +71,7 @@ import { clearSessionCaches } from './hooks/sessionCaches';
 // The route table, the URL parsers, the full-screen gates and the two big
 // hook groups (auth bootstrap, navigateToPage) live in ./authedApp/*. They are
 // verbatim extractions — this file keeps the same public surface.
-import { PAGE_ROUTES, pageFromPath, parseAdminPath, parseAgentDesignerUrl, parseAgentUrl, parseCoworkUrl, parseDirectChatUrl, parseNcStudioAppParam, parseOrgSettingsPath } from './authedApp/appRoutes';
+import { PAGE_ROUTES, pageFromPath, parseAdminPath, parseAgentDesignerUrl, parseAgentUrl, parseCoworkUrl, parseDocumentUrl, parseDirectChatUrl, parseNcStudioAppParam, parseOrgSettingsPath } from './authedApp/appRoutes';
 import { MobileRouteGuard, SubscriptionGate } from './authedApp/guards';
 import { projectHistoryMode } from './authedApp/projectNavigation';
 import { AppBackdrop, LoadingScreen, NoOrganizationScreen, PendingApprovalScreen, RouteFallback, ServerUnavailableScreen } from './authedApp/shellScreens';
@@ -136,6 +136,7 @@ function App() {
     const [adminPath, setAdminPath] = useState(() => parseAdminPath(window.location.pathname));
     const [orgSettingsPath, setOrgSettingsPath] = useState(() => parseOrgSettingsPath(window.location.pathname));
     const [initialCoworkId, setInitialCoworkId] = useState(() => parseCoworkUrl(window.location.pathname));
+    const [initialDocumentId, setInitialDocumentId] = useState(() => parseDocumentUrl(window.location.pathname));
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -267,6 +268,7 @@ function App() {
             setAdminPath(parseAdminPath(window.location.pathname));
             setOrgSettingsPath(parseOrgSettingsPath(window.location.pathname));
             if (page === 'cowork') setInitialCoworkId(parseCoworkUrl(window.location.pathname));
+            setInitialDocumentId(parseDocumentUrl(window.location.pathname));
             setFormViewToken(window.location.pathname.match(/^\/app\/forms\/([^/]+)/)?.[1] || null);
             // Sync inline-rendered panels with the URL so back/forward opens or closes them.
             setShowSettings(page === 'settings');
@@ -305,7 +307,8 @@ function App() {
         setCurrentPage,
         setAdminPath,
         setOrgSettingsPath,
-            setInitialCoworkId,
+        setInitialCoworkId,
+        setInitialDocumentId,
         setShowProfileMenu,
         setShowAgentDesigner,
         setShowAgentWizard,
@@ -645,7 +648,7 @@ function App() {
                 setCurrentPage('agents');
                 window.history.pushState({ page: 'agents' }, '', '/app');
             }
-        }} initialCoworkId={initialCoworkId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId, tab, sub) => {
+        }} initialCoworkId={initialCoworkId} initialDocumentId={initialDocumentId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId, tab, sub) => {
             // Drives the URL from the app, so a project view — down to one
             // team chat or document inside it — can be linked, bookmarked and
             // reached with the back button. `''` means "open the create form":

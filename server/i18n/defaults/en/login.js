@@ -2,6 +2,10 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    'login.sso_link_required': 'Your Microsoft identity needs to be linked by a platform administrator. Contact your administrator, then sign in again.',
+    'login.sso_seat_cap_exceeded': 'Your organisation has reached its user limit, so your account could not be created. Contact your administrator.',
+    'login.sso_signup_failed': 'Your account could not be created. Please try again or contact your administrator.',
+
     // ── Login ────────────────────────────────────────────────────
     'login.title': 'Sign In',
     'login.username': 'Username',

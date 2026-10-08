@@ -41,6 +41,29 @@ beforeEach(() => {
 
 const renderPage = () => render(withQueryClient(<DocumentsPage />));
 
+describe('DocumentsPage: workspace and Studio management', () => {
+    it('opens owned and shared documents without offering house-style management', async () => {
+        const onDocumentChange = vi.fn();
+        render(withQueryClient(<DocumentsPage onDocumentChange={onDocumentChange} user={{ id: 'me', permissions: ['page_chat'] }} />));
+        await screen.findByTestId('library-row-a');
+        expect(screen.queryByTestId('documents-house-style')).not.toBeInTheDocument();
+        expect(screen.getByTestId('documents-new')).toBeInTheDocument();
+        await userEvent.click(within(screen.getByTestId('library-row-b')).getByRole('button', { name: /^Doc b/ }));
+        expect(await screen.findByTestId('editor-stub')).toHaveTextContent('editor b');
+        expect(onDocumentChange).toHaveBeenCalledWith('b');
+    });
+
+    it('offers house style in Studio and removes the panel on return to workspace mode', async () => {
+        const view = render(withQueryClient(<DocumentsPage mode="studio" />));
+        await userEvent.click(await screen.findByTestId('documents-house-style'));
+        expect(screen.getByTestId('house-style-stub')).toBeInTheDocument();
+        view.rerender(withQueryClient(<DocumentsPage mode="workspace" />));
+        expect(await screen.findByTestId('documents-library')).toBeInTheDocument();
+        expect(screen.queryByTestId('documents-house-style')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('house-style-stub')).not.toBeInTheDocument();
+    });
+});
+
 describe('DocumentsPage: states', () => {
     it('shows placeholders while the first page loads, then the rows with owner and last editor', async () => {
         const first = deferred<unknown>();

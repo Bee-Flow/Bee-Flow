@@ -5,6 +5,7 @@ import {
     makeElement,
 } from '../../../../marketing/sections/contentMigration';
 import useConfirm from '../../../shared/useConfirm';
+import { ClipFields } from './ClipFields';
 import { TextField, Toggle, ImageField, RepeatableList, LinkField, FieldRow, inputCls } from '../fields';
 import {
     InlineHint,
@@ -363,14 +364,17 @@ export function ElementFields({ el, pages, update }) {
                         only has one field to read. */}
                     <FieldSelect
                         label="Source"
-                        value={el.source === 'upload' ? 'upload' : 'embed'}
+                        value={el.source === 'upload' || el.source === 'clip' ? el.source : 'embed'}
                         options={[
                             { value: 'embed',  label: 'External URL (YouTube / Vimeo)' },
-                            { value: 'upload', label: 'Upload file (MP4 / WebM)' },
+                            { value: 'upload', label: 'Upload file (silent loop, MP4 / WebM)' },
+                            { value: 'clip',   label: 'Clip (video with sound)' },
                         ]}
                         onChange={v => update({ ...el, source: v, url: '' })}
                     />
-                    {el.source === 'upload' ? (
+                    {el.source === 'clip' ? (
+                        <ClipFields value={el} srcKey="url" onPatch={patch => update({ ...el, ...patch })} />
+                    ) : el.source === 'upload' ? (
                         <ImageField
                             label="Video file"
                             value={el.url || ''}

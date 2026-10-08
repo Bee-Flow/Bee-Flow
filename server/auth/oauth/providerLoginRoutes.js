@@ -55,6 +55,7 @@ router.get('/login/:provider', async (req, res) => {
     delete req.session.oauthPopup;
     delete req.session.oauthPickupId;
     delete req.session.oauthAppRedirect;
+    delete req.session.oauthNonce;
 
     // When ?popup=1 is set (embedded iframe mode), remember so the callback
     // can render a postMessage page instead of a redirect.
@@ -167,6 +168,8 @@ router.get('/login/:provider', async (req, res) => {
         }
 
         const tenantId = providerConfig.tenantId || 'common';
+        const nonce = crypto.randomBytes(32).toString('base64url');
+        req.session.oauthNonce = nonce;
         const scopes = OAUTH_PROVIDERS.microsoft.scopes.join(' ');
         log.info(`[OAuth/Microsoft] Scopes: ${scopes}`);
         const authUrl = OAUTH_PROVIDERS.microsoft.authUrl(tenantId) + '?' + new URLSearchParams({
@@ -175,6 +178,7 @@ router.get('/login/:provider', async (req, res) => {
             redirect_uri: REDIRECT_URI,
             scope: scopes,
             state: state,
+            nonce,
             response_mode: 'query',
             code_challenge: codeChallenge,
             code_challenge_method: 'S256',

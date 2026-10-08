@@ -132,7 +132,7 @@ router.post('/setup', validate({ body: SetupBody }), async (req, res) => {
     }
 
     config.admin.passwordHash = await bcrypt.hash(password, 12);
-    if (!saveConfig(config)) {
+    if (!await saveConfig({ admin: config.admin })) {
         return res.status(500).json({ error: 'Failed to save config' });
     }
 

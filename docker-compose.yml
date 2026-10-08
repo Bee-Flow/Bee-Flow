@@ -6,7 +6,19 @@
 # checkout and runs them next to PostgreSQL (pgvector), RustFS and Redis.
 #
 #   cp .env.example .env       # sets CLIENT_PORT=5176, SERVER_PUBLIC_HOST, …
+#   docker network create search-network
 #   docker compose up -d
+#
+# Knowledge search and the Redis session cache are NOT in this file: the server
+# points at search-api:8000 (SEARCH_SERVICE_URL) and search-redis (REDIS_URL),
+# which are provided by the separate search stack:
+#
+#   docker compose -f search-service/docker-compose.yml up -d
+#
+# That stack joins the same search-network — which is why it is declared
+# `external: true` below and must exist before `up`. Without the search stack
+# this stack still runs: sessions fall back to PostgreSQL (with reconnect
+# warnings in the server log) and knowledge search is unavailable.
 #
 # NOTE: agent-hub is a static build — VITE_API_URL is baked in at image build
 # time from SERVER_PROTOCOL/SERVER_PUBLIC_HOST, so set those in .env BEFORE
@@ -46,7 +58,7 @@ services:
       - beeflow-network
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-beeflow} -d ${DB_NAME:-beeflow_tasks}" ]
+      test: [ "CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -108,9 +120,7 @@ services:
       - COOKIE_SECURE=${COOKIE_SECURE:-true}
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.beeflow.nl}
       - COOKIE_SAMESITE=${COOKIE_SAMESITE:-none}
-      # Demo mode - set to 'false' to disable demo login
-      - DEMO_MODE_ENABLED=${DEMO_MODE_ENABLED:-true}
-      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-cloud}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
       # Nextcloud integration (optional)
       - NEXTCLOUD_URL=${NEXTCLOUD_URL:-}
       - NEXTCLOUD_CLIENT_ID=${NEXTCLOUD_CLIENT_ID:-}
@@ -182,7 +192,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT:-3001}/api/health" ]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT:-3001}/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -400,4 +410,8 @@ networks:
     name: beeflow-browser-network
   search-network:
     name: search-network
+    # Created by `docker network create search-network` (see the header) or by
+    # the separate search stack in search-service/docker-compose.yml. External
+    # because that stack shares it — a non-external declaration here would
+    # collide with the search stack's own when both are up.
     external: true

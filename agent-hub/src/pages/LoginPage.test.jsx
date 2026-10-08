@@ -490,3 +490,14 @@ describe('the second factor with a security key', () => {
         expect(screen.queryByTestId('mfa-code-input')).toBeNull();
     });
 });
+
+describe('SSO provisioning failures come back as ?error=', () => {
+    afterEach(() => { window.history.replaceState({}, '', '/'); });
+
+    it.each([['seat_cap_exceeded', /user limit/], ['signup_failed', /could not be created/]])(
+        'explains %s instead of showing a bare login page', async (code, text) => {
+            window.history.replaceState({}, '', `/?error=${code}`);
+            await renderLogin();
+            expect(await screen.findByText(text)).toBeTruthy();
+        });
+});

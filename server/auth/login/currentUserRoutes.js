@@ -13,7 +13,7 @@ const router = express.Router();
 const userStore = require('../../stores/userStore');
 const { loadConfig } = require('../permissions');
 const consentGuards = require('../consentGuards');
-const { isEncryptionEnabledForUser } = require('../../stores/encryptionAvailability');
+const { isEncryptionEnabledForUser, isSsoPinRequiredForUser } = require('../../stores/encryptionAvailability');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 
@@ -99,10 +99,12 @@ router.get('/user', async (req, res) => {
             // the PIN-setup screen.
             ...(await (async () => {
                 const enabled = await isEncryptionEnabledForUser(req.session.user.id);
+                // Managed tier: the org escrow holds the key, so no PIN prompt.
+                const pinRequired = enabled && await isSsoPinRequiredForUser(req.session.user.id);
                 return {
                     encryptionEnabled: enabled,
-                    needsEncryptionSetup: enabled && !!req.session.needsEncryptionSetup,
-                    needsEncryptionPin: enabled && !!req.session.needsEncryptionPin,
+                    needsEncryptionSetup: pinRequired && !!req.session.needsEncryptionSetup,
+                    needsEncryptionPin: pinRequired && !!req.session.needsEncryptionPin,
                 };
             })()),
             // Organisation membership for SSO users

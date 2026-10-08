@@ -147,7 +147,7 @@ services:
     networks: [ beeflow-network, beeflow-browser-network ]
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT:-3001}/api/health" ]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT:-3001}/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       start_period: 90s

@@ -46,7 +46,9 @@ export default function AssetPickerDialog({ onPick, onClose, accept = 'image' })
         const byKind = state.assets.filter(a =>
             accept === 'video'
                 ? /\.(mp4|webm)$/i.test(a.key)
-                : !/\.(mp4|webm)$/i.test(a.key));
+                : accept === 'captions'
+                    ? /\.vtt$/i.test(a.key)
+                    : !/\.(mp4|webm|vtt)$/i.test(a.key));
         if (!q) return byKind;
         return byKind.filter(a => a.key.toLowerCase().includes(q));
     }, [state.assets, query, accept]);
@@ -96,8 +98,10 @@ export default function AssetPickerDialog({ onPick, onClose, accept = 'image' })
                                     className="group text-left rounded-md border border-[var(--border-default)] overflow-hidden hover:border-[var(--accent-primary)] transition-colors"
                                 >
                                     <div className="aspect-[4/3] bg-[var(--bg-tertiary)] flex items-center justify-center overflow-hidden">
-                                        {/\.(mp4|webm)$/i.test(asset.key) ? (
-                                            <video src={asset.url} muted playsInline className="w-full h-full object-contain" />
+                                        {/\.vtt$/i.test(asset.key) ? (
+                                            <span className="text-xs text-[var(--text-muted)]" aria-hidden="true">{'CC'}</span>
+                                        ) : /\.(mp4|webm)$/i.test(asset.key) ? (
+                                            <video src={asset.url} muted preload="metadata" playsInline className="w-full h-full object-contain" />
                                         ) : (
                                             <img src={asset.url} alt="" loading="lazy" className="w-full h-full object-contain" />
                                         )}

@@ -80,6 +80,19 @@ function writtenBaseline({ dir }) {
     return JSON.parse(fs.readFileSync(path.join(dir, '.github/security/audit-baseline.json'), 'utf8'));
 }
 
+test('the extracted connector release audits its own runtime and refuses unreviewed findings', () => {
+    const counts = { '.': { critical: 0, high: 1 } };
+    const box = sandbox({ counts, baseline: { counts, accepted: [] }, advisories: { '.': [{
+        id: 'GHSA-example', package: 'proxy', severity: 'high', range: '<2',
+    }] } });
+    const result = run(box, ['--release', '--standalone-connector']);
+    assert.strictEqual(result.code, 1, result.stdout);
+    const calls = fs.readFileSync(path.join(box.dir, 'npm-calls.log'), 'utf8').trim().split('\n').map(JSON.parse);
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0].dir, '.');
+    assert.ok(calls[0].argv.includes('--omit=dev'));
+});
+
 const CLEAN = { server: { critical: 0, high: 2 }, 'agent-hub': { critical: 0, high: 1 }, 'nextcloud-connector': { critical: 0, high: 0 }, desktop: { critical: 0, high: 0 }, '.': { critical: 0, high: 0 } };
 const baselineOf = (counts) => ({
     counts: Object.fromEntries(Object.entries(counts).map(([d, c]) => [d, { critical: c.critical, high: c.high }])),
@@ -299,7 +312,7 @@ test('the audit workflow checks every target lockfile and installs none', () => 
     const loop = wf.match(/for d in ([^;]+); do/);
     assert.ok(loop, 'no manifest loop in dependency-audit.yml');
     const src = fs.readFileSync(SCRIPT, 'utf8');
-    const targets = [...src.matchAll(/\{\s*dir:\s*'([^']+)'/g)].map((m) => m[1]);
+    const targets = [...new Set([...src.matchAll(/\{\s*dir:\s*'([^']+)'/g)].map((m) => m[1]))];
     assert.strictEqual(targets.length, 5, 'TARGETS changed — update this test and the workflow loop together');
     assert.deepStrictEqual(new Set(loop[1].trim().split(/\s+/)), new Set(targets),
         'the workflow loop and TARGETS in scripts/audit-ratchet.mjs have drifted apart');
@@ -389,4 +402,25 @@ test('a failing ratchet fails the Ratchet step, and the summary still gets its o
     const passing = runStep(step, 0);
     assert.strictEqual(passing.code, 0, 'the Ratchet step fails while the ratchet passes');
     assert.match(passing.summary, /fake ratchet, exiting 0/);
+});
+
+test('production release cannot approve high advisories with the recorded baseline alone', () => {
+    const adv = { id: 'GHSA-test-high-risk', package: 'vulnerable', severity: 'high', range: '<2' };
+    const counts = { ...CLEAN, server: { critical: 0, high: 1 }, 'agent-hub': { critical: 0, high: 0 } };
+    const baseline = { ...baselineOf(counts), advisories: { server: [adv.id] } };
+    const box = sandbox({ counts, baseline, advisories: { server: [adv] } });
+    assert.strictEqual(run(box).code, 0);
+    assert.strictEqual(run(box, ['--release']).code, 1);
+});
+test('production exception requires an unexpired exception and dated reachability review', () => {
+    const adv = { id: 'GHSA-test-reviewed-risk', package: 'vulnerable', severity: 'high', range: '<2' };
+    const counts = { server: { critical: 0, high: 1 } };
+    const baseline = { ...baselineOf({ ...CLEAN, 'agent-hub': { critical: 0, high: 0 } }), accepted: [{ id: adv.id, reason: 'Cannot upgrade yet', expires: '2099-01-01' }] };
+    const unreviewed = sandbox({ counts, baseline, advisories: { server: [adv] } });
+    assert.strictEqual(run(unreviewed, ['--release']).code, 1);
+    baseline.accepted[0].reviewedAt = '2026-10-08';
+    baseline.accepted[0].reachability = 'Reviewed calls and tested that untrusted glob patterns cannot reach this package.';
+    const reviewed = sandbox({ counts, baseline, advisories: { server: [adv] } });
+    assert.strictEqual(run(reviewed, ['--release']).code, 0);
+    assert.notStrictEqual(run(reviewed, ['--release','--update']).code, 0);
 });

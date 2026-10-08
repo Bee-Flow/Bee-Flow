@@ -52,7 +52,9 @@ const BASELINE = path.join(ROOT, '.github/security/audit-baseline.json');
  * `production: false` means the whole tree counts because the package IS
  * tooling; there is no runtime half to separate out.
  */
-const TARGETS = [
+const TARGETS = process.argv.includes('--standalone-connector')
+    ? [{ dir: '.', production: true, why: 'the extracted Nextcloud connector runtime' }]
+    : [
     { dir: 'server', production: true, why: 'the API — every request goes through it' },
     { dir: 'agent-hub', production: true, why: 'the SPA served to every user' },
     { dir: 'nextcloud-connector', production: true, why: 'holds the tenant signing key' },
@@ -84,7 +86,8 @@ function audit(dir, production) {
     }
     if (!out) throw new Error(`npm audit produced no output in ${dir} — is package-lock.json present and readable?`);
     const parsed = JSON.parse(out);
-    const v = parsed.metadata?.vulnerabilities || {};
+    if (parsed.error || !parsed.metadata?.vulnerabilities || !parsed.vulnerabilities) throw new Error(`Dependency audit failed in ${dir}`);
+    const v = parsed.metadata.vulnerabilities;
     return {
         counts: Object.fromEntries(LEVELS.map((l) => [l, Number(v[l]) || 0])),
         advisories: advisoriesOf(parsed),
@@ -136,6 +139,8 @@ function acceptedEntryFor(accepted, adv) {
 }
 
 const update = process.argv.includes('--update');
+const release = process.argv.includes('--release');
+if (release && update) throw new Error('--release cannot update or create an approval baseline');
 const today = new Date().toISOString().slice(0, 10);
 const measured = {};
 for (const t of TARGETS) {
@@ -144,6 +149,7 @@ for (const t of TARGETS) {
 
 const baseline = readBaseline();
 
+if (release && !baseline) throw new Error('Release audit requires a reviewed baseline and explicit exceptions');
 if (update || !baseline) {
     const next = {
         _comment: 'Highest counts this repository is allowed to carry, and the critical/high advisory ids it carries per target. Lower both by fixing advisories and re-running `node scripts/audit-ratchet.mjs --update`; raising a count or adding an id is a deliberate edit that belongs in a commit message with a reason. A new advisory that cannot be fixed yet goes in `accepted` as { id } or { package, range } with a reason and an expires date (YYYY-MM-DD).',
@@ -202,13 +208,20 @@ for (const t of TARGETS) {
         lines.push(`➖ ${t.dir} (${scope}): unchanged — ${now.counts.critical} critical, ${now.counts.high} high`);
     }
 
+    if (release && LEVELS.some(level => now.counts[level] > 0) && now.advisories.length === 0) {
+        failed = true;
+        lines.push(`❌ ${t.dir}: audit reports high/critical vulnerabilities without identifiable advisories`);
+    }
     const recorded = new Set(baseline.advisories?.[t.dir] || []);
     for (const adv of now.advisories) {
-        if (recorded.has(adv.id)) continue;
+        if (!release && recorded.has(adv.id)) continue;
         const entry = acceptedEntryFor(accepted, adv);
         const label = `${adv.id} (${adv.severity}) in ${adv.package}${adv.range ? ' ' + adv.range : ''}: ${adv.title}`;
-        if (entry && entry.expires >= today) {
+        if (entry && entry.expires >= today && (!release || (typeof entry.reachability === 'string' && entry.reachability.trim() && typeof entry.reviewedAt === 'string' && DATE.test(entry.reviewedAt) && entry.reviewedAt <= today))) {
             lines.push(`➖ ${t.dir}: ${adv.id} accepted until ${entry.expires} — ${entry.reason}`);
+        } else if (entry && entry.expires >= today) {
+            failed = true;
+            lines.push(`❌ ${t.dir}: release exception for ${adv.id} lacks a dated reachability review`);
         } else if (entry) {
             failed = true;
             lines.push(`❌ ${t.dir}: allowlist entry for ${adv.id} expired on ${entry.expires} — ${label}`);

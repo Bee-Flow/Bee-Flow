@@ -3,7 +3,7 @@
 # BuildKit schedules them CONCURRENTLY — the embed build no longer adds its full
 # duration to the wall clock (~104s → overlapped with the ~74s main build on a
 # multi-core box). npm ci and the context copy still happen exactly once.
-FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS src
+FROM node:22.23.2-alpine@sha256:b6f26b36c8ff49624cfdac716b8ea1138d606df02586a77d364bb5536a634f85 AS src
 
 WORKDIR /app
 
@@ -110,6 +110,7 @@ COPY --from=build /app/dist/assets/*.map /
 
 # Production stage
 FROM nginx:alpine@sha256:62ff2089abf5a9ed33bd232895bef5e22f7bb4b200675cec49a5ebc48e3d4ac8
+RUN apk upgrade --no-cache
 
 # Copy built assets and strip sourcemaps so they are never served to clients.
 COPY --from=build /app/dist /usr/share/nginx/html

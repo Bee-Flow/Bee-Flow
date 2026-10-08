@@ -10,6 +10,15 @@ import re
 from .anchors import _ANCHOR_GAP, _LINE_SPACE
 
 _BSN_CANDIDATE_RE = re.compile(r"\b\d{9}\b")
+# The words that name a nine-digit run as a citizen's BSN. A SOFT anchor (see
+# PatternSpec.context_anchor): it never gates the BSN spec, it only tells the
+# ranking that the text itself says "BSN" when a model reads the digits as an
+# RSIN / tax number — the two share the elfproef, so only words separate them.
+_BSN_ANCHOR_RE = re.compile(
+    r"\b(?:BSN|burger[\s\-]?service[\s\-]?nummer|sofi[\s\-]?nummer|citizen[\s\-]service[\s\-]number)"
+    + _ANCHOR_GAP,
+    re.IGNORECASE,
+)
 
 # Six standard NL sidecodes — see RDW.
 _NL_PLATE_RES: tuple[re.Pattern[str], ...] = (

@@ -20,6 +20,7 @@
 import { Lock, ShieldCheck, ShieldOff, KeyRound, AlertTriangle } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import EncryptExistingData from './EncryptExistingData';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import ChoiceCards from '../../../shared/ChoiceCards';
@@ -218,6 +219,10 @@ export default function OrgEncryptionEditor({ orgId }) {
                         'Saving this will sign out everyone in the organisation, including you. Each person must sign in again so their encryption key can be created. Data can no longer be recovered by an administrator.',
                     )}
                 </div>
+            )}
+
+            {(server?.tier === 'managed' || server?.tier === 'zk') && (
+                <EncryptExistingData orgId={orgId} dirty={isDirty} />
             )}
 
             <div className="flex items-center gap-3 border-t border-black/10 pt-4 dark:border-white/10">

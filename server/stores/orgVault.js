@@ -24,13 +24,31 @@ const log = require('../telemetry/log');
 const ENVELOPE_TAG = 'routine-vault-v1';
 
 // ── Per-org key derivation ──────────────────────────────────────────
-function orgVaultKey(orgId) {
+// The derivation label is part of every key, so it is as frozen as the
+// envelope tag: it stays `routine-vault` through any rename. Builds from
+// 2026-10-04 until this fix derived with `automation-vault` instead, which
+// made every older org key (org_root_key included) undecryptable; decrypt
+// still accepts what those builds wrote. Never write with it.
+const KEY_LABEL = 'beeflow:routine-vault:v1:org:';
+const MISDERIVED_LABEL = 'beeflow:automation-vault:v1:org:';
+
+function deriveKey(label, orgId) {
     if (!orgId) throw new Error('orgVault: orgId required for key derivation');
     const master = process.env.MASTER_ENCRYPTION_KEY;
     if (!master) throw new Error('MASTER_ENCRYPTION_KEY env var is required for the org vault');
     return crypto.createHmac('sha256', master)
-        .update(`beeflow:automation-vault:v1:org:${orgId}`)
+        .update(`${label}${orgId}`)
         .digest();
+}
+
+function orgVaultKey(orgId) {
+    return deriveKey(KEY_LABEL, orgId);
+}
+
+function openEnvelope(envelope, key) {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(envelope.iv, 'hex'), { authTagLength: 16 });
+    decipher.setAuthTag(Buffer.from(envelope.authTag, 'hex'));
+    return decipher.update(Buffer.from(envelope.data, 'hex')) + decipher.final('utf8');
 }
 
 /**
@@ -61,16 +79,14 @@ function decrypt(stored, orgId) {
     try { envelope = JSON.parse(stored); } catch (_) { return null; }
     if (!envelope || envelope._encrypted !== ENVELOPE_TAG) return null;
     try {
-        const key = orgVaultKey(orgId);
-        const iv = Buffer.from(envelope.iv, 'hex');
-        const authTag = Buffer.from(envelope.authTag, 'hex');
-        const data = Buffer.from(envelope.data, 'hex');
-        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-        decipher.setAuthTag(authTag);
-        return decipher.update(data) + decipher.final('utf8');
+        return openEnvelope(envelope, orgVaultKey(orgId));
     } catch (err) {
-        log.warn(`[OrgVault] decrypt failed for org ${orgId}: ${err.message}`);
-        return null;
+        try {
+            return openEnvelope(envelope, deriveKey(MISDERIVED_LABEL, orgId));
+        } catch (_) {
+            log.warn(`[OrgVault] decrypt failed for org ${orgId}: ${err.message}`);
+            return null;
+        }
     }
 }
 

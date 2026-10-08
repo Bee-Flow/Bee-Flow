@@ -25,8 +25,16 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # the spec file lives under the bind-mounted /work.
 ENV NODE_PATH=/runner/node_modules
 
-COPY package.json ./
-RUN npm install --no-audit --no-fund --omit=dev
+COPY package*.json ./
+
+# `npm ci` never rewrites the lockfile, so this layer is only rebuilt when
+# package*.json changes; a lockfile out of sync with package.json fails loudly.
+# Same flaky-link tolerance as server/Dockerfile: npm's defaults give up on one
+# stalled socket halfway through a fresh install.
+RUN --mount=type=cache,target=/root/.npm \
+    NPM_CONFIG_FETCH_RETRIES=5 NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
+    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 NPM_CONFIG_FETCH_TIMEOUT=600000 \
+    npm ci --omit=dev --no-audit --no-fund
 
 COPY entrypoint.js ./
 

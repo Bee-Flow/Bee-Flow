@@ -6,6 +6,7 @@ import {
     mobilePageKey,
     parseAdminPath,
     parseOrgSettingsPath,
+    documentRoutePath,
 } from './appRoutes';
 import { isProjectsPage, projectRouteFromPage } from './projectNavigation';
 import { parseStudioQuery, sectionFromRaw, segmentForSection } from '../components/admin/Studio/studioRoutes';
@@ -23,6 +24,7 @@ export function useNavigateToPage({
     setAdminPath,
     setOrgSettingsPath,
     setInitialCoworkId,
+    setInitialDocumentId = () => {},
     setShowProfileMenu,
     setShowAgentDesigner,
     setShowAgentWizard,
@@ -250,6 +252,22 @@ export function useNavigateToPage({
             setShowStudio(false);
             setShowProfileMenu(false);
             window.history.pushState({ page: 'orgSettings' }, '', path);
+            return;
+        }
+        // The member library uses the normal workspace, without Studio panels.
+        if (page === 'documents' || page.startsWith('documents/')) {
+            const documentId = page.startsWith('documents/') ? page.slice('documents/'.length) : null;
+            setInitialDocumentId(documentId);
+            setCurrentPage('documents');
+            setShowStudio(false);
+            setShowSettings(false);
+            setShowAgentDesigner(false);
+            setShowAgentWizard(false);
+            setShowSkillsPanel(false);
+            setShowProfileMenu(false);
+            const path = documentRoutePath(documentId);
+            if (replace) window.history.replaceState({ page: 'documents' }, '', path);
+            else if (window.location.pathname !== path) window.history.pushState({ page: 'documents' }, '', path);
             return;
         }
         // Notebooks — a notebook is a document type and lives in Studio →

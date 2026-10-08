@@ -204,6 +204,17 @@ const LoginPage = ({ onLogin }) => {
         }
     }, [t]);
 
+    useEffect(() => {
+        const err = new URLSearchParams(window.location.search).get('error');
+        if (err === 'sso_link_required') {
+            setError(t('login.sso_link_required', 'Your Microsoft identity needs to be linked by a platform administrator. Contact your administrator, then sign in again.'));
+        } else if (err === 'seat_cap_exceeded') {
+            setError(t('login.sso_seat_cap_exceeded', 'Your organisation has reached its user limit, so your account could not be created. Contact your administrator.'));
+        } else if (err === 'signup_failed') {
+            setError(t('login.sso_signup_failed', 'Your account could not be created. Please try again or contact your administrator.'));
+        }
+    }, [t]);
+
     // Detect the invite-redeem failure redirect (?error=invite_expired /
     // invite_error). /auth/redeem-invite/:token 302s here — without the
     // token, and without ever putting the person into signup mode — when the

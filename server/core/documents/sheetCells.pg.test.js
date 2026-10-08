@@ -119,3 +119,21 @@ test('dropping a sheet\'s table removes it and its rows', async () => {
     assert.strictEqual(await sheets.dropSheetTable('alice', spare.id), true);
     assert.strictEqual(await datatableStore.getDatatable(spare.id, datatableStore.userScope('alice')), null);
 });
+
+test('encrypted spreadsheet cells pass through the real compiler on insert, update and read', async () => {
+    const encryption = require('../../stores/lib/documentCrypto');
+    const { swap, restore } = require('../../testUtils/swaps').makeSwaps();
+    const key = require('node:crypto').randomBytes(32);
+    swap(encryption.keySources, 'policy', async () => ({ enabled: true, tier: 'managed' }));
+    swap(encryption.keySources, 'userKey', async () => key);
+    try {
+        const encrypted = await sheets.createSheetTable({ ownerUserId: 'alice', name: 'Encrypted' });
+        await require('../../stores/documentStore').createDocument({ userId: 'alice', docType: 'spreadsheet', sheetTableId: encrypted.id, settings: { houseStyle: false } });
+        await sheets.writeCells('alice', encrypted.id, { A1: 'Confidential', B1: '=LEN(A1)', A2: 'x'.repeat(LIMITS.MAX_CELL_CHARS) });
+        await sheets.writeCells('alice', encrypted.id, { A1: 'Updated' });
+        const read = await sheets.readSheet('alice', encrypted.id);
+        assert.strictEqual(read.cells.A1, 'Updated');
+        assert.strictEqual(read.cells.B1, '=LEN(A1)');
+        assert.strictEqual(read.cells.A2.length, LIMITS.MAX_CELL_CHARS);
+    } finally { restore(); }
+});

@@ -86,7 +86,7 @@ router.put('/oauth-config', requireSuperAdmin, validate({ body: OAuthConfigBody 
     if (clientId !== undefined) config.oauth.clientId = clientId;
     if (clientSecret && clientSecret.trim()) config.oauth.clientSecret = clientSecret;
 
-    if (saveConfig(config)) {
+    if (await saveConfig({ oauth: { nextcloudUrl, clientId, clientSecret } })) {
         res.json({
             success: true,
             message: 'OAuth configuration saved',
@@ -265,7 +265,7 @@ router.put('/providers/:provider', requireSuperAdmin, requireSsoProvider, valida
         return res.status(404).json({ error: 'Unknown provider' });
     }
 
-    if (saveConfig(config)) {
+    if (await saveConfig(provider === 'nextcloud' ? { oauth: { ...req.body, nextcloudUrl: req.body.url, url: undefined } } : { providers: { [provider]: req.body } })) {
         res.json({ success: true, message: `${provider} configuration saved` });
     } else {
         res.status(500).json({ error: 'Failed to save configuration' });

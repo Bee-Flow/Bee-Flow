@@ -49,6 +49,7 @@
  *     PUT    /api/cms/admin/enabled                            { enabled, siteId? } — legacy
  *     PUT    /api/cms/admin/default-locale                     { locale }
  *     POST   /api/cms/admin/upload                             multipart file → { key, url }
+ *     POST   /api/cms/admin/upload-clip                        multipart mp4/webm clip (≤500 MB) → { key, url }
  *     GET    /api/cms/admin/assets                             list uploaded assets → { assets, unavailable? }
  *
  *   "Live" model: at most one project can be live at a time. The public
@@ -86,6 +87,8 @@ const {
     provisionAnalyticsForSite,
 } = cmsAnalytics;
 const { sanitizeSvg } = require('../utils/svgSanitizer');
+const cmsMedia = require('./cmsMedia');
+const { parseRangeHeader } = require('../core/http/httpRange');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf } = require('../core/http/schemaParts');
 
@@ -149,6 +152,7 @@ const importJsonParser = bodyParser.json({ limit: '2mb' });
 // user windows are intentionally generous so a legit power user editing
 // a site is never rate-limited.
 const uploadLimiter      = perUserRateLimit({ windowMs: 60_000, max: 60 });
+const clipUploadLimiter  = perUserRateLimit({ windowMs: 60_000, max: 10 });
 const importLimiter      = perUserRateLimit({ windowMs: 60_000, max: 10 });
 const duplicateLimiter   = perUserRateLimit({ windowMs: 60_000, max: 20 });
 const publishLimiter     = perUserRateLimit({ windowMs: 60_000, max: 30 });
@@ -248,7 +252,7 @@ const upload = multer({
     // enough that we don't silently accept multi-hundred-MB uploads.
     limits: { fileSize: 25 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        if (UPLOAD_MIME_WHITELIST.has(file.mimetype)) cb(null, true);
+        if (UPLOAD_MIME_WHITELIST.has(file.mimetype) || cmsMedia.isVttFile(file)) cb(null, true);
         else cb(new Error(`Unsupported file type: ${file.mimetype}`));
     },
 });
@@ -826,14 +830,22 @@ async function handleUpload(req, res) {
     // (parse fails, no <svg> root) returns 400 here.
     let body = req.file.buffer;
     let metadata = null;
-    if (req.file.mimetype === 'image/svg+xml') {
+    let contentType = req.file.mimetype;
+    // Captions (.vtt): browsers label them '', text/plain or octet-stream, so
+    // the extension and the content decide. Stored as text/vtt.
+    if (!UPLOAD_MIME_WHITELIST.has(req.file.mimetype)) {
+        if (!cmsMedia.isVttFile(req.file) || !cmsMedia.isValidVtt(req.file.buffer)) {
+            return res.status(400).json({ error: 'Invalid captions file (a WebVTT file under 1 MB that starts with WEBVTT)' });
+        }
+        contentType = 'text/vtt';
+    } else if (req.file.mimetype === 'image/svg+xml') {
         const clean = sanitizeSvg(req.file.buffer);
         if (!clean) return res.status(400).json({ error: 'Invalid or unsafe SVG' });
         body = clean;
         metadata = { sanitized: '1' };
     }
 
-    await storageStore.uploadFile(key, body, req.file.mimetype, metadata);
+    await storageStore.uploadFile(key, body, contentType, metadata);
 
     const url = `/api/cms/asset/${key.split('/').map(encodeURIComponent).join('/')}`;
     res.json({ success: true, key, url });
@@ -848,7 +860,7 @@ async function handleUpload(req, res) {
 // outage) — degrade to { assets: [], unavailable: true } so the picker
 // can hide its entry point instead of erroring.
 
-const ASSET_LIST_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm)$/i;
+const ASSET_LIST_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm|vtt)$/i;
 const ASSET_LIST_MAX = 500;
 
 async function listAssetsHandler(req, res) {
@@ -1049,7 +1061,27 @@ router.get(/^\/asset\/(.+)$/, async (req, res) => {
         if (!key.startsWith('cms/')) return res.status(404).json({ error: 'Not found' });
         if (!storageStore.isAvailable()) return res.status(503).json({ error: 'Storage unavailable' });
 
-        const { stream, contentType, contentLength, metadata } = await storageStore.streamFile(key);
+        // Byte ranges: <video> seeking needs them and Safari/iOS will not start
+        // a media resource that does not advertise them. The total size is
+        // needed first to answer a suffix range or a 416.
+        res.setHeader('Accept-Ranges', 'bytes');
+        let range = null;
+        let total = 0;
+        if (req.headers.range) {
+            const head = await storageStore.headFile(key);
+            total = Number(head.contentLength) || 0;
+            range = parseRangeHeader(req.headers.range, total);
+            if (range && range.invalid) {
+                res.setHeader('Content-Range', `bytes */${total}`);
+                return res.status(416).end();
+            }
+        }
+
+        const { stream, contentType: storedType, contentLength, metadata } = await storageStore.streamFile(key, { range });
+        // Captions are always served as UTF-8 WebVTT, whatever the object
+        // metadata says.
+        const isVtt = key.toLowerCase().endsWith('.vtt');
+        const contentType = isVtt ? 'text/vtt; charset=utf-8' : storedType;
         const sanitized = metadata && (metadata.sanitized === '1' || metadata.Sanitized === '1');
 
         // Defense in depth: if the stored Content-Type would execute in
@@ -1072,6 +1104,11 @@ router.get(/^\/asset\/(.+)$/, async (req, res) => {
             }
         } else {
             res.setHeader('Content-Type', contentType);
+            if (isVtt) res.setHeader('X-Content-Type-Options', 'nosniff');
+        }
+        if (range) {
+            res.status(206);
+            res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${total}`);
         }
         if (contentLength) res.setHeader('Content-Length', contentLength);
         res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -1102,6 +1139,10 @@ router.use('/admin/analytics', cmsAnalytics.router);
 // /admin/upload). Registered BEFORE attachSiteId: listing assets never
 // needs a site and must not auto-provision a default CMS project.
 router.get('/admin/assets', listAssetsHandler);
+// Clip upload sits here too (before attachSiteId): it touches no project, so
+// it must not auto-provision one.
+// Clips (video with sound, up to 500 MB): disk-backed, streamed into storage.
+router.post('/admin/upload-clip', clipUploadLimiter, cmsMedia.clipUploadMiddleware, cmsMedia.handleClipUpload);
 
 router.use('/admin', attachSiteId);
 

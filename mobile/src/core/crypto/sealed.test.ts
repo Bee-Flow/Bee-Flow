@@ -18,8 +18,13 @@ describe('sealed storage', () => {
         await sealedPut('u1', 'flow', 'a1', { prompt: 'Email Jan about the contract' });
         const raw = await AsyncStorage.getItem('beeflow.sealed.flow.a1');
         expect(raw).not.toBeNull();
-        expect(raw).not.toContain('Jan');
-        expect(raw).not.toContain('contract');
+        // Checked on the decoded bytes, not the base64 text: random ciphertext
+        // spells a short word like "Jan" in base64 now and then.
+        const { ct, ...envelope } = JSON.parse(raw ?? '{}');
+        expect(JSON.stringify(envelope)).not.toContain('Jan');
+        const bytes = Buffer.from(ct, 'base64').toString('latin1');
+        expect(bytes).not.toContain('Email Jan');
+        expect(bytes).not.toContain('contract');
     });
 
     it('does not open for another owner, and removes it', async () => {

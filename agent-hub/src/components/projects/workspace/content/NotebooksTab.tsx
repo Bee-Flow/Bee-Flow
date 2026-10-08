@@ -1,4 +1,4 @@
-import { useNotebookDetail } from '../../../../pages/notebooks/notebookQueries';
+import { useNotebookDetail } from '../../../../pages/documents/notebook/notebookQueries';
 // Notebooks tab of the project workspace: the notebooks filed in the project
 // as a card grid, "New notebook" straight into it, and "Add existing" from
 // the caller's own. A notebook opens in the notebook editor itself.
@@ -27,7 +27,7 @@ import { useMarkSeenWhenOpen, useProjectUnread } from '../useProjectUnread';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
 
-const NotebookDetail = lazy(() => import('../../../../pages/notebooks/detail/NotebookDetail'));
+const NotebookDetail = lazy(() => import('../../../../pages/documents/notebook/detail/NotebookDetail'));
 
 /** One notebook, full width inside the project, with its own Back to the grid. */
 function NotebookPane({ projectId, notebookId, currentUser, onOpenSub }: {

@@ -76,9 +76,22 @@ function chatOrContentText(t: TranslateFn, code: string | null): string | null {
  * The sentence to show for a refused project request. `source` is what was
  * thrown (or, for callers that use fetch directly, the response body).
  */
+/** Refusals of a document whose encryption key this session does not hold. */
+function encryptionText(t: TranslateFn, code: string | null): string | null {
+    switch (code) {
+        case 'document_encryption_key_unavailable':
+            return t('documents.encryption.key_unavailable', 'Your encryption key is not loaded in this session. Sign in again (or enter your encryption PIN) to unlock it, then try again.');
+        case 'document_decryption_failed':
+            return t('documents.encryption.decryption_failed', 'This document could not be opened with your key. Sign in again and try once more; if it keeps failing, ask your administrator.');
+        case 'document_encryption_invalid':
+            return t('documents.encryption.invalid', 'This document uses an encryption format this version does not recognise. Ask your administrator before changing it.');
+        default: return null;
+    }
+}
+
 export function projectErrorText(t: TranslateFn, source: unknown, fallback?: string): string {
     const { code, details, message } = projectErrorInfo(source);
-    const known = chatOrContentText(t, code);
+    const known = chatOrContentText(t, code) || encryptionText(t, code);
     if (known) return known;
     switch (code) {
         case 'invalid_date_range': return t('project_tasks.invalid_date_range', 'The start date must be on or before the due date.');

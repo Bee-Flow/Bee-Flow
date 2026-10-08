@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import MicrosoftIdentityPanel from './MicrosoftIdentityPanel';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 
 const SSOConfigPanel = () => {
@@ -481,6 +482,7 @@ const SSOConfigPanel = () => {
                     </div>
                 )}
             </div>
+            {activeTab === 'microsoft' && <MicrosoftIdentityPanel />}
         </div>
     );
 };

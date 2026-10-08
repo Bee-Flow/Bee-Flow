@@ -2,7 +2,7 @@ import { Loader2, MessageCircleQuestion, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { knowledgeApi } from './knowledgeApi';
 import useTranslation from '../../../../hooks/useTranslation';
-import CitationChips from '../../../../pages/notebooks/CitationChips';
+import CitationChips from '../../../../pages/documents/notebook/CitationChips';
 import RelevanceBar from '../../../shared/RelevanceBar';
 
 /**

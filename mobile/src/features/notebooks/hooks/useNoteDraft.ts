@@ -1,6 +1,6 @@
 /**
  * The notes draft: what the Notes tab shows and edits, and its autosave —
- * the web's useDocumentAutosave (pages/notebooks/hooks) for a phone. The
+ * the web's useDocumentAutosave (pages/documents/notebook/hooks) for a phone. The
  * bookkeeping is model/noteSaver.ts; this hook gives it the HTTP calls and
  * the caches, and hands the screen its state.
  */

@@ -1,8 +1,8 @@
 # Production release flow (manual run, channel=prod):
-#   build (push :latest + :prod + :sha-<fullsha>) → release (GitHub Release)
-# NOTE: the automated E2E smoke gate is intentionally NOT wired in here yet. The
-# harness lives under e2e/ and its reusable workflow (.github/workflows/e2e-smoke.yml)
-# can be run manually (workflow_dispatch); it is not triggered by this build.
+#   build immutable candidates → security scans → E2E smoke gate (boot the
+#   candidate stack, run the smoke suite) → release-candidate manifest →
+#   separate promotion workflow.
+# Production tags are written only by promote-release.yml after staging validation.
 name: Build & Push to GHCR
 
 on:
@@ -13,12 +13,12 @@ on:
   push:
     branches: [main]
   # PRODUCTION release is a manual run only — pick channel=prod. Builds push
-  # :latest + :prod + :sha-<sha> directly.
+  # rc-<run>-<attempt> candidates only; production promotion is separate.
   # Defaults to channel=dev so an accidental manual run never ships to production.
   workflow_dispatch:
     inputs:
       channel:
-        description: 'Release channel — dev (ad-hoc dev build) or prod (PRODUCTION release → :latest/:prod, only from main)'
+        description: 'Release channel — dev (ad-hoc dev build) or prod (release candidate, only from main)'
         type: choice
         options: [dev, prod]
         default: dev
@@ -34,7 +34,10 @@ on:
 
 # Tags by trigger:
 #   push main, or manual channel=dev          → :dev + :dev-sha-<sha>          (release_dev)
-#   manual channel=prod (main only)           → :latest + :prod + :sha-<sha>   (release_prod)
+#   manual channel=prod (main only)           → :rc-<run>-<attempt>            (release_prod)
+#     …plus :sha-<fullsha> on the three images the smoke gate boots (server,
+#     agent-hub, search-api): e2e/ci/resolve-images.sh pulls the services a
+#     run built by exactly that tag.
 # Only build services whose source changed (push) or were explicitly selected (manual run)
 env:
   REGISTRY: ghcr.io
@@ -63,7 +66,8 @@ jobs:
   # images 1-5, guard 8-13 with a warm cache). search-gpu and whisperx have
   # never finished a build, so theirs allows a cold CUDA build. Without a cap a
   # stuck push or a retrying blob upload runs to GitHub's 360-minute default.
-  # The `ci` call job cannot take one; ci.yml caps each of its own jobs.
+  # The call jobs (ci, e2e-smoke, a11y-conformance) cannot take one; the
+  # called workflows cap each of their own jobs.
   # ── Detect changed services ────────────────────────────────
   changes:
     runs-on: ubuntu-latest
@@ -155,10 +159,12 @@ jobs:
               - 'reranker/**'
             pwt-runner:
               - 'server/pwt-runner/**'
+              - 'agent-hub/**'
       - id: manual
         if: github.event_name == 'workflow_dispatch'
         env:
           SVCS: ${{ inputs.services }}
+          CHANNEL: ${{ inputs.channel }}
         run: |
           # Normalise first. The match below is a literal substring test, so
           # `server, agent-hub` — with the space a human naturally types —
@@ -167,6 +173,16 @@ jobs:
           # so the fail-fast guard is happy, and a prod release is cut whose
           # agent-hub image is whatever :prod already pointed at.
           SVCS="$(echo "$SVCS" | tr -d '[:space:]')"
+          # A prod release may not select `all`: it includes whisperx, and
+          # search-gpu through the `search` key, and neither CUDA image has
+          # ever finished a cold build (see the note above the jobs). Cut the
+          # release from an explicit list instead, and give those two a
+          # manual, individual release run once a full cold build has
+          # succeeded — never silently as part of `all`.
+          if [[ "$CHANNEL" == "prod" && "$SVCS" == "all" ]]; then
+            echo "::error::channel=prod with services=all is refused: 'all' includes whisperx and search-gpu (via 'search'), whose cold CUDA builds have never finished. List the services explicitly and release whisperx / search-gpu in a separate manual run once a full cold build has succeeded."
+            exit 1
+          fi
           KNOWN="server agent-hub search guard pii classify whisperx wizard reranker pwt-runner"
           # Reject unknown names outright. A typo used to select nothing and
           # look like a deliberately narrow build.
@@ -279,13 +295,47 @@ jobs:
       contents: read
       pull-requests: read
 
+  # A previously green PR tree cannot replace current release security checks.
+  release-security:
+    needs: changes
+    if: needs.changes.outputs.release_prod == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Release dependency gate (baseline alone cannot approve)
+        run: node scripts/audit-ratchet.mjs --release
+      - name: Install pinned gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Require full secret scan
+        run: |
+          ./scripts/scan-secrets.sh
+          ./scripts/check-no-test-secrets.sh
+
   # ── Server ─────────────────────────────────────────────────
   server:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.server == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -314,14 +364,14 @@ jobs:
       # without the files the render service degrades to a plain
       # "screenshots unavailable" answer instead.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        continue-on-error: true
+        continue-on-error: ${{ needs.changes.outputs.release_prod != 'true' }}
         with:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: agent-hub/package-lock.json
       - name: Build App Studio runtime bundle
         id: runtime-bundle
-        continue-on-error: true
+        continue-on-error: ${{ needs.changes.outputs.release_prod != 'true' }}
         working-directory: agent-hub
         run: |
           set -euo pipefail
@@ -369,7 +419,7 @@ jobs:
       # deployable server image.
       - name: Generate SBOM (CycloneDX)
         id: sbom
-        continue-on-error: true
+        continue-on-error: ${{ needs.changes.outputs.release_prod != 'true' }}
         env:
           BUILD_SHA: ${{ github.sha }}
           BUILD_REF: ${{ github.ref_name }}
@@ -421,11 +471,13 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.IMAGE_PREFIX }}/server
-          # Prod builds push :latest + :prod + :sha-<sha>; dev builds push :dev + :dev-sha-<sha>.
+          # Release candidates remain isolated until their immutable digests pass staging.
           tags: |
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            # :sha-<fullsha> is how the E2E smoke gate and the a11y
+            # conformance call below pull the images this run built
+            # (e2e/ci/resolve-images.sh resolves built services by that tag).
             type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
       # The month of the DB-IP Lite edition the `geo` stage downloads (server
@@ -435,7 +487,8 @@ jobs:
       - id: geo
         name: DB-IP Lite edition month
         run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./server
           push: true
@@ -453,11 +506,14 @@ jobs:
 
   # ── Agent Hub (frontend) ───────────────────────────────────
   agent-hub:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.agent-hub == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -478,12 +534,14 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/agent-hub
           tags: |
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            # :sha-<fullsha>: pulled by the E2E smoke gate / a11y conformance
+            # call (e2e/ci/resolve-images.sh), same contract as server above.
             type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./agent-hub
           push: true
@@ -550,11 +608,14 @@ jobs:
 
   # ── Search API ─────────────────────────────────────────────
   search-api:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.search == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -575,12 +636,14 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/search-api
           tags: |
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            # :sha-<fullsha>: pulled by the E2E smoke gate / a11y conformance
+            # call (e2e/ci/resolve-images.sh), same contract as server above.
             type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./search-service
           file: ./search-service/Dockerfile
@@ -594,11 +657,14 @@ jobs:
 
   # ── Search GPU Inference ───────────────────────────────────
   search-gpu:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.search == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
@@ -629,12 +695,11 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/search-inference-gpu
           tags: |
-            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./search-service
           file: ./search-service/Dockerfile.inference-gpu
@@ -651,11 +716,14 @@ jobs:
 
   # ── Guard Service ──────────────────────────────────────────
   guard:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.guard == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -676,15 +744,14 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/guard
           tags: |
-            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
             # :dev tracks head-of-trunk (main pushes) so the dev compose
             # install-from-UI path always has a reachable image (the installer
             # tries :dev before :latest).
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./guard-service
           push: true
@@ -715,11 +782,14 @@ jobs:
 
   # ── PII Service ────────────────────────────────────────────
   pii:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.pii == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -740,12 +810,11 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/pii
           tags: |
-            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./pii-service
           push: true
@@ -762,11 +831,14 @@ jobs:
   # scripts/bake_model.py, which fails the build when the baked model cannot
   # classify one sentence of our own.
   classify:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.classify == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -787,12 +859,11 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/classify
           tags: |
-            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./classify-service
           push: true
@@ -816,11 +887,14 @@ jobs:
 
   # ── WhisperX ───────────────────────────────────────────────
   whisperx:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.whisperx == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
@@ -851,12 +925,11 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/whisperx
           tags: |
-            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./whisperx-service
           push: true
@@ -869,11 +942,14 @@ jobs:
 
   # ── Install Wizard ─────────────────────────────────────────
   wizard:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.wizard == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -894,12 +970,11 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/install-wizard
           tags: |
-            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./install-wizard
           push: true
@@ -912,11 +987,14 @@ jobs:
 
   # ── Reranker (CPU cross-encoder) ────────────────────────────
   reranker:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && needs.changes.outputs.reranker == 'true' }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -937,12 +1015,11 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/reranker
           tags: |
-            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./reranker
           push: true
@@ -973,11 +1050,14 @@ jobs:
   # (:dev, :latest, :sha-<sha>, :dev-sha-<sha>) needs a runner tag beside it.
   # With no change under server/pwt-runner/** this is a cached rebuild.
   pwt-runner:
-    needs: [changes, ci]
+    needs: [changes, ci, release-security]
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success'
       && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && (needs.changes.outputs.release_prod != 'true' || needs.release-security.result == 'success')
       && (needs.changes.outputs.pwt-runner == 'true' || needs.changes.outputs.server == 'true') }}
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -1007,12 +1087,11 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/pwt-runner
           tags: |
-            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
-            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=rc-${{ github.run_id }}-${{ github.run_attempt }},enable=${{ needs.changes.outputs.release_prod == 'true' }}
             type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
             type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
-      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - id: image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./server/pwt-runner
           push: true
@@ -1022,6 +1101,59 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=pwt-runner
           cache-to:   type=gha,scope=pwt-runner,mode=max
+
+  # ── E2E smoke gate (prod only) ─────────────────────────────
+  # Boots the self-host stack from the registry — the services this run built
+  # at :sha-<fullsha>, the rest at :prod — and runs the Playwright smoke suite
+  # against it (e2e/). A prod release candidate is not finalized (the
+  # release-candidate job below) unless this passes. Skipped image jobs are
+  # fine: a service this run did not build falls back to :prod inside the
+  # smoke workflow, which also warns when built services have no smoke
+  # coverage. E2E_ANTHROPIC_API_KEY is required by the called workflow: the
+  # smoke suite's llm-capability scenarios talk to a model, so the repo
+  # secret must exist or a prod release stops here by design.
+  e2e-smoke:
+    needs: [changes, server, agent-hub, search-api]
+    if: >-
+      ${{ !cancelled() && needs.changes.outputs.release_prod == 'true'
+      && !contains(needs.*.result, 'failure') }}
+    uses: ./.github/workflows/e2e-smoke.yml
+    with:
+      built_services: ${{ needs.changes.outputs.built_csv }}
+      candidate_digests: ${{ toJSON(needs) }}
+      image_sha: ${{ github.sha }}
+      fallback_tag: prod
+    secrets:
+      E2E_ANTHROPIC_API_KEY: ${{ secrets.E2E_ANTHROPIC_API_KEY }}
+    permissions:
+      contents: read
+      packages: read
+
+  # ── A11y conformance evidence (prod only) ──────────────────
+  # Renders the product's public surfaces in a real browser on the candidate
+  # stack and runs axe-core over them, producing
+  # server/compliance/a11y/conformance.json as the artifact
+  # a11y-conformance-<sha>. It CANNOT be staged into this run's server image:
+  # the stack it renders is that image, so the report about a build only
+  # exists after the build. The artifact therefore still has to be committed
+  # by hand (the next server build ships it via the Dockerfile's COPY . .) —
+  # this call keeps the evidence fresh per release instead of months stale.
+  # Not a gate: nothing below needs it, so axe flakiness never blocks a
+  # release; the compliance check grades the committed file at runtime.
+  a11y-conformance:
+    needs: [changes, server, agent-hub, search-api]
+    if: >-
+      ${{ !cancelled() && needs.changes.outputs.release_prod == 'true'
+      && !contains(needs.*.result, 'failure') }}
+    uses: ./.github/workflows/a11y-conformance.yml
+    with:
+      built_services: ${{ needs.changes.outputs.built_csv }}
+      candidate_digests: ${{ toJSON(needs) }}
+      image_sha: ${{ github.sha }}
+      fallback_tag: prod
+    permissions:
+      contents: read
+      packages: read
 
   # ── Release notes (BOTH channels) ──────────────────────────
   # Drafts customer-facing notes for this range and files them in the app as a
@@ -1243,63 +1375,94 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # ── GitHub Release (PRODUCTION only) ───────────────────────
-  # After a manual prod release builds & pushes the images, cut a git tag +
-  # GitHub Release so it shows up under Releases. Skipped for dev builds (every
-  # main merge is a continuous dev build — a Release per merge would be noise).
-  release:
-    needs: [changes, ci, release-notes, server, agent-hub, search-api, search-gpu, guard, pii, classify, whisperx, wizard, reranker, pwt-runner]
-    # only on prod, only if no build job failed.
-    if: ${{ always() && !cancelled() && needs.changes.outputs.release_prod == 'true' && !contains(needs.*.result, 'failure') }}
+  # ── Immutable release candidates ──────────────────────────
+  candidate-images:
+    needs: [changes, ci, release-security, server, agent-hub, search-api, search-gpu, guard, pii, classify, whisperx, wizard, reranker, pwt-runner]
+    if: ${{ always() && !cancelled() && needs.changes.outputs.release_prod == 'true' && needs.release-security.result == 'success' && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: write   # create the tag + release
+    outputs:
+      matrix: ${{ steps.manifest.outputs.matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - id: ver
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          V="$(echo "${INPUT_VERSION:-}" | tr -d '[:space:]')"
-          if [[ -z "$V" ]]; then V="prod-$(date -u +%Y.%m.%d)-${{ github.run_number }}"; fi
-          echo "version=$V" >> "$GITHUB_OUTPUT"
-          echo "Release version: $V"
-      # Self-host bundle: the three files a no-clone install needs (the
-      # "release bundle" docs/self-hosting/docker-compose.md points at), plus
-      # checksums. Taken from the checkout above, i.e. the exact release
-      # commit. docker/init-db.sh is not an asset — selfhost.sh materialises
-      # it itself.
-      - name: Checksum self-host bundle
-        run: sha256sum selfhost.sh docker-compose.from-registry.yml .env.selfhost.example > SHA256SUMS
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          tag_name: ${{ steps.ver.outputs.version }}
-          name: ${{ steps.ver.outputs.version }}
-          target_commitish: ${{ github.sha }}
-          generate_release_notes: true   # auto commit/PR changelog since the last release
-          # The drafted human notes go on top; GitHub appends its raw commit/PR
-          # list underneath. `notes_md` is the full itemised draft written by
-          # Claude in the release-notes job; `summary` is the app-drafted title
-          # and lead, which is all that exists when CI has no ANTHROPIC_API_KEY.
-          # Both empty (no ingest token either) leaves just GitHub's own list.
-          # `built_csv` is what actually built — `inputs.services` is the raw
-          # string the operator typed ("all"), which is not the same thing.
-          body: |
-            ${{ needs.release-notes.outputs.notes_md || needs.release-notes.outputs.summary }}
+          node-version-file: .nvmrc
+      - id: manifest
+        env:
+          BUILD_RESULTS: ${{ toJSON(needs) }}
+        run: node scripts/release-manifest.mjs build candidate-images.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: candidate-images-${{ github.run_attempt }}
+          path: candidate-images.json
+          if-no-files-found: error
 
-            ---
-            Production release built from `${{ github.sha }}`.
+  candidate-containers:
+    needs: candidate-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.candidate-images.outputs.matrix) }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Scan immutable candidate
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ matrix.ref }}
+          format: json
+          output: container-scan.json
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '0' # The reviewed-exception gate below decides approval.
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify runtime prerequisites for reachability reviews
+        id: runtime
+        env:
+          IMAGE_REF: ${{ matrix.ref }}
+          SERVICE: ${{ matrix.service }}
+        run: bash scripts/check-release-container.sh "$SERVICE" "$IMAGE_REF"
+      - name: Require dated reachability reviews for remaining findings
+        env:
+          IMAGE_REF: ${{ matrix.ref }}
+          CONTAINER_RUNTIME_VERIFIED: ${{ steps.runtime.outputs.verified }}
+        run: node scripts/container-release-gate.mjs container-scan.json "$IMAGE_REF"
 
-            **Images** — `ghcr.io/bee-flow/<svc>` at `:prod`, `:latest`, and `:sha-${{ github.sha }}`.
-            Built services: `${{ needs.changes.outputs.built_csv }}`
-
-            **Self-host bundle** — `selfhost.sh`, `docker-compose.from-registry.yml` and `.env.selfhost.example` (+ `SHA256SUMS`) are attached below.
-          files: |
-            selfhost.sh
-            docker-compose.from-registry.yml
-            .env.selfhost.example
-            SHA256SUMS
+  release-candidate:
+    needs: [candidate-images, candidate-containers, release-security, e2e-smoke]
+    # The release candidate is finalized only after the stack those images
+    # form has booted and passed the smoke suite (e2e-smoke, prod-only above).
+    if: ${{ !cancelled() && needs.candidate-containers.result == 'success' && needs.release-security.result == 'success' && needs.e2e-smoke.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: candidate-images-${{ github.run_attempt }}
+      - run: node scripts/release-manifest.mjs finalize candidate-images.json release-candidate.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-candidate-${{ github.run_attempt }}
+          path: release-candidate.json
+          if-no-files-found: error

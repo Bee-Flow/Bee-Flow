@@ -48,6 +48,7 @@ const CoworkPage = lazy(() => import('./components/cowork/CoworkPage'));
 // to leave the user with no navigation but the Back button.
 const AppsHomePage = lazy(() => import('./pages/apps/AppsHomePage'));
 const FormsHomePage = lazy(() => import('./pages/forms/FormsHomePage'));
+const DocumentsPage = lazy(() => import('./pages/documents/DocumentsPage'));
 // One published form, shown inside the workspace at /app/forms/:token. The very
 // same component serves it anonymously at /f/:token — being signed in does not
 // change what the form is, only that the sidebar is still there around it.
@@ -58,7 +59,7 @@ const PublicFormPage = lazy(() => import('./pages/PublicFormPage'));
 // so closeAllOverlays() has to navigate away from it too. Keep it in sync with
 // the branch order below — adding a page above the overlays without adding it
 // here reintroduces BFSF-267 ("the sidebar item does nothing").
-const PAGES_ABOVE_OVERLAYS = ['cowork', 'apps', 'forms', 'formView'];
+const PAGES_ABOVE_OVERLAYS = ['cowork', 'documents', 'apps', 'forms', 'formView'];
 
 // One stable empty list, so a hub without projects does not hand the sidebar
 // a new array on every render.
@@ -83,6 +84,7 @@ const AgentHub = ({
     showAgentWizard = false, onCloseAgentWizard,
     showStudio = false, studioRoute = { section: 'agents', id: null }, onCloseStudio,
     initialCoworkId = null,
+    initialDocumentId = null,
     // Which published form /app/forms/:token is showing (page key 'formView').
     formViewToken = null,
     // Projects is URL-driven now. `initialProjectRoute` is null when we are not
@@ -924,6 +926,13 @@ const AgentHub = ({
                        every overlay flag for a top-level page, so there's no
                        separate `showCowork` boolean to keep in sync. */
                     <CoworkPage user={user} isMobile={isMobile} initialCoworkId={initialCoworkId} onNavigate={onNavigate} />
+                ) : currentPage === 'documents' ? (
+                    <DocumentsPage
+                        mode="workspace"
+                        user={user}
+                        initialDocumentId={initialDocumentId}
+                        onDocumentChange={(id) => onNavigate(id ? `documents/${id}` : 'documents')}
+                    />
                 ) : currentPage === 'apps' ? (
                     /* Published-apps directory (/app/apps). Same inline slot as
                        Cowork, for the same reason: the sidebar stays. Tiles

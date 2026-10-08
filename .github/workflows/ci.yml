@@ -96,6 +96,7 @@ jobs:
       hub-module-sdk: ${{ steps.filter.outputs.hub-module-sdk || steps.all.outputs.all }}
       install-wizard: ${{ steps.filter.outputs.install-wizard || steps.all.outputs.all }}
       nc-login-mini: ${{ steps.filter.outputs.nc-login-mini || steps.all.outputs.all }}
+      e2e: ${{ steps.filter.outputs.e2e || steps.all.outputs.all }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The tree this PR run tests (the merge ref: the PR on top of its base).
@@ -163,6 +164,8 @@ jobs:
               - 'server/automation/validate/refPaths.js'
               - 'server/core/automationRunner/definitionForRun.js'
               - 'server/core/http/errors.js'
+              # required by errors.js
+              - 'server/shared/httpErrors.js'
               # The mobile parity series (flow editor, access, compliance,
               # Studio, billing): lockstep tests and serverContract.test.ts
               # read these as text or require() them.
@@ -367,6 +370,13 @@ jobs:
               - '.nvmrc'
               - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
               - 'scripts/eslint-service-config.cjs'
+              - '.github/workflows/ci.yml'
+            # The generated Playwright specs must never drift from the
+            # scenario Markdown they are generated from (e2e/runner/gen.mjs);
+            # until now only the manual e2e smoke run checked that.
+            e2e:
+              - 'e2e/**'
+              - '.nvmrc'
               - '.github/workflows/ci.yml'
       - id: all
         if: github.event_name == 'workflow_dispatch'
@@ -1141,6 +1151,32 @@ jobs:
       - name: Coverage floor
         run: node ../scripts/coverage-ratchet.mjs nc-login-mini
 
+  # ── E2E spec freshness ────────────────────────────────────────────────
+  # The specs under e2e/tests are GENERATED from the scenario Markdown
+  # (e2e/runner/gen.mjs); gen:check fails when the two drift. Until now the
+  # only freshness gate ran inside the manual e2e smoke workflow, after the
+  # PR that caused the drift had already merged. No stack, no browser: the
+  # check is a pure text comparison, so it stays a cheap PR gate here.
+  e2e-specs:
+    name: E2E spec freshness
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: e2e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - run: npm ci
+      - name: Generated specs match the scenarios
+        run: npm run gen:check
+
   # ── The one context the ruleset requires ───────────────────────────────
   # (Repo ruleset 23605458; mirrored in .github/required-checks.json.) Runs
   # always. Green when every job that ran succeeded and none was cancelled; a
@@ -1156,7 +1192,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, frontend, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, install-wizard, nc-login-mini, duplication, frontend-tests, frontend-coverage]
+    needs: [changes, server, frontend, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, install-wizard, nc-login-mini, duplication, frontend-tests, frontend-coverage, e2e-specs]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

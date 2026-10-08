@@ -24,7 +24,7 @@ import KeepDraftCard from './KeepDraftCard';
 // Subtrees lifted out of this file verbatim — each one owns markup only; every
 // piece of state still lives on this component's fiber and is threaded down.
 import AnswerChips from './AnswerChips';
-import CitationOverlay from '../../../pages/notebooks/CitationOverlay';
+import CitationOverlay from '../../../pages/documents/notebook/CitationOverlay';
 import { GeneratedImages, GeneratedAudio, GeneratedVideos, GeneratedFiles } from './GeneratedMedia';
 import HowIGotThisAnswer from './HowIGotThisAnswer';
 import MessageActionsRow from './MessageActionsRow';

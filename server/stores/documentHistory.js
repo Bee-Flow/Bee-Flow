@@ -195,9 +195,14 @@ function makeDocumentHistory(deps) {
         await initDB();
         const body = sanitizePageBody(html);
         assertWithinCaps({ bodyHtml: body });
-        const row = await getOne(`UPDATE studio_documents SET body_html = $2, updated_at = NOW()
-            WHERE id = $1 AND doc_type = $3 RETURNING version_id`, [documentId, body, PAGE_DOC_TYPE]);
-        return row ? { versionId: row.version_id } : null;
+        return withTransaction(async (client) => {
+            const { rows } = await client.query('SELECT * FROM studio_documents WHERE id = $1 AND doc_type = $2 FOR UPDATE', [documentId, PAGE_DOC_TYPE]);
+            if (!rows[0]) return null;
+            const contentCrypto = require('./lib/documentCrypto');
+            const storedBody = await contentCrypto.seal(body, contentCrypto.resourceOf(rows[0]), 'body_html');
+            const { rows: saved } = await client.query('UPDATE studio_documents SET body_html = $2, updated_at = NOW() WHERE id = $1 RETURNING version_id', [documentId, storedBody]);
+            return saved[0] ? { versionId: saved[0].version_id } : null;
+        });
     }
 
     /**
@@ -332,6 +337,12 @@ function makeDocumentHistory(deps) {
         await initDB();
         const list = [...new Set((Array.isArray(needles) ? needles : []).filter((n) => typeof n === 'string' && n))];
         if (!documentId || !list.length) return null;
+        const encrypted = await getOne('SELECT id, settings FROM studio_documents WHERE id = $1', [documentId]);
+        if (encrypted?._contentCryptoContext) {
+            const revisions = await getAll('SELECT id, body_html, snapshot, created_by, seq FROM studio_document_versions WHERE document_id = $1 ORDER BY seq ASC NULLS FIRST, created_at ASC', [documentId]);
+            const match = revisions.find((row) => (afterSeq == null || (row.seq != null && Number(row.seq) > Number(afterSeq))) && list.some((needle) => (row.body_html || '').includes(needle) || JSON.stringify(row.snapshot || {}).includes(needle)));
+            return match ? { createdBy: match.created_by || null, seq: match.seq == null ? null : Number(match.seq) } : null;
+        }
         const holds = `EXISTS (SELECT 1 FROM unnest($2::text[]) AS n(needle)
             WHERE position(n.needle IN v.body_html) > 0 OR position(n.needle IN COALESCE(v.snapshot::text, '')) > 0)`;
         if (afterSeq == null) {

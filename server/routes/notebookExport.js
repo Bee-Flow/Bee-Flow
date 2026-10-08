@@ -37,6 +37,7 @@ const express = require('express');
 const { z } = require('zod');
 const log = require('../telemetry/log');
 const router = express.Router();
+router.use(require('../stores/lib/documentCrypto').withDocumentEncryptionSession);
 const { validate } = require('../core/http/validate');
 const { buildExportHTML, cleanContentForExport } = require('../templates/exportTemplate');
 const { resolveHouseStyle, buildDocxStylingFromHouseStyle, applyInlineStyles, NO_SUCH_STYLE } = require('../core/documents/docxHouseStyle');
@@ -230,7 +231,7 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
 
         let HTMLtoDOCX;
         try {
-            HTMLtoDOCX = require('html-to-docx');
+            HTMLtoDOCX = require('@turbodocx/html-to-docx');
             // Handle both default and named exports
             if (HTMLtoDOCX.default) HTMLtoDOCX = HTMLtoDOCX.default;
         } catch (e) {

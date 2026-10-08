@@ -633,6 +633,7 @@ export const STUDIO_APPS = [
         // A notebook is a document type: `initialDocumentId` is `notebook/<id>`
         // for one (pages/documents/notebookRef), its URL studio/documents/notebook/<id>.
         getProps: ({ user, initialDocumentId, onNavigate }) => ({
+            mode: 'studio',
             user,
             initialDocumentId,
             onDocumentChange: (id) => onNavigate && onNavigate(id ? `studio/documents/${id}` : 'studio/documents'),

@@ -23,11 +23,9 @@ const express = require('express');
  */
 /**
  * The session user built from a provider profile, before provisioning.
- * @typedef {{ id?: string, azureUserId?: string|null, displayName?: string, firstName?: string, lastName?: string,
+ * @typedef {{ id?: string, azureUserId?: string|null, azureTenantId?: string|null, displayName?: string, firstName?: string, lastName?: string,
  *             email?: string, picture?: string, provider: string, organizationId?: string, [key: string]: any }} OAuthUser
  */
-const fs = require('fs');
-const path = require('path');
 const log = require('../../telemetry/log');
 const router = express.Router();
 
@@ -48,7 +46,8 @@ const { parseGroupIds, orgIdsForUser } = require('../orgMembership');
 const { getEffectiveFreeEmailDomains } = require('../../utils/freeEmailDomains');
 const { checkWebSignupAllowed } = require('../signupGuards');
 const accountProvisioning = require('../accountProvisioning');
-const { _vaultUpsertSafe, oauthStatesMatch } = require('./shared');
+const { _vaultUpsertSafe, oauthStatesMatch, knownNativeAppRedirect } = require('./shared');
+const microsoftLogin = require('./microsoftLogin');
 
 /**
  * Check if encryption is enabled for a user based on their org's subscription plan.
@@ -77,7 +76,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
                 isAdmin: req.session.isAdmin || false,
                 preserve: [
                     'oauthPopup', 'oauthPickupId', 'oauthAppRedirect',
-                    'accessToken', 'refreshToken', 'oauthProvider',
+                    'accessToken', 'refreshToken', 'oauthProvider', 'microsoftIdentityVersion', 'microsoftLoginIdentity',
                     'nextcloudUid', 'nextcloudTokenExpiresAt',
                     'encryptionKey', 'needsEncryptionSetup', 'needsEncryptionPin',
                     'pendingApproval', 'noOrganization',
@@ -91,7 +90,8 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
 
         if (req.session.oauthPopup) {
             const pickupId = req.session.oauthPickupId;
-            const appRedirect = req.session.oauthAppRedirect;
+            // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- knownNativeAppRedirect returns one of the fixed NATIVE_APP_REDIRECTS literals or null, never the session value
+            const appRedirect = knownNativeAppRedirect(req.session.oauthAppRedirect);
             delete req.session.oauthPopup;
             delete req.session.oauthPickupId;
             delete req.session.oauthAppRedirect;
@@ -108,6 +108,8 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
                         accessToken: req.session.accessToken,
                         refreshToken: req.session.refreshToken,
                         oauthProvider: req.session.oauthProvider,
+                        microsoftIdentityVersion: req.session.microsoftIdentityVersion,
+                        microsoftLoginIdentity: req.session.microsoftLoginIdentity,
                         nextcloudUid: req.session.nextcloudUid,
                         appPassword: appPasswordData,
                         isAuthenticated: true,
@@ -180,7 +182,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
 // read `allowed_features` alone, i.e. only the plan-grant half of entitlement,
 // so an org entitled via its licence tier failed it and `zk` silently wrote
 // plaintext. See stores/encryptionAvailability.js for the full note.
-const { isEncryptionEnabledForUser } = require('../../stores/encryptionAvailability');
+const { isSsoPinRequiredForUser } = require('../../stores/encryptionAvailability');
 
 /**
  * Clamp a provider-supplied error to something safe to put in a URL.
@@ -199,6 +201,7 @@ function safeErrorCode(value) {
 // Provider-specific callback
 router.get('/callback/:provider', async (req, res) => {
     const { provider } = req.params;
+
     const { code, error, error_description, state } = req.query;
     const config = await loadConfig();
 
@@ -238,7 +241,7 @@ router.get('/callback/:provider', async (req, res) => {
     const expectedOauthState = req.session.oauthState;
     delete req.session.oauthState;
 
-    if (!oauthStatesMatch(state, expectedOauthState)) {
+    if (req.session.oauthProvider !== provider || !oauthStatesMatch(state, expectedOauthState)) {
         log.error(`[OAuth/${provider}] STATE MISMATCH — stored present: ${!!expectedOauthState}, received present: ${!!state}`);
         return res.redirect(`${returnTo}?error=invalid_state`);
     }
@@ -260,6 +263,8 @@ router.get('/callback/:provider', async (req, res) => {
     // PKCE verifier paired with the auth code by /login/:provider. One-shot:
     // clear from the session whether the exchange succeeds or fails so a
     // leaked auth code can't be replayed in another browser.
+    const nonce = req.session.oauthNonce;
+    delete req.session.oauthNonce;
     const codeVerifier = req.session.oauthCodeVerifier;
     delete req.session.oauthCodeVerifier;
 
@@ -342,6 +347,8 @@ router.get('/callback/:provider', async (req, res) => {
             }
 
             tokenData = /** @type {OAuthTokenResponse} */ (await tokenResponse.json());
+            const { verifyMicrosoftIdentity, assertGraphIdentity } = require('../microsoftIdentity');
+            const identity = await verifyMicrosoftIdentity(tokenData.id_token, { clientId: providerConfig.clientId, tenantId, nonce });
             log.info(`[OAuth/Microsoft] Token exchange successful — access_token present: ${!!tokenData.access_token}, refresh_token present: ${!!tokenData.refresh_token}`);
             if (tokenData.scope) log.info(`[OAuth/Microsoft] Granted scopes: ${tokenData.scope}`);
             if (tokenData.error) log.error(`[OAuth/Microsoft] Token response error: ${tokenData.error} — ${tokenData.error_description || ''}`);
@@ -356,42 +363,19 @@ router.get('/callback/:provider', async (req, res) => {
             if (userResponse.ok) {
                 const userData = /** @type {Record<string, any>} */ (await userResponse.json()); // the provider's profile payload
                 log.info(`[OAuth/Microsoft] User info received — id: ${userData.id}, displayName: ${userData.displayName}, mail: ${userData.mail}, upn: ${userData.userPrincipalName}`);
+                assertGraphIdentity(identity, userData.id);
                 // Keep the Azure object id separate from the local id. The
                 // local id is resolved/minted in the provisioning block below
                 // so we do not collide with users already synced from Azure AD.
                 user = /** @type {OAuthUser} */ ({
-                    azureUserId: userData.id || null,
+                    ...identity,
                     displayName: userData.displayName || userData.userPrincipalName,
                     email: userData.mail || userData.userPrincipalName,
                     provider: 'microsoft'
                 });
                 log.info(`[OAuth/Microsoft] Mapped user — azureUserId: ${user.azureUserId}, displayName: ${user.displayName}, email: ${user.email}`);
 
-                // Attempt to fetch profile picture
-                log.info(`[OAuth/Microsoft] Attempting to fetch user photo...`);
-                try {
-                    const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
-                        headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
-                    });
-                    if (photoResponse.ok) {
-                        const arrayBuffer = await photoResponse.arrayBuffer();
-                        const buffer = Buffer.from(arrayBuffer);
-                        const uploadDir = path.join(__dirname, '..', '..', 'data', 'uploads');
-                        if (!fs.existsSync(uploadDir)) {
-                            fs.mkdirSync(uploadDir, { recursive: true });
-                        }
-                        const safeId = String(user.azureUserId || user.email || 'ms').replace(/[^a-zA-Z0-9]/g, '');
-                        const filename = `user-avatar-azure-${safeId}-${Date.now()}.jpg`;
-                        const filepath = path.join(uploadDir, filename);
-                        fs.writeFileSync(filepath, buffer);
-                        user.picture = `/uploads/${filename}`;
-                        log.info(`[OAuth/Microsoft] Saved user photo to ${filepath}`);
-                    } else {
-                        log.info(`[OAuth/Microsoft] User has no photo or access denied: ${photoResponse.status}`);
-                    }
-                } catch (photoErr) {
-                    log.info(`[OAuth/Microsoft] Error fetching photo: ${photoErr.message}`);
-                }
+                user.picture = await microsoftLogin.saveMicrosoftPhoto(tokenData.access_token, user) || user.picture;
             } else {
                 const userErrorText = await userResponse.text();
                 log.error(`[OAuth/Microsoft] USER INFO FETCH FAILED (${userResponse.status}):`, userErrorText);
@@ -458,10 +442,21 @@ router.get('/callback/:provider', async (req, res) => {
         // id is derived/resolved below.
         const provisionalLocalId = user.id || deriveLocalUserId(user.email, user.azureUserId);
 
-        const { user: existingUser, branch } = await resolveExistingSSOUser(
-            { azureUserId: user.azureUserId || null, email: user.email, localId: provisionalLocalId },
+        let { user: existingUser, branch } = await resolveExistingSSOUser(
+            { azureUserId: user.azureUserId || null, azureTenantId: user.azureTenantId || null, email: user.email, localId: provisionalLocalId },
             userStore,
         );
+
+        // Installations from before tenant binding: link the old account on first login when the
+        // verified token comes from the configured concrete tenant and the match is unambiguous.
+        const msTenant = config.providers?.microsoft?.tenantId;
+        if (provider === 'microsoft' && !existingUser && await microsoftLogin.autoLinkOnLogin(user, msTenant)) {
+            ({ user: existingUser, branch } = await resolveExistingSSOUser(
+                { azureUserId: user.azureUserId, azureTenantId: user.azureTenantId, email: user.email, localId: provisionalLocalId }, userStore));
+        }
+        if (provider === 'microsoft' && !existingUser && await microsoftLogin.requireAdminLink(user, userStore)) {
+            return res.redirect(`${returnTo}?error=sso_link_required`);
+        }
 
         // Set when this callback is completing a signup started in the wizard
         // (req.session.pendingSignup). Read further down to keep a personal
@@ -536,7 +531,9 @@ router.get('/callback/:provider', async (req, res) => {
                 // Pre-resolve the organisation by email domain so the record
                 // isn't orphaned — never for a free/public email provider
                 // (nobody owns gmail.com; that is the cross-tenant bug).
-                if (user.email && user.email.includes('@')) {
+                // Microsoft: by the verified tenant, never by the e-mail domain (microsoftLogin.js).
+                if (provider === 'microsoft') preResolvedOrg = await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore);
+                else if (user.email && user.email.includes('@')) {
                     const allOrgs = await userStore.getAllOrganizations();
                     const freeDomains = await getEffectiveFreeEmailDomains();
                     preResolvedOrg = resolveOrgByEmailDomain(user.email, allOrgs, freeDomains);
@@ -564,6 +561,7 @@ router.get('/callback/:provider', async (req, res) => {
                     orgRole: placement.orgRole,
                     status: placement.status,
                     azureUserId: user.azureUserId || null,
+                    azureTenantId: user.azureTenantId || null,
                     organizationId: placement.organizationId,
                 }, { strict: true });
 
@@ -577,7 +575,9 @@ router.get('/callback/:provider', async (req, res) => {
                     // session around a row whose email differs — that is the
                     // account-takeover path — fail the login instead.
                     const existing = await userStore.getUser(localId);
-                    const sameIdentity = existing && existing.email
+                    const sameIdentity = provider === 'microsoft'
+                        ? existing && existing.azureUserId === user.azureUserId && existing.azureTenantId === user.azureTenantId
+                        : existing && existing.email
                         && existing.email.toLowerCase() === String(user.email || '').toLowerCase();
                     if (sameIdentity) {
                         createOk = true;
@@ -669,10 +669,10 @@ router.get('/callback/:provider', async (req, res) => {
 
         // If user has no org, try domain-matching
         let pendingApproval = false;
-        if (!userHasOrg && !isPersonalAccount && user.email && user.email.includes('@')) {
-            const allOrgs = await userStore.getAllOrganizations();
-            const freeDomains = await getEffectiveFreeEmailDomains();
-            const matchingOrg = resolveOrgByEmailDomain(user.email, allOrgs, freeDomains);
+        if (!userHasOrg && !isPersonalAccount && (provider === 'microsoft' || (user.email && user.email.includes('@')))) {
+            const matchingOrg = provider === 'microsoft'
+                ? await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore)
+                : resolveOrgByEmailDomain(user.email, await userStore.getAllOrganizations(), await getEffectiveFreeEmailDomains());
 
             if (matchingOrg) {
                 // Same auto-approve/pending decision the create path makes, from
@@ -702,8 +702,8 @@ router.get('/callback/:provider', async (req, res) => {
         // ── Azure group sync on login ──────────────────────────────
         // Fire-and-forget: update Azure group memberships for Microsoft SSO users.
         // Never awaited so it cannot block or fail login.
-        if (provider === 'microsoft' && freshUser?.azureUserId && freshUser?.organizationId) {
-            syncUserGroupsOnLogin(freshUser.id, freshUser.azureUserId, freshUser.organizationId)
+        if (provider === 'microsoft' && freshUser?.azureUserId && !isLoginBlockedAccount(freshUser)) {
+            syncUserGroupsOnLogin(freshUser.id, freshUser.azureUserId, undefined, freshUser.azureTenantId)
                 .catch(() => {}); // errors already logged inside the function
         }
 
@@ -718,12 +718,25 @@ router.get('/callback/:provider', async (req, res) => {
             return res.status(REFUSAL.status).json(REFUSAL.body);
         }
 
+        let microsoftLoginIdentity;
+        if (provider === 'microsoft') {
+            microsoftLoginIdentity = await require('../../stores/microsoftIdentityStore').getIdentityBinding(user.id);
+            if (!microsoftLoginIdentity || microsoftLoginIdentity.azureTenantId !== user.azureTenantId
+                || microsoftLoginIdentity.azureUserId !== user.azureUserId) throw new Error('Microsoft account binding changed during login');
+        }
         req.session.accessToken = tokenData.access_token;
         req.session.refreshToken = tokenData.refresh_token;
         req.session.user = user;
         req.session.isAuthenticated = true;
         req.session.isAdmin = freshUser?.role === 'admin';
         req.session.oauthProvider = provider;
+        if (provider === 'microsoft') {
+            req.session.microsoftIdentityVersion = 2;
+            req.session.microsoftLoginIdentity = microsoftLoginIdentity;
+        } else {
+            delete req.session.microsoftIdentityVersion;
+            delete req.session.microsoftLoginIdentity;
+        }
         // Remember what the provider ACTUALLY granted, so a later token refresh
         // re-requests that set instead of a hardcoded list — a narrower refresh
         // silently downgrades the grant (see microsoftRefreshScope).
@@ -746,8 +759,9 @@ router.get('/callback/:provider', async (req, res) => {
         }
         // Handle SSO encryption with backward compatibility
         log.info(`[OAuth/${provider}] Checking encryption for user ${user.id}...`);
-        const encryptionEnabled = await isEncryptionEnabledForUser(user.id);
-        log.info(`[OAuth/${provider}] Encryption enabled: ${encryptionEnabled}`);
+        // No PIN on the managed tier: the org escrow holds the key.
+        const encryptionEnabled = await isSsoPinRequiredForUser(user.id);
+        log.info(`[OAuth/${provider}] SSO encryption PIN required: ${encryptionEnabled}`);
         const ssoResult = await getOrCreateSSOUserDEKCompat(user.id, encryptionEnabled);
         log.info(`[OAuth/${provider}] SSO DEK result — hasKey: ${!!ssoResult.encryptionKey}, needsSetup: ${!!ssoResult.needsEncryptionSetup}, needsPin: ${!!ssoResult.needsEncryptionPin}`);
         if (ssoResult.encryptionKey) {

@@ -1,6 +1,6 @@
 {
   "name": "bee-flow-connector",
-  "version": "0.1.0",
+  "version": "1.6.2",
   "private": true,
   "description": "Nextcloud ExApp connector for Bee Flow — proxies authenticated requests from a customer's Nextcloud to the hosted Bee Flow SaaS.",
   "license": "AGPL-3.0-or-later",
@@ -13,12 +13,12 @@
     "lint": "eslint ."
   },
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.15.0 <23.0.0"
   },
   "packageManager": "npm@10.9.0",
   "dependencies": {
     "express": "^4.21.2",
-    "http-proxy-middleware": "^3.0.3",
+    "http-proxy-middleware": "^4.2.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-static": "^1.48.0",
     "undici": "^6.29.0"

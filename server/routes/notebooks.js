@@ -26,6 +26,7 @@
 const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
+router.use(require('../stores/lib/documentCrypto').withDocumentEncryptionSession);
 const multer = require('multer');
 const crypto = require('crypto');
 
@@ -471,15 +472,28 @@ router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), a
         await assertSourceRoom(nb.id);
 
         // Source type from the extension, and a copy in RustFS when storage is on.
-        const { fileName, mimeType, buffer, type, storageKey } = await keepUploadedSource(req.file, {
-            userId, prefix: 'nb', folder: 'notebooks',
+        const uploaded = await require('../db').withTransaction(async (client) => {
+            const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [notebookId]);
+            if (!rows[0]) throw new HttpError(404, 'notebook_not_found', 'Notebook not found');
+            const contentCrypto = require('../stores/lib/documentCrypto');
+            const resource = contentCrypto.resourceOf(rows[0], 'notebook');
+            const context = await contentCrypto.writeContext(resource);
+            const file = await keepUploadedSource(req.file, {
+                userId, prefix: 'nb', folder: 'notebooks',
+                protectBuffer: context ? (bytes, key) => require('../stores/lib/notebookFileCrypto').sealBuffer(resource, key, bytes, context) : null,
+            });
+            try {
+                const source = await notebookStore.addSource({
+                    notebookId, type: file.type, name: file.fileName,
+                    storageKey: file.storageKey, fileName: file.fileName, metadata: { mimeType: file.mimeType, size: file.buffer.length }, client,
+                });
+                return { ...file, source };
+            } catch (e) {
+                if (file.storageKey) await require('../stores/storageStore').deleteFile(file.storageKey).catch(() => undefined);
+                throw e;
+            }
         });
-
-        // Create source record
-        const source = await notebookStore.addSource({
-            notebookId, type, name: fileName,
-            storageKey, fileName, metadata: { mimeType, size: buffer.length }
-        });
+        const { fileName, mimeType, buffer, source } = uploaded;
 
         res.json({ success: true, source });
         void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
@@ -745,10 +759,7 @@ router.post('/:id/sources/:sid/retry', requireAuth, asEditor, async (req, res) =
                 } else if (source.storageKey) {
                     // File source — re-fetch bytes from storage, re-ingest.
                     if (!storageStore.isAvailable()) throw new Error('Storage not configured');
-                    const { stream } = await storageStore.streamFile(source.storageKey);
-                    const chunks = [];
-                    for await (const chunk of stream) chunks.push(chunk);
-                    const buffer = Buffer.concat(chunks);
+                    const buffer = await require('../stores/lib/notebookFileCrypto').readBuffer(source.storageKey);
                     const mimeType = source.metadata?.mimeType || 'application/octet-stream';
                     await ingestFileSource(nb.id, source.id, userId, buffer, source.fileName || source.name, mimeType);
                 } else {

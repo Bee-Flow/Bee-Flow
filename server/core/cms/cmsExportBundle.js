@@ -170,6 +170,13 @@ async function fetchAssets(keys) {
     for (const key of keys) {
         try {
             const { stream, contentType, contentLength } = await storageStore.streamFile(key);
+            // Clips (up to 500 MB) are never buffered into a zip: report them
+            // so the caller can tell the user instead of exhausting memory.
+            if (Number(contentLength) > MAX_ENTRY_BYTES) {
+                stream.destroy?.();
+                missing.push(`${key} (too large for a zip export, max ${MAX_ENTRY_BYTES / 1024 / 1024} MB per file)`);
+                continue;
+            }
             const buffer = await streamToBuffer(stream);
             total += buffer.length;
             if (total > MAX_TOTAL_BYTES) {
@@ -252,7 +259,7 @@ const MIME_BY_EXT = {
     '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
     '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif',
     '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
-    '.mp4': 'video/mp4', '.webm': 'video/webm',
+    '.mp4': 'video/mp4', '.webm': 'video/webm', '.vtt': 'text/vtt',
 };
 function guessContentType(key) {
     const dot = key.lastIndexOf('.');

@@ -19,6 +19,7 @@ router.use(require('./oauth/nextcloudLegacyRoutes'));
 router.use(require('./oauth/providerLoginRoutes'));
 router.use(require('./oauth/providerCallbackRoutes'));
 router.use(require('./oauth/ssoConfigRoutes'));
+router.use(require('./oauth/microsoftBindingRoutes'));
 router.use(credentialRoutes);
 
 module.exports = router;

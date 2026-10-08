@@ -344,6 +344,7 @@ app.use(session({
 // it without forty call sites growing a parameter.
 const { withRequestClient, currentClient } = require('./telemetry/requestClient');
 app.use(withRequestClient);
+app.use(require('./stores/lib/documentCrypto').withDocumentEncryptionSession);
 
 // Nextcloud Connector JWT auth — handles requests from the Bee Flow ExApp
 // connector. Tagged with `X-Beeflow-Source: nextcloud-connector`. Populates
@@ -396,6 +397,9 @@ app.use(async (req, res, next) => {
     next();
 });
 
+// Recheck the login identity even when connected integration credentials change.
+app.use(require('./auth/microsoftSession').validateMicrosoftSession);
+
 app.get('/api/session-token', async (req, res) => {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -422,6 +426,9 @@ app.get('/api/session-token', async (req, res) => {
             accessToken: req.session.accessToken,
             refreshToken: req.session.refreshToken,
             oauthProvider: req.session.oauthProvider,
+            microsoftIdentityVersion: req.session.microsoftIdentityVersion,
+            microsoftLoginIdentity: req.session.microsoftLoginIdentity,
+            oauthTokenSource: req.session.oauthTokenSource,
             nextcloudUid: req.session.nextcloudUid,
             appPassword: appPasswordData,
             isAuthenticated: req.session.isAuthenticated || false,
@@ -1048,7 +1055,13 @@ const { runStartupChecks, runStartupTasks } = require('./boot/startupTasks');
 // WebSocket 'upgrade' listener for Vite HMR — upgrade requests bypass the
 // Express app entirely and can only be intercepted on the underlying
 // http.Server.
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = require('node:http').createServer(app);
+async function startServer() {
+    // Existing deployments must finish additive auth schema and transactional
+    // secret migration before accepting requests. Any failure stops startup.
+    await require('./stores/userStore').initDB();
+    await require('./stores/authConfigStore').migrate();
+    server.listen(PORT, '0.0.0.0', () => {
     log.info(`Server running on http://0.0.0.0:${PORT}`);
     // Refuse-to-boot / NODE_ENV posture checks, the INIT_* first-boot wizard and
     // the durable HMAC secrets — see boot/startupTasks.js.
@@ -1078,6 +1091,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     // Sanity probes, warmups, one-shot backfills and migrations, schedulers,
     // runners and periodic jobs — see boot/startupTasks.js.
     runStartupTasks();
+    });
+}
+startServer().catch(err => {
+    log.error('[Server] OAuth upgrade failed; refusing startup:', err.message);
+    process.exit(1);
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────

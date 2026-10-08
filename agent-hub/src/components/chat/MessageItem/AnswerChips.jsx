@@ -2,8 +2,8 @@ import { FileText } from 'lucide-react';
 import React from 'react';
 import { answerChipsFor, citationIsOpenable, GRADE_JUDGED, GRADE_RECORDED } from './answerChips';
 import useTranslation from '../../../hooks/useTranslation';
-import CitationChips, { chipLabel, chipTitle, ChipText } from '../../../pages/notebooks/CitationChips';
-import { passagesNote } from '../../../pages/notebooks/citationText';
+import CitationChips, { chipLabel, chipTitle, ChipText } from '../../../pages/documents/notebook/CitationChips';
+import { passagesNote } from '../../../pages/documents/notebook/citationText';
 import { kindColorVar, kindIcon } from '../../shared/kindColors';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 

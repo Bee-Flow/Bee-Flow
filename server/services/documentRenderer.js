@@ -995,7 +995,7 @@ function docxOptions({ title = '', marking = null, style = null } = {}) {
 }
 
 async function renderDocx(html, { title = '', marking = null, style = null } = {}) {
-    let HTMLtoDOCX = require('html-to-docx');
+    let HTMLtoDOCX = require('@turbodocx/html-to-docx');
     if (HTMLtoDOCX.default) HTMLtoDOCX = HTMLtoDOCX.default;
     // html-to-docx takes the header and footer HTML as POSITIONAL arguments
     // (html, header, options, footer); as option keys they are ignored.

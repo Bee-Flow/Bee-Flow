@@ -106,14 +106,25 @@ async function _vaultKeys(userId, orgId = undefined) {
         const { _escrowKey } = require('./agent/messageCrypto');
         const dek = await _escrowKey(userId, orgId);
         if (!dek) return null;
-        return {
-            value: Buffer.from(crypto.hkdfSync('sha256', dek, Buffer.from('beeflow:piivault:v1'), 'value', 32)),
-            index: Buffer.from(crypto.hkdfSync('sha256', dek, Buffer.from('beeflow:piivault:v1'), 'index', 32)),
-        };
+        return vaultKeysFromDek(dek);
     } catch (err) {
         log.warn(`[PiiVault] key unavailable for ${userId}: ${err.message}`);
         return null;
     }
+}
+
+/**
+ * The two vault keys for an escrowed DEK. Exported so the encryption backfill
+ * derives them from the DEK resolveCrypto already handed it (backgroundKey IS
+ * the escrow key on both encrypting tiers) instead of copying the HKDF labels.
+ * @param {Buffer} dek
+ * @returns {{ value: Buffer, index: Buffer }}
+ */
+function vaultKeysFromDek(dek) {
+    return {
+        value: Buffer.from(crypto.hkdfSync('sha256', dek, Buffer.from('beeflow:piivault:v1'), 'value', 32)),
+        index: Buffer.from(crypto.hkdfSync('sha256', dek, Buffer.from('beeflow:piivault:v1'), 'index', 32)),
+    };
 }
 
 /** Comparison form of a value: case-, punctuation- and whitespace-insensitive. */
@@ -479,6 +490,8 @@ module.exports = {
     MAX_ENTRIES_PER_USER,
     normaliseValue,
     blindIndex,
+    vaultKeysFromDek,
+    vaultAad: _aad,
     lookupTokens,
     getCounterFloors,
     buildSeed,

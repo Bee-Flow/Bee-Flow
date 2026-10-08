@@ -30,6 +30,16 @@ const { makeStoreInit } = require('./stores/lib/storeInit');
 
 // ── PostgreSQL ──────────────────────────────────────────
 // Core database for users, agents, configs, conversations, etc.
+//
+// Refuse to boot in production without an explicit connection string:
+// silently falling back to the localhost dev default would start the
+// server against the wrong database (or a database that does not exist,
+// surfacing as confusing runtime connection errors). Same fail-fast
+// policy as the MASTER_ENCRYPTION_KEY / SESSION_SECRET checks in
+// index.js, but done here because db.js is imported before those run.
+if (process.env.NODE_ENV === 'production' && !process.env.CORE_DATABASE_URL) {
+    throw new Error('CORE_DATABASE_URL must be set in production; there is no development default to fall back to. The docker-compose files wire it from DB_USER/DB_PASSWORD/DB_NAME.');
+}
 const pool = new Pool({
     connectionString: process.env.CORE_DATABASE_URL
         || 'postgresql://beeflow:beeflow@localhost:5432/beeflow_core',

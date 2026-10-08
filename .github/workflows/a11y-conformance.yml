@@ -23,10 +23,13 @@
 # search profiles, because wait-for-stack.sh gates on search-api too).
 #
 # Trigger modes — never on push; nothing here deploys anything:
-#   • workflow_call     from the image pipeline, after the sha-tagged images
-#                       exist and BEFORE the final server image is assembled,
-#                       so conformance.json can be copied into it
-#                       (build-push-ghcr.yml does not call it yet — see asks).
+#   • workflow_call     from build-push-ghcr.yml on a prod release, after the
+#                       sha-tagged candidate images exist. The report about a
+#                       build only exists AFTER that build (the stack rendered
+#                       is the new server image itself), so conformance.json
+#                       cannot be staged into the same run's server image —
+#                       the uploaded artifact is committed by hand and ships
+#                       with the NEXT server build (Dockerfile COPY . .).
 #   • workflow_dispatch manual run against one tag.
 # ══════════════════════════════════════════════════════════════════
 name: A11y Conformance
@@ -40,6 +43,10 @@ on:
         default: ''
       image_sha:
         description: 'Full git sha the built images were tagged with (sha-<sha>); stamped as build_sha'
+        type: string
+        default: ''
+      candidate_digests:
+        description: 'Build job outputs containing immutable digests for this candidate'
         type: string
         default: ''
       fallback_tag:
@@ -91,6 +98,7 @@ jobs:
         env:
           BUILT: ${{ inputs.built_services }}
           SHA: ${{ inputs.image_sha }}
+          CANDIDATE_DIGESTS: ${{ inputs.candidate_digests }}
           FALLBACK_TAG: ${{ inputs.fallback_tag || inputs.tag || 'dev' }}
         run: bash e2e/ci/resolve-images.sh
 
@@ -314,8 +322,9 @@ jobs:
         if: always()
         run: bash e2e/ci/collect-logs.sh
 
-      # The artefact the image pipeline copies to server/compliance/a11y/
-      # before building the server image. Kept 90 days: the check marks a
+      # The artefact that lands at server/compliance/a11y/conformance.json so
+      # a server image ships it (see the trigger-mode note above: it is
+      # committed by hand, the next server build picks it up). Kept 90 days: the check marks a
       # report older than 60 days stale, so a rebuild inside that window can
       # still reuse it.
       - name: Upload conformance artefact

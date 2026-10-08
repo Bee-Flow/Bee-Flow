@@ -20,6 +20,20 @@ describe('DlpReviewShell', () => {
         expect(screen.getByText('OpenAI')).toBeTruthy();
     });
 
+    it('names an org\'s own data type by its label, not its id', () => {
+        const pending = {
+            kind: 'chat_text',
+            decisionId: 'd2',
+            provider: { displayName: 'EU GPT', isExternal: true },
+            reviewText: 'customer number KC-4417',
+            findings: [{ id: 'custom_0', category: 'cdt_147aa44fc7', label: 'Customer numbers', source: 'custom', offset: 16, length: 7, text: 'KC-4417', confidenceBand: 'high' }],
+            summary: {},
+        };
+        render(<DlpReviewShell pending={pending} onSubmit={() => {}} submitting={false} error={null} />);
+        expect(screen.getByText('Customer numbers')).toBeTruthy();
+        expect(screen.queryByText('cdt_147aa44fc7')).toBeNull();
+    });
+
     it('renders the document-card renderer with the filename for an attachment review', () => {
         const pending = {
             kind: 'attachment',

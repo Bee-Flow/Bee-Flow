@@ -38,17 +38,22 @@ ENV HF_HOME=/cache/huggingface \
     XDG_CACHE_HOME=/cache \
     MPLCONFIGDIR=/cache/matplotlib
 
-# Pre-download Whisper model at build time (saves startup time)
-ARG WHISPER_MODEL=large-v3
-RUN python -c "from faster_whisper import WhisperModel; WhisperModel('${WHISPER_MODEL}', device='cpu', compute_type='int8')" || true
-
-COPY app.py .
-
 # Runtime user: uid 1000, no home directory. /cache is the only path it owns.
+# Created HERE, while /cache is still empty, so the pre-download below writes
+# it in ONE layer, already owned by app. A `chown -R /cache` after the download
+# copies every file it touches into a new layer — with large-v3 that was a
+# second ~3 GB copy of the model baked into the image.
 RUN useradd --uid 1000 --user-group --no-create-home --shell /usr/sbin/nologin app \
     && mkdir -p /cache/huggingface /cache/torch /cache/matplotlib \
     && chown -R app:app /cache
+
+# Pre-download Whisper model at build time (saves startup time). Runs as the
+# runtime user so the cache lands owned by app with no chown pass at all.
+ARG WHISPER_MODEL=large-v3
 USER app
+RUN python -c "from faster_whisper import WhisperModel; WhisperModel('${WHISPER_MODEL}', device='cpu', compute_type='int8')" || true
+
+COPY app.py .
 
 EXPOSE 8787
 

@@ -67,8 +67,8 @@ describe('chat signals: who can send the marker', () => {
         expect(ENGINE_HOSTS).toEqual([
             'AgentHub/useAgentHubData.js',
             'pages/TemplatesPage.jsx',
+            'pages/documents/notebook/detail/useNotebookChat.ts',
             'pages/meeting-notes/detail/AssistantSidebar.jsx',
-            'pages/notebooks/detail/useNotebookChat.ts',
             'pages/webpages/WebpageEditorPage.jsx',
         ]);
     });

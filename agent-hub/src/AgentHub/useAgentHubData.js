@@ -682,7 +682,9 @@ const useAgentHubData = ({
                             selectConversation(selectedAgent.id, match.id);
                         }
                     }
-                } else {
+                } else if (!/^\/app\/documents(?:\/|$)/.test(window.location.pathname)) {
+                    // A stored default agent initializes behind the member
+                    // library too. Keep the bookmarked document address intact.
                     updateAgentUrl(selectedAgent.id, null);
                 }
             });

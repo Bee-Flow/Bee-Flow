@@ -1,7 +1,7 @@
 /**
  * How a citation names itself: "Handbook · p. 12", "Prices · rows 1–50",
  * "Widget A · Products", "Standup · 22 Jul" — the web's chipLabel and
- * chipTitle (agent-hub/src/pages/notebooks/CitationChips.jsx, with the pieces
+ * chipTitle (agent-hub/src/pages/documents/notebook/CitationChips.jsx, with the pieces
  * it shares in citationText.ts; pinned by citationLabel.lockstep.test.ts).
  *
  * The page is the point of a citation — it can be checked — and it is often

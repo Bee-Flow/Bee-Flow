@@ -36,6 +36,8 @@ import {
     isApprovalsPageArg,
     isApprovalsStudioPath,
     parseCoworkUrl,
+    parseDocumentUrl,
+    documentRoutePath,
     parseAgentUrl,
     parseDirectChatUrl,
     parseAdminPath,
@@ -62,6 +64,7 @@ describe('PAGE_ROUTES is frozen', () => {
             cowork: '/app/cowork',
             apps: '/app/apps',
             forms: '/app/forms',
+            documents: '/app/documents',
             reports: '/app/reports',
             components: '/app/components',
             meetingNotes: '/app/meeting-notes',
@@ -107,6 +110,26 @@ describe('PAGE_ROUTES is frozen', () => {
         expect(pageFromPath('/app/studio/start'), MOVE_HINT).toBe('studio');
         expect(PAGE_ROUTES.studio).toBe('/app/studio');
         expect(Object.keys(PAGE_ROUTES), MOVE_HINT).not.toContain('start');
+    });
+});
+
+describe('member documents routing', () => {
+    it('keeps member links in the ordinary workspace and Studio links in Studio', () => {
+        expect(pageFromPath('/app/documents/d1')).toBe('documents');
+        expect(pageFromPath('/app/documents/notebook/n1')).toBe('documents');
+        expect(usesStudioRail('documents')).toBe(false);
+        expect(pageFromPath('/app/studio/documents/d1')).toBe('studio');
+        expect(pageFromPath('/app/notebooks/n1')).toBe('studio');
+    });
+
+    it('round-trips document and notebook references, including URL escaping', () => {
+        expect(documentRoutePath()).toBe('/app/documents');
+        expect(parseDocumentUrl('/app/documents')).toBeNull();
+        for (const ref of ['d1', 'notebook/n1', 'notebook/name with spaces', 'doc#1']) {
+            expect(parseDocumentUrl(documentRoutePath(ref))).toBe(ref);
+        }
+        expect(parseDocumentUrl('/app/documents/%invalid')).toBeNull();
+        expect(parseDocumentUrl('/app/studio/documents/d1')).toBeNull();
     });
 });
 

@@ -27,6 +27,28 @@ test('an unknown token is null, not undefined', async () => {
     assert.strictEqual(await getSessionToken(generateToken()), null);
 });
 
+test('an old Microsoft handoff cannot recover its invalidated login session', async () => {
+    const { setPickup, claimPickup } = require('./sessionToken');
+    const sessionToken = generateToken();
+    const pickupId = generateToken();
+    await setSessionToken(sessionToken, { user: { id: 'existing-local-user' }, isAuthenticated: true, oauthProvider: 'microsoft' });
+    await setPickup(pickupId, { sessionToken }, 1);
+    assert.strictEqual(await claimPickup(pickupId), null);
+    assert.strictEqual(await getSessionToken(sessionToken), null);
+});
+
+test('a verified Microsoft login and existing integration credentials remain usable', async () => {
+    for (const fields of [{ microsoftIdentityVersion: 2, microsoftLoginIdentity: {
+        azureTenantId: '11111111-1111-1111-1111-111111111111', azureUserId: '22222222-2222-2222-2222-222222222222', revision: '0',
+    } }, { oauthTokenSource: 'connector' }]) {
+        const token = generateToken();
+        const data = { user: { id: 'existing-local-user' }, isAuthenticated: true, oauthProvider: 'microsoft', ...fields };
+        await setSessionToken(token, data);
+        assert.deepStrictEqual(await getSessionToken(token), data);
+        await require('./sessionToken').deleteSessionToken(token);
+    }
+});
+
 test('a token past its deadline reads back as gone', async () => {
     const token = generateToken();
     // Negative TTL rather than a timer wait: the deadline is checked on read,

@@ -3,13 +3,11 @@
 # the Playwright smoke suite (e2e/) against it.
 #
 # Two trigger modes:
-#   • workflow_call — prepared for use as a blocking gate from the image
-#     build pipeline: the caller passes which services it just built
+#   • workflow_call — the blocking prod-release gate in
+#     build-push-ghcr.yml: the caller passes which services it just built
 #     (built_services + image_sha) so those run at :sha-<sha> while
-#     everything else falls back to :prod. NOTE: no workflow invokes it
-#     yet — build-push-ghcr.yml deliberately does not wire the gate in
-#     (see the note at the top of that file), so today this mode is
-#     plumbing waiting for a caller.
+#     everything else falls back to :prod, and its release-candidate job
+#     waits on this one succeeding.
 #   • workflow_dispatch — manual run against a single tag (prod,
 #     latest, dev, sha-<fullsha>) for ad-hoc verification.
 #
@@ -28,6 +26,10 @@ on:
         default: ''
       image_sha:
         description: 'Full git sha the built images were tagged with (sha-<sha>)'
+        type: string
+        default: ''
+      candidate_digests:
+        description: 'Build job outputs containing immutable digests for this candidate'
         type: string
         default: ''
       fallback_tag:
@@ -71,6 +73,7 @@ jobs:
         env:
           BUILT: ${{ inputs.built_services }}
           SHA: ${{ inputs.image_sha }}
+          CANDIDATE_DIGESTS: ${{ inputs.candidate_digests }}
           FALLBACK_TAG: ${{ inputs.fallback_tag || inputs.tag || 'prod' }}
         run: bash e2e/ci/resolve-images.sh
 

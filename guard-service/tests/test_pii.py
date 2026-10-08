@@ -1599,6 +1599,66 @@ class SiblingContextTieBreakTests(unittest.TestCase):
             [("NationalIdentificationNumber", "123456782")],
         )
 
+    def _with_model_tax_span(self, text, digits="123456782", confidence=0.97):
+        """The regex entities plus what the model emits for the same digits:
+        a validated TaxIdentificationNumber (an RSIN passes the same elfproef)."""
+        ents = detect_regex_pii(text)
+        at = text.index(digits)
+        ents.append(
+            {
+                "offset": at,
+                "length": len(digits),
+                "category": "TaxIdentificationNumber",
+                "confidence": confidence,
+                "text": digits,
+                "label": "Tax ID",
+                "validated": True,
+            }
+        )
+        return [
+            (e["category"], e["text"])
+            for e in PiiService._finalise(ents, text=text)["entities"]
+        ]
+
+    def test_named_bsn_beats_a_model_tax_reading(self):
+        # "BSN 123456782" says what it is; a model calling it a tax number must
+        # not relabel it. Measured in the investor demo: the dialog showed
+        # "Tax numbers" next to "BSN 123456782".
+        for text in (
+            "Applicant: Jan, BSN 123456782, IBAN NL91",
+            "Het burgerservicenummer is 123456782.",
+            "sofinummer: 123456782",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    self._with_model_tax_span(text),
+                    [("NationalIdentificationNumber", "123456782")],
+                )
+
+    def test_bsn_context_mark_is_soft(self):
+        # The keyword is never required: a bare BSN is still found and still a BSN,
+        # and only the named one carries the context mark.
+        bare = [
+            e
+            for e in detect_regex_pii("Nummer 123456782 zonder context")
+            if e["category"] == "NationalIdentificationNumber"
+        ]
+        named = [
+            e
+            for e in detect_regex_pii("Mijn BSN 123456782 staat erop")
+            if e["category"] == "NationalIdentificationNumber"
+        ]
+        self.assertEqual(len(bare), 1)
+        self.assertFalse(bare[0].get("context_hit", False))
+        self.assertTrue(named[0].get("context_hit"))
+
+    def test_bsn_keyword_does_not_reach_past_another_number(self):
+        # The anchor gap excludes digits: "BSN" before one number must not mark
+        # a second nine-digit run further on.
+        text = "BSN 123456782 en klantnummer 111222333"
+        marked = [e["text"] for e in detect_regex_pii(text) if e.get("context_hit")]
+        self.assertNotIn("111222333", marked)
+
     def test_outcome_is_independent_of_input_order(self):
         import itertools
 

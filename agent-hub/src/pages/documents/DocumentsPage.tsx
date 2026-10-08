@@ -2,7 +2,7 @@
 // presentations; templates and reusable sections in their own views; folders,
 // categories, the archive with its way back; a gallery to start from; the
 // house style. Opening one shows the editor for its kind (DocumentEditor), or,
-// for a notebook, the notebook workspace (pages/notebooks/detail).
+// for a notebook, the notebook workspace (pages/documents/notebook/detail).
 //
 // The page follows Studio's overview language (the Agents and Automations
 // overviews): an 18px title with its count and a one-line intro, the search
@@ -12,7 +12,7 @@ import { Plus, Stamp } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { Suspense, useEffect, useState } from 'react';
 import PagerJs from '../../components/shared/Pager';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { readingLocale } from '../../hooks/useTranslation';
 import { lazy } from '../../utils/lazyWithReload';
 import { projectRoutePath } from '../../utils/projectRoutes';
 import { projectErrorText } from '../../components/projects/workspace/projectErrorText';
@@ -22,6 +22,8 @@ import { docKeys, useFolders, useLibrary, useSessionUser, type LibraryRow } from
 import FolderSidebar from './library/FolderSidebar';
 import { BulkBar, LibraryFilterBar, LibrarySearch, LibraryViews } from './library/LibraryControls';
 import LibraryList from './library/LibraryList';
+import DocumentSharingDialog from './library/DocumentSharingDialog';
+import EncryptionUnlock, { isKeyUnavailable } from './library/EncryptionUnlock';
 import StarterGallery, { type NewChoice } from './library/StarterGallery';
 import { PAGE_SIZE, isNotebookRow, useLibraryActions, useLibraryFilters, type LibraryKind, type NewDocumentInput } from './library/useLibrary';
 import { notebookIdOf, notebookRef } from './notebookRef';
@@ -30,11 +32,13 @@ import { notebookIdOf, notebookRef } from './notebookRef';
 const Pager = PagerJs as unknown as React.ComponentType<{ offset: number; limit: number; total: number | null; onOffset: (offset: number) => void; testId?: string }>;
 // The notebook workspace carries the editor, the sources and the chat: loaded
 // only when a notebook is opened.
-const NotebookDetail = lazy(() => import('../notebooks/detail/NotebookDetail')) as unknown as React.ComponentType<{
+const NotebookDetail = lazy(() => import('./notebook/detail/NotebookDetail')) as unknown as React.ComponentType<{
     notebookId: string; user: unknown; onBack: () => void; onListChanged: () => void; onOpenProject: (projectId: string) => void;
 }>;
 
 export interface DocumentsPageProps {
+    /** Studio exposes organisation management; the member workspace does not. */
+    mode?: 'workspace' | 'studio';
     /** The open item: a document id, or `notebook/<id>` for a notebook (notebookRef). */
     initialDocumentId?: string | null;
     onDocumentChange?: (id: string | null) => void;
@@ -64,7 +68,9 @@ function openProjectInApp(projectId: string) {
 }
 
 function useLibraryPage() {
-    const { t, locale } = useTranslation();
+    const { t, locale: preferred, strings } = useTranslation();
+    // Templates follow the language on screen, not the stored preference.
+    const locale = readingLocale(preferred, strings, ['documents.new.title']);
     const f = useLibraryFilters();
     const list = useLibrary(f.filters);
     const folders = useFolders();
@@ -87,7 +93,7 @@ function useLibraryPage() {
     return { t, locale, f, list, folders, actions, me, selection, setSelection, error, setError, fail, notebooks, spreadsheets, refresh: () => qc.invalidateQueries({ queryKey: docKeys.all }) };
 }
 
-function LibraryHeader({ p, onHouseStyle, onNew }: { p: ReturnType<typeof useLibraryPage>; onHouseStyle: () => void; onNew: () => void }) {
+function LibraryHeader({ p, onHouseStyle, onNew }: { p: ReturnType<typeof useLibraryPage>; onHouseStyle?: () => void; onNew: () => void }) {
     const { t } = p;
     const total = p.list.data?.total;
     return (
@@ -104,7 +110,7 @@ function LibraryHeader({ p, onHouseStyle, onNew }: { p: ReturnType<typeof useLib
                 </p>
             </div>
             <LibrarySearch value={p.f.query} onChange={p.f.setQuery} />
-            <button type="button" className={SECONDARY} data-testid="documents-house-style" onClick={onHouseStyle}><Stamp size={14} aria-hidden="true" />{t('documents.style.button', 'House style')}</button>
+            {onHouseStyle && <button type="button" className={SECONDARY} data-testid="documents-house-style" onClick={onHouseStyle}><Stamp size={14} aria-hidden="true" />{t('documents.style.button', 'House style')}</button>}
             <button type="button" className={PRIMARY} onClick={onNew} data-testid="documents-new">
                 <Plus size={14} aria-hidden="true" />{t('documents.new_button', 'New document')}
             </button>
@@ -122,6 +128,7 @@ function busyRow(actions: ReturnType<typeof useLibraryActions>): string | null {
 function LibraryMain({ p, onOpen, onCreate }: { p: ReturnType<typeof useLibraryPage>; onOpen: (row: LibraryRow) => void; onCreate: () => void }) {
     const { f, list, actions } = p;
     const rows: LibraryRow[] = list.data?.documents || [];
+    const [sharingRow, setSharingRow] = useState<LibraryRow | null>(null);
     const selectedRows = rows.filter((r) => p.selection.includes(r.id));
     const filtered = !!(f.query || f.category || f.visibility || f.format || f.folderId !== undefined);
     const status = list.isError && !list.data ? 'error' : list.isPending ? 'loading' : 'ok';
@@ -134,11 +141,12 @@ function LibraryMain({ p, onOpen, onCreate }: { p: ReturnType<typeof useLibraryP
                 rows={rows} people={list.data?.people || {}} currentUserId={p.me.data?.id || null}
                 status={status} refreshing={list.isFetching && !list.isPending}
                 archivedView={f.archived} filtered={filtered} selection={p.selection} onSelect={p.setSelection} busyId={busyRow(actions)}
-                onOpen={onOpen} onRetry={() => list.refetch()} onCreate={onCreate}
+                onShare={setSharingRow} onOpen={onOpen} onRetry={() => list.refetch()} onCreate={onCreate}
                 onDuplicate={(row) => actions.duplicate.mutate(row.id, { onSuccess: (doc) => onOpen({ ...row, id: doc.id }), onError: p.fail })}
                 onArchive={(row) => (isNotebookRow(row) ? actions.deleteNotebook.mutateAsync(row.id) : actions.archive.mutateAsync(row.id)).catch(p.fail)}
                 onUnarchive={(row) => actions.unarchive.mutate(row.id, { onError: p.fail })}
             />
+            {sharingRow && <DocumentSharingDialog key={`${sharingRow.docType}:${sharingRow.id}`} row={sharingRow} onClose={() => setSharingRow(null)} />}
             <Pager offset={f.offset} limit={PAGE_SIZE} total={list.data?.total ?? null} onOffset={f.setOffset} testId="documents-pager" />
         </main>
     );
@@ -149,12 +157,14 @@ function OpeningNotebook() {
     return <div className="h-full flex items-center justify-center text-sm text-[var(--text-tertiary)]" role="status">{t('documents.notebook.loading', 'Opening the notebook…')}</div>;
 }
 
-export default function DocumentsPage({ initialDocumentId = null, onDocumentChange, user }: DocumentsPageProps) {
+export default function DocumentsPage({ mode = 'workspace', initialDocumentId = null, onDocumentChange, user }: DocumentsPageProps) {
     const p = useLibraryPage();
     const { t, f, actions } = p;
     const [selectedId, setSelectedId] = useState<string | null>(initialDocumentId);
     const [showHouseStyle, setShowHouseStyle] = useState(false);
     const [galleryOpen, setGalleryOpen] = useState(false);
+    // A choice the server refused for want of an encryption key: made again once unlocked.
+    const [locked, setLocked] = useState<NewChoice | null>(null);
     useEffect(() => { setSelectedId(initialDocumentId); }, [initialDocumentId]);
     const select = (id: string | null) => { setSelectedId(id); onDocumentChange?.(id); };
     const open = (row: LibraryRow) => select(isNotebookRow(row) ? notebookRef(row.id) : row.id);
@@ -176,9 +186,14 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
         setGalleryOpen(false);
         select(doc.id);
     };
-    const createError = actions.create.error || actions.createNotebook.error || actions.createSheet.error;
+    const createFailure = actions.create.error || actions.createNotebook.error || actions.createSheet.error;
+    // A missing key has its own prompt; it is no error to sit on top of the dialog.
+    const createError = isKeyUnavailable(createFailure) ? null : createFailure;
+    const choose = (choice: NewChoice) => {
+        create(choice).catch((e) => { if (isKeyUnavailable(e)) setLocked(choice); });
+    };
 
-    if (showHouseStyle) return <HouseStylePanel onBack={() => setShowHouseStyle(false)} />;
+    if (mode === 'studio' && showHouseStyle) return <HouseStylePanel onBack={() => setShowHouseStyle(false)} />;
     const notebookId = notebookIdOf(selectedId);
     if (notebookId) {
         return (
@@ -193,7 +208,7 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
     return (
         <div className="h-full overflow-auto text-[var(--text-primary)] bg-[var(--bg-primary)]" data-testid="documents-library">
             <div className="max-w-[1100px] mx-auto px-6 py-8 space-y-4">
-                <LibraryHeader p={p} onHouseStyle={() => setShowHouseStyle(true)} onNew={() => { actions.create.reset(); actions.createNotebook.reset(); actions.createSheet.reset(); setGalleryOpen(true); }} />
+                <LibraryHeader p={p} onHouseStyle={mode === 'studio' ? () => setShowHouseStyle(true) : undefined} onNew={() => { actions.create.reset(); actions.createNotebook.reset(); actions.createSheet.reset(); setGalleryOpen(true); }} />
                 <LibraryViews kind={f.kind} archived={f.archived} onView={(kind, archived) => { f.setArchived(archived); if (kind) f.setKind(kind); }} />
                 <LibraryFilterBar f={f} notebooks={p.notebooks} spreadsheets={p.spreadsheets} />
                 {p.error && <div role="alert" className="flex gap-3 p-3 rounded-xl text-sm border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)]"><span className="flex-1">{p.error}</span><button type="button" className="underline" onClick={() => p.setError(null)}>{t('documents.dismiss', 'Dismiss')}</button></div>}
@@ -201,11 +216,13 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
                     <FolderSidebar folders={p.folders.data || []} folderId={f.folderId} onFolder={f.setFolderId} busy={actions.createFolder.isPending}
                         onCreate={(name) => actions.createFolder.mutateAsync({ name, parentId: f.folderId || null }).catch((e) => { p.fail(e); throw e; })}
                         onDelete={(folder) => actions.deleteFolder.mutateAsync(folder.id).catch((e) => { p.fail(e); throw e; })} />
-                    <LibraryMain p={p} onOpen={open} onCreate={() => setGalleryOpen(true)} />
+                    <LibraryMain p={p} onOpen={open} onCreate={() => { actions.create.reset(); actions.createNotebook.reset(); actions.createSheet.reset(); setGalleryOpen(true); }} />
                 </div>
                 <StarterGallery open={galleryOpen} busy={actions.create.isPending || actions.createNotebook.isPending || actions.createSheet.isPending} notebooks={p.notebooks} spreadsheets={p.spreadsheets} onClose={() => setGalleryOpen(false)}
                     error={createError ? projectErrorText(t, createError) || createError.message : null}
-                    onChoose={(choice) => { create(choice).catch(() => undefined); }} />
+                    onChoose={choose} />
+                <EncryptionUnlock open={!!locked} onClose={() => setLocked(null)}
+                    onUnlocked={() => { const again = locked; setLocked(null); if (again) choose(again); }} />
             </div>
         </div>
     );

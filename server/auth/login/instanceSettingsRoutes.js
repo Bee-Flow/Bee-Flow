@@ -56,7 +56,7 @@ router.post('/settings', requireSuperAdmin, validate({ body: SettingsBody }), as
         config.oauth.clientSecret = clientSecret;
     }
 
-    if (saveConfig(config)) {
+    if (await saveConfig({ oauth: req.body })) {
         res.json({ success: true });
     } else {
         res.status(500).json({ error: 'Failed to save settings' });
