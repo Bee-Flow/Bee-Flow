@@ -78,7 +78,10 @@ const BODIES = {
     'intro/intro.aaaaaaaaaaaa.en.vtt': 'WEBVTT one',
     'second/second.bbbbbbbbbbbb.mp4': 'video two',
 };
-const readManifest = (dir) => JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+/** The manifest the installer wrote, parsed: data, not source text. */
+function readManifest(dir) {
+    return JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+}
 const leftovers = (dir) => fs.readdirSync(dir).filter((f) => f.startsWith('.'));
 
 test('fresh install downloads everything and writes the manifest', async () => {

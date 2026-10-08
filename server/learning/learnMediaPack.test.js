@@ -34,7 +34,8 @@ test('the lesson files are found and use videos (guards the extraction below)', 
 });
 
 test('learnMediaPack.json is a valid pin whose videos all belong to a lesson', { skip: !fs.existsSync(PIN_PATH) && 'no learnMediaPack.json yet (no pack published for this build): nothing to check' }, () => {
-    const pin = validatePin(JSON.parse(fs.readFileSync(PIN_PATH, 'utf8')));
+    const pinned = JSON.parse(fs.readFileSync(PIN_PATH, 'utf8'));
+    const pin = validatePin(pinned);
     assert.match(pin.baseUrl, /^https:\/\//, 'the pinned base URL must be https');
     const lessons = new Set(lessonVideoIds());
     const orphans = pin.videoIds.filter((id) => !lessons.has(id));
