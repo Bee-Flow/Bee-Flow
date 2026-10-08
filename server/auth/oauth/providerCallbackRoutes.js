@@ -90,6 +90,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
 
         if (req.session.oauthPopup) {
             const pickupId = req.session.oauthPickupId;
+            // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- knownNativeAppRedirect returns one of the fixed NATIVE_APP_REDIRECTS literals or null, never the session value
             const appRedirect = knownNativeAppRedirect(req.session.oauthAppRedirect);
             delete req.session.oauthPopup;
             delete req.session.oauthPickupId;
