@@ -22,8 +22,8 @@
 #
 # NOTE: the workflow-key → image-name mapping below MUST stay in sync with
 # the build jobs / promote wiring in .github/workflows/build-push-ghcr.yml
-# (changes outputs: server, agent-hub, search → images server, agent-hub,
-# search-api).
+# (changes outputs: server, agent-hub, search, pwt-runner → images server,
+# agent-hub, search-api, pwt-runner; the `browser` service runs pwt-runner).
 # ══════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -38,6 +38,7 @@ MAPPING=(
   "server:server"
   "agent-hub:agent-hub"
   "search:search-api"
+  "pwt-runner:pwt-runner"
 )
 
 echo "[resolve-images] IMAGE_PREFIX=$IMAGE_PREFIX BUILT='$BUILT' SHA='$SHA' FALLBACK_TAG='$FALLBACK_TAG'"
@@ -80,11 +81,11 @@ for pair in "${MAPPING[@]}"; do
 done
 
 # Coverage gap: services built this run that the smoke stack does NOT exercise
-# (only server/agent-hub/search run in profiles core+search). They will still be
+# (only server/agent-hub/search/pwt-runner run in profiles core+search). They will still be
 # promoted to :latest/:prod, but the smoke suite never touched them — surface
 # that loudly so a backend-only release isn't mistaken for "smoke-verified".
 if [[ -n "$BUILT" ]]; then
-  covered=" server agent-hub search "
+  covered=" server agent-hub search pwt-runner "
   uncovered=""
   IFS=',' read -ra keys <<< "$BUILT"
   for k in "${keys[@]}"; do
@@ -95,7 +96,7 @@ if [[ -n "$BUILT" ]]; then
     echo "::warning::Built this run but NOT exercised by the smoke suite (promoted unverified): $uncovered"
     {
       echo ""
-      echo "> ⚠️ **Promoted without smoke coverage:** $uncovered — the smoke stack only runs server/agent-hub/search. Verify these separately."
+      echo "> ⚠️ **Promoted without smoke coverage:** $uncovered — the smoke stack only runs server/agent-hub/search/pwt-runner. Verify these separately."
     } >> "$SUMMARY_FILE"
   fi
 fi
