@@ -735,11 +735,14 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
 });
 
 /**
- * §28 — Agent-callable invocation endpoint. The agent runtime
- * dispatcher hits this when it sees an automation_<id> tool call.
- * Body: { args, callerUserId, callerSessionId }. Returns the final
- * step output verbatim so the agent can fold it back into its
- * reasoning.
+ * §28 — Direct HTTP start of an agent-callable automation, by a PERSON.
+ * Nothing in the product calls it: agents start automations in-process via
+ * agentCallableTools.dispatchAgentCallableTool, where bindings and grants live.
+ * A session names a person, not an agent, so no binding can be checked here and
+ * the strict body refuses a claimed `callerAgentId`. The gate is the `run`
+ * right, exactly what POST /:id/run grants; a binding never widens what a
+ * person may do. Runs as the owner; the person is recorded in startedByUserId.
+ * Body: { args }. Returns the final step output verbatim.
  */
 router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvokeBody }), async (req, res) => {
     const userId = req.session.user.id;
@@ -747,14 +750,14 @@ router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvoke
     // is what runs (handoff 5).
     const automation = require('../../core/automationRunner/definitionForRun').automationForRun(
         await automationStore.getAutomation(req.params.id), { mode: 'live' });
-    if (!automation) return res.status(404).json({ error: 'Automation not found' });
+    if (!automation) throw new HttpError(404, 'automation_not_found', 'Automation not found.');
     if (!await automationAccess.guard(req, res, automation, 'run')) return;
     const trigger = automation.definition?.trigger;
     if (!trigger || trigger.kind !== 'agent_call') {
-        return res.status(409).json({ error: 'Automation is not declared as agent-callable. Set trigger.kind = "agent_call".' });
+        throw new HttpError(409, 'not_agent_callable', 'Automation is not declared as agent-callable. Set trigger.kind = "agent_call".');
     }
     if (!automation.isActive) {
-        return res.status(409).json({ error: 'Automation is paused. Activate it first.' });
+        throw new HttpError(409, 'automation_inactive', 'Automation is paused. Activate it first.');
     }
     const args = req.body.args;
     const runner = require('../../core/automationRunner');

@@ -597,3 +597,49 @@ test('JSON body: a declared text Content-Type and a form body keep the plain tem
     );
     assert.strictEqual(await sentBody({ body: 'a={{trigger.output.list}}&b=1' }), 'a=["a","b"]&b=1');
 });
+
+// ── step.query: the final URL reaches the fetch, a step without query is
+// unchanged, and errors name the setting ─────────────────────────────────
+const { describeStepError } = require('../../utils/stepErrorInfo');
+const queryState = (over = {}) => ({ trigger: { output: {} }, steps: {}, vars: {}, secrets: {}, loop: {}, _templateWarnings: [], ...over });
+
+test('step.query is serialised into the URL that is fetched, domain bound', async () => {
+    safeFetchCalls.length = 0;
+    safeFetchImpl = async () => fakeResponse({ status: 200, body: '{}' });
+    const step = {
+        id: 'h', type: 'http_request',
+        url: 'https://{{trigger.output.domain}}.example.nl/api/tickets',
+        query: { mode: 'json', json: '{"builder":[{"orderByDesc":"created_at"},{"with":["categories"]},{"paginate":{{trigger.output.size}}}]}' },
+    };
+    await execHttpRequest(step, {}, queryState({ trigger: { output: { domain: 'acme', size: 5 } } }), 'live');
+    assert.strictEqual(safeFetchCalls[0].url, 'https://acme.example.nl/api/tickets?builder%5B0%5D%5BorderByDesc%5D=created_at&builder%5B1%5D%5Bwith%5D%5B0%5D=categories&builder%5B2%5D%5Bpaginate%5D=5');
+});
+
+test('a step without query keeps its hand-written URL byte for byte', async () => {
+    safeFetchCalls.length = 0;
+    safeFetchImpl = async () => fakeResponse({ status: 200, body: '{}' });
+    const url = 'https://x.example.nl/api?builder%5B0%5D%5Ba%5D=b&page=1';
+    await execHttpRequest({ id: 'h', type: 'http_request', url }, {}, queryState(), 'live');
+    assert.strictEqual(safeFetchCalls[0].url, url);
+});
+
+test('invalid query JSON fails with a coded, explained error', async () => {
+    const step = { id: 'h', type: 'http_request', url: 'https://x.example.nl/a', query: { mode: 'json', json: '{oops' } };
+    await assert.rejects(() => execHttpRequest(step, {}, queryState(), 'live'), (e) => {
+        assert.strictEqual(e.stepErrorCode, 'http_query_invalid');
+        const info = describeStepError(e, { step });
+        assert.strictEqual(info.code, 'http_query_invalid');
+        assert.match(info.cause, /Query parameters/);
+        assert.match(info.cause, /JSON is not valid/);
+        return true;
+    });
+});
+
+test('an invalid URL is classified as a URL problem, not a generic bad value', async () => {
+    const step = { id: 'h', type: 'http_request', url: 'https://{{trigger.output.nope}}' };
+    await assert.rejects(() => execHttpRequest(step, {}, queryState(), 'live'), (e) => {
+        assert.match(e.message, /invalid URL/i);
+        assert.strictEqual(describeStepError(e, { step }).code, 'http_url_invalid');
+        return true;
+    });
+});

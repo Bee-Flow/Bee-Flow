@@ -166,6 +166,15 @@ const asCommunityOrg = () => {
     entitlementsMock.lockReason = (id) => (id === 'skills' ? 'not_granted' : 'ceiling');
 };
 
+// Every Studio permission an org admin's role carries — the role half held
+// constant, so a lock below is a LICENCE lock and nothing else.
+const ADMIN_ROLE_PERMS = [
+    'manage_agents', 'manage_skills', 'manage_knowledge', 'use_datatables', 'manage_datatables',
+    'use_webpages', 'use_automations', 'use_approvals', 'use_apps', 'manage_apps',
+    'use_forms', 'use_solutions', 'use_meeting_notes',
+];
+const holds = (perms) => (p) => perms.includes(p);
+
 describe('Sidebar — Studio flyout (registry-driven)', () => {
     beforeEach(resetSidebarMocks);
 
@@ -228,12 +237,12 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
     it('on a Community org: licence-gated rows are PRESENT but locked; permission-style gates still hide', () => {
         asCommunityOrg();
         // No canUseFeature map and no beta grants → canUse() is false too.
-        // The role still carries the three Community sections, which is what
-        // separates "your licence does not include this" from "your role does
-        // not include this".
+        // The role carries every Studio permission, which is what separates
+        // "your licence does not include this" (locked) from "your role does
+        // not include this" (hidden — the next test).
         renderSidebar({
             user: { isAdmin: true, permissions: [] },
-            hasPermission: (p) => ['manage_agents', 'manage_skills', 'manage_knowledge'].includes(p),
+            hasPermission: holds(ADMIN_ROLE_PERMS),
         });
         openStudioFlyout();
         // Always-on.
@@ -267,6 +276,24 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         expect(screen.getByTestId('flyout-group-bundle')).toBeTruthy();
     });
 
+    it('on a Community org, a row whose PERMISSION the role lacks is hidden, not locked', () => {
+        // An upgrade would not open it for this person either, so "Available
+        // on a higher plan" would be a promise nobody can keep. Only the
+        // permission differs from the test above.
+        asCommunityOrg();
+        renderSidebar({
+            user: { isAdmin: true, permissions: [] },
+            hasPermission: holds(['manage_agents', 'manage_skills', 'manage_knowledge']),
+        });
+        openStudioFlyout();
+        for (const id of ['webpages', 'apps', 'meetingNotes', 'solutions', 'aiTasks', 'datatables', 'forms', 'runs', 'playbooks']) {
+            expect(screen.queryByTestId(`nav-studio-${id}`), id).toBeNull();
+        }
+        // The permission it does hold still locks on the licence/beta.
+        expect(screen.getByTestId('nav-studio-skills').getAttribute('aria-disabled')).toBe('true');
+        expect(screen.getByTestId('nav-studio-agents').getAttribute('data-locked')).toBeNull();
+    });
+
     it('a locked row neither navigates nor offers a sub-panel', () => {
         // (The Studio ROW's own landing — first UNLOCKED section — is
         // firstOpenStudioSection, pinned in studioApps.test.jsx; on desktop
@@ -275,7 +302,7 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         const onNavigate = vi.fn();
         // The role still grants the Community sections; what varies here is
         // the licence, so the locked row is a licence lock, not a role hide.
-        renderSidebar({ onNavigate, user: { isAdmin: true, permissions: [] }, hasPermission: (p) => ['manage_agents', 'manage_skills', 'manage_knowledge'].includes(p) });
+        renderSidebar({ onNavigate, user: { isAdmin: true, permissions: [] }, hasPermission: holds(ADMIN_ROLE_PERMS) });
         openStudioFlyout();
         fireEvent.click(screen.getByTestId('nav-studio-apps'));
         expect(onNavigate).not.toHaveBeenCalled();
@@ -379,7 +406,7 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
     });
 
     it('does not poll counts for a user without a Studio row', () => {
-        renderSidebar({ user: { permissions: ['use_notebooks'] } });
+        renderSidebar({ user: { permissions: ['use_notebooks'] }, hasPermission: holds(['use_notebooks']) });
         expect(screen.queryByTestId('nav-studio')).toBeNull();
         expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/studio/counts'))).toBe(false);
     });
@@ -441,9 +468,9 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
     });
 
     it('keeps the ordinary sidebar for someone who never had a Studio row', () => {
-        // No admin rights, no manage_* permissions → canSeeStudio is false.
-        // A deep link still renders the section; the chrome stays the one
-        // they know.
+        // No admin rights, no permission that opens a section → canSeeStudio
+        // is false. The shell refuses the section itself
+        // (Studio.registry.test.jsx); the chrome stays the one they know.
         renderSidebar({
             currentPage: 'studio',
             studioRoute: { section: 'agents', id: null },
@@ -452,6 +479,96 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         });
         expect(screen.queryByTestId('studio-rail')).toBeNull();
         expect(screen.getByTestId('sidebar')).toBeTruthy();
+    });
+});
+
+// "Only the parts they have rights to": Studio is no longer a builders-only
+// room. Anyone for whom a section passes its own gate gets the Studio row,
+// holding exactly those sections; nobody gets a row for Documents alone,
+// which every member already opens from its own sidebar row.
+describe('Sidebar — Studio for a member, by the sections their role opens', () => {
+    beforeEach(resetSidebarMocks);
+
+    // The server-resolved programme map (licence × beta) every login carries;
+    // all on, so the role is the only thing that varies.
+    const ALL_ON = { automations: true, webpages: true, app_studio: true, meeting_notes: true };
+    const member = (perms) => ({
+        user: { id: 'm', orgRole: 'member', permissions: perms, canUseFeature: ALL_ON },
+        hasPermission: holds(perms),
+    });
+    const flyoutRows = () => [...document.querySelectorAll('[data-testid^="nav-studio-"]')]
+        .map((el) => el.getAttribute('data-testid'))
+        .filter((id) => /^nav-studio-[A-Za-z]+$/.test(id))
+        .map((id) => id.slice('nav-studio-'.length));
+
+    it('use_meeting_notes (Meeting Notes on for them): Studio holds Meeting Notes, and nothing they may not open', () => {
+        renderSidebar(member(['page_chat', 'use_meeting_notes']));
+        openStudioFlyout();
+        // Documents is open to everyone (no gate), so it is in their Studio
+        // as it is in a builder's; every other section is hidden — not locked.
+        expect(flyoutRows().sort()).toEqual(['documents', 'meetingNotes']);
+        expect(document.querySelectorAll('[data-locked="true"]').length).toBe(0);
+        expect(screen.getByTestId('flyout-group-ai').querySelector('[data-testid="nav-studio-meetingNotes"]')).toBeTruthy();
+    });
+
+    it('Meeting Notes on for them but the PERMISSION missing: no Studio row', () => {
+        // The licence and the programme pass; the role says no.
+        renderSidebar(member(['page_chat', 'use_notebooks']));
+        expect(screen.queryByTestId('nav-studio')).toBeNull();
+    });
+
+    it('use_notebooks only: no Studio row — notebooks are a document type, opened from Documents', () => {
+        renderSidebar(member(['use_notebooks']));
+        expect(screen.queryByTestId('nav-studio')).toBeNull();
+        expect(screen.getByTestId('nav-documents')).toBeTruthy();
+    });
+
+    it('nothing at all: no Studio row, and no counts poll', () => {
+        renderSidebar(member([]));
+        expect(screen.queryByTestId('nav-studio')).toBeNull();
+        expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/studio/counts'))).toBe(false);
+    });
+
+    it('the default Member role (datatables, approvals, apps, forms, notebooks) gets Datatables — the one section it opens', () => {
+        // server/config/orgRoles.json `member`: use_datatables is a Studio
+        // section's permission; the others are rows of their own.
+        renderSidebar(member(['use_notebooks', 'use_datatables', 'use_approvals', 'use_apps', 'use_forms']));
+        openStudioFlyout();
+        expect(flyoutRows().sort()).toEqual(['datatables', 'documents']);
+    });
+
+    it('a section that is only LOCKED for them earns no Studio row', () => {
+        // Community org: the role opens Meeting Notes, the plan does not. A
+        // signpost is not a door, so there is nothing of theirs to open.
+        asCommunityOrg();
+        renderSidebar(member(['use_meeting_notes']));
+        expect(screen.queryByTestId('nav-studio')).toBeNull();
+    });
+
+    it('on a Studio page they get the rail with their sections — and no Start, which is a builder\'s dashboard', () => {
+        renderSidebar({
+            ...member(['use_meeting_notes']),
+            currentPage: 'studio',
+            studioRoute: { section: 'meetingNotes', id: null },
+        });
+        expect(screen.getByTestId('studio-rail')).toBeTruthy();
+        expect(screen.queryByTestId('rail-start')).toBeNull();
+        expect(screen.getByTestId('rail-meetingNotes').getAttribute('aria-current')).toBe('page');
+        expect(screen.queryByTestId('rail-agents')).toBeNull();
+    });
+
+    it('a builder keeps the Start row on the rail', () => {
+        renderSidebar({ currentPage: 'studio', studioRoute: { section: 'agents', id: null } });
+        expect(screen.getByTestId('rail-start')).toBeTruthy();
+    });
+
+    it('an admin sees every section exactly as before', () => {
+        renderSidebar();
+        openStudioFlyout();
+        expect(flyoutRows().sort()).toEqual([
+            'agents', 'aiTasks', 'apps', 'datatables', 'documents', 'forms', 'knowledge',
+            'meetingNotes', 'playbooks', 'runs', 'skills', 'solutions', 'webpages',
+        ]);
     });
 });
 

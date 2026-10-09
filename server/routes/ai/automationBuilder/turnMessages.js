@@ -34,17 +34,20 @@
  * prefix the previous one left in the local runtime's prompt cache. The
  * catalog is then re-read once per user turn (it sits in `dyn`); the cloud
  * bands keep it in the system prompt, where Anthropic's breakpoint caches it
- * for the session. Order inside `dyn`: catalog → schemas → preferences → draft
- * state LAST, so the part that changes every round sits closest to the end.
+ * for the session. The id lists (agents, knowledge bases, the user's app_event
+ * providers) sit in `dyn` on EVERY band: they change when somebody creates an
+ * agent, which the cached system prompt must not feel. Order inside `dyn`:
+ * catalog → id lists → schemas → preferences → draft state LAST, so the part
+ * that changes every round sits closest to the end.
  */
 
 const {
     buildFullSystemPrompt, buildLeanSystemPrompt, buildFewShotMessages,
-    renderCatalogContextMessage, renderDraftStateSystemMessage, renderTurnPreferences,
+    renderCatalogContextMessage, renderPickerContextMessage, renderDraftStateSystemMessage, renderTurnPreferences,
 } = require('../../../automation/builderPrompt');
 const { windowHistory, HISTORY_EVICT_BLOCK } = require('../../../core/llm/historyWindow');
 const { isGemini3Model } = require('../builderShared');
-const { sanitizeHistory } = require('./chatTurnLoop');
+const { historyForModel } = require('./chatTurnLoop');
 
 /**
  * Attachments are NOT executed (the Builder is a design-time agent, not a
@@ -71,14 +74,15 @@ function attachmentSummaryText(attachments) {
  * @param {boolean} p.draftIsEmpty
  * @param {string} [p.canvasScope]
  * @param {string|null} [p.schemaPart] pre-inspected schemas (§WS8) or null
- * @param {object} [p.turnPrefs]      { userTimezone, webSearchEnabled, disabledMedia, allowedModelTiers }
+ * @param {object} [p.turnPrefs]      { userTimezone, webSearchEnabled, webResearchLine, disabledMedia, allowedModelTiers }
  * @param {string} [p.title]          the draft's title (draftWrap.title) for the draft-state message
+ * @param {string|null} [p.workMode]  the turn's work mode; plan and discuss get no few-shots
  * @returns {{ sys: string, fewShotMessages: Array, windowedHistory: Array, dynamicContext: string, messages: Array }}
  */
 function composeTurnMessages({
     profile, modelId, promptCatalog, codeStepEnabled, batchTools,
     history, message, attachments,
-    agentDraftState, draftIsEmpty, canvasScope, schemaPart, turnPrefs, title,
+    agentDraftState, draftIsEmpty, canvasScope, schemaPart, turnPrefs, title, workMode = null,
 }) {
     const prof = profile || {};
     const buildPrompt = prof.promptVariant === 'lean' ? buildLeanSystemPrompt : buildFullSystemPrompt;
@@ -106,15 +110,25 @@ function composeTurnMessages({
     // turns are not yet the better example. Gemini 3.x rejects synthetic
     // few-shot tool_calls (no thought_signature) — see builderShared.js.
     const fewShotCount = isGemini3Model(modelId) ? 0 : (prof.fewShots || 0);
-    const wantFewShots = prof.fewShotPolicy === 'every-turn' || hist.length === 0;
+    // The examples build with the checklist and a summary, which is exactly what
+    // Plan first must not do; the work-mode note below them cannot outweigh two
+    // worked examples. A plan or discuss turn therefore gets none.
+    const wantFewShots = (prof.fewShotPolicy === 'every-turn' || hist.length === 0) && workMode !== 'plan' && workMode !== 'discuss';
     const fewShotMessages = (fewShotCount > 0 && wantFewShots)
         ? buildFewShotMessages(fewShotCount, { toolset: prof.toolset })
         : [];
 
-    const windowedHistory = windowHistory(sanitizeHistory(hist), {
+    const windowedHistory = windowHistory(historyForModel(hist), {
         budgetTokens: prof.historyBudgetTokens,
         block: HISTORY_EVICT_BLOCK,
     });
+    // A history that ends on a user message (historyForModel dropped the blank
+    // assistant turn that followed it: a turn that only asked questions) would
+    // put two user turns in a row in front of the new message, which a strict
+    // chat template rejects. The trailing user text moves into this turn's user
+    // message instead, so the answer is read right behind the message it
+    // answers. The history before it is untouched, so the cached prefix holds.
+    const carried = windowedHistory.at(-1)?.role === 'user' ? windowedHistory.pop().content : '';
 
     // Per-turn dynamic context: the per-user catalog blocks when the profile
     // keeps them out of the system prompt, pre-inspected schemas, this turn's
@@ -127,6 +141,10 @@ function composeTurnMessages({
     // round of a turn; the catalog changes only between turns.
     const dynamicContext = [
         catalogPlacement === 'dynamic' ? renderCatalogContextMessage({ catalog: promptCatalog }) : null,
+        // Agents, knowledge bases and this user's app_event providers: the
+        // lists the model fills ids from. Always here, for every band — they
+        // change between turns, and the system prompt must not.
+        renderPickerContextMessage({ catalog: promptCatalog }),
         schemaPart || null,
         renderTurnPreferences(turnPrefs || {}),
         draftIsEmpty ? null : renderDraftStateSystemMessage({ agentDraftState, canvasScope, title }),
@@ -137,7 +155,7 @@ function composeTurnMessages({
         ...fewShotMessages,
         ...windowedHistory,
         ...(dynamicContext ? [{ role: 'system', content: dynamicContext }] : []),
-        { role: 'user', content: (message || '') + attachmentSummaryText(attachments) },
+        { role: 'user', content: (carried ? `${carried}\n\n` : '') + (message || '') + attachmentSummaryText(attachments) },
     ];
 
     return { sys, fewShotMessages, windowedHistory, dynamicContext, messages };

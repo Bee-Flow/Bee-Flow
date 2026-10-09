@@ -121,6 +121,9 @@ export default function StudioRail({
     // a member act) — so it never arrives in `sections`. It travels as its own
     // pair of props from the same sidebar state the top-level row reads.
     canBrowseApprovals = false, pendingApprovalCount = 0,
+    // The Start row: a builder's dashboard. Someone who has Studio for the
+    // sections their role opens (not a builder) gets just those sections.
+    showStart = true,
 }) {
     const { t, locale } = useTranslation();
     const [searchOpen, setSearchOpen] = useState(false);
@@ -221,14 +224,16 @@ export default function StudioRail({
                 to answer that question itself, which is how the rail and the
                 flyout could end up calling one section two things. */}
             <nav aria-label="Studio navigation" data-testid="studio-rail-nav" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-2 flex flex-col gap-0.5">
-                <RailRow
-                    label={t(STUDIO_START.labelKey, STUDIO_START.labelFallback)}
-                    Icon={STUDIO_START.Icon}
-                    iconColor="var(--text-secondary)"
-                    active={activeSection === STUDIO_START.id}
-                    onClick={() => onNavigate?.(`studio/${STUDIO_START.urlSegment}`)}
-                    testId={`rail-${STUDIO_START.id}`}
-                />
+                {showStart && (
+                    <RailRow
+                        label={t(STUDIO_START.labelKey, STUDIO_START.labelFallback)}
+                        Icon={STUDIO_START.Icon}
+                        iconColor="var(--text-secondary)"
+                        active={activeSection === STUDIO_START.id}
+                        onClick={() => onNavigate?.(`studio/${STUDIO_START.urlSegment}`)}
+                        testId={`rail-${STUDIO_START.id}`}
+                    />
+                )}
                 {groupStudioApps(sections).map(({ category, apps }) => (
                     <div key={category.id} className="mt-3">
                         <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">

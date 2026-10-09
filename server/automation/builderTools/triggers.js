@@ -18,6 +18,8 @@
 const { newId } = require('./draftGraph');
 const { SECONDARY_TRIGGER_KINDS } = require('../validate/constants');
 const { DEFAULT_SCHEDULE_TZ } = require('../triggerColumns');
+const { agentCallFieldsFrom } = require('../agentCallContract');
+const { buildForm, buildAppParams, agentCallIssueLines, NO_ARGS_WARNING, triggerHints } = require('./stepBuilders/triggerApply');
 
 const MAX_LABEL = 80;
 
@@ -90,7 +92,31 @@ function applyAddTrigger(draft, args = {}) {
     };
 }
 
-/** builder_update_trigger — edits a filter / cron / label in place; works on the primary too. */
+// The patch keys each kind accepts beside `label`. Anything else is reported
+// back as ignored, so a typo is not mistaken for an edit that landed.
+const PATCH_KEYS = Object.freeze({
+    app_event: ['appProvider', 'appEvent', 'filter'],
+    schedule: ['cron', 'tz'],
+    agent_call: ['toolName', 'description', 'parametersSchema', 'params'],
+    form: ['form'],
+    app_trigger: ['params'],
+});
+
+/** The form keys a patch may carry; each one present replaces that key of the stored form. */
+function patchForm(node, patchedForm) {
+    if (!patchedForm || typeof patchedForm !== 'object' || Array.isArray(patchedForm)) return null;
+    const built = buildForm(patchedForm);
+    const merged = node.form && typeof node.form === 'object' ? { ...node.form } : buildForm({});
+    const touched = [];
+    for (const key of Object.keys(patchedForm)) {
+        if (!(key in built)) continue;
+        merged[key] = built[key];
+        touched.push(key);
+    }
+    return { merged, touched };
+}
+
+/** builder_update_trigger — edits a filter / cron / label / declared inputs in place; works on the primary too. */
 function applyUpdateTrigger(draft, args = {}) {
     const id = typeof args.triggerId === 'string' ? args.triggerId : '';
     const node = allTriggers(draft).find(t => t.id === id);
@@ -100,6 +126,7 @@ function applyUpdateTrigger(draft, args = {}) {
         return { error: 'A trigger cannot change kind in place — remove it and add a new one (or builder_propose_trigger for the primary).' };
     }
     const changed = [];
+    const warnings = [];
     if (patch.label !== undefined) {
         const l = cleanLabel(patch.label);
         if (l) node.label = l; else delete node.label;
@@ -114,11 +141,35 @@ function applyUpdateTrigger(draft, args = {}) {
         node.schedule = node.schedule && typeof node.schedule === 'object' ? node.schedule : {};
         if (patch.cron !== undefined) { node.schedule.cron = patch.cron; changed.push('cron'); }
         if (patch.tz !== undefined) { node.schedule.tz = patch.tz || DEFAULT_SCHEDULE_TZ; changed.push('tz'); }
+    } else if (node.kind === 'agent_call') {
+        // Only what the patch names is touched: the other two declarations stay.
+        const { fields, notes } = agentCallFieldsFrom(patch);
+        for (const [key, value] of Object.entries(fields)) {
+            if (value === null) delete node[key]; else node[key] = value;
+            changed.push(key);
+        }
+        warnings.push(...notes);
+        if (changed.some(k => k === 'parametersSchema' || k === 'description' || k === 'toolName')) {
+            if (!node.parametersSchema) warnings.push(NO_ARGS_WARNING);
+            warnings.push(...agentCallIssueLines(node));
+        }
+    } else if (node.kind === 'form' && patch.form !== undefined) {
+        const r = patchForm(node, patch.form);
+        if (r) { node.form = r.merged; changed.push(...r.touched.map(k => `form.${k}`)); }
+        else warnings.push('patch.form must be an object with any of title, description, submitLabel, successMessage, collect, fields; nothing changed.');
+    } else if (node.kind === 'app_trigger' && patch.params !== undefined) {
+        if (Array.isArray(patch.params)) { node.params = buildAppParams(patch.params); changed.push('params'); }
+        else warnings.push('patch.params must be a list of {name, type, required, description}; nothing changed.');
     }
-    const ignored = Object.keys(patch).filter(k => !['label', 'kind', 'appProvider', 'appEvent', 'filter', 'cron', 'tz'].includes(k) || (
-        (['appProvider', 'appEvent', 'filter'].includes(k) && node.kind !== 'app_event')
-        || (['cron', 'tz'].includes(k) && node.kind !== 'schedule')));
-    return { updated: node, changed, ...(ignored.length ? { _warnings: [`ignored patch keys for a ${node.kind} trigger: ${ignored.join(', ')}`] } : {}) };
+    const allowed = new Set(['label', 'kind', ...(PATCH_KEYS[node.kind] || [])]);
+    const ignored = Object.keys(patch).filter(k => !allowed.has(k));
+    const lines = [...(ignored.length ? [`ignored patch keys for a ${node.kind} trigger: ${ignored.join(', ')}`] : []), ...warnings];
+    return {
+        updated: node,
+        changed,
+        ...(lines.length ? { _warnings: lines } : {}),
+        ...triggerHints(node),
+    };
 }
 
 /**

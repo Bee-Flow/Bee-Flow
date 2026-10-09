@@ -14,7 +14,11 @@ function defaultDeps() {
     return {
         captureCall: require('../core/http/captureCall').captureCall,
         logToolEgress: require('../core/integrations/integrationLogging').logToolEgress,
-        executeAgentSearchTool: require('./agentSearchTools').executeAgentSearchTool,
+        // The provider-aware entry (bing, node-search, the search service, and
+        // the node-search fallback), the same one the tool dispatcher runs for
+        // direct chat: calling executeAgentSearchTool here hardwired the GPU
+        // service and failed on a CPU-only or Bing install.
+        executeAgentSearchTool: require('./agentSearchTools').executeWebSearch,
         executeReadUrlTool: require('./readUrlTools').executeReadUrlTool,
         now: Date.now,
     };

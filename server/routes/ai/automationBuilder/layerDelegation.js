@@ -50,6 +50,11 @@ async function runDelegationTool(name, args, ctx) {
         // not have and a table id that is not theirs — both permissive when
         // absent, exactly as on the main draft (null = could not tell).
         datatables: draftWrap._datatables ?? null,
+        // The consent gate too (datatableApproval): a sub-agent cannot ask the
+        // user, so a table that was not chosen is refused to it and the refusal
+        // reaches the main agent, which asks. A copy, so a sub-agent's own
+        // creations never widen the main draft's set.
+        approvedDatatableIds: draftWrap._approvedDatatableIds ? new Set(draftWrap._approvedDatatableIds) : null,
         documents: draftWrap._documents ?? null,
         availableToolNames: draftWrap._availableToolNames || null,
     });

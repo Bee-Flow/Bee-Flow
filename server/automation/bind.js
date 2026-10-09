@@ -19,6 +19,7 @@
 const { AsyncLocalStorage } = require('node:async_hooks');
 const { evaluate, parseExpr, templateText, parsePath, walkTokens, getRelativePath, replaceTemplate, scanTemplate, parseJsonText, formatPath, jsonCacheFor } = require('./expr');
 const log = require('../telemetry/log');
+const { missingResultTokens } = require('./codeOutput');
 
 // ── The binding log ─────────────────────────────────────────────────────
 //
@@ -213,7 +214,15 @@ function walkPath(path, root) {
     if (!path || typeof path !== 'string') return undefined;
     const tokens = parsePath(path);
     if (!tokens) return undefined;
-    return walkTokens(tokens, root);
+    const v = walkTokens(tokens, root);
+    if (v !== undefined) return v;
+    // A code step hands on what its code returned under `output.result`
+    // (codeOutput.js). The AI builder used to save `steps.<code>.output.count`
+    // for `….output.result.count`; such a path finds nothing as written, so
+    // it is read the way its author meant. Only on a miss, never instead of a
+    // value the path did find.
+    const alt = missingResultTokens(tokens, root);
+    return alt ? walkTokens(alt, root) : undefined;
 }
 
 /**
@@ -301,6 +310,9 @@ function evaluateExprBinding(src, safeState) {
         if (bindingLogStore.getStore()) noteMiss({ kind: 'expr', path: text, reason: 'error', message: e.message || String(e) });
         return undefined;
     }
+    // A formula that is a plain path reads like a ref, including the
+    // code-step tolerance in walkPath (the engine walks paths on its own).
+    if (v === undefined && parsePath(text)) v = walkPath(text.trim(), safeState);
     if (v === undefined && bindingLogStore.getStore()) {
         if (parsePath(text)) noteMissedPath('expr', text.trim(), safeState);
         else noteMiss({ kind: 'expr', path: text, reason: 'missing' });

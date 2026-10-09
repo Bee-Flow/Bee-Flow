@@ -316,6 +316,8 @@ function merge(a, b) {
     const flags = {
         ...(a.json || b.json ? { json: true } : {}),
         ...(a.envelope || b.envelope ? { envelope: true } : {}),
+        // The key a code step's returned value sits under (refCheck.codeOutputShape).
+        ...(a.payload || b.payload ? { payload: a.payload || b.payload } : {}),
     };
     if (a.t === 'obj') {
         const keys = new Map(a.keys);

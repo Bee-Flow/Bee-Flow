@@ -7,6 +7,7 @@
 
 const notificationStore = require('../../stores/notificationStore');
 const { resolveInputs, interpolateTemplate, interpolateJsonBody } = require('../../automation/bind');
+const { withStepQuery, parseStepUrl, shieldPart, joinShieldedUrl } = require('./httpQuery');
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 const sandbox = require('../../automation/codeSandbox');
 const { prepareCodeRun } = require('./codeStepGuard');
@@ -223,7 +224,7 @@ function parseHttpBody(text, contentType, mode, truncated) {
 async function execHttpRequest(step, ctx, runState, mode) {
     // A request carries DATA, not prose: lists stay JSON here (listAs 'json').
     const asData = { listAs: 'json' };
-    const url = interpolateTemplate(step.url || '', runState, { ...asData, field: 'url' });
+    const url = withStepQuery(interpolateTemplate(step.url || '', runState, { ...asData, field: 'url' }), step.query, runState);
     const method = (step.method || 'GET').toUpperCase();
     const headers = {};
     for (const [k, v] of Object.entries(step.headers || {})) {
@@ -250,9 +251,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
         };
     }
 
-    let parsedUrl;
-    try { parsedUrl = new URL(url); }
-    catch (e) { throw new Error(`http_request: invalid URL "${url}" — ${e.message}`); }
+    const parsedUrl = parseStepUrl(url);
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
         throw new Error(`http_request: unsupported URL scheme "${parsedUrl.protocol}" — only http/https are allowed.`);
     }
@@ -306,7 +305,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
     }
     const guardedHttp = await guardOutbound(step, ctx, mode, {
         toolName: 'http_request',
-        payload: { url, body, headers: guardableHeaders },
+        payload: { url: shieldPart(url), body, headers: guardableHeaders },
         destination,
         integMeta: httpMeta,
     });
@@ -327,7 +326,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
             dryRunFallback: 'guardrail_block',
         };
     }
-    const sendUrl = typeof guardedHttp.payload.url === 'string' ? guardedHttp.payload.url : url;
+    const sendUrl = joinShieldedUrl(url, guardedHttp.payload.url);
     const sendBody = body === undefined ? undefined : guardedHttp.payload.body;
     for (const [k, v] of Object.entries(guardedHttp.payload.headers || {})) {
         if (typeof v === 'string') headers[k] = v;
@@ -710,30 +709,31 @@ async function execCode(step, ctx, runState, mode) {
                     ? rawHeaders : undefined;
                 const guardedFetch = await guardOutbound(step, ctx, mode, {
                     toolName: 'code_fetch_http',
-                    payload: { url: String(url), body: options && options.body, headers: guardableHeaders },
+                    payload: { url: shieldPart(String(url)), body: options && options.body, headers: guardableHeaders },
                     destination: isPrivateHost(host) ? 'internal' : 'external',
                     integMeta: meta,
                 });
+                const sendUrl = joinShieldedUrl(String(url), guardedFetch.payload.url);
                 const t0 = Date.now();
                 // What travels is built FROM THE GUARDED RESULT, never from the
                 // caller's object — that is the whole point of the guard.
                 const sendOptions = { ...(options || {}) };
                 if (guardedFetch.payload.body !== undefined) sendOptions.body = guardedFetch.payload.body;
                 if (guardableHeaders) sendOptions.headers = guardedFetch.payload.headers || {};
-                const call = await captured(() => sandbox.defaultFetchHttp(guardedFetch.payload.url, sendOptions));
+                const call = await captured(() => sandbox.defaultFetchHttp(sendUrl, sendOptions));
                 let res;
                 try {
                     if (!call.ok) throw call.error;
                     res = call.value;
                     await safety.logEgress({
-                        toolName: 'code_fetch_http', toolArgs: { url: guardedFetch.payload.url },
+                        toolName: 'code_fetch_http', toolArgs: { url: sendUrl },
                         result: { ok: true }, probe: call.probe, policy: guardedFetch.policy,
                         auditBase: guardedFetch.auditBase, mode, integMeta: meta,
                         durationMs: Date.now() - t0,
                     });
                 } catch (err) {
                     await safety.logEgress({
-                        toolName: 'code_fetch_http', toolArgs: { url: guardedFetch.payload.url }, error: err,
+                        toolName: 'code_fetch_http', toolArgs: { url: sendUrl }, error: err,
                         probe: call.probe, policy: guardedFetch.policy, auditBase: guardedFetch.auditBase, mode,
                         integMeta: meta, durationMs: Date.now() - t0,
                     });

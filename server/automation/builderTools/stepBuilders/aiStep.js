@@ -131,7 +131,7 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
     if (granted.length) {
         return {
             error: `agentPermissions ${granted.map(k => `"${k}"`).join(', ')} was set but the step names no agent, so nothing would read it. `
-                + 'Set agentId to an agent the user has actually shown you, or drop agentPermissions — a step without an agent runs on its own prompt and needs none.',
+                + 'Set agentId to an agent from the "Agents you may use" block (or one the user named), or drop agentPermissions — a step without an agent runs on its own prompt and needs none.',
             _fixHint: 'Either pass agentId together with agentPermissions, or omit agentPermissions entirely.',
         };
     }

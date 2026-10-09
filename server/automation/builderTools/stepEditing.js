@@ -28,11 +28,15 @@ const {
     sanitizeSwitchCases,
 } = require('./stepBuilders');
 const { patchFlatten } = require('./stepBuilders/flattenStep');
+const { normalizeQuery: normalizeHttpQuery } = require('../../core/automationRunner/httpQuery');
 
 // A flatten's route and column plan: re-planned together, never merged key by key.
 const FLATTEN_PLANNED_KEYS = ['arrayRef', 'parents', 'childField', 'keepFields'];
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS } = require('../validate/constants');
 const { followAddedSteps, followPatchedRoute, followReplacedRoute } = require('./routeFollowDraft');
+const { approvalGateError } = require('./datatableApproval');
+const { REPLACEABLE_STEP_TYPES } = require('./stepTypeTable');
+const { ALIASES: STEP_TYPE_ALIASES, isBuiltinStepType } = require('../builtinStepTools');
 const {
     translateDatatableVocabulary, resolveDatatableOp, resolveDatatableRef, mapColumnKeys,
 } = require('./datatableRefs');
@@ -81,7 +85,7 @@ const PATCHABLE_FIELDS = {
     // the authority; this only lets a step ask, within it.
     code: ['code', 'inputs', 'outputSchema', 'allowedTools', 'limits', 'label', 'forEach'],
     notification: ['title', 'body', 'channels', 'label', 'forEach'],
-    http_request: ['url', 'method', 'headers', 'body', 'timeoutMs', 'blockPrivateTargets', 'parseResponse', 'label', 'forEach', 'askOnce', 'cacheInto'],
+    http_request: ['url', 'method', 'headers', 'body', 'query', 'timeoutMs', 'blockPrivateTargets', 'parseResponse', 'label', 'forEach', 'askOnce', 'cacheInto'],
     generate_document: ['content', 'contentFormat', 'format', 'title', 'fileName', 'expiresInDays', 'label'],
     // `values` is the placeholder map, replaced wholesale like data_extraction's
     // `fields`: a merge would leave a value bound to a placeholder the person
@@ -136,6 +140,12 @@ const PATCHABLE_FIELDS = {
     // of the merge/revalidate machinery the other types get; normalizePatchField
     // below clamps text/size the same way applyAddNote does.
     note: ['text', 'position', 'size', 'color', 'label'],
+    // The Privacy Shield steps. `onFound` is rebuilt from its three known switches
+    // (normalizePatchField), never merged: an invented key would persist as a
+    // setting that looks configured and does nothing.
+    guard: ['sourceRef', 'categories', 'confidence', 'onFound', 'label'],
+    tokenize: ['sourceRef', 'categories', 'confidence', 'label'],
+    untokenize: ['sourceRef', 'label'],
 };
 
 /**
@@ -211,6 +221,7 @@ function normalizePatchField(type, key, value) {
         if (key === 'method') return String(value || 'GET').toUpperCase();
         if (key === 'headers') return (value && typeof value === 'object' && !Array.isArray(value)) ? value : {};
         if (key === 'body') return typeof value === 'string' ? value : '';
+        if (key === 'query') return normalizeHttpQuery(value);
         if (key === 'timeoutMs') return Math.max(1000, Math.min(60000, Number(value) || 10000));
         if (key === 'blockPrivateTargets') return value === false ? false : true;
         // Anything unrecognised means 'auto' — the executor falls back the same
@@ -332,6 +343,22 @@ function normalizePatchField(type, key, value) {
             return KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES.includes(value) && value !== 'skip' ? value : undefined;
         }
     }
+    if (type === 'guard' || type === 'tokenize' || type === 'untokenize') {
+        // A ref PATH string, as the add path stores it ('' = not picked yet).
+        if (key === 'sourceRef') return typeof value === 'string' ? value.trim() : '';
+        // Narrow-only, like the runner (execPrivacy.narrowPolicy): a list of
+        // category names, or absent for "every category the organisation allows".
+        if (key === 'categories') {
+            const list = Array.isArray(value) ? value.filter(c => typeof c === 'string' && c) : [];
+            return list.length ? list : undefined;
+        }
+        if (key === 'confidence') return (typeof value === 'number' && value > 0 && value <= 1) ? value : undefined;
+        if (key === 'onFound') {
+            const o = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+            const next = { ...(o.stop === true ? { stop: true } : {}), ...(o.mask === true ? { mask: true } : {}), ...(o.tokenize === true ? { tokenize: true } : {}) };
+            return Object.keys(next).length ? next : undefined;
+        }
+    }
     if (type === 'dedupe' && key === 'keyField') return typeof value === 'string' ? value : undefined;
     if (type === 'flatten') {
         if (key === 'keepEmpty') return value === true ? true : undefined;
@@ -359,6 +386,122 @@ function normalizePatchField(type, key, value) {
     return value;
 }
 
+
+// ── A type change through builder_update_step ──
+//
+// Measured on a live build: a Nextcloud Tables row step was to become a Bee
+// Flow datatable step, and the model sent builder_update_step({patch:{tool:
+// "datatable", op, values}}). The allow-list refused "op, values" before the
+// unknown-tool check ever ran, and the hint named only builder_replace_step,
+// which the small-model menu does not even offer. So the patch performs the
+// type change itself, as the same replace (same id, same wiring), and says so.
+// Nextcloud Tables and Bee Flow datatables are different systems: a Nextcloud
+// `tableId` (often a title like "Facturen") is never read as a Bee Flow table.
+const ROW_OP_FOR_TOOL = Object.freeze({
+    nextcloud_tables_create_row: 'add_row',
+    nextcloud_tables_update_row: 'update_rows',
+    nextcloud_tables_list_rows: 'find_rows',
+    nextcloud_tables_delete_row: 'delete_rows',
+});
+// What a step of the new type may take from a patch's `inputs` map. tableId
+// and rowId are deliberately absent (see above).
+const DATATABLE_LIFT_KEYS = ['op', 'values', 'where', 'matchColumn', 'sort', 'limit', 'datatableId', 'datatableKey'];
+
+const resolvedStepType = (name) => (Object.prototype.hasOwnProperty.call(STEP_TYPE_ALIASES, name) ? STEP_TYPE_ALIASES[name] : name);
+
+/**
+ * Does this patch change the step's TYPE? `{newType}` when it does,
+ * `{error}` when it asks for a type that cannot be replaced into, null when
+ * it is an ordinary patch.
+ *   (a) patch.type names another replaceable type;
+ *   (b) an integration_action whose patch.tool is a built-in step type
+ *       (tool:"datatable"): a type name where a tool belongs. A name the
+ *       user's own catalog has stays a tool.
+ */
+function typeChangeFromPatch(step, patch, draftWrap) {
+    if (typeof patch.type === 'string' && patch.type !== step.type) {
+        const to = resolvedStepType(patch.type);
+        if (to !== step.type && REPLACEABLE_STEP_TYPES.includes(to)) return { newType: to };
+        if (to === step.type) return null;
+        return { error: `Cannot change a step's type to "${patch.type}". Allowed types: ${REPLACEABLE_STEP_TYPES.join(', ')}.` };
+    }
+    if (step.type === 'integration_action' && typeof patch.tool === 'string' && isBuiltinStepType(patch.tool)
+        && !(draftWrap && draftWrap._inputSchemasByTool && draftWrap._inputSchemasByTool[patch.tool])
+        && !(draftWrap && draftWrap._availableToolNames && draftWrap._availableToolNames.has(patch.tool))) {
+        const to = resolvedStepType(patch.tool);
+        if (to !== 'integration_action' && REPLACEABLE_STEP_TYPES.includes(to)) return { newType: to };
+    }
+    return null;
+}
+
+/** The replace spec for a type change, and the notes about what was read or dropped. */
+function specForTypeChange(step, patch, newType) {
+    const notes = [];
+    const spec = {};
+    for (const [k, v] of Object.entries(patch)) if (!['type', 'tool', 'id', 'inputs'].includes(k)) spec[k] = v;
+    const inputs = (patch.inputs && typeof patch.inputs === 'object' && !Array.isArray(patch.inputs)) ? patch.inputs : {};
+    if (newType === 'datatable') {
+        for (const k of DATATABLE_LIFT_KEYS) if (!(k in spec) && k in inputs) spec[k] = inputs[k];
+        if (!('values' in spec) && step.inputs && step.inputs.values && typeof step.inputs.values === 'object' && !Array.isArray(step.inputs.values)) {
+            spec.values = step.inputs.values;
+            notes.push('The row values of the old step were carried over; their column names are matched against the new table\'s columns.');
+        }
+        if (!('op' in spec) && step.type === 'integration_action' && ROW_OP_FOR_TOOL[step.tool]) {
+            spec.op = ROW_OP_FOR_TOOL[step.tool];
+            notes.push(`op was not set: ${step.tool} read as op "${spec.op}".`);
+        }
+        const dropped = ['tableId', 'rowId'].filter((k) => (step.inputs && k in step.inputs) || k in inputs);
+        if (dropped.length) notes.push(`The Nextcloud ${dropped.join(' and ')} of the old step were not carried over: Nextcloud Tables is a different system, and the Bee Flow table comes from datatableId.`);
+    } else {
+        for (const [k, v] of Object.entries(inputs)) if (!(k in spec)) spec[k] = v;
+    }
+    for (const k of ['label', 'forEach']) if (!(k in spec) && step[k] !== undefined) spec[k] = step[k];
+    return { spec, notes };
+}
+
+function typeChangeHint(stepId, newType, draftWrap) {
+    const offered = draftWrap && draftWrap._offeredTools;
+    const replaceOffered = !(offered instanceof Set) || offered.has('builder_replace_step');
+    const fields = newType === 'datatable' ? 'op, datatableId, datatableKey, values' : 'the fields of the new type';
+    const call = replaceOffered
+        ? `builder_replace_step({stepId:"${stepId}", newType:"${newType}", spec:{${fields}}})`
+        : `builder_update_step({stepId:"${stepId}", patch:{type:"${newType}", ${fields}}})`;
+    return `Reject reason: type change. Send ${call}.`
+        + (newType === 'datatable' ? ' The Bee Flow table id comes from the Datatables block, builder_create_datatable, or the user\'s choice; never from the Nextcloud tableId. Nextcloud Tables and Bee Flow datatables are different systems.' : '');
+}
+
+/** Run a type change patch as the replace it is. */
+function updateAsTypeChange(graph, step, found, patch, newType, args, draftWrap) {
+    if (found.kind === 'loop') {
+        return {
+            error: `"${step.id}" sits inside a loop body, and no tool changes the type of a loop-body step in place. Remove it and add the new step inside the loop body, or re-send the whole loop with builder_replace_step({stepId:"${found.parentLoop && found.parentLoop.id}", newType:"loop", spec:{overRef, itemVar, maxIterations, body:[…]}}).`,
+            _fixHint: 'Reject reason: type change inside a loop body. Rebuild the loop body (builder_replace_step on the loop) instead of changing one body step\'s type.',
+        };
+    }
+    const { spec, notes } = specForTypeChange(step, patch, newType);
+    const r = applyReplaceStep(graph, { stepId: step.id, newType, spec }, { draft: draftWrap && draftWrap.def, scope: args.scope || null }, draftWrap);
+    if (r.error) {
+        // A consent question or an access refusal keeps its own instructions.
+        if (r._askArgs) return r;
+        // A refusal about the table itself (missing, unknown) is exactly what
+        // the type-change hint answers; any other keeps its own, precise hint
+        // (an unknown column, a read-only table) with the type-change form
+        // appended.
+        const aboutTable = /datatableId|no datatable|unknown datatable|datatable exists/i.test(`${r.error} ${r._fixHint || ''}`);
+        const hint = typeChangeHint(step.id, newType, draftWrap);
+        return { ...r, _fixHint: r._fixHint && !aboutTable ? `${r._fixHint} (A type change is sent as: ${hint.replace(/^Reject reason: type change\. /, '')})` : hint };
+    }
+    return {
+        updated: r.replaced,
+        replacedType: { from: step.type, to: newType },
+        ...(r.rewired ? { rewired: r.rewired } : {}),
+        _warnings: [
+            ...(r._warnings || []), ...notes,
+            `builder_update_step does not change a step's type, so this patch was applied as builder_replace_step(newType:"${newType}"): same id, same wiring.`,
+        ],
+    };
+}
+
 /**
  * builder_update_step — patch an existing step in place (same type, same id,
  * wiring preserved). Reuses validateAndFixBindings / sanitizeForEach so the
@@ -369,12 +512,21 @@ function applyUpdateStep(graph, args, draftWrap) {
     if (!stepId) return { error: 'stepId is required.' };
     let patch = (args.patch && typeof args.patch === 'object' && !Array.isArray(args.patch)) ? args.patch : null;
     if (!patch) return { error: 'patch must be an object of fields to change.' };
-    if ('type' in patch) return { error: 'Cannot change a step\'s type via builder_update_step — use builder_replace_step.' };
     if ('id' in patch) return { error: 'Cannot change a step id.' };
 
     let found = findStepAnywhere(graph, stepId);
     if (!found) return { error: `Unknown stepId "${stepId}". Existing step ids: ${listStepIds(graph)}.` };
     let step = found.step;
+    // Before the move and the allow-list: a type-change patch carries fields
+    // of the NEW type, which the old type's allow-list would refuse by name.
+    const change = typeChangeFromPatch(step, patch, draftWrap);
+    if (change && change.error) return change;
+    if (change) return updateAsTypeChange(graph, step, found, patch, change.newType, args, draftWrap);
+    if ('type' in patch) {
+        // Same type restated: nothing to change, and not a field to store.
+        patch = { ...patch };
+        delete patch.type;
+    }
     if (step.type === 'fill_document' && ['documentId','documentVersionId','values','sectionOverrides'].some(k=>k in patch)) {
         const candidate = {...step,...patch};
         const issue = require('../../core/documents/documentDiscovery').inspectBindings(candidate,draftWrap,'builder');
@@ -508,6 +660,8 @@ function applyUpdateStep(graph, args, draftWrap) {
                 delete patch.datatableKey;
                 patchNotes.push(`datatableId already is ${linked} (${ref.table.key}, "${ref.table.name}") — nothing to change there.`);
             } else if (!linked) {
+                const deny = approvalGateError(ref.table, draftWrap, { op: patch.op || step.op });
+                if (deny) return deny;
                 patch.datatableId = ref.table.id;
                 patch.datatableKey = ref.table.key;
                 filledTable = ref.table;
@@ -772,6 +926,21 @@ function applyUpdateStep(graph, args, draftWrap) {
         checked[key] = loop.value;
         patchNotes.push(...t.notes, ...loop.notes);
     }
+    if (step.type === 'http_request' && ('query' in patch || ('url' in patch && typeof patch.url === 'string'))) {
+        // The patch's url (already checked above) and query: a nested query left
+        // in the URL moves into `query`; the query's own {{…}} paths get checked.
+        const { checkQueryPlaceholders, liftUrlQuery } = require('./stepBuilders/outboundSteps');
+        const urlNow = 'url' in checked ? checked.url : (typeof patch.url === 'string' ? patch.url : step.url);
+        const queryNow = 'query' in patch ? normalizeHttpQuery(patch.query) : step.query;
+        const lifted = liftUrlQuery(urlNow, queryNow);
+        const qc = checkQueryPlaceholders(lifted.query, graph, draftWrap, feAfter);
+        if (qc.error) return { error: qc.error };
+        if ('url' in patch || lifted.url !== urlNow) checked.url = lifted.url;
+        checked.query = qc.query;
+        if (lifted.url !== urlNow && !('url' in patch)) patch = { ...patch, url: lifted.url };
+        if (!('query' in patch) && qc.query) patch = { ...patch, query: qc.query };
+        patchNotes.push(...lifted.notes, ...qc.notes);
+    }
     const listKey = step.type === 'loop' ? 'overRef' : 'arrayRef';
     if (listKey in patch && typeof patch[listKey] === 'string' && patch[listKey].trim()) {
         const ar = sanitizeArrayRef(patch[listKey], graph, { draftWrap, strictRoot: step.type === 'set' });
@@ -885,7 +1054,14 @@ function applyUpdateSteps(graph, args, draftWrap) {
         if (r.error) {
             graph.steps = snapSteps;
             graph.edges = snapEdges;
-            return { error: `update for "${u && u.stepId}": ${r.error}`, _rolledBack: true };
+            // The entry's own instructions travel with it: a consent question
+            // (_askArgs) or the type-change form (_fixHint) is how the model
+            // fixes this entry.
+            return {
+                error: `update for "${u && u.stepId}": ${r.error}`, _rolledBack: true,
+                ...(r._askArgs ? { code: r.code, _askArgs: r._askArgs } : {}),
+                ...(r._fixHint ? { _fixHint: r._fixHint } : {}),
+            };
         }
         for (const w of r._warnings || []) warnings.push(`${r.updated.id}: ${w}`);
         const after = JSON.stringify(findStepAnywhere(graph, r.updated.id)?.step ?? null);
@@ -929,6 +1105,14 @@ function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) 
     }
     const oldStep = found.step;
 
+    if (newType === 'integration_action' && isBuiltinStepType(spec.tool)
+        && !(draftWrap && draftWrap._inputSchemasByTool && draftWrap._inputSchemasByTool[spec.tool])
+        && !(draftWrap && draftWrap._availableToolNames && draftWrap._availableToolNames.has(spec.tool))) {
+        return {
+            error: `"${spec.tool}" is a step type, not a tool.`,
+            _fixHint: 'Use newType:"<resolved type>" with the fields of builder_add_<type>.'.replace('<resolved type>', resolvedStepType(spec.tool)),
+        };
+    }
     if (newType === 'integration_action') {
         const gate = inspectGateError(spec.tool, spec.inputs, draftWrap);
         if (gate) return gate;
@@ -956,6 +1140,14 @@ function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) 
     // said on the add path; a replace that swallowed them would leave the
     // model believing its spelling was stored as sent.
     const warnings = [...(res._warnings || []), ...followed];
+    if (oldStep.type !== built.type && !followed.length) {
+        // (A filter/switch swap already re-pointed its readers: followed.)
+        // The new type has another output shape (a datatable add_row answers
+        // row, id, created, updated); whoever read the old fields now reads
+        // nothing. Said here because the next validation round is too late.
+        const readers = findDanglingRefs(graph, built.id);
+        if (readers.length) warnings.push(`Steps ${readers.join(', ')} read this step's output; its shape changed${built.type === 'datatable' ? ' (a datatable add_row returns row, id, created, updated)' : ''}. Check their bindings.`);
+    }
     const replaced = findStepAnywhere(graph, built.id).step;
     return { replaced, ...(rewired ? { rewired } : {}), ...(warnings.length ? { _warnings: warnings } : {}) };
 }
@@ -1100,4 +1292,5 @@ module.exports = {
     applyUpdateSteps,
     applyReplaceStep,
     applyRemoveStep,
+    findDanglingRefs,
 };

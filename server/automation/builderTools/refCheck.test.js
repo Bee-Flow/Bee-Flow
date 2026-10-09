@@ -26,13 +26,16 @@ const { rememberStepShape } = require('./refCheck');
 const ref = path => ({ kind: 'ref', path });
 const EX = { id: 'ex', type: 'data_extraction', fields: [{ name: 'datum', type: 'date' }, { name: 'totaal', type: 'number' }] };
 const READ = { id: 'r', type: 'integration_action', tool: 'gmail_read' };
-const CODE = { id: 'c', type: 'code' };
-const HTTP = { id: 'h', type: 'code' };
+// Two steps whose output nothing declares (an ai_step without an
+// outputSchema): what they hold is only known from a dry run. They used to be
+// code steps, until refCheck learned the code step's own envelope (below).
+const CODE = { id: 'c', type: 'ai_step' };
+const HTTP = { id: 'h', type: 'ai_step' };
 const LIST = { id: 'l', type: 'integration_action', tool: 'nextcloud_list_files' };
 const FAN = { id: 'fan', type: 'integration_action', tool: 'nextcloud_read_file', forEach: { overRef: 'steps.l.output.items', itemVar: 'f' } };
 const graph = (trigger = { id: 'trg', kind: 'manual' }) => ({ trigger, steps: [EX, READ, CODE, HTTP, LIST, FAN], edges: [] });
 
-/** A draft wrap that has seen a dry run of the code steps (what they really returned). */
+/** A draft wrap that has seen a dry run of those steps (what they really returned). */
 function seenWrap() {
     const dw = { def: graph() };
     rememberStepShape(dw, CODE, {
@@ -143,7 +146,7 @@ test('a miss on a described (curated) shape is a warning, and the binding is kep
 });
 
 test('an unknown shape never complains', () => {
-    const dw = { def: graph() };   // no dry run: the code step's output is unknown
+    const dw = { def: graph() };   // no dry run: the ai_step's output is unknown
     for (const p of ['steps.c.output.anything.at[3].all', 'steps.nope.output.x', 'vars.rows[0]', 'loop.x.y']) {
         const r = check(p, dw);
         assert.equal(r.error, null, p);
@@ -247,4 +250,28 @@ test('a refusal whose only candidate is a spelling guess carries no suggested pa
     const r = validateAndFixBindings({ v: ref('steps.ex.output.total') }, seenWrap().def, { draftWrap: seenWrap() });
     assert.match(r.error, /Did you mean steps\.ex\.output\.totaal\?/);
     assert.equal(r._suggestedPatch, undefined);
+});
+
+// REGRESSION (flowlet "Get ticketlist", 2026-10-09): a code step's output is
+// execCode's envelope { result, logs, httpCalls } (automation/codeOutput.js),
+// but refCheck called it unknown, so `steps.<code>.output.count` was saved for
+// a returned `{ count }` and read nothing at run time.
+test('a code step: a field of what the code returned is read under output.result', () => {
+    const FMT = { id: 'fmt', type: 'code', outputSchema: { count: 'number', tickets: 'array' } };
+    const RAW = { id: 'raw', type: 'code' };
+    const dw = { def: { trigger: { id: 'trg', kind: 'manual' }, steps: [FMT, RAW], edges: [] } };
+    const r = check('steps.fmt.output.count', dw);
+    assert.equal(r.error, null);
+    assert.equal(r.path, 'steps.fmt.output.result.count');
+    assert.match(r.notes, /a code step hands on what its code returned under \.result/);
+    // Without an outputSchema the result is unknown, but the envelope is not.
+    assert.equal(check('steps.raw.output.tickets[0].id', dw).path, 'steps.raw.output.result.tickets[0].id');
+    // What the picker writes, and the envelope's own fields, are left alone.
+    for (const p of ['steps.fmt.output.result.count', 'steps.raw.output.result', 'steps.raw.output.logs']) {
+        const kept = check(p, dw);
+        assert.equal(kept.path, p);
+        assert.equal(kept.notes, '', p);
+    }
+    // A list is what the code returned, not its envelope.
+    assert.equal(check('steps.raw.output', dw, { wantList: true }).path, 'steps.raw.output.result');
 });

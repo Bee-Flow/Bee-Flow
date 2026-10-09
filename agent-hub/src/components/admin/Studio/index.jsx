@@ -1,7 +1,12 @@
+import { Lock } from 'lucide-react';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRuntimeStudioApps } from '../../../moduleRuntime/registry';
 import { STUDIO_APPS } from './studioApps';
+import { studioGateContext, studioNavSections, studioSectionAccess } from './studioNav';
 import { STUDIO_START } from './studioStart';
+import useTranslation from '../../../hooks/useTranslation';
+import { useRuntimeStudioApps } from '../../../moduleRuntime/registry';
+import { useEntitlements } from '../../licensing/EntitlementsContext';
+import { useLicenseContext } from '../../licensing/LicenseContext';
 
 // Unified Studio: a single shell hosting Agents, Skills, Knowledge Bases, and
 // AI Tasks. All sections share a sidebar-list + editor-right split layout.
@@ -18,6 +23,25 @@ function StudioSectionLoading() {
     return (
         <div className="flex items-center justify-center w-full h-full">
             <div className="w-6 h-6 rounded-full border-2 border-[var(--border-default)] border-t-[var(--accent-primary)] animate-spin" />
+        </div>
+    );
+}
+
+// A direct URL to a section this person's role does not open, with nowhere of
+// their own to send them instead.
+function StudioNoAccess() {
+    const { t } = useTranslation();
+    return (
+        <div className="flex items-center justify-center w-full h-full p-6" data-testid="studio-no-access">
+            <div className="max-w-sm text-center rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-8">
+                <Lock className="w-6 h-6 mx-auto mb-3 text-[var(--text-tertiary)]" strokeWidth={1.75} aria-hidden="true" />
+                <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+                    {t('studio.no_access.title', 'This part of Studio is not open to you')}
+                </h3>
+                <p className="mt-1 text-[13px] text-[var(--text-tertiary)]">
+                    {t('studio.no_access.desc', 'Your role does not include it. An administrator can change that under Roles.')}
+                </p>
+            </div>
         </div>
     );
 }
@@ -94,9 +118,28 @@ export default function Studio({
     useEffect(() => { onEditingChangeRef.current = onEditingChange; });
     useEffect(() => { onEditingChangeRef.current?.(editing); }, [editing]);
 
-    // The active section renders even when its gate is false — the server
-    // 403s the data, matching the pre-registry behaviour.
-    const activeApp = allApps.find((app) => app.id === section) || null;
+    // Direct-URL guard: the sidebar and the rail only LIST the sections that
+    // pass; this keeps a typed or shared address from opening one this
+    // person's role does not (studioNav.studioSectionAccess has the rules —
+    // a PERMISSION miss is refused, a licence/capability miss still renders
+    // and the section or the server's 403 says why). The redirect target is
+    // the first section of their own, resolved through the same gates as the
+    // sidebar; it waits for the entitlements, because until they answer the
+    // licensed sections are hidden and "nowhere to go" would be a guess.
+    const { hasFeature: hasLicenseFeature } = useLicenseContext();
+    const {
+        can, lockReason, loading: entitlementsLoading, error: entitlementsError,
+    } = useEntitlements();
+    const navSections = studioNavSections([...STUDIO_APPS, ...runtimeApps], studioGateContext({
+        user, hasLicenseFeature, hasPermission, can, lockReason, entitlementsLoading, entitlementsError,
+    }));
+    const access = studioSectionAccess({ section, apps: allApps, user, hasPermission, sections: navSections });
+    const redirectTo = !access.allowed && !entitlementsLoading ? access.redirectTo : null;
+    useEffect(() => {
+        if (redirectTo) onNavigate?.(`studio/${redirectTo}`, { replace: true });
+    }, [redirectTo, onNavigate]);
+
+    const activeApp = access.allowed ? (allApps.find((app) => app.id === section) || null) : null;
     const ActiveComponent = activeApp?.Component;
     // Stable per-app-id identity (only changes when the active tab does) so
     // a child effect keyed on this prop's reference doesn't re-fire every
@@ -108,6 +151,9 @@ export default function Studio({
             {/* Sub-section — no tab chrome; section switching lives in the
                 app sidebar's Studio group. */}
             <div className="flex-1 min-h-0">
+                {!access.allowed && (
+                    (entitlementsLoading || redirectTo) ? <StudioSectionLoading /> : <StudioNoAccess />
+                )}
                 {activeApp && (
                     <Suspense fallback={<StudioSectionLoading />}>
                         <ActiveComponent

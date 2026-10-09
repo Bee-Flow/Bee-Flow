@@ -121,6 +121,32 @@ function sanitizeHistory(history) {
 }
 
 /**
+ * The history as a PROVIDER must receive it. A turn that only called
+ * builder_ask_questions has no text (the model is told not to repeat the
+ * questions the card shows), and the history keeps it as an empty assistant
+ * message. Anthropic rejects an empty text block, the Gemini adapter drops the
+ * turn, and a strict chat template (Mistral, Gemma on a local runtime) throws
+ * on two user turns in a row. So a blank assistant turn is dropped and the two
+ * user messages around it become one: the question-and-answer text is read
+ * right behind the message it answers. A blank turn at the END has no user
+ * message after it to join; composeTurnMessages joins the new message into the
+ * history's last user message instead. Kept apart from sanitizeHistory, which
+ * also feeds the saved conversation the chat is restored from.
+ */
+function historyForModel(history) {
+    const out = [];
+    let droppedBlank = false;
+    for (const m of sanitizeHistory(history)) {
+        if (m.role === 'assistant' && !m.content.trim()) { droppedBlank = true; continue; }
+        const prev = out[out.length - 1];
+        if (droppedBlank && m.role === 'user' && prev?.role === 'user') prev.content = `${prev.content}\n\n${m.content}`;
+        else out.push(m);
+        droppedBlank = false;
+    }
+    return out;
+}
+
+/**
  * Collapse the LLM-loop messages array down to the latest assistant turn
  * for snapshot persistence: pulls the most recent assistant entry and
  * resolves its tool_calls/results so a resume can rebuild the chat bubble.
@@ -173,6 +199,7 @@ module.exports = {
     mutates,
     parseToolArgs,
     sanitizeHistory,
+    historyForModel,
     collectAssistantTurn,
     applyPlanMarkDone,
     normalizePlanTodos,

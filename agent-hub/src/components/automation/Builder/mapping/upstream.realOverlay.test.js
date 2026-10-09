@@ -183,6 +183,15 @@ describe('a Code step with real output', () => {
         expect(g.fields[2].children.map(c => c.path)).toEqual(['steps.c1.output.result.lines[*].sku']);
     });
 
+    // The paths a flowlet's Return binds to a "Format Output" code step. The
+    // server runs these exact paths (automationRunner.flowlets.test.js).
+    it('offers a returned { count, tickets } at output.result.count / output.result.tickets', () => {
+        const fmt = { ...group, id: 'fmt', basePath: 'steps.fmt.output', fields: [{ key: 'result', path: 'steps.fmt.output.result', sample: null }] };
+        const tickets = Array.from({ length: 15 }, (_, i) => ({ id: i, description: `Ticket ${i}` }));
+        const g = overlayGroupWithReal(fmt, { result: { count: 15, tickets }, logs: [], httpCalls: 0 });
+        expect(g.fields.map(f => f.path)).toEqual(['steps.fmt.output.result.count', 'steps.fmt.output.result.tickets']);
+    });
+
     it('keeps one `result` field when the code returned a list or a value', () => {
         expect(overlayGroupWithReal(group, { result: [1, 2], logs: [], httpCalls: 0 }).fields).toEqual([{ key: 'result', path: 'steps.c1.output.result', sample: [1, 2] }]);
         expect(overlayGroupWithReal(group, { result: 'ok', logs: [] }).fields[0].sample).toBe('ok');

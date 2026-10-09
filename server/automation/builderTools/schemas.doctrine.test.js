@@ -182,3 +182,34 @@ test('the lean prompt says how to move a step and when NOT to stop', () => {
     assert.match(p, /builder_update_step\b/);
     assert.ok(!/builder_update_steps/.test(p), 'the lean prompt must not point at the batch update the small menu lacks');
 });
+
+// ── tables: staged in a preview, consent for an existing one, type changes ──
+
+test('builder_create_datatable teaches the staged table, and does not promise the table exists at once', () => {
+    const d = tool('builder_create_datatable').description;
+    assert.match(d, /In Build directly \(and over MCP\) the table exists when this answers\./);
+    assert.match(d, /In a preview .* it is STAGED with datatableId "pending:<n>" — bind steps to that id — and created when the user presses Apply\./);
+    assert.match(d, /A same-named existing table is only reused once the user chose it\./);
+    assert.doesNotMatch(d, /exists the moment this call answers/);
+});
+
+test('builder_create_datatable is still not a mutating tool and takes no scope', () => {
+    const { MUTATING_TOOLS, SCOPED_GRAPH_TOOLS } = require('../builderTools');
+    assert.ok(!MUTATING_TOOLS.has('builder_create_datatable'), 'it changes no graph: no persist-and-emit, no rejection ladder');
+    assert.ok(!SCOPED_GRAPH_TOOLS.has('builder_create_datatable'));
+    assert.ok(!('scope' in props('builder_create_datatable')));
+});
+
+test('the datatable schemas point at pending ids and the consent question', () => {
+    assert.match(props('builder_add_datatable').datatableId.description, /"pending:<n>" in a preview/);
+    assert.match(props('builder_add_datatable').datatableId.description, /builder_ask_questions \{datatableIds\}/);
+    assert.match(tool('builder_add_datatable').description, /An existing table the user did not name needs builder_ask_questions \{datatableIds\} first\./);
+});
+
+test('builder_update_step performs a type change and builder_replace_step shows the Nextcloud Tables conversion', () => {
+    assert.match(tool('builder_update_step').description, /A step's TYPE changes through builder_replace_step; a patch with type:"<newType>" \(or tool:"<step type>" on an action\) is applied as one, and says so\./);
+    assert.doesNotMatch(tool('builder_update_step').description, /Cannot change a step's type/);
+    assert.doesNotMatch(props('builder_update_step').patch.description, /Do NOT pass `type`/);
+    assert.match(tool('builder_replace_step').description, /EXAMPLE — a Nextcloud Tables row step into a Bee Flow table step: \{stepId:"act_1", newType:"datatable", spec:\{op:"add_row"/);
+    assert.match(tool('builder_replace_step').description, /Readers of the old output fields must be re-pointed \(row, id, created\)\./);
+});

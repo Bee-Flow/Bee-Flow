@@ -89,3 +89,38 @@ describe('BFSF-273 — inline vs fenced code routing (PreContext)', () => {
         expect(rule[0]).toContain('overflow-wrap: anywhere');
     });
 });
+
+describe('MarkdownRenderer inline mode', () => {
+    it('keeps bold, italics, code and links, in a span rather than a block', () => {
+        const { container } = render(<MarkdownRenderer inline content={'A **bold** and *soft* word, `code` and [a link](https://example.test).'} />);
+        expect(container.firstElementChild.tagName).toBe('SPAN');
+        expect(container.querySelector('strong').textContent).toBe('bold');
+        expect(container.querySelector('em').textContent).toBe('soft');
+        expect(container.querySelector('code.inline-code').textContent).toBe('code');
+        const a = container.querySelector('a');
+        expect(a.getAttribute('href')).toBe('https://example.test');
+        expect(a.getAttribute('target')).toBe('_blank');
+        expect(container.querySelector('p')).toBeNull();
+    });
+
+    it('unwraps blocks to their text: no list, heading, quote, table or fence', () => {
+        const md = '# Title\n\n- one\n- two\n\n1. first\n\n> quoted\n\n```js\nconst a = 1;\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |';
+        const { container } = render(<MarkdownRenderer inline content={md} />);
+        expect(container.querySelector('h1, ul, ol, li, blockquote, pre, table, .table-wrapper')).toBeNull();
+        for (const word of ['Title', 'one', 'two', 'first', 'quoted']) expect(container.textContent).toContain(word);
+        // The words do not run together: the line breaks between blocks survive for white-space: pre-line.
+        expect(container.textContent).toMatch(/one\s+two/);
+    });
+
+    it('does not turn dollar amounts into math', () => {
+        const { container } = render(<MarkdownRenderer inline content={'It costs $5 and then $6 more.'} />);
+        expect(container.querySelector('.katex')).toBeNull();
+        expect(container.textContent).toBe('It costs $5 and then $6 more.');
+    });
+
+    it('is a div with the block features when not asked for inline', () => {
+        const { container } = render(<MarkdownRenderer content={'- one\n- two'} />);
+        expect(container.firstElementChild.tagName).toBe('DIV');
+        expect(container.querySelectorAll('li')).toHaveLength(2);
+    });
+});

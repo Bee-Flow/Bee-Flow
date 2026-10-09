@@ -212,7 +212,7 @@ function defaultStubs(S, toolRegistry) {
             executeTool: async (name, args, ctx) => {
                 // `userId`/`lentConnection` are how a borrowed connection shows up
                 // at dispatch — the actAs tests read them.
-                S.dispatched.push({ name, args, userId: ctx?.userId, lent: !!ctx?.lentConnection });
+                S.dispatched.push({ name, args, userId: ctx?.userId, lent: !!ctx?.lentConnection, confirmLayer: ctx?.confirmLayer === true });
                 return S.toolResults[name] || { ok: true, message: `${name} ran` };
             },
         },

@@ -236,6 +236,10 @@ const EXPECTED = [
     'PUT /:id/shares',
     'POST /:id/transfer-owner',
     'GET /:id/principals',
+    // Which agents may call an agent_call automation (routes/automation/agentBindings.js).
+    'GET /:id/agent-bindings',
+    'GET /by-agent/:agentId/automation-ids',
+    'PUT /:id/agent-bindings',
     // Handoff 5, notification settings read (routes/automation/notifications.js).
     'GET /:id/notifications',
     // Handoff 5, the AI Act check and the readiness checklist

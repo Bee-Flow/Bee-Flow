@@ -222,3 +222,25 @@ describe('describeToolCall: a flatten array op', () => {
         expect(describeToolCall(done).detail).toBe('One row per attachment');
     });
 });
+
+describe('web research rows', () => {
+    it('name the search and what was searched, or the page that was read', () => {
+        const s = describeToolCall(call('agent_search', { query: 'Inserve API tickets' }, { ok: true, text: '...' }));
+        expect(s.title).toBe('Searched the web');
+        expect(s.detail).toBe('Inserve API tickets');
+        expect(s.status).toBe('done');
+        const r = describeToolCall(call('read_url', { url: 'https://docs.example.test/api' }, { error: 'Web search failed: boom' }));
+        expect(r.title).toBe('Read a web page');
+        expect(r.detail).toBe('https://docs.example.test/api');
+        expect(r.status).toBe('failed');
+    });
+});
+
+describe('a staged table', () => {
+    it('reads as proposed, created on Apply', () => {
+        const tc = { name: 'builder_create_datatable', arguments: { name: 'Facturen' }, result: { staged: true, ref: 'pending:1' } };
+        const d = describeToolCall(tc);
+        expect(d.title).toBe('Proposed new table "Facturen" (created on Apply)');
+        expect(d.status).toBe('done');
+    });
+});

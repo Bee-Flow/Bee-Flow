@@ -124,6 +124,15 @@ const LOOSE_MIGRATIONS = [
     // (they served one person's mail-derived scan to colleagues). Skips a
     // table that does not exist yet; a no-op once no org: rows are left.
     'suggestion-user-scope-2026-10',
+    // Which agents may call an agent_call automation became a table
+    // (automation_agent_bindings). Binds an active agent_call automation to the
+    // agents its OWNER already chose per agent (config.tools.automations or a
+    // persona hand-off); everything else stays unbound, so nothing gets wider.
+    // Runs once: the ledger records it, and a marker table written together with
+    // the inserts holds even when the ledger replays it (changed checksum,
+    // unreadable ledger, --force), so an owner who unlinks an agent later never
+    // gets it back. Throws while a table is missing, so the next boot retries.
+    'automation-agent-bindings-backfill-2026-10',
 ];
 
 /**
@@ -206,6 +215,7 @@ const NL_TRANSLATIONS = [
     'update-nl-legal-register-2026-10', // Legal register review of 6 Oct 2026: corrected framework, milestone and check Dutch (old shipped text only), new milestones, "Legal status checked" chip and Sources
     'update-nl-compliance-detect-2026-10', // Compliance round 2 detection and legal wording: one-month DSR clock, CRA notification, DORA/Data Act/EAA/PLD/Machinery terms, encryption levels (old shipped text only), two new milestones; after the legal register review, whose Dutch it partly replaces
     'update-nl-compliance-ui-2026-10', // Compliance Center UI round 2: Dutch for the strings the eleven UI packages added, and reworded Dutch where the English changed meaning (old shipped text only)
+    'add-nl-builder-fixes-2026-10',            // Builder fixes Oct 2026: HTTP query parameters and cURL import, who can call an automation as an agent tool, assistant questions/plans/tables, Studio no-access
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

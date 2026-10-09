@@ -154,12 +154,33 @@ export function resolveStudioNav(apps, ctx) {
         try { passes = !!app.gate(ctx); } catch { passes = false; }
         if (passes) { out.push({ ...app, locked: null }); continue; }
         if (app.lockOn !== 'disable' || !app.gateCapability) continue;
+        // A lock is an upsell for someone who could otherwise use the section.
+        // lockReason() only knows the entitlement, so without this a member
+        // whose role lacks the permission AND whose plan lacks the feature got
+        // a locked row ("Available on a higher plan") for a section an upgrade
+        // would still not open for them. A permission miss hides, always.
+        if (!studioPermissionHeld(app, ctx?.hasPermission)) continue;
         let reason = null;
         try { reason = ctx?.lockReason ? ctx.lockReason(app.gateCapability) : null; } catch { reason = null; }
         if (!reason) continue; // entitled but gated for another reason → hide
         out.push({ ...app, locked: reason });
     }
     return out;
+}
+
+/**
+ * Does this person hold the section's role permission(s)? `permission` is the
+ * descriptor's declaration of the hasPermission leg of its gate (a string, or
+ * an array when the gate asks for several); studioApps.test.jsx holds the two
+ * in lockstep. A section without one (Documents, runtime modules) has no
+ * permission leg, so the answer is yes — as it is when no resolver is passed.
+ */
+export function studioPermissionHeld(app, hasPermission) {
+    if (!app?.permission || typeof hasPermission !== 'function') return true;
+    const needed = Array.isArray(app.permission) ? app.permission : [app.permission];
+    return needed.every((p) => {
+        try { return !!hasPermission(p); } catch { return false; }
+    });
 }
 
 /**
@@ -300,8 +321,18 @@ export async function createFormAutomation(ctx, { title = null, collect = false 
 //                                             requireCapability(id) enforces
 //                      lockReason(id)       — EntitlementsContext.lockReason
 //                                             (see resolveStudioNav above)
-//                    The active section still renders when its gate is false
-//                    (the server 403s the data).
+//                    A direct URL to a section whose PERMISSION leg fails does
+//                    not render it (Studio/index.jsx); a licence/capability
+//                    miss still renders and the section (or the server's
+//                    403) says why, as before.
+//   permission     — the role permission(s) the gate's hasPermission leg asks
+//                    for (string | string[]; studioApps.test.jsx keeps the two
+//                    in lockstep). It is what makes a permission miss HIDE
+//                    instead of lock, and what the shell's direct-URL guard
+//                    checks (studioNav.studioSectionAccess). Absent → the
+//                    section has no permission leg.
+//   topLevelEntrance — the section has its own sidebar row for everyone
+//                    (Documents), so it never earns a Studio row on its own
 //   gateCapability — the entitlement id lockReason() is asked about when the
 //                    gate fails (mirrors the runtime descriptor's field)
 //   lockOn         — 'hide' (default: a failed gate removes the row, today's
@@ -331,6 +362,7 @@ export const STUDIO_APPS = [
         // No licence — agents are Community — but an organisation still decides
         // WHO builds them, from Settings → Users & Groups → Roles.
         gate: ({ hasPermission }) => hasPermission('manage_agents'),
+        permission: 'manage_agents',
         // AgentStudio's own "new" entry (createDraft) has no route of its own
         // yet; the section root is where its wizard landing lives.
         create: { labelKey: 'studio.new.agent', labelFallback: 'Agent', onCreate: navigateTo('studio/agents') },
@@ -363,6 +395,7 @@ export const STUDIO_APPS = [
         // hasPermission adds the org-role layer on top: the organisation
         // decides WHO builds skills (Settings → Users & Groups → Roles).
         gate: ({ can, hasPermission }) => can('skills') && hasPermission('manage_skills'),
+        permission: 'manage_skills',
         gateCapability: 'skills',
         lockOn: 'disable',
         // SkillsStudio.createEmpty, verbatim: post an untitled skill, open it.
@@ -407,6 +440,7 @@ export const STUDIO_APPS = [
         // No licence gate (Knowledge is Community), but the organisation
         // decides WHO manages bases, per role.
         gate: ({ hasPermission }) => hasPermission('manage_knowledge'),
+        permission: 'manage_knowledge',
         // KnowledgeStudio treats the 'new' id as "create one and open it",
         // so this stays a plain navigation.
         create: { labelKey: 'studio.new.knowledge', labelFallback: 'Knowledge base', onCreate: navigateTo('studio/knowledge/new') },
@@ -456,6 +490,7 @@ export const STUDIO_APPS = [
         // only gates the tab, not the section).
         gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
             hasLicenseFeature('automations') && canUse('automations') && hasPermission('use_automations'),
+        permission: 'use_automations',
         // Locks like the other licensed rows (a Community org learns the
         // section exists) rather than hiding. A failed PERMISSION leg still
         // hides: lockReason() answers null when the entitlement is effective,
@@ -520,6 +555,7 @@ export const STUDIO_APPS = [
         // decisions already pending (the server's drain exemption).
         gate: ({ hasLicenseFeature, hasPermission }) =>
             hasLicenseFeature('approvals') && hasPermission('use_approvals'),
+        permission: 'use_approvals',
         Component: lazy(() => import('./Approvals/ApprovalsStudio')),
         getProps: ({ user, initialApprovalId }) => ({
             user,
@@ -554,6 +590,7 @@ export const STUDIO_APPS = [
         // them, and reading your own rows must never stop working.
         gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
             hasLicenseFeature('automations') && canUse('automations') && hasPermission('use_datatables'),
+        permission: 'use_datatables',
         // Same lock as Automations: one entitlement, one hint. A failed
         // permission leg still hides (lockReason is null when entitled).
         gateCapability: 'automations',
@@ -588,6 +625,7 @@ export const STUDIO_APPS = [
         // stale session can't keep the tab visible after a downgrade.
         gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
             hasLicenseFeature('webpages') && canUse('webpages') && hasPermission('use_webpages'),
+        permission: 'use_webpages',
         gateCapability: 'webpages',
         lockOn: 'disable',
         // Webpages asks for a name first: "new" is the cue to open the list
@@ -628,6 +666,11 @@ export const STUDIO_APPS = [
         // same line — /api/studio-documents carries requireAuth and no
         // licence or beta gate.
         gate: () => true,
+        // Everyone has Documents, and everyone reaches it from its own sidebar
+        // row (Sidebar.jsx coreNav) — so it never earns someone a Studio row
+        // on its own, or every member would get a Studio holding only the
+        // page they already have one click away (studioNav.studioEntrySections).
+        topLevelEntrance: true,
         create: { labelKey: 'studio.new.document', labelFallback: 'Document', onCreate: navigateTo('studio/documents') },
         Component: lazy(() => import('../../../pages/documents/DocumentsPage')),
         // A notebook is a document type: `initialDocumentId` is `notebook/<id>`
@@ -668,6 +711,7 @@ export const STUDIO_APPS = [
         // apps (consuming a published one is the sidebar's Apps row instead).
         gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
             hasLicenseFeature('app_studio') && canUse('app_studio') && hasPermission('manage_apps'),
+        permission: 'manage_apps',
         gateCapability: 'app_studio',
         lockOn: 'disable',
         // AppList's NewAppModal (blank or from a template); "new" is its cue.
@@ -734,6 +778,7 @@ export const STUDIO_APPS = [
         // of its own. One entitlement, one lock, one hint.
         gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
             hasLicenseFeature('automations') && canUse('automations') && hasPermission('use_automations'),
+        permission: 'use_automations',
         gateCapability: 'automations',
         lockOn: 'disable',
         // "New form" opens the section's own dialog (name + what happens
@@ -763,7 +808,13 @@ export const STUDIO_APPS = [
         Icon: Clapperboard,
         kind: 'playbook',
         category: 'bundle',
-        gate: ({ hasLicenseFeature, canUse }) => hasLicenseFeature('automations') && canUse('automations') && hasLicenseFeature('app_studio') && canUse('app_studio'),
+        // The permission legs are the two things a playbook builds: an
+        // automation (use_automations) and an app (manage_apps). Without them
+        // a member saw a section that builds what their role may not.
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('automations') && canUse('automations') && hasLicenseFeature('app_studio') && canUse('app_studio')
+            && hasPermission('use_automations') && hasPermission('manage_apps'),
+        permission: ['use_automations', 'manage_apps'],
         gateCapability: 'app_studio',
         lockOn: 'disable',
         create: { labelKey: 'studio.new.playbook', labelFallback: 'Playbook', onCreate: navigateTo('studio/playbooks/new') },
@@ -791,6 +842,7 @@ export const STUDIO_APPS = [
         category: 'bundle',
         gate: ({ hasLicenseFeature, hasPermission }) =>
             hasLicenseFeature('projects') && hasPermission('use_solutions'),
+        permission: 'use_solutions',
         // Locked, not hidden, on Community: the row is how an org learns
         // Solutions exist. Packaging/exporting inside stays behind the
         // separate Enterprise key (blueprint_packaging) the section enforces.
@@ -861,8 +913,13 @@ export const STUDIO_APPS = [
         // guess would either hide the switch from someone who has the
         // permission (a stale permission list) or predict a refusal the person
         // can do nothing about.
-        gate: ({ hasLicenseFeature, canUse }) =>
-            hasLicenseFeature('automations') && canUse('automations'),
+        //
+        // use_automations, like Automations itself: the log is what YOUR
+        // automations did, and someone whose role may not build or run one has
+        // nothing in it — a row for them was a door to an empty room.
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('automations') && canUse('automations') && hasPermission('use_automations'),
+        permission: 'use_automations',
         gateCapability: 'automations',
         lockOn: 'disable',
         Component: lazy(() => import('./Runs/RunsStudio')),
@@ -890,6 +947,7 @@ export const STUDIO_APPS = [
         // flow correctly down to ordinary org members.
         gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
             hasLicenseFeature('meeting_notes') && canUse('meeting_notes') && hasPermission('use_meeting_notes'),
+        permission: 'use_meeting_notes',
         gateCapability: 'meeting_notes',
         lockOn: 'disable',
         // ONE item for record-or-upload: creation here is the capture flow

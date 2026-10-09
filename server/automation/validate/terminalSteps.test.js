@@ -89,8 +89,11 @@ const SERVER_SITES = [
     },
     {
         what: 'het model leest de soort in de typecatalogus (automation/builderPrompt.js)',
-        check: (type) => read('automation/builderPrompt.js').includes(`  ${type}`),
-        fix: 'beschrijf de soort in de stapcatalogus van builderPrompt.js, inclusief dat er niets na komt',
+        // De GERENDERDE prompt, niet de broncode: een deel van de stapcatalogus
+        // (de canvas-only-soorten) komt uit builderTools/stepTypeTable.js, en het
+        // model leest wat hier uitkomt.
+        check: (type) => require('../builderPrompt').buildFullSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false }).includes(`  ${type}`),
+        fix: 'beschrijf de soort in de stapcatalogus van builderPrompt.js (of, voor een canvas-only soort, in builderTools/stepTypeTable.js), inclusief dat er niets na komt',
     },
     {
         what: 'het model leest het on_error-verbod (builderPrompt.js + builderTools/schemas.js)',

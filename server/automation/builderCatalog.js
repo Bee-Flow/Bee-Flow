@@ -45,6 +45,8 @@
 
 'use strict';
 
+const log = require('../telemetry/log');
+
 /**
  * @param {string} userId
  * @param {object|null} session  Live request session, or the offline session
@@ -64,13 +66,18 @@ async function buildCatalogForUser(userId, session) {
         // tools). A failure here is not "the user has nothing" — it is "we do
         // not know", and the two must not look the same to the model.
         const userToolNames = new Set();
+        // The resolved tool DEFINITIONS, kept beside the names for the
+        // auto-derived app_event providers (builderPickerCatalog.js). Attached
+        // below as a non-enumerable property: only that one reader wants them.
+        let userToolDefs = [];
         try {
             // `automationStep: true` because design time must equal run time: it is
             // what execAi passes when it resolves the same set to authorise a
             // step, and without it a tool the runner will happily execute is
             // missing from the builder (and now, refused by it).
             const r = await getIntegrationTools({ userId, session, isAdmin: !!session?.isAdmin, automationStep: true });
-            for (const t of (r.tools || [])) if (t?.function?.name) userToolNames.add(t.function.name);
+            userToolDefs = Array.isArray(r.tools) ? r.tools : [];
+            for (const t of userToolDefs) if (t?.function?.name) userToolNames.add(t.function.name);
         } catch (e) {
             const err = new Error(`Could not resolve which integrations you can use: ${e.message}`);
             err.code = 'catalog_unresolved';
@@ -136,12 +143,20 @@ async function buildCatalogForUser(userId, session) {
         // add-time gate must authorise against THIS, not against `apps`, or it
         // would refuse a tool the user genuinely has purely because
         // TOOL_REGISTRY has no home for it.
-        return { apps, toolNames: userToolNames, triggerOutputs: buildTriggerOutputsCatalog() };
+        const result = { apps, toolNames: userToolNames, triggerOutputs: buildTriggerOutputsCatalog() };
+        Object.defineProperty(result, 'toolDefs', { value: userToolDefs, enumerable: false });
+        return result;
     } catch (e) {
         // A resolver failure must reach the caller: returning an empty catalog
         // here is what made "we could not tell" look like "you have nothing".
         if (e && e.code === 'catalog_unresolved') throw e;
-        return { apps: [], triggerOutputs: {} };
+        // The same sentence for the one failure that does NOT throw (the
+        // registry itself would not load): the catalog is empty because we
+        // could not read it, and the prompt must not say "no integrations
+        // connected". `catalogError` is the marker the renderers look for;
+        // `toolNames` stays absent, so the add-time gate stays permissive.
+        log.warn('[builderCatalog] catalog could not be built:', e && e.message);
+        return { apps: [], triggerOutputs: {}, catalogError: (e && e.message) || 'catalog unavailable' };
     }
 }
 

@@ -26,8 +26,8 @@ import { STUDIO_RECENT_SOURCES } from '../../utils/studioRecentSources';
 // discipline note in studioApps.jsx.
 import StudioRail from '../admin/Studio/StudioRail';
 import { useStudioMenuHidden } from '../../hooks/useStudioChrome';
-import { studioGateContext, studioNavSections, studioSectionLabel } from '../admin/Studio/studioNav';
-import { STUDIO_APPS, firstOpenStudioSection, groupStudioApps, studioLockHint } from '../admin/Studio/studioApps';
+import { canSeeStudio as canSeeStudioFor, isStudioBuilder, studioGateContext, studioLanding, studioNavSections, studioSectionLabel } from '../admin/Studio/studioNav';
+import { STUDIO_APPS, groupStudioApps, studioLockHint } from '../admin/Studio/studioApps';
 import { useTheme } from '../appearance/ThemeContext';
 import AppIcon from '../icons/AppIcon';
 import { useEntitlements } from '../licensing/EntitlementsContext';
@@ -138,16 +138,27 @@ const Sidebar = ({
         closeFlyout,
     } = useSidebarFlyouts(scrollRef);
 
-    // Who gets a Studio row at all — the same condition the secondaryNav
-    // literal below uses, hoisted here (before the early return) so the
-    // counts poll can be switched off for everyone else. Simple Mode and
-    // phones run the simplified surface (see AgentHub's `simpleMode`).
-    const _userPermissions = user?.permissions || [];
-    const canSeeStudio = !user?.simpleMode && !isMobile && (
-        !!user?.isAdmin || _userPermissions.includes('all')
-        || _userPermissions.includes('manage_agents') || _userPermissions.includes('manage_skills')
-        || user?.orgRole === 'admin' || user?.orgRole === 'org_admin'
-    );
+    // Studio sections for the sidebar group — the same registry + gates the
+    // Studio shell renders from (built-ins first, then runtime modules).
+    // resolveStudioNav lists the gate-passing sections AND the ones locked
+    // on a licence/capability (spread with `locked`); a section whose gate
+    // fails for a permission reason is hidden.
+    // Gate context + the resolved rows come from studioNav.js, shared with the
+    // Studio rail, the Start screen and the shell's direct-URL guard so they
+    // cannot answer the gate question differently. `lockReason` is already
+    // guarded above; passing the guarded one keeps that decision in one place.
+    const _studioGateCtx = studioGateContext({ user, hasLicenseFeature, hasPermission, can: canUseCapability, lockReason });
+
+    // Who gets Studio at all: a builder (as before), or anyone for whom at
+    // least one section passes its own gate — a member whose role opens
+    // Meeting Notes gets Studio holding Meeting Notes (studioNav.canSeeStudio).
+    // Simple Mode and phones run the simplified surface (see AgentHub's
+    // `simpleMode`). Decided here on the built-in sections, before the hook
+    // below, so the counts poll stays off for everyone without Studio; the
+    // final answer further down adds the runtime modules.
+    const _studioSurface = !user?.simpleMode && !isMobile;
+    const studioCountsEnabled = _studioSurface
+        && canSeeStudioFor({ user, sections: studioNavSections(STUDIO_APPS, _studioGateCtx) });
 
     /* ─── Published apps/forms + per-Studio-section recent items + counts for
        the flyouts above — see useStudioSectionData. */
@@ -156,7 +167,10 @@ const Sidebar = ({
         canSeeForms, publishedForms, hasForms,
         loadSectionItems, recentItemsFor,
         studioCounts,
-    } = useStudioSectionData({ currentPage, canUseCapability, hasLicenseFeature, user, countsEnabled: canSeeStudio });
+    } = useStudioSectionData({ currentPage, canUseCapability, hasLicenseFeature, user, countsEnabled: studioCountsEnabled });
+
+    const studioSections = studioNavSections([...STUDIO_APPS, ...runtimeStudioApps], _studioGateCtx);
+    const canSeeStudio = _studioSurface && canSeeStudioFor({ user, sections: studioSections });
 
     // Close profile menu on outside click
     useEffect(() => {
@@ -368,18 +382,6 @@ const Sidebar = ({
         || showSkillsPanel
         || ['studio', 'admin', 'cowork', 'documents', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
 
-    // Studio sections for the sidebar group — the same registry + gates the
-    // Studio shell renders from (built-ins first, then runtime modules).
-    // resolveStudioNav lists the gate-passing sections AND the ones locked
-    // on a licence/capability (spread with `locked`); a section whose gate
-    // fails for a permission reason is hidden, as before.
-    // Gate context + the resolved rows come from studioNav.js, shared with the
-    // Studio rail and the Start screen so the three cannot answer the gate
-    // question three ways. `lockReason` is already guarded above; passing the
-    // guarded one keeps that decision in one place.
-    const _studioGateCtx = studioGateContext({ user, hasLicenseFeature, hasPermission, can: canUseCapability, lockReason });
-    const studioSections = studioNavSections([...STUDIO_APPS, ...runtimeStudioApps], _studioGateCtx);
-
     /* ─── The Studio rail (H1) ───
        On /app/studio* the workspace swaps THIS sidebar for Studio's own 240px
        rail. The swap happens here rather than in AuthedApp because AuthedApp
@@ -394,8 +396,10 @@ const Sidebar = ({
            replace there anyway: canSeeStudio is already false on mobile, so a
            phone has no Studio row to begin with.
          canSeeStudio — someone who never had a Studio row does not get a
-           Studio rail either; a deep link still renders the section itself,
-           with the sidebar they know beside it.
+           Studio rail either; a deep link to a section they may open (say
+           Documents) still renders it, with the sidebar they know beside it,
+           and one they may not is refused by the shell
+           (studioNav.studioSectionAccess).
 
        Placed after every hook and after studioSections, so the early return
        cannot change hook order and the rail gets exactly the rows the flyout
@@ -424,6 +428,10 @@ const Sidebar = ({
                 // state this file already polls for the badge.
                 canBrowseApprovals={canBrowseApprovals}
                 pendingApprovalCount={pendingApprovalCount}
+                // Start is a builder's dashboard; someone who has Studio for
+                // a section or two gets just those (studioNav.studioSectionAccess
+                // sends a direct /app/studio to their first section).
+                showStart={isStudioBuilder(user)}
             />
         );
     }
@@ -504,20 +512,26 @@ const Sidebar = ({
         // The row's onClick (compact strip / mobile fallback) lands on the
         // first visible UNLOCKED section — a locked row is a signpost, not a
         // door, so it must not be the place the row itself opens.
-        // `studioSections.length` is part of the gate, not an afterthought: the
-        // permission says this person may BUILD, the sections say there is
-        // something for them to build with. An org whose licence gates every
-        // section away got a row that opened an empty panel — or, through the
-        // compact strip, navigated into a section it had just refused to list.
+        // `studioSections.length` is part of the gate, not an afterthought: a
+        // builder permission says this person may BUILD, the sections say
+        // there is something for them to build with. An org whose licence
+        // gates every section away got a row that opened an empty panel — or,
+        // through the compact strip, navigated into a section it had just
+        // refused to list. Everyone else only gets the row through a section
+        // of their own (canSeeStudio), and sees only what their gates pass.
         ...(canSeeStudio && studioSections.length > 0
             ? [{
                 key: 'studio',
                 label: t('studio.sidebar_link', 'Studio'),
                 icon: LayoutGrid,
-                // Safe even though the gate above proved the list is non-empty:
-                // the first visible section may be locked, so the helper picks
-                // the first OPEN one (falling back to the first built-in).
-                onClick: () => onNavigate && onNavigate(`studio/${firstOpenStudioSection(studioSections, STUDIO_APPS[0]).urlSegment}`),
+                // The first visible section may be locked, so studioLanding picks
+                // the first OPEN one — for a builder falling back to the first
+                // built-in, for anyone else the first section that earned them
+                // the row (never Documents, which has its own row).
+                onClick: () => {
+                    const landing = studioLanding({ user, sections: studioSections });
+                    if (landing && onNavigate) onNavigate(`studio/${landing.urlSegment}`);
+                },
                 active: currentPage === 'studio',
                 // Grouped, not flat: ten sections in one column is a wall, and
                 // "which of these builds a thing and which of these teaches the

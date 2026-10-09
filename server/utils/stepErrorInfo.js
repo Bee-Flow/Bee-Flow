@@ -115,6 +115,18 @@ const TEXTS = {
         causeGeneric: '{service} did not accept a value from this step. Check the step settings and try again.',
         need: 'field',
     },
+    http_query_invalid: {
+        title: 'The query parameters of this step cannot be used',
+        cause: 'The "Query parameters" setting cannot be sent: {reason}',
+        causeGeneric: 'The "Query parameters" setting of this step cannot be sent. Open the step and check it.',
+        need: 'reason',
+    },
+    http_url_invalid: {
+        title: 'The address of this step is not a valid web address',
+        cause: 'The "URL" setting cannot be used: {reason}',
+        causeGeneric: 'The "URL" setting of this step is not a valid web address. Open the step and check it.',
+        need: 'reason',
+    },
     rate_limited: {
         title: 'Too many requests right now',
         cause: '{service} is limiting how often Bee may call it. Wait a moment, then try again.',
@@ -373,6 +385,10 @@ function isNextcloudError(err, step) {
 }
 
 function classify(err, text, status, step) {
+    // A step that knows exactly what is wrong says so (execOutbound sets stepErrorCode).
+    if (err && typeof err === 'object' && typeof err.stepErrorCode === 'string' && TEXTS[err.stepErrorCode]) {
+        return err.stepErrorCode;
+    }
     if (isNextcloudError(err, step)) {
         const ncCode = (err && typeof err === 'object' && err.ncError?.code) || classifyNextcloudError(text).code;
         let code = NC_CODE_MAP[ncCode] || null;
@@ -432,6 +448,9 @@ function settingAndFixes(code, ctx) {
         return { settingKey, fixes };
     }
     switch (code) {
+    case 'http_query_invalid':
+    case 'http_url_invalid':
+        return { settingKey: code === 'http_url_invalid' ? 'url' : 'query', fixes: [fix('open_settings', { settingKey: code === 'http_url_invalid' ? 'url' : 'query' })] };
     case 'missing_field':
     case 'validation': {
         const settingKey = field ? inputKey(field) : null;
@@ -496,6 +515,8 @@ function describeStepError(err, opts = {}) {
     if (target?.value) params.target = cap(target.value, MAX_PARAM);
     if (folder) params.folder = cap(folder, MAX_PARAM);
     if (field) params.field = cap(field, MAX_PARAM);
+    const userReason = err && typeof err === 'object' ? /** @type {{ userReason?: unknown }} */ (err).userReason : undefined;
+    if (typeof userReason === 'string' && userReason) params.reason = cap(userReason, MAX_PARAM);
     if (account) params.account = account;
 
     const texts = TEXTS[code] || TEXTS.unknown;

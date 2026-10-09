@@ -8,6 +8,7 @@ import { appendKey, getRelativePath } from '@shared/expr/path.mjs';
 import { fieldFor } from './fieldTree';
 import { pickSample } from './formAnswers';
 import { samplePlaceholderFor } from './sampleFields';
+import { schemaToParams } from '../../flow/triggerSchemaUtils';
 
 /**
  * The non-payload facts a run knows about its trigger, as a sample object in
@@ -95,31 +96,10 @@ export function describeTrigger(trigger, triggerOutputs) {
             fields: params.map(p => fieldFor(p.name, appendKey('trigger.output', p.name), samplePlaceholderFor(p.type))),
         };
     }
-    // A hosted form's answers ARE its declared fields, so they are bindable
-    // from the moment the author declares them — waiting for a first real
-    // submission would leave every downstream step un-mappable.
-    if (kind === 'form') {
-        const fields = Array.isArray(trigger.form?.fields) ? trigger.form.fields.filter(f => f?.name) : [];
-        const sampleFor = (f) => (f.type === 'checkbox' ? true
-            : f.type === 'number' ? 42
-            : f.type === 'date' ? '2026-01-31'
-            : f.type === 'file' ? { kind: 'form_upload', filename: 'attachment.pdf' }
-            // A picked record, as the run receives it: the reference the person
-            // chose, plus the text that was read from it. Shown even when the
-            // question only takes one, because `.text` is what a downstream
-            // step binds and it has to be visible to be draggable.
-            : f.type === 'app_pick' ? pickSample(f)
-            : f.type === 'email' ? 'visitor@example.com'
-            : f.label || 'answer');
-        return {
-            id: trigger.id,
-            label: 'Form answers',
-            kind: 'trigger',
-            basePath: 'trigger.output',
-            sample: Object.fromEntries(fields.map(f => [f.name, sampleFor(f)])),
-            fields: fields.map(f => fieldFor(f.name, appendKey('trigger.output', f.name), sampleFor(f))),
-        };
-    }
+    // A tool's arguments and a hosted form's answers are declared by the author
+    // too, one function each (see below).
+    const declared = DECLARED_TRIGGERS.get(kind);
+    if (declared) return declared(trigger);
     let key = `__${kind}`;
     if (kind === 'app_event' && trigger.appEvent) {
         key = `${trigger.appEvent.provider}.${trigger.appEvent.event}`;
@@ -138,6 +118,56 @@ export function describeTrigger(trigger, triggerOutputs) {
     };
 }
 
+/**
+ * An agent tool's arguments ARE its declared parameters (trigger.
+ * parametersSchema): the agent passes them as trigger.output.<name>. They used
+ * to fall through to the catalog, which has no entry for the kind and answered
+ * with the manual trigger's `now`.
+ */
+function describeAgentCall(trigger) {
+    const params = schemaToParams(trigger.parametersSchema);
+    return {
+        id: trigger.id,
+        label: 'Agent inputs',
+        kind: 'trigger',
+        basePath: 'trigger.output',
+        sample: Object.fromEntries(params.map(p => [p.name, samplePlaceholderFor(p.type)])),
+        fields: params.map(p => fieldFor(p.name, appendKey('trigger.output', p.name), samplePlaceholderFor(p.type))),
+    };
+}
+
+/**
+ * A hosted form's answers ARE its declared fields, so they are bindable from
+ * the moment the author declares them — waiting for a first real submission
+ * would leave every downstream step un-mappable.
+ */
+function describeForm(trigger) {
+    const fields = Array.isArray(trigger.form?.fields) ? trigger.form.fields.filter(f => f?.name) : [];
+    const sampleFor = (f) => (f.type === 'checkbox' ? true
+        : f.type === 'number' ? 42
+        : f.type === 'date' ? '2026-01-31'
+        : f.type === 'file' ? { kind: 'form_upload', filename: 'attachment.pdf' }
+        // A picked record, as the run receives it: the reference the person
+        // chose, plus the text that was read from it. Shown even when the
+        // question only takes one, because `.text` is what a downstream
+        // step binds and it has to be visible to be draggable.
+        : f.type === 'app_pick' ? pickSample(f)
+        : f.type === 'email' ? 'visitor@example.com'
+        : f.label || 'answer');
+    return {
+        id: trigger.id,
+        label: 'Form answers',
+        kind: 'trigger',
+        basePath: 'trigger.output',
+        sample: Object.fromEntries(fields.map(f => [f.name, sampleFor(f)])),
+        fields: fields.map(f => fieldFor(f.name, appendKey('trigger.output', f.name), sampleFor(f))),
+    };
+}
+
+// Triggers whose bindable fields are the author's own declaration, by kind.
+// A Map, so a stored kind of "constructor" finds nothing instead of a function.
+const DECLARED_TRIGGERS = new Map([['agent_call', describeAgentCall], ['form', describeForm]]);
+
 function triggerLabel(t) {
     const k = t.kind || 'manual';
     if (k === 'manual') return 'Trigger (manual)';
@@ -146,6 +176,7 @@ function triggerLabel(t) {
     if (k === 'form') return 'Trigger (form)';
     if (k === 'layer_input') return 'Flowlet input';
     if (k === 'app_trigger') return 'Trigger (Studio App)';
+    if (k === 'agent_call') return 'Trigger (agent call)';
     if (k === 'app_event' && t.appEvent) return `Trigger (${t.appEvent.provider} · ${t.appEvent.event})`;
     return 'Trigger';
 }

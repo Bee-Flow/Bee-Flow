@@ -79,6 +79,16 @@ const COMPLETENESS_CODES = new Set([
     // unreadable permission is read as OFF everywhere, and going live with
     // silently-off permissions is exactly the surprise this warns about.
     'ai_step.agent_permissions_invalid',
+    // agent_call: a tool name or an argument name the canvas editor never
+    // checked, so a stored automation may carry one and must stay saveable (a
+    // label edit PUTs the whole definition); neither can go live. The
+    // description codes are plain warnings (validate/graph.js), not listed here:
+    // the runtime falls back on the automation's description or title. The
+    // other shape codes (parameters_shape, properties_shape, required_shape,
+    // required_unknown, param_type) are deliberately ABSENT: the editor cannot
+    // write them.
+    'agent_call.tool_name',
+    'agent_call.param_name',
     'condition.expr_missing',
     'condition.expr_parse',
     'switch.expr_missing',

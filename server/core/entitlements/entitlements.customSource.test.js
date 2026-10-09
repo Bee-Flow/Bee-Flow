@@ -86,6 +86,7 @@ before(async () => {
     swaps.swap(userStore, 'getOrgGrantedCapabilities', async () => []);
     swaps.swap(userStore, 'getOrgAvailableCapabilities', async () => null);
     swaps.swap(userStore, 'getOrgBetaEveryone', async () => null);
+    swaps.swap(userStore, 'getOrgEveryoneRevoked', async () => null);
     swaps.swap(userStore, 'getSingleOrgId', async () => null);
     swaps.swap(userStore, 'getOrganization', async () => ({ enabledIntegrations: null }));
     swaps.swap(planEnt, 'getOrgCaps', async () => ({ integrations: null, betaFeatures: null }));
