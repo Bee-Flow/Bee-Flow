@@ -166,6 +166,11 @@ test('GET /by-agent/:agentId/automation-ids: the automations linked to an agent 
 });
 
 test('the router is mounted under /api/automation', () => {
-    const src = require('node:fs').readFileSync(require.resolve('../automation.js'), 'utf8');
-    assert.match(src, /require\('\.\/automation\/agentBindings'\)\.makeAgentBindingsRouter\(\)/);
+    const paths = [];
+    const walk = (stack) => stack.forEach((layer) => {
+        if (layer.route) paths.push(layer.route.path);
+        else if (layer.handle?.stack) walk(layer.handle.stack);
+    });
+    walk(require('../automation.js').stack);
+    for (const p of ['/:id/agent-bindings', '/by-agent/:agentId/automation-ids']) assert.ok(paths.includes(p), p);
 });
