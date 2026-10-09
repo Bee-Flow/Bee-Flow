@@ -41,7 +41,7 @@ const MyAgentsSection = ({
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(agent.id); }}
                                             className="opacity-0 group-hover/a:opacity-100 p-1 text-[var(--text-tertiary)] hover:text-red-500 rounded transition-opacity flex-shrink-0"
-                                            title="Remove from favorites"
+                                            title={t('sidebar.remove_from_favorites', 'Remove from favorites')}
                                         >
                                             <X className="w-3.5 h-3.5" />
                                         </button>

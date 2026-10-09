@@ -470,4 +470,11 @@ module.exports = {
     'documents.encryption.decryption_failed': 'This document could not be opened with your key. Sign in again and try once more; if it keeps failing, ask your administrator.',
     'documents.encryption.invalid': 'This document uses an encryption format this version does not recognise. Ask your administrator before changing it.',
     'documents.sharing.encryption': 'When encryption is enabled, shared content uses organisation encryption so recipients can open it.',
+    // Hardcoded literals converted (2026-10)
+    'documents.deck.house_style_placeholder': 'house style',
+    'documents.deck.sample_revenue': 'Revenue up 12%',
+    'documents.deck.sample_margin': 'Margin stable',
+    'documents.workspace.font_sans': 'Sans serif',
+    'documents.workspace.font_serif': 'Serif',
+    'documents.workspace.font_mono': 'Monospace',
 };

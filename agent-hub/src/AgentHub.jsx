@@ -882,9 +882,9 @@ const AgentHub = ({
                     />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full gap-3 p-8 text-center">
-                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>No access to the Agent Editor</p>
-                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>You don't have permission to edit agents. Contact an administrator if you need access.</p>
-                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>Back to Agents</button>
+                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('app.agent_hub_no_editor_access_title', 'No access to the Agent Editor')}</p>
+                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>{t('app.agent_hub_no_editor_access_body', "You don't have permission to edit agents. Contact an administrator if you need access.")}</p>
+                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>{t('agent_studio.header.back_to_agents', 'Back to Agents')}</button>
                         </div>
                     )
                 ) : showAgentWizard ? (
@@ -914,9 +914,9 @@ const AgentHub = ({
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full gap-3 p-8 text-center">
-                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>No access to the Agent Editor</p>
-                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>You don't have permission to edit agents. Contact an administrator if you need access.</p>
-                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>Back to Agents</button>
+                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('app.agent_hub_no_editor_access_title', 'No access to the Agent Editor')}</p>
+                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>{t('app.agent_hub_no_editor_access_body', "You don't have permission to edit agents. Contact an administrator if you need access.")}</p>
+                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>{t('agent_studio.header.back_to_agents', 'Back to Agents')}</button>
                         </div>
                     )
                 ) : currentPage === 'cowork' ? (
@@ -1121,18 +1121,18 @@ const AgentHub = ({
                 ) : (
                     /* No Agent Selected - Empty State */
                     <div className="flex-1 flex flex-col items-center justify-center p-8">
-                        <img src={beeFlowIcon} alt="Bee Flow" className="w-24 h-24 rounded-2xl object-contain mb-6 shadow-xl" />
+                        <img src={beeFlowIcon} alt={t('app.agent_hub_logo_alt', 'Bee Flow')} className="w-24 h-24 rounded-2xl object-contain mb-6 shadow-xl" />
                         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
-                            Welcome to Bee Flow
+                            {t('app.agent_hub_welcome_title', 'Welcome to Bee Flow')}
                         </h1>
                         <p className="text-[var(--text-secondary)] text-center max-w-md mb-8">
-                            Select an agent from the marketplace to start chatting, or create your own custom AI assistant.
+                            {t('app.agent_hub_welcome_body', 'Select an agent from the marketplace to start chatting, or create your own custom AI assistant.')}
                         </p>
                         <button
                             onClick={() => { if (onCloseSettings) onCloseSettings(); if (onCloseAgentDesigner) onCloseAgentDesigner(); setShowMarketplace(true); }}
                             className="flex items-center gap-2 px-6 py-3 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] text-white rounded-xl font-medium shadow-lg transition-all hover:scale-105"
                         >
-                            Browse Agents
+                            {t('app.agent_hub_browse_agents', 'Browse Agents')}
                         </button>
                     </div>
                 )}

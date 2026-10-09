@@ -44,4 +44,13 @@ module.exports = {
     'apps.run.load_failed_title': 'Could not load this app',
     'apps.run.load_failed_body': 'Something went wrong while loading the app.',
     'apps.run.try_again': 'Try again',
+    // Hardcoded literals converted (2026-10)
+    'apps.run.loading_label': 'Loading app',
+    'apps.public_loading_label': 'Loading',
+    'apps.picker_active': '{active}/{total} active',
+    'apps.picker_hint': 'Click to use · Toggle to enable/disable',
+    'apps.picker_search_placeholder': 'Search apps...',
+    'apps.picker_search_label': 'Search apps',
+    'apps.picker_none': 'No apps found',
+    'apps.picker_step': 'Step',
 };

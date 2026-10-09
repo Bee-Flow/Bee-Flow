@@ -12,6 +12,7 @@
  */
 import { Handshake, MessageCircle } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // The mode id matches the caption. It briefly didn't — the button said
 // "Cowork" while the id, the data attributes and the test ids all said "work"
@@ -24,11 +25,12 @@ const MODES = [
 ];
 
 export default function CoworkModeSwitch({ value = 'chat', onChange, size = 'md', className = '' }) {
+    const { t } = useTranslation();
     const compact = size === 'sm';
     return (
         <div
             role="tablist"
-            aria-label="Chat or Cowork"
+            aria-label={t('cowork.mode_switch_label', 'Chat or Cowork')}
             data-testid="cowork-mode-switch"
             className={`inline-flex items-center rounded-full p-0.5 border ${className}`}
             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}

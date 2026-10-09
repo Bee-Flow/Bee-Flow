@@ -10,6 +10,7 @@ import SharedChatReadOnly, { isReadOnlySharedChat } from '../components/chat/Sha
 import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import CoworkWelcome from '../components/cowork/CoworkWelcome';
 import { lazy } from '../utils/lazyWithReload';
+import { useTranslation } from '../hooks/useTranslation';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
 
@@ -40,6 +41,7 @@ const DirectChatView = ({
     // below get it, so the empty state and the conversation say the same.
     chatSignals = null,
 }) => {
+    const { t } = useTranslation();
     // The empty state and the conversation render the same composer; only how
     // a send ends (the conversation also drops a picked webpage selection) and
     // the empty state's Shield note differ, so those two stay on the elements.
@@ -208,7 +210,7 @@ const DirectChatView = ({
                                                 <div className="text-[11px] mt-0.5" style={{ color: 'var(--accent-primary)' }}>↳</div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>
-                                                        Selection from page{attachedWebpageSelection.tagName ? ` · <${attachedWebpageSelection.tagName}>` : ''}
+                                                        {t('chat.direct_selection_from_page', 'Selection from page')}{attachedWebpageSelection.tagName ? ` · <${attachedWebpageSelection.tagName}>` : ''}
                                                     </div>
                                                     <div className="text-[12px] truncate" style={{ color: 'var(--text-primary)' }}>
                                                         {attachedWebpageSelection.text.length > 140 ? attachedWebpageSelection.text.slice(0, 140) + '…' : attachedWebpageSelection.text}
@@ -217,7 +219,7 @@ const DirectChatView = ({
                                                 <button
                                                     onClick={clearWebpageSelection}
                                                     className="p-0.5 rounded hover:bg-[var(--bg-tertiary)]"
-                                                    title="Remove selection"
+                                                    title={t('webpages.chat.selection_remove', 'Remove selection')}
                                                 >
                                                     <X className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
                                                 </button>

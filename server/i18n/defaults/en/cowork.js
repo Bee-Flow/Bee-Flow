@@ -139,4 +139,7 @@ module.exports = {
     'cowork.when.sheet_subtitle': 'Bee Flow delivers the result to your notifications.',
     'cowork.when.sheet_title': 'When should this run?',
     'cowork.when.time_aria': 'Time',
+    // Hardcoded literals converted (2026-10)
+    'cowork.mode_switch_label': 'Chat or Cowork',
+    'cowork.pick_left': 'Or pick something on the left to see when it runs and how every run went.',
 };

@@ -87,4 +87,8 @@ module.exports = {
     'editor.shortcuts_group_document': 'Document',
     'editor.shortcuts_group_text': 'Text',
     'editor.shortcuts_title': 'Keyboard shortcuts',
+    // Hardcoded literals converted (2026-10)
+    'editor.chart_no_data': 'No chart data',
+    'editor.chart_delete': 'Delete chart',
+    'editor.slash_menu_label': 'Insert block',
 };

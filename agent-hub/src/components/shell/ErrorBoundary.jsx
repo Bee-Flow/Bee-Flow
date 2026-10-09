@@ -1,5 +1,6 @@
 import React from 'react';
 import { reportClientError } from '../../utils/clientErrorReporter';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * Two boundaries in one file:
@@ -20,6 +21,78 @@ import { reportClientError } from '../../utils/clientErrorReporter';
  * POSTing and queues to IndexedDB if the network is down (drained on next
  * app mount via `drainErrorQueue`).
  */
+
+function RootFallback({ error, info, onReload, onReset }) {
+    const { t } = useTranslation();
+    return (
+        <div
+            role="alert"
+            style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '24px',
+                background: 'var(--bg-primary, #fff)',
+                color: 'var(--text-primary, #111)',
+            }}
+        >
+            <div style={{ maxWidth: '540px', width: '100%' }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚠️</div>
+                <h1 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>
+                    {t('error.something_went_wrong', 'Something went wrong')}
+                </h1>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary, #555)', marginBottom: '16px' }}>
+                    {t('error.app_crashed', "The app hit an unexpected error and couldn't continue. Reloading usually fixes it.")}
+                </p>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                    <button
+                        onClick={onReload}
+                        style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            background: 'var(--text-primary, #111)',
+                            color: 'var(--bg-primary, #fff)',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                        }}
+                    >
+                        {t('error.reload_page', 'Reload page')}
+                    </button>
+                    <button
+                        onClick={onReset}
+                        style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            background: 'transparent',
+                            color: 'var(--text-primary, #111)',
+                            border: '1px solid var(--border-default, #ccc)',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                        }}
+                    >
+                        {t('error.try_again', 'Try again')}
+                    </button>
+                </div>
+                <details style={{ fontSize: '12px', color: 'var(--text-tertiary, #888)' }}>
+                    <summary style={{ cursor: 'pointer' }}>{t('error.details', 'Error details')}</summary>
+                    <pre style={{
+                        marginTop: '8px', padding: '8px',
+                        background: 'var(--bg-tertiary, #f4f4f4)', borderRadius: '4px',
+                        overflow: 'auto', maxHeight: '240px', fontSize: '11px',
+                    }}>
+                        {String(error?.message || error)}
+                        {error?.stack ? `\n\n${error.stack}` : ''}
+                        {info?.componentStack ? `\n\nComponent stack:${info.componentStack}` : ''}
+                    </pre>
+                </details>
+            </div>
+        </div>
+    
+    );
+}
 
 export class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -47,74 +120,8 @@ export class ErrorBoundary extends React.Component {
     render() {
         if (!this.state.error) return this.props.children;
 
-        const { error } = this.state;
-        return (
-            <div
-                role="alert"
-                style={{
-                    minHeight: '100vh',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '24px',
-                    background: 'var(--bg-primary, #fff)',
-                    color: 'var(--text-primary, #111)',
-                }}
-            >
-                <div style={{ maxWidth: '540px', width: '100%' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚠️</div>
-                    <h1 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>
-                        Something went wrong
-                    </h1>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary, #555)', marginBottom: '16px' }}>
-                        The app hit an unexpected error and couldn't continue. Reloading usually fixes it.
-                    </p>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                        <button
-                            onClick={this.handleReload}
-                            style={{
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                background: 'var(--text-primary, #111)',
-                                color: 'var(--bg-primary, #fff)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: 500,
-                            }}
-                        >
-                            Reload page
-                        </button>
-                        <button
-                            onClick={this.handleReset}
-                            style={{
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                background: 'transparent',
-                                color: 'var(--text-primary, #111)',
-                                border: '1px solid var(--border-default, #ccc)',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                            }}
-                        >
-                            Try again
-                        </button>
-                    </div>
-                    <details style={{ fontSize: '12px', color: 'var(--text-tertiary, #888)' }}>
-                        <summary style={{ cursor: 'pointer' }}>Error details</summary>
-                        <pre style={{
-                            marginTop: '8px', padding: '8px',
-                            background: 'var(--bg-tertiary, #f4f4f4)', borderRadius: '4px',
-                            overflow: 'auto', maxHeight: '240px', fontSize: '11px',
-                        }}>
-                            {String(error?.message || error)}
-                            {error?.stack ? `\n\n${error.stack}` : ''}
-                            {this.state.info?.componentStack ? `\n\nComponent stack:${this.state.info.componentStack}` : ''}
-                        </pre>
-                    </details>
-                </div>
-            </div>
-        );
+        const { error, info } = this.state;
+        return <RootFallback error={error} info={info} onReload={this.handleReload} onReset={this.handleReset} />;
     }
 }
 
@@ -124,6 +131,43 @@ export class ErrorBoundary extends React.Component {
  * keeps working. Offers a "copy raw" so the user can send us the JSON blob
  * that broke.
  */
+function MessageFallback({ onCopy }) {
+    const { t } = useTranslation();
+    return (
+
+        <div
+            role="alert"
+            className="my-2 px-3 py-2 rounded-lg text-sm"
+            style={{
+                background: 'var(--bg-tertiary, rgba(255,0,0,0.05))',
+                border: '1px solid var(--border-default, rgba(255,0,0,0.15))',
+                color: 'var(--text-secondary, #555)',
+            }}
+        >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⚠️</span>
+                <span>{t('error.message_render_failed', 'This message failed to render.')}</span>
+                <button
+                    onClick={onCopy}
+                    style={{
+                        marginLeft: 'auto',
+                        fontSize: '11px',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        background: 'transparent',
+                        border: '1px solid var(--border-default, #ccc)',
+                        cursor: 'pointer',
+                        color: 'inherit',
+                    }}
+                    title={t('error.copy_raw_title', 'Copy raw message JSON')}
+                >
+                    {t('error.copy_raw', 'Copy raw')}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export class MessageErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
@@ -147,38 +191,7 @@ export class MessageErrorBoundary extends React.Component {
 
     render() {
         if (!this.state.error) return this.props.children;
-        return (
-            <div
-                role="alert"
-                className="my-2 px-3 py-2 rounded-lg text-sm"
-                style={{
-                    background: 'var(--bg-tertiary, rgba(255,0,0,0.05))',
-                    border: '1px solid var(--border-default, rgba(255,0,0,0.15))',
-                    color: 'var(--text-secondary, #555)',
-                }}
-            >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>⚠️</span>
-                    <span>This message failed to render.</span>
-                    <button
-                        onClick={this.handleCopy}
-                        style={{
-                            marginLeft: 'auto',
-                            fontSize: '11px',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            background: 'transparent',
-                            border: '1px solid var(--border-default, #ccc)',
-                            cursor: 'pointer',
-                            color: 'inherit',
-                        }}
-                        title="Copy raw message JSON"
-                    >
-                        Copy raw
-                    </button>
-                </div>
-            </div>
-        );
+        return <MessageFallback onCopy={this.handleCopy} />;
     }
 }
 

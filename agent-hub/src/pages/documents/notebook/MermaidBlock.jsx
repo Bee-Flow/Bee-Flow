@@ -431,16 +431,16 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }) {
                                 <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
                             </svg>
                         </span>
-                        Diagram
+                        {t('notebooks.mermaid_title', 'Diagram')}
                     </span>
 
                     <div className="mermaid-toolbar">
                         <ToolbarBtn onClick={() => setShowCode(!showCode)} title={showCode ? t('notebooks.mermaid_show_diagram', 'Show diagram') : t('notebooks.mermaid_show_code', 'Show code')} active={showCode}>
-                            {showCode ? <><Eye size={12} /> Preview</> : <><Code size={12} /> Code</>}
+                            {showCode ? <><Eye size={12} /> {t('notebooks.mermaid_preview', 'Preview')}</> : <><Code size={12} /> {t('notebooks.mermaid_code', 'Code')}</>}
                         </ToolbarBtn>
 
                         <ToolbarBtn onClick={handleCopy} title={t('notebooks.mermaid_copy_code', 'Copy code')} active={copied}>
-                            {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /></>}
+                            {copied ? <><Check size={12} /> {t('notebooks.mermaid_copied', 'Copied')}</> : <><Copy size={12} /></>}
                         </ToolbarBtn>
 
                         {!showCode && (
@@ -518,7 +518,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }) {
                                         <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
                                     </svg>
                                 </span>
-                                Diagram — Fullscreen
+                                {t('notebooks.mermaid_fullscreen_title', 'Diagram — Fullscreen')}
                             </span>
                             <div style={{ display: 'flex', gap: '6px' }}>
                                 <button

@@ -11,6 +11,7 @@ import MeetingPicker from '../components/meeting-picker/MeetingPicker';
 import { toast } from '../components/shared/Toast';
 import useConfirm from '../components/shared/useConfirm';
 import useChatEngine from '../hooks/useChatEngine';
+import { useTranslation } from '../hooks/useTranslation';
 import { formatRelativeTime } from '../utils/dateFormatters';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { logger } from '../utils/logger';
@@ -22,6 +23,7 @@ function getParam(p) {
 }
 
 export default function TemplatesPage({ user, onBack }) {
+    const { t } = useTranslation();
     // Template list state
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -485,9 +487,9 @@ export default function TemplatesPage({ user, onBack }) {
                         </h2>
                         <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                             {parameterizing ? (
-                                <><span className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin inline-block" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} /> Detecting parameters...</>
+                                <><span className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin inline-block" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} /> {t('templates.detecting_parameters', 'Detecting parameters...')}</>
                             ) : (
-                                <>{fillTemplate.parameters.length} parameter{fillTemplate.parameters.length !== 1 ? 's' : ''} · {fillTemplate.fileName}</>
+                                <>{fillTemplate.parameters.length !== 1 ? t('templates.parameter_count_plural', '{count} parameters', { count: fillTemplate.parameters.length }) : t('templates.parameter_count', '{count} parameter', { count: fillTemplate.parameters.length })} · {fillTemplate.fileName}</>
                             )}
                         </p>
                     </div>
@@ -498,13 +500,13 @@ export default function TemplatesPage({ user, onBack }) {
                             onClick={() => setShowSettings(false)}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${!showSettings ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}
                         >
-                            <MessageSquare className="w-3.5 h-3.5" /> Chat
+                            <MessageSquare className="w-3.5 h-3.5" /> {t('templates.tab_chat', 'Chat')}
                         </button>
                         <button
                             onClick={() => setShowSettings(true)}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${showSettings ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}
                         >
-                            <Settings className="w-3.5 h-3.5" /> Settings & Knowledge
+                            <Settings className="w-3.5 h-3.5" /> {t('templates.tab_settings_knowledge', 'Settings & Knowledge')}
                         </button>
                     </div>
 
@@ -524,7 +526,7 @@ export default function TemplatesPage({ user, onBack }) {
                     <div className="w-[200px] xl:w-[280px] shrink-0 border-r overflow-auto p-4 flex flex-col gap-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
                         {/* Parameters */}
                         <div>
-                            <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Parameters</h3>
+                            <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>{t('templates.parameters', 'Parameters')}</h3>
                             <div className="flex flex-wrap gap-1.5">
                                 {fillTemplate.parameters.map((p, i) => {
                                     const param = getParam(p);
@@ -538,10 +540,10 @@ export default function TemplatesPage({ user, onBack }) {
                                     parameterizing ? (
                                         <div className="flex items-center gap-2 py-2">
                                             <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
-                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>AI is analyzing the document and detecting parameters...</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('templates.analyzing_document', 'AI is analyzing the document and detecting parameters...')}</p>
                                         </div>
                                     ) : (
-                                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No parameters detected in this template</p>
+                                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('templates.no_parameters', 'No parameters detected in this template')}</p>
                                     )
                                 )}
                             </div>
@@ -550,10 +552,10 @@ export default function TemplatesPage({ user, onBack }) {
                         {/* Meeting Notes Context — shared MeetingPicker */}
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Meeting Notes Context</h3>
+                                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{t('templates.meeting_notes_context', 'Meeting Notes Context')}</h3>
                                 {selectedNoteIds.length > 0 && (
                                     <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)', color: 'var(--accent-primary)' }}>
-                                        {selectedNoteIds.length} selected
+                                        {t('templates.notes_selected', '{count} selected', { count: selectedNoteIds.length })}
                                     </span>
                                 )}
                             </div>
@@ -561,13 +563,13 @@ export default function TemplatesPage({ user, onBack }) {
                                 mode="multi"
                                 value={selectedNoteIds}
                                 onChange={setSelectedNoteIds}
-                                placeholder="Search meeting notes…"
+                                placeholder={t('templates.search_meeting_notes', 'Search meeting notes…')}
                             />
                         </div>
 
                         {fillTemplate.description && (
                             <div>
-                                <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Description</h3>
+                                <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>{t('common.description', 'Description')}</h3>
                                 <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{fillTemplate.description}</p>
                             </div>
                         )}
@@ -581,15 +583,15 @@ export default function TemplatesPage({ user, onBack }) {
                                 <div className="max-w-3xl mx-auto space-y-6">
                                     {/* Custom Instructions */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Custom Instructions</h3>
+                                        <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('templates.custom_instructions', 'Custom Instructions')}</h3>
                                         <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                                            Add extra context or rules for the AI when filling this template.
+                                            {t('templates.custom_instructions_hint', 'Add extra context or rules for the AI when filling this template.')}
                                         </p>
                                         <textarea
                                             value={editInstructions}
                                             onChange={e => setEditInstructions(e.target.value)}
                                             onBlur={saveInstructions}
-                                            placeholder="e.g. 'Always use formal Dutch language', 'Company address is ...', 'Use metric units'"
+                                            placeholder={t('templates.custom_instructions_placeholder', "e.g. 'Always use formal Dutch language', 'Company address is ...', 'Use metric units'")}
                                             rows={4}
                                             className="w-full px-4 py-3 rounded-xl border text-sm resize-y"
                                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', background: 'var(--bg-tertiary)' }}
@@ -613,8 +615,8 @@ export default function TemplatesPage({ user, onBack }) {
                                     <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 rounded-xl border animate-pulse" style={{ background: 'rgba(99, 102, 241, 0.08)', borderColor: 'rgba(99, 102, 241, 0.2)' }}>
                                         <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin flex-shrink-0" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
                                         <div>
-                                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>AI is processing your template...</p>
-                                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Detecting parameters, generating instructions, and building knowledge base. This may take up to a minute.</p>
+                                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('templates.processing_title', 'AI is processing your template...')}</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('templates.processing_text', 'Detecting parameters, generating instructions, and building knowledge base. This may take up to a minute.')}</p>
                                         </div>
                                     </div>
                                 )}
@@ -623,9 +625,9 @@ export default function TemplatesPage({ user, onBack }) {
                                     {chatMessages.length === 0 ? (
                                         <div className="text-center py-12">
                                             <Bot className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
-                                            <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Fill this template with AI</p>
+                                            <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('templates.fill_empty_title', 'Fill this template with AI')}</p>
                                             <p className="text-xs mt-1 max-w-sm mx-auto" style={{ color: 'var(--text-muted)' }}>
-                                                Describe what the document should contain. The AI will help you fill in all the parameters.
+                                                {t('templates.fill_empty_text', 'Describe what the document should contain. The AI will help you fill in all the parameters.')}
                                                 {selectedNoteIds.length > 0 && ' Meeting notes are loaded as context.'}
                                             </p>
                                             <div className="flex flex-wrap gap-1.5 justify-center mt-4">
@@ -693,8 +695,8 @@ export default function TemplatesPage({ user, onBack }) {
                     <ArrowLeft className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
                 </button>
                 <div className="flex-1">
-                    <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Word Templates</h1>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Upload .docx templates with {'{{parameters}}'} for AI to fill</p>
+                    <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('templates.word_templates', 'Word Templates')}</h1>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('templates.upload_hint_before', 'Upload .docx templates with')} {'{{parameters}}'} {t('templates.upload_hint_after', 'for AI to fill')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     {/* Search */}
@@ -704,7 +706,7 @@ export default function TemplatesPage({ user, onBack }) {
                             type="text"
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            placeholder="Search templates..."
+                            placeholder={t('templates.search_templates', 'Search templates...')}
                             className="pl-8 pr-3 py-1.5 text-sm rounded-lg border w-48 focus:outline-none focus:ring-1"
                             style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' }}
                         />
@@ -718,7 +720,7 @@ export default function TemplatesPage({ user, onBack }) {
                             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                         >
                             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            Upload Template
+                            {t('templates.upload_template', 'Upload Template')}
                         </button>
                         <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" style={{ color: 'var(--text-secondary)' }}>
                             <input
@@ -727,7 +729,7 @@ export default function TemplatesPage({ user, onBack }) {
                                 onChange={e => setSkipAiDetection(e.target.checked)}
                                 className="w-3.5 h-3.5 rounded accent-[#6366f1]"
                             />
-                            Skip AI detection
+                            {t('templates.skip_ai_detection', 'Skip AI detection')}
                         </label>
                     </div>
                     <input
@@ -772,7 +774,7 @@ export default function TemplatesPage({ user, onBack }) {
                                     className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
                                     style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                                 >
-                                    Upload Your First Template
+                                    {t('templates.upload_first', 'Upload Your First Template')}
                                 </button>
                             )}
                         </div>
@@ -825,7 +827,7 @@ export default function TemplatesPage({ user, onBack }) {
                                                     );
                                                 })}
                                                 {template.parameters.length > 8 && (
-                                                    <span className="text-[10px] px-1.5 py-0.5" style={{ color: 'var(--text-muted)' }}>+{template.parameters.length - 8} more</span>
+                                                    <span className="text-[10px] px-1.5 py-0.5" style={{ color: 'var(--text-muted)' }}>{t('templates.more_parameters', '+{count} more', { count: template.parameters.length - 8 })}</span>
                                                 )}
                                             </div>
                                         )}
@@ -838,19 +840,19 @@ export default function TemplatesPage({ user, onBack }) {
                                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:scale-[1.02]"
                                             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                                         >
-                                            Fill with AI
+                                            {t('templates.fill_with_ai', 'Fill with AI')}
                                         </button>
                                         <button
                                             onClick={() => handleDownload(template)}
                                             className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-                                            title="Download"
+                                            title={t('templates.download', 'Download')}
                                         >
                                             <Download className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                                         </button>
                                         <button
                                             onClick={() => { setRenamingId(template.id); setRenameValue(template.name); }}
                                             className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-                                            title="Rename"
+                                            title={t('templates.rename', 'Rename')}
                                         >
                                             <Pencil className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                                         </button>
@@ -858,7 +860,7 @@ export default function TemplatesPage({ user, onBack }) {
                                             onClick={async () => { if (await confirm({ title: 'Delete this template?', confirmLabel: 'Delete', destructive: true })) handleDelete(template.id); }}
                                             disabled={deletingId === template.id}
                                             className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
-                                            title="Delete"
+                                            title={t('common.delete', 'Delete')}
                                         >
                                             {deletingId === template.id
                                                 ? <Loader2 className="w-4 h-4 animate-spin text-red-400" />

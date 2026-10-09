@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * MapEmbedRenderer — Renders a Google Maps Embed iframe in chat messages.
  * Used when AI tools return an embedUrl (directions or places search).
  */
 const MapEmbedRenderer = ({ embedUrl, title, mapsLink, height = 300 }) => {
+    const { t } = useTranslation();
     const [loaded, setLoaded] = useState(false);
     const isMobile = window.innerWidth < 768;
     const mapHeight = isMobile ? 220 : height;
@@ -57,7 +59,7 @@ const MapEmbedRenderer = ({ embedUrl, title, mapsLink, height = 300 }) => {
                                 gap: '4px',
                             }}
                         >
-                            Open in Maps ↗
+                            {t('chat.renderers.map_open', 'Open in Maps ↗')}
                         </a>
                     )}
                 </div>
@@ -83,7 +85,7 @@ const MapEmbedRenderer = ({ embedUrl, title, mapsLink, height = 300 }) => {
                             borderTopColor: 'transparent',
                         }}
                     />
-                    Loading map...
+                    {t('chat.renderers.map_loading', 'Loading map...')}
                 </div>
             )}
 

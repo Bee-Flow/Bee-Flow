@@ -80,4 +80,11 @@ module.exports = {
     'connections.field_nmbrs_subdomain': 'Subdomain (e.g. mycompany)',
     'connections.field_nmbrs_email': 'Login email (SOAP only)',
     'connections.field_nmbrs_env': 'Environment (production / sandbox)',
+    // Hardcoded literals converted (2026-10)
+    'connections.lending_save_first': 'Save the agent to configure connection lending.',
+    'connections.lending_title': 'Connection lending',
+    'connections.lending_hint': 'Recipients use their own credentials by default. Lend one of your connections to let them run as you (full delegation).',
+    'connections.lending_byo': 'Bring-your-own (default)',
+    'connections.required_connect_in': 'Connect {providers} in',
+    'connections.required_settings_link': 'Settings → Integrations',
 };

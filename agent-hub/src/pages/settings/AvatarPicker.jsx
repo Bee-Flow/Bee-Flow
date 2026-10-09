@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { AvatarDisplay } from '../AdvancedSettings';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ── Emoji picker data ────────────────────────────────────────────────────────
 const EMOJI_CATEGORIES = [
@@ -13,6 +14,7 @@ const EMOJI_CATEGORIES = [
 ];
 
 const AvatarPicker = ({ user, onSaved }) => {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [tab, setTab] = useState(0);
     const [saving, setSaving] = useState(false);
@@ -116,7 +118,7 @@ const AvatarPicker = ({ user, onSaved }) => {
                     <div className="px-2.5 pb-2.5 pt-2 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         <div className="flex gap-1.5">
                             <input value={customEmoji} onChange={e => setCustomEmoji(e.target.value)}
-                                placeholder="Paste any emoji…"
+                                placeholder={t('settings.avatar.paste_emoji', 'Paste any emoji…')}
                                 className="flex-1 px-2.5 py-1.5 rounded-lg border outline-none text-sm"
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                 onKeyDown={e => { if (e.key === 'Enter' && customEmoji.trim()) pickEmoji(customEmoji.trim()); }}
@@ -124,22 +126,22 @@ const AvatarPicker = ({ user, onSaved }) => {
                             <button onClick={() => customEmoji.trim() && pickEmoji(customEmoji.trim())} type="button"
                                 disabled={!customEmoji.trim() || saving}
                                 className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40"
-                                style={{ background: 'var(--accent-primary)' }}>Use</button>
+                                style={{ background: 'var(--accent-primary)' }}>{t('settings.avatar.use', 'Use')}</button>
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex gap-1.5">
                                 <button onClick={() => fileRef.current?.click()} type="button"
                                     className="text-xs px-2.5 py-1 rounded-md transition-colors"
-                                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>📁 Upload image</button>
+                                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{t('settings.avatar.upload_image', '📁 Upload image')}</button>
                                 {user?.avatar && (
                                     <button onClick={removeAvatar} type="button"
                                         className="text-xs px-2.5 py-1 rounded-md transition-colors hover:bg-red-500/10"
-                                        style={{ color: '#f87171' }}>Remove</button>
+                                        style={{ color: '#f87171' }}>{t('settings.avatar.remove', 'Remove')}</button>
                                 )}
                             </div>
                             <button onClick={() => setOpen(false)} type="button"
                                 className="text-xs px-2.5 py-1 rounded-md hover:bg-[var(--bg-tertiary)] transition-colors"
-                                style={{ color: 'var(--text-muted)' }}>Done</button>
+                                style={{ color: 'var(--text-muted)' }}>{t('settings.avatar.done', 'Done')}</button>
                         </div>
                         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                     </div>

@@ -13,4 +13,7 @@ module.exports = {
     'tier.thinking': 'Think',
     'tier.writer': 'Write',
     'tier.deep_thinking': 'Deep Thinking',
+    // Hardcoded literals converted (2026-10)
+    'tier.select_model_tier': 'Select model tier',
+    'tier.response_depth': 'Response depth',
 };

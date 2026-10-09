@@ -9,6 +9,7 @@ import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import WelcomeScreen from '../components/shell/WelcomeScreen';
 import { isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '../utils/agentAvatar';
 import { lazy } from '../utils/lazyWithReload';
+import { useTranslation } from '../hooks/useTranslation';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
 
@@ -37,6 +38,7 @@ const AgentChatView = ({
     // below get it, so the empty state and the conversation say the same.
     chatSignals = null,
 }) => {
+    const { t } = useTranslation();
     // The empty state and the conversation render the same composer.
     const composerProps = {
         onSendMessage: (text, attachments, parentId) => {
@@ -108,7 +110,7 @@ const AgentChatView = ({
                                                     style={{ color: 'var(--text-primary)' }}
                                                 >
                                                     <PenLine className="w-4 h-4" />
-                                                    New Chat
+                                                    {t('sidebar.new_chat', 'New Chat')}
                                                 </button>
                                                 <button
                                                     onClick={() => { handleToggleFavorite(selectedAgent.id); setShowAgentMenu(false); }}
@@ -126,7 +128,7 @@ const AgentChatView = ({
                                                             style={{ color: 'var(--text-primary)' }}
                                                         >
                                                             <Pencil className="w-4 h-4" />
-                                                            Edit Agent
+                                                            {t('agent.edit_agent', 'Edit Agent')}
                                                         </button>
                                                         )}
                                                         <button
@@ -135,7 +137,7 @@ const AgentChatView = ({
                                                             style={{ color: 'var(--error, #ef4444)' }}
                                                         >
                                                             <EyeOff className="w-4 h-4" />
-                                                            Unpublish Agent
+                                                            {t('agent.chat_menu_unpublish_agent', 'Unpublish Agent')}
                                                         </button>
                                                     </>
                                                 )}

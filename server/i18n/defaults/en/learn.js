@@ -8432,4 +8432,6 @@ module.exports = {
     'learn.check.licence-plan-known.tier.label': 'Your workspace answers with its licence tier',
     'learn.check.licence-plan-known.tier.hint': 'On cloud, open License & Usage and read the plan card; on a self-hosted install there is no such card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.',
 // </learning-generated>
+    // Hardcoded literals converted (2026-10)
+    'learn.achievements.xp_value': '{xp} XP',
 };

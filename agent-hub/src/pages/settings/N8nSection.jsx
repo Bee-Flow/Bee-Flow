@@ -5,6 +5,7 @@ import {
     Link2, Workflow, ShieldCheck, Search, CircleCheck, CircleX, Info, ExternalLink,
     Crown,
 } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const INPUT_TYPES = ['string', 'number', 'file', 'json'];
 
@@ -476,11 +477,12 @@ function StatusPill({ configured, testResult }) {
 // can tell at a glance why the AI can or can't see their n8n workflows.
 
 function AccessCheckCard({ diag, loading, onRefresh, onEnableForOrg, enablingForOrg, onGotoPermissions }) {
+    const { t } = useTranslation();
     if (loading && !diag) {
         return (
             <div className="rounded-lg border px-3 py-3 flex items-center gap-2 text-[11px]"
                 style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking access…
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('settings.n8n.checking_access', 'Checking access…')}
             </div>
         );
     }
@@ -488,41 +490,41 @@ function AccessCheckCard({ diag, loading, onRefresh, onEnableForOrg, enablingFor
 
     const rows = [
         {
-            label: 'n8n credentials stored for this organisation',
+            label: t('settings.n8n.row_credentials', 'n8n credentials stored for this organisation'),
             ok: !!diag.org?.n8nConfigured,
             fix: null, // happens on the same tab — just scroll to form
         },
         {
-            label: 'n8n is enabled in the organisation\'s integration set',
+            label: t('settings.n8n.row_enabled', 'n8n is enabled in the organisation\'s integration set'),
             ok: !!diag.org?.enabledIntegrationsIncludesN8n,
             fix: diag.org?.enabledIntegrationsIncludesN8n
                 ? null
                 : {
-                    label: enablingForOrg ? 'Enabling…' : 'Enable for organisation',
+                    label: enablingForOrg ? t('settings.n8n.enabling', 'Enabling…') : t('settings.n8n.enable_for_org', 'Enable for organisation'),
                     action: onEnableForOrg,
                     disabled: enablingForOrg,
                 },
-            detail: diag.org?.source === 'all_enabled' ? 'No restriction — implicit.' :
-                    diag.org?.source === 'org_override' ? 'Org-level override in use.' :
-                    diag.org?.source === 'global_default' ? 'Following global default.' : null,
+            detail: diag.org?.source === 'all_enabled' ? t('settings.n8n.src_all_enabled', 'No restriction — implicit.') :
+                    diag.org?.source === 'org_override' ? t('settings.n8n.src_org_override', 'Org-level override in use.') :
+                    diag.org?.source === 'global_default' ? t('settings.n8n.src_global_default', 'Following global default.') : null,
         },
         {
-            label: 'Your account can use n8n (read/run tools)',
+            label: t('settings.n8n.row_user_can_use', 'Your account can use n8n (read/run tools)'),
             ok: !!diag.userLevel?.passes,
-            detail: diag.userLevel?.reason === 'auto_enabled' ? 'Auto-enabled for new integrations.' :
-                    diag.userLevel?.reason === 'in_saved_list' ? 'You have n8n in your Apps list.' :
-                    diag.userLevel?.reason === 'no_saved_list' ? 'All apps enabled by default.' : null,
+            detail: diag.userLevel?.reason === 'auto_enabled' ? t('settings.n8n.user_auto_enabled', 'Auto-enabled for new integrations.') :
+                    diag.userLevel?.reason === 'in_saved_list' ? t('settings.n8n.user_in_saved_list', 'You have n8n in your Apps list.') :
+                    diag.userLevel?.reason === 'no_saved_list' ? t('settings.n8n.user_no_saved_list', 'All apps enabled by default.') : null,
         },
         {
-            label: 'Your account can modify workflows (create/edit/delete/execute)',
+            label: t('settings.n8n.row_user_can_modify', 'Your account can modify workflows (create/edit/delete/execute)'),
             ok: !!diag.permissions?.modify_n8n_workflows,
             fix: diag.permissions?.modify_n8n_workflows ? null : {
-                label: 'Manage permissions',
+                label: t('settings.n8n.manage_permissions', 'Manage permissions'),
                 action: onGotoPermissions,
             },
             detail: diag.permissions?.modify_n8n_workflows
-                ? 'Granted via orgRole or group permission.'
-                : 'Ask an admin to grant the "Modify n8n Workflows" permission.',
+                ? t('settings.n8n.granted_via', 'Granted via orgRole or group permission.')
+                : t('settings.n8n.ask_admin_grant', 'Ask an admin to grant the "Modify n8n Workflows" permission.'),
         },
     ];
 
@@ -537,15 +539,15 @@ function AccessCheckCard({ diag, loading, onRefresh, onEnableForOrg, enablingFor
                         ? <CircleCheck className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
                         : <CircleX className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />}
                     <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        Access check
+                        {t('settings.n8n.access_check', 'Access check')}
                     </span>
                     <span className="text-[11px] ml-1" style={{ color: 'var(--text-muted)' }}>
-                        {allPass ? `AI sees ${toolCount} n8n tool${toolCount === 1 ? '' : 's'}` : 'AI can\'t see n8n workflows'}
+                        {allPass ? (toolCount === 1 ? t('settings.n8n.ai_sees_one', 'AI sees 1 n8n tool') : t('settings.n8n.ai_sees_many', 'AI sees {count} n8n tools', { count: toolCount })) : t('settings.n8n.ai_cannot_see', 'AI can\'t see n8n workflows')}
                     </span>
                 </div>
                 <button onClick={onRefresh} disabled={loading}
                     className="text-[11px] px-2 py-0.5 rounded flex items-center gap-1 disabled:opacity-50"
-                    style={{ color: 'var(--text-secondary)' }} title="Refresh">
+                    style={{ color: 'var(--text-secondary)' }} title={t('settings.n8n.refresh', 'Refresh')}>
                     <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                 </button>
             </div>
@@ -574,7 +576,7 @@ function AccessCheckCard({ diag, loading, onRefresh, onEnableForOrg, enablingFor
             </ul>
             {allPass && toolCount > 0 && (
                 <details className="text-[11px] px-3 py-2 border-t" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-                    <summary className="cursor-pointer">Show tool list</summary>
+                    <summary className="cursor-pointer">{t('settings.n8n.show_tool_list', 'Show tool list')}</summary>
                     <code className="block mt-1 font-mono text-[10.5px] break-all" style={{ color: 'var(--text-secondary)' }}>
                         {(diag.toolsThatWillBeInjected || []).join(', ')}
                     </code>
@@ -592,6 +594,7 @@ function ConnectionTab({
     configured, diag, diagLoading, onRefreshDiag,
     onEnableForOrg, enablingForOrg, onGotoPermissions,
 }) {
+    const { t } = useTranslation();
     return (
         <div className="space-y-4">
             {configured && (
@@ -605,7 +608,7 @@ function ConnectionTab({
                 />
             )}
             <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>n8n Instance URL</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.instance_url', 'n8n Instance URL')}</label>
                 <input
                     type="url" value={n8nUrl} onChange={e => setN8nUrl(e.target.value)}
                     placeholder="https://n8n.yourdomain.com"
@@ -613,19 +616,19 @@ function ConnectionTab({
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Base URL of your n8n instance. `/api/v1` is appended automatically.
+                    {t('settings.n8n.instance_url_hint', 'Base URL of your n8n instance. `/api/v1` is appended automatically.')}
                 </p>
             </div>
             <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>API Key</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.api_key', 'API Key')}</label>
                 <input
                     type="password" value={apiKey} onChange={e => setApiKey(e.target.value)}
-                    placeholder={hasApiKey ? '••••••••••••••••' : 'Enter your n8n API key'}
+                    placeholder={hasApiKey ? '••••••••••••••••' : t('settings.n8n.api_key_placeholder', 'Enter your n8n API key')}
                     className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Generate at n8n → Settings → API → Create API Key. Stored encrypted.
+                    {t('settings.n8n.api_key_hint', 'Generate at n8n → Settings → API → Create API Key. Stored encrypted.')}
                 </p>
             </div>
             <div className="flex items-center gap-2">
@@ -662,11 +665,12 @@ function WorkflowsTab({
     addInput, updateInput, removeInput, saving, saveWorkflows,
     setWorkflows, persistWorkflows,
 }) {
+    const { t } = useTranslation();
     if (!configured) {
         return (
             <div className="rounded-lg border px-4 py-6 text-center" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
                 <Info className="w-5 h-5 mx-auto mb-2 opacity-60" />
-                <p className="text-sm">Connect to n8n first — fill in the URL and API key on the Connection tab.</p>
+                <p className="text-sm">{t('settings.n8n.connect_first', 'Connect to n8n first — fill in the URL and API key on the Connection tab.')}</p>
             </div>
         );
     }
@@ -679,7 +683,7 @@ function WorkflowsTab({
                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
                     <input
                         type="text" value={wfSearch} onChange={e => setWfSearch(e.target.value)}
-                        placeholder="Search workflows..."
+                        placeholder={t('settings.n8n.search_workflows', 'Search workflows...')}
                         className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     />
@@ -690,7 +694,7 @@ function WorkflowsTab({
                     style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                 >
                     <RefreshCw className={`w-3.5 h-3.5 ${discovering ? 'animate-spin' : ''}`} />
-                    {discovering ? 'Scanning...' : 'Discover'}
+                    {discovering ? t('settings.n8n.scanning', 'Scanning...') : t('settings.n8n.discover', 'Discover')}
                 </button>
             </div>
 
@@ -698,7 +702,7 @@ function WorkflowsTab({
             {filteredDiscovered.length > 0 && (
                 <div className="rounded-lg border p-3 space-y-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
                     <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Available to add</h4>
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t('settings.n8n.available_to_add', 'Available to add')}</h4>
                     </div>
                     {filteredDiscovered.map(dw => {
                         const alreadyAdded = workflows.some(w => w.id === dw.id);
@@ -713,13 +717,13 @@ function WorkflowsTab({
                                 </div>
                                 {alreadyAdded ? (
                                     <span className="text-xs font-medium flex items-center gap-1 shrink-0" style={{ color: '#10b981' }}>
-                                        <Check className="w-3.5 h-3.5" /> Added
+                                        <Check className="w-3.5 h-3.5" /> {t('settings.n8n.added', 'Added')}
                                     </span>
                                 ) : (
                                     <button onClick={() => addWorkflow(dw)}
                                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80 shrink-0"
                                         style={{ background: 'var(--accent-primary)', color: 'white' }}>
-                                        <Plus className="w-3 h-3" /> Add
+                                        <Plus className="w-3 h-3" /> {t('settings.n8n.add', 'Add')}
                                     </button>
                                 )}
                             </div>
@@ -732,18 +736,18 @@ function WorkflowsTab({
             {workflows.length === 0 ? (
                 <div className="rounded-lg border px-4 py-6 text-center" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
                     <Workflow className="w-5 h-5 mx-auto mb-2 opacity-60" />
-                    <p className="text-sm">No workflows configured yet. Click <b>Discover</b> to scan your n8n instance for webhook-triggered workflows.</p>
+                    <p className="text-sm">{t('settings.n8n.no_workflows_before', 'No workflows configured yet. Click')} <b>{t('settings.n8n.discover_bold', 'Discover')}</b> {t('settings.n8n.no_workflows_after', 'to scan your n8n instance for webhook-triggered workflows.')}</p>
                 </div>
             ) : (
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-subtle)' }}>
                     <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h4 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                            Workflows ({workflows.filter(w => w.enabled).length}/{workflows.length} enabled)
+                            {t('settings.n8n.workflows_enabled', 'Workflows ({enabled}/{total} enabled)', { enabled: workflows.filter(w => w.enabled).length, total: workflows.length })}
                         </h4>
                         <button onClick={saveWorkflows} disabled={saving}
                             className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
                             style={{ background: 'var(--accent-primary)', color: 'white' }}>
-                            {saving ? 'Saving...' : 'Save All'}
+                            {saving ? t('settings.n8n.saving', 'Saving...') : t('settings.n8n.save_all', 'Save All')}
                         </button>
                     </div>
                     <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -758,11 +762,11 @@ function WorkflowsTab({
                                             <div className="text-sm font-medium truncate flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
                                                 {wf.name}
                                                 {wf.allowKbIngestion && (
-                                                    <span className="text-[9px] px-1 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }} title="Enabled for KB ingestion">📚 KB</span>
+                                                    <span className="text-[9px] px-1 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }} title={t('settings.n8n.kb_enabled_title', 'Enabled for KB ingestion')}>📚 {t('settings.n8n.kb_badge', 'KB')}</span>
                                                 )}
                                             </div>
                                             <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
-                                                n8n_run_{wf.slug} · {(wf.inputs || []).length} input(s)
+                                                n8n_run_{wf.slug} · {t('settings.n8n.inputs_count', '{count} input(s)', { count: (wf.inputs || []).length })}
                                             </div>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
@@ -779,13 +783,13 @@ function WorkflowsTab({
                                         <div className="px-3 pb-3 space-y-2 border-t" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
                                             <div className="pt-2 grid grid-cols-2 gap-2">
                                                 <div>
-                                                    <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>Display Name</label>
+                                                    <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.display_name', 'Display Name')}</label>
                                                     <input type="text" value={wf.name} onChange={e => updateWorkflow(wf.id, { name: e.target.value })}
                                                         className="w-full px-2 py-1 text-xs rounded border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                                                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>Tool Slug</label>
+                                                    <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.tool_slug', 'Tool Slug')}</label>
                                                     <div className="flex items-center gap-1">
                                                         <span className="text-[11px] shrink-0" style={{ color: 'var(--text-muted)' }}>n8n_run_</span>
                                                         <input type="text" value={wf.slug} onChange={e => updateWorkflow(wf.id, { slug: e.target.value.replace(/[^a-z0-9_]/g, '') })}
@@ -795,9 +799,9 @@ function WorkflowsTab({
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>Description (shown to AI)</label>
+                                                <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.description_label', 'Description (shown to AI)')}</label>
                                                 <input type="text" value={wf.description || ''} onChange={e => updateWorkflow(wf.id, { description: e.target.value })}
-                                                    placeholder="Describe what this workflow does"
+                                                    placeholder={t('settings.n8n.description_placeholder', 'Describe what this workflow does')}
                                                     className="w-full px-2 py-1 text-xs rounded border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                                                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                                             </div>
@@ -805,29 +809,29 @@ function WorkflowsTab({
                                             {/* Inputs */}
                                             <div>
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <label className="text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>Input Parameters</label>
+                                                    <label className="text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.input_parameters', 'Input Parameters')}</label>
                                                     <button onClick={() => addInput(wf.id)}
                                                         className="flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded hover:opacity-80"
                                                         style={{ color: 'var(--accent-primary)' }}>
-                                                        <Plus className="w-3 h-3" /> Add
+                                                        <Plus className="w-3 h-3" /> {t('settings.n8n.add', 'Add')}
                                                     </button>
                                                 </div>
                                                 {(wf.inputs || []).length === 0 ? (
-                                                    <p className="text-[11px] py-1" style={{ color: 'var(--text-muted)' }}>No inputs — AI sends freeform JSON.</p>
+                                                    <p className="text-[11px] py-1" style={{ color: 'var(--text-muted)' }}>{t('settings.n8n.no_inputs', 'No inputs — AI sends freeform JSON.')}</p>
                                                 ) : (
                                                     <div className="space-y-1.5">
                                                         {(wf.inputs || []).map((inp, idx) => (
                                                             <div key={idx} className="flex items-center gap-1.5 p-1.5 rounded border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
                                                                 <input type="text" value={inp.name} onChange={e => updateInput(wf.id, idx, { name: e.target.value })}
-                                                                    placeholder="name" className="flex-1 px-1.5 py-0.5 text-[11px] rounded border bg-transparent outline-none"
+                                                                    placeholder={t('settings.n8n.input_name_placeholder', 'name')} className="flex-1 px-1.5 py-0.5 text-[11px] rounded border bg-transparent outline-none"
                                                                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                                                                 <select value={inp.type} onChange={e => updateInput(wf.id, idx, { type: e.target.value })}
                                                                     className="px-1 py-0.5 text-[11px] rounded border bg-transparent outline-none"
                                                                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>
-                                                                    {INPUT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                                                    {INPUT_TYPES.map(inputType => <option key={inputType} value={inputType}>{inputType}</option>)}
                                                                 </select>
                                                                 <input type="text" value={inp.description} onChange={e => updateInput(wf.id, idx, { description: e.target.value })}
-                                                                    placeholder="description" className="flex-[2] px-1.5 py-0.5 text-[11px] rounded border bg-transparent outline-none"
+                                                                    placeholder={t('settings.n8n.input_description_placeholder', 'description')} className="flex-[2] px-1.5 py-0.5 text-[11px] rounded border bg-transparent outline-none"
                                                                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                                                                 <button onClick={() => removeInput(wf.id, idx)}
                                                                     className="p-0.5 rounded hover:bg-red-500/10 shrink-0" style={{ color: 'var(--text-muted)' }}>
@@ -843,7 +847,7 @@ function WorkflowsTab({
                                             <div className="pt-2 mt-1 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                                                 <div className="flex items-center justify-between p-2 rounded border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
                                                     <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                                                        📚 Allow agents to ingest this workflow into their Knowledge Base.
+                                                        📚 {t('settings.n8n.kb_allow', 'Allow agents to ingest this workflow into their Knowledge Base.')}
                                                     </div>
                                                     <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
                                                         <input type="checkbox" checked={!!wf.allowKbIngestion} onChange={() => {
@@ -870,19 +874,20 @@ function WorkflowsTab({
 // ─── Permissions tab (editable: add/remove groups) ──────────
 
 function PermissionsTab({ loading, summary, onReload, onMutate, onCreateAndGrant }) {
+    const { t } = useTranslation();
     if (loading) {
         return (
             <div className="flex items-center justify-center py-6" style={{ color: 'var(--text-muted)' }}>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading permissions...
+                <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t('settings.n8n.loading_permissions', 'Loading permissions...')}
             </div>
         );
     }
     if (!summary || summary.error) {
         return (
             <div className="rounded-lg border px-4 py-6 text-center" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-                <p className="text-sm mb-2">{summary?.error || 'Could not load permissions'}</p>
+                <p className="text-sm mb-2">{summary?.error || t('settings.n8n.load_permissions_failed', 'Could not load permissions')}</p>
                 <button onClick={onReload} className="text-xs px-3 py-1 rounded-lg border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>Retry</button>
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('settings.n8n.retry', 'Retry')}</button>
             </div>
         );
     }
@@ -892,8 +897,8 @@ function PermissionsTab({ loading, summary, onReload, onMutate, onCreateAndGrant
     const buckets = [
         {
             id: 'modify_n8n_workflows',
-            title: 'Modify n8n Workflows',
-            desc: 'Allow the AI to create, edit, delete, activate, and execute workflows on behalf of the user. Organisation admins have this by default — use this panel to grant the same capability to other groups.',
+            title: t('settings.n8n.bucket_modify_title', 'Modify n8n Workflows'),
+            desc: t('settings.n8n.bucket_modify_desc', 'Allow the AI to create, edit, delete, activate, and execute workflows on behalf of the user. Organisation admins have this by default — use this panel to grant the same capability to other groups.'),
             groups: summary.modify_n8n_workflows || [],
         },
     ];
@@ -904,11 +909,9 @@ function PermissionsTab({ loading, summary, onReload, onMutate, onCreateAndGrant
                 style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                 <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>
-                    Running n8n workflows from chat works for every member automatically once n8n is configured.
-                    The panel below controls <b>modify</b> access — who can let the AI create, edit, delete, or execute
-                    workflows. Alternative: use the full group editor in{' '}
+                    {t('settings.n8n.perm_intro', 'Running n8n workflows from chat works for every member automatically once n8n is configured. The panel below controls')} <b>{t('settings.n8n.perm_modify', 'modify')}</b> {t('settings.n8n.perm_intro_after', 'access — who can let the AI create, edit, delete, or execute workflows. Alternative: use the full group editor in')}{' '}
                     <a href={summary.editUrl || '/settings/organisation/users'} className="underline font-medium inline-flex items-center gap-0.5" style={{ color: 'var(--accent-primary)' }}>
-                        Users & Groups <ExternalLink className="w-3 h-3" />
+                        {t('settings.n8n.users_groups', 'Users & Groups')} <ExternalLink className="w-3 h-3" />
                     </a>.
                 </span>
             </div>
@@ -929,6 +932,7 @@ function PermissionsTab({ loading, summary, onReload, onMutate, onCreateAndGrant
 }
 
 function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRemove, onCreateAndGrant }) {
+    const { t } = useTranslation();
     const [pickerOpen, setPickerOpen] = useState(false);
     const [creatingOpen, setCreatingOpen] = useState(false);
     const [newGroupName, setNewGroupName] = useState('');
@@ -967,7 +971,7 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                     </div>
                     <span className="text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0"
                         style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                        {totalCount} grantee{totalCount === 1 ? '' : 's'}
+                        {totalCount === 1 ? t('settings.n8n.grantee_one', '1 grantee') : t('settings.n8n.grantee_many', '{count} grantees', { count: totalCount })}
                     </span>
                 </div>
             </div>
@@ -978,19 +982,19 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                     <li className="px-3 py-2 flex items-center justify-between text-xs">
                         <span className="flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
                             <Crown className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
-                            Organisation Admins
+                            {t('settings.n8n.org_admins', 'Organisation Admins')}
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-medium"
                                 style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-                                always
+                                {t('settings.n8n.always', 'always')}
                             </span>
                         </span>
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>baked in</span>
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('settings.n8n.baked_in', 'baked in')}</span>
                     </li>
                 )}
 
                 {bucket.groups.length === 0 && !orgAdminAlways && (
                     <li className="px-3 py-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        No groups currently hold this permission.
+                        {t('settings.n8n.no_groups', 'No groups currently hold this permission.')}
                     </li>
                 )}
 
@@ -998,13 +1002,13 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                     <li key={g.id} className="px-3 py-2 flex items-center justify-between text-xs gap-2">
                         <span className="truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</span>
                         <div className="flex items-center gap-2 shrink-0">
-                            <span style={{ color: 'var(--text-muted)' }}>{g.userCount} user{g.userCount === 1 ? '' : 's'}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>{g.userCount === 1 ? t('settings.n8n.user_one', '1 user') : t('settings.n8n.user_many', '{count} users', { count: g.userCount })}</span>
                             <button
                                 onClick={() => handleRemove(g.id)}
                                 disabled={busyGroupId === g.id}
                                 className="p-1 rounded hover:bg-red-500/10 disabled:opacity-50"
                                 style={{ color: 'var(--text-muted)' }}
-                                title="Revoke permission"
+                                title={t('settings.n8n.revoke', 'Revoke permission')}
                             >
                                 {busyGroupId === g.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
                             </button>
@@ -1023,7 +1027,7 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                             onChange={e => setNewGroupName(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter' && !creating) handleCreate(); if (e.key === 'Escape') { setCreatingOpen(false); setNewGroupName(''); } }}
                             autoFocus
-                            placeholder="New group name…"
+                            placeholder={t('settings.n8n.new_group_placeholder', 'New group name…')}
                             disabled={creating}
                             className="flex-1 px-2 py-1 text-xs rounded border bg-transparent outline-none focus:border-[var(--accent-primary)] disabled:opacity-50"
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}
@@ -1034,14 +1038,14 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                             className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
                             style={{ background: 'var(--accent-primary)', color: 'white' }}
                         >
-                            {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Create & grant'}
+                            {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('settings.n8n.create_grant', 'Create & grant')}
                         </button>
                         <button
                             onClick={() => { setCreatingOpen(false); setNewGroupName(''); }}
                             disabled={creating}
                             className="p-1 rounded hover:bg-[var(--bg-tertiary)]"
                             style={{ color: 'var(--text-muted)' }}
-                            title="Cancel"
+                            title={t('settings.n8n.cancel', 'Cancel')}
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
@@ -1055,10 +1059,10 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                             className="flex-1 px-2 py-1 text-xs rounded border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}
                         >
-                            <option value="" disabled>Select a group to grant…</option>
+                            <option value="" disabled>{t('settings.n8n.select_group', 'Select a group to grant…')}</option>
                             {addable.map(g => (
                                 <option key={g.id} value={g.id}>
-                                    {g.name} ({g.userCount} user{g.userCount === 1 ? '' : 's'}){g.isGlobal ? ' — global' : ''}
+                                    {g.name} ({g.userCount === 1 ? t('settings.n8n.user_one', '1 user') : t('settings.n8n.user_many', '{count} users', { count: g.userCount })}){g.isGlobal ? ' — ' + t('settings.n8n.global', 'global') : ''}
                                 </option>
                             ))}
                         </select>
@@ -1066,7 +1070,7 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                             onClick={() => setPickerOpen(false)}
                             className="p-1 rounded hover:bg-[var(--bg-tertiary)]"
                             style={{ color: 'var(--text-muted)' }}
-                            title="Cancel"
+                            title={t('settings.n8n.cancel', 'Cancel')}
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
@@ -1079,7 +1083,7 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                                 className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:opacity-80"
                                 style={{ color: 'var(--accent-primary)' }}
                             >
-                                <Plus className="w-3.5 h-3.5" /> Add existing group
+                                <Plus className="w-3.5 h-3.5" /> {t('settings.n8n.add_existing_group', 'Add existing group')}
                             </button>
                         )}
                         <button
@@ -1087,11 +1091,11 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                             className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:opacity-80"
                             style={{ color: 'var(--accent-primary)' }}
                         >
-                            <Plus className="w-3.5 h-3.5" /> Create new group
+                            <Plus className="w-3.5 h-3.5" /> {t('settings.n8n.create_new_group', 'Create new group')}
                         </button>
                         {addable.length === 0 && availableGroups.length > 0 && (
                             <span className="text-[11px] ml-auto" style={{ color: 'var(--text-muted)' }}>
-                                All existing groups already hold this permission.
+                                {t('settings.n8n.all_hold', 'All existing groups already hold this permission.')}
                             </span>
                         )}
                     </>

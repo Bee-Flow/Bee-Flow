@@ -207,6 +207,7 @@ const NL_TRANSLATIONS = [
     'update-nl-compliance-detect-2026-10', // Compliance round 2 detection and legal wording: one-month DSR clock, CRA notification, DORA/Data Act/EAA/PLD/Machinery terms, encryption levels (old shipped text only), two new milestones; after the legal register review, whose Dutch it partly replaces
     'update-nl-compliance-ui-2026-10', // Compliance Center UI round 2: Dutch for the strings the eleven UI packages added, and reworded Dutch where the English changed meaning (old shipped text only)
     'add-nl-hardcoded-admin-2026-10-translations', // Admin screens (subscriptions, organisation, AI configuration, monitoring, languages, SSO): Dutch for strings that used to be hard-coded English
+    'add-nl-hardcoded-pages-shell-2026-10-translations', // Dutch for the user-facing text agent-hub used to hard-code in English: pages, shell, chat footer, meetings, renderers
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

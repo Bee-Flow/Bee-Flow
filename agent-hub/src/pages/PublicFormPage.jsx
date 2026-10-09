@@ -292,7 +292,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
             <div className="w-full max-w-xl">
                 {state.status === 'loading' && (
                     <div className="flex items-center justify-center gap-2 py-24 text-sm text-[var(--text-secondary)]">
-                        <Loader2 size={16} className="animate-spin" /> Loading…
+                        <Loader2 size={16} className="animate-spin" /> {t('forms.public_loading', 'Loading…')}
                     </div>
                 )}
                 {state.status === 'working' && (
@@ -302,41 +302,41 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
                 )}
                 {state.status === 'slow' && (
                     <div className="text-center py-24">
-                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">This is taking a while</h1>
-                        <p className="mt-2 text-sm text-[var(--text-secondary)]">Your answers were received — we are still working on them.</p>
+                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">{t('forms.public_slow_title', 'This is taking a while')}</h1>
+                        <p className="mt-2 text-sm text-[var(--text-secondary)]">{t('forms.public_slow_text', 'Your answers were received — we are still working on them.')}</p>
                         <button
                             type="button"
                             onClick={retry}
                             className="mt-4 px-3 py-1.5 text-sm rounded-md border border-[var(--border-default)] text-[var(--text-primary)]"
                         >
-                            Check again
+                            {t('forms.public_check_again', 'Check again')}
                         </button>
                     </div>
                 )}
                 {state.status === 'missing' && (
                     <div className="text-center py-24">
-                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">This form is not available</h1>
+                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">{t('forms.public_missing_title', 'This form is not available')}</h1>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                            The link may have expired, or the form may have been taken offline.
+                            {t('forms.public_missing_text', 'The link may have expired, or the form may have been taken offline.')}
                         </p>
                     </div>
                 )}
                 {state.status === 'expired' && (
                     <div className="text-center py-24">
-                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">This form has expired</h1>
-                        <p className="mt-2 text-sm text-[var(--text-secondary)]">It was left open too long. Open the link again to start over.</p>
+                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">{t('forms.public_expired_title', 'This form has expired')}</h1>
+                        <p className="mt-2 text-sm text-[var(--text-secondary)]">{t('forms.public_expired_text', 'It was left open too long. Open the link again to start over.')}</p>
                     </div>
                 )}
                 {state.status === 'offline' && (
                     <div className="text-center py-24">
-                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">Could not reach the server</h1>
-                        <p className="mt-2 text-sm text-[var(--text-secondary)]">Please check your connection and reload the page.</p>
+                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">{t('forms.public_offline_title', 'Could not reach the server')}</h1>
+                        <p className="mt-2 text-sm text-[var(--text-secondary)]">{t('forms.public_offline_text', 'Please check your connection and reload the page.')}</p>
                     </div>
                 )}
                 {state.status === 'error' && (
                     <div className="text-center py-24">
-                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">Something went wrong</h1>
-                        <p className="mt-2 text-sm text-[var(--text-secondary)]">We could not finish this form. Please try again later.</p>
+                        <h1 className="text-lg font-semibold text-[var(--text-primary)]">{t('forms.public_error_title', 'Something went wrong')}</h1>
+                        <p className="mt-2 text-sm text-[var(--text-secondary)]">{t('forms.public_error_text', 'We could not finish this form. Please try again later.')}</p>
                     </div>
                 )}
                 {state.status === 'done' && (

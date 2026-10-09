@@ -27,7 +27,7 @@ const EditLabelInline = ({ label, onSave, onCancel, t }) => {
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
                     className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent"
-                    title="Pick a color"
+                    title={t('sidebar.pick_color', 'Pick a color')}
                     style={{ WebkitAppearance: 'none' }}
                 />
                 <input

@@ -5,6 +5,7 @@ import { highlightSnippet } from './searchHighlight';
 import { isImageAvatar, resolveAvatarSrc } from '../../utils/agentAvatar';
 import { formatRelativeDate } from '../../utils/dateFormatters';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import useTranslation from '../../hooks/useTranslation';
 
 
 const formatDate = (dateStr) => formatRelativeDate(dateStr, {
@@ -12,6 +13,7 @@ const formatDate = (dateStr) => formatRelativeDate(dateStr, {
 });
 
 const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }) => {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -193,7 +195,7 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }) => {
             }}
             onClick={onClose}
             role="dialog"
-            aria-label="Search conversations"
+            aria-label={t('sidebar.search_conversations', 'Search conversations')}
             aria-modal="true"
         >
             <div
@@ -210,10 +212,10 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }) => {
                         type="text"
                         value={query}
                         onChange={handleInput}
-                        placeholder="Search conversations and messages…"
+                        placeholder={t('sidebar.search_placeholder', 'Search conversations and messages…')}
                         className="flex-1 bg-transparent border-none text-[16px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:ring-0 focus:outline-none"
                         data-testid="search-input"
-                        aria-label="Search query"
+                        aria-label={t('sidebar.search_query', 'Search query')}
                         aria-controls="search-results"
                         aria-activedescendant={sortedResults[selectedIdx] ? `search-result-${sortedResults[selectedIdx].id}` : undefined}
                     />
@@ -221,7 +223,7 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }) => {
                         <button
                             onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus(); }}
                             className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                            aria-label="Clear search"
+                            aria-label={t('sidebar.search_clear', 'Clear search')}
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -229,7 +231,7 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }) => {
                     <button
                         onClick={onClose}
                         className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                        aria-label="Close search"
+                        aria-label={t('sidebar.search_close', 'Close search')}
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -312,7 +314,7 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }) => {
                         <div className="px-5 py-5">
                             <div className="flex items-center gap-2 mb-3">
                                 <Clock className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Recent searches</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{t('sidebar.search_recent', 'Recent searches')}</span>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {recent.map(term => (
@@ -333,8 +335,8 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }) => {
                         </div>
                     ) : (
                         <EmptyState
-                            title="Search your conversations"
-                            hint="Find messages across agent chats and direct conversations."
+                            title={t('sidebar.search_empty_title', 'Search your conversations')}
+                            hint={t('sidebar.search_empty_hint', 'Find messages across agent chats and direct conversations.')}
                         />
                     )}
                 </div>
@@ -342,7 +344,7 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }) => {
                 {/* Footer */}
                 {query.length >= 2 && (
                     <div className="flex-shrink-0 flex items-center justify-end px-4 h-9 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 text-[11px] text-[var(--text-tertiary)]">
-                        <span>{sortedResults.length} result{sortedResults.length === 1 ? '' : 's'}</span>
+                        <span>{sortedResults.length === 1 ? t('sidebar.search_result_count', '{count} result', { count: sortedResults.length }) : t('sidebar.search_result_count_plural', '{count} results', { count: sortedResults.length })}</span>
                     </div>
                 )}
             </div>

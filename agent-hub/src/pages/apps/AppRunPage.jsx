@@ -359,7 +359,7 @@ export default function AppRunPage({ appId, draft = false }) {
                 className="h-full min-h-0 flex flex-col animate-pulse"
                 style={{ background: 'var(--bg-primary)' }}
                 role="status"
-                aria-label="Loading app"
+                aria-label={t('apps.run.loading_label', 'Loading app')}
             >
                 <div
                     className="shrink-0 flex items-center gap-3 border-b px-4 py-2.5"
@@ -373,7 +373,7 @@ export default function AppRunPage({ appId, draft = false }) {
                     <div className="h-24 w-full rounded-lg" style={{ background: 'var(--bg-secondary)' }} />
                     <div className="h-40 w-full rounded-lg" style={{ background: 'var(--bg-secondary)' }} />
                 </div>
-                <span className="sr-only">Loading…</span>
+                <span className="sr-only">{t('apps.loading_short', 'Loading…')}</span>
             </div>
         );
     }

@@ -425,4 +425,10 @@ module.exports = {
     'notebooks.src_type_onedrive': 'OneDrive',
     'notebooks.src_type_file': 'File',
     'notebooks.src_type_meeting': 'Meeting',
+    // Hardcoded literals converted (2026-10)
+    'notebooks.mermaid_title': 'Diagram',
+    'notebooks.mermaid_preview': 'Preview',
+    'notebooks.mermaid_code': 'Code',
+    'notebooks.mermaid_copied': 'Copied',
+    'notebooks.mermaid_fullscreen_title': 'Diagram — Fullscreen',
 };

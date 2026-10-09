@@ -144,12 +144,12 @@ const ConsumerIntegrationsSection = () => {
                         {t('settings.integrations', 'Integrations')}
                     </h2>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
-                        Choose which third-party tools your AI assistants can use
+                        {t('settings.consumer_integrations.subtitle', 'Choose which third-party tools your AI assistants can use')}
                     </p>
                 </div>
                 <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                    {saveState === 'saving' && (<><Loader2 className="w-3 h-3 animate-spin" /> Saving…</>)}
-                    {saveState === 'saved' && (<><Check className="w-3 h-3 text-emerald-500" /> Saved</>)}
+                    {saveState === 'saving' && (<><Loader2 className="w-3 h-3 animate-spin" /> {t('settings.consumer_integrations.saving', 'Saving…')}</>)}
+                    {saveState === 'saved' && (<><Check className="w-3 h-3 text-emerald-500" /> {t('settings.consumer_integrations.saved', 'Saved')}</>)}
                 </div>
             </div>
 
@@ -175,7 +175,7 @@ const ConsumerIntegrationsSection = () => {
                 <div className="flex gap-3">
                     <span className="text-lg">💡</span>
                     <p className="text-xs text-[var(--text-muted)] leading-relaxed flex-1">
-                        These toggles control which tools your AI assistants can call on your behalf. Disabling an integration here prevents it from being used in any conversation — you can still connect credentials under <strong>Connections</strong> without making the tool active.
+                        {t('settings.consumer_integrations.footer_prefix', 'These toggles control which tools your AI assistants can call on your behalf. Disabling an integration here prevents it from being used in any conversation — you can still connect credentials under')} <strong>{t('settings.consumer_integrations.footer_connections', 'Connections')}</strong> {t('settings.consumer_integrations.footer_suffix', 'without making the tool active.')}
                     </p>
                 </div>
             </div>

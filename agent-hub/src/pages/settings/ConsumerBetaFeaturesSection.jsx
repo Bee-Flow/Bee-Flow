@@ -85,16 +85,16 @@ const ConsumerBetaFeaturesSection = () => {
                     {t('settings.beta_features', 'Beta features')}
                 </h2>
                 <p className="text-sm text-[var(--text-muted)] mt-1">
-                    Experimental features available on your account
+                    {t('settings.consumer_beta.subtitle', 'Experimental features available on your account')}
                 </p>
             </div>
 
             {allowedFeatures.length === 0 ? (
                 <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-8 text-center">
                     <Sparkles className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-                    <p className="text-sm font-medium text-[var(--text-primary)] mb-1">No beta features yet</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)] mb-1">{t('settings.consumer_beta.empty_title', 'No beta features yet')}</p>
                     <p className="text-xs text-[var(--text-muted)]">
-                        New experimental features will appear here when they're available for your account.
+                        {t('settings.consumer_beta.empty_body', "New experimental features will appear here when they're available for your account.")}
                     </p>
                 </div>
             ) : (
@@ -118,7 +118,7 @@ const ConsumerBetaFeaturesSection = () => {
                                 )}
                             </div>
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
-                                Active
+                                {t('settings.consumer_beta.active', 'Active')}
                             </span>
                         </div>
                     ))}
@@ -129,7 +129,7 @@ const ConsumerBetaFeaturesSection = () => {
                 <div className="flex gap-3">
                     <span className="text-lg">💡</span>
                     <p className="text-xs text-[var(--text-muted)] leading-relaxed flex-1">
-                        Beta features are experimental capabilities turned on for your account by the Bee Flow team. They may change without notice. If you'd like access to a specific beta, contact support.
+                        {t('settings.consumer_beta.footer', "Beta features are experimental capabilities turned on for your account by the Bee Flow team. They may change without notice. If you'd like access to a specific beta, contact support.")}
                     </p>
                 </div>
             </div>

@@ -4,6 +4,7 @@ import { useTheme, THEME_PRESETS } from '../../components/appearance/ThemeContex
 import PresetCard from '../../components/appearance/studio/shared/PresetCard';
 import WallpaperPresets from '../../components/appearance/WallpaperPresets';
 import { toast } from '../../components/shared/Toast';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * AppearanceSection — user-facing theme overrides. End users pick a theme
@@ -18,17 +19,18 @@ import { toast } from '../../components/shared/Toast';
  */
 
 const USER_PRESETS = [
-    { id: 'light',          Icon: Sun,        hint: 'Clean, bright surfaces.' },
-    { id: 'paper',          Icon: FileText,   hint: 'Warm editorial light.' },
-    { id: 'sepia',          Icon: BookOpen,   hint: 'Warm tan paper, focus reading.' },
-    { id: 'glass',          Icon: Sparkles,   hint: 'Translucent Liquid Glass panels.' },
-    { id: 'glass-dark',     Icon: Sparkles,   hint: 'Dark Liquid Glass.' },
-    { id: 'dark',           Icon: Moon,       hint: 'Low-glare dark surfaces.' },
-    { id: 'obsidian',       Icon: Gem,        hint: 'Monochrome carbon dark.' },
-    { id: 'high-contrast',  Icon: Eye,        hint: 'WCAG AAA contrast — accessibility.' },
+    { id: 'light',          Icon: Sun,        hintKey: 'settings.appearance.hint_light', hint: 'Clean, bright surfaces.' },
+    { id: 'paper',          Icon: FileText,   hintKey: 'settings.appearance.hint_paper', hint: 'Warm editorial light.' },
+    { id: 'sepia',          Icon: BookOpen,   hintKey: 'settings.appearance.hint_sepia', hint: 'Warm tan paper, focus reading.' },
+    { id: 'glass',          Icon: Sparkles,   hintKey: 'settings.appearance.hint_glass', hint: 'Translucent Liquid Glass panels.' },
+    { id: 'glass-dark',     Icon: Sparkles,   hintKey: 'settings.appearance.hint_glass_dark', hint: 'Dark Liquid Glass.' },
+    { id: 'dark',           Icon: Moon,       hintKey: 'settings.appearance.hint_dark', hint: 'Low-glare dark surfaces.' },
+    { id: 'obsidian',       Icon: Gem,        hintKey: 'settings.appearance.hint_obsidian', hint: 'Monochrome carbon dark.' },
+    { id: 'high-contrast',  Icon: Eye,        hintKey: 'settings.appearance.hint_high_contrast', hint: 'WCAG AAA contrast — accessibility.' },
 ];
 
 export default function AppearanceSection() {
+    const { t } = useTranslation();
     const theme = useTheme();
     const [busy, setBusy] = useState(false);
 
@@ -37,7 +39,7 @@ export default function AppearanceSection() {
             <div className="max-w-3xl mx-auto px-6 py-6">
                 <header className="mb-6">
                     <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        Appearance
+                        {t('settings.appearance.title', 'Appearance')}
                     </h2>
                 </header>
                 <div
@@ -46,7 +48,7 @@ export default function AppearanceSection() {
                 >
                     <Lock className="w-4 h-4 mt-0.5 shrink-0" />
                     <p className="text-sm">
-                        Your organisation has locked the appearance to <strong>{labelForPreset(theme.preset)}</strong>. Contact an administrator if you need to change it.
+                        {t('settings.appearance.locked_prefix', 'Your organisation has locked the appearance to')} <strong>{labelForPreset(theme.preset)}</strong>{t('settings.appearance.locked_suffix', '. Contact an administrator if you need to change it.')}
                     </p>
                 </div>
             </div>
@@ -72,17 +74,17 @@ export default function AppearanceSection() {
             <div className="max-w-3xl mx-auto px-6 py-6 space-y-8">
                 <header>
                     <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        Appearance
+                        {t('settings.appearance.title', 'Appearance')}
                     </h2>
                     <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                        Customise how Bee Flow looks on this device. Only you see your choice.
+                        {t('settings.appearance.subtitle', 'Customise how Bee Flow looks on this device. Only you see your choice.')}
                     </p>
                 </header>
 
                 <section>
-                    <SectionLabel>Theme</SectionLabel>
+                    <SectionLabel>{t('settings.appearance.theme', 'Theme')}</SectionLabel>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {USER_PRESETS.map(({ id, Icon, hint }) => {
+                        {USER_PRESETS.map(({ id, Icon, hintKey, hint }) => {
                             const meta = THEME_PRESETS.find((p) => p.id === id);
                             return (
                                 <PresetCard
@@ -90,7 +92,7 @@ export default function AppearanceSection() {
                                     id={id}
                                     label={meta?.label || id}
                                     Icon={Icon}
-                                    hint={hint}
+                                    hint={t(hintKey, hint)}
                                     selected={theme.preset === id}
                                     disabled={busy}
                                     onSelect={(next) => apply({ preset: next }, `Switched to ${meta?.label || next}`)}
@@ -102,9 +104,9 @@ export default function AppearanceSection() {
 
                 {isGlassPreset && (
                     <section>
-                        <SectionLabel>Mood</SectionLabel>
+                        <SectionLabel>{t('settings.appearance.mood', 'Mood')}</SectionLabel>
                         <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-                            The colour palette behind glass surfaces.
+                            {t('settings.appearance.mood_hint', 'The colour palette behind glass surfaces.')}
                         </p>
                         <WallpaperPresets
                             value={theme.wallpaperPreset || 'mono'}

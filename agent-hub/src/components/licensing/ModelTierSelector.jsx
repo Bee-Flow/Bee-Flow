@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId } from './tierMeta';
 import AppEmoji from '../icons/AppEmoji';
+import useTranslation from '../../hooks/useTranslation';
 
 const PANEL_MIN_WIDTH = 240;
 
@@ -13,6 +14,7 @@ const PANEL_MIN_WIDTH = 240;
  * current absolute behaviour.
  */
 const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection = 'up', variant = 'default', portal = false }) => {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
     const panelRef = useRef(null);
@@ -88,7 +90,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                     whiteSpace: 'nowrap',
                     boxShadow: open ? 'var(--shadow-sm)' : 'none',
                 }}
-                title="Select model tier"
+                title={t('tier.select_model_tier', 'Select model tier')}
                 data-testid="model-tier-trigger"
             >
                 {currentMeta.iconSrc ? (
@@ -214,7 +216,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                                                     color: 'var(--accent-primary)',
                                                 }}
                                             >
-                                                beta
+                                                {t('chat.composer.beta_badge', 'beta')}
                                             </span>
                                         )}
                                     </div>

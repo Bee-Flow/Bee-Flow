@@ -3,6 +3,7 @@ import { Video } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const MEET_GREEN = '#00832D';
 
@@ -15,6 +16,7 @@ const MEET_GREEN = '#00832D';
  * settings, when present, take precedence over these per field.
  */
 export default function GoogleMeetNotesSection() {
+    const { t } = useTranslation();
     const [cfg, setCfg] = useState({ autoImport: false, autoRecordConfig: false, importScope: 'organizer', language: 'nl' });
     const [connection, setConnection] = useState(null);
     const [available, setAvailable] = useState(true);
@@ -66,28 +68,24 @@ export default function GoogleMeetNotesSection() {
             <div className="flex items-center gap-2 mb-2">
                 <Video className="w-4 h-4" style={{ color: MEET_GREEN }} />
                 <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                    Google Meet Meeting Notes
+                    {t('settings.gmeet_notes.title', "Google Meet Meeting Notes")}
                 </p>
             </div>
             <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-                Turn your recorded Google Meet meetings into Meeting Notes — transcript, summary and action items.
-                Per-meeting record toggles live in the Upcoming tab of Meeting Notes.
-                Your organisation's settings, where set, take precedence.
+                {t('settings.gmeet_notes.intro', "Turn your recorded Google Meet meetings into Meeting Notes — transcript, summary and action items. Per-meeting record toggles live in the Upcoming tab of Meeting Notes. Your organisation's settings, where set, take precedence.")}
             </p>
 
             {!connection.meetScopesGranted ? (
                 <div className="rounded-xl px-5 py-4" style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.35)' }}>
                     <p className="text-[12px]" style={{ color: '#b45309' }}>
-                        Your Google account is connected, but Meeting Notes needs extra Google Meet permissions to
-                        import your meeting recordings. Re-authorize to grant them — your existing Gmail, Calendar
-                        and Drive access is kept.
+                        {t('settings.gmeet_notes.reauth_notice', "Your Google account is connected, but Meeting Notes needs extra Google Meet permissions to import your meeting recordings. Re-authorize to grant them — your existing Gmail, Calendar and Drive access is kept.")}
                     </p>
                     <button
                         onClick={reauthorize} disabled={reauthing}
                         className="mt-2.5 px-4 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
                         style={{ background: '#d97706' }}
                     >
-                        {reauthing ? 'Opening Google…' : 'Re-authorize Google'}
+                        {reauthing ? t('settings.gmeet_notes.opening_google', 'Opening Google…') : t('settings.gmeet_notes.reauthorize', 'Re-authorize Google')}
                     </button>
                     {message && message.type === 'error' && (
                         <p className="text-[11px] mt-2" style={{ color: '#dc2626' }}>{message.text}</p>
@@ -96,20 +94,20 @@ export default function GoogleMeetNotesSection() {
             ) : (
                 <>
                     <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        <Row title="Auto-import my recorded Meet meetings" desc="When a recording of your Google Meet call appears in Drive, create a Meeting Note automatically. Recording must be started in Meet — requires Google Workspace Business Standard or higher.">
+                        <Row title={t('settings.gmeet_notes.auto_import_title', 'Auto-import my recorded Meet meetings')} desc={t('settings.gmeet_notes.auto_import_desc', 'When a recording of your Google Meet call appears in Drive, create a Meeting Note automatically. Recording must be started in Meet — requires Google Workspace Business Standard or higher.')}>
                             <Toggle on={cfg.autoImport} onClick={() => setCfg(c => ({ ...c, autoImport: !c.autoImport }))} disabled={saving} />
                         </Row>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Also pre-enable auto-recording for meetings I organize" desc="Configure Meet to start recording automatically for meetings you organize, so nothing is missed.">
+                        <Row title={t('settings.gmeet_notes.auto_record_title', 'Also pre-enable auto-recording for meetings I organize')} desc={t('settings.gmeet_notes.auto_record_desc', 'Configure Meet to start recording automatically for meetings you organize, so nothing is missed.')}>
                             <Toggle on={cfg.autoRecordConfig} onClick={() => setCfg(c => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))} disabled={saving} />
                         </Row>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Which meetings" desc="Import only meetings you organize, or every Meet meeting on your calendar.">
+                        <Row title={t('settings.gmeet_notes.scope_title', 'Which meetings')} desc={t('settings.gmeet_notes.scope_desc', 'Import only meetings you organize, or every Meet meeting on your calendar.')}>
                             <Select value={cfg.importScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, importScope: e.target.value }))}
-                                options={[{ value: 'organizer', label: 'Meetings I organize' }, { value: 'calendar', label: 'All my calendar meetings' }]} />
+                                options={[{ value: 'organizer', label: t('settings.gmeet_notes.scope_organizer', 'Meetings I organize') }, { value: 'calendar', label: t('settings.gmeet_notes.scope_calendar', 'All my calendar meetings') }]} />
                         </Row>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Default language" desc="Language used when transcribing your Meet recordings.">
+                        <Row title={t('settings.gmeet_notes.language_title', 'Default language')} desc={t('settings.gmeet_notes.language_desc', 'Language used when transcribing your Meet recordings.')}>
                             <select
                                 value={cfg.language} onChange={e => setCfg(c => ({ ...c, language: e.target.value }))} disabled={saving}
                                 className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px]"
@@ -126,7 +124,7 @@ export default function GoogleMeetNotesSection() {
                             className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
                             style={{ background: MEET_GREEN }}
                         >
-                            {saving ? 'Saving…' : 'Save'}
+                            {saving ? t('settings.gmeet_notes.saving', 'Saving…') : t('settings.gmeet_notes.save', 'Save')}
                         </button>
                         {message && (
                             <span className={`text-[12px] font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>

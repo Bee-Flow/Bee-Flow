@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Bell, Check, CheckCheck, Info, AlertTriangle, AlertCircle, X, BellOff, Bot, Handshake, MessageSquare, GraduationCap } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useViewport } from '../../hooks/useViewport';
+import useTranslation from '../../hooks/useTranslation';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
 
 const CATEGORY_CONFIG = {
@@ -66,6 +67,7 @@ const TIME_GROUP_LABELS = {
  *                       trigger sits in a top bar.
  */
 export default function NotificationCenter({ variant = 'row' } = {}) {
+    const { t } = useTranslation();
     const { isMobile } = useViewport();
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
@@ -290,8 +292,8 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                 /* Compact icon-only trigger (sits in top bar) */
                 <button
                     onClick={() => setOpen(o => !o)}
-                    aria-label="Notifications"
-                    title="Notifications"
+                    aria-label={t('notifications.title', 'Notifications')}
+                    title={t('notifications.title', 'Notifications')}
                     className={`relative p-1.5 rounded-lg transition-colors ${open ? 'bg-[var(--bg-tertiary)] text-[var(--accent-primary)]' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}
                     data-testid="sidebar-notifications"
                 >
@@ -317,14 +319,14 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                 /* Sidebar-style trigger row */
                 <button
                     onClick={() => setOpen(o => !o)}
-                    aria-label="Notifications"
-                    title="Notifications"
+                    aria-label={t('notifications.title', 'Notifications')}
+                    title={t('notifications.title', 'Notifications')}
                     className={`w-full flex items-center gap-2.5 px-3 h-9 rounded-lg transition-colors text-left ${open ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'}`}
                     data-testid="sidebar-notifications"
                 >
                     <Bell className={`w-4 h-4 ${open ? 'text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)]'}`} strokeWidth={1.75} />
                     <span className={`text-[13px] ${open ? 'font-bold text-black' : 'text-black'}`}>
-                        Notifications
+                        {t('notifications.title', 'Notifications')}
                     </span>
                     {unreadCount > 0 && (
                         <span style={{
@@ -387,7 +389,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                             <Bell style={{ width: 15, height: 15, color: '#3b82f6' }} />
                         </div>
                         <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
-                            Notifications
+                            {t('notifications.title', 'Notifications')}
                             {unreadCount > 0 && (
                                 <span style={{
                                     marginLeft: 8,
@@ -428,7 +430,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                     display: 'flex', alignItems: 'center', gap: 4,
                                     padding: '4px 8px', borderRadius: 6,
                                 }}
-                                title="Mark all as read"
+                                title={t('notifications.mark_all_read_title', 'Mark all as read')}
                             >
                                 <CheckCheck style={{ width: 13, height: 13 }} />
                             </button>
@@ -449,7 +451,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                     borderRadius: '50%',
                                     animation: 'notifSpin 0.8s linear infinite',
                                 }} />
-                                Loading notifications...
+                                {t('notifications.loading', 'Loading notifications...')}
                             </div>
                         ) : filteredNotifications.length === 0 ? (
                             <div style={{
@@ -582,7 +584,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                 }}
                                                 onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = '#ef4444'; }}
                                                 onMouseLeave={(e) => { e.currentTarget.style.opacity = 0; e.currentTarget.style.color = 'var(--text-muted, #94a3b8)'; }}
-                                                title="Delete"
+                                                title={t('common.delete', 'Delete')}
                                                 className="notif-delete-btn"
                                             >
                                                 <X style={{ width: 14, height: 14 }} />
@@ -612,7 +614,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                                             background: 'var(--text-primary, #0f172a)', color: 'var(--bg-primary, #fff)',
                                                                         }}
                                                                     >
-                                                                        Open
+                                                                        {t('notifications.open', 'Open')}
                                                                     </button>
                                                                 </div>
                                                             )}
@@ -627,7 +629,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                                             background: 'var(--text-primary, #0f172a)', color: 'var(--bg-primary, #fff)',
                                                                         }}
                                                                     >
-                                                                        Reconnect {reauthProvider.charAt(0).toUpperCase() + reauthProvider.slice(1)}
+                                                                        {t('notifications.reconnect_provider', 'Reconnect {provider}', { provider: reauthProvider.charAt(0).toUpperCase() + reauthProvider.slice(1) })}
                                                                     </button>
                                                                 </div>
                                                             )}
@@ -648,7 +650,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                                         }}
                                                                     >
                                                                         <MessageSquare style={{ width: 14, height: 14 }} />
-                                                                        Open result in chat
+                                                                        {t('notifications.open_result_in_chat', 'Open result in chat')}
                                                                     </button>
                                                                     <span style={{
                                                                         fontSize: 13, fontWeight: 600, minWidth: 0,
@@ -802,7 +804,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                     flexShrink: 0,
                                 }}
                             >
-                                💬 Discuss in Chat
+                                {t('notifications.discuss_in_chat', '💬 Discuss in Chat')}
                             </button>
                             <button
                                 onClick={() => setResultModal(null)}
