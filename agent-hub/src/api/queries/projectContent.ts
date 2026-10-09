@@ -144,7 +144,7 @@ export const MAX_PROJECT_FILE_BYTES = 20 * 1024 * 1024;
 const enc = encodeURIComponent;
 
 export const contentKeys = {
-    mine: (what: 'documents' | 'notebooks' | 'meetings' | 'knowledge-bases') => ['project-content', 'mine', what] as const,
+    mine: (what: 'documents' | 'notebooks' | 'meetings' | 'knowledge-bases' | 'templates') => ['project-content', 'mine', what] as const,
 };
 
 // ── What is filed in the project ────────────────────────────────────────────
@@ -185,7 +185,7 @@ function useInvalidateContent(projectId: string) {
     };
 }
 
-export interface NewDocumentVars { name: string; docType?: string; locale?: string }
+export interface NewDocumentVars { name: string; docType?: string; starterId?: string; templateId?: string; locale?: string }
 
 export function useCreateProjectDocument(projectId: string) {
     const invalidate = useInvalidateContent(projectId);
@@ -304,6 +304,30 @@ export function useMyDocumentsQuery(enabled: boolean) {
                 signal, query: { kind: 'document', sort: 'updated', limit: 100 },
             });
             return Array.isArray(body?.documents) ? body!.documents! : [];
+        },
+    });
+}
+
+/** One of the caller's own (or team) document templates. */
+export interface MyTemplate { id: string; name: string; docType?: string }
+
+export interface MyTemplates {
+    templates: MyTemplate[];
+    /** Whether the reader may make a spreadsheet at all (the server says). */
+    spreadsheets: boolean;
+}
+
+/** The caller's templates, with what the same answer says about spreadsheets. A spreadsheet is no template to copy. */
+export function useMyTemplatesQuery(enabled: boolean) {
+    return useQuery<MyTemplates, Error>({
+        queryKey: contentKeys.mine('templates'),
+        enabled,
+        queryFn: async ({ signal }) => {
+            const body = await apiClient.get<{ documents?: MyTemplate[]; spreadsheets?: boolean }>('/api/studio-documents', {
+                signal, query: { kind: 'template', sort: 'updated', limit: 100 },
+            });
+            const rows = Array.isArray(body?.documents) ? body!.documents! : [];
+            return { templates: rows.filter(d => d.docType !== 'spreadsheet'), spreadsheets: body?.spreadsheets === true };
         },
     });
 }

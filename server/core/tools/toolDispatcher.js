@@ -33,6 +33,7 @@ const { isN8nTool, executeN8nTool } = require('../../integrations/n8nTools');
 const { isN8nWorkflowTool, executeN8nWorkflowTool, getN8nToolPermission } = require('../../integrations/n8nWorkflowTools');
 const { hasPermission } = require('../../auth/permissions');
 const { isAgentSearchTool, executeWebSearch } = require('../../integrations/agentSearchTools');
+const { isReadUrlTool, executeReadUrlTool } = require('../../integrations/readUrlTools');
 const { isBrowseWebTool, executeBrowseWebTool } = require('../../integrations/browserFetchTools');
 const { isRegexGeneratorTool, executeRegexGeneratorTool } = require('../../integrations/regexGeneratorTools');
 const { executeWorkspaceTool } = require('../../integrations/workspaceTools');
@@ -402,6 +403,10 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         // agent-search service, with node-search fallback for CPU-only deploys).
         // Single source of truth lives in agentSearchTools.executeWebSearch.
         return await executeWebSearch(toolName, toolArgs);
+    }
+    if (isReadUrlTool(toolName)) {
+        // Plain GET through the SSRF-guarded fetch; the egress probe records the host.
+        return await executeReadUrlTool(toolName, toolArgs);
     }
     if (isBrowseWebTool(toolName)) {
         // `send` streams browser_session_queued/start/frame/action/end events so

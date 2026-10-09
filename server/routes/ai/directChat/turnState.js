@@ -14,7 +14,7 @@ function createTurnState({
     req, res, send, clientAbort, userId,
     message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings,
     disabledMedia, webSearchEnabled, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable,
-    sidePanelWebpage, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
+    sidePanelWebpage, sidePanelDocument, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
     requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution,
 }) {
     return {
@@ -22,7 +22,7 @@ function createTurnState({
         req, res, send, clientAbort, userId,
         message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings,
         disabledMedia, webSearchEnabled, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable,
-        sidePanelWebpage, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
+        sidePanelWebpage, sidePanelDocument, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
         requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution,
         // Flips when the composer's stop button closes the response; every
         // loop checks it so a cancelled turn starts no new round.
@@ -61,6 +61,8 @@ function createTurnState({
         messages: undefined,
         volatileMessage: undefined,
         resolvedHistory: undefined,
+        // Documents the document tools may touch (core/documents/aiDocumentScope.js); set after the history is resolved.
+        documentScope: undefined,
         clientHistoryProvided: undefined,
         validProjectId: undefined,
         extractMemoriesEnabled: undefined,

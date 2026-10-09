@@ -42,14 +42,19 @@ export function exportFileName(title: string, ext: string): string {
 /** Server error codes whose sentence the client translates (server/i18n/defaults/en/notebooks.js). */
 const TRANSLATED_CODES: Record<string, string> = {
     pdf_renderer_unavailable: 'notebooks.pdf_renderer_unavailable',
+    pdf_render_timeout: 'notebooks.pdf_render_timeout',
 };
 
 /** The sentence for a failed export: a known code in the user's language, else the server's words. */
 export function exportErrorText(body: unknown, t: TranslateFn, fallback: string): string {
-    const { error, code } = (body || {}) as { error?: string; code?: string };
+    const { error, code, correlationId } = (body || {}) as { error?: string; code?: string; correlationId?: string };
     const key = code ? TRANSLATED_CODES[code] : undefined;
-    if (key) return t(key, error || fallback);
-    return error || fallback;
+    const message = key ? t(key, error || fallback) : (error || fallback);
+    // A generic failure carries a reference the administrator can find in the server log.
+    if (correlationId && !key) {
+        return t('notebooks.export_error_ref', '{message} (ref: {ref})', { message, ref: correlationId });
+    }
+    return message;
 }
 
 async function readError(res: Response, t: TranslateFn, fallback: string): Promise<Error> {

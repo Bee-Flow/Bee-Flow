@@ -1,7 +1,8 @@
 /**
  * De TESTCHAT in een echte streaming-beurt (A4 deel A).
  *
- * Zelfde opzet als toolRoundExecutor.confirm.test.js — de echte
+ * Zelfde opzet als toolRoundExecutor.confirm.test.js (de opzet staat in
+ * agentTurn.testkit.js) — de echte
  * chatWithAgentStream, aangedreven door een gescripte nep-adapter, met de
  * stores en zware collaborateurs vervangen. Wat hier bewezen wordt zijn de
  * eigenschappen die alleen in een hele beurt kunnen breken:
@@ -20,17 +21,13 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const {
+    installAgentTurnHarness, turnState, resetTurnState, AGENT_BASE, GMAIL_TOOL_REGISTRY, GMAIL_TOOLS,
+} = require('./agentTurn.testkit');
 
-// ── Mutable per-test state, read by the stubs below ──────────────────
+// ── Mutable per-test state, read by the stubs of the kit ──────────────
 const S = {
-    round: 0,
-    drive: null,
-    tools: [],
-    agentConfig: {},
-    dispatched: [],
-    events: [],
-    toolsOfferedPerRound: [],
+    ...turnState(),
     runtimeLoads: [],
     loadedConfig: null,
     conversationWrites: 0,
@@ -42,17 +39,7 @@ const S = {
 };
 
 function reset(cfg = {}) {
-    LEND.on = false;
-    S.round = 0;
-    S.drive = cfg.drive || (() => {});
-    S.tools = cfg.tools || TOOLS;
-    // `disableExternalTools` keeps getIntegrationTools out of the assembly, so
-    // the stack is exactly what getAgentTools returns and the assertions can
-    // count it.
-    S.agentConfig = { disableExternalTools: true, ...(cfg.config || {}) };
-    S.dispatched = [];
-    S.events = [];
-    S.toolsOfferedPerRound = [];
+    resetTurnState(S, cfg, GMAIL_TOOLS);
     S.runtimeLoads = [];
     S.loadedConfig = null;
     S.conversationWrites = 0;
@@ -63,218 +50,37 @@ function reset(cfg = {}) {
     S.rev = cfg.rev || 0;
 }
 
-const fn = (name) => ({
-    type: 'function',
-    function: { name, description: name, parameters: { type: 'object', properties: {} } },
+const kit = installAgentTurnHarness(S, {
+    toolRegistry: GMAIL_TOOL_REGISTRY,
+    stubs: {
+        '../../stores/agentStore': {
+            // De projectie die de runtime vroeg wordt vastgelegd EN nagespeeld:
+            // `useDraft` levert het concept met `runtimeSource:'draft'`, precies
+            // zoals agentCrud.projectDraft dat doet. Zonder die tweede helft zou
+            // deze test groen blijven als chatStream de optie meestuurt maar er
+            // niets mee gebeurt. (De kit versmalt de belt met `S.loadedConfig`:
+            // de grants van de config die de runtime ZOJUIST laadde.)
+            getForRuntime: async (_id, opts) => {
+                S.runtimeLoads.push(opts || null);
+                const draft = opts && opts.useDraft === true;
+                S.loadedConfig = draft ? (S.draftConfig || S.agentConfig) : S.agentConfig;
+                return {
+                    ...AGENT_BASE,
+                    config: S.loadedConfig,
+                    runtimeSource: draft ? 'draft' : (S.publishedVersion > 0 ? 'published' : 'live'),
+                    published_version: S.publishedVersion,
+                    published_rev: S.publishedRev,
+                    rev: S.rev,
+                };
+            },
+            updateConversation: async () => { S.conversationWrites++; },
+        },
+        '../../stores/usageStore': { logUsage: async (row) => { S.usage.push(row); } },
+    },
 });
-const TOOLS = [fn('gmail_search'), fn('gmail_compose')];
+const { runTurn, eventsOfType } = kit;
 
-const adapter = {
-    stream: async (apiKey, url, model, messages, options, cb) => {
-        S.toolsOfferedPerRound.push((options?.tools || []).map(t => t.function?.name));
-        await S.drive(cb, options, S.round++);
-    },
-};
-
-const AGENT_BASE = {
-    id: 'agent-1', name: 'Test Agent', model: 'claude-x', organization_id: null,
-    owner_id: 'u1', embed_enabled: false,
-};
-
-const noop = () => {};
-
-// The owner's lent Google connection, as connectionResolution would resolve it.
-const LEND = {
-    on: false,
-    override: {
-        integrationUserId: 'owner-2', integrationOrgId: 'org-2',
-        connectionId: 'conn-1', connectionLabel: 'Owner Google', grantId: 'g-1', provider: 'google',
-    },
-};
-
-// Connection lending: off unless a test turns it on, exactly like the
-// product default (INTEGRATION_CONNECTION_LENDING_ENABLED).
-const CONNECTION_RESOLUTION_STUB = {
-    isLendingEnabled: () => LEND.on,
-    providerForTool: () => 'google',
-    runningUserContext: async () => ({ orgId: null, groups: [] }),
-    resolveEffectiveIdentity: async () => (LEND.on ? LEND.override : null),
-};
-
-// The app index toolPolicy builds its grants from. Real names, so the real
-// sideEffectMap is what classifies them: search reads, compose sends.
-const TOOL_REGISTRY_STUB = {
-    TOOL_REGISTRY: [{ app: 'gmail', label: 'Gmail' }],
-    INLINE_TOOL_APPS: [],
-    // `ALL_TOOL_APPS` is de lijst die de attributie-index leest — registry
-    // PLUS de apps die hun tools inline injecteren. Zie automation/toolRegistry.js.
-    ALL_TOOL_APPS: [{ app: 'gmail', label: 'Gmail' }],
-    loadTools: () => [
-        { function: { name: 'gmail_search' } },
-        { function: { name: 'gmail_compose' } },
-    ],
-    loadToolsResult: () => ({
-        tools: [
-            { function: { name: 'gmail_search' } },
-            { function: { name: 'gmail_compose' } },
-        ],
-        ok: true,
-        reason: null,
-    }),
-};
-
-const STUBS = {
-    '../../automation/toolRegistry': TOOL_REGISTRY_STUB,
-    // `installResolveStub` keys on the require string as WRITTEN INSIDE the
-    // asking module, and toolPolicy is a folder now: its attribution index
-    // (toolPolicy/appIndex.js) sits one level deeper and asks for this string
-    // for the very same module. Without it the stub stops matching and the
-    // REAL registry answers — silently, which is the failure mode
-    // server/ARCHITECTURE.md warns about.
-    '../../../automation/toolRegistry': TOOL_REGISTRY_STUB,
-    '../aiAgent': {
-        getAIConfig: async () => ({}),
-        getProviderForModel: async () => ({
-            url: 'http://provider.invalid', apiKey: 'k',
-            providerType: 'claude', providerName: 'claude',
-        }),
-        resolveModelId: async (m) => m,
-    },
-    '../providers': { getAdapter: () => adapter },
-    '../cms/componentManager': {},
-    '../executionEngine': {},
-    '../../stores/agentStore': {
-        getAgent: async () => ({ ...AGENT_BASE, config: S.agentConfig }),
-        // De projectie die de runtime vroeg wordt vastgelegd EN nagespeeld:
-        // `useDraft` levert het concept met `runtimeSource:'draft'`, precies
-        // zoals agentCrud.projectDraft dat doet. Zonder die tweede helft zou
-        // deze test groen blijven als chatStream de optie meestuurt maar er
-        // niets mee gebeurt.
-        getForRuntime: async (_id, opts) => {
-            S.runtimeLoads.push(opts || null);
-            const draft = opts && opts.useDraft === true;
-            S.loadedConfig = draft ? (S.draftConfig || S.agentConfig) : S.agentConfig;
-            return {
-                ...AGENT_BASE,
-                config: S.loadedConfig,
-                runtimeSource: draft ? 'draft' : (S.publishedVersion > 0 ? 'published' : 'live'),
-                published_version: S.publishedVersion,
-                published_rev: S.publishedRev,
-                rev: S.rev,
-            };
-        },
-        getAgentToolsWithParams: async () => [],
-        getConversationMeta: async () => ({}),
-        updateConversation: async () => { S.conversationWrites++; },
-        getConversationById: async () => null,
-        getOrCreateConversation: async () => ({ id: 'c1', messages: [] }),
-        createNewConversation: async () => ({ id: 'c1', messages: [] }),
-    },
-    '../../stores/usageStore': { logUsage: async (row) => { S.usage.push(row); } },
-    '../../stores/terminationStore': { logTermination: async () => {} },
-    '../../stores/guardrailEventStore': {
-        logGuardrailEvent: async () => {},
-        logAttachmentPiiFindings: async () => {},
-        logAttachmentScanIncomplete: async () => {},
-    },
-    '../../stores/configStore': { getConfig: async () => null },
-    // Production narrows the belt to the TICKED actions long before the model
-    // sees it — integrationTools' addTools runs every candidate past
-    // toolPolicy.isToolAllowed — so the stub applies the same filter. Handing
-    // back the whole belt regardless of the grants would let a test about the
-    // NAME WHITELIST pass on the confirmation hold instead: the unticked send
-    // would still be offered, gate 2 would hold it, and gate 1 could be
-    // deleted without one assertion here turning red.
-    './agentTools': {
-        getAgentTools: async () => {
-            // De belt wordt versmald met de grants van de config die de runtime
-            // ZOJUIST laadde — niet met een vaste config uit de test. Anders
-            // zou een testchat die het concept had moeten laden groen blijven
-            // terwijl hij de gepubliceerde grants gebruikt.
-            const policy = require('./toolPolicy');
-            const grants = policy.toolsConfigOf(S.loadedConfig || S.agentConfig);
-            return grants ? S.tools.filter(t => policy.isToolAllowed(t, grants)) : S.tools;
-        },
-    },
-    './modelResolver': { resolveAgentModel: async () => 'claude-x' },
-    './contextBuilder': { buildSystemPrompt: async () => ({ systemPrompt: 'SYS', volatileSystemPrompt: '' }) },
-    './knowledgeSearch': { performKnowledgeSearch: async () => ({}), quickKBSearch: async () => [] },
-    './guardrailsRunner': { runInputGuardrails: async ({ userMessage }) => ({ processedUserMessage: userMessage }) },
-    './attachmentProcessor': { processAttachments: async () => ({}) },
-    './historyHydrator': { hydrateHistoryAttachments: async (m) => m },
-    '../llm/compaction': {
-        compactMessages: (m) => ({ messages: m, newSummary: null, didSummarize: false }),
-        needsSummarization: () => false,
-    },
-    '../../telemetry/metrics': { recordAgentRun: noop },
-    '../llm/promptClassifier': { classifyPromptComplexity: () => ({}) },
-    '../documents/ocr': { mistralOCR: async () => '' },
-    '../privacy/orgShield': {
-        resolveShieldFor: async () => null,
-        mergeWithOrgShield: (a) => a,
-        classifyToolClass: () => 'internal',
-        isBlockedForTool: () => ({ blocked: false, blockedCategories: [], toolClass: 'internal' }),
-    },
-    // Records every call that actually reached dispatch — the whole point of
-    // the two gates is which of these entries never appear.
-    '../tools/toolDispatcher': {
-        executeTool: async (name, args, ctx) => {
-            // `userId`/`lentConnection` are how a borrowed connection shows up
-            // at dispatch — the actAs tests below read them.
-            S.dispatched.push({ name, args, userId: ctx?.userId, lent: !!ctx?.lentConnection });
-            return { ok: true, message: `${name} ran` };
-        },
-    },
-    '../integrations/connectionResolution': CONNECTION_RESOLUTION_STUB,
-    // Same one-level-deeper alias, for toolPolicy/connectionLending.js.
-    '../../integrations/connectionResolution': CONNECTION_RESOLUTION_STUB,
-    '../integrations/integrationLogging': { logToolEgress: noop },
-    '../llm/promptUtils': { processSystemPrompt: async (s) => s },
-    '../llm/promptCacheStability': { toolSetFingerprint: () => 'tf', systemPrefixFingerprint: () => 'sf' },
-    '../privacy/guardrails': { checkRegexPatterns: () => [] },
-    '../dlp/dlpRunner': {
-        getConversationTokenMap: () => ({}),
-        getConversationTokenMapAsync: async () => ({}),
-        mergeTokenMap: () => {},
-    },
-};
-
-// chatStream became a FOLDER (chatStream/index.js + the turn's phases), so the
-// modules under test now write every require one '../' deeper than they used
-// to. installResolveStub matches the request string exactly as the module
-// writes it, so each stub is registered at BOTH depths: the shallow key still
-// covers the agentRuntime modules that did not move, the deeper one covers the
-// ones that did. Missing a key here fails SILENTLY — the real module loads and
-// the turn dies on a live Postgres connect somewhere unrelated.
-const atBothDepths = (map) => {
-    const out = { ...map };
-    for (const [request, exportsObj] of Object.entries(map)) {
-        const deeper = request.startsWith('./') ? '../' + request.slice(2)
-            : request.startsWith('../') ? '../' + request
-                : null;
-        if (deeper && !(deeper in out)) out[deeper] = exportsObj;
-    }
-    return out;
-};
-const restore = installResolveStub(atBothDepths(STUBS));
-
-const { chatWithAgentStream } = require('./chatStream');
-
-test.after(() => restore());
-
-async function runTurn(meta = {}) {
-    const onEvent = (type, data) => S.events.push([type, data]);
-    let result = null, error = null;
-    try {
-        result = await chatWithAgentStream(
-            'agent-1', 'u1', 'hi',
-            { userId: 'u1', encryptionKey: null, session: {} },
-            onEvent, null,
-            { ephemeral: true, ...meta },
-        );
-    } catch (e) { error = e; }
-    return { result, error, events: S.events };
-}
+test.after(() => kit.restore());
 
 /** Call `name` on the first round, answer in prose on every later one. */
 const callThenAnswer = (name) => (cb, options, round) => {
@@ -283,7 +89,6 @@ const callThenAnswer = (name) => (cb, options, round) => {
     cb('done', {});
 };
 
-const eventsOfType = (type) => S.events.filter(([t]) => t === type).map(([, d]) => d);
 
 /**
  * The gmail names offered in a round. Filtered because the stack also carries

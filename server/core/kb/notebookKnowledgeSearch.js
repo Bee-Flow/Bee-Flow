@@ -181,8 +181,12 @@ async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = 
     // Truncate chunk content
     const truncatedChunks = chunks.slice(0, topK).map(c => {
         const src = findSourceForChunk(c, sources);
+        const chunkRef = stableChunkRef(c);
         return {
             ...c,
+            // A turn-stable identity, so a repeat-guard can recognise a passage
+            // it has already shown (chunk_id alone is per document).
+            ...(chunkRef !== null ? { chunk_id: chunkRef } : {}),
             // source_uri is the source id; show the person (and the model) its name.
             ...(src ? { source_id: src.id, source_uri: src.name } : {}),
             content: c.content && c.content.length > maxChunkChars
@@ -379,6 +383,20 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
     return { content: allContent, sourceCount: chunkCount };
 }
 
+/**
+ * Identity of a retrieved chunk across searches: the row id when the hit has
+ * one, else document_id:chunk_id (chunk_id is only an index within a document),
+ * else a bare chunk_id. Null when the hit carries nothing usable.
+ */
+function stableChunkRef(c) {
+    if (c?.id !== undefined && c.id !== null) return String(c.id);
+    if (c?.chunk_id !== undefined && c.chunk_id !== null) {
+        return c.document_id !== undefined && c.document_id !== null
+            ? `${c.document_id}:${c.chunk_id}` : String(c.chunk_id);
+    }
+    return null;
+}
+
 // ── Notebook KB Search Tool (for chat tool-calling) ────────────────
 
 /**
@@ -411,6 +429,7 @@ async function executeNotebookKBSearchTool(args, userId, kbIds, sources = null) 
 
     const formatted = result.chunks.map((c, i) => ({
         result_number: i + 1,
+        ...(c.chunk_id !== undefined && c.chunk_id !== null ? { chunk_id: c.chunk_id } : {}),
         title: c.source_uri || c.title || 'Notebook Source',
         content: c.content,
         score: Math.round((c.rerank_score || c.score || 0) * 1000) / 1000,

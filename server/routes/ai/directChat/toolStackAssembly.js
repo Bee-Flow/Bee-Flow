@@ -238,7 +238,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
 
         // Filter out web search tool if user disabled it
         if (webSearchEnabled === false) {
-            directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search');
+            directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search' && t.function.name !== 'read_url');
             log.info('[DirectChat] Web search disabled by user');
         }
 
@@ -249,7 +249,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
             // Check conversation history for past file uploads
             const hasHistoryAttachments = history && Array.isArray(history) && history.some(m => m.attachments && m.attachments.length > 0);
             if (hasCurrentAttachments || hasHistoryAttachments) {
-                directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search');
+                directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search' && t.function.name !== 'read_url');
                 log.info(`[DirectChat] Web search disabled — ${hasCurrentAttachments ? 'current files attached' : 'files in conversation history'} (org policy)`);
             }
         }

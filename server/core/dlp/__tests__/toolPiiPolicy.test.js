@@ -35,6 +35,7 @@ check('gmail_send → external', classifyToolClass('gmail_send') === 'external')
 check('ms_calendar_create → external', classifyToolClass('ms_calendar_create') === 'external');
 check('drive_list → external', classifyToolClass('drive_list') === 'external');
 check('agent_search → external (web-search override)', classifyToolClass('agent_search') === 'external');
+check('read_url → external (web tool)', classifyToolClass('read_url') === 'external');
 check('web_search → external', classifyToolClass('web_search') === 'external');
 check('n8n_execute → external', classifyToolClass('n8n_execute') === 'external');
 check('cint_crm_create_contact → external (custom integration: public HTTPS only)', classifyToolClass('cint_crm_create_contact') === 'external');

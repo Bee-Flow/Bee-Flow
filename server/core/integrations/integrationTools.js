@@ -418,6 +418,8 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, auto
         canFallbackToNode
     );
     if (searchAvailable && isAppOn('agent-search')) {
+        // AGENT_SEARCH_TOOLS carries agent_search AND read_url (see agentSearchTools.js):
+        // read_url is offered exactly where web search is.
         addTools(AGENT_SEARCH_TOOLS);
         if (canFallbackToNode) {
             log.warn('[IntegrationTools] agent_search registered via node-search fallback: provider=agent-search but SEARCH_SERVICE_URL/agent_search_url is empty. Using serper_api_key directly. Set search_provider=node-search explicitly to silence this.');
@@ -1049,7 +1051,8 @@ async function buildToolHint(tools, _userId = null) {
     if (tools.some(t => t.function.name === 'generate_music')) integrations.push('Music generation (instrumental AI music via Lyria)');
     if (tools.some(t => t.function.name === 'generate_video')) integrations.push('Video generation (short AI video clips via Veo 3.1 — takes 1-3 minutes)');
     if (tools.some(t => t.function.name === 'agent_search')) integrations.push('Agent Search (AI-powered web search with reranking)');
-    if (tools.some(t => t.function.name === 'browse_web')) integrations.push('Browse Web (open and read/interact with live web pages in a real headless browser — navigate, click, type, follow links across pages. Use it whenever the user gives a URL, or a task needs live/JS-rendered content. When you already have a URL, use browse_web directly — do NOT use agent_search for a known URL; agent_search is only for discovering pages when you have no URL)');
+    if (tools.some(t => t.function.name === 'browse_web')) integrations.push('Browse Web (open and read/interact with live web pages in a real headless browser — navigate, click, type, follow links across pages. Use it for interactive or JS-rendered pages, logins and PDFs. For a plain page the user gave a URL for, read_url is lighter — do NOT use agent_search for a known URL; agent_search is only for discovering pages when you have no URL)');
+    if (tools.some(t => t.function.name === 'read_url')) integrations.push('Read URL (read_url fetches the full text of a web page by URL; use its `find` parameter to pull the passages around a specific article, paragraph number or phrase from a long page. Use it whenever the user\'s message contains a URL, before answering — never answer from search snippets instead)');
     if (tools.some(t => t.function.name.startsWith('workspace_') || t.function.name.startsWith('notebook_'))) integrations.push('Notebook (read and write a persistent rich-text document alongside the conversation)');
     if (tools.some(t => t.function.name === 'kb_search')) integrations.push('Knowledge Base Search (look up internal documentation when the user asks a specific question — do NOT search for greetings or small-talk)');
     if (tools.some(t => t.function.name.startsWith('maps_'))) integrations.push('Google Maps (get directions between locations with route maps, search for places/businesses — IMPORTANT: after getting results, always output the map as a ```map-embed code block containing JSON with embedUrl, title, and mapsLink fields so it renders as an interactive map in the chat)');

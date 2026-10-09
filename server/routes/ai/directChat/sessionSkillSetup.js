@@ -63,7 +63,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                     }
                     // Check DB messages for past file uploads (disableSearchOnUpload policy)
                     if (disableSearchOnUpload && existingConv.messages?.some(m => m.attachments && m.attachments.length > 0)) {
-                        directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search');
+                        directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search' && t.function.name !== 'read_url');
                         log.info('[DirectChat] Web search disabled — files found in conversation history DB (org policy)');
                     }
                     if (Array.isArray(existingConv.sessionSkills)) {

@@ -18,7 +18,7 @@ const { encryptionOpts } = require('./shared');
 const { formatLocalNow } = require('../../../core/llm/clock');
 const log = require('../../../telemetry/log');
 
-async function buildPromptAndHistory({ req, send, userId, message, conversationId, history, timezone, requestSystemPrompt, activeSkillIds, requestedKbIds, projectId, notebookspaceAvailable, notebookspaceContent, notebookspaceSelection, sidePanelWebpage, webpagePlanExecution, userOrgForTiers, orgIdsForTiers, notebooksEnabled, canUseNotebooks, toolCatalogText, directChatTools }) {
+async function buildPromptAndHistory({ req, send, userId, message, conversationId, history, timezone, requestSystemPrompt, activeSkillIds, requestedKbIds, projectId, notebookspaceAvailable, notebookspaceContent, notebookspaceSelection, sidePanelWebpage, sidePanelDocument, webpagePlanExecution, userOrgForTiers, orgIdsForTiers, notebooksEnabled, canUseNotebooks, toolCatalogText, directChatTools }) {
         // Build messages array
         emitPhase(send, 'building_prompt');
         const _spT = Date.now();
@@ -298,6 +298,15 @@ The Notebook panel is currently open. Current rules for edits: 1) Before noteboo
             } catch (e) {
                 log.warn('[DirectChat] sidePanelWebpage injection failed:', e.message);
             }
+        }
+
+        // ─── Side-panel document awareness ───────────────────────
+        // Only which document is open; the model reads it with document_read
+        // (allowed for it by core/documents/aiDocumentScope.js).
+        if (sidePanelDocument) {
+            const { buildDirectNote } = require('../../../core/documents/sidePanelDocumentContext');
+            const note = await buildDirectNote(sidePanelDocument, userId);
+            if (note) volatileContext += note;
         }
 
         // ─── Skills injection ────────────────────────────────────

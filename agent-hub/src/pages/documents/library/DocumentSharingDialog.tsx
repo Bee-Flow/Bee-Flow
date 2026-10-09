@@ -7,7 +7,7 @@ import { docKeys, type LibraryRow } from '../documentQueries';
 import { isNotebookRow } from './useLibrary';
 import SharingRecipients, { type SharingDirectory } from './SharingRecipients';
 
-interface Sharing { audience: 'private' | 'organisation' | 'restricted'; sharedGroups: string[]; sharedUserIds: string[]; organizationId?: string | null }
+interface Sharing { audience: 'private' | 'organisation' | 'restricted'; sharedGroups: string[]; sharedUserIds: string[]; access?: 'view' | 'edit'; organizationId?: string | null }
 const CONTROL = 'rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2 text-sm';
 const needsRecipient = (value: Sharing | undefined) => value?.audience === 'restricted' && !value.sharedGroups.length && !value.sharedUserIds.length;
 
@@ -20,7 +20,7 @@ export default function DocumentSharingDialog({ row, onClose }: { row: LibraryRo
     const directory = useQuery({ queryKey: [...docKeys.all, 'sharing-directory', row.docType, row.id], queryFn: () => documentRequest(`${base}/principals`) as Promise<SharingDirectory> });
     const value = draft || sharing.data;
     const save = useMutation({
-        mutationFn: () => documentRequest(base, { audience: value!.audience, sharedGroups: value!.audience === 'restricted' ? value!.sharedGroups : [], sharedUserIds: value!.audience === 'restricted' ? value!.sharedUserIds : [] }, 'PUT'),
+        mutationFn: () => documentRequest(base, { audience: value!.audience, sharedGroups: value!.audience === 'restricted' ? value!.sharedGroups : [], sharedUserIds: value!.audience === 'restricted' ? value!.sharedUserIds : [], ...(isNotebookRow(row) ? {} : { access: value!.audience === 'private' ? 'view' : value!.access || 'view' }) }, 'PUT'),
         onSuccess: async () => { await qc.invalidateQueries({ queryKey: docKeys.all }); onClose(); },
     });
     const change = (patch: Partial<Sharing>) => { if (value) setDraft({ ...value, ...patch }); save.reset(); };
@@ -33,7 +33,7 @@ export default function DocumentSharingDialog({ row, onClose }: { row: LibraryRo
         <Modal open onClose={() => { if (!save.isPending) onClose(); }} title={t('documents.sharing.title', 'Share {name}', { name: row.name })} size="md"
             footer={<div className="flex justify-end gap-2"><button type="button" className={CONTROL} onClick={onClose} disabled={save.isPending}>{t('documents.cancel', 'Cancel')}</button><button type="button" className={`${CONTROL} bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]`} disabled={!value || sharing.isError || directory.isError || save.isPending || empty} onClick={() => save.mutate()}>{save.isPending ? t('documents.saving', 'Saving…') : t('common.save', 'Save')}</button></div>}>
             <div className="space-y-4">
-                <p className="text-sm text-[var(--text-secondary)]">{t('documents.sharing.read_access', 'Recipients can read this document. Existing project edit permissions still apply.')}</p>
+                <p className="text-sm text-[var(--text-secondary)]">{t('documents.sharing.read_access', 'Choose whether recipients can only read this document or also edit its content. Only you can change its sharing, type or folder, or delete it.')}</p>
                 {sharing.isPending && <p role="status">{t('documents.sharing.loading', 'Loading sharing settings…')}</p>}
                 {error && <p role="alert" className="text-sm text-[var(--error)]">{error.message}</p>}
                 {value && <>
@@ -44,6 +44,12 @@ export default function DocumentSharingDialog({ row, onClose }: { row: LibraryRo
                             <option value="restricted" disabled={!value.organizationId}>{t('documents.sharing.restricted', 'Specific users and groups')}</option>
                         </select>
                     </label>
+                    {!isNotebookRow(row) && <label className="block text-sm">{t('documents.sharing.access', 'What they can do')}
+                        <select className={`${CONTROL} block mt-1 w-full`} value={value.access || 'view'} disabled={save.isPending || value.audience === 'private'} onChange={(e) => change({ access: e.target.value as 'view' | 'edit' })}>
+                            <option value="view">{t('documents.sharing.access_view', 'Can view')}</option>
+                            <option value="edit">{t('documents.sharing.access_edit', 'Can edit')}</option>
+                        </select>
+                    </label>}
                     {value.audience === 'restricted' && <SharingRecipients value={value} directory={directory.data} loading={directory.isPending} pending={save.isPending} empty={!!empty} toggle={toggle} clear={() => change({ sharedGroups: [], sharedUserIds: [] })} />}
                     {value.audience !== 'private' && <p className="text-sm text-[var(--text-secondary)]">{t('documents.sharing.encryption', 'When encryption is enabled, shared content uses organisation encryption so recipients can open it.')}</p>}
                 </>}

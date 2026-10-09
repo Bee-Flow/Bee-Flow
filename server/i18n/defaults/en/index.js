@@ -113,6 +113,7 @@ const NAMESPACES = {
     "starter":         require('./starter.js'),
     "store":           require('./store.js'),
     "studio":          require('./studio.js'),
+    "suggestions":     require('./suggestions.js'),
     "support":         require('./support.js'),
     "tasks":           require('./tasks.js'),
     "templates":       require('./templates.js'),

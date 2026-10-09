@@ -2,16 +2,18 @@
 
 const express = require('express');
 const { z } = require('zod');
+const { bodyOf, choice } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { requireAuth } = require('../../auth/permissions');
 const sharing = require('../../stores/lib/documentSharing');
 
 const ids = z.array(z.string().trim().min(1).max(200)).max(200).default([]);
-const SharingBody = z.object({
-    audience: z.enum(['private', 'organisation', 'restricted']),
+const SharingBody = bodyOf({
+    audience: choice(['private', 'organisation', 'restricted'], 'audience is private, organisation or restricted.'),
     sharedGroups: ids,
     sharedUserIds: ids,
-}).strict();
+    access: choice(['view', 'edit'], 'access is view or edit.').default('view'),
+}, 'Sharing a document');
 
 function makeDocumentSharingRouter({ store = sharing, auth = requireAuth, notebookGate } = {}) {
     const router = express.Router();

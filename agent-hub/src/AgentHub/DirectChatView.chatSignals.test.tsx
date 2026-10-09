@@ -39,7 +39,7 @@ function renderView(conversation: Record<string, unknown>) {
         isMobile: false, setSidebarOpen: vi.fn(), user: { id: 'u1', name: 'Tester', betaFeatures: [] },
         notebooksEnabled: false, conversationStarted: true,
         coworkMode: 'chat', setCoworkMode: vi.fn(), inCoworkMode: false,
-        toggleNotebookPanel: vi.fn(), showNotebook: false,
+        sidePanelDocumentId: null, openDocumentInSidePanel: vi.fn(), closeDocumentPanel: vi.fn(),
         canUseWebpagesSide: false, webpageButtonRefDirect: { current: null }, sidePanelWebpageId: null, closeWebpagePanel: vi.fn(),
         webpagePickerOpen: false, setWebpagePickerOpen: vi.fn(), openWebpageInSidePanel: vi.fn(),
         messagesContainerRef: { current: null }, messagesEndRef: { current: null }, shouldForceScrollRef: { current: false },

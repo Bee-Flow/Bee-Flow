@@ -108,6 +108,7 @@ const NL_TRANSLATIONS = Object.freeze({
     'documents.new.presentations': 'Presentaties',
     'documents.new.presentations_hint': 'Dia’s in de huisstijl: een opzet die je typt, hier bekeken en gedownload als PowerPoint of PDF.',
     'documents.new.templates': 'Vanuit een sjabloon',
+    'documents.new.own_templates': 'Je eigen sjablonen',
     'documents.new.parameters': '{count} velden om in te vullen',
     'documents.new.loading': 'Sjablonen laden…',
     'documents.new.load_failed': 'De sjablonen konden niet worden geladen.',

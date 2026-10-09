@@ -186,6 +186,19 @@ The Notebook panel is currently open. Edit rules: 1) Before notebook_replace, us
         }
     }
 
+    // ─── Side-panel document ─────────────────────────────────────
+    // Agents have no document tools, so the open document's text goes in
+    // read-only, and only on a turn whose request carries it.
+    if (messageMetadata?.sidePanelDocument) {
+        try {
+            const { buildAgentContent } = require('../documents/sidePanelDocumentContext');
+            const block = await buildAgentContent(messageMetadata.sidePanelDocument, userId);
+            if (block) volatilePrompt += block;
+        } catch (e) {
+            log.warn('[contextBuilder] sidePanelDocument injection failed:', e.message);
+        }
+    }
+
     // ─── Skills injection ──────────────────────────────────
     // Delegates to the shared helper which splits skills into static (full
     // body injected here) and dynamic (manifest only; AI loads via the

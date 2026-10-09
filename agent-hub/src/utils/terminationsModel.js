@@ -8,6 +8,9 @@ export const TYPE_ORDER = ['max_tokens', 'max_iterations', 'error', 'aborted'];
 export const LARGE_INPUT_TOKEN_THRESHOLD = 8000;
 export const LARGE_ATTACHMENT_BYTES_THRESHOLD = 256 * 1024; // 256 KB
 
+// error_code values (server/core/privacy/errorSanitizer.js) that mean the input was too big.
+const CONTEXT_OVERFLOW_ERROR_CODES = new Set(['payload_too_large', 'context_overflow']);
+
 /**
  * Heuristic: a stop is "input-driven" when the prompt/attachment was unusually
  * large — surfaces the case where a big upload leaves no room for output.
@@ -18,6 +21,9 @@ export const LARGE_ATTACHMENT_BYTES_THRESHOLD = 256 * 1024; // 256 KB
  * omits the argument (defaults true) → all checks, as before.
  */
 export function isLargeInput(row, showTokens = true) {
+    // An error row is not "the input was big" unless the error says so: a 400
+    // on a bad request body carries the prompt size of the request that failed.
+    if (row.termination_type === 'error' && !CONTEXT_OVERFLOW_ERROR_CODES.has(row.error_code)) return false;
     if ((row.attachment_bytes || 0) >= LARGE_ATTACHMENT_BYTES_THRESHOLD) return true;
     if (!showTokens) return false;
     if ((row.prompt_tokens || 0) >= LARGE_INPUT_TOKEN_THRESHOLD) return true;

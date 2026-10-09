@@ -44,6 +44,7 @@ function harness({ locked = true, monitoringThrows = false, scanPruneThrows = fa
             return 2;
         },
         pruneSuggestionFeedback: async () => { calls.suggestionFeedback += 1; return 0; },
+        pruneDocumentSuggestions: async () => { calls.documentSuggestions = (calls.documentSuggestions || 0) + 1; return 4; },
         log: { debug: record('debug'), info: record('info'), warn: record('warn'), error: record('error') },
     });
     return { calls, logs };
@@ -134,4 +135,10 @@ test('start() mounts one boot pass and one hourly interval, and stop() clears bo
     assert.deepStrictEqual(mounted.map(h => h.kind).sort(), ['interval', 'timeout']);
     assert.strictEqual(mounted.find(h => h.kind === 'interval').delay, 60 * 60 * 1000);
     assert.strictEqual(cleared.length, 2, 'stop() left a timer running');
+});
+
+test('a pass also purges resolved document suggestions', async () => {
+    const { calls } = harness();
+    await job.runOnce();
+    assert.strictEqual(calls.documentSuggestions, 1);
 });

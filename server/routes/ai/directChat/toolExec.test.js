@@ -67,7 +67,7 @@ const restore = installResolveStub({
     // test that pulls that in hangs on pool retries instead of failing.
     '../../../integrations/documentBuilderTools': {
         isDocumentTool: (name) => documentTools.on && /^(create_document|document_(read|write|edit))$/.test(name),
-        executeDocumentTool: async () => ({ documentId: 'd1', name: 'Plan', url: '/app/studio/documents/d1' }),
+        executeDocumentTool: async (_n, _a, dctx) => { documentTools.lastCtx = dctx; return documentTools.result || { documentId: 'd1', name: 'Plan', url: '/app/studio/documents/d1' }; },
     },
     '../../../integrations/webpageDbTools': {
         isDbTool: () => false,
@@ -260,6 +260,23 @@ test('T4 untokenise runs for write tools, not for search tools', async () => {
     untok.calls = [];
     await executeDirectChatToolCall(mkToolCall('agent_search', { query: '[email_1]' }), ctx);
     assert.strictEqual(untok.calls.length, 0);
+});
+
+// ── T4b: read_url is a web tool: tokens stay, URL + find get the PII guard ──
+test('T4b read_url keeps DLP tokens and is PII-checked like a search query', async () => {
+    dlp.map = { '[email_1]': 'a@b.c' };
+    pii.impl = async () => ({ hasPii: true, entities: [{ label: 'Email' }] });
+    const { ctx, events } = mkCtx({
+        webSearchGuardPiiCategories: ['Email'],
+        webSearchGuardEnabled: true,
+    });
+    untok.calls = [];
+    const out = await executeDirectChatToolCall(mkToolCall('read_url', { url: 'https://x.org/?u=a@b.c', find: '38A' }), ctx);
+    assert.strictEqual(untok.calls.length, 0);
+    assert.strictEqual(dispatcher.calls.length, 0, 'blocked before dispatch');
+    assert.match(JSON.parse(out.content).error, /Web search blocked/);
+    assert.strictEqual(guardrails.rows[0].violation_type, 'pii');
+    assert.strictEqual(events[1][0], 'tool_end');
 });
 
 // ── T5: tier-tool-params memo ────────────────────────────────────────
@@ -655,6 +672,37 @@ test('a document tool that WROTE reloads the open editor; a read does not', asyn
             assert.strictEqual(updates.length, reloads ? 1 : 0, tool);
             if (reloads) assert.deepStrictEqual(updates[0][1], { documentId: 'd1', name: 'Plan', url: '/app/studio/documents/d1' });
         }
+    } finally {
+        documentTools.on = false;
+    }
+});
+
+test('proposed page changes send document_suggestions (ids and a count), not a reload', async () => {
+    documentTools.on = true;
+    documentTools.result = { suggested: 3, batchId: 'b1', documentId: 'd1', name: 'Plan', url: '/app/studio/documents/d1', message: 'Proposed 3 changes' };
+    try {
+        const { ctx, events } = mkCtx();
+        await executeDirectChatToolCall(mkToolCall('document_write', { documentId: 'd1' }), ctx);
+        assert.deepStrictEqual(events.filter(([t]) => t === 'document_suggestions'), [['document_suggestions', { documentId: 'd1', batchId: 'b1', count: 3 }]]);
+        assert.strictEqual(events.filter(([t]) => t === 'document_update').length, 0, 'nothing was written, so the editor is not reloaded');
+        assert.ok('conversationId' in documentTools.lastCtx, 'the conversation id is handed to the tool');
+        documentTools.result = { suggested: 0, documentId: 'd1', message: 'Nothing to propose' };
+        const second = mkCtx();
+        await executeDirectChatToolCall(mkToolCall('document_write', { documentId: 'd1' }), second.ctx);
+        assert.strictEqual(second.events.filter(([t]) => t === 'document_suggestions').length, 0, 'no batch, no event');
+    } finally {
+        documentTools.on = false;
+        documentTools.result = null;
+    }
+});
+
+test('the turn\'s document scope reaches the document tools through the call context', async () => {
+    documentTools.on = true;
+    try {
+        const scope = { has: () => true, add() {} };
+        const { ctx } = mkCtx({ documentScope: scope });
+        await executeDirectChatToolCall(mkToolCall('document_read', { documentId: 'd1' }), ctx);
+        assert.strictEqual(documentTools.lastCtx.documentScope, scope);
     } finally {
         documentTools.on = false;
     }

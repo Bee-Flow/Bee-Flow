@@ -760,8 +760,8 @@ module.exports = {
     // ── Knowledge — chat-side documents (Track K2, 2026-09) ───
 
     // ── Privacy Shield — knowledge bases (Track K4, 2026-09) ───
-    'admin.shield_scan_kbs': 'Also check knowledge bases when documents are added',
-    'admin.shield_scan_kbs_desc': 'A knowledge base keeps its documents and quotes them to whoever asks — including people who never saw the original file. Checking at the moment a document is added means personal data is replaced BEFORE it is stored, so the AI knows the terms and not the customer. It cannot be undone afterwards: the stored text is the checked text.',
+    'admin.shield_scan_kbs': 'Also check knowledge-base content for personal data',
+    'admin.shield_scan_kbs_desc': 'A knowledge base keeps its documents and quotes them to whoever asks — including people who never saw the original file. This applies both when documents are added and when they are used in answers. Checking at the moment a document is added means personal data is replaced BEFORE it is stored, so the AI knows the terms and not the customer. That cannot be undone afterwards: the stored text is the checked text. Turn it off and knowledge-base passages reach the AI as they are stored.',
 
     // ── Privacy Shield redesign, round 2 (2026-09-15) ──────────────────
     // The tab strip became a pipeline, the three 21-item category grids

@@ -898,6 +898,16 @@ export function dispatchSSEEvent(
             } catch (_) {}
             break;
 
+        // The AI proposed changes to a page instead of writing them: tell the
+        // open editor's suggestions list (api/queries/suggestions.ts).
+        case 'document_suggestions':
+            try {
+                window.dispatchEvent(new CustomEvent('beeflow:document-suggestions', {
+                    detail: { documentId: data.documentId, batchId: data.batchId, count: data.count },
+                }));
+            } catch (_) {}
+            break;
+
         // DB tool wrote — re-broadcast as a DOM event so the open DB
         // viewer (if mounted) can refresh its schema/rows. Avoids drilling
         // a callback through the chat → IDE → viewer prop chain.

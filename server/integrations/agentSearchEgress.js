@@ -15,6 +15,7 @@ function defaultDeps() {
         captureCall: require('../core/http/captureCall').captureCall,
         logToolEgress: require('../core/integrations/integrationLogging').logToolEgress,
         executeAgentSearchTool: require('./agentSearchTools').executeAgentSearchTool,
+        executeReadUrlTool: require('./readUrlTools').executeReadUrlTool,
         now: Date.now,
     };
 }
@@ -27,7 +28,9 @@ function defaultDeps() {
  */
 async function runAgentSearchWithEgress(toolName, toolArgs, egress, deps = defaultDeps()) {
     const t0 = deps.now();
-    const run = await deps.captureCall(() => deps.executeAgentSearchTool(toolName, toolArgs));
+    // read_url ships with the search tools, so these chats offer it too.
+    const execute = toolName === 'read_url' ? deps.executeReadUrlTool : deps.executeAgentSearchTool;
+    const run = await deps.captureCall(() => execute(toolName, toolArgs));
     deps.logToolEgress({
         toolName,
         toolArgs,

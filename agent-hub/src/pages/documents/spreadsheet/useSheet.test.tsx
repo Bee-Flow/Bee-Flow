@@ -96,4 +96,33 @@ describe('useSheet', () => {
         expect(api.patchSheet).not.toHaveBeenCalled();
         expect(result.current.status).toBe('saved');
     });
+
+    describe('AI document update', () => {
+        const fire = (documentId: string) => act(() => { window.dispatchEvent(new CustomEvent('beeflow:document-updated', { detail: { documentId } })); });
+
+        it('reads the sheet again when the AI changed this document', async () => {
+            const { result } = await mount({ A1: '1' });
+            api.getSheet.mockResolvedValue(sheet({ A1: '9' }));
+            fire('doc-1');
+            await waitFor(() => expect(result.current.cells.A1).toBe('9'));
+            expect(api.getSheet).toHaveBeenCalledTimes(2);
+        });
+
+        it('ignores another document', async () => {
+            await mount({ A1: '1' });
+            fire('other');
+            expect(api.getSheet).toHaveBeenCalledTimes(1);
+        });
+
+        it('waits for an unsaved cell edit, then reads again', async () => {
+            const { result } = await mount({ A1: '1' });
+            act(() => result.current.setCells({ B1: 'x' }));
+            fire('doc-1');
+            expect(api.getSheet).toHaveBeenCalledTimes(1);
+            api.getSheet.mockResolvedValue(sheet({ A1: '9', B1: 'x' }));
+            await act(async () => { await result.current.flush(); });
+            await waitFor(() => expect(api.getSheet).toHaveBeenCalledTimes(2));
+            await waitFor(() => expect(result.current.cells.A1).toBe('9'));
+        });
+    });
 });

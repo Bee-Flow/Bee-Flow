@@ -1,6 +1,6 @@
 # Learning Center lesson videos: hand-over
 
-Use this file to continue the lesson-video work with any LLM or by hand. Last updated 2026-10-03 by Claude.
+Use this file to continue the lesson-video work with any LLM or by hand. Last updated 2026-10-08 by Claude.
 
 ## See the current status
 
@@ -16,6 +16,21 @@ The script reads only files (clip-studio outputs, `learn-videos.json`, `curricul
 - `in-progress`: a storyboard exists, but there is no video yet.
 - `todo`
 - `blocked`
+
+## State on 2026-10-08: v2 complete and published
+
+- **All 71 priority lessons were remade (v2):** new scripts in `data/video-specs-v2.json` (list in `data/priority-v2.json`) and new recordings, with 4K capture, a lighter dim, the hero card and voice `heart`. All 71 pass QA (0 fails). Per-lesson fixes are in `clip-studio/drafts/lessonrun/<id>.overrides.json`.
+- **Re-run one lesson:** `CLIP_LESSON_SPEC=<abs>/data/video-specs-v2.json node bin/clip.mjs lesson-run <id> --from values` (in clip-studio). Use `--batch ids.json --concurrency 3` for several.
+- **Progress:** `node clip-studio/tools/lesson-progress.mjs --list`.
+- **Published:** GitHub prerelease `learn-media` on `Bee-Flow/Bee-Flow`.
+  - Pack version `fd89a161cbd4`: 79 videos (the 71 v2 lessons plus 8 older ones), 580 MB.
+  - Pin: `server/learning/learnMediaPack.json`. Servers on a build with this pin download the pack themselves at start-up.
+  - **Update after changing a lesson:** `node bin/clip.mjs learn-pack`, then `node bin/clip.mjs learn-publish --pack out/learn-pack --confirm` (a run without `--confirm` only prints the plan). Only changed files are uploaded. Commit the new pin.
+- **Curriculum:** all 71 lessons have a `video` entry in `curriculum.json`. After a change, run `generate.mjs` and `npm run i18n:gen`.
+- **Optional follow-up:** some chapters play full-page without zoom, which was set to avoid the zoom-pump check. Text is small in encryption-tiers, org-usage, datatables-rows-and-repair and shield-basics. Fix: in their overrides, remove `noZoom` or add `newArea` on the beat, re-run, re-publish.
+- **Runner gotchas:**
+  - The empty-chat heading rotates (`starter.welcome_*`); the runner never uses it as a ready target (`GREETING` in `src/lessonrun/targets.mjs`).
+  - Added beats shift beat numbers: check `values.json` before using `newArea` or `noZoom`.
 
 ## Goal and decisions (keep these)
 

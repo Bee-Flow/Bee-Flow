@@ -25,6 +25,8 @@ const { applyFindReplace } = require('../core/text/findReplace');
 const { wordStats } = require('../stores/lib/documentText');
 const { canEditAs } = require('../stores/lib/projectRole');
 const log = require('../telemetry/log');
+const { NOT_SHARED } = require('../core/documents/aiDocumentScope');
+const { shouldSuggest } = require('../core/documents/suggestions/policy');
 
 /**
  * A reader who may see this document but not change it: a project viewer.
@@ -60,12 +62,73 @@ async function readLive(live, id) {
     return { html: typeof live.readHtml === 'function' ? await live.readHtml('document', id) : null, seq: null };
 }
 
+/**
+ * Run `fn({ html, fragment })` on what people see now: the live state of a
+ * co-edited page, opened once so anchors get relative positions into the very
+ * fragment the editors hold, or the stored body (fragment null).
+ */
+async function withCurrentBody(live, id, storedHtml, fn) {
+    const stored = { html: storedHtml || '', fragment: null };
+    if (!live) return fn(stored);
+    if (typeof live.withFragment === 'function') {
+        const out = await live.withFragment('document', id, ({ html, fragment }) => fn({ html: typeof html === 'string' ? html : stored.html, fragment }));
+        return out === null ? fn(stored) : out;
+    }
+    const current = (await readLive(live, id)).html;
+    return fn({ html: typeof current === 'string' ? current : stored.html, fragment: null });
+}
+
 // What an AI edit is in the history: its own version, marked as the AI's,
 // made for the person whose chat asked for it (never folded into their typing).
 const aiRevision = (userId, summary) => ({
     source: 'ai', summary: typeof summary === 'string' && summary.trim() ? summary.trim().slice(0, 500) : 'AI edit',
     contributors: [{ userId, kind: 'ai' }],
 });
+
+const MAX_OPEN_SUGGESTIONS_LISTED = 50;
+
+/**
+ * Does an AI change to this page wait for a human (suggestions)? Direct only for
+ * a page this chat made, private, unfiled and not live
+ * (core/documents/suggestions/policy.js).
+ */
+const mustSuggest = (doc, ctx, live) => doc.docType === 'page' && shouldSuggest({
+    doc, createdInThisChat: !!(ctx.documentScope && typeof ctx.documentScope.createdInChat === 'function' && ctx.documentScope.createdInChat(doc.id)),
+    liveSession: !!live,
+});
+
+const suggestionStoreOf = (ctx) => ctx.suggestionStore || require('../stores/documentSuggestionStore');
+
+/**
+ * Turn "the body the model wants" into stored suggestions instead of a write:
+ * one per run of changed blocks, for the person to accept. Nothing is changed.
+ * `currentHtml` is what people see now (the live state for a live page).
+ */
+async function suggestBody({ doc, userId, ctx, currentHtml, proposedHtml, baseToken, summary, fragment = null }) {
+    const engine = ctx.engine || require('../core/documents/suggestions/engine').engine();
+    let { hunks } = engine.hunksFrom(engine.htmlToAst(currentHtml || ''), engine.htmlToAst(proposedHtml || ''));
+    // A live page: anchors also get relative positions into the shared fragment.
+    if (fragment && hunks.length && typeof engine.anchorsForFragment === 'function') hunks = engine.anchorsForFragment(fragment, hunks);
+    if (!hunks.length) {
+        return { suggested: 0, documentId: doc.id, url: documentUrl(doc.id), name: doc.name, message: `Nothing to propose: "${doc.name}" already reads like that.` };
+    }
+    const { batchId, suggestions } = await suggestionStoreOf(ctx).createBatch({
+        targetType: 'document', targetId: doc.id, projectId: doc.projectId || null, organizationId: doc.organizationId || null,
+        conversationId: ctx.conversationId || null, authorKind: 'ai', authorUserId: userId, agentId: ctx.agentId || null,
+        kind: 'text', baseToken: baseToken || doc.versionId || null, hunks,
+        resource: require('../stores/lib/documentCrypto').resourceOfDocument(doc),
+    });
+    const open = await suggestionStoreOf(ctx).countOpen('document', doc.id);
+    await (ctx.announceSuggestions || require('../core/documents/suggestions/events').announceSuggestions)({
+        documentId: doc.id, projectId: doc.projectId || null, batchId, open,
+    });
+    const n = suggestions.length;
+    return {
+        suggested: n, batchId, documentId: doc.id, url: documentUrl(doc.id), name: doc.name,
+        ...(summary ? { note: String(summary).slice(0, 500) } : {}),
+        message: `Proposed ${n} change${n === 1 ? '' : 's'} to "${doc.name}"; they wait for the user to accept them in the document. Do not claim they are applied.`,
+    };
+}
 
 const APP_PATH = 'app/studio/documents';
 
@@ -110,7 +173,7 @@ const DOCUMENT_TOOLS = [
         type: 'function',
         function: {
             name: 'document_read',
-            description: 'Read a document\'s current slots. Returns { name, docType, bodyHtml, css }.\n\nUse it before editing a document you did not write this turn — including one the user has since changed by hand, which is the common case: they moved a line or corrected an amount and are now asking you to change something else. Writing without reading would silently revert their edit.',
+            description: 'Read a document\'s current slots. Returns { name, docType, bodyHtml, css }.\n\nFor a PAGE it also returns openSuggestions: [{ id, summary }], changes already proposed and not yet accepted, so you do not propose the same thing twice.\n\nUse it before editing a document you did not write this turn — including one the user has since changed by hand, which is the common case: they moved a line or corrected an amount and are now asking you to change something else. Writing without reading would silently revert their edit.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -124,7 +187,7 @@ const DOCUMENT_TOOLS = [
         type: 'function',
         function: {
             name: 'document_write',
-            description: 'Replace a WHOLE slot. Use this to fill a new document, or for a redesign that rewrites the stylesheet from scratch.\n\nFor any change to a document that already has content — a corrected amount, an extra line, a different colour — use `document_edit` instead. A full rewrite costs the entire document in output tokens and, worse, silently discards whatever the user changed by hand since you last read it.\n\nPass `bodyHtml`, `css`, or both; an omitted slot is left exactly as it is.\n\n`bodyHtml` is BODY MARKUP ONLY — no <html>, <head>, <body> or <style> tags, and no <script> (scripts are stripped: a document does not run). `css` is the full stylesheet, and it owns the paper: set `@page { size: A4; margin: 18mm 16mm; }` (or whatever the document needs) there.\n\nWrite semantic markup with classes — <table class="lines">, <div class="totals"> — and do the layout in `css`. That is what lets the user hand-edit the text afterwards without the layout coming apart.',
+            description: 'Replace a WHOLE slot. Use this to fill a new document, or for a redesign that rewrites the stylesheet from scratch.\n\nFor any change to a document that already has content — a corrected amount, an extra line, a different colour — use `document_edit` instead. A full rewrite costs the entire document in output tokens and, worse, silently discards whatever the user changed by hand since you last read it.\n\nPass `bodyHtml`, `css`, or both; an omitted slot is left exactly as it is.\n\n`bodyHtml` is BODY MARKUP ONLY — no <html>, <head>, <body> or <style> tags, and no <script> (scripts are stripped: a document does not run). `css` is the full stylesheet, and it owns the paper: set `@page { size: A4; margin: 18mm 16mm; }` (or whatever the document needs) there.\n\nWrite semantic markup with classes — <table class="lines">, <div class="totals"> — and do the layout in `css`. That is what lets the user hand-edit the text afterwards without the layout coming apart.\n\nA PAGE that is not yours alone (filed in a project, shared, or open for others) is never changed directly: your body becomes SUGGESTIONS the user accepts one by one, and the result says { suggested, batchId }. Do not claim they are applied.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -142,7 +205,7 @@ const DOCUMENT_TOOLS = [
         type: 'function',
         function: {
             name: 'document_edit',
-            description: 'PREFERRED tool for changing an existing document. Replaces a specific snippet inside ONE slot and leaves everything else exactly as it was.\n\nUse it for both of the things people ask for most:\n  • TEXT — "change the amount to 1.320", "add a line for transport", "fix the address". Edit `slot: "body"`.\n  • STYLING ONLY — "make the header green", "bigger totals", "more space above the table". Edit `slot: "css"`; the text is not touched at all.\n\nWorkflow: `document_read` FIRST to see the exact current content, then copy find_text verbatim from what you read. find_text must match EXACTLY ONCE by default; on several matches the tool refuses and lists the line numbers, so either narrow the snippet or pass replace_all: true.\n\nINSERT by anchoring on a stable nearby snippet and repeating it in replace_text. DELETE by passing replace_text: "".\n\nPrefer several small edits over one rewrite — each one shows the user exactly what changed, and an edit that no longer matches tells you the user has hand-edited that part rather than silently overwriting them.',
+            description: 'PREFERRED tool for changing an existing document. Replaces a specific snippet inside ONE slot and leaves everything else exactly as it was.\n\nUse it for both of the things people ask for most:\n  • TEXT — "change the amount to 1.320", "add a line for transport", "fix the address". Edit `slot: "body"`.\n  • STYLING ONLY — "make the header green", "bigger totals", "more space above the table". Edit `slot: "css"`; the text is not touched at all.\n\nWorkflow: `document_read` FIRST to see the exact current content, then copy find_text verbatim from what you read. find_text must match EXACTLY ONCE by default; on several matches the tool refuses and lists the line numbers, so either narrow the snippet or pass replace_all: true.\n\nINSERT by anchoring on a stable nearby snippet and repeating it in replace_text. DELETE by passing replace_text: "".\n\nPrefer several small edits over one rewrite — each one shows the user exactly what changed, and an edit that no longer matches tells you the user has hand-edited that part rather than silently overwriting them.\n\nOn a PAGE that is not yours alone the edit becomes a SUGGESTION the user accepts in the document ({ suggested, batchId } in the result); do not claim it is applied.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -182,11 +245,21 @@ function isDocumentTool(toolName) {
 /**
  * @param {string} toolName
  * @param {object} args
- * @param {{userId: string}} ctx
+ * @param {{userId: string, orgId?: string, conversationId?: string, agentId?: string, documentScope?: {has(id: string): boolean, add(id: string): void, markCreated?(id: string): void, createdInChat?(id: string): boolean}, suggestionStore?: any, announceSuggestions?: Function, engine?: any}} ctx
  */
 async function executeDocumentTool(toolName, args = {}, ctx = {}) {
     const userId = ctx.userId;
     if (!userId) return { error: 'No user context for document tools.' };
+
+    // The AI touches only documents the person pointed at (side panel, made in
+    // this chat, linked in their own message): core/documents/aiDocumentScope.js.
+    // Checked BEFORE any lookup, so the answer never says whether an id exists,
+    // and no scope at all (another caller) means no access.
+    const scope = ctx.documentScope;
+    if (toolName !== 'create_document' && ['document_read', 'document_write', 'document_edit'].includes(toolName)
+        && !(scope && typeof scope.has === 'function' && scope.has(String(args.documentId || '')))) {
+        return { error: NOT_SHARED };
+    }
 
     if (toolName === 'create_document') {
         const name = typeof args.name === 'string' && args.name.trim()
@@ -233,6 +306,10 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
             );
         }
 
+        // Made in this chat: the model may carry on with it for the rest of the turn.
+        if (scope && typeof scope.markCreated === 'function') scope.markCreated(doc.id);
+        else if (scope && typeof scope.add === 'function') scope.add(doc.id);
+
         return {
             documentId: doc.id, versionId: doc.versionId,
             url: documentUrl(doc.id),
@@ -261,10 +338,21 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         let message = deck ? `Read the outline of "${doc.name}" (a presentation: bodyHtml is the slide outline, there is no css).` : `Read "${doc.name}".`;
         if (live) message += ' This page is being edited live by others: prefer document_edit; a full document_write is refused once anybody has typed since this read.';
         if (readOnly) message += ' You may read this document but not change it (the user is a viewer of its project).';
+        let openSuggestions;
+        if (doc.docType === 'page') {
+            try {
+                openSuggestions = (await suggestionStoreOf(ctx).list('document', doc.id, { status: 'open' }))
+                    .slice(0, MAX_OPEN_SUGGESTIONS_LISTED).map((x) => ({ id: x.id, summary: x.summary }));
+            } catch (e) {
+                log.warn('[DocumentTools] open suggestions not listed:', e.message);
+            }
+        }
+        if (openSuggestions?.length) message += ` ${openSuggestions.length} suggestion(s) are already proposed and waiting (openSuggestions); do not propose them again.`;
         return {
             documentId: doc.id,
             name: doc.name,
             docType: doc.docType,
+            ...(openSuggestions ? { openSuggestions } : {}),
             versionId, settings: doc.settings, contract: require('../core/documents/documentContract').getContract(doc),
             bodyHtml: doc.bodyHtml,
             ...(deck ? { outline: doc.bodyHtml } : { css: doc.css }),
@@ -300,6 +388,14 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
             delete updates.css;
             if (Object.keys(updates).length === 0) return { error: 'A page has no stylesheet — pass bodyHtml.' };
             const live = await documentFeed.liveCollabFor(existing);
+            // Not the AI's own private page: the body becomes suggestions.
+            if (mustSuggest(existing, ctx, live)) {
+                if (Object.keys(updates).some((k) => k !== 'bodyHtml')) return { error: 'A page can only be proposed changes to its body — pass only bodyHtml.' };
+                return withCurrentBody(live, documentId, existing.bodyHtml, ({ html, fragment }) => suggestBody({
+                    doc: existing, userId, ctx, currentHtml: html, fragment,
+                    proposedHtml: updates.bodyHtml, baseToken: args.expectedVersionId, summary: args.summary,
+                }));
+            }
             if (live) {
                 if (Object.keys(updates).some((k) => k !== 'bodyHtml')) return { error: 'This page is being edited live — write only bodyHtml.' };
                 // A whole-body write makes the page equal to what the model
@@ -360,6 +456,13 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         // matches tells the model the user has changed that part, and the hint
         // says what is there now.
         const live = slot === 'body' ? await documentFeed.liveCollabFor(doc) : null;
+        if (slot === 'body' && mustSuggest(doc, ctx, live)) {
+            return withCurrentBody(live, documentId, doc.bodyHtml, ({ html, fragment }) => {
+                const proposed = edit(html);
+                if (proposed.error) return { error: proposed.error };
+                return suggestBody({ doc, userId, ctx, currentHtml: html, fragment, proposedHtml: proposed.content, baseToken: args.expectedVersionId, summary: args.summary });
+            });
+        }
         if (live) {
             const liveOut = await editLive(doc, userId, live, edit);
             if (liveOut) return liveOut.error ? liveOut : { ...liveOut, slot };

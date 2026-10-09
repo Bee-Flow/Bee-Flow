@@ -34,6 +34,9 @@ function classifyErrorCode(err) {
     if (httpStatus === 429) return 'rate_limit';
     if (httpStatus === 401 || httpStatus === 403 || /api[_ ]?key|unauthori[sz]ed|forbidden/i.test(msg)) return 'auth';
     if (httpStatus === 413) return 'payload_too_large';
+    // Providers report a full context window as a 400; keep it apart from other bad requests
+    // so the termination monitor can still flag it as large input.
+    if (/context.*(length|window|overflow|limit|exceeded)|prompt is too long/i.test(msg)) return 'context_overflow';
     if (httpStatus === 400) return 'bad_request';
     if (httpStatus && httpStatus >= 500) return 'server';
     if (/tool/i.test(msg) && /error|failed/i.test(msg)) return 'tool_error';

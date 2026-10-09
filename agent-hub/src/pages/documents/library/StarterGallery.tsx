@@ -8,7 +8,10 @@ import Modal from '../../../components/shared/Modal';
 import useTranslation, { readingLocale } from '../../../hooks/useTranslation';
 import { useStarters, type Starter } from '../documentQueries';
 
-export type NewChoice = { type: 'page' } | { type: 'notebook' } | { type: 'spreadsheet' } | { type: 'designed'; starter: Starter | null } | { type: 'deck'; starter: Starter | null };
+/** One of the reader's own templates, copied into a new document. */
+export interface OwnTemplate { id: string; name: string; docType?: string }
+
+export type NewChoice = { type: 'page' } | { type: 'notebook' } | { type: 'spreadsheet' } | { type: 'template'; template: OwnTemplate } | { type: 'designed'; starter: Starter | null } | { type: 'deck'; starter: Starter | null };
 
 export interface StarterGalleryProps {
     open: boolean;
@@ -18,6 +21,8 @@ export interface StarterGalleryProps {
     notebooks?: boolean;
     /** Offer a spreadsheet: only to a reader who may use datatables. */
     spreadsheets?: boolean;
+    /** The reader's own templates (a project offers them; the Studio library lists them itself). */
+    templates?: OwnTemplate[];
     onChoose: (choice: NewChoice) => void;
     onClose: () => void;
 }
@@ -34,7 +39,7 @@ function Tile({ icon, title, hint, onClick, busy, testId }: { icon: React.ReactN
     );
 }
 
-export default function StarterGallery({ open, busy, error, notebooks = false, spreadsheets = false, onChoose, onClose }: StarterGalleryProps) {
+export default function StarterGallery({ open, busy, error, notebooks = false, spreadsheets = false, templates = [], onChoose, onClose }: StarterGalleryProps) {
     const { t, locale: preferred, strings } = useTranslation();
     const starters = useStarters(readingLocale(preferred, strings, ['documents.new.title']) || 'en', open);
     const list = starters.data || [];
@@ -63,6 +68,16 @@ export default function StarterGallery({ open, busy, error, notebooks = false, s
                         ))}
                     </div>
                 </section>
+                {templates.length > 0 && (
+                    <section>
+                        <h3 className="text-sm font-semibold mb-2 text-[var(--text-primary)]">{t('documents.new.own_templates', 'Your templates')}</h3>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                            {templates.map((tpl) => (
+                                <Tile key={tpl.id} icon={tpl.docType === 'presentation' ? <Presentation size={20} /> : <FileText size={20} />} title={tpl.name} busy={busy} onClick={() => onChoose({ type: 'template', template: tpl })} testId={`documents-new-template-${tpl.id}`} />
+                            ))}
+                        </div>
+                    </section>
+                )}
                 <section>
                     <h3 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">{t('documents.new.presentations', 'Presentations')}</h3>
                     <p className="text-xs mb-2 text-[var(--text-tertiary)]">{t('documents.new.presentations_hint', 'Slides in the house style: an outline you type, viewed here and downloaded as PowerPoint or PDF.')}</p>

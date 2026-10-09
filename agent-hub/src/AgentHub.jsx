@@ -238,7 +238,7 @@ const AgentHub = ({
         webpageButtonRef, webpageButtonRefDirect,
         toggleNotebookPanel,
         openWebpageInSidePanel, closeWebpagePanel, clearWebpageSelection,
-        closeDocumentPanel,
+        openDocumentInSidePanel, closeDocumentPanel,
     } = useSidePanelState();
     // Same unified entitlements snapshot as the /api/webpages gate (hasLicenseFeature
     // now delegates to EntitlementsContext.can) — mirrors the notebooks gate above.
@@ -419,6 +419,7 @@ const AgentHub = ({
         showNotebook, setShowNotebook, setNotebookLinkedId,
         setShowGammaPreview, setGammaPreview,
         sidePanelWebpageId, sidePanelWebpage, sidePanelWebpageFiles, setSidePanelWebpageFiles, setSidePanelReloadKey,
+        sidePanelDocumentId,
         attachedWebpageSelection,
         setSidebarOpen,
         setShowProjectsStore, setActiveProjectId,
@@ -1028,8 +1029,9 @@ const AgentHub = ({
                         conversationStarted={conversationStarted}
                         notebooksEnabled={notebooksEnabled}
                         inCoworkMode={inCoworkMode}
-                        toggleNotebookPanel={toggleNotebookPanel}
-                        showNotebook={showNotebook}
+                        sidePanelDocumentId={sidePanelDocumentId}
+                        openDocumentInSidePanel={openDocumentInSidePanel}
+                        closeDocumentPanel={closeDocumentPanel}
                         canUseWebpagesSide={canUseWebpagesSide}
                         webpageButtonRef={webpageButtonRef}
                         sidePanelWebpageId={sidePanelWebpageId}
@@ -1072,8 +1074,9 @@ const AgentHub = ({
                         coworkMode={coworkMode}
                         setCoworkMode={setCoworkMode}
                         inCoworkMode={inCoworkMode}
-                        toggleNotebookPanel={toggleNotebookPanel}
-                        showNotebook={showNotebook}
+                        sidePanelDocumentId={sidePanelDocumentId}
+                        openDocumentInSidePanel={openDocumentInSidePanel}
+                        closeDocumentPanel={closeDocumentPanel}
                         canUseWebpagesSide={canUseWebpagesSide}
                         webpageButtonRefDirect={webpageButtonRefDirect}
                         sidePanelWebpageId={sidePanelWebpageId}

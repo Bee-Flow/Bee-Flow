@@ -240,3 +240,31 @@ test('a failed source-file replacement rolls back all ciphertext and sharing wit
     }
     tier = 'none';
 });
+
+test('a share-editor saves content but never owner-only keys, delete or archive; private resets access', async () => {
+    const doc = await make();
+    await sharing.setSharing('document', doc.id, 'alice', { audience: 'restricted', sharedUserIds: ['bob'], access: 'edit' });
+    assert.equal((await sharing.getSharing('document', doc.id, 'alice')).access, 'edit');
+    assert.equal((await documents.getDocument(doc.id, 'bob')).sharingRole, 'editor');
+    const saved = await documents.updateDocument(doc.id, 'bob', { bodyHtml: '<p>Edited by Bob</p>' });
+    assert.match(saved.bodyHtml, /Edited by Bob/);
+    for (const change of [{ kind: 'template' }, { categories: ['x'] }]) {
+        await assert.rejects(documents.updateDocument(doc.id, 'bob', change), (e) => e.status === 403 && e.errorClass === 'document_owner_only');
+    }
+    assert.equal(await documents.deleteDocument(doc.id, 'bob'), false);
+    assert.equal(await documents.updateDocument(doc.id, 'carol', { bodyHtml: '<p>x</p>' }), null);
+    await sharing.setSharing('document', doc.id, 'alice', { audience: 'restricted', sharedUserIds: ['bob'], access: 'view' });
+    assert.equal((await documents.getDocument(doc.id, 'bob')).sharingRole, 'viewer');
+    assert.equal(await documents.updateDocument(doc.id, 'bob', { bodyHtml: '<p>no</p>' }), null);
+    await sharing.setSharing('document', doc.id, 'alice', { audience: 'organisation', access: 'edit' });
+    assert.ok(await documents.updateDocument(doc.id, 'carol', { bodyHtml: '<p>Carol</p>' }));
+    const off = await sharing.setSharing('document', doc.id, 'alice', { audience: 'private', access: 'edit' });
+    assert.equal(off.access, 'view');
+    assert.equal(await documents.updateDocument(doc.id, 'carol', { bodyHtml: '<p>no</p>' }), null);
+});
+
+test('notebooks refuse the edit level with a 422', async () => {
+    const notebook = await notebooks.createNotebook({ userId: 'alice', organizationId: 'org1' });
+    await assert.rejects(sharing.setSharing('notebook', notebook.id, 'alice', { audience: 'organisation', access: 'edit' }), (e) => e.status === 422);
+    assert.equal((await sharing.setSharing('notebook', notebook.id, 'alice', { audience: 'organisation' })).access, 'view');
+});
