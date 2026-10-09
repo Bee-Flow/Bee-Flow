@@ -128,6 +128,13 @@ const NAMESPACES = {
     "visibility":      require('./visibility.js'),
     "voiceprint":      require('./voiceprint.js'),
     "webpages":        require('./webpages.js'),
+    "studio_apps_bi": require('./studio_apps_bi.js'),
+    "studio_apps_edit": require('./studio_apps_edit.js'),
+    "studio_apps_tables": require('./studio_apps_tables.js'),
+    "studio_apps_insp": require('./studio_apps_insp.js'),
+    "studio_apps_panels": require('./studio_apps_panels.js'),
+    "studio_apps_runtime": require('./studio_apps_runtime.js'),
+    "studio_misc": require('./studio_misc.js'),
 };
 
 function build() {
