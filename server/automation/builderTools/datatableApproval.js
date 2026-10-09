@@ -44,6 +44,7 @@ function answerTextOf(text) {
 const fold = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const escapeRegExp = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // Same lookarounds as namesPhrase in workMode.js: "log" is not inside "catalog".
+// nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the phrase is escaped literal text (no quantifiers), so the pattern is linear
 const namesPhrase = (text, phrase) => new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(phrase)}(?![\\p{L}\\p{N}_])`, 'u').test(text);
 
 /** Ids of the (real) catalog tables the texts name: by name, key or exact id, as whole phrases. */

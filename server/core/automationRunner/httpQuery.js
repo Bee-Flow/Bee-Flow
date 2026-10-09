@@ -123,6 +123,7 @@ function resolveQueryPairs(query, runState) {
             if (!isObj(item)) throw queryError(`row ${i + 1} is not a key with a value.`);
             const key = interpolateTemplate(typeof item.key === 'string' ? item.key : '', runState, { ...asData, field: `query.items[${i}].key` }).trim();
             if (!key) return;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- SOLE_PLACEHOLDER_RE is anchored with one lazy group over [^{}], linear in the value
             const raw = typeof item.value === 'string' ? item.value : (item.value == null ? '' : String(item.value));
             // A value that is exactly one placeholder keeps the type of what it
             // points at, so a list is written in the chosen array format instead
@@ -284,6 +285,7 @@ function parseStepUrl(url) {
     catch (e) {
         const err = new Error(`http_request: invalid URL: not a valid web address (${e.message}). Check the URL setting and any value inserted into it.`);
         err.stepErrorCode = 'http_url_invalid';
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a sentence shown to the user, not a credential
         err.userReason = 'it is not a valid web address. Check the URL and any value inserted into it (a domain or path that came out empty is a common cause).';
         throw err;
     }
@@ -318,6 +320,7 @@ function joinShieldedUrl(url, guarded) {
     catch {
         const err = new Error('http_request: the Privacy Shield replaced part of the address, and the result is not a valid web address.');
         err.stepErrorCode = 'http_url_invalid';
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a sentence shown to the user, not a credential
         err.userReason = 'the Privacy Shield replaced personal data in the address with a placeholder. Keep personal data out of the URL, or adjust the Privacy Shield for this organisation.';
         throw err;
     }
