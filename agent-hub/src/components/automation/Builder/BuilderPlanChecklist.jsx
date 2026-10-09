@@ -1,5 +1,6 @@
 import { CheckCircle2, Circle, Loader2, ListTodo } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Read-only live checklist of the builder agent's self-managed plan
@@ -9,6 +10,7 @@ import React from 'react';
  * Purely presentational — the user watches, they don't edit it.
  */
 export default function BuilderPlanChecklist({ todos, running = false }) {
+    const { t } = useTranslation();
     if (!Array.isArray(todos) || todos.length === 0) return null;
     const doneCount = todos.filter(t => t?.done).length;
     const activeIdx = running ? todos.findIndex(t => !t?.done) : -1;
@@ -17,7 +19,7 @@ export default function BuilderPlanChecklist({ todos, running = false }) {
         <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)]/50 p-2.5 text-xs">
             <div className="flex items-center gap-1.5 mb-1.5 text-[var(--text-secondary)]">
                 <ListTodo size={13} />
-                <span className="font-medium">Plan</span>
+                <span className="font-medium">{t('automations.builder_plan_checklist.plan', 'Plan')}</span>
                 <span className="text-[10px] text-[var(--text-tertiary)]">{doneCount}/{todos.length}</span>
             </div>
             <div className="flex flex-col gap-1">

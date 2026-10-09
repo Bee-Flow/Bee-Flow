@@ -50,12 +50,13 @@ export { startPathDrag };
  *                     which field the insert will target
  */
 export default function VariableTree({ groups = [], onInsert, activeFieldLabel = null, previewSample = null }) {
+    const { t } = useTranslation();
     if (!groups || groups.length === 0) {
         return (
             <div className="h-full flex flex-col">
                 <TreeHeader activeFieldLabel={activeFieldLabel} />
                 <div className="flex-1 px-4 py-6 text-xs text-[var(--text-tertiary)] italic">
-                    No upstream data yet. Connect this step to a previous one to see its output here.
+                    {t('automations.variable_tree.no_upstream_data_yet_connect_this', 'No upstream data yet. Connect this step to a previous one to see its output here.')}
                 </div>
             </div>
         );
@@ -69,21 +70,22 @@ export default function VariableTree({ groups = [], onInsert, activeFieldLabel =
                 ))}
             </div>
             <div className="px-3 py-2 border-t border-[var(--border-default)] text-[10px] text-[var(--text-tertiary)]">
-                Click a value to insert it, or drag it into a field. Drag a step's row to use its whole output.
+                {t('automations.variable_tree.click_a_value_to_insert_it', 'Click a value to insert it, or drag it into a field. Drag a step\'s row to use its whole output.')}
             </div>
         </div>
     );
 }
 
 function TreeHeader({ activeFieldLabel }) {
+    const { t } = useTranslation();
     return (
         <div className="px-3 py-2 border-b border-[var(--border-default)]">
             <div className="text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)]">
-                Variables
+                {t('automations.variable_tree.variables', 'Variables')}
             </div>
             {activeFieldLabel && (
                 <div className="mt-0.5 text-[11px] text-[var(--text-secondary)] truncate">
-                    insert into <span className="font-mono">{activeFieldLabel}</span>
+                    {t('automations.variable_tree.insert_into', 'insert into')} <span className="font-mono">{activeFieldLabel}</span>
                 </div>
             )}
         </div>
@@ -141,6 +143,7 @@ export function friendlyBasePath(basePath, label = '') {
 }
 
 function GroupNode({ group, onInsert, previewSample }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(true);
     const Icon = KIND_ICON[group.kind] ? KIND_ICON[group.kind](group) : <Workflow size={12} />;
     const caption = friendlyBasePath(group.basePath, group.label);
@@ -174,7 +177,7 @@ function GroupNode({ group, onInsert, previewSample }) {
                         <FieldRow key={f.path} field={f} onInsert={onInsert} depth={1} previewSample={previewSample} />
                     ))}
                     {(group.fields || []).length === 0 && (
-                        <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">No fields</div>
+                        <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.variable_tree.no_fields', 'No fields')}</div>
                     )}
                 </div>
             )}

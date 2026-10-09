@@ -4,6 +4,7 @@ import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import { FormRow, inputClass, SectionNote } from '../formPrimitives';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 const SLIDE_LAYOUT_OPTIONS = [
     ['auto', 'Pick from the content'],
@@ -43,22 +44,23 @@ const CHART_TYPE_OPTIONS = [
  * slide the AI built with a chart opens on "Chart".
  */
 function SlideVisualFields({ draft, set, onFocusField, previewSample }) {
+    const { t } = useTranslation();
     const visual = draft.visual || 'none';
     return (
         <>
-            <FormRow label="Visual" hint="A chart from data rows, headline figures as tiles, a picture, or the bullets as numbered steps.">
+            <FormRow label={t('automations.slide_fields.visual', 'Visual')} hint={t('automations.slide_fields.a_chart_from_data_rows_headline', 'A chart from data rows, headline figures as tiles, a picture, or the bullets as numbered steps.')}>
                 <select value={visual} onChange={(e) => set('visual', e.target.value)} className={inputClass()} data-testid="slide-visual">
                     {SLIDE_VISUAL_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
             </FormRow>
             {visual === 'chart' && (
                 <>
-                    <FormRow label="Chart type">
+                    <FormRow label={t('automations.slide_fields.chart_type', 'Chart type')}>
                         <select value={draft.chartType || 'column'} onChange={(e) => set('chartType', e.target.value)} className={inputClass()} data-testid="slide-chart-type">
                             {CHART_TYPE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
                     </FormRow>
-                    <FormRow label="Data" required hint={'The rows of a datatable or query step, a "|" table, or "label: value" lines. Columns are picked automatically: the first text column labels, every number column becomes a series.'}>
+                    <FormRow label={t('automations.slide_fields.data', 'Data')} required hint={'The rows of a datatable or query step, a "|" table, or "label: value" lines. Columns are picked automatically: the first text column labels, every number column becomes a series.'}>
                         <TemplateField
                             value={draft.chartData || ''}
                             onChange={(next) => set('chartData', next)}
@@ -69,28 +71,28 @@ function SlideVisualFields({ draft, set, onFocusField, previewSample }) {
                         />
                     </FormRow>
                     <div className="grid grid-cols-2 gap-2">
-                        <FormRow label="Label column" hint="Optional.">
-                            <input value={draft.chartLabels || ''} onChange={(e) => set('chartLabels', e.target.value)} className={inputClass()} placeholder="maand" data-testid="slide-chart-labels" />
+                        <FormRow label={t('automations.slide_fields.label_column', 'Label column')} hint="Optional.">
+                            <input value={draft.chartLabels || ''} onChange={(e) => set('chartLabels', e.target.value)} className={inputClass()} placeholder={t('automations.slide_fields.maand', 'maand')} data-testid="slide-chart-labels" />
                         </FormRow>
-                        <FormRow label="Value columns" hint="Optional, comma-separated.">
-                            <input value={draft.chartValues || ''} onChange={(e) => set('chartValues', e.target.value)} className={inputClass()} placeholder="omzet, kosten" data-testid="slide-chart-values" />
+                        <FormRow label={t('automations.slide_fields.value_columns', 'Value columns')} hint={t('automations.slide_fields.optional_comma_separated', 'Optional, comma-separated.')}>
+                            <input value={draft.chartValues || ''} onChange={(e) => set('chartValues', e.target.value)} className={inputClass()} placeholder={t('automations.slide_fields.omzet_kosten', 'omzet, kosten')} data-testid="slide-chart-values" />
                         </FormRow>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                        <FormRow label="Unit" hint="Shown on the axis, e.g. % or €.">
+                        <FormRow label={t('automations.slide_fields.unit', 'Unit')} hint={t('automations.slide_fields.shown_on_the_axis_e_g', 'Shown on the axis, e.g. % or €.')}>
                             <input value={draft.chartUnit || ''} onChange={(e) => set('chartUnit', e.target.value)} className={inputClass()} placeholder="%" />
                         </FormRow>
-                        <FormRow label="Stacked">
+                        <FormRow label={t('automations.slide_fields.stacked', 'Stacked')}>
                             <label className="inline-flex items-center gap-2 text-sm h-9">
                                 <input type="checkbox" checked={!!draft.chartStacked} onChange={(e) => set('chartStacked', e.target.checked)} />
-                                <span>Stack the series</span>
+                                <span>{t('automations.slide_fields.stack_the_series', 'Stack the series')}</span>
                             </label>
                         </FormRow>
                     </div>
                 </>
             )}
             {visual === 'stats' && (
-                <FormRow label="Tiles" required hint={'One tile per line: value | label | change (change is optional). At most four.'}>
+                <FormRow label={t('automations.slide_fields.tiles', 'Tiles')} required hint={'One tile per line: value | label | change (change is optional). At most four.'}>
                     <TemplateField
                         value={draft.stats || ''}
                         onChange={(next) => set('stats', next)}
@@ -102,7 +104,7 @@ function SlideVisualFields({ draft, set, onFocusField, previewSample }) {
                 </FormRow>
             )}
             {visual === 'image' && (
-                <FormRow label="Image" hint="The image URL a Generate image step produced, or a data: URL. Remote pictures are not fetched.">
+                <FormRow label={t('automations.slide_fields.image', 'Image')} hint={t('automations.slide_fields.the_image_url_a_generate_image', 'The image URL a Generate image step produced, or a data: URL. Remote pictures are not fetched.')}>
                     <TemplateField
                         value={draft.image || ''}
                         onChange={(next) => set('image', next)}
@@ -114,7 +116,7 @@ function SlideVisualFields({ draft, set, onFocusField, previewSample }) {
                 </FormRow>
             )}
             {visual === 'timeline' && (
-                <SectionNote>The bullets in the content become numbered steps — write each as “Title — what happens”. Up to six.</SectionNote>
+                <SectionNote>{t('automations.slide_fields.the_bullets_in_the_content_become', 'The bullets in the content become numbered steps — write each as “Title — what happens”. Up to six.')}</SectionNote>
             )}
         </>
     );
@@ -126,10 +128,11 @@ function SlideVisualFields({ draft, set, onFocusField, previewSample }) {
  * "One per item" (forEach) is the shape this step exists for.
  */
 function SlideFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set() }) {
+    const { t } = useTranslation();
     return (
         <>
-            <AccordionSection stepType="slide" sectionKey="content" title="Slide" defaultOpen forceOpen={errorSections.has('content')}>
-                <FormRow label="Title" required hint="The slide heading. Click a value in the right panel to insert it.">
+            <AccordionSection stepType="slide" sectionKey="content" title={t('automations.slide_fields.slide', 'Slide')} defaultOpen forceOpen={errorSections.has('content')}>
+                <FormRow label={t('automations.slide_fields.title', 'Title')} required hint={t('automations.slide_fields.the_slide_heading_click_a_value', 'The slide heading. Click a value in the right panel to insert it.')}>
                     <TemplateField
                         value={draft.title || ''}
                         onChange={(next) => set('title', next)}
@@ -139,7 +142,7 @@ function SlideFields({ draft, set, groups = [], onFocusField, previewSample, err
                         placeholder="{{loop.row.name}}"
                     />
                 </FormRow>
-                <FormRow label="Content" hint={'Markdown: "- " bullets (two spaces in front = sub-point), a paragraph, a "|" table, a "> " quote. A list bound here becomes bullets.'}>
+                <FormRow label={t('automations.slide_fields.content', 'Content')} hint={'Markdown: "- " bullets (two spaces in front = sub-point), a paragraph, a "|" table, a "> " quote. A list bound here becomes bullets.'}>
                     <TemplateField
                         value={draft.content || ''}
                         onChange={(next) => set('content', next)}
@@ -153,8 +156,8 @@ function SlideFields({ draft, set, groups = [], onFocusField, previewSample, err
                 <SlideVisualFields draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} />
             </AccordionSection>
 
-            <AccordionSection stepType="slide" sectionKey="options" title="Options" defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('options')} hasContent={!!draft.forEach || retryIsSet(draft) || !!draft.notes || !!draft.style || (draft.layout && draft.layout !== 'auto')}>
-                <FormRow label="Speaker notes" hint="What the presenter says — shown in the notes pane, not on the slide.">
+            <AccordionSection stepType="slide" sectionKey="options" title={t('automations.slide_fields.options', 'Options')} defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('options')} hasContent={!!draft.forEach || retryIsSet(draft) || !!draft.notes || !!draft.style || (draft.layout && draft.layout !== 'auto')}>
+                <FormRow label={t('automations.slide_fields.speaker_notes', 'Speaker notes')} hint={t('automations.slide_fields.what_the_presenter_says_shown_in', 'What the presenter says — shown in the notes pane, not on the slide.')}>
                     <TemplateField
                         value={draft.notes || ''}
                         onChange={(next) => set('notes', next)}
@@ -163,16 +166,16 @@ function SlideFields({ draft, set, groups = [], onFocusField, previewSample, err
                         previewSample={previewSample}
                     />
                 </FormRow>
-                <FormRow label="Layout">
+                <FormRow label={t('automations.slide_fields.layout', 'Layout')}>
                     <select value={draft.layout || 'auto'} onChange={(e) => set('layout', e.target.value)} className={inputClass()}>
                         {SLIDE_LAYOUT_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                 </FormRow>
-                <FormRow label="Slide style" hint="Paint this one slide in the accent colour or dark — for a key message. The deck's look stays as it is.">
+                <FormRow label={t('automations.slide_fields.slide_style', 'Slide style')} hint={t('automations.slide_fields.paint_this_one_slide_in_the', 'Paint this one slide in the accent colour or dark — for a key message. The deck\'s look stays as it is.')}>
                     <select value={draft.style || ''} onChange={(e) => set('style', e.target.value)} className={inputClass()} data-testid="slide-style">
-                        <option value="">Like the deck</option>
-                        <option value="accent">Accent colour</option>
-                        <option value="dark">Dark</option>
+                        <option value="">{t('automations.slide_fields.like_the_deck', 'Like the deck')}</option>
+                        <option value="accent">{t('automations.slide_fields.accent_colour', 'Accent colour')}</option>
+                        <option value="dark">{t('automations.slide_fields.dark', 'Dark')}</option>
                     </select>
                 </FormRow>
                 <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />

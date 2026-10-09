@@ -444,8 +444,8 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                 })}
                                 <button
                                     type="button"
-                                    title="Automatic colour"
-                                    aria-label="Automatic colour"
+                                    title={t('automations.edges.automatic_colour', 'Automatic colour')}
+                                    aria-label={t('automations.edges.automatic_colour', 'Automatic colour')}
                                     onClick={(e) => { e.stopPropagation(); data?.onSetColor?.({ ...identity(), color: null }); setSwatchesOpen(false); }}
                                     className={`w-3 h-3 rounded-full border border-[var(--text-tertiary)] bg-[var(--bg-primary)] shadow-sm hover:scale-125 transition relative overflow-hidden ${data?.defColor ? '' : 'ring-2 ring-offset-1 ring-[var(--text-primary)]'}`}
                                 >
@@ -460,7 +460,7 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                     all. The other two appear on hover. */}
                                 <button
                                     type="button"
-                                    title="Insert a step here"
+                                    title={t('automations.edges.insert_a_step_here', 'Insert a step here')}
                                     onClick={(e) => { e.stopPropagation(); data?.onInsert?.(identity()); }}
                                     style={{ opacity: active ? 1 : (compactChip ? 0 : 0.35), transition: 'opacity 120ms ease' }}
                                     className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)] text-white shadow-sm hover:opacity-90"
@@ -478,8 +478,8 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                 {data?.onSetColor && (
                                     <button
                                         type="button"
-                                        title="Colour this connection"
-                                        aria-label="Colour this connection"
+                                        title={t('automations.edges.colour_this_connection', 'Colour this connection')}
+                                        aria-label={t('automations.edges.colour_this_connection', 'Colour this connection')}
                                         onClick={(e) => { e.stopPropagation(); setSwatchesOpen(true); }}
                                         style={{ opacity: active ? 1 : 0, pointerEvents: active ? 'all' : 'none', transition: 'opacity 120ms ease' }}
                                         className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-secondary)] shadow-sm hover:text-[var(--text-primary)] hover:border-[var(--accent)]"
@@ -490,7 +490,7 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                 {data?.onDelete && (
                                     <button
                                         type="button"
-                                        title="Remove this connection"
+                                        title={t('automations.edges.remove_this_connection', 'Remove this connection')}
                                         onClick={(e) => { e.stopPropagation(); data.onDelete(identity()); }}
                                         style={{ opacity: active ? 1 : 0, pointerEvents: active ? 'all' : 'none', transition: 'opacity 120ms ease' }}
                                         className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-secondary)] shadow-sm hover:text-red-500 hover:border-red-400"

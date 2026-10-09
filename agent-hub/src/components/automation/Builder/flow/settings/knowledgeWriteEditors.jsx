@@ -21,6 +21,7 @@ import AccordionSection from '../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
 import { FormRow, inputClass } from './formPrimitives';
 import useForEachRequest from '../../mapping/useForEachRequest';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /** Fallback list, so the panel still works if the catalog call failed. */
 const FALLBACK_STRATEGIES = [
@@ -31,17 +32,18 @@ const FALLBACK_STRATEGIES = [
 ];
 
 function DestinationSection({ draft, set, onFocusField, errorSections, bases }) {
+    const { t } = useTranslation();
     const base = useMemo(() => bases.find(b => b.id === draft.knowledgeBaseId) || null, [bases, draft.knowledgeBaseId]);
 
     return (
         <AccordionSection
-            stepType="knowledge_write" sectionKey="destination" title="Where it goes" defaultOpen
+            stepType="knowledge_write" sectionKey="destination" title={t('automations.knowledge_write_editors.where_it_goes', 'Where it goes')} defaultOpen
             forceOpen={errorSections.has('destination')}
         >
             <FormRow
-                label="Knowledge base"
+                label={t('automations.knowledge_write_editors.knowledge_base', 'Knowledge base')}
                 required
-                hint="Your agents answer from what is in here. Only a base you manage can be written to — being able to read one is not permission to add to it."
+                hint={t('automations.knowledge_write_editors.your_agents_answer_from_what_is', 'Your agents answer from what is in here. Only a base you manage can be written to — being able to read one is not permission to add to it.')}
             >
                 {bases.length === 0 ? (
                     // Never a bare empty dropdown: an empty state that does not
@@ -49,8 +51,8 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2 py-1">
                         <BookOpen size={14} className="mt-0.5 shrink-0" />
                         <span>
-                            No knowledge bases yet. Create one in
-                            <strong> Studio &rarr; Knowledge</strong>; once you manage one it appears here.
+                            {t('automations.knowledge_write_editors.no_knowledge_bases_yet_create_one', 'No knowledge bases yet. Create one in')}
+                            <strong> {t('automations.knowledge_write_editors.studio_knowledge', 'Studio → Knowledge')}</strong>{t('automations.knowledge_write_editors.once_you_manage_one_it_appears', '; once you manage one it appears here.')}
                         </span>
                     </div>
                 ) : (
@@ -60,7 +62,7 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
                         onChange={(e) => set('knowledgeBaseId', e.target.value)}
                         onFocus={() => onFocusField?.('knowledgeBaseId')}
                     >
-                        <option value="">Pick a knowledge base…</option>
+                        <option value="">{t('automations.knowledge_write_editors.pick_a_knowledge_base', 'Pick a knowledge base…')}</option>
                         {bases.map(b => (
                             <option key={b.id} value={b.id} disabled={!b.canWrite}>
                                 {b.name}
@@ -74,7 +76,7 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
 
             {base && base.scope === 'org' && (
                 <p className="text-[11px] text-amber-700 dark:text-amber-400 px-1">
-                    This base is shared — what this step writes becomes an answer your colleagues&rsquo; agents give.
+                    {t('automations.knowledge_write_editors.this_base_is_shared_what_this', 'This base is shared — what this step writes becomes an answer your colleagues’ agents give.')}
                 </p>
             )}
         </AccordionSection>
@@ -82,19 +84,20 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
 }
 
 function ContentSection({ draft, set, onFocusField, previewSample, errorSections }) {
+    const { t } = useTranslation();
     // A separate run per item (under a field's More) sets this step's forEach.
     const forEach = useForEachRequest(draft, set);
     const repeats = !String(draft.sourceUri || '').trim();
 
     return (
         <AccordionSection
-            stepType="knowledge_write" sectionKey="content" title="What to save" defaultOpen
+            stepType="knowledge_write" sectionKey="content" title={t('automations.knowledge_write_editors.what_to_save', 'What to save')} defaultOpen
             forceOpen={errorSections.has('content')}
         >
             <FormRow
-                label="Text"
+                label={t('automations.knowledge_write_editors.text', 'Text')}
                 required
-                hint="Click a value in the right panel to insert it — usually the step that wrote the article. An agent will quote this back as fact, so send it finished text, not working notes."
+                hint={t('automations.knowledge_write_editors.click_a_value_in_the_right', 'Click a value in the right panel to insert it — usually the step that wrote the article. An agent will quote this back as fact, so send it finished text, not working notes.')}
             >
                 <TemplateField
                     onRequestForEach={forEach.request}
@@ -108,7 +111,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                 />
             </FormRow>
 
-            <FormRow label="Title" hint="What the document is called where a person browses the base.">
+            <FormRow label={t('automations.knowledge_write_editors.title', 'Title')} hint={t('automations.knowledge_write_editors.what_the_document_is_called_where', 'What the document is called where a person browses the base.')}>
                 <TemplateField
                     onRequestForEach={forEach.request}
                     canForEach={forEach.allowed}
@@ -122,8 +125,8 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
             </FormRow>
 
             <FormRow
-                label="Source reference"
-                hint="Something stable and unique for this subject — a ticket link, a record id. The next run with the same reference REPLACES this document instead of adding another."
+                label={t('automations.knowledge_write_editors.source_reference', 'Source reference')}
+                hint={t('automations.knowledge_write_editors.something_stable_and_unique_for_this', 'Something stable and unique for this subject — a ticket link, a record id. The next run with the same reference REPLACES this document instead of adding another.')}
             >
                 <TemplateField
                     onRequestForEach={forEach.request}
@@ -133,7 +136,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                     rows={1}
                     onFocusField={onFocusField}
                     previewSample={previewSample}
-                    placeholder="ticket:{{trigger.output.id}}"
+                    placeholder={t('automations.knowledge_write_editors.ticket', 'ticket:{{trigger.output.id}}')}
                 />
             </FormRow>
 
@@ -142,7 +145,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                 // document every run is a real, if rare, intent. It is phrased as
                 // the consequence, because that is the part people do not picture.
                 <p className="text-[11px] text-amber-700 dark:text-amber-400 px-1">
-                    Without a source reference this adds a NEW document every time it runs.
+                    {t('automations.knowledge_write_editors.without_a_source_reference_this_adds', 'Without a source reference this adds a NEW document every time it runs.')}
                 </p>
             )}
         </AccordionSection>
@@ -150,17 +153,18 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
 }
 
 function AdvancedSection({ draft, set, groups, onFocusField, errorSections, strategies }) {
+    const { t } = useTranslation();
     const strategy = draft.nearDuplicateStrategy || 'skip';
 
     return (
         <AccordionSection
-            stepType="knowledge_write" sectionKey="advanced" title="Advanced"
+            stepType="knowledge_write" sectionKey="advanced" title={t('automations.knowledge_write_editors.advanced', 'Advanced')}
             forceOpen={errorSections.has('advanced')}
             hasContent={!!draft.forEach || retryIsSet(draft) || strategy !== 'skip'}
         >
             <FormRow
-                label="If something similar is already there"
-                hint="Only about text on a DIFFERENT subject that reads nearly the same. The same source reference always replaces its own document, whichever of these you pick."
+                label={t('automations.knowledge_write_editors.if_something_similar_is_already_there', 'If something similar is already there')}
+                hint={t('automations.knowledge_write_editors.only_about_text_on_a_different', 'Only about text on a DIFFERENT subject that reads nearly the same. The same source reference always replaces its own document, whichever of these you pick.')}
             >
                 <select
                     className={inputClass()}
@@ -177,7 +181,7 @@ function AdvancedSection({ draft, set, groups, onFocusField, errorSections, stra
                 {strategies.find(s => s.value === strategy)?.blurb || ''}
             </p>
 
-            <FormRow label="Iteration" hint="Off by default: the step runs once. Turn on to write one document per item of an upstream list (then reference {{loop.item…}} in the text, the title and the source reference).">
+            <FormRow label={t('automations.knowledge_write_editors.iteration', 'Iteration')} hint={t('automations.knowledge_write_editors.off_by_default_the_step_runs', 'Off by default: the step runs once. Turn on to write one document per item of an upstream list (then reference {{loop.item…}} in the text, the title and the source reference).')}>
                 <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
             </FormRow>
             <RetrySection draft={draft} set={set} />

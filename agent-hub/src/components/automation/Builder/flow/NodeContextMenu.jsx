@@ -56,7 +56,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
                     type="button" role="menuitem" className={`${item} text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]`}
                     onClick={() => { onClose(); onExecute(); }}
                 >
-                    <Play size={12} /> Execute step
+                    <Play size={12} /> {t('automations.node_context_menu.execute_step', 'Execute step')}
                 </button>
             )}
             {onToggleInline && (
@@ -85,7 +85,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
                 title={canDuplicate ? 'Copy this node and its settings' : 'Triggers cannot be duplicated'}
                 onClick={() => { onClose(); onDuplicate(); }}
             >
-                <Copy size={12} /> Duplicate
+                <Copy size={12} /> {t('automations.node_context_menu.duplicate', 'Duplicate')}
             </button>
             {onDetach && (
                 <button
@@ -96,7 +96,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
                         : 'This step is not part of the flow'}
                     onClick={() => { onClose(); onDetach(); }}
                 >
-                    <Unlink size={12} /> Disconnect
+                    <Unlink size={12} /> {t('automations.node_context_menu.disconnect', 'Disconnect')}
                 </button>
             )}
             <div className="my-1 h-px bg-[var(--border-default)]" />
@@ -106,8 +106,8 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
                 title={canDelete ? 'Remove this node and reconnect its neighbours' : 'The primary trigger cannot be removed'}
                 onClick={() => { onClose(); onDelete(); }}
             >
-                <Trash2 size={12} /> Delete
-                <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">Del</span>
+                <Trash2 size={12} /> {t('automations.node_context_menu.delete', 'Delete')}
+                <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{t('automations.node_context_menu.del', 'Del')}</span>
             </button>
         </div>,
         document.body,

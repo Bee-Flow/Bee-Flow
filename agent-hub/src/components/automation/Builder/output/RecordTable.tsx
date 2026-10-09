@@ -7,6 +7,7 @@ import { joinPath, mapAttrs, type MapCtx } from './mapAttrs';
 import useCellPeek from './useCellPeek';
 import { COL_MAX_PX, MAX_COLS, MAX_ROWS, humanize, isPlainObject } from './valueHelpers';
 import { jsonTextValue, positionChildren, type Field } from '../mapping/upstream/fieldTree';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface RecordTableProps {
     rows: unknown[];
@@ -61,6 +62,7 @@ function cellAt(row: unknown, col: ShownCol, baseColCount: number): unknown {
  * `rows[1].from.emailAddress.address` resolve at run time exactly as shown.
  */
 export default function RecordTable({ rows, map = null, allowExpand = false, contained = false }: RecordTableProps) {
+    const { t } = useTranslation();
     const baseCols = useMemo(() => positionChildren(rows.filter(isPlainObject), '') as Field[], [rows]);
     const baseKeys = useMemo(() => baseCols.map(c => c.key), [baseCols]);
 
@@ -107,7 +109,7 @@ export default function RecordTable({ rows, map = null, allowExpand = false, con
                 {shown.map((v, i) => (
                     <li key={i} {...mapAttrs(map, appendKey('', i))}><InlineValue value={v} /></li>
                 ))}
-                {rows.length > MAX_ROWS && <li className="list-none text-[var(--text-tertiary)]">+{rows.length - MAX_ROWS} more</li>}
+                {rows.length > MAX_ROWS && <li className="list-none text-[var(--text-tertiary)]">+{rows.length - MAX_ROWS} {t('automations.record_table.more', 'more')}</li>}
             </ul>
         );
     }
@@ -191,7 +193,7 @@ export default function RecordTable({ rows, map = null, allowExpand = false, con
                 </tbody>
             </table>
             {rows.length > MAX_ROWS && (
-                <div className="px-2 py-1 text-[var(--text-tertiary)]">+{rows.length - MAX_ROWS} more rows</div>
+                <div className="px-2 py-1 text-[var(--text-tertiary)]">+{rows.length - MAX_ROWS} {t('automations.record_table.more_rows', 'more rows')}</div>
             )}
             {peek.card}
         </div>

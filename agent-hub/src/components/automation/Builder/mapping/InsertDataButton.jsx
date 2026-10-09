@@ -28,7 +28,7 @@ export default function InsertDataButton({ onClick, title = null, open = false, 
             type="button"
             onClick={onClick}
             title={title || t('automations.builder.insert_from_step', 'Insert data from a previous step')}
-            aria-label="Insert variable"
+            aria-label={t('automations.insert_data_button.insert_variable', 'Insert variable')}
             aria-haspopup="dialog"
             aria-expanded={open}
             className={`shrink-0 px-2 rounded border border-[var(--border-default)] text-[11px] flex items-center justify-center gap-1 hover:bg-[var(--bg-secondary)] transition-opacity ${

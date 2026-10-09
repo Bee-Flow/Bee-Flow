@@ -209,6 +209,7 @@ function useFocusAfterSwap() {
 
 /** "Add condition", and in Advanced the way into the formula box and the written expression. */
 function RowsFooter({ simple, onAdd, onRaw, serialized }) {
+    const { t } = useTranslation();
     return (
         <>
             <div className="flex items-center justify-between gap-2">
@@ -217,11 +218,11 @@ function RowsFooter({ simple, onAdd, onRaw, serialized }) {
                     onClick={onAdd}
                     className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                 >
-                    <Plus size={12} /> Add condition
+                    <Plus size={12} /> {t('automations.condition_builder.add_condition', 'Add condition')}
                 </button>
                 {!simple && (
                     <button type="button" onClick={onRaw} className="text-[10px] text-[var(--accent)] hover:underline shrink-0">
-                        Write raw expression
+                        {t('automations.condition_builder.write_raw_expression', 'Write raw expression')}
                     </button>
                 )}
             </div>
@@ -249,9 +250,10 @@ const hasField = (r) => !!String((r.field?.kind === 'ref' ? r.field.path : r.fie
 
 /** "Match [all|any] of these conditions:" above two or more rows. */
 function JoinToggle({ join, onChange }) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
-            <span>Match</span>
+            <span>{t('automations.condition_builder.match', 'Match')}</span>
             <div className="inline-flex rounded border border-[var(--border-default)] overflow-hidden">
                 {[['&&', 'all'], ['||', 'any']].map(([j, lbl]) => (
                     <button
@@ -264,7 +266,7 @@ function JoinToggle({ join, onChange }) {
                     </button>
                 ))}
             </div>
-            <span>of these conditions:</span>
+            <span>{t('automations.condition_builder.of_these_conditions', 'of these conditions:')}</span>
         </div>
     );
 }
@@ -277,6 +279,7 @@ function JoinToggle({ join, onChange }) {
  * unchanged.
  */
 function RawExpression({ value, context, onChange, onFocusField, canUseVisual, onUseVisual, placeholders = null }) {
+    const { t } = useTranslation();
     const [showHelp, setShowHelp] = useState(false);
     const taRef = useRef(null);
     const picker = useVariablePicker();
@@ -324,7 +327,7 @@ function RawExpression({ value, context, onChange, onFocusField, canUseVisual, o
                     onClick={() => setShowHelp(h => !h)}
                     className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                 >
-                    {showHelp ? <ChevronDown size={11} /> : <ChevronRight size={11} />} What can I write here?
+                    {showHelp ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {t('automations.condition_builder.what_can_i_write_here', 'What can I write here?')}
                 </button>
                 {canUseVisual && (
                     <button
@@ -332,7 +335,7 @@ function RawExpression({ value, context, onChange, onFocusField, canUseVisual, o
                         onClick={onUseVisual}
                         className="text-[10px] text-[var(--accent)] hover:underline"
                     >
-                        Use visual builder
+                        {t('automations.condition_builder.use_visual_builder', 'Use visual builder')}
                     </button>
                 )}
             </div>
@@ -342,7 +345,7 @@ function RawExpression({ value, context, onChange, onFocusField, canUseVisual, o
                 groups={pickerCtx.groups}
                 previewSample={pickerCtx.previewSample}
                 onPick={(path) => { insertAt(path); picker.closePicker(); }}
-                title="Insert variable"
+                title={t('automations.condition_builder.insert_variable', 'Insert variable')}
             />
         </div>
     );

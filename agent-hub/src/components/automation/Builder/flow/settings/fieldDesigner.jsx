@@ -37,6 +37,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { fieldNameTaken, isValidFieldName } from '../renameFormField';
 import { cardClass, denseInputClass, rowInputClass } from './formPrimitives';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * The names a designer mints for a row the author has not named yet
@@ -144,6 +145,7 @@ function renameNote(moved, from, orphanNote) {
  * bindings it cannot see.
  */
 export function BindingNameField({ field, siblings, bindingBase, onRenameField, onChange }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(field.name);
     const [error, setError] = useState('');
     const [note, setNote] = useState('');
@@ -166,11 +168,10 @@ export function BindingNameField({ field, siblings, bindingBase, onRenameField, 
     if (typeof onRenameField !== 'function') {
         return (
             <div className="space-y-0.5">
-                <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Binding name</div>
+                <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.field_designer.binding_name', 'Binding name')}</div>
                 <code className="block min-w-0 truncate text-[11px] text-[var(--text-secondary)]">{bindingBase}.{field.name}</code>
                 <p className="text-[10px] text-[var(--text-tertiary)]">
-                    Fixed here. Rename it from the automation that uses this form — there the rename can carry
-                    every step that binds it along with it.
+                    {t('automations.field_designer.fixed_here_rename_it_from_the', 'Fixed here. Rename it from the automation that uses this form — there the rename can carry every step that binds it along with it.')}
                 </p>
             </div>
         );
@@ -178,7 +179,7 @@ export function BindingNameField({ field, siblings, bindingBase, onRenameField, 
 
     return (
         <div className="space-y-0.5">
-            <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Binding name</div>
+            <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.field_designer.binding_name', 'Binding name')}</div>
             <div className="flex items-center gap-1.5">
                 <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]">{bindingBase}.</span>
                 <input
@@ -195,15 +196,14 @@ export function BindingNameField({ field, siblings, bindingBase, onRenameField, 
                     disabled={!dirty}
                     className="shrink-0 px-2 py-1 rounded text-[11px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
                 >
-                    Rename
+                    {t('automations.field_designer.rename', 'Rename')}
                 </button>
             </div>
             {error ? <p className="text-[10px] text-red-500">{error}</p> : null}
             {!error && note ? <p className="text-[10px] text-[var(--text-secondary)]">{note}</p> : null}
             {!error && !note ? (
                 <p className="text-[10px] text-[var(--text-tertiary)]">
-                    Renaming rewrites every step that binds this answer, in the same edit. Changing the
-                    QUESTION above never touches it.
+                    {t('automations.field_designer.renaming_rewrites_every_step_that_binds', 'Renaming rewrites every step that binds this answer, in the same edit. Changing the QUESTION above never touches it.')}
                 </p>
             ) : null}
         </div>
@@ -221,6 +221,7 @@ export function BindingNameField({ field, siblings, bindingBase, onRenameField, 
  * eight times.
  */
 function useRowNameBox({ name, siblings, onRenameField, onCommit, sanitize, takenError, ariaLabel }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(name);
     const [error, setError] = useState('');
     const [note, setNote] = useState('');
@@ -262,7 +263,7 @@ function useRowNameBox({ name, siblings, onRenameField, onCommit, sanitize, take
                     if (e.key === 'Enter') { e.preventDefault(); commit(); }
                     if (e.key === 'Escape') { setDraft(name); setError(''); }
                 }}
-                placeholder="name"
+                placeholder={t('automations.field_designer.name', 'name')}
                 className={rowInputClass('flex-1 min-w-0 font-mono')}
             />
         ),
@@ -279,6 +280,7 @@ function FieldRow({
     row, siblings, types, removeLabel, descriptionPlaceholder,
     sanitizeName, takenError, onRenameField, onPatch, onRemove, position,
 }) {
+    const { t } = useTranslation();
     const { box, error, note } = useRowNameBox({
         name: row.name || '',
         siblings,
@@ -327,7 +329,7 @@ function FieldRow({
                 />
             ) : null}
             <label className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] cursor-pointer">
-                <input type="checkbox" checked={!!row.required} onChange={(e) => onPatch({ required: e.target.checked })} /> required
+                <input type="checkbox" checked={!!row.required} onChange={(e) => onPatch({ required: e.target.checked })} /> {t('automations.field_designer.required', 'required')}
             </label>
         </div>
     );

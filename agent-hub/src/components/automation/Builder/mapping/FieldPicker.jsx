@@ -133,7 +133,7 @@ export default function FieldPicker({
                                 else if (canUseTyped) emit(typedPath(fallbackBase, typed));
                             }
                         }}
-                        placeholder="Search fields…"
+                        placeholder={t('automations.field_picker.search_fields', 'Search fields…')}
                         className="flex-1 min-w-0 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
                     />
                 </div>
@@ -184,7 +184,7 @@ export default function FieldPicker({
                             onMouseDown={(e) => { e.preventDefault(); emit(typedPath(fallbackBase, typed)); }}
                             className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-xs border-t border-[var(--border-default)] hover:bg-[var(--bg-secondary)]"
                         >
-                            <span className="text-[var(--text-secondary)]">Use “{typed}”</span>
+                            <span className="text-[var(--text-secondary)]">{t('automations.field_picker.use_typed', 'Use “{value}”', { value: typed })}</span>
                         </button>
                     )}
                 </div>
@@ -194,7 +194,7 @@ export default function FieldPicker({
                         onMouseDown={(e) => { e.preventDefault(); setOpen(false); onUseExpression(); }}
                         className="w-full flex items-center gap-1.5 px-2 py-1.5 text-left text-[11px] border-t border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] sticky bottom-0 bg-[var(--bg-primary)]"
                     >
-                        <FunctionSquare size={12} /> Use an expression instead
+                        <FunctionSquare size={12} /> {t('automations.field_picker.use_an_expression_instead', 'Use an expression instead')}
                     </button>
                 )}
             </AnchoredMenu>

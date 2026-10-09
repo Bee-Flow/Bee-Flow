@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import PublicFormRenderer from '../../forms/PublicFormRenderer';
 import apiClient from '../../../api/client';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Testing a form-triggered automation, as the person filling it in would see it.
@@ -39,6 +40,7 @@ export default function FormRunOverlay({
     onStartRun,
     onClose,
 }) {
+    const { t } = useTranslation();
     // 'form' — a page is on screen; 'working' — the run is going; 'waiting' —
     // paused on a later page; 'done' / 'error' — it ended.
     const [phase, setPhase] = useState('form');
@@ -120,7 +122,7 @@ export default function FormRunOverlay({
             className="absolute inset-0 z-40 flex items-start justify-center overflow-auto bg-black/40 backdrop-blur-[1px] p-6"
             role="dialog"
             aria-modal="true"
-            aria-label="Test this form"
+            aria-label={t('automations.form_run_overlay.test_this_form', 'Test this form')}
             onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
         >
             <div className="w-full max-w-xl my-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-2xl overflow-hidden">
@@ -131,7 +133,7 @@ export default function FormRunOverlay({
                     <button
                         type="button"
                         onClick={onClose}
-                        aria-label="Close the test form"
+                        aria-label={t('automations.form_run_overlay.close_the_test_form', 'Close the test form')}
                         className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                     >
                         <X size={14} />
@@ -161,9 +163,9 @@ export default function FormRunOverlay({
                     {phase === 'working' && (
                         <div className="py-12 text-center">
                             <Loader2 size={20} className="mx-auto animate-spin text-[var(--text-tertiary)]" />
-                            <p className="mt-3 text-sm text-[var(--text-secondary)]">Running the automation…</p>
+                            <p className="mt-3 text-sm text-[var(--text-secondary)]">{t('automations.form_run_overlay.running_the_automation', 'Running the automation…')}</p>
                             <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-                                Each step lights up on the canvas behind this.
+                                {t('automations.form_run_overlay.each_step_lights_up_on_the', 'Each step lights up on the canvas behind this.')}
                             </p>
                         </div>
                     )}
@@ -171,13 +173,13 @@ export default function FormRunOverlay({
                     {phase === 'done' && (
                         <div className="py-12 text-center">
                             <CheckCircle2 size={20} className="mx-auto text-emerald-500" />
-                            <p className="mt-3 text-sm text-[var(--text-primary)]">The automation finished.</p>
+                            <p className="mt-3 text-sm text-[var(--text-primary)]">{t('automations.form_run_overlay.the_automation_finished', 'The automation finished.')}</p>
                             <button
                                 type="button"
                                 onClick={onClose}
                                 className="mt-4 px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--accent)] text-white hover:opacity-90"
                             >
-                                See what each step did
+                                {t('automations.form_run_overlay.see_what_each_step_did', 'See what each step did')}
                             </button>
                         </div>
                     )}
@@ -191,7 +193,7 @@ export default function FormRunOverlay({
                                 onClick={onClose}
                                 className="mt-4 px-3 py-1.5 rounded-md text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
                             >
-                                Close and look at the run
+                                {t('automations.form_run_overlay.close_and_look_at_the_run', 'Close and look at the run')}
                             </button>
                         </div>
                     )}

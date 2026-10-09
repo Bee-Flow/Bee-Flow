@@ -184,9 +184,9 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                 aria-label from the title, and the band's own toggle button is
                 already named after the section. */}
             <AccordionSection
-                stepType="integration_action" sectionKey="inputs" title="Inputs"
+                stepType="integration_action" sectionKey="inputs" title={t('automations.integration_action_fields.inputs', 'Inputs')}
                 defaultOpen forceOpen={errorSections.has('inputs')}
-                meta={<FieldHint title="About Inputs">{inputSchema ? 'Field values passed to the tool. Pick a variable from the right panel to bind upstream output.' : 'No schema found for this tool — using generic key/value rows.'}</FieldHint>}
+                meta={<FieldHint title={t('automations.integration_action_fields.about_inputs', 'About Inputs')}>{inputSchema ? 'Field values passed to the tool. Pick a variable from the right panel to bind upstream output.' : 'No schema found for this tool — using generic key/value rows.'}</FieldHint>}
             >
                 <ToolInputForm
                     inputs={draft.inputs || {}}
@@ -229,7 +229,7 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                     />
                 )}
             </AccordionSection>
-            <AccordionSection stepType="integration_action" sectionKey="advanced" title="Advanced" defaultOpen={advancedIsSet} forceOpen={errorSections.has('advanced')} hasContent={advancedIsSet}>
+            <AccordionSection stepType="integration_action" sectionKey="advanced" title={t('automations.integration_action_fields.advanced', 'Advanced')} defaultOpen={advancedIsSet} forceOpen={errorSections.has('advanced')} hasContent={advancedIsSet}>
                 <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
                 <AskOnceRow draft={draft} set={set} {...askOnceAvailability(action, appLabel)} />

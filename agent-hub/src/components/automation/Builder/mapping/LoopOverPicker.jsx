@@ -141,7 +141,7 @@ export default function LoopOverPicker({
                     type="text"
                     value={itemVar || 'item'}
                     onChange={onTypedVar}
-                    placeholder="item"
+                    placeholder={t('automations.loop_over_picker.item', 'item')}
                     className={denseInputClass('w-full')}
                 />
                 {/* `loop.` is not decoration — it is the binding. This line

@@ -14,6 +14,7 @@ import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import {
     fieldLabelClass, hintTextClass, optionalMarkClass, requiredChipClass,
 } from './formStyles';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 export {
     sectionHeaderClass, fieldLabelClass, subLabelClass, disclosureClass,
@@ -47,6 +48,7 @@ const CUSTOM_CONTROL = '[role="textbox"], [role="combobox"]';
  * will land in.
  */
 export function FormRow({ label, hint, required = false, optional = false, htmlFor = null, children }) {
+    const { t } = useTranslation();
     const rowRef = useRef(null);
     const labelRef = useRef(null);
     const autoId = useId();
@@ -71,8 +73,8 @@ export function FormRow({ label, hint, required = false, optional = false, htmlF
             <div ref={rowRef}>
                 <div className="flex items-center gap-1.5 mb-1">
                     <label ref={labelRef} id={labelId} htmlFor={htmlFor || undefined} className={fieldLabelClass()}>{label}</label>
-                    {required && <span className={requiredChipClass()}>Required</span>}
-                    {!required && optional && <span className={optionalMarkClass()}>optional</span>}
+                    {required && <span className={requiredChipClass()}>{t('automations.form_primitives.required', 'Required')}</span>}
+                    {!required && optional && <span className={optionalMarkClass()}>{t('automations.form_primitives.optional', 'optional')}</span>}
                     <FieldHint title={label}>{hint}</FieldHint>
                 </div>
                 {children}

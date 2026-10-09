@@ -10,6 +10,7 @@ import { useVariablePickerContext } from './VariablePickerContext';
 import { canonicalRefPath, suggestKeyFromPath } from '../../../../utils/bindingHelpers';
 import { useFormMode } from '../flow/settings/formDensity';
 import { actionButtonClass, subLabelClass } from '../flow/settings/formStyles';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Schema-driven inputs editor for a step's `inputs` map.
@@ -83,6 +84,7 @@ export default function ToolInputForm({
     // their pill reads "auto · AI" instead of "auto".
     aiMappedKeys = [],
 }) {
+    const { t } = useTranslation();
     const properties = inputSchema?.properties || null;
     const required = useMemo(() => new Set(inputSchema?.required || []), [inputSchema]);
 
@@ -218,14 +220,14 @@ export default function ToolInputForm({
                 onClick={(e) => upstreamPicker.openPicker(e.currentTarget)}
                 className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
-                <Workflow size={12} /> Add field from a previous step
+                <Workflow size={12} /> {t('automations.tool_input_form.add_field_from_a_previous_step', 'Add field from a previous step')}
             </button>
             <VariablePicker
                 {...upstreamPicker.pickerProps}
                 groups={upstreamCtx.groups}
                 previewSample={previewSample ?? upstreamCtx.previewSample}
                 onPick={addFieldFromUpstream}
-                title="Add field from a previous step"
+                title={t('automations.tool_input_form.add_field_from_a_previous_step', 'Add field from a previous step')}
             />
         </>
     ) : null;
@@ -234,10 +236,10 @@ export default function ToolInputForm({
         <button
             type="button"
             onClick={onAutoMap}
-            title="Auto-map empty inputs from upstream steps"
+            title={t('automations.tool_input_form.auto_map_empty_inputs_from_upstream', 'Auto-map empty inputs from upstream steps')}
             className={actionButtonClass()}
         >
-            <Sparkles size={12} /> Auto-map
+            <Sparkles size={12} /> {t('automations.tool_input_form.auto_map', 'Auto-map')}
         </button>
     ) : null;
 
@@ -288,7 +290,7 @@ export default function ToolInputForm({
                 {(extras.length > 0 || pending.length > 0) && (
                     <div className="pt-2 border-t border-[var(--border-default)] space-y-2">
                         <div className={subLabelClass()}>
-                            Extra inputs (not in tool schema)
+                            {t('automations.tool_input_form.extra_inputs_not_in_tool_schema', 'Extra inputs (not in tool schema)')}
                         </div>
                         {extras.map(k => (
                             <GenericRow
@@ -313,7 +315,7 @@ export default function ToolInputForm({
                         onClick={addField}
                         className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                        <Plus size={12} /> Add custom field
+                        <Plus size={12} /> {t('automations.tool_input_form.add_custom_field', 'Add custom field')}
                     </button>
                 )}
             </div>
@@ -327,7 +329,7 @@ export default function ToolInputForm({
             {WandButton && <div className="flex justify-end">{WandButton}</div>}
             {entries.length === 0 && pending.length === 0 && (
                 <div className="text-[11px] text-[var(--text-tertiary)] italic">
-                    No inputs yet. Add a field below.
+                    {t('automations.tool_input_form.no_inputs_yet_add_a_field', 'No inputs yet. Add a field below.')}
                 </div>
             )}
             {entries.map(([k, v]) => (
@@ -373,7 +375,7 @@ export default function ToolInputForm({
                         onClick={addField}
                         className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                        <Plus size={12} /> Add field
+                        <Plus size={12} /> {t('automations.tool_input_form.add_field', 'Add field')}
                     </button>
                     {AddFromStepButton}
                 </div>
