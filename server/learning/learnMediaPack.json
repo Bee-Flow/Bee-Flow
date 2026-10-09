@@ -1,7 +1,7 @@
 {
-  "version": "fd89a161cbd4",
-  "manifest": "manifest-fd89a161cbd4.json",
-  "manifestSha256": "26eb16796cbd4fe05eb1b484dd39d007ed025f10737a8eafe898b50b6aa32800",
+  "version": "8d74278eda09",
+  "manifest": "manifest-8d74278eda09.json",
+  "manifestSha256": "4b88425663026db92f1dc132febac25976b280073946a66a4d22bafa8fa9ddf2",
   "baseUrl": "https://github.com/Bee-Flow/Bee-Flow/releases/download/learn-media/",
   "videoIds": [
     "admin-access-control",
