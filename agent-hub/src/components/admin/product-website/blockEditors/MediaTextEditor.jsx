@@ -8,12 +8,14 @@ import {
     CtaStyleSelect,
     BackgroundCard,
 } from '../primitives';
-import { set } from './shared';
 import { ClipFields } from './ClipFields';
+import { set } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Media + Text ─────────────────────────────────────────────────────
 
 export function MediaTextEditor({ data = {}, pages = [], onChange }) {
+    const { t } = useTranslation();
     const setField = (key, value) => onChange(set(data, key, value));
     const media    = data.media || { kind: 'image', src: '', alt: '' };
     const cta      = data.cta || {};
@@ -39,50 +41,50 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
 
     return (
         <>
-            <InlineHint>Click the heading, subheading, body, and CTA label in the preview to edit them inline. Use the panels below for structure and styling.</InlineHint>
+            <InlineHint>{t('cms_site.blocks.media_text.click_the_heading_subheading_body_and', 'Click the heading, subheading, body, and CTA label in the preview to edit them inline. Use the panels below for structure and styling.')}</InlineHint>
 
             {/* ── Heading ─────────────────────────────────────────── */}
-            <CollapsibleCard title="Heading" defaultOpen={true} persistKey="blk.media-text.heading">
+            <CollapsibleCard title={t('cms_site.blocks.media_text.heading', 'Heading')} defaultOpen={true} persistKey="blk.media-text.heading">
                 <TextField
-                    label="Text"
+                    label={t('cms_site.blocks.media_text.text', 'Text')}
                     value={data.heading || ''}
                     onChange={v => setField('heading', v)}
-                    placeholder="Heading"
+                    placeholder={t('cms_site.blocks.media_text.heading', 'Heading')}
                     align={data.headingAlign || data.align || 'left'}
                     onAlignChange={v => setField('headingAlign', v)}
                 />
                 <StyleTriplet
-                    label="Heading"
+                    label={t('cms_site.blocks.media_text.heading', 'Heading')}
                     value={headingStyle}
                     onChange={v => setField('headingStyle', v)}
-                    sample={data.heading || 'Heading preview'}
+                    sample={data.heading || t('cms_site.blocks.media_text.heading_preview', 'Heading preview')}
                     weight={700}
                     min={12} max={96}
                 />
             </CollapsibleCard>
 
             {/* ── Subheading ──────────────────────────────────────── */}
-            <CollapsibleCard title="Subheading" defaultOpen={false} persistKey="blk.media-text.subheading">
+            <CollapsibleCard title={t('cms_site.blocks.media_text.subheading', 'Subheading')} defaultOpen={false} persistKey="blk.media-text.subheading">
                 <Toggle
-                    label="Show subheading"
+                    label={t('cms_site.blocks.media_text.show_subheading', 'Show subheading')}
                     value={showSubheading}
                     onChange={toggleSubheading}
                 />
                 {showSubheading ? (
                     <>
                         <TextField
-                            label="Text"
+                            label={t('cms_site.blocks.media_text.text', 'Text')}
                             value={data.subheading || ''}
                             onChange={v => setField('subheading', v)}
-                            placeholder="Subheading"
+                            placeholder={t('cms_site.blocks.media_text.subheading', 'Subheading')}
                             align={data.subheadingAlign || data.align || 'left'}
                             onAlignChange={v => setField('subheadingAlign', v)}
                         />
                         <StyleTriplet
-                            label="Subheading"
+                            label={t('cms_site.blocks.media_text.subheading', 'Subheading')}
                             value={subheadingStyle}
                             onChange={v => setField('subheadingStyle', v)}
-                            sample={data.subheading || 'Subheading preview'}
+                            sample={data.subheading || t('cms_site.blocks.media_text.subheading_preview', 'Subheading preview')}
                             weight={500}
                             min={10} max={48}
                         />
@@ -91,17 +93,17 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
             </CollapsibleCard>
 
             {/* ── Body ────────────────────────────────────────────── */}
-            <CollapsibleCard title="Body" defaultOpen={false} persistKey="blk.media-text.body">
+            <CollapsibleCard title={t('cms_site.blocks.media_text.body', 'Body')} defaultOpen={false} persistKey="blk.media-text.body">
                 <TextField
-                    label="Text"
+                    label={t('cms_site.blocks.media_text.text', 'Text')}
                     value={data.body || ''}
                     onChange={v => setField('body', v)}
-                    placeholder="Body text"
+                    placeholder={t('cms_site.blocks.media_text.body_text', 'Body text')}
                     align={data.bodyAlign || data.align || 'left'}
                     onAlignChange={v => setField('bodyAlign', v)}
                 />
                 <StyleTriplet
-                    label="Body"
+                    label={t('cms_site.blocks.media_text.body', 'Body')}
                     value={bodyStyle}
                     onChange={v => setField('bodyStyle', v)}
                     sample={data.body || 'The quick brown fox jumps over the lazy dog.'}
@@ -111,22 +113,22 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
             </CollapsibleCard>
 
             {/* ── CTA ─────────────────────────────────────────────── */}
-            <CollapsibleCard title="CTA" defaultOpen={false} persistKey="blk.media-text.cta">
+            <CollapsibleCard title={t('cms_site.blocks.media_text.cta', 'CTA')} defaultOpen={false} persistKey="blk.media-text.cta">
                 <Toggle
-                    label="Show CTA"
+                    label={t('cms_site.blocks.media_text.show_cta', 'Show CTA')}
                     value={showCta}
                     onChange={toggleCta}
                 />
                 {showCta ? (
                     <>
                         <TextField
-                            label="Label"
+                            label={t('cms_site.blocks.media_text.label', 'Label')}
                             value={cta.label || ''}
                             onChange={v => updateCta('label', v)}
-                            placeholder="Learn more"
+                            placeholder={t('cms_site.blocks.media_text.learn_more', 'Learn more')}
                         />
                         <LinkField
-                            label="Destination"
+                            label={t('cms_site.blocks.media_text.destination', 'Destination')}
                             value={cta.link}
                             pages={pages}
                             onChange={v => updateCta('link', v)}
@@ -136,10 +138,10 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
                             onChange={v => updateCta('style', v)}
                         />
                         <StyleTriplet
-                            label="CTA"
+                            label={t('cms_site.blocks.media_text.cta', 'CTA')}
                             value={ctaStyle}
                             onChange={v => setField('ctaStyle', v)}
-                            sample={cta.label || 'Button label'}
+                            sample={cta.label || t('cms_site.blocks.media_text.button_label_preview', 'Button label')}
                             weight={600}
                             min={10} max={32}
                         />
@@ -148,52 +150,52 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
             </CollapsibleCard>
 
             {/* ── Media ───────────────────────────────────────────── */}
-            <CollapsibleCard title="Media" defaultOpen={false} persistKey="blk.media-text.media">
+            <CollapsibleCard title={t('cms_site.blocks.media_text.media', 'Media')} defaultOpen={false} persistKey="blk.media-text.media">
                 <FieldSelect
-                    label="Media type"
+                    label={t('cms_site.blocks.media_text.media_type', 'Media type')}
                     value={media.kind || 'image'}
                     options={[
-                        { value: 'image',        label: 'Image' },
-                        { value: 'gif',          label: 'GIF / Animation' },
-                        { value: 'video',        label: 'Video (embed URL)' },
-                        { value: 'video-silent', label: 'Video loop (no audio)' },
-                        { value: 'clip',         label: 'Clip (video with sound)' },
+                        { value: 'image',        label: t('cms_site.blocks.media_text.kind_image', 'Image') },
+                        { value: 'gif',          label: t('cms_site.blocks.media_text.kind_gif', 'GIF / Animation') },
+                        { value: 'video',        label: t('cms_site.blocks.media_text.kind_video', 'Video (embed URL)') },
+                        { value: 'video-silent', label: t('cms_site.blocks.media_text.kind_video_silent', 'Video loop (no audio)') },
+                        { value: 'clip',         label: t('cms_site.blocks.media_text.kind_clip', 'Clip (video with sound)') },
                     ]}
                     onChange={v => updateMedia('kind', v)}
                 />
                 {media.kind === 'gif' ? (
                     <>
                         <ImageField
-                            label="GIF / animation"
+                            label={t('cms_site.blocks.media_text.gif_animation', 'GIF / animation')}
                             value={media.src || ''}
                             onChange={v => updateMedia('src', v)}
                             accept="image/gif,image/webp,image/apng,image/png,image/jpeg"
-                            uploadLabel="Upload GIF"
+                            uploadLabel={t('cms_site.blocks.media_text.upload_gif', 'Upload GIF')}
                             placeholder="https://… or /api/cms/asset/cms/…"
                         />
                         <TextField
-                            label="Alt text"
+                            label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
                             value={media.alt || ''}
                             onChange={v => updateMedia('alt', v)}
-                            placeholder="Describe the animation"
+                            placeholder={t('cms_site.blocks.media_text.describe_the_animation', 'Describe the animation')}
                         />
                     </>
                 ) : media.kind === 'video-silent' ? (
                     <>
                         <ImageField
-                            label="Video"
+                            label={t('cms_site.blocks.media_text.video', 'Video')}
                             value={media.src || ''}
                             onChange={v => updateMedia('src', v)}
                             accept="video/mp4,video/webm"
                             previewKind="video"
-                            uploadLabel="Upload video"
+                            uploadLabel={t('cms_site.blocks.media_text.upload_video', 'Upload video')}
                             placeholder="https://… or /api/cms/asset/cms/…"
                         />
                         <TextField
-                            label="Alt text"
+                            label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
                             value={media.alt || ''}
                             onChange={v => updateMedia('alt', v)}
-                            placeholder="Describe the video"
+                            placeholder={t('cms_site.blocks.media_text.describe_the_video', 'Describe the video')}
                         />
                     </>
                 ) : media.kind === 'clip' ? (
@@ -203,24 +205,24 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
                     />
                 ) : media.kind === 'video' ? (
                     <TextField
-                        label="Video embed URL"
+                        label={t('cms_site.blocks.media_text.video_embed_url', 'Video embed URL')}
                         value={media.src || ''}
                         onChange={v => updateMedia('src', v)}
                         placeholder="https://www.youtube.com/embed/… or https://player.vimeo.com/video/…"
-                        hint="Use the embed URL, not the public watch URL."
+                        hint={t('cms_site.blocks.media_text.use_the_embed_url_not_the', 'Use the embed URL, not the public watch URL.')}
                     />
                 ) : (
                     <>
                         <ImageField
-                            label="Image"
+                            label={t('cms_site.blocks.media_text.image', 'Image')}
                             value={media.src || ''}
                             onChange={v => updateMedia('src', v)}
                         />
                         <TextField
-                            label="Alt text"
+                            label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
                             value={media.alt || ''}
                             onChange={v => updateMedia('alt', v)}
-                            placeholder="Describe the image"
+                            placeholder={t('cms_site.blocks.media_text.describe_the_image', 'Describe the image')}
                         />
                     </>
                 )}
@@ -231,18 +233,18 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
                 {(!media.kind || media.kind === 'image' || media.kind === 'gif') ? (
                     <>
                         <FieldSelect
-                            label="Frame"
+                            label={t('cms_site.blocks.media_text.frame', 'Frame')}
                             value={media.frame || ''}
                             options={[
-                                { value: '',         label: 'None (bare image)' },
-                                { value: 'hairline', label: 'Hairline frame' },
-                                { value: 'browser',  label: 'Browser window' },
+                                { value: '',         label: t('cms_site.blocks.media_text.frame_none', 'None (bare image)') },
+                                { value: 'hairline', label: t('cms_site.blocks.media_text.frame_hairline', 'Hairline frame') },
+                                { value: 'browser',  label: t('cms_site.blocks.media_text.frame_browser', 'Browser window') },
                             ]}
                             onChange={v => updateMedia('frame', v)}
                         />
                         {media.frame === 'hairline' || media.frame === 'browser' ? (
                             <ImageField
-                                label="Dark-theme image (optional)"
+                                label={t('cms_site.blocks.media_text.dark_theme_image_optional', 'Dark-theme image (optional)')}
                                 value={media.srcDark || ''}
                                 onChange={v => updateMedia('srcDark', v)}
                             />
@@ -250,21 +252,21 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
                     </>
                 ) : null}
                 <FieldSelect
-                    label="Media position"
+                    label={t('cms_site.blocks.media_text.media_position', 'Media position')}
                     value={data.mediaPosition || 'left'}
                     options={[
-                        { value: 'left',  label: 'Left' },
-                        { value: 'right', label: 'Right' },
+                        { value: 'left',  label: t('cms_site.blocks.media_text.position_left', 'Left') },
+                        { value: 'right', label: t('cms_site.blocks.media_text.position_right', 'Right') },
                     ]}
                     onChange={v => setField('mediaPosition', v)}
                 />
                 <FieldSelect
-                    label="Media size"
+                    label={t('cms_site.blocks.media_text.media_size', 'Media size')}
                     value={data.mediaSize || 'half'}
                     options={[
-                        { value: 'half',       label: 'Half (50 / 50)' },
-                        { value: 'third',      label: 'One third (33 / 67)' },
-                        { value: 'two-thirds', label: 'Two thirds (66 / 34)' },
+                        { value: 'half',       label: t('cms_site.blocks.media_text.size_half', 'Half (50 / 50)') },
+                        { value: 'third',      label: t('cms_site.blocks.media_text.size_third', 'One third (33 / 67)') },
+                        { value: 'two-thirds', label: t('cms_site.blocks.media_text.size_two_thirds', 'Two thirds (66 / 34)') },
                     ]}
                     onChange={v => setField('mediaSize', v)}
                 />

@@ -11,10 +11,12 @@ import {
     mintId,
 } from '../primitives';
 import { set } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Header ────────────────────────────────────────────────────────────
 
 export function HeaderEditor({ data = {}, pages = [], onChange }) {
+    const { t } = useTranslation();
     const nav = data.nav || [];
     const logo = data.logo || {};
     const ctas = Array.isArray(data.ctas) ? data.ctas : [];
@@ -28,31 +30,31 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
 
     return (
         <>
-            <InlineHint>Click logo text, link labels, and button labels in the preview to edit them inline.</InlineHint>
+            <InlineHint>{t('cms_site.blocks.header.click_logo_text_link_labels_and', 'Click logo text, link labels, and button labels in the preview to edit them inline.')}</InlineHint>
 
             {/* ── Logo & brand ──────────────────────────────────────── */}
-            <CollapsibleCard title="Logo & brand" defaultOpen={true} persistKey="blk.header.logo-brand">
+            <CollapsibleCard title={t('cms_site.blocks.header.logo_brand', 'Logo & brand')} defaultOpen={true} persistKey="blk.header.logo-brand">
                 <ImageField
-                    label="Logo image (optional)"
+                    label={t('cms_site.blocks.header.logo_image_optional', 'Logo image (optional)')}
                     value={logo.src || ''}
                     onChange={v => updateLogo({ src: v || '' })}
                 />
                 <TextField
-                    label="Logo link URL"
+                    label={t('cms_site.blocks.header.logo_link_url', 'Logo link URL')}
                     value={logo.url !== undefined ? logo.url : '/'}
                     onChange={v => updateLogo({ url: v })}
                     placeholder="/"
                 />
                 <TextField
-                    label="Brand title"
+                    label={t('cms_site.blocks.header.brand_title', 'Brand title')}
                     value={logo.text !== undefined ? logo.text : (data.logoText || '')}
                     onChange={v => updateLogo({ text: v })}
                 />
                 <FontRow
-                    label="Title font"
+                    label={t('cms_site.blocks.header.title_font', 'Title font')}
                     value={logo.titleFont || ''}
                     onChange={v => updateLogo({ titleFont: v })}
-                    sample={logo.text || data.logoText || 'Brand title preview'}
+                    sample={logo.text || data.logoText || t('cms_site.blocks.header.brand_title_preview', 'Brand title preview')}
                     weight={700}
                 />
                 {/* Title size + color share a row — size as a compact
@@ -60,31 +62,31 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
                     color as a small swatch (replaces the wide bar).
                     Stored shape is flat (titleSize / textColor on logo),
                     not a *Style blob — intentionally not a StyleTriplet. */}
-                <FieldRow label="Title size & color">
+                <FieldRow label={t('cms_site.blocks.header.title_size_color', 'Title size & color')}>
                     <div className="flex items-center gap-2">
                         <PxSizeInput
                             value={Number.isFinite(logo.titleSize) ? logo.titleSize : 0}
                             onChange={v => updateLogo({ titleSize: v })}
                             min={10}
                             max={72}
-                            ariaLabel="Title size in pixels"
+                            ariaLabel={t('cms_site.blocks.header.title_size_in_pixels', 'Title size in pixels')}
                         />
                         <ColorSwatch
                             value={logo.textColor || ''}
                             onChange={v => updateLogo({ textColor: v })}
-                            title="Title color"
+                            title={t('cms_site.blocks.header.title_color', 'Title color')}
                         />
                     </div>
                 </FieldRow>
                 <Toggle
-                    label={'Show "." after brand name'}
+                    label={t('cms_site.blocks.header.show_dot_after_brand_name', 'Show "." after brand name')}
                     value={logo.showDot === true}
                     onChange={v => updateLogo({ showDot: v })}
                 />
             </CollapsibleCard>
 
             {/* ── Header action buttons (multi-CTA) ─────────────────── */}
-            <CollapsibleCard title="Header buttons" persistKey="blk.header.buttons">
+            <CollapsibleCard title={t('cms_site.blocks.header.header_buttons', 'Header buttons')} persistKey="blk.header.buttons">
                 <RepeatableList
                     items={ctas}
                     onChange={v => onChange(set(data, 'ctas', v))}
@@ -94,17 +96,17 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
                         link: { kind: 'app', path: '/app' },
                         style: 'primary',
                     })}
-                    itemLabel={(c) => c.label || '(no label)'}
+                    itemLabel={(c) => c.label || t('cms_site.blocks.header.no_label', '(no label)')}
                     collapsible
                     renderItem={(item, update) => (
                         <>
                             <TextField
-                                label="Label"
+                                label={t('cms_site.blocks.header.label', 'Label')}
                                 value={item.label}
                                 onChange={v => update({ ...item, label: v })}
                             />
                             <LinkField
-                                label="Link"
+                                label={t('cms_site.blocks.header.link', 'Link')}
                                 value={item.link}
                                 pages={pages}
                                 onChange={v => update({ ...item, link: v })}
@@ -118,63 +120,63 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
                                 (labelFont/labelSize/labelColor), so this
                                 stays hand-rolled instead of StyleTriplet. */}
                             <FontRow
-                                label="Label font"
+                                label={t('cms_site.blocks.header.label_font', 'Label font')}
                                 value={item.labelFont || ''}
                                 onChange={v => update({ ...item, labelFont: v })}
-                                sample={item.label || 'Button label'}
+                                sample={item.label || t('cms_site.blocks.header.button_label_preview', 'Button label')}
                                 weight={600}
                             />
-                            <FieldRow label="Label size & color">
+                            <FieldRow label={t('cms_site.blocks.header.label_size_color', 'Label size & color')}>
                                 <div className="flex items-center gap-2">
                                     <PxSizeInput
                                         value={Number.isFinite(item.labelSize) ? item.labelSize : 0}
                                         onChange={v => update({ ...item, labelSize: v })}
                                         min={10}
                                         max={48}
-                                        ariaLabel="Button label size in pixels"
+                                        ariaLabel={t('cms_site.blocks.header.button_label_size_in_pixels', 'Button label size in pixels')}
                                     />
                                     <ColorSwatch
                                         value={item.labelColor || ''}
                                         onChange={v => update({ ...item, labelColor: v })}
-                                        title="Button label color"
+                                        title={t('cms_site.blocks.header.button_label_color', 'Button label color')}
                                     />
                                 </div>
                             </FieldRow>
                         </>
                     )}
-                    addLabel="Add button"
+                    addLabel={t('cms_site.blocks.header.add_button', 'Add button')}
                 />
             </CollapsibleCard>
 
             {/* ── Navigation — master link style + the list ─────────── */}
-            <CollapsibleCard title="Navigation" persistKey="blk.header.navigation">
+            <CollapsibleCard title={t('cms_site.blocks.header.navigation', 'Navigation')} persistKey="blk.header.navigation">
                 {/* Master link style — applied to every nav link and
                     every dropdown child. No per-link overrides. */}
                 <FontRow
-                    label="Link font"
+                    label={t('cms_site.blocks.header.link_font', 'Link font')}
                     value={navStyle.fontFamily || ''}
                     onChange={v => updateNavStyle({ fontFamily: v })}
-                    sample="Pricing  ·  Docs  ·  Blog"
+                    sample={t('cms_site.blocks.header.pricing_docs_blog', 'Pricing  ·  Docs  ·  Blog')}
                     weight={500}
                 />
-                <FieldRow label="Link size & color">
+                <FieldRow label={t('cms_site.blocks.header.link_size_color', 'Link size & color')}>
                     <div className="flex items-center gap-2">
                         <PxSizeInput
                             value={Number.isFinite(navStyle.fontSize) ? navStyle.fontSize : 0}
                             onChange={v => updateNavStyle({ fontSize: v })}
                             min={10}
                             max={32}
-                            ariaLabel="Nav link size in pixels"
+                            ariaLabel={t('cms_site.blocks.header.nav_link_size_in_pixels', 'Nav link size in pixels')}
                         />
                         <ColorSwatch
                             value={navStyle.color || ''}
                             onChange={v => updateNavStyle({ color: v })}
-                            title="Nav link color"
+                            title={t('cms_site.blocks.header.nav_link_color', 'Nav link color')}
                         />
                     </div>
                 </FieldRow>
                 <RepeatableList
-                    label="Nav links"
+                    label={t('cms_site.blocks.header.nav_links', 'Nav links')}
                     items={nav}
                 onChange={v => onChange(set(data, 'nav', v))}
                 makeNew={() => ({ id: mintId('nav'), label: 'New link', link: { kind: 'external', url: '#' } })}
@@ -183,12 +185,12 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
                 renderItem={(item, update) => (
                     <>
                         <TextField
-                            label="Label"
+                            label={t('cms_site.blocks.header.label', 'Label')}
                             value={item.label}
                             onChange={v => update({ ...item, label: v })}
                         />
                         <LinkField
-                            label="Link"
+                            label={t('cms_site.blocks.header.link', 'Link')}
                             value={item.link}
                             pages={pages}
                             onChange={v => update({ ...item, link: v })}
@@ -227,12 +229,13 @@ const newMegaItem = () => ({
     openInNewTab: false,
 });
 
-const DROPDOWN_LAYOUT_OPTIONS = [
-    { value: 'list',    label: 'List' },
-    { value: 'columns', label: 'Columns' },
+const dropdownLayoutOptions = (t) => [
+    { value: 'list',    label: t('cms_site.blocks.header.layout_list', 'List') },
+    { value: 'columns', label: t('cms_site.blocks.header.layout_columns', 'Columns') },
 ];
 
 function NavDropdownEditor({ item, update, pages }) {
+    const { t } = useTranslation();
     const layout = item.dropdown?.layout === 'columns' ? 'columns' : 'list';
     const columns = Array.isArray(item.dropdown?.columns) ? item.dropdown.columns : [];
     const children = Array.isArray(item.children) ? item.children : [];
@@ -270,12 +273,14 @@ function NavDropdownEditor({ item, update, pages }) {
 
     return (
         <CollapsibleCard
-            title={`Dropdown  (${itemCount} ${itemCount === 1 ? 'item' : 'items'})`}
+            title={itemCount === 1
+                ? t('cms_site.blocks.header.dropdown_one_item', 'Dropdown (1 item)')
+                : t('cms_site.blocks.header.dropdown_n_items', 'Dropdown ({count} items)', { count: itemCount })}
             defaultOpen={false}
         >
-            <FieldRow label="Layout">
+            <FieldRow label={t('cms_site.blocks.header.layout', 'Layout')}>
                 <SegmentedControl
-                    options={DROPDOWN_LAYOUT_OPTIONS}
+                    options={dropdownLayoutOptions(t)}
                     value={layout}
                     onChange={setLayout}
                 />
@@ -283,68 +288,68 @@ function NavDropdownEditor({ item, update, pages }) {
 
             {layout === 'columns' ? (
                 <RepeatableList
-                    label="Columns"
+                    label={t('cms_site.blocks.header.columns', 'Columns')}
                     items={columns}
                     onChange={v => update({ ...item, dropdown: { layout: 'columns', columns: v } })}
                     makeNew={newColumn}
-                    itemLabel={(col) => col.heading || '(no heading)'}
+                    itemLabel={(col) => col.heading || t('cms_site.blocks.header.no_heading', '(no heading)')}
                     collapsible
                     renderItem={(col, updCol) => (
                         <>
                             <TextField
-                                label="Section heading"
+                                label={t('cms_site.blocks.header.section_heading', 'Section heading')}
                                 value={col.heading || ''}
                                 onChange={v => updCol({ ...col, heading: v })}
-                                placeholder="Optional — e.g. Features, Channels"
+                                placeholder={t('cms_site.blocks.header.optional_e_g_features_channels', 'Optional — e.g. Features, Channels')}
                             />
                             <RepeatableList
-                                label="Items"
+                                label={t('cms_site.blocks.header.items', 'Items')}
                                 items={col.items || []}
                                 onChange={v => updCol({ ...col, items: v })}
                                 makeNew={newMegaItem}
-                                itemLabel={(mi) => mi.label || '(no label)'}
+                                itemLabel={(mi) => mi.label || t('cms_site.blocks.header.no_label', '(no label)')}
                                 collapsible
                                 renderItem={(mi, updMi) => (
                                     <>
                                         <TextField
-                                            label="Label"
+                                            label={t('cms_site.blocks.header.label', 'Label')}
                                             value={mi.label || ''}
                                             onChange={v => updMi({ ...mi, label: v })}
                                         />
                                         <LinkField
-                                            label="Link"
+                                            label={t('cms_site.blocks.header.link', 'Link')}
                                             value={mi.link}
                                             pages={pages}
                                             onChange={v => updMi({ ...mi, link: v })}
                                         />
                                         <TextField
-                                            label="Description"
+                                            label={t('cms_site.blocks.header.description', 'Description')}
                                             value={mi.description || ''}
                                             onChange={v => updMi({ ...mi, description: v })}
-                                            placeholder="Optional one-liner shown under the label"
+                                            placeholder={t('cms_site.blocks.header.optional_one_liner_shown_under_the', 'Optional one-liner shown under the label')}
                                         />
                                         <TextField
-                                            label="Icon"
+                                            label={t('cms_site.blocks.header.icon', 'Icon')}
                                             value={mi.icon || ''}
                                             onChange={v => updMi({ ...mi, icon: v })}
-                                            placeholder="Optional emoji (e.g. 🚀) or short text"
+                                            placeholder={t('cms_site.blocks.header.optional_emoji_e_g_or_short', 'Optional emoji (e.g. 🚀) or short text')}
                                         />
                                         <Toggle
-                                            label="Open in new tab"
+                                            label={t('cms_site.blocks.header.open_in_new_tab', 'Open in new tab')}
                                             value={!!mi.openInNewTab}
                                             onChange={v => updMi({ ...mi, openInNewTab: v })}
                                         />
                                     </>
                                 )}
-                                addLabel="Add item"
+                                addLabel={t('cms_site.blocks.header.add_item', 'Add item')}
                             />
                         </>
                     )}
-                    addLabel="Add column"
+                    addLabel={t('cms_site.blocks.header.add_column', 'Add column')}
                 />
             ) : (
                 <RepeatableList
-                    label="Dropdown children (optional)"
+                    label={t('cms_site.blocks.header.dropdown_children_optional', 'Dropdown children (optional)')}
                     items={children}
                     onChange={v => update({ ...item, children: v })}
                     makeNew={() => ({
@@ -355,11 +360,11 @@ function NavDropdownEditor({ item, update, pages }) {
                     itemLabel={(child) => child.label}
                     renderItem={(child, updChild) => (
                         <>
-                            <TextField label="Label" value={child.label} onChange={v => updChild({ ...child, label: v })} />
-                            <LinkField label="Link"  value={child.link}  pages={pages} onChange={v => updChild({ ...child, link: v })} />
+                            <TextField label={t('cms_site.blocks.header.label', 'Label')} value={child.label} onChange={v => updChild({ ...child, label: v })} />
+                            <LinkField label={t('cms_site.blocks.header.link', 'Link')}  value={child.link}  pages={pages} onChange={v => updChild({ ...child, link: v })} />
                         </>
                     )}
-                    addLabel="Add child"
+                    addLabel={t('cms_site.blocks.header.add_child', 'Add child')}
                 />
             )}
         </CollapsibleCard>

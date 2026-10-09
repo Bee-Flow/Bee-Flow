@@ -10,24 +10,27 @@
  * `label`, `href`, `block` and `blockType` onto every auto-tracked event, and
  * `/query/event-data` returns them. Nothing in the product read them.
  */
-import React, { useMemo } from 'react';
 import { Zap, MousePointerClick, Layers, ExternalLink } from 'lucide-react';
-import { useAnalyticsQuery } from '../useAnalyticsQuery';
+import React, { useMemo } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import { blockLabel } from '../heatmap/model';
+import { foldEventData, ctaLeaderboard, blockLeaderboard } from '../model';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, ShareBar, StatGrid, StatTile,
     fmt, maxOf,
 } from '../ui';
-import { foldEventData, ctaLeaderboard, blockLeaderboard } from '../model';
-import { blockLabel } from '../heatmap/model';
+import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
 const EVENT_LABELS = {
-    cta_click: 'Button & link clicks',
-    form_submit: 'Form submissions',
-    outbound_click: 'Clicks to other sites',
-    file_download: 'File downloads',
+    cta_click: { key: 'cms_site.analytics.events.label_cta_click', en: 'Button & link clicks' },
+    form_submit: { key: 'cms_site.analytics.events.label_form_submit', en: 'Form submissions' },
+    outbound_click: { key: 'cms_site.analytics.events.label_outbound_click', en: 'Clicks to other sites' },
+    file_download: { key: 'cms_site.analytics.events.label_file_download', en: 'File downloads' },
 };
+const eventLabel = (name, t) => (EVENT_LABELS[name] ? t(EVENT_LABELS[name].key, EVENT_LABELS[name].en) : name);
 
 export default function EventsSection({ scope, onDrill }) {
+    const { t } = useTranslation();
     const names = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'event', limit: 25 } });
     // pageSize is only forwardable because the proxy now allow-lists it —
     // without it we would silently only ever see Umami's first page.
@@ -48,8 +51,8 @@ export default function EventsSection({ scope, onDrill }) {
 
     if (!nameRows.length) {
         return (
-            <Card title="Events" icon={Zap}>
-                <Empty text="No interactions recorded yet. The published site tracks button clicks, form submissions, outbound links and file downloads automatically — they appear here as soon as a visitor uses the site." />
+            <Card title={t('cms_site.analytics.events.title', 'Events')} icon={Zap}>
+                <Empty text={t('cms_site.analytics.events.empty', 'No interactions recorded yet. The published site tracks button clicks, form submissions, outbound links and file downloads automatically — they appear here as soon as a visitor uses the site.')} />
             </Card>
         );
     }
@@ -60,7 +63,7 @@ export default function EventsSection({ scope, onDrill }) {
                 {nameRows.slice(0, 4).map((r, i) => (
                     <StatTile
                         key={r.x} icon={i === 0 ? MousePointerClick : Zap}
-                        label={EVENT_LABELS[r.x] || r.x}
+                        label={eventLabel(r.x, t)}
                         value={fmt(r.y || 0)}
                         color={i === 0 ? ACCENT : SERIES.secondary}
                         subtitle={r.x}
@@ -68,39 +71,39 @@ export default function EventsSection({ scope, onDrill }) {
                 ))}
             </StatGrid>
 
-            <Card title="What visitors clicked" icon={MousePointerClick} action={
+            <Card title={t('cms_site.analytics.events.clicked', 'What visitors clicked')} icon={MousePointerClick} action={
                 <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>
-                    {fmt(total)} interactions
+                    {t('cms_site.analytics.events.interactions', '{n} interactions', { n: fmt(total) })}
                 </span>
             }>
                 {detail.loading ? <Skeleton height={240} />
                     : detail.error ? <ErrorNote message={detail.error} onRetry={detail.reload} compact />
                     : ctas.length === 0 ? (
-                        <Empty text="These events carry no labels yet — republish the site so the tracker attaches them." />
+                        <Empty text={t('cms_site.analytics.events.no_labels', 'These events carry no labels yet — republish the site so the tracker attaches them.')} />
                     ) : <CtaTable rows={ctas} />}
             </Card>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
-                <Card title="Which blocks earn the clicks" icon={Layers} action={
-                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>across every page</span>
+                <Card title={t('cms_site.analytics.events.blocks', 'Which blocks earn the clicks')} icon={Layers} action={
+                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.events.blocks_hint', 'across every page')}</span>
                 }>
                     {detail.loading ? <Skeleton height={200} />
-                        : blocks.length === 0 ? <Empty text="No block attribution available for these events." />
+                        : blocks.length === 0 ? <Empty text={t('cms_site.analytics.events.no_blocks', 'No block attribution available for these events.')} />
                         : <BlockTable rows={blocks} />}
                 </Card>
 
-                <Card title="Event types" icon={Zap}>
+                <Card title={t('cms_site.analytics.events.types', 'Event types')} icon={Zap}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                         {nameRows.map((r, i) => (
                             <button key={r.x} onClick={() => onDrill('event', r.x)}
-                                title={`Filter the dashboard by ${r.x}`}
+                                title={t('cms_site.analytics.events.filter_by', 'Filter the dashboard by {value}', { value: r.x })}
                                 style={{
                                     display: 'block', width: '100%', textAlign: 'left', padding: 0,
                                     background: 'transparent', border: 'none', cursor: 'pointer',
                                 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
                                     <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>
-                                        {EVENT_LABELS[r.x] || r.x}
+                                        {eventLabel(r.x, t)}
                                     </span>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>{fmt(r.y || 0)}</span>
                                 </div>
@@ -116,6 +119,7 @@ export default function EventsSection({ scope, onDrill }) {
 
 /** One row per distinct label, with where it was placed. */
 function CtaTable({ rows }) {
+    const { t } = useTranslation();
     const peak = maxOf(rows.map(r => r.count));
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
@@ -148,7 +152,7 @@ function CtaTable({ rows }) {
                                     background: 'var(--bg-tertiary, rgba(255,255,255,0.05))',
                                     color: 'var(--text-muted, #999)',
                                 }}>
-                                    {blockLabel(p.type)} · {fmt(p.count)}
+                                    {blockLabel(p.type, t)} · {fmt(p.count)}
                                 </span>
                             ))}
                         </div>
@@ -160,19 +164,20 @@ function CtaTable({ rows }) {
 }
 
 function BlockTable({ rows }) {
+    const { t } = useTranslation();
     const peak = maxOf(rows.map(r => r.count));
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {rows.map(r => (
                 <div key={r.type}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                        <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>{blockLabel(r.type)}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>{blockLabel(r.type, t)}</span>
                         <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>{fmt(r.count)}</span>
                     </div>
                     <ShareBar value={r.count} of={peak} />
                     {r.labels.length > 0 && (
                         <div style={{ fontSize: 10, color: 'var(--text-muted, #777)', marginTop: 3 }}>
-                            {r.labels.slice(0, 4).join(' · ')}{r.labels.length > 4 ? ` +${r.labels.length - 4} more` : ''}
+                            {r.labels.slice(0, 4).join(' · ')}{r.labels.length > 4 ? ` ${t('cms_site.analytics.events.more', '+{n} more', { n: r.labels.length - 4 })}` : ''}
                         </div>
                     )}
                 </div>

@@ -49,7 +49,7 @@ test('placeholders survive translation', () => {
 
 test('the Dutch addresses the reader as je, never u', () => {
     for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(!/\b(u|uw)\b/i.test(v), `${k}: use je/jouw`);
+        assert.ok(!/(?<![}\d])\b(u|uw)\b/i.test(v), `${k}: use je/jouw`);
     }
 });
 

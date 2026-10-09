@@ -1,33 +1,34 @@
 import React from 'react';
-import AppIcon from '../../../icons/AppIcon';
 import Dropdown from './Dropdown';
 import SaveBadge from './SaveBadge';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import AppIcon from '../../../icons/AppIcon';
 
-function formatRelative(iso) {
+function formatRelative(iso, t) {
     if (!iso) return null;
     const ts = Date.parse(iso);
     if (Number.isNaN(ts)) return null;
     const diffSec = Math.max(0, Math.round((Date.now() - ts) / 1000));
-    if (diffSec < 45)    return 'just now';
-    if (diffSec < 3600)  return `${Math.round(diffSec / 60)}m ago`;
-    if (diffSec < 86400) return `${Math.round(diffSec / 3600)}h ago`;
+    if (diffSec < 45)    return t('cms_site.site.shell.rel_now', 'just now');
+    if (diffSec < 3600)  return t('cms_site.site.shell.rel_min', '{n}m ago', { n: Math.round(diffSec / 60) });
+    if (diffSec < 86400) return t('cms_site.site.shell.rel_hour', '{n}h ago', { n: Math.round(diffSec / 3600) });
     return new Date(ts).toLocaleDateString();
 }
 
 // Derived, read-only status of the draft → published → live pipeline.
 // `dirtySincePublish` is a soft client heuristic — copy stays soft.
-function statusFor({ publishedAt, dirtySincePublish, isLive }) {
+function statusFor({ publishedAt, dirtySincePublish, isLive }, t) {
     if (!publishedAt) {
-        return { label: 'Draft — never published', dot: 'var(--text-muted)' };
+        return { label: t('cms_site.site.shell.st_draft', 'Draft — never published'), dot: 'var(--text-muted)' };
     }
     if (isLive) {
         return dirtySincePublish
-            ? { label: 'Live · Unpublished changes', dot: '#fbbf24' }
-            : { label: `Live · Published ${formatRelative(publishedAt)}`, dot: '#34d399' };
+            ? { label: t('cms_site.site.shell.st_live_dirty', 'Live · Unpublished changes'), dot: '#fbbf24' }
+            : { label: t('cms_site.site.shell.st_live', 'Live · Published {when}', { when: formatRelative(publishedAt, t) }), dot: '#34d399' };
     }
     return dirtySincePublish
-        ? { label: 'Unpublished changes', dot: '#fbbf24' }
-        : { label: `Published ${formatRelative(publishedAt)}`, dot: 'var(--text-secondary)' };
+        ? { label: t('cms_site.site.shell.st_dirty', 'Unpublished changes'), dot: '#fbbf24' }
+        : { label: t('cms_site.site.shell.st_published', 'Published {when}', { when: formatRelative(publishedAt, t) }), dot: 'var(--text-secondary)' };
 }
 
 function Stage({ label, active, done }) {
@@ -64,7 +65,8 @@ export default function PublishMenu({
     onPublish,
     onSetLive,           // (next:boolean) — container confirms + persists
 }) {
-    const status = statusFor({ publishedAt, dirtySincePublish, isLive });
+    const { t } = useTranslation();
+    const status = statusFor({ publishedAt, dirtySincePublish, isLive }, t);
     const publishDisabled = publishing || saveStatus === 'saving' || saveStatus === 'error';
 
     // Current pipeline stage for the mini state diagram.
@@ -72,7 +74,7 @@ export default function PublishMenu({
 
     return (
         <div className="flex items-center gap-2">
-            <span className="hidden md:flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] whitespace-nowrap" title="Draft / publish / live status">
+            <span className="hidden md:flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] whitespace-nowrap" title={t('cms_site.site.shell.pub_status_title', 'Draft / publish / live status')}>
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: status.dot }} />
                 {status.label}
             </span>
@@ -82,9 +84,9 @@ export default function PublishMenu({
                     onClick={onPublish}
                     disabled={publishDisabled}
                     className="px-3 py-1.5 text-xs font-medium bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Make the current draft the public snapshot (all languages included)"
+                    title={t('cms_site.site.shell.pub_title', 'Make the current draft the public snapshot (all languages included)')}
                 >
-                    {publishing ? 'Publishing…' : 'Publish'}
+                    {publishing ? t('cms_site.site.shell.publishing', 'Publishing…') : t('cms_site.site.shell.publish', 'Publish')}
                 </button>
                 <Dropdown
                     align="right"
@@ -93,7 +95,7 @@ export default function PublishMenu({
                         <button
                             type="button"
                             className="h-full px-1.5 bg-[var(--accent-primary)]/90 text-white hover:bg-[var(--accent-primary)] border-l border-white/20 flex items-center"
-                            title="Publishing & live status"
+                            title={t('cms_site.site.shell.pub_menu_title', 'Publishing & live status')}
                         >
                             <AppIcon name={open ? 'ChevronUp' : 'ChevronDown'} className="w-3.5 h-3.5" />
                         </button>
@@ -103,32 +105,32 @@ export default function PublishMenu({
                         <div className="p-3 space-y-3">
                             {/* Save state */}
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Draft</span>
+                                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t('cms_site.site.shell.draft', 'Draft')}</span>
                                 {saveStatus === 'idle'
-                                    ? <span className="text-xs text-[var(--text-secondary)]">All changes saved</span>
+                                    ? <span className="text-xs text-[var(--text-secondary)]">{t('cms_site.site.shell.all_saved', 'All changes saved')}</span>
                                     : <SaveBadge status={saveStatus} onRetry={onRetrySave} />}
                             </div>
 
                             {/* Pipeline diagram */}
                             <div className="flex items-center gap-1 text-[var(--text-muted)]">
-                                <Stage label="Draft (editor)" active={stage === 'draft'} done={stage !== 'draft'} />
+                                <Stage label={t('cms_site.site.shell.stage_draft', 'Draft (editor)')} active={stage === 'draft'} done={stage !== 'draft'} />
                                 <AppIcon name="ArrowRight" className="w-3 h-3 shrink-0" />
-                                <Stage label="Published snapshot" active={stage === 'published'} done={stage === 'live'} />
+                                <Stage label={t('cms_site.site.shell.stage_published', 'Published snapshot')} active={stage === 'published'} done={stage === 'live'} />
                                 <AppIcon name="ArrowRight" className="w-3 h-3 shrink-0" />
-                                <Stage label="Live site" active={stage === 'live'} done={false} />
+                                <Stage label={t('cms_site.site.shell.stage_live', 'Live site')} active={stage === 'live'} done={false} />
                             </div>
 
                             <p className="text-[11px] text-[var(--text-muted)] leading-snug">
                                 {publishedAt
-                                    ? `Last published ${formatRelative(publishedAt)}.`
-                                    : 'Not published yet — drafts are only visible in the editor.'}
-                                {' '}Publishing makes your current draft the public snapshot (all languages included).
+                                    ? t('cms_site.site.shell.last_published', 'Last published {when}.', { when: formatRelative(publishedAt, t) })
+                                    : t('cms_site.site.shell.not_published', 'Not published yet — drafts are only visible in the editor.')}
+                                {' '}{t('cms_site.site.shell.publish_explain', 'Publishing makes your current draft the public snapshot (all languages included).')}
                             </p>
 
                             {/* Live section */}
                             <div className="border-t border-[var(--border-subtle)] pt-3">
                                 <label className="flex items-center justify-between gap-3 cursor-pointer">
-                                    <span className="text-sm text-[var(--text-primary)]">Live</span>
+                                    <span className="text-sm text-[var(--text-primary)]">{t('cms_site.site.shell.live', 'Live')}</span>
                                     <span
                                         onClick={() => onSetLive(!isLive)}
                                         className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${isLive ? 'bg-[var(--accent-primary)]' : 'bg-[var(--border-default)]'}`}
@@ -140,10 +142,10 @@ export default function PublishMenu({
                                 </label>
                                 <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-snug">
                                     {isLive
-                                        ? `This site serves ${window.location.origin}/ for all visitors.`
+                                        ? t('cms_site.site.shell.live_serves', 'This site serves {origin}/ for all visitors.', { origin: window.location.origin })
                                         : liveSiteName
-                                            ? `"${liveSiteName}" is live right now. Toggling Live moves the public site to this one.`
-                                            : 'Toggle Live to bring this site online at the public URL.'}
+                                            ? t('cms_site.site.shell.live_other', '"{name}" is live right now. Toggling Live moves the public site to this one.', { name: liveSiteName })
+                                            : t('cms_site.site.shell.live_toggle', 'Toggle Live to bring this site online at the public URL.')}
                                 </p>
                                 {isLive && (
                                     <a
@@ -152,7 +154,7 @@ export default function PublishMenu({
                                         rel="noreferrer"
                                         className="inline-flex items-center gap-1 mt-2 text-xs text-[var(--text-secondary)] hover:text-[var(--accent-primary)]"
                                     >
-                                        Open live site
+                                        {t('cms_site.site.shell.open_live', 'Open live site')}
                                         <AppIcon name="ExternalLink" className="w-3 h-3" />
                                     </a>
                                 )}

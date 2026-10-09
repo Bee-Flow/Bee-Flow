@@ -2,9 +2,9 @@
  * Editor kind switch: Media + Text, Showcase and the Content video element all
  * offer "Clip (video with sound)" next to the silent loop.
  */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../../../utils/helpers', async (importOriginal) => ({

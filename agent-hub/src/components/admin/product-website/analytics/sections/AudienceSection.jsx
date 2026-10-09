@@ -13,22 +13,24 @@
  * one question a CMS product genuinely needs: what widths must this design
  * survive?
  */
-import React, { useMemo, useState } from 'react';
 import { Globe, Monitor, Languages, MapPin } from 'lucide-react';
-import { useAnalyticsQuery } from '../useAnalyticsQuery';
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import { pivot, screenBuckets, screenLabel } from '../model';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, ShareBar, BreakdownTable,
     fmt, maxOf,
 } from '../ui';
-import { pivot, screenBuckets } from '../model';
+import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
 const GEO_LEVELS = [
-    { dim: 'country', label: 'Countries', next: 'region' },
-    { dim: 'region', label: 'Regions', next: 'city' },
-    { dim: 'city', label: 'Cities', next: null },
+    { dim: 'country', labelKey: 'cms_site.analytics.audience.countries', label: 'Countries', next: 'region' },
+    { dim: 'region', labelKey: 'cms_site.analytics.audience.regions', label: 'Regions', next: 'city' },
+    { dim: 'city', labelKey: 'cms_site.analytics.audience.cities', label: 'Cities', next: null },
 ];
 
 export default function AudienceSection({ scope, onDrill }) {
+    const { t } = useTranslation();
     const [level, setLevel] = useState('country');
 
     const geo = useAnalyticsQuery('query', 'metrics', scope, { params: { type: level, limit: 25 } });
@@ -72,7 +74,7 @@ export default function AudienceSection({ scope, onDrill }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
-                <Card title="Where they are" icon={Globe} action={
+                <Card title={t('cms_site.analytics.audience.where', 'Where they are')} icon={Globe} action={
                     <div style={{ display: 'flex', gap: 4 }}>
                         {GEO_LEVELS.map(l => (
                             <button key={l.dim} onClick={() => setLevel(l.dim)} style={{
@@ -80,33 +82,33 @@ export default function AudienceSection({ scope, onDrill }) {
                                 border: `1px solid ${level === l.dim ? `${ACCENT}66` : 'var(--border-subtle, rgba(255,255,255,0.1))'}`,
                                 background: level === l.dim ? `${ACCENT}14` : 'transparent',
                                 color: level === l.dim ? ACCENT : 'var(--text-muted, #888)',
-                            }}>{l.label}</button>
+                            }}>{t(l.labelKey, l.label)}</button>
                         ))}
                     </div>
                 }>
                     {geo.loading ? <Skeleton height={200} />
                         : geo.error ? <ErrorNote message={geo.error} onRetry={geo.reload} compact />
                         : geoUnavailable ? <GeoUnavailable />
-                        : geoEmpty ? <Empty text="No visits in this period." />
-                        : <BreakdownTable rows={geoRows} labelHeader={GEO_LEVELS.find(l => l.dim === level).label}
-                            valueHeader="Views" maxRows={12} blankLabel="Unknown location"
+                        : geoEmpty ? <Empty text={t('cms_site.analytics.audience.no_visits', 'No visits in this period.')} />
+                        : <BreakdownTable rows={geoRows} labelHeader={(() => { const l = GEO_LEVELS.find(g => g.dim === level); return t(l.labelKey, l.label); })()}
+                            valueHeader={t('cms_site.analytics.common.views', 'Views')} maxRows={12} blankLabel={t('cms_site.analytics.audience.unknown_location', 'Unknown location')}
                             onDrill={(v) => onDrill(level, v)} />}
                 </Card>
 
-                <Card title="Screen widths to design for" icon={Monitor} action={
+                <Card title={t('cms_site.analytics.audience.screens', 'Screen widths to design for')} icon={Monitor} action={
                     screens.total ? <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>
-                        {fmt(screens.total)} sessions
+                        {t('cms_site.analytics.audience.sessions_count', '{n} sessions', { n: fmt(screens.total) })}
                     </span> : null
                 }>
                     {sessions.loading ? <Skeleton height={200} />
                         : sessions.error ? <ErrorNote message={sessions.error} onRetry={sessions.reload} compact />
-                        : screens.rows.length === 0 ? <Empty text="No session data in this period." />
+                        : screens.rows.length === 0 ? <Empty text={t('cms_site.analytics.audience.no_sessions', 'No session data in this period.')} />
                         : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                                 {screens.rows.map(r => (
                                     <div key={r.label}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                                            <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>{r.label}</span>
+                                            <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>{screenLabel(r.label, t)}</span>
                                             <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>
                                                 {Math.round(r.share)}%
                                                 <span style={{ color: 'var(--text-muted, #777)', fontWeight: 500 }}> · {fmt(r.count)}</span>
@@ -120,29 +122,29 @@ export default function AudienceSection({ scope, onDrill }) {
                 </Card>
             </div>
 
-            <Card title="Browser and operating system" icon={Monitor} action={
-                <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>the combination, not two lists</span>
+            <Card title={t('cms_site.analytics.audience.stack', 'Browser and operating system')} icon={Monitor} action={
+                <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.audience.stack_hint', 'the combination, not two lists')}</span>
             }>
                 {stack.loading ? <Skeleton height={200} />
                     : stack.error ? <ErrorNote message={stack.error} onRetry={stack.reload} compact />
-                    : stackRows.length === 0 ? <Empty text="No visits in this period." />
+                    : stackRows.length === 0 ? <Empty text={t('cms_site.analytics.audience.no_visits', 'No visits in this period.')} />
                     : <StackTable rows={stackRows} onDrill={onDrill} />}
             </Card>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-                <Card title="Devices" icon={Monitor}>
+                <Card title={t('cms_site.analytics.audience.devices', 'Devices')} icon={Monitor}>
                     {devices.loading ? <Skeleton height={150} />
                         : devices.error ? <ErrorNote message={devices.error} onRetry={devices.reload} compact />
-                        : <BreakdownTable rows={devices.payload} labelHeader="Device" maxRows={8}
-                            emptyText="No device data." onDrill={(v) => onDrill('device', v)} />}
+                        : <BreakdownTable rows={devices.payload} labelHeader={t('cms_site.analytics.audience.device', 'Device')} maxRows={8}
+                            emptyText={t('cms_site.analytics.audience.no_devices', 'No device data.')} onDrill={(v) => onDrill('device', v)} />}
                 </Card>
-                <Card title="Languages" icon={Languages} action={
-                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>browser preference</span>
+                <Card title={t('cms_site.analytics.audience.languages', 'Languages')} icon={Languages} action={
+                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.audience.languages_hint', 'browser preference')}</span>
                 }>
                     {languages.loading ? <Skeleton height={150} />
                         : languages.error ? <ErrorNote message={languages.error} onRetry={languages.reload} compact />
-                        : <BreakdownTable rows={languages.payload} labelHeader="Language" maxRows={8}
-                            emptyText="No language data." onDrill={(v) => onDrill('language', v)} />}
+                        : <BreakdownTable rows={languages.payload} labelHeader={t('cms_site.analytics.audience.language', 'Language')} maxRows={8}
+                            emptyText={t('cms_site.analytics.audience.no_languages', 'No language data.')} onDrill={(v) => onDrill('language', v)} />}
                 </Card>
             </div>
         </div>
@@ -150,6 +152,7 @@ export default function AudienceSection({ scope, onDrill }) {
 }
 
 function StackTable({ rows, onDrill }) {
+    const { t } = useTranslation();
     const peak = maxOf(rows.map(r => r.visitors || r.views));
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -158,15 +161,15 @@ function StackTable({ rows, onDrill }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
                         <span style={{ fontSize: 12, display: 'flex', gap: 6, alignItems: 'baseline' }}>
                             <button onClick={() => r.browser && onDrill('browser', r.browser)}
-                                title={r.browser ? `Filter by ${r.browser}` : undefined}
-                                style={chipButton(!!r.browser)}>{r.browser || 'Unknown browser'}</button>
-                            <span style={{ color: 'var(--text-muted, #666)' }}>on</span>
+                                title={r.browser ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: r.browser }) : undefined}
+                                style={chipButton(!!r.browser)}>{r.browser || t('cms_site.analytics.audience.unknown_browser', 'Unknown browser')}</button>
+                            <span style={{ color: 'var(--text-muted, #666)' }}>{t('cms_site.analytics.audience.on', 'on')}</span>
                             <button onClick={() => r.os && onDrill('os', r.os)}
-                                title={r.os ? `Filter by ${r.os}` : undefined}
-                                style={chipButton(!!r.os)}>{r.os || 'Unknown OS'}</button>
+                                title={r.os ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: r.os }) : undefined}
+                                style={chipButton(!!r.os)}>{r.os || t('cms_site.analytics.audience.unknown_os', 'Unknown OS')}</button>
                         </span>
                         <span style={{ display: 'flex', gap: 12, flexShrink: 0, alignItems: 'baseline' }}>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>{fmt(r.views)} views</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>{t('cms_site.analytics.audience.views_count', '{n} views', { n: fmt(r.views) })}</span>
                             <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>{fmt(r.visitors)}</span>
                         </span>
                     </div>
@@ -201,6 +204,7 @@ const chipButton = (clickable) => ({
  * than claiming nobody visited.
  */
 function GeoUnavailable() {
+    const { t } = useTranslation();
     return (
         <div style={{
             display: 'flex', gap: 9, alignItems: 'flex-start', padding: '12px 14px',
@@ -209,9 +213,8 @@ function GeoUnavailable() {
         }}>
             <MapPin style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
             <span>
-                <strong>Visits recorded, but no location data.</strong> Usually the visitor&apos;s IP address is
-                not reaching the analytics service — behind a load balancer it is the balancer&apos;s own address
-                that arrives, which resolves to nowhere. Everything else on this page is unaffected.
+                <strong>{t('cms_site.analytics.audience.geo_title', 'Visits recorded, but no location data.')}</strong>{' '}
+                {t('cms_site.analytics.audience.geo_body', "Usually the visitor's IP address is not reaching the analytics service — behind a load balancer it is the balancer's own address that arrives, which resolves to nowhere. Everything else on this page is unaffected.")}
             </span>
         </div>
     );

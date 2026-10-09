@@ -1,11 +1,7 @@
 // Inline iframe edits (cms-edit) + block CRUD + canvas block-toolbar actions
 // of the ProductWebsitePanel container — moved verbatim from
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in).
-/* eslint-disable react-hooks/preserve-manual-memoization -- verbatim move
-   out of ProductWebsitePanel.jsx: the React Compiler lint can no longer see
-   that the threaded panel refs/setters are stable, so it reports advisory
-   "compilation skipped" notes; the dep arrays are unchanged from the
-   original component. */
+ 
 import { useCallback } from 'react';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { BLOCK_DEFAULTS } from '../editors';

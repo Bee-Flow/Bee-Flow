@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import { useStageViewport, toggleStageRotate } from '../shell/DeviceToggle';
 
@@ -37,6 +38,7 @@ export default function PreviewStage({
     errorText = null,   // panel-level error surfaced as a dismissible strip
     onDismissError,
 }) {
+    const { t } = useTranslation();
     const { zoom, rotated } = useStageViewport();
 
     // Measure the scroll area so 'fit' can compute its scale and the
@@ -83,7 +85,7 @@ export default function PreviewStage({
                             type="button"
                             onClick={onDismissError}
                             className="text-xs text-red-400 hover:text-red-300 px-1"
-                            title="Dismiss"
+                            title={t('cms_site.site.preview.dismiss', 'Dismiss')}
                         >
                             ✕
                         </button>
@@ -151,8 +153,10 @@ export default function PreviewStage({
                                     <button
                                         type="button"
                                         onClick={toggleStageRotate}
-                                        title={rotated ? 'Rotate to portrait (390px)' : 'Rotate to landscape (844px)'}
-                                        aria-label="Rotate device preview"
+                                        title={rotated
+                                            ? t('cms_site.site.preview.rotate_portrait', 'Rotate to portrait ({width}px)', { width: MOBILE_PORTRAIT })
+                                            : t('cms_site.site.preview.rotate_landscape', 'Rotate to landscape ({width}px)', { width: MOBILE_LANDSCAPE })}
+                                        aria-label={t('cms_site.site.preview.rotate', 'Rotate device preview')}
                                         className="p-0.5 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                                     >
                                         <AppIcon name="RotateCw" className="w-3 h-3" />

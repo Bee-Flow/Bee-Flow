@@ -15,17 +15,19 @@
  *   - The six ranked lists collapse into one "what moved" table plus a
  *     composition strip, because six lists of five rows is not a summary.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Users, Eye, MousePointerClick, Timer, Activity, TrendingUp, Layers } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { analyticsApi, analyticsFetch } from '../../analyticsApi';
+import TrendChart from '../charts/TrendChart';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SkeletonGrid, StatGrid, StatTile,
     BreakdownTable, SplitBar, fmt, statVal, fmtDurationSec, compare,
 } from '../ui';
-import TrendChart from '../charts/TrendChart';
 import { resolveWindow, densify, bucketLabel, lastBucketPartial } from '../window';
 
 export default function OverviewSection({ scope, onDrill }) {
+    const { t } = useTranslation();
     const [state, setState] = useState({ data: null, loading: true, error: null });
 
     // scope is a fresh object per render of the shell; its serialised content
@@ -53,12 +55,12 @@ export default function OverviewSection({ scope, onDrill }) {
         return {
             labels: views.map(p => bucketLabel(p.t, win.unit)),
             series: [
-                { key: 'views', label: 'Pageviews', data: views.map(p => p.value), color: ACCENT },
-                { key: 'sessions', label: 'Sessions', data: sessions.map(p => p.value), color: SERIES.secondary, style: 'line' },
+                { key: 'views', label: t('cms_site.analytics.overview.pageviews', 'Pageviews'), data: views.map(p => p.value), color: ACCENT },
+                { key: 'sessions', label: t('cms_site.analytics.overview.sessions', 'Sessions'), data: sessions.map(p => p.value), color: SERIES.secondary, style: 'line' },
             ],
             partialLast: lastBucketPartial(win),
         };
-    }, [overview, win]);
+    }, [overview, win, t]);
 
     if (loading && !overview) {
         return (
@@ -70,7 +72,7 @@ export default function OverviewSection({ scope, onDrill }) {
         );
     }
     if (error) return <ErrorNote message={error} onRetry={load} />;
-    if (!overview?.stats) return <Empty text="No analytics data for this period yet." />;
+    if (!overview?.stats) return <Empty text={t('cms_site.analytics.overview.empty', 'No analytics data for this period yet.')} />;
 
     const s = overview.stats || {};
     const cmp = s.comparison || {};
@@ -88,7 +90,7 @@ export default function OverviewSection({ scope, onDrill }) {
     const failed = (key) => partial.find(e => e.key === key)?.message || null;
 
     const tile = (current, previous, kind) => {
-        const c = compare(current, previous, kind);
+        const c = compare(current, previous, kind, t);
         return { delta: c.delta, deltaDisplay: c.display, state: c.state };
     };
 
@@ -97,51 +99,51 @@ export default function OverviewSection({ scope, onDrill }) {
             {partial.length > 0 && (
                 <ErrorNote
                     onRetry={load}
-                    message={`Some data could not be loaded: ${partial.map(e => e.key).join(', ')}. ${partial[0].message}`}
+                    message={t('cms_site.analytics.overview.partial', 'Some data could not be loaded: {keys}. {message}', { keys: partial.map(e => e.key).join(', '), message: partial[0].message })}
                 />
             )}
 
             <StatGrid>
-                <StatTile icon={Users} label="Visitors" value={fmt(visitors)} color={SERIES.secondary}
+                <StatTile icon={Users} label={t('cms_site.analytics.overview.visitors', 'Visitors')} value={fmt(visitors)} color={SERIES.secondary}
                     {...tile(visitors, statVal(cmp.visitors), 'count')} />
-                <StatTile icon={Eye} label="Pageviews" value={fmt(pageviews)} color={ACCENT}
+                <StatTile icon={Eye} label={t('cms_site.analytics.overview.pageviews', 'Pageviews')} value={fmt(pageviews)} color={ACCENT}
                     {...tile(pageviews, statVal(cmp.pageviews), 'count')} />
-                <StatTile icon={MousePointerClick} label="Bounce rate" value={`${Math.round(bounceRate)}%`} color={SERIES.warn}
+                <StatTile icon={MousePointerClick} label={t('cms_site.analytics.overview.bounce', 'Bounce rate')} value={`${Math.round(bounceRate)}%`} color={SERIES.warn}
                     goodWhenDown {...tile(bounceRate, prevBounce, 'rate')} />
-                <StatTile icon={Timer} label="Avg. visit" value={fmtDurationSec(avgVisit)} color={SERIES.primary}
+                <StatTile icon={Timer} label={t('cms_site.analytics.overview.avg_visit', 'Avg. visit')} value={fmtDurationSec(avgVisit)} color={SERIES.primary}
                     {...tile(avgVisit, prevAvg, 'duration')} />
-                <StatTile icon={Activity} label="Active now" value={overview.active != null ? fmt(overview.active) : '—'}
-                    color={SERIES.secondary} subtitle="last 5 minutes" />
+                <StatTile icon={Activity} label={t('cms_site.analytics.overview.active_now', 'Active now')} value={overview.active != null ? fmt(overview.active) : '—'}
+                    color={SERIES.secondary} subtitle={t('cms_site.analytics.overview.last_5', 'last 5 minutes')} />
             </StatGrid>
 
-            <Card title="Traffic over time" icon={TrendingUp}>
+            <Card title={t('cms_site.analytics.overview.traffic', 'Traffic over time')} icon={TrendingUp}>
                 {failed('pageviews')
                     ? <ErrorNote message={failed('pageviews')} onRetry={load} compact />
                     : chart
                         ? <TrendChart
                             labels={chart.labels} series={chart.series}
                             partialLast={chart.partialLast} height={220}
-                            emptyText="No traffic in this period." />
-                        : <Empty text="No traffic in this period." />}
+                            emptyText={t('cms_site.analytics.overview.no_traffic', 'No traffic in this period.')} />
+                        : <Empty text={t('cms_site.analytics.overview.no_traffic', 'No traffic in this period.')} />}
             </Card>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
-                <Card title="Top pages" action={
+                <Card title={t('cms_site.analytics.overview.top_pages', 'Top pages')} action={
                     <DrillHint show={!!overview.pages?.length} />
                 }>
                     {failed('pages')
                         ? <ErrorNote message={failed('pages')} onRetry={load} compact />
-                        : <BreakdownTable rows={overview.pages} labelHeader="Page" maxRows={8}
-                            emptyText="No pageviews in this period."
+                        : <BreakdownTable rows={overview.pages} labelHeader={t('cms_site.analytics.overview.page', 'Page')} maxRows={8}
+                            emptyText={t('cms_site.analytics.overview.no_pageviews', 'No pageviews in this period.')}
                             onDrill={(v) => onDrill('path', v)} />}
                 </Card>
 
-                <Card title="Where they came from" action={<DrillHint show={!!overview.referrers?.length} />}>
+                <Card title={t('cms_site.analytics.overview.sources', 'Where they came from')} action={<DrillHint show={!!overview.referrers?.length} />}>
                     {failed('referrers')
                         ? <ErrorNote message={failed('referrers')} onRetry={load} compact />
-                        : <BreakdownTable rows={overview.referrers} labelHeader="Source" maxRows={8}
-                            blankLabel="Direct / no referrer"
-                            emptyText="Everyone arrived directly — no referring sites in this period."
+                        : <BreakdownTable rows={overview.referrers} labelHeader={t('cms_site.analytics.overview.source', 'Source')} maxRows={8}
+                            blankLabel={t('cms_site.analytics.overview.direct', 'Direct / no referrer')}
+                            emptyText={t('cms_site.analytics.overview.all_direct', 'Everyone arrived directly — no referring sites in this period.')}
                             onDrill={(v) => onDrill('referrer', v)} />}
                 </Card>
             </div>
@@ -159,30 +161,31 @@ export default function OverviewSection({ scope, onDrill }) {
  * in a colour-only legend, and cannot be scanned against its neighbours.
  */
 function Composition({ overview, onDrill }) {
+    const { t } = useTranslation();
     const strips = [
-        { key: 'devices', label: 'Devices', dim: 'device', rows: overview.devices },
-        { key: 'browsers', label: 'Browsers', dim: 'browser', rows: overview.browsers },
-        { key: 'os', label: 'Operating systems', dim: 'os', rows: overview.os },
-        { key: 'countries', label: 'Countries', dim: 'country', rows: overview.countries },
+        { key: 'devices', label: t('cms_site.analytics.overview.devices', 'Devices'), dim: 'device', rows: overview.devices },
+        { key: 'browsers', label: t('cms_site.analytics.overview.browsers', 'Browsers'), dim: 'browser', rows: overview.browsers },
+        { key: 'os', label: t('cms_site.analytics.overview.oses', 'Operating systems'), dim: 'os', rows: overview.os },
+        { key: 'countries', label: t('cms_site.analytics.overview.countries', 'Countries'), dim: 'country', rows: overview.countries },
     ].filter(s => Array.isArray(s.rows) && s.rows.length > 0);
 
     if (!strips.length) {
         return (
-            <Card title="Who visited" icon={Layers}>
-                <Empty text="No visitor breakdown for this period yet." />
+            <Card title={t('cms_site.analytics.overview.who', 'Who visited')} icon={Layers}>
+                <Empty text={t('cms_site.analytics.overview.no_breakdown', 'No visitor breakdown for this period yet.')} />
             </Card>
         );
     }
 
     return (
-        <Card title="Who visited" icon={Layers}>
+        <Card title={t('cms_site.analytics.overview.who', 'Who visited')} icon={Layers}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {strips.map(s => {
                     const top = s.rows.slice(0, 5);
                     const rest = s.rows.slice(5).reduce((a, r) => a + (r.y || 0), 0);
                     const segments = [
-                        ...top.map(r => ({ label: r.x || 'Unknown', value: r.y || 0 })),
-                        ...(rest > 0 ? [{ label: 'Other', value: rest, color: 'var(--border-default, rgba(255,255,255,0.2))' }] : []),
+                        ...top.map(r => ({ label: r.x || t('cms_site.analytics.common.unknown', 'Unknown'), value: r.y || 0 })),
+                        ...(rest > 0 ? [{ label: t('cms_site.analytics.overview.other', 'Other'), value: rest, color: 'var(--border-default, rgba(255,255,255,0.2))' }] : []),
                     ];
                     return (
                         <div key={s.key}>
@@ -194,13 +197,13 @@ function Composition({ overview, onDrill }) {
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                                     {top.filter(r => r.x).map(r => (
                                         <button key={r.x} onClick={() => onDrill(s.dim, r.x)}
-                                            title={`Filter the dashboard by ${r.x}`}
+                                            title={t('cms_site.analytics.overview.filter_by', 'Filter the dashboard by {value}', { value: r.x })}
                                             style={{
                                                 fontSize: 10, padding: '2px 7px', borderRadius: 6, cursor: 'pointer',
                                                 background: 'transparent', color: 'var(--text-muted, #888)',
                                                 border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
                                             }}>
-                                            filter: {r.x}
+                                            {t('cms_site.analytics.overview.filter_chip', 'filter: {value}', { value: r.x })}
                                         </button>
                                     ))}
                                 </div>
@@ -214,8 +217,9 @@ function Composition({ overview, onDrill }) {
 }
 
 function DrillHint({ show }) {
+    const { t } = useTranslation();
     if (!show) return null;
     return (
-        <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>click a row to filter</span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.overview.drill_hint', 'click a row to filter')}</span>
     );
 }

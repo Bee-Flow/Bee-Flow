@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import AppIcon from '../../icons/AppIcon';
+import { uploadCmsFile } from './cmsUpload';
 import IconPicker from './controls/IconPicker';
 import AssetPickerDialog from './dialogs/AssetPickerDialog';
-import { uploadCmsFile } from './cmsUpload';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../utils/helpers';
+import AppIcon from '../../icons/AppIcon';
 
 /**
  * Optional context for "+ Create new page…" inside any LinkField. The
@@ -78,17 +79,18 @@ export function AutoTextarea({ value, onChange, placeholder, className, ariaLabe
  * block data lazily — never seeded as a default.
  */
 export function AlignControl({ value, onChange }) {
+    const { t } = useTranslation();
     const current = (value === 'center' || value === 'right') ? value : 'left';
     const OPTIONS = [
-        { v: 'left',   icon: 'AlignLeft',   title: 'Align left' },
-        { v: 'center', icon: 'AlignCenter', title: 'Align center' },
-        { v: 'right',  icon: 'AlignRight',  title: 'Align right' },
+        { v: 'left',   icon: 'AlignLeft',   title: t('cms_site.site.fields.align_left', 'Align left') },
+        { v: 'center', icon: 'AlignCenter', title: t('cms_site.site.fields.align_center', 'Align center') },
+        { v: 'right',  icon: 'AlignRight',  title: t('cms_site.site.fields.align_right', 'Align right') },
     ];
     return (
         <div
             className="inline-flex w-fit rounded-md border border-[var(--border-default)] overflow-hidden"
             role="group"
-            aria-label="Text alignment"
+            aria-label={t('cms_site.site.fields.align_group', 'Text alignment')}
         >
             {OPTIONS.map((o, i) => {
                 const active = current === o.v;
@@ -173,15 +175,16 @@ export function Toggle({ value, onChange, label }) {
  * for power users. API unchanged from the plain-input version.
  */
 export function IconField({ value, onChange, label }) {
+    const { t } = useTranslation();
     const [pickerOpen, setPickerOpen] = useState(false);
     return (
-        <FieldRow label={label} hint="Lucide icon name (PascalCase) — e.g. ShieldCheck, Mail, Brain">
+        <FieldRow label={label} hint={t('cms_site.site.fields.icon_hint', 'Lucide icon name (PascalCase) — e.g. ShieldCheck, Mail, Brain')}>
             <div className="flex items-center gap-2">
                 <button
                     type="button"
                     onClick={() => setPickerOpen(true)}
-                    title="Browse icons…"
-                    aria-label={`${label || 'Icon'} — browse icons`}
+                    title={t('cms_site.site.fields.icon_browse', 'Browse icons…')}
+                    aria-label={t('cms_site.site.fields.icon_browse_label', '{label} — browse icons', { label: label || t('cms_site.site.fields.icon_default', 'Icon') })}
                     className="w-9 h-9 shrink-0 rounded-md flex items-center justify-center bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--accent-primary)] hover:border-[var(--accent-primary)] transition-colors cursor-pointer"
                 >
                     {value ? <AppIcon name={value} className="w-5 h-5" /> : <span className="text-xs text-[var(--text-muted)]">?</span>}
@@ -191,7 +194,7 @@ export function IconField({ value, onChange, label }) {
                     className={inputClass}
                     value={value || ''}
                     onChange={(e) => onChange(e.target.value)}
-                    placeholder="ShieldCheck"
+                    placeholder={t('cms_site.site.fields.icon_placeholder', 'ShieldCheck')}
                 />
             </div>
             {pickerOpen ? (
@@ -248,6 +251,7 @@ export function ImageField({
     // 'captions'. Defaults from previewKind.
     libraryKind,
 }) {
+    const { t } = useTranslation();
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(null);
     const [error, setError] = useState(null);
@@ -273,7 +277,7 @@ export function ImageField({
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `Upload failed (${res.status})`);
+                throw new Error(data.error || t('cms_site.site.fields.upload_failed', 'Upload failed ({status})', { status: res.status }));
             }
             const data = await res.json();
             onChange(data.url);
@@ -311,11 +315,11 @@ export function ImageField({
                         className={inputClass}
                         value={value || ''}
                         onChange={(e) => onChange(e.target.value)}
-                        placeholder={placeholder || 'https://… or /api/cms/asset/cms/…'}
+                        placeholder={placeholder || t('cms_site.site.fields.image_placeholder', 'https://… or /api/cms/asset/cms/…')}
                     />
                     <div className="flex items-center gap-2">
                         <label className="px-3 py-1.5 text-xs rounded-md cursor-pointer bg-[var(--bg-tertiary)] border border-[var(--border-default)] hover:border-[var(--accent-primary)] transition-colors">
-                            {uploading ? (progress === null ? 'Uploading…' : `Uploading… ${progress}%`) : (uploadLabel || 'Upload image')}
+                            {uploading ? (progress === null ? t('cms_site.site.fields.uploading', 'Uploading…') : t('cms_site.site.fields.uploading_pct', 'Uploading… {pct}%', { pct: progress })) : (uploadLabel || t('cms_site.site.fields.upload_image', 'Upload image'))}
                             <input
                                 type="file"
                                 accept={accept}
@@ -330,7 +334,7 @@ export function ImageField({
                                 onClick={() => setBrowsing(true)}
                                 className="px-3 py-1.5 text-xs rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-default)] hover:border-[var(--accent-primary)] transition-colors text-[var(--text-secondary)]"
                             >
-                                Browse…
+                                {t('cms_site.site.fields.browse', 'Browse…')}
                             </button>
                         ) : null}
                         {value ? (
@@ -339,7 +343,7 @@ export function ImageField({
                                 onClick={() => onChange('')}
                                 className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                             >
-                                Remove
+                                {t('cms_site.site.fields.remove', 'Remove')}
                             </button>
                         ) : null}
                     </div>
@@ -348,7 +352,7 @@ export function ImageField({
                             className="w-full h-1.5"
                             value={progress}
                             max={100}
-                            aria-label={`Upload progress ${progress}%`}
+                            aria-label={t('cms_site.site.fields.upload_progress', 'Upload progress {pct}%', { pct: progress })}
                         />
                     ) : null}
                     {error ? <span className="text-xs text-red-400" role="alert">{error}</span> : null}
@@ -407,7 +411,8 @@ function useAssetLibraryAvailable(enabled) {
  * When omitted, the button isn't rendered — no other repeater sees any
  * change.
  */
-export function RepeatableList({ items = [], onChange, renderItem, makeNew, label, addLabel = 'Add item', itemLabel, collapsible = false, duplicateItem }) {
+export function RepeatableList({ items = [], onChange, renderItem, makeNew, label, addLabel, itemLabel, collapsible = false, duplicateItem }) {
+    const { t } = useTranslation();
     const update = (idx, next) => {
         const copy = [...items];
         copy[idx] = next;
@@ -516,17 +521,17 @@ export function RepeatableList({ items = [], onChange, renderItem, makeNew, labe
                                     name — a screen reader announced "button, up
                                     arrow" with no idea what moves. */}
                                 <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0}
-                                        aria-label={`Move item ${idx + 1} up`} title="Move up"
+                                        aria-label={t('cms_site.site.fields.move_item_up', 'Move item {n} up', { n: idx + 1 })} title={t('cms_site.site.fields.move_up', 'Move up')}
                                         className="px-2 py-0.5 text-xs rounded hover:bg-[var(--bg-tertiary)] disabled:opacity-30">↑</button>
                                 <button type="button" onClick={() => move(idx,  1)} disabled={idx === items.length - 1}
-                                        aria-label={`Move item ${idx + 1} down`} title="Move down"
+                                        aria-label={t('cms_site.site.fields.move_item_down', 'Move item {n} down', { n: idx + 1 })} title={t('cms_site.site.fields.move_down', 'Move down')}
                                         className="px-2 py-0.5 text-xs rounded hover:bg-[var(--bg-tertiary)] disabled:opacity-30">↓</button>
                                 {typeof duplicateItem === 'function' ? (
                                     <button type="button" onClick={() => duplicate(idx)}
-                                            className="px-2 py-0.5 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">Duplicate</button>
+                                            className="px-2 py-0.5 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">{t('cms_site.site.fields.duplicate', 'Duplicate')}</button>
                                 ) : null}
                                 <button type="button" onClick={() => remove(idx)}
-                                        className="px-2 py-0.5 text-xs rounded text-red-400 hover:bg-red-500/10">Remove</button>
+                                        className="px-2 py-0.5 text-xs rounded text-red-400 hover:bg-red-500/10">{t('cms_site.site.fields.remove', 'Remove')}</button>
                             </div>
                         </div>
                         {!isCollapsed && renderItem(item, (next) => update(idx, next), idx)}
@@ -539,7 +544,7 @@ export function RepeatableList({ items = [], onChange, renderItem, makeNew, labe
                 onClick={handleAdd}
                 className="mt-2 px-3 py-1.5 text-xs rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors"
             >
-                + {addLabel}
+                + {addLabel || t('cms_site.site.fields.add_item', 'Add item')}
             </button>
         </div>
     );
@@ -558,6 +563,7 @@ export const inputCls = inputClass;
  * from the admin payload, used to populate the internal-page dropdown.
  */
 export function LinkField({ label, value, onChange, pages = [], hint }) {
+    const { t } = useTranslation();
     const link = value && typeof value === 'object' ? value : { kind: 'external', url: '' };
     const kind = link.kind || 'external';
 
@@ -586,10 +592,10 @@ export function LinkField({ label, value, onChange, pages = [], hint }) {
                     if (next === 'app')      onChange({ kind: 'app', path: '/app' });
                 }}
             >
-                <option value="page">Internal page</option>
-                <option value="anchor">Anchor on this page</option>
-                <option value="external">External URL</option>
-                <option value="app">App route</option>
+                <option value="page">{t('cms_site.site.fields.link_page', 'Internal page')}</option>
+                <option value="anchor">{t('cms_site.site.fields.link_anchor', 'Anchor on this page')}</option>
+                <option value="external">{t('cms_site.site.fields.link_external', 'External URL')}</option>
+                <option value="app">{t('cms_site.site.fields.link_app', 'App route')}</option>
             </select>
 
             {/* kind-specific fields */}
@@ -606,7 +612,7 @@ export function LinkField({ label, value, onChange, pages = [], hint }) {
                 <input
                     type="text"
                     className={`${inputClass} mt-1.5`}
-                    placeholder="section-id (without #)"
+                    placeholder={t('cms_site.site.fields.link_anchor_placeholder', 'section-id (without #)')}
                     value={link.anchor || ''}
                     onChange={e => set({ anchor: e.target.value.replace(/^#/, '') })}
                 />
@@ -616,7 +622,7 @@ export function LinkField({ label, value, onChange, pages = [], hint }) {
                     <input
                         type="url"
                         className={inputClass}
-                        placeholder="https://…"
+                        placeholder={t('cms_site.site.fields.link_url_placeholder', 'https://…')}
                         value={link.url || ''}
                         onChange={e => set({ url: e.target.value })}
                     />
@@ -627,7 +633,7 @@ export function LinkField({ label, value, onChange, pages = [], hint }) {
                             onChange={e => set({ newTab: e.target.checked })}
                             className="accent-[var(--accent-primary)]"
                         />
-                        Open in new tab
+                        {t('cms_site.site.fields.link_new_tab', 'Open in new tab')}
                     </label>
                 </div>
             )}
@@ -654,6 +660,7 @@ export function LinkField({ label, value, onChange, pages = [], hint }) {
 const NEW_PAGE_SENTINEL = '__cms_new_page__';
 
 function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
+    const { t } = useTranslation();
     const onCreatePage = useContext(CreatePageContext);
     // The "+ Create new page…" branch keeps a snapshot of the previously
     // selected pageId so Cancel can restore it. We capture on focus, not
@@ -667,8 +674,8 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
     const [newSlug, setNewSlug] = useState('');
     const slugAuto = useRef(true);
 
-    const deriveSlug = (t) =>
-        String(t || '').toLowerCase().trim()
+    const deriveSlug = (text) =>
+        String(text || '').toLowerCase().trim()
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9_-]/g, '')
             .slice(0, 64);
@@ -696,7 +703,7 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
         setCreateError(null);
         try {
             const result = await onCreatePage({ title, slug: newSlug.trim() || undefined });
-            if (!result?.id) throw new Error('Page creation returned no id');
+            if (!result?.id) throw new Error(t('cms_site.site.fields.create_no_id', 'Page creation returned no id'));
             // Point the link at the freshly-created page. The new page now
             // appears in the `pages` prop on the next render (parent reloaded
             // its payload as part of handleAddPage), so the dropdown will
@@ -704,7 +711,7 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
             set({ pageId: result.id });
             setCreating(false);
         } catch (err) {
-            setCreateError(err?.message || 'Failed to create page');
+            setCreateError(err?.message || t('cms_site.site.fields.create_failed', 'Failed to create page'));
         } finally {
             setSubmitting(false);
         }
@@ -733,17 +740,17 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
                 value={selectValue}
                 onChange={handleSelectChange}
             >
-                {pages.length === 0 && !creating && <option value="">— no pages —</option>}
+                {pages.length === 0 && !creating && <option value="">{t('cms_site.site.fields.no_pages', '— no pages —')}</option>}
                 {/* If pageId is dangling, surface it in the dropdown so
                     the user can see what's set and pick a replacement. */}
                 {brokenPage && (
                     <option value={link.pageId}>
-                        ⚠ Missing page ({link.pageId})
+                        {t('cms_site.site.fields.missing_page', '⚠ Missing page ({id})', { id: link.pageId })}
                     </option>
                 )}
                 {pages.map(p => (
                     <option key={p.id} value={p.id}>
-                        {p.title || p.slug} (/{p.slug}{p.isHomepage ? ' · home' : ''})
+                        {p.title || p.slug} (/{p.slug}{p.isHomepage ? t('cms_site.site.fields.home_suffix', ' · home') : ''})
                     </option>
                 ))}
                 {/* "+ Create new page…" only appears when a CreatePageContext
@@ -751,12 +758,12 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
                     editor). External / unrelated reuses of LinkField stay
                     unaffected. */}
                 {onCreatePage && (
-                    <option value={NEW_PAGE_SENTINEL}>+ Create new page…</option>
+                    <option value={NEW_PAGE_SENTINEL}>{t('cms_site.site.fields.create_new_page', '+ Create new page…')}</option>
                 )}
             </select>
             {brokenPage && !creating && (
                 <span className="text-xs text-red-400">
-                    This link points to a page that no longer exists. Pick another page above.
+                    {t('cms_site.site.fields.broken_link', 'This link points to a page that no longer exists. Pick another page above.')}
                 </span>
             )}
             {linkedPage && !creating && (
@@ -768,13 +775,13 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
             {creating && (
                 <div className="rounded-md border border-dashed border-[var(--accent-primary)]/40 bg-[var(--bg-tertiary)] p-2 flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
-                        New page title
+                        {t('cms_site.site.fields.new_title', 'New page title')}
                     </label>
                     <input
                         autoFocus
                         type="text"
                         className={inputClass}
-                        placeholder="e.g. Pricing"
+                        placeholder={t('cms_site.site.fields.new_title_placeholder', 'e.g. Pricing')}
                         value={newTitle}
                         onChange={e => {
                             setNewTitle(e.target.value);
@@ -786,12 +793,12 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
                         }}
                     />
                     <label className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
-                        Slug
+                        {t('cms_site.site.fields.slug', 'Slug')}
                     </label>
                     <input
                         type="text"
                         className={`${inputClass} font-mono`}
-                        placeholder="auto"
+                        placeholder={t('cms_site.site.fields.slug_placeholder', 'auto')}
                         value={newSlug}
                         onChange={e => {
                             slugAuto.current = false;
@@ -808,7 +815,7 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
                             disabled={submitting}
                             className="text-xs px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-50"
                         >
-                            Cancel
+                            {t('cms_site.site.fields.cancel', 'Cancel')}
                         </button>
                         <button
                             type="button"
@@ -816,7 +823,7 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
                             disabled={submitting || !newTitle.trim()}
                             className="text-xs px-3 py-1 rounded bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {submitting ? 'Creating…' : 'Create page'}
+                            {submitting ? t('cms_site.site.fields.creating', 'Creating…') : t('cms_site.site.fields.create_page', 'Create page')}
                         </button>
                     </div>
                 </div>
@@ -824,7 +831,7 @@ function PageSelector({ link, set, pages, brokenPage, linkedPage }) {
             <input
                 type="text"
                 className={inputClass}
-                placeholder="#section-anchor (optional)"
+                placeholder={t('cms_site.site.fields.anchor_placeholder', '#section-anchor (optional)')}
                 value={link.anchor || ''}
                 onChange={e => set({ anchor: e.target.value.replace(/^#/, '') })}
             />
