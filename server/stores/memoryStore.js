@@ -74,16 +74,29 @@ async function _initDB() {
     // These were "routine" coverage memories before agent routines moved into
     // Cowork (2026-10): the column, its index and the type value are renamed in
     // place, once, before anything reads them under the new names.
+    // A database can hold BOTH names (the new column and index were created
+    // before the rename ran): then the old rows are copied over and the old
+    // index dropped, because renaming onto an existing index fails every init.
     await exec(`
         DO $$ BEGIN
             IF EXISTS (SELECT 1 FROM information_schema.columns
-                        WHERE table_schema = current_schema() AND table_name = 'user_memories' AND column_name = 'source_routine_id')
-               AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = current_schema() AND table_name = 'user_memories' AND column_name = 'source_routine_id') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                         WHERE table_schema = current_schema() AND table_name = 'user_memories' AND column_name = 'source_schedule_id') THEN
-                ALTER TABLE user_memories RENAME COLUMN source_routine_id TO source_schedule_id;
-                UPDATE user_memories SET type = 'schedule_coverage' WHERE type = 'routine_coverage';
+                    ALTER TABLE user_memories RENAME COLUMN source_routine_id TO source_schedule_id;
+                ELSE
+                    UPDATE user_memories SET source_schedule_id = source_routine_id
+                        WHERE source_schedule_id IS NULL AND source_routine_id IS NOT NULL;
+                END IF;
             END IF;
-            ALTER INDEX IF EXISTS idx_memories_routine RENAME TO idx_memories_schedule;
+            UPDATE user_memories SET type = 'schedule_coverage' WHERE type = 'routine_coverage';
+            IF to_regclass('idx_memories_routine') IS NOT NULL THEN
+                IF to_regclass('idx_memories_schedule') IS NULL THEN
+                    ALTER INDEX idx_memories_routine RENAME TO idx_memories_schedule;
+                ELSE
+                    DROP INDEX idx_memories_routine;
+                END IF;
+            END IF;
         END $$`);
     await exec(`ALTER TABLE user_memories ADD COLUMN IF NOT EXISTS source_schedule_id TEXT`);
     await exec(`ALTER TABLE user_memories ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`);
