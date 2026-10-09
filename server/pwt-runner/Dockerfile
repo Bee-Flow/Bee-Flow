@@ -39,10 +39,17 @@ COPY package*.json ./
 # package*.json changes; a lockfile out of sync with package.json fails loudly.
 # Same flaky-link tolerance as server/Dockerfile: npm's defaults give up on one
 # stalled socket halfway through a fresh install.
+#
+# npm itself leaves in the same layer: it is only needed for this install, and
+# the copy the base bundles (tar, minimatch, brace-expansion, sigstore, …) is
+# what the release container gate failed on. Nothing at runtime uses it:
+# entrypoint.js starts the Playwright CLI with node directly, and
+# scripts/check-release-container.sh asserts npm/npx are gone.
 RUN --mount=type=cache,target=/root/.npm \
     NPM_CONFIG_FETCH_RETRIES=5 NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
     NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 NPM_CONFIG_FETCH_TIMEOUT=600000 \
-    npm ci --omit=dev --no-audit --no-fund
+    npm ci --omit=dev --no-audit --no-fund \
+    && rm -rf /usr/lib/node_modules/npm /usr/bin/npm /usr/bin/npx
 
 COPY entrypoint.js ./
 

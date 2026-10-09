@@ -38,6 +38,16 @@ elif [[ "$service" == classify || "$service" == guard ]]; then
         # library lost to a purge fails here and not at a customer.
         if [ "$SERVICE" = guard ]; then python -c "import torch, onnxruntime, gliner"; else python -c "import torch, sklearn, gliclass"; fi
     '
+elif [[ "$service" == pwt-runner ]]; then
+    # npm is removed after the install (its bundled packages are the base's
+    # advisories); the runner must still load Playwright and its test CLI.
+    docker run --rm --network none --read-only --tmpfs /tmp --entrypoint /bin/sh "$image" -ec '
+        test -z "$(command -v npm || true)"
+        test -z "$(command -v npx || true)"
+        test ! -e /usr/lib/node_modules/npm
+        cd /runner && node -e '\''require("playwright"); require("@playwright/test")'\''
+        node /runner/node_modules/@playwright/test/cli.js --version
+    '
 elif [[ "$service" == connector ]]; then
     docker run --rm --network none --read-only --entrypoint /bin/sh "$image" -ec '
         test -z "$(command -v npm || true)"
