@@ -8,6 +8,7 @@ import {
     mediaUrl,
     parseManifest,
     resetLearnManifestCache,
+    videoForLocale,
 } from './learnMedia';
 import { stepIsRequired, stepStatusSatisfies, STEP_TYPES } from './stepTypes';
 
@@ -53,6 +54,29 @@ describe('parseManifest', () => {
         expect(parsed?.videos.burned).toEqual({ file: 'b.mp4', burnedCaptions: true, captions: { en: 'b.en.vtt' }, transcript: [] });
         expect(parsed?.videos.plain).not.toHaveProperty('burnedCaptions');
         expect(parsed?.videos.odd).not.toHaveProperty('burnedCaptions');
+    });
+
+    it('keeps a language variant of a clip, with its own caption track, and drops malformed ones', () => {
+        const parsed = parseManifest({
+            videos: {
+                intro: {
+                    file: 'intro.aa.mp4',
+                    captions: { en: 'intro.en.aa.vtt' },
+                    transcript: ['Hello'],
+                    locales: {
+                        nl: { file: 'intro.nl.bb.mp4', burnedCaptions: true, captions: { nl: 'intro.nl.bb.vtt', en: 'x.vtt' }, duration: 70, transcript: ['Hallo'] },
+                        de: { file: '../evil.mp4' },
+                        en: { file: 'twice.mp4' },
+                        'nl-BE': { file: 'region.mp4' },
+                    },
+                },
+            },
+        });
+        expect(parsed?.videos.intro.locales).toEqual({
+            nl: { file: 'intro.nl.bb.mp4', burnedCaptions: true, captions: { nl: 'intro.nl.bb.vtt' }, duration: 70, transcript: ['Hallo'] },
+        });
+        // A clip without any valid variant carries no locales key at all.
+        expect(parseManifest({ videos: { a: { file: 'a.mp4', locales: { de: { file: 'x.txt' } } } } })?.videos.a).not.toHaveProperty('locales');
     });
 
     it('rejects documents that are not manifests', () => {
@@ -133,5 +157,22 @@ describe('video steps in a lesson', () => {
         // Existing kinds are unchanged.
         expect(stepIsRequired({ type: 'quiz' })).toBe(true);
         expect(stepStatusSatisfies({ type: 'slide' }, undefined)).toBe(true);
+    });
+});
+
+describe('videoForLocale', () => {
+    const entry = parseManifest({
+        videos: { intro: { file: 'intro.mp4', captions: { en: 'intro.en.vtt' }, transcript: [], locales: { nl: { file: 'intro.nl.mp4', captions: { nl: 'intro.nl.vtt' }, transcript: [] } } } },
+    })!.videos.intro;
+
+    it('plays the variant in the language the learner reads the app in', () => {
+        expect(videoForLocale(entry, 'nl')).toEqual({ video: entry.locales!.nl, lang: 'nl' });
+        expect(videoForLocale(entry, 'nl-BE').lang).toBe('nl');
+    });
+
+    it('falls back to the English clip for any other language, or none', () => {
+        for (const locale of ['en', 'de', '', null, undefined]) {
+            expect(videoForLocale(entry, locale)).toEqual({ video: entry, lang: 'en' });
+        }
     });
 });

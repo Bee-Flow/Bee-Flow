@@ -12,7 +12,7 @@ const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 
-const { syncFromPin, validatePin } = require('./learnMediaInstall');
+const { syncFromPin, validatePin, verifyPack } = require('./learnMediaInstall');
 
 const sha = (buf) => createHash('sha256').update(buf).digest('hex');
 const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'learn-media-install-'));
@@ -213,3 +213,35 @@ test('validatePin', () => {
         assert.throws(() => validatePin(bad));
     }
 });
+
+/** A pack directory on disk: the files, plus a manifest listing them with their hashes. */
+function writePack(bodies, videos) {
+    const dir = scratch();
+    const files = {};
+    for (const [rel, body] of Object.entries(bodies)) {
+        fs.mkdirSync(path.join(dir, path.dirname(rel)), { recursive: true });
+        fs.writeFileSync(path.join(dir, rel), body);
+        files[rel] = sha(Buffer.from(body));
+    }
+    fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({ version: 'v1', videos, files }));
+    return dir;
+}
+
+test('a language variant of a clip must be in the pack too, under a two-letter code', async () => {
+    const bodies = {
+        'intro/intro.aaaaaaaaaaaa.mp4': 'video one',
+        'intro/intro.aaaaaaaaaaaa.en.vtt': 'WEBVTT one',
+        'intro/intro.nl.cccccccccccc.mp4': 'video een',
+        'intro/intro.nl.cccccccccccc.vtt': 'WEBVTT een',
+    };
+    const en = { file: 'intro/intro.aaaaaaaaaaaa.mp4', captions: { en: 'intro/intro.aaaaaaaaaaaa.en.vtt' } };
+    const nl = { file: 'intro/intro.nl.cccccccccccc.mp4', captions: { nl: 'intro/intro.nl.cccccccccccc.vtt' } };
+    const ok = await verifyPack(writePack(bodies, { intro: { ...en, locales: { nl } } }));
+    assert.strictEqual(ok.videos.intro.locales.nl.file, 'intro/intro.nl.cccccccccccc.mp4');
+
+    const missing = { ...nl, captions: { nl: 'intro/intro.nl.dddddddddddd.vtt' } };
+    await assert.rejects(verifyPack(writePack(bodies, { intro: { ...en, locales: { nl: missing } } })), /locale nl names .*which manifest.files does not cover/);
+    await assert.rejects(verifyPack(writePack(bodies, { intro: { ...en, locales: { 'nl-BE': nl } } })), /not a two-letter language code/);
+    await assert.rejects(verifyPack(writePack(bodies, { intro: { ...en, locales: [nl] } })), /locales that are not an object/);
+});
+

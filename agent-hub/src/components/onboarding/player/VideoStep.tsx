@@ -1,7 +1,7 @@
 import { CircleCheck, ChevronDown } from 'lucide-react';
 import React, { useEffect, useId, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { isCrossOrigin, mediaUrl, useLearnManifest, videoEntry } from '../learnMedia';
+import { isCrossOrigin, mediaUrl, useLearnManifest, videoEntry, videoForLocale } from '../learnMedia';
 
 export interface VideoStepDoc {
     id: string;
@@ -40,6 +40,9 @@ interface VideoStepProps {
  */
 type Translate = (key: string, fallback: string) => string;
 
+/** A caption track's label in its own language: a Dutch learner looking for Dutch subtitles reads "Nederlands". */
+const TRACK_LABELS: Record<string, string> = { nl: 'Nederlands', de: 'Deutsch', fr: 'Français' };
+
 /** The manifest entry for this step, and whether it is known to be missing. */
 function useVideoEntry(step: VideoStepDoc, onUnavailable?: () => void) {
     const media = useLearnManifest(true);
@@ -58,18 +61,22 @@ function stepTitle(step: VideoStepDoc, t: Translate): string {
 }
 
 export default function VideoStep({ step, saved, onState, onUnavailable }: VideoStepProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const found = useVideoEntry(step, onUnavailable);
     if (!found) return null;
 
-    const { entry, base } = found;
+    // The clip in the language the learner reads the app in (the app on
+    // screen, the voice and the subtitles), English when the pack has none.
+    const { video: entry, lang } = videoForLocale(found.entry, resolvedLocale);
+    const { base } = found;
     const title = stepTitle(step, t);
     const watched = saved?.status === 'watched';
     // Burned-in subtitles are always on screen. A <track> next to them would
     // draw every line twice whenever it is shown, and Safari turns one on by
     // itself for a learner whose OS asks for captions; so such a clip gets no
     // track at all, and the transcript below carries the text.
-    const captions = entry.captions.en && !entry.burnedCaptions ? mediaUrl(base, entry.captions.en) : null;
+    const track = entry.captions[lang];
+    const captions = track && !entry.burnedCaptions ? mediaUrl(base, track) : null;
     const onEnded = () => {
         if (!watched) onState?.({ status: 'watched', watchedAt: new Date().toISOString() });
     };
@@ -97,7 +104,7 @@ export default function VideoStep({ step, saved, onState, onUnavailable }: Video
                     data-testid="lesson-video-player"
                 >
                     {captions && (
-                        <track kind="captions" srcLang="en" src={captions} default label={t('learn.video.captions_label', 'English')} />
+                        <track kind="captions" srcLang={lang} src={captions} default label={TRACK_LABELS[lang] || t('learn.video.captions_label', 'English')} />
                     )}
                 </video>
             </div>

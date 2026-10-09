@@ -141,5 +141,7 @@ module.exports = {
     'cowork.when.time_aria': 'Time',
     // Hardcoded literals converted (2026-10)
     'cowork.mode_switch_label': 'Chat or Cowork',
+    'cowork.mode_hint_chat': 'Answers you here, in the conversation',
+    'cowork.mode_hint_cowork': 'Runs on its own — now or on a schedule',
     'cowork.pick_left': 'Or pick something on the left to see when it runs and how every run went.',
 };

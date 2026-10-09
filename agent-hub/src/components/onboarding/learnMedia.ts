@@ -11,8 +11,16 @@
  *
  * Pack layout, relative to the base:
  *   manifest.json = { version, videos: { <videoId>: { file, burnedCaptions?,
- *                     captions: { en }, poster, duration, transcript: [string] } },
- *                     files? }
+ *                     captions: { en }, poster, duration, transcript: [string],
+ *                     locales?: { <lang>: { file, burnedCaptions?, captions: { <lang> },
+ *                     poster?, duration, transcript } } } }, files? }
+ *
+ * The entry itself is the English clip. `locales` holds the same lesson
+ * recorded in another language (the app on screen, the voice and the
+ * subtitles all in that language); videoForLocale picks it for a learner
+ * who reads the app in that language, and falls back to English otherwise.
+ * One videoId either way, so step ids, progress and the pack pin do not
+ * depend on the language.
  *
  * `burnedCaptions: true` means the subtitles are part of the picture (the
  * clip-studio pack default): the player then adds no caption track of its own,
@@ -27,14 +35,21 @@ import { useEffect, useState } from 'react';
 import { API_BASE } from '../../utils/helpers';
 import { STEP_TYPES, stepType } from './stepTypes';
 
-export interface LearnVideo {
+export interface LearnVideoVariant {
     file: string;
     /** The subtitles are burned into the video itself: no player caption track. */
     burnedCaptions?: true;
-    captions: { en?: string };
+    /** Caption track per language: `en` for the entry itself, the locale's own code for a variant. */
+    captions: Partial<Record<string, string>>;
     poster?: string;
     duration?: number;
     transcript: string[];
+}
+
+export interface LearnVideo extends LearnVideoVariant {
+    captions: { en?: string };
+    /** The same lesson recorded in another language, by language code. */
+    locales?: Record<string, LearnVideoVariant>;
 }
 
 export interface LearnManifest {
@@ -129,18 +144,49 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
-function parseVideo(value: unknown): LearnVideo | null {
+const LOCALE_CODE = /^[a-z]{2}$/;
+
+/** One clip of a manifest entry; `lang` names the caption track it may carry. */
+function parseVariant(value: unknown, lang: string): LearnVideoVariant | null {
     if (!isPlainObject(value)) return null;
     const file = safeRelative(value.file, ['.mp4']);
     if (!file) return null;
-    const en = safeRelative(isPlainObject(value.captions) ? value.captions.en : undefined, ['.vtt']);
+    const track = safeRelative(isPlainObject(value.captions) ? value.captions[lang] : undefined, ['.vtt']);
     const poster = safeRelative(value.poster, ['.jpg', '.webp']);
     const d = value.duration;
     const duration = typeof d === 'number' && Number.isFinite(d) && d > 0 ? d : undefined;
     const transcript = Array.isArray(value.transcript)
         ? value.transcript.filter((line): line is string => typeof line === 'string' && line.trim().length > 0)
         : [];
-    return { file, ...(value.burnedCaptions === true ? { burnedCaptions: true as const } : {}), captions: en ? { en } : {}, ...(poster ? { poster } : {}), ...(duration ? { duration } : {}), transcript };
+    return { file, ...(value.burnedCaptions === true ? { burnedCaptions: true as const } : {}), captions: track ? { [lang]: track } : {}, ...(poster ? { poster } : {}), ...(duration ? { duration } : {}), transcript };
+}
+
+function parseVideo(value: unknown): LearnVideo | null {
+    const video = parseVariant(value, 'en') as LearnVideo | null;
+    if (!video) return null;
+    // A malformed language variant is dropped on its own: the English clip still plays.
+    const raw = (value as { locales?: unknown }).locales;
+    if (isPlainObject(raw)) {
+        const locales: Record<string, LearnVideoVariant> = {};
+        for (const [lang, v] of Object.entries(raw)) {
+            const variant = LOCALE_CODE.test(lang) && lang !== 'en' ? parseVariant(v, lang) : null;
+            if (variant) locales[lang] = variant;
+        }
+        if (Object.keys(locales).length) video.locales = locales;
+    }
+    return video;
+}
+
+/**
+ * The clip to play for a learner reading the app in `locale` (the language
+ * actually on screen, useTranslation's resolvedLocale): that language's
+ * variant when the pack has one, else the English entry. `lang` is the
+ * language of the returned clip, for its caption track.
+ */
+export function videoForLocale(entry: LearnVideo, locale: string | null | undefined): { video: LearnVideoVariant; lang: string } {
+    const lang = String(locale || '').toLowerCase().split('-')[0];
+    const variant = lang && lang !== 'en' ? entry.locales?.[lang] : undefined;
+    return variant ? { video: variant, lang } : { video: entry, lang: 'en' };
 }
 
 // ── The one fetch, shared by every player and step ─────────────────────────

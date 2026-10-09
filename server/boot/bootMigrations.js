@@ -212,6 +212,8 @@ const NL_TRANSLATIONS = [
     'add-nl-hardcoded-automation-builder-2026-10-translations', // Automation builder: Dutch for the strings that used to be hard-coded English (panels, step editors, trigger filters, pickers, output views)
     'add-nl-hardcoded-website-admin-2026-10-translations', // Website admin (Product Website builder) and Component Studio: strings that had no key
     'add-nl-hardcoded-studio-admin-2026-10-translations', // Studio screens (App Studio, Automations, Executions, Solutions, Support): Dutch for literals that now go through t()
+    'add-nl-ui-complete-2026-10-translations',    // Every UI string without Dutch (2026-10): agent studio, knowledge, skills, meetings, webpages, cowork, admin, chat, ...
+    'add-nl-learn-content-2026-10-translations',  // Learning Center lesson content for every course but Foundations (2026-10)
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',
