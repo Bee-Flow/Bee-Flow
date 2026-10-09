@@ -3,6 +3,7 @@ import React from 'react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { knowledgeWriteSummary } from '../nodeSummaries';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * A write into a knowledge base.
@@ -20,16 +21,17 @@ import { knowledgeWriteSummary } from '../nodeSummaries';
  *              once. On the card it stays visible.
  */
 export default function KnowledgeWriteNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter, kbNameById } = data;
     const repeats = !String(step.sourceUri || '').trim();
 
     const badges = (
         <>
-            <NodeChip tone="warn" title="This step adds to a knowledge base — an agent will answer from it afterwards.">writes</NodeChip>
+            <NodeChip tone="warn" title={t('automations.knowledge_write_node.this_step_adds_to_a_knowledge', 'This step adds to a knowledge base — an agent will answer from it afterwards.')}>writes</NodeChip>
             {repeats && (
                 <NodeChip
                     tone="warn"
-                    title="No source reference, so every run adds another document instead of replacing its own."
+                    title={t('automations.knowledge_write_node.no_source_reference_so_every_run', 'No source reference, so every run adds another document instead of replacing its own.')}
                 >repeats</NodeChip>
             )}
         </>

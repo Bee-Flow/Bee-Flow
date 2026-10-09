@@ -2,6 +2,7 @@ import { appendKey } from '@shared/expr/path.mjs';
 import { Check, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Search } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { summariseData } from '../flow/dataSummary';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Collapsible, searchable JSON tree with hover-revealed "copy path"
@@ -125,6 +126,7 @@ export default function JsonTree({
  * has promised "the raw data" for a while and delivered a tree.
  */
 function TreeToolbar({ searchable, query, onQuery, onExpandAll, onCollapseAll, onCopy, copied }) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1.5 px-2 py-1 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]/30 shrink-0">
             {searchable && (
@@ -134,8 +136,8 @@ function TreeToolbar({ searchable, query, onQuery, onExpandAll, onCollapseAll, o
                         type="text"
                         value={query}
                         onChange={(e) => onQuery(e.target.value)}
-                        placeholder="Search keys or values…"
-                        aria-label="Search keys or values"
+                        placeholder={t('automations.json_tree.search_keys_or_values', 'Search keys or values…')}
+                        aria-label={t('automations.json_tree.search_keys_or_values_2', 'Search keys or values')}
                         className="flex-1 min-w-0 bg-transparent text-[11px] text-[var(--text-primary)] focus:outline-none"
                     />
                 </>
@@ -169,6 +171,7 @@ function TreeAction({ Icon, label, title, onClick }) {
 }
 
 function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPath, matches }) {
+    const { t } = useTranslation();
     const isObj = value && typeof value === 'object' && !Array.isArray(value);
     const isArr = Array.isArray(value);
     const isContainer = isObj || isArr;
@@ -205,7 +208,7 @@ function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPa
                         onClick={copyPath}
                         title={`Copy path: ${path}`}
                         className="ml-auto opacity-0 group-hover:opacity-100 p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)]"
-                        aria-label="Copy path"
+                        aria-label={t('automations.json_tree.copy_path', 'Copy path')}
                     >
                         <Copy size={10} />
                     </button>
@@ -258,7 +261,7 @@ function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPa
                         onClick={copyPath}
                         title={`Copy path: ${path}`}
                         className="ml-auto opacity-0 group-hover:opacity-100 p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)]"
-                        aria-label="Copy path"
+                        aria-label={t('automations.json_tree.copy_path', 'Copy path')}
                     >
                         <Copy size={10} />
                     </button>

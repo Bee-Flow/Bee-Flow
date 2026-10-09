@@ -9,6 +9,7 @@ import {
     cronFromPreset,
     describeCron,
 } from './scheduleBuilderUtils';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Visual schedule builder. Replaces the two raw cron/timezone text
@@ -26,6 +27,7 @@ import {
  *   existing autosave plumbing in StepInspector picks it up unchanged.
  */
 export default function ScheduleBuilder({ cron, tz, onChange }) {
+    const { t } = useTranslation();
     const [preset, setPreset] = useState(() => presetFromCron(cron));
     const [customDraft, setCustomDraft] = useState(() => cron || '0 9 * * *');
     const [tzValue, setTzValue] = useState(tz || 'Europe/Amsterdam');
@@ -97,12 +99,12 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
                         onChange={(e) => setPreset(presetForMode(e.target.value, preset))}
                         className={inputClass()}
                     >
-                        <option value="minute">Every N minutes</option>
-                        <option value="hourly">Hourly</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="custom">Advanced — custom pattern</option>
+                        <option value="minute">{t('automations.schedule_builder.every_n_minutes', 'Every N minutes')}</option>
+                        <option value="hourly">{t('automations.schedule_builder.hourly', 'Hourly')}</option>
+                        <option value="daily">{t('automations.schedule_builder.daily', 'Daily')}</option>
+                        <option value="weekly">{t('automations.schedule_builder.weekly', 'Weekly')}</option>
+                        <option value="monthly">{t('automations.schedule_builder.monthly', 'Monthly')}</option>
+                        <option value="custom">{t('automations.schedule_builder.advanced_custom_pattern', 'Advanced — custom pattern')}</option>
                     </select>
                 </Field>
                 <Field label="Timezone">
@@ -245,7 +247,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
                                 Next runs in {tzValue}:
                             </div>
                             {loading && preview.next.length === 0 && (
-                                <div className="text-[var(--text-tertiary)]">Computing…</div>
+                                <div className="text-[var(--text-tertiary)]">{t('automations.schedule_builder.computing', 'Computing…')}</div>
                             )}
                             {preview.next.length > 0 ? (
                                 <ul className="space-y-0.5">
@@ -256,7 +258,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
                                     ))}
                                 </ul>
                             ) : (!loading && (
-                                <div className="text-[var(--text-tertiary)]">No upcoming runs in the next year.</div>
+                                <div className="text-[var(--text-tertiary)]">{t('automations.schedule_builder.no_upcoming_runs_in_the_next', 'No upcoming runs in the next year.')}</div>
                             ))}
                         </div>
                     </div>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { joinKeyPath, keyPickable } from './keyPath';
 import { mergeElements } from './upstream/fieldTree';
 import { previewValue } from '../../../../utils/bindingHelpers';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * JsonTreePicker — a recursive, arbitrary-depth JSON tree whose rows emit
@@ -29,10 +30,11 @@ import { previewValue } from '../../../../utils/bindingHelpers';
 // server resolves to undefined.
 
 export default function JsonTreePicker({ value, onPick, maxDepth = 20, maxChildren = 200 }) {
+    const { t } = useTranslation();
     if (value === null || typeof value !== 'object') {
         return (
             <div className="text-[11px] italic text-[var(--text-tertiary)]">
-                No object or list to pick from.
+                {t('automations.json_tree_picker.no_object_or_list_to_pick', 'No object or list to pick from.')}
             </div>
         );
     }
@@ -115,6 +117,7 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
 }
 
 function TreeNode({ nodeKey, value, path, depth, onPick, maxDepth, maxChildren, pickable = true }) {
+    const { t } = useTranslation();
     const isObj = value !== null && typeof value === 'object';
     const hasChildren = isObj
         && depth < maxDepth
@@ -149,7 +152,7 @@ function TreeNode({ nodeKey, value, path, depth, onPick, maxDepth, maxChildren, 
                     </button>
                 ) : (
                     <span
-                        title="This key contains characters a field path cannot express — copy the value manually instead."
+                        title={t('automations.json_tree_picker.this_key_contains_characters_a_field', 'This key contains characters a field path cannot express — copy the value manually instead.')}
                         className="flex-1 min-w-0 flex items-baseline gap-2 px-1 py-0.5 rounded text-left opacity-60 cursor-not-allowed"
                     >
                         <span className="font-mono text-[var(--text-primary)] truncate">{nodeKey}</span>

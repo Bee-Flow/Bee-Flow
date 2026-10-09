@@ -2,6 +2,7 @@
 // separate tick from AskOnceRow and offered on the http_request editor.
 import { useMemo } from 'react';
 import { inputClass } from '../formPrimitives';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 /** Who else can read a table, in the words the datatables list uses. */
 const TABLE_AUDIENCE = {
@@ -30,6 +31,7 @@ const TABLE_AUDIENCE = {
  * pointing this at an ordinary table would fail once, at run time, at 3am.
  */
 function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledReason = null }) {
+    const { t } = useTranslation();
     const tables = useMemo(() => (catalog?.datatables || [])
         .filter(t => t && t.managedKind === 'http_cache' && t.canWrite !== false), [catalog]);
     const current = (draft.cacheInto && typeof draft.cacheInto === 'object') ? draft.cacheInto : null;
@@ -61,7 +63,7 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                     onChange={(e) => setTable(e.target.checked ? (tables[0]?.id || '') : '')}
                 />
                 <span>
-                    <span className="font-medium">Remember answers in a table</span>
+                    <span className="font-medium">{t('automations.cache_into_row.remember_answers_in_a_table', 'Remember answers in a table')}</span>
                     <span className="block text-slate-500 dark:text-slate-400">
                         {reason || 'Each answer is written to a table as an ordinary row, so a later run — days or weeks on — uses it instead of asking again. You can open the table, check the answers, correct them and export them.'}
                     </span>
@@ -71,7 +73,7 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
             {on && (
                 <div className="pl-5 space-y-2">
                     <label className="block text-xs">
-                        <span className="block text-slate-500 dark:text-slate-400 mb-1">Which table</span>
+                        <span className="block text-slate-500 dark:text-slate-400 mb-1">{t('automations.cache_into_row.which_table', 'Which table')}</span>
                         <select
                             value={current.datatableId}
                             onChange={(e) => setTable(e.target.value)}
@@ -83,7 +85,7 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                                 worse than showing that it is gone. */}
                             {!tables.some(t => t.id === current.datatableId) && (
                                 <option value={current.datatableId}>
-                                    (a table you can no longer reach)
+                                    {t('automations.cache_into_row.a_table_you_can_no_longer', '(a table you can no longer reach)')}
                                 </option>
                             )}
                             {tables.map(t => (
@@ -95,7 +97,7 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                     </label>
 
                     <label className="block text-xs">
-                        <span className="block text-slate-500 dark:text-slate-400 mb-1">Reuse an answer for</span>
+                        <span className="block text-slate-500 dark:text-slate-400 mb-1">{t('automations.cache_into_row.reuse_an_answer_for', 'Reuse an answer for')}</span>
                         <span className="flex items-center gap-2">
                             <input
                                 type="number"
@@ -114,8 +116,7 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                             decision is made rather than buried in a doc: unlike
                             the encrypted store above, these rows are plain text
                             in a table other people can open. */}
-                        Answers land as ordinary rows: everyone with access to that table can read and
-                        export them. Old rows are removed by the retention window set on the table itself.
+                        {t('automations.cache_into_row.answers_land_as_ordinary_rows_everyone', 'Answers land as ordinary rows: everyone with access to that table can read and export them. Old rows are removed by the retention window set on the table itself.')}
                     </div>
                 </div>
             )}

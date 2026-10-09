@@ -4,11 +4,13 @@
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { cardClass, rowInputClass, subLabelClass } from './formPrimitives';
 import { OUTPUT_FIELD_TYPES, COLUMN_TYPES } from './formState';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 export interface ColumnRow { key: string; type: string }
 export interface OutputFieldRow { key: string; type: string; description?: string; columns?: ColumnRow[] }
 
 export function StructuredOutputFields({ fields, onChange }: { fields: OutputFieldRow[]; onChange: (next: OutputFieldRow[]) => void }) {
+    const { t } = useTranslation();
     const update = (i: number, partial: Partial<OutputFieldRow>) => {
         const next = fields.slice();
         next[i] = { ...next[i], ...partial };
@@ -31,7 +33,7 @@ export function StructuredOutputFields({ fields, onChange }: { fields: OutputFie
         <div className="space-y-2">
             {fields.length === 0 && (
                 <div className="text-[11px] text-[var(--text-tertiary)] italic">
-                    No fields yet — the AI will return free-form text. Add fields to get a structured JSON response.
+                    {t('automations.structured_output_fields.no_fields_yet_the_ai_will', 'No fields yet — the AI will return free-form text. Add fields to get a structured JSON response.')}
                 </div>
             )}
             {fields.map((f, i) => (
@@ -41,7 +43,7 @@ export function StructuredOutputFields({ fields, onChange }: { fields: OutputFie
                             type="text"
                             value={f.key || ''}
                             onChange={(e) => update(i, { key: e.target.value })}
-                            placeholder="fieldName"
+                            placeholder={t('automations.structured_output_fields.field_name', 'fieldName')}
                             className={rowInputClass('flex-1 min-w-0 font-mono')}
                         />
                         <select
@@ -55,7 +57,7 @@ export function StructuredOutputFields({ fields, onChange }: { fields: OutputFie
                             type="button"
                             onClick={() => remove(i)}
                             className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
-                            title="Remove field"
+                            title={t('automations.structured_output_fields.remove_field', 'Remove field')}
                         >
                             <Trash2 size={12} />
                         </button>
@@ -64,7 +66,7 @@ export function StructuredOutputFields({ fields, onChange }: { fields: OutputFie
                         type="text"
                         value={f.description || ''}
                         onChange={(e) => update(i, { description: e.target.value })}
-                        placeholder="Description (optional) — guides the model on what to put here"
+                        placeholder={t('automations.structured_output_fields.description_optional_guides_the_model_on', 'Description (optional) — guides the model on what to put here')}
                         className={rowInputClass('w-full')}
                     />
                     {f.type === 'array' && (
@@ -91,6 +93,7 @@ export function StructuredOutputFields({ fields, onChange }: { fields: OutputFie
 // so the model returns rows the Output panel renders as a real table. With no
 // columns the array stays free-form (the model infers the shape).
 function ColumnsEditor({ columns, onChange }: { columns: ColumnRow[]; onChange: (next: ColumnRow[]) => void }) {
+    const { t } = useTranslation();
     const update = (i: number, partial: Partial<ColumnRow>) => {
         const next = columns.slice();
         next[i] = { ...next[i], ...partial };
@@ -120,11 +123,11 @@ function ColumnsEditor({ columns, onChange }: { columns: ColumnRow[]; onChange: 
     return (
         <div className="mt-1 rounded border border-dashed border-[var(--border-default)] p-2 space-y-1.5">
             <div className={subLabelClass()}>
-                Columns
+                {t('automations.structured_output_fields.columns', 'Columns')}
             </div>
             {columns.length === 0 && (
                 <div className="text-[11px] text-[var(--text-tertiary)] italic">
-                    No columns — the AI infers the table shape. Add columns to fix the headers, their types, and order.
+                    {t('automations.structured_output_fields.no_columns_the_ai_infers_the', 'No columns — the AI infers the table shape. Add columns to fix the headers, their types, and order.')}
                 </div>
             )}
             {columns.map((c, i) => (
@@ -135,8 +138,8 @@ function ColumnsEditor({ columns, onChange }: { columns: ColumnRow[]; onChange: 
                             onClick={() => move(i, -1)}
                             disabled={i === 0}
                             className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="Move up"
-                            aria-label="Move column up"
+                            title={t('automations.structured_output_fields.move_up', 'Move up')}
+                            aria-label={t('automations.structured_output_fields.move_column_up', 'Move column up')}
                         >
                             <ChevronUp size={11} />
                         </button>
@@ -145,8 +148,8 @@ function ColumnsEditor({ columns, onChange }: { columns: ColumnRow[]; onChange: 
                             onClick={() => move(i, 1)}
                             disabled={i === columns.length - 1}
                             className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="Move down"
-                            aria-label="Move column down"
+                            title={t('automations.structured_output_fields.move_down', 'Move down')}
+                            aria-label={t('automations.structured_output_fields.move_column_down', 'Move column down')}
                         >
                             <ChevronDown size={11} />
                         </button>
@@ -155,7 +158,7 @@ function ColumnsEditor({ columns, onChange }: { columns: ColumnRow[]; onChange: 
                         type="text"
                         value={c.key || ''}
                         onChange={(e) => update(i, { key: e.target.value })}
-                        placeholder="columnName"
+                        placeholder={t('automations.structured_output_fields.column_name', 'columnName')}
                         className={rowInputClass('flex-1 min-w-0 font-mono')}
                     />
                     <select
@@ -169,7 +172,7 @@ function ColumnsEditor({ columns, onChange }: { columns: ColumnRow[]; onChange: 
                         type="button"
                         onClick={() => remove(i)}
                         className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
-                        title="Remove column"
+                        title={t('automations.structured_output_fields.remove_column', 'Remove column')}
                     >
                         <Trash2 size={12} />
                     </button>

@@ -16,6 +16,7 @@ import ValueBuilder from '../mapping/ValueBuilder';
 import { humanizeFieldKey } from './displayHelpers';
 import { expectedKindFor } from '../mapping/fieldKinds';
 import { expectedShapeFor } from '../mapping/listShape';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export default function CallContractFields({
     step,
@@ -36,6 +37,7 @@ export default function CallContractFields({
     outputFields = [],
     errorSections = new Set(),
 }) {
+    const { t } = useTranslation();
     const autoMapped = Array.isArray(step.autoMapped) ? step.autoMapped : [];
     return (
         <>
@@ -51,7 +53,7 @@ export default function CallContractFields({
                     )}
                 </FormRow>
             </AccordionSection>
-            <AccordionSection stepType={stepType} sectionKey="inputs" title="Inputs" defaultOpen={contract.length > 0} forceOpen={errorSections.has('inputs')}>
+            <AccordionSection stepType={stepType} sectionKey="inputs" title={t('automations.call_contract_fields.inputs', 'Inputs')} defaultOpen={contract.length > 0} forceOpen={errorSections.has('inputs')}>
                 <FormRow label="Inputs" hint={inputsHint}>
                     {contract.length === 0 ? (
                         <div className="text-[11px] text-[var(--text-tertiary)] italic">{emptyInputsLabel}</div>
@@ -115,7 +117,7 @@ export default function CallContractFields({
                 </FormRow>
             </AccordionSection>
             {outputFields.length > 0 && (
-                <AccordionSection stepType={stepType} sectionKey="returns" title="Returns">
+                <AccordionSection stepType={stepType} sectionKey="returns" title={t('automations.call_contract_fields.returns', 'Returns')}>
                     <FormRow label="Returns" hint="These fields are available to downstream steps by name.">
                         <div className="text-[11px] text-[var(--text-secondary)] font-mono">{outputFields.join(', ')}</div>
                     </FormRow>

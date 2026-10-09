@@ -74,7 +74,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
 
     return (
         <>
-            <AccordionSection stepType={step.type} sectionKey="config" title="Configuration" defaultOpen forceOpen={errorSections.has('config')}>
+            <AccordionSection stepType={step.type} sectionKey="config" title={t('automations.privacy_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
                 <FormRow label="What should this step do?">
                     <div className="flex flex-col gap-1">
                         {PRIVACY_MODES.map((m) => (
@@ -103,9 +103,9 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                         <div className="flex gap-2">
                             <button type="button" className="underline font-semibold"
                                 onClick={() => { const next = modeAsk.next; setModeAsk(null); setPrivacy({ mode: next }); }}>
-                                Switch anyway
+                                {t('automations.privacy_editors.switch_anyway', 'Switch anyway')}
                             </button>
-                            <button type="button" className="underline" onClick={() => setModeAsk(null)}>Keep this mode</button>
+                            <button type="button" className="underline" onClick={() => setModeAsk(null)}>{t('automations.privacy_editors.keep_this_mode', 'Keep this mode')}</button>
                         </div>
                     </div>
                 )}
@@ -118,7 +118,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                         previewSample={previewSample}
                         quickPicks={guardQuickPicks(groups)}
                         quickPicksLabel="Text from previous steps"
-                        placeholder="Pick a value from an earlier step"
+                        placeholder={t('automations.privacy_editors.pick_a_value_from_an_earlier', 'Pick a value from an earlier step')}
                     />
                 </FormRow>
 
@@ -136,7 +136,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                         Bind the next step to <code>output.text</code>. Every value is replaced by a placeholder like{' '}
                         <code>[email_1]</code>, and the real values are put back <strong>automatically</strong> wherever the
                         run uses them again — an AI reply, a tool result. For a value that never comes back
-                        that way, add a step in <strong>Show real values again</strong> mode where you want them restored.
+                        that way, add a step in <strong>{t('automations.privacy_editors.show_real_values_again', 'Show real values again')}</strong> mode where you want them restored.
                     </p>
                 )}
                 {branches && (
@@ -145,7 +145,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                         <span className="font-semibold text-emerald-600 dark:text-emerald-400">clean</span> — wire an alert to the first.
                         {mode === 'check_hide' && (
                             <> The hidden copy is on <code>output.text</code>, with reversible placeholders — a later
-                            <strong> Show real values again</strong> can restore it.</>
+                            <strong> {t('automations.privacy_editors.show_real_values_again', 'Show real values again')}</strong> can restore it.</>
                         )}
                     </p>
                 )}
@@ -162,17 +162,17 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                         <label className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
                             <input type="checkbox" checked={!!privacy.stopOnFound} onChange={(e) => setPrivacy({ stopOnFound: e.target.checked })} className="mt-0.5 accent-[var(--accent)]" />
                             <span>
-                                Stop the run
-                                <span className="block text-[var(--text-tertiary)]">The run fails, and the failure says which categories were found.</span>
+                                {t('automations.privacy_editors.stop_the_run', 'Stop the run')}
+                                <span className="block text-[var(--text-tertiary)]">{t('automations.privacy_editors.the_run_fails_and_the_failure', 'The run fails, and the failure says which categories were found.')}</span>
                             </span>
                         </label>
                         <label className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
                             <input type="checkbox" checked={!!privacy.maskOnFound} onChange={(e) => setPrivacy({ maskOnFound: e.target.checked })} className="mt-0.5 accent-[var(--accent)]" />
                             <span>
-                                Pass a masked copy on
+                                {t('automations.privacy_editors.pass_a_masked_copy_on', 'Pass a masked copy on')}
                                 <span className="block text-[var(--text-tertiary)]">
                                     Adds <code>output.masked</code>, with every value replaced by <code>[person]</code>. Irreversible — the
-                                    original is not recoverable from it, unlike the placeholders <strong>Check and hide</strong> mints.
+                                    original is not recoverable from it, unlike the placeholders <strong>{t('automations.privacy_editors.check_and_hide', 'Check and hide')}</strong> mints.
                                 </span>
                             </span>
                         </label>
@@ -181,7 +181,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                 )}
             </AccordionSection>
             {scans && (
-            <AccordionSection stepType={step.type} sectionKey="advanced" title="Advanced" forceOpen={errorSections.has('advanced')}>
+            <AccordionSection stepType={step.type} sectionKey="advanced" title={t('automations.privacy_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced')}>
                 <FormRow label={hides && !branches ? 'Hide' : 'Look for'} hint="Everything the organisation looks for, unless you narrow it here. A step can only look for LESS than the Privacy Shield does, never more.">
                     <div className="flex flex-wrap gap-1">
                         {categories.map((c) => {
@@ -212,7 +212,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                         type="number" min={0} max={1} step={0.05}
                         value={privacy.confidence ?? ''}
                         onChange={(e) => setPrivacy({ confidence: e.target.value === '' ? null : Number(e.target.value) })}
-                        placeholder="inherited"
+                        placeholder={t('automations.privacy_editors.inherited', 'inherited')}
                         className={inputClass()}
                     />
                 </FormRow>

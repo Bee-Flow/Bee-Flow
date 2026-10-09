@@ -107,7 +107,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
                 onClick={() => { onClose(); onDelete(); }}
             >
                 <Trash2 size={12} /> Delete
-                <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">Del</span>
+                <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{t('automations.node_context_menu.del', 'Del')}</span>
             </button>
         </div>,
         document.body,

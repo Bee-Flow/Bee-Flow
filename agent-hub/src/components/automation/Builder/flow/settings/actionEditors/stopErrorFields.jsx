@@ -3,10 +3,12 @@
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow } from '../formPrimitives';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 function StopErrorFields({ draft, set, onFocusField, previewSample, errorSections = new Set() }) {
+    const { t } = useTranslation();
     return (
-        <AccordionSection stepType="stop_error" sectionKey="config" title="Configuration" defaultOpen forceOpen={errorSections.has('config')}>
+        <AccordionSection stepType="stop_error" sectionKey="config" title={t('automations.stop_error_fields.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
             <FormRow label="Error message" hint="Surfaced as the run error. Template-interpolated.">
                 <TemplateField
                     value={draft.message || ''}
@@ -14,7 +16,7 @@ function StopErrorFields({ draft, set, onFocusField, previewSample, errorSection
                     rows={3}
                     onFocusField={onFocusField}
                     previewSample={previewSample}
-                    placeholder="Budget exceeded by {{steps.calc.output.delta}}"
+                    placeholder={t('automations.stop_error_fields.budget_exceeded_by', 'Budget exceeded by {{steps.calc.output.delta}}')}
                 />
             </FormRow>
         </AccordionSection>

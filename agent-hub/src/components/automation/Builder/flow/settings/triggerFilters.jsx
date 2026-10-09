@@ -7,9 +7,10 @@ import { nOf } from '../../../../admin/Studio/KnowledgeStudio/plural';
 import { AMBER_NOTE, hintTextClass, inputClass, sectionHeaderClass, FormRow } from './formPrimitives';
 
 export function GmailFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
         <div className="rounded-md border border-[var(--border-subtle)] p-3 space-y-3">
-            <div className={sectionHeaderClass()}>Gmail filter (all optional, AND across keys)</div>
+            <div className={sectionHeaderClass()}>{t('automations.trigger_filters.gmail_filter_all_optional_and_across', 'Gmail filter (all optional, AND across keys)')}</div>
             <FormRow label="From contains">
                 <input type="text" value={filter.from || ''} onChange={(e) => setFilter('from', e.target.value || undefined)}
                     placeholder="boss@example.com" className={inputClass()} />
@@ -26,13 +27,13 @@ export function GmailFilterFields({ filter, setFilter }) {
             <FormRow label="Has attachment">
                 <label className="inline-flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={filter.hasAttachment === true} onChange={(e) => setFilter('hasAttachment', e.target.checked || undefined)} />
-                    Only emails with attachments
+                    {t('automations.trigger_filters.only_emails_with_attachments', 'Only emails with attachments')}
                 </label>
             </FormRow>
             <FormRow label="Exclude self-sent">
                 <label className="inline-flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={filter.excludeFromSelf === true} onChange={(e) => setFilter('excludeFromSelf', e.target.checked || undefined)} />
-                    Skip emails I sent
+                    {t('automations.trigger_filters.skip_emails_i_sent', 'Skip emails I sent')}
                 </label>
             </FormRow>
             <FormRow label="Max age (minutes)" hint="Drop messages older than this. Useful so a long-paused poller doesn't flood with backlog on resume.">
@@ -69,6 +70,7 @@ function FilterShell({ title, children }) {
 const splitCsv = (text) => text.split(',').map(s => s.trim()).filter(Boolean);
 
 export function GmailLabelFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     // The exclude box keeps its OWN text. The stored list is trimmed and
     // blank-free, so re-joining it would swallow the comma the moment it is
     // typed — the write-back is synchronous, the value recomputes without that
@@ -81,7 +83,7 @@ export function GmailLabelFilterFields({ filter, setFilter }) {
     if (splitCsv(excludeText).join(',') !== splitCsv(joinedExcludes).join(',')) setExcludeText(joinedExcludes);
 
     return (
-        <FilterShell title="Gmail label.added filter (labelId is required)">
+        <FilterShell title={t('automations.trigger_filters.gmail_label_added_filter_label_id', 'Gmail label.added filter (labelId is required)')}>
             <FormRow label="Label id" hint="Gmail label ids look like Label_3 or system ids like IMPORTANT / STARRED. Use a gmail_search step once to find the id if needed.">
                 <input type="text" value={filter.labelId || ''} onChange={(e) => setFilter('labelId', e.target.value || undefined)}
                     placeholder="Label_3" className={inputClass()} />
@@ -95,7 +97,7 @@ export function GmailLabelFilterFields({ filter, setFilter }) {
             <FormRow label="Exclude labels (comma-separated)" hint="Drops messages that already carry any of these labels.">
                 <input
                     type="text"
-                    aria-label="Exclude labels"
+                    aria-label={t('automations.trigger_filters.exclude_labels', 'Exclude labels')}
                     value={excludeText}
                     onChange={(e) => {
                         setExcludeText(e.target.value);
@@ -110,11 +112,12 @@ export function GmailLabelFilterFields({ filter, setFilter }) {
 }
 
 export function CalendarChangedFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Calendar event.changed filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.calendar_event_changed_filter_all_optional', 'Calendar event.changed filter (all optional)')}>
             <FormRow label="Calendar id" hint="Default 'primary'. Use a different calendar id if you've connected secondary calendars.">
                 <input type="text" value={filter.calendarId || ''} onChange={(e) => setFilter('calendarId', e.target.value || undefined)}
-                    placeholder="primary" className={inputClass() + ' font-mono'} />
+                    placeholder={t('automations.trigger_filters.primary', 'primary')} className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Status">
                 <select
@@ -122,7 +125,7 @@ export function CalendarChangedFilterFields({ filter, setFilter }) {
                     onChange={(e) => setFilter('statusEquals', e.target.value || undefined)}
                     className={inputClass()}
                 >
-                    <option value="">Any</option>
+                    <option value="">{t('automations.trigger_filters.any', 'Any')}</option>
                     <option value="confirmed">confirmed</option>
                     <option value="cancelled">cancelled</option>
                     <option value="tentative">tentative</option>
@@ -137,8 +140,9 @@ export function CalendarChangedFilterFields({ filter, setFilter }) {
 }
 
 export function CalendarUpcomingFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Calendar event.upcoming filter">
+        <FilterShell title={t('automations.trigger_filters.calendar_event_upcoming_filter', 'Calendar event.upcoming filter')}>
             <FormRow label="Lead minutes" hint="Fire this many minutes before the event starts. Default 15.">
                 <input
                     type="number"
@@ -151,12 +155,12 @@ export function CalendarUpcomingFilterFields({ filter, setFilter }) {
             </FormRow>
             <FormRow label="Calendar id">
                 <input type="text" value={filter.calendarId || ''} onChange={(e) => setFilter('calendarId', e.target.value || undefined)}
-                    placeholder="primary" className={inputClass() + ' font-mono'} />
+                    placeholder={t('automations.trigger_filters.primary', 'primary')} className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Include all-day events">
                 <label className="inline-flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={filter.includeAllDay === true} onChange={(e) => setFilter('includeAllDay', e.target.checked || undefined)} />
-                    Yes — fire on all-day events too
+                    {t('automations.trigger_filters.yes_fire_on_all_day_events', 'Yes — fire on all-day events too')}
                 </label>
             </FormRow>
             <FormRow label="Attendee email contains">
@@ -176,18 +180,19 @@ export function CalendarUpcomingFilterFields({ filter, setFilter }) {
  * the two modes read identically otherwise.
  */
 export function SheetsChangedFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Google Sheets filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.google_sheets_filter_all_optional', 'Google Sheets filter (all optional)')}>
             <FormRow label="Spreadsheet ID" hint="From the sheet URL: docs.google.com/spreadsheets/d/<id>/edit. Set this to watch the sheet's contents row by row; leave empty to fire whenever any of your spreadsheets is edited.">
-                <input type="text" aria-label="Spreadsheet ID" value={filter.spreadsheetId || ''} onChange={(e) => setFilter('spreadsheetId', e.target.value || undefined)}
-                    placeholder="1AbCDeFgHiJkLmNoPqRsTuV" className={inputClass() + ' font-mono'} />
+                <input type="text" aria-label={t('automations.trigger_filters.spreadsheet_id', 'Spreadsheet ID')} value={filter.spreadsheetId || ''} onChange={(e) => setFilter('spreadsheetId', e.target.value || undefined)}
+                    placeholder={t('automations.trigger_filters.1_ab_cde_fg_hi_jk', '1AbCDeFgHiJkLmNoPqRsTuV')} className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Sheet / tab" hint="Tab name, e.g. Budget. Only with a spreadsheet picked; default is the first tab.">
-                <input type="text" aria-label="Sheet / tab" value={filter.sheet || ''} onChange={(e) => setFilter('sheet', e.target.value || undefined)}
-                    placeholder="Budget" className={inputClass()} />
+                <input type="text" aria-label={t('automations.trigger_filters.sheet_tab', 'Sheet / tab')} value={filter.sheet || ''} onChange={(e) => setFilter('sheet', e.target.value || undefined)}
+                    placeholder={t('automations.trigger_filters.budget', 'Budget')} className={inputClass()} />
             </FormRow>
             <FormRow label="Range" hint="A1 notation without the tab name, e.g. A1:D100, or C:C to watch one column. Default: the whole tab.">
-                <input type="text" aria-label="Range" value={filter.range || ''} onChange={(e) => setFilter('range', e.target.value || undefined)}
+                <input type="text" aria-label={t('automations.trigger_filters.range', 'Range')} value={filter.range || ''} onChange={(e) => setFilter('range', e.target.value || undefined)}
                     placeholder="A1:D100" className={inputClass() + ' font-mono'} />
             </FormRow>
             {filter.spreadsheetId && (
@@ -200,8 +205,9 @@ export function SheetsChangedFilterFields({ filter, setFilter }) {
 }
 
 export function DriveFileNewFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Drive file.new filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.drive_file_new_filter_all_optional', 'Drive file.new filter (all optional)')}>
             <FormRow label="Folder id" hint="Drive folder id. Find via drive_search or by copying from the URL: drive.google.com/drive/folders/<id>.">
                 <input type="text" value={filter.folderId || ''} onChange={(e) => setFilter('folderId', e.target.value || undefined)}
                     className={inputClass() + ' font-mono'} />
@@ -217,7 +223,7 @@ export function DriveFileNewFilterFields({ filter, setFilter }) {
             <FormRow label="Exclude my own uploads">
                 <label className="inline-flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={filter.excludeOwnUploads === true} onChange={(e) => setFilter('excludeOwnUploads', e.target.checked || undefined)} />
-                    Skip files I uploaded
+                    {t('automations.trigger_filters.skip_files_i_uploaded', 'Skip files I uploaded')}
                 </label>
             </FormRow>
         </FilterShell>
@@ -225,15 +231,16 @@ export function DriveFileNewFilterFields({ filter, setFilter }) {
 }
 
 export function NextcloudFileFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Nextcloud file filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.nextcloud_file_filter_all_optional', 'Nextcloud file filter (all optional)')}>
             <FormRow label="In folder" hint="Path prefix, e.g. /Invoices. Files outside this folder are skipped.">
                 <input type="text" value={filter.inFolder || ''} onChange={(e) => setFilter('inFolder', e.target.value || undefined)}
                     placeholder="/Invoices" className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Extension" hint="Without dot, e.g. pdf.">
                 <input type="text" value={filter.extension || ''} onChange={(e) => setFilter('extension', e.target.value || undefined)}
-                    placeholder="pdf" className={inputClass() + ' font-mono'} />
+                    placeholder={t('automations.trigger_filters.pdf', 'pdf')} className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Name contains">
                 <input type="text" value={filter.nameContains || ''} onChange={(e) => setFilter('nameContains', e.target.value || undefined)}
@@ -242,7 +249,7 @@ export function NextcloudFileFilterFields({ filter, setFilter }) {
             <FormRow label="Exclude my own actions">
                 <label className="inline-flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={filter.excludeOwnUploads === true} onChange={(e) => setFilter('excludeOwnUploads', e.target.checked || undefined)} />
-                    Skip files I created/edited
+                    {t('automations.trigger_filters.skip_files_i_created_edited', 'Skip files I created/edited')}
                 </label>
             </FormRow>
             <div className="text-[11px] text-[var(--text-tertiary)] leading-snug">
@@ -253,8 +260,9 @@ export function NextcloudFileFilterFields({ filter, setFilter }) {
 }
 
 export function NextcloudShareFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Nextcloud share.received filter">
+        <FilterShell title={t('automations.trigger_filters.nextcloud_share_received_filter', 'Nextcloud share.received filter')}>
             <FormRow label="Sharer (actor) equals" hint="Nextcloud username (uid) of the person who shared the item.">
                 <input type="text" value={filter.actorEquals || ''} onChange={(e) => setFilter('actorEquals', e.target.value || undefined)}
                     className={inputClass() + ' font-mono'} />
@@ -265,7 +273,7 @@ export function NextcloudShareFilterFields({ filter, setFilter }) {
                     onChange={(e) => setFilter('kindEquals', e.target.value || undefined)}
                     className={inputClass()}
                 >
-                    <option value="">Any (file or folder)</option>
+                    <option value="">{t('automations.trigger_filters.any_file_or_folder', 'Any (file or folder)')}</option>
                     <option value="file">file</option>
                     <option value="folder">folder</option>
                 </select>
@@ -279,11 +287,12 @@ export function NextcloudShareFilterFields({ filter, setFilter }) {
 }
 
 export function NextcloudActivityFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Nextcloud activity filter (advanced)">
+        <FilterShell title={t('automations.trigger_filters.nextcloud_activity_filter_advanced', 'Nextcloud activity filter (advanced)')}>
             <FormRow label="Activity type" hint="Raw activity slug (e.g. file_created, comments, deck). Leave empty to match every type — and prefer file.new / file.changed / share.received as dedicated triggers.">
                 <input type="text" value={filter.type || ''} onChange={(e) => setFilter('type', e.target.value || undefined)}
-                    placeholder="comments" className={inputClass() + ' font-mono'} />
+                    placeholder={t('automations.trigger_filters.comments', 'comments')} className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Object name contains">
                 <input type="text" value={filter.objectNameContains || ''} onChange={(e) => setFilter('objectNameContains', e.target.value || undefined)}
@@ -298,11 +307,12 @@ export function NextcloudActivityFilterFields({ filter, setFilter }) {
 }
 
 export function NextcloudNotificationFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Nextcloud notification filter">
+        <FilterShell title={t('automations.trigger_filters.nextcloud_notification_filter', 'Nextcloud notification filter')}>
             <FormRow label="App" hint="Source app id (e.g. spreed, files_sharing, dav, updatenotification).">
                 <input type="text" value={filter.app || ''} onChange={(e) => setFilter('app', e.target.value || undefined)}
-                    placeholder="spreed" className={inputClass() + ' font-mono'} />
+                    placeholder={t('automations.trigger_filters.spreed', 'spreed')} className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Subject contains">
                 <input type="text" value={filter.subjectContains || ''} onChange={(e) => setFilter('subjectContains', e.target.value || undefined)}
@@ -313,8 +323,9 @@ export function NextcloudNotificationFilterFields({ filter, setFilter }) {
 }
 
 export function SupportTicketResolvedFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Support Inbox ticket.resolved filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.support_inbox_ticket_resolved_filter_all', 'Support Inbox ticket.resolved filter (all optional)')}>
             <FormRow label="Inbox id" hint="Restrict to one support inbox. Leave empty to match every inbox.">
                 <input type="text" value={filter.inboxId || ''} onChange={(e) => setFilter('inboxId', e.target.value || undefined)}
                     className={inputClass() + ' font-mono'} />
@@ -329,7 +340,7 @@ export function SupportTicketResolvedFilterFields({ filter, setFilter }) {
                     onChange={(e) => setFilter('priorityEquals', e.target.value || undefined)}
                     className={inputClass()}
                 >
-                    <option value="">Any</option>
+                    <option value="">{t('automations.trigger_filters.any', 'Any')}</option>
                     <option value="low">low</option>
                     <option value="medium">medium</option>
                     <option value="high">high</option>
@@ -346,7 +357,7 @@ export function SupportTicketResolvedFilterFields({ filter, setFilter }) {
                     onChange={(e) => setFilter('resolvedBy', e.target.value || undefined)}
                     className={inputClass()}
                 >
-                    <option value="">Any</option>
+                    <option value="">{t('automations.trigger_filters.any', 'Any')}</option>
                     <option value="ai">ai</option>
                     <option value="staff">staff</option>
                 </select>
@@ -367,7 +378,7 @@ export function SupportTicketResolvedFilterFields({ filter, setFilter }) {
                         checked={filter.requireGenuineContact !== false}
                         onChange={(e) => setFilter('requireGenuineContact', e.target.checked ? undefined : false)}
                     />
-                    Only genuine customer conversations
+                    {t('automations.trigger_filters.only_genuine_customer_conversations', 'Only genuine customer conversations')}
                 </label>
             </FormRow>
         </FilterShell>
@@ -376,15 +387,16 @@ export function SupportTicketResolvedFilterFields({ filter, setFilter }) {
 
 // Lookup used by AppEventFields — `<provider>.<event>` → filter sub-form.
 export function NextcloudFormsSubmittedFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Nextcloud form filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.nextcloud_form_filter_all_optional', 'Nextcloud form filter (all optional)')}>
             <FormRow label="Form ID" hint="Numeric id — leave empty to fire for every form you can see. Find it with the “List forms” action.">
                 <input type="number" value={filter.formId ?? ''} onChange={(e) => setFilter('formId', e.target.value === '' ? undefined : Number(e.target.value))}
                     placeholder="51" className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Form hash" hint="The token in the form's share link — an alternative to the numeric id.">
                 <input type="text" value={filter.formHash || ''} onChange={(e) => setFilter('formHash', e.target.value || undefined)}
-                    placeholder="abc123def456" className={inputClass() + ' font-mono'} />
+                    placeholder={t('automations.trigger_filters.abc123def456', 'abc123def456')} className={inputClass() + ' font-mono'} />
             </FormRow>
             <FormRow label="Title contains">
                 <input type="text" value={filter.titleContains || ''} onChange={(e) => setFilter('titleContains', e.target.value || undefined)}
@@ -395,7 +407,7 @@ export function NextcloudFormsSubmittedFilterFields({ filter, setFilter }) {
                     className={inputClass() + ' font-mono'} />
             </FormRow>
             <div className="text-[11px] text-[var(--text-tertiary)] leading-snug">
-                The answers are not in the trigger payload — follow this with the
+                {t('automations.trigger_filters.the_answers_are_not_in_the', 'The answers are not in the trigger payload — follow this with the')}
                 <code> Get form submissions </code> action, bound to
                 <code> trigger.output.formId </code> and <code> trigger.output.submissionId</code>.
             </div>
@@ -404,8 +416,9 @@ export function NextcloudFormsSubmittedFilterFields({ filter, setFilter }) {
 }
 
 export function NextcloudTablesRowFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Nextcloud Tables row filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.nextcloud_tables_row_filter_all_optional', 'Nextcloud Tables row filter (all optional)')}>
             <FormRow label="Table ID" hint="Numeric id — find it with the “List tables” action.">
                 <input type="number" value={filter.tableId ?? ''} onChange={(e) => setFilter('tableId', e.target.value === '' ? undefined : Number(e.target.value))}
                     placeholder="34" className={inputClass() + ' font-mono'} />
@@ -416,7 +429,7 @@ export function NextcloudTablesRowFilterFields({ filter, setFilter }) {
             </FormRow>
             <FormRow label="Value equals">
                 <input type="text" value={filter.valueEquals ?? ''} onChange={(e) => setFilter('valueEquals', e.target.value === '' ? undefined : e.target.value)}
-                    placeholder="approved" className={inputClass()} />
+                    placeholder={t('automations.trigger_filters.approved', 'approved')} className={inputClass()} />
             </FormRow>
             <FormRow label="Value contains">
                 <input type="text" value={filter.valueContains || ''} onChange={(e) => setFilter('valueContains', e.target.value || undefined)}
@@ -425,7 +438,7 @@ export function NextcloudTablesRowFilterFields({ filter, setFilter }) {
             <FormRow label="Only when that column changed" hint="Row updates fire on any edit. Tick this to fire only when the column above actually changed value.">
                 <label className="inline-flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={filter.changedOnly === true} onChange={(e) => setFilter('changedOnly', e.target.checked || undefined)} />
-                    Ignore edits that left this column alone
+                    {t('automations.trigger_filters.ignore_edits_that_left_this_column', 'Ignore edits that left this column alone')}
                 </label>
             </FormRow>
             <FormRow label="Changed by" hint="Nextcloud user id.">
@@ -437,14 +450,15 @@ export function NextcloudTablesRowFilterFields({ filter, setFilter }) {
 }
 
 export function NextcloudTagFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Nextcloud tag filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.nextcloud_tag_filter_all_optional', 'Nextcloud tag filter (all optional)')}>
             <FormRow label="Tag ID" hint="Numeric id — from the “List tags” action. Nextcloud's tag event carries ids only, never the tag name.">
                 <input type="number" value={filter.tagId ?? ''} onChange={(e) => setFilter('tagId', e.target.value === '' ? undefined : Number(e.target.value))}
                     placeholder="3" className={inputClass() + ' font-mono'} />
             </FormRow>
             <div className="text-[11px] text-[var(--text-tertiary)] leading-snug">
-                The event carries no file path either — follow it with a Files action bound to
+                {t('automations.trigger_filters.the_event_carries_no_file_path', 'The event carries no file path either — follow it with a Files action bound to')}
                 <code> trigger.output.fileId </code> if you need the path or contents.
             </div>
         </FilterShell>
@@ -452,17 +466,17 @@ export function NextcloudTagFilterFields({ filter, setFilter }) {
 }
 
 export function NextcloudCalendarMutationFilterFields({ filter, setFilter }) {
+    const { t } = useTranslation();
     return (
-        <FilterShell title="Nextcloud calendar filter (all optional)">
+        <FilterShell title={t('automations.trigger_filters.nextcloud_calendar_filter_all_optional', 'Nextcloud calendar filter (all optional)')}>
             <FormRow label="Calendar ID" hint="Numeric id of the calendar. Leave empty for all calendars.">
                 <input type="number" value={filter.calendarId ?? ''} onChange={(e) => setFilter('calendarId', e.target.value === '' ? undefined : Number(e.target.value))}
                     className={inputClass() + ' font-mono'} />
             </FormRow>
             <div className="text-[11px] text-[var(--text-tertiary)] leading-snug">
-                Nextcloud's calendar webhook carries object metadata only — there is no summary,
-                start or end in it, so those cannot be filtered on here. Follow the trigger with
+                {t('automations.trigger_filters.nextcloud_s_calendar_webhook_carries_object', 'Nextcloud\'s calendar webhook carries object metadata only — there is no summary, start or end in it, so those cannot be filtered on here. Follow the trigger with')}
                 <code> Get calendar event </code> to read the actual event, or use
-                <strong> Calendar event upcoming </strong> if you want to match on the title.
+                <strong> {t('automations.trigger_filters.calendar_event_upcoming', 'Calendar event upcoming')} </strong> if you want to match on the title.
             </div>
         </FilterShell>
     );
@@ -518,7 +532,7 @@ export function MeetingNotesProcessedFilterFields({ filter, setFilter }) {
                         const arr = splitCsv(e.target.value);
                         setFilter('tags', arr.length ? arr : undefined);
                     }}
-                    placeholder="sales, klant-van-dijk"
+                    placeholder={t('automations.trigger_filters.sales_klant_van_dijk', 'sales, klant-van-dijk')}
                     className={inputClass()}
                 />
                 {/* Altijd zichtbaar, nooit in de ⓘ-popover: dit is de stand van

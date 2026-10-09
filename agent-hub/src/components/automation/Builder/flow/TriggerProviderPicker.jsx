@@ -2,6 +2,7 @@ import { Search, X, Check } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { getIntegrationIcon } from '../../../../config/integrationIcons';
 import Modal from '../../../shared/Modal';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * App picker for the "App event" trigger — the same overlay + search list +
@@ -23,6 +24,7 @@ import Modal from '../../../shared/Modal';
  *   onClose   — () => void
  */
 export default function TriggerProviderPicker({ providers = [], selected = null, onPick, onClose }) {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [focusedId, setFocusedId] = useState(
         () => (providers.some(p => p.id === selected) ? selected : providers[0]?.id) || null,
@@ -68,16 +70,16 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search apps"
-                                aria-label="Search apps"
+                                placeholder={t('automations.trigger_provider_picker.search_apps', 'Search apps')}
+                                aria-label={t('automations.trigger_provider_picker.search_apps', 'Search apps')}
                                 className="w-full bg-[var(--bg-secondary)] rounded-full pl-9 pr-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                                 autoFocus
                             />
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto px-2 pb-2 custom-scrollbar" role="listbox" aria-label="Apps">
+                    <div className="flex-1 overflow-y-auto px-2 pb-2 custom-scrollbar" role="listbox" aria-label={t('automations.trigger_provider_picker.apps', 'Apps')}>
                         {filtered.length === 0 && (
-                            <div className="text-xs text-[var(--text-tertiary)] text-center py-6">No apps match that search.</div>
+                            <div className="text-xs text-[var(--text-tertiary)] text-center py-6">{t('automations.trigger_provider_picker.no_apps_match_that_search', 'No apps match that search.')}</div>
                         )}
                         {filtered.map((p) => (
                             <button
@@ -93,7 +95,7 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
                                 <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">{getIntegrationIcon(p.id)}</div>
                                 <span className="truncate flex-1 text-[var(--text-primary)]">{p.label}</span>
                                 {p.id === selected && (
-                                    <Check size={14} className="text-[var(--accent-primary)]" aria-label="currently used" />
+                                    <Check size={14} className="text-[var(--accent-primary)]" aria-label={t('automations.trigger_provider_picker.currently_used', 'currently used')} />
                                 )}
                             </button>
                         ))}
@@ -106,7 +108,7 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
                         type="button"
                         onClick={onClose}
                         className="absolute top-3 right-3 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] z-10"
-                        aria-label="Close"
+                        aria-label={t('automations.trigger_provider_picker.close', 'Close')}
                     >
                         <X size={18} />
                     </button>
@@ -148,7 +150,7 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
                         </>
                     ) : (
                         <div className="flex-1 flex items-center justify-center text-sm text-[var(--text-tertiary)]">
-                            No event sources are available to you yet.
+                            {t('automations.trigger_provider_picker.no_event_sources_are_available_to', 'No event sources are available to you yet.')}
                         </div>
                     )}
                 </div>

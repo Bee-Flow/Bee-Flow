@@ -426,7 +426,7 @@ function RouteFields({
                                 onClick={convertToConditions}
                                 className={`text-[10px] ${INLINE_LINK}`}
                             >
-                                Use full conditions instead
+                                {t('automations.route_editors.use_full_conditions_instead', 'Use full conditions instead')}
                             </button>
                         </div>
                     </FormRow>
@@ -446,7 +446,7 @@ function RouteFields({
                 >
                     <div className="space-y-2">
                         {rules.length === 0 && (
-                            <div className="text-[11px] text-[var(--text-tertiary)] italic">No outputs yet — add one.</div>
+                            <div className="text-[11px] text-[var(--text-tertiary)] italic">{t('automations.route_editors.no_outputs_yet_add_one', 'No outputs yet — add one.')}</div>
                         )}
                         {rules.map((r, i) => (
                             <div key={i} className={namesMatter ? cardClass() : ''}>
@@ -476,7 +476,7 @@ function RouteFields({
                                 )}
                                 {namesMatter && wiredCaseNames?.has?.(r.name) && (
                                     <div className="text-[10px] text-[var(--text-tertiary)]">
-                                        Wired on the canvas — renaming keeps the connection; removing drops it.
+                                        {t('automations.route_editors.wired_on_the_canvas_renaming_keeps', 'Wired on the canvas — renaming keeps the connection; removing drops it.')}
                                     </div>
                                 )}
                                 {valueStyle
@@ -487,27 +487,27 @@ function RouteFields({
                         <button
                             type="button"
                             onClick={addRule}
-                            title="Each output gets its own condition set and its own port on the node"
+                            title={t('automations.route_editors.each_output_gets_its_own_condition', 'Each output gets its own condition set and its own port on the node')}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
                             <Plus size={12} /> Add output
                         </button>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
-                            Text comparisons ignore upper/lower case.
+                            {t('automations.route_editors.text_comparisons_ignore_upper_lower_case', 'Text comparisons ignore upper/lower case.')}
                         </div>
                     </div>
                 </FormRow>
             </AccordionSection>
 
-            <AccordionSection stepType={step.type} sectionKey="advanced" title="Advanced" forceOpen={errorSections.has('advanced')}>
+            <AccordionSection stepType={step.type} sectionKey="advanced" title={t('automations.route_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced')}>
                 <FormRow label="Deciding about" hint="Detected from the step above — override it here if the guess is wrong.">
                     <select
                         value={items ? 'items' : 'branch'}
                         onChange={(e) => setRoute(e.target.value === 'items' ? { mode: 'items' } : { mode: 'branch' })}
                         className={inputClass()}
                     >
-                        <option value="items">Each item of a list</option>
-                        <option value="branch">The whole run</option>
+                        <option value="items">{t('automations.route_editors.each_item_of_a_list', 'Each item of a list')}</option>
+                        <option value="branch">{t('automations.route_editors.the_whole_run', 'The whole run')}</option>
                     </select>
                 </FormRow>
                 {items && (
@@ -535,8 +535,8 @@ function RouteFields({
                             onChange={(e) => setRoute({ matchMode: e.target.value === 'all' ? 'all' : 'first' })}
                             className={inputClass()}
                         >
-                            <option value="all">Send it to every matching output</option>
-                            <option value="first">Send it to the first matching output only</option>
+                            <option value="all">{t('automations.route_editors.send_it_to_every_matching_output', 'Send it to every matching output')}</option>
+                            <option value="first">{t('automations.route_editors.send_it_to_the_first_matching', 'Send it to the first matching output only')}</option>
                         </select>
                     </FormRow>
                 )}
@@ -610,6 +610,7 @@ function upstreamFieldOptions(groups) {
  * output when it is renamed.
  */
 function CaseNameInput({ name, siblingNames = [], onCommit }) {
+    const { t } = useTranslation();
     const [text, setText] = useState(name);
     const [error, setError] = useState(null);
     // Resync when the committed name changes underneath us (AI patch / undo).
@@ -639,7 +640,7 @@ function CaseNameInput({ name, siblingNames = [], onCommit }) {
                 onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
                 onBlur={commit}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-                placeholder="Name this output — for example invoices"
+                placeholder={t('automations.route_editors.name_this_output_for_example_invoices', 'Name this output — for example invoices')}
                 aria-invalid={!!error}
                 className={rowInputClass('w-full', { invalid: !!error })}
             />
@@ -655,13 +656,14 @@ function CaseNameInput({ name, siblingNames = [], onCommit }) {
  * runtime's loose-equality match is unchanged.
  */
 function CaseValueInput({ type, value, onChange }) {
+    const { t } = useTranslation();
     if (type === 'number') {
         return (
             <input
                 type="number"
                 value={value == null || value === '' ? '' : value}
                 onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="number to match"
+                placeholder={t('automations.route_editors.number_to_match', 'number to match')}
                 className={rowInputClass('w-full')}
             />
         );
@@ -673,7 +675,7 @@ function CaseValueInput({ type, value, onChange }) {
                 onChange={(e) => onChange(e.target.value === '' ? '' : e.target.value === 'true')}
                 className={rowInputClass('w-full')}
             >
-                <option value="">(choose)</option>
+                <option value="">{t('automations.route_editors.choose', '(choose)')}</option>
                 <option value="true">true</option>
                 <option value="false">false</option>
             </select>
@@ -684,7 +686,7 @@ function CaseValueInput({ type, value, onChange }) {
             type="text"
             value={typeof value === 'string' ? value : (value == null ? '' : String(value))}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="value to match"
+            placeholder={t('automations.route_editors.value_to_match', 'value to match')}
             className={rowInputClass('w-full')}
         />
     );

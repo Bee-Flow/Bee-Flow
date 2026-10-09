@@ -133,7 +133,7 @@ export default function FieldPicker({
                                 else if (canUseTyped) emit(typedPath(fallbackBase, typed));
                             }
                         }}
-                        placeholder="Search fields…"
+                        placeholder={t('automations.field_picker.search_fields', 'Search fields…')}
                         className="flex-1 min-w-0 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
                     />
                 </div>

@@ -2,8 +2,10 @@ import React from 'react';
 import { Code2, Lock } from 'lucide-react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 export default function CodeNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter } = data;
     const code = step.code || '';
     const lineCount = code ? code.split('\n').length : 0;
@@ -15,7 +17,7 @@ export default function CodeNode({ id, data }) {
     const badges = (
         <>
             <ForEachBadge step={step} />
-            <NodeChip title="Sandboxed isolated-vm — no Node bindings, HTTPS-only fetch.">
+            <NodeChip title={t('automations.code_node.sandboxed_isolated_vm_no_node_bindings', 'Sandboxed isolated-vm — no Node bindings, HTTPS-only fetch.')}>
                 <Lock size={10} />
             </NodeChip>
         </>

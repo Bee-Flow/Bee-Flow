@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Sticky banner shown while a run is in flight — n8n's "Workflow is
@@ -6,6 +7,7 @@ import React, { useEffect, useState } from 'react';
  * the top of the diagram column.
  */
 export default function RunProgressBanner({ run, steps, onStop }) {
+    const { t } = useTranslation();
     const total = steps?.length || 0;
     const done = (steps || []).filter(s => s.status === 'success' || s.status === 'skipped' || s.status === 'pinned').length;
     const failed = (steps || []).some(s => s.status === 'error');
@@ -30,10 +32,10 @@ export default function RunProgressBanner({ run, steps, onStop }) {
             </span>
             <button
                 onClick={onStop}
-                title="Stop this run"
+                title={t('automations.run_progress_banner.stop_this_run', 'Stop this run')}
                 className="ml-1 px-2 py-0.5 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-red-600 transition"
             >
-                Stop
+                {t('automations.run_progress_banner.stop', 'Stop')}
             </button>
         </div>
     );

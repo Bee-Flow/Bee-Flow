@@ -4,6 +4,7 @@ import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import IntegrationLogo from './IntegrationLogo';
 import { humanizeToolName } from '../displayHelpers';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * Fallback side-effect heuristic for legacy steps that predate the catalog
@@ -27,6 +28,7 @@ export function looksLikeSideEffect(toolName) {
 }
 
 export default function IntegrationActionNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter } = data;
     const tool = step.tool || 'unknown_tool';
     const sideEffect = step.sideEffect ?? looksLikeSideEffect(tool);
@@ -41,7 +43,7 @@ export default function IntegrationActionNode({ id, data }) {
                 </NodeChip>
             )}
             {sideEffect && (
-                <NodeChip tone="warn" title="This step writes/sends — runs are skipped in dry-run.">
+                <NodeChip tone="warn" title={t('automations.integration_action_node.this_step_writes_sends_runs_are', 'This step writes/sends — runs are skipped in dry-run.')}>
                     <Zap size={10} />
                 </NodeChip>
             )}

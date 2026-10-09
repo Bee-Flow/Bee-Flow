@@ -42,7 +42,7 @@ export default function CanvasLegend() {
                 {t('automations.canvas.legend_title', 'Legend')}
             </div>
             <div className={row}>
-                <span className="px-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] font-semibold text-[var(--text-primary)] whitespace-nowrap">1 record</span>
+                <span className="px-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] font-semibold text-[var(--text-primary)] whitespace-nowrap">{t('automations.canvas_legend.1_record', '1 record')}</span>
                 <span>{t('automations.canvas.legend_data', 'data that travels down the line')}</span>
             </div>
             <div className={row}>

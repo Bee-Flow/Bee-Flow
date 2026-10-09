@@ -149,9 +149,9 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                 />,
             )}
             {listMode && (
-                <AccordionSection stepType="set" sectionKey="table" title="Table tools" defaultOpen forceOpen={errorSections.has('table')}>
+                <AccordionSection stepType="set" sectionKey="table" title={t('automations.set_editors.table_tools', 'Table tools')} defaultOpen forceOpen={errorSections.has('table')}>
                     <p className="text-[11px] text-[var(--text-tertiary)] mb-2">
-                        Applied to the whole table, top to bottom, after the fields above.
+                        {t('automations.set_editors.applied_to_the_whole_table_top', 'Applied to the whole table, top to bottom, after the fields above.')}
                     </p>
                     <SetOperationsEditor
                         ops={ops}
@@ -162,19 +162,19 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                     />
                 </AccordionSection>
             )}
-            <AccordionSection stepType="set" sectionKey="advanced" title="Advanced" defaultOpen={!listMode && !!draft.forEach} forceOpen={errorSections.has('advanced')} hasContent={!listMode && !!draft.forEach}>
+            <AccordionSection stepType="set" sectionKey="advanced" title={t('automations.set_editors.advanced', 'Advanced')} defaultOpen={!listMode && !!draft.forEach} forceOpen={errorSections.has('advanced')} hasContent={!listMode && !!draft.forEach}>
                 <FormRow label="Works on" hint="Detected from the step above — override it here if the guess is wrong.">
                     <select
                         value={listMode ? 'items' : 'single'}
                         onChange={(e) => set('arrayRef', e.target.value === 'items' ? (draft.arrayRef ?? '') : null)}
                         className={inputClass()}
                     >
-                        <option value="items">Each row of a list</option>
-                        <option value="single">The whole run</option>
+                        <option value="items">{t('automations.set_editors.each_row_of_a_list', 'Each row of a list')}</option>
+                        <option value="single">{t('automations.set_editors.the_whole_run', 'The whole run')}</option>
                     </select>
                     {listMode && ops.length > 0 && (
                         <div className="mt-1 text-[10px] text-[var(--text-tertiary)]">
-                            Switching to “The whole run” also removes the table tools.
+                            {t('automations.set_editors.switching_to_the_whole_run_also', 'Switching to “The whole run” also removes the table tools.')}
                         </div>
                     )}
                 </FormRow>
@@ -197,7 +197,7 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                 {!listMode && <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />}
                 {listMode && step?.forEach && (
                     <div className="text-[11px] text-amber-600 dark:text-amber-400">
-                        List mode replaces “Run once per item” — saving removes the old per-item setting.
+                        {t('automations.set_editors.list_mode_replaces_run_once_per', 'List mode replaces “Run once per item” — saving removes the old per-item setting.')}
                     </div>
                 )}
             </AccordionSection>
@@ -246,6 +246,7 @@ function sourceListUnresolved(arrayRef, runStep, previewSample, groups) {
  * run time, and visible/editable like any other field.
  */
 function JsonExtractSection({ draft, set, listMode, elementSample, previewSample }) {
+    const { t } = useTranslation();
     const pickerCtx = useVariablePickerContext();
     const [open, setOpen] = useState(false);
     const [changing, setChanging] = useState(false);
@@ -302,7 +303,7 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
             <div className="mt-2 text-[11px] text-[var(--text-secondary)]">
                 Some of this data is JSON text ·{' '}
                 <button type="button" onClick={() => setOpen(true)} className="text-[var(--accent)] hover:underline">
-                    Pick fields from it
+                    {t('automations.set_editors.pick_fields_from_it', 'Pick fields from it')}
                 </button>
             </div>
         );
@@ -331,12 +332,12 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
                 <>
                     <JsonTreePicker value={parsed} onPick={addField} />
                     <div className="text-[10px] text-[var(--text-tertiary)]">
-                        Click a value to add it as a field. Extraction is exact and free — no AI involved.
+                        {t('automations.set_editors.click_a_value_to_add_it', 'Click a value to add it as a field. Extraction is exact and free — no AI involved.')}
                     </div>
                 </>
             ) : (
                 <div className="text-[11px] italic text-[var(--text-tertiary)]">
-                    This doesn’t look like JSON text — pick another source.
+                    {t('automations.set_editors.this_doesn_t_look_like_json', 'This doesn’t look like JSON text — pick another source.')}
                 </div>
             )}
         </div>

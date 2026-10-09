@@ -328,7 +328,7 @@ export default function CanvasSouthBar({
                     <button
                         type="button"
                         onClick={onShowRun}
-                        title="Centre the canvas on this step"
+                        title={t('automations.canvas_south_bar.centre_the_canvas_on_this_step', 'Centre the canvas on this step')}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border-default)] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                     >
                         <Crosshair size={12} /> {t('automations.canvas.run_show', 'Go to step')}
@@ -394,7 +394,7 @@ export default function CanvasSouthBar({
                         type="button"
                         onClick={onDeleteSelection}
                         disabled={structuralEditsBlocked}
-                        title="Delete the selected steps (their neighbours reconnect)"
+                        title={t('automations.canvas_south_bar.delete_the_selected_steps_their_neighbours', 'Delete the selected steps (their neighbours reconnect)')}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
                         style={{ color: 'var(--error)' }}
                     >
@@ -405,8 +405,8 @@ export default function CanvasSouthBar({
                     <button
                         type="button"
                         onClick={onClearSelection}
-                        title="Clear the selection"
-                        aria-label="Clear selection"
+                        title={t('automations.canvas_south_bar.clear_the_selection', 'Clear the selection')}
+                        aria-label={t('automations.canvas_south_bar.clear_selection', 'Clear selection')}
                         className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition"
                     >
                         <X size={13} />

@@ -21,6 +21,7 @@ import AccordionSection from '../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
 import { FormRow, inputClass } from './formPrimitives';
 import useForEachRequest from '../../mapping/useForEachRequest';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /** Fallback list, so the panel still works if the catalog call failed. */
 const FALLBACK_STRATEGIES = [
@@ -31,11 +32,12 @@ const FALLBACK_STRATEGIES = [
 ];
 
 function DestinationSection({ draft, set, onFocusField, errorSections, bases }) {
+    const { t } = useTranslation();
     const base = useMemo(() => bases.find(b => b.id === draft.knowledgeBaseId) || null, [bases, draft.knowledgeBaseId]);
 
     return (
         <AccordionSection
-            stepType="knowledge_write" sectionKey="destination" title="Where it goes" defaultOpen
+            stepType="knowledge_write" sectionKey="destination" title={t('automations.knowledge_write_editors.where_it_goes', 'Where it goes')} defaultOpen
             forceOpen={errorSections.has('destination')}
         >
             <FormRow
@@ -49,7 +51,7 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2 py-1">
                         <BookOpen size={14} className="mt-0.5 shrink-0" />
                         <span>
-                            No knowledge bases yet. Create one in
+                            {t('automations.knowledge_write_editors.no_knowledge_bases_yet_create_one', 'No knowledge bases yet. Create one in')}
                             <strong> Studio &rarr; Knowledge</strong>; once you manage one it appears here.
                         </span>
                     </div>
@@ -60,7 +62,7 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
                         onChange={(e) => set('knowledgeBaseId', e.target.value)}
                         onFocus={() => onFocusField?.('knowledgeBaseId')}
                     >
-                        <option value="">Pick a knowledge base…</option>
+                        <option value="">{t('automations.knowledge_write_editors.pick_a_knowledge_base', 'Pick a knowledge base…')}</option>
                         {bases.map(b => (
                             <option key={b.id} value={b.id} disabled={!b.canWrite}>
                                 {b.name}
@@ -82,13 +84,14 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
 }
 
 function ContentSection({ draft, set, onFocusField, previewSample, errorSections }) {
+    const { t } = useTranslation();
     // A separate run per item (under a field's More) sets this step's forEach.
     const forEach = useForEachRequest(draft, set);
     const repeats = !String(draft.sourceUri || '').trim();
 
     return (
         <AccordionSection
-            stepType="knowledge_write" sectionKey="content" title="What to save" defaultOpen
+            stepType="knowledge_write" sectionKey="content" title={t('automations.knowledge_write_editors.what_to_save', 'What to save')} defaultOpen
             forceOpen={errorSections.has('content')}
         >
             <FormRow
@@ -133,7 +136,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                     rows={1}
                     onFocusField={onFocusField}
                     previewSample={previewSample}
-                    placeholder="ticket:{{trigger.output.id}}"
+                    placeholder={t('automations.knowledge_write_editors.ticket', 'ticket:{{trigger.output.id}}')}
                 />
             </FormRow>
 
@@ -142,7 +145,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                 // document every run is a real, if rare, intent. It is phrased as
                 // the consequence, because that is the part people do not picture.
                 <p className="text-[11px] text-amber-700 dark:text-amber-400 px-1">
-                    Without a source reference this adds a NEW document every time it runs.
+                    {t('automations.knowledge_write_editors.without_a_source_reference_this_adds', 'Without a source reference this adds a NEW document every time it runs.')}
                 </p>
             )}
         </AccordionSection>
@@ -150,11 +153,12 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
 }
 
 function AdvancedSection({ draft, set, groups, onFocusField, errorSections, strategies }) {
+    const { t } = useTranslation();
     const strategy = draft.nearDuplicateStrategy || 'skip';
 
     return (
         <AccordionSection
-            stepType="knowledge_write" sectionKey="advanced" title="Advanced"
+            stepType="knowledge_write" sectionKey="advanced" title={t('automations.knowledge_write_editors.advanced', 'Advanced')}
             forceOpen={errorSections.has('advanced')}
             hasContent={!!draft.forEach || retryIsSet(draft) || strategy !== 'skip'}
         >

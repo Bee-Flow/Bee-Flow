@@ -15,14 +15,16 @@ import FormBuilderFields, { defaultFormPageDeclaration, defaultFormEndingDeclara
 import { FormRow, inputClass } from './formPrimitives';
 import FormTriggerFields from './FormTriggerFields';
 import { FILTER_FORM_BY_KEY } from './triggerFilters';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 function TriggerFields({ draft, set, setNested, errorSections = new Set(), catalog = null, automation = null, stepId = null, isSecondaryTrigger = false, onTestSubmit = null, onRenameField = null }) {
+    const { t } = useTranslation();
     const kind = draft.kind || 'manual';
     // A flowlet's trigger declares its input contract instead of firing — no
     // schedule/manual/webhook switch, just the params editor.
     if (kind === 'layer_input') {
         return (
-            <AccordionSection stepType="trigger" sectionKey="inputs" title="Inputs" defaultOpen forceOpen={errorSections.has('config')}>
+            <AccordionSection stepType="trigger" sectionKey="inputs" title={t('automations.trigger_editors.inputs', 'Inputs')} defaultOpen forceOpen={errorSections.has('config')}>
                 <LayerInputFields draft={draft} set={set} onRenameField={onRenameField} />
             </AccordionSection>
         );
@@ -57,13 +59,13 @@ function TriggerFields({ draft, set, setNested, errorSections = new Set(), catal
                         every pick fail the save with a confusing error (C7). A
                         legacy invalid kind stays visible-but-disabled: opening
                         the panel must never silently change routing. */}
-                    {!isSecondaryTrigger && <option value="manual">Manual — runs only when you click Run</option>}
-                    {!isSecondaryTrigger && <option value="form">Form — a public page people fill in</option>}
-                    <option value="schedule">Schedule — runs on a timer</option>
-                    <option value="webhook">Webhook — inbound HTTPS POST</option>
-                    <option value="app_event">App event — e.g. new Gmail email</option>
-                    {!isSecondaryTrigger && <option value="agent_call">Agent — callable from chat</option>}
-                    {!isSecondaryTrigger && <option value="app_trigger">Studio App — called by an app action</option>}
+                    {!isSecondaryTrigger && <option value="manual">{t('automations.trigger_editors.manual_runs_only_when_you_click', 'Manual — runs only when you click Run')}</option>}
+                    {!isSecondaryTrigger && <option value="form">{t('automations.trigger_editors.form_a_public_page_people_fill', 'Form — a public page people fill in')}</option>}
+                    <option value="schedule">{t('automations.trigger_editors.schedule_runs_on_a_timer', 'Schedule — runs on a timer')}</option>
+                    <option value="webhook">{t('automations.trigger_editors.webhook_inbound_https_post', 'Webhook — inbound HTTPS POST')}</option>
+                    <option value="app_event">{t('automations.trigger_editors.app_event_e_g_new_gmail', 'App event — e.g. new Gmail email')}</option>
+                    {!isSecondaryTrigger && <option value="agent_call">{t('automations.trigger_editors.agent_callable_from_chat', 'Agent — callable from chat')}</option>}
+                    {!isSecondaryTrigger && <option value="app_trigger">{t('automations.trigger_editors.studio_app_called_by_an_app', 'Studio App — called by an app action')}</option>}
                     {isSecondaryTrigger && !CAN_BE_SECONDARY.has(kind) && (
                         <option value={kind} disabled>(unsupported here) {kind}</option>
                     )}
@@ -125,6 +127,7 @@ const LEGACY_PROVIDER_LABELS = {
  * fields over would just produce validation warnings.
  */
 function AppEventFields({ draft, set, setNested, catalog = null }) {
+    const { t } = useTranslation();
     // Normalizer: tolerate a stale/cached backend that still serves string[].
     const rawProviders = catalog?.triggers?.find(t => t.kind === 'app_event')?.providers || [];
     const providerDefs = rawProviders.map(p =>
@@ -164,7 +167,7 @@ function AppEventFields({ draft, set, setNested, catalog = null }) {
     if (!provider && providerDefs.length === 0) {
         return (
             <div className="text-[11px] text-[var(--text-tertiary)] leading-snug">
-                No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Integrations first.
+                {t('automations.trigger_editors.no_event_sources_are_available_to', 'No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Integrations first.')}
             </div>
         );
     }
@@ -183,7 +186,7 @@ function AppEventFields({ draft, set, setNested, catalog = null }) {
                 <button
                     type="button"
                     onClick={() => setPickerOpen(true)}
-                    aria-label="Choose the app to trigger on"
+                    aria-label={t('automations.trigger_editors.choose_the_app_to_trigger_on', 'Choose the app to trigger on')}
                     className={`${inputClass()} flex items-center gap-2 text-left hover:bg-[var(--bg-tertiary)]`}
                 >
                     {provider && (
@@ -207,7 +210,7 @@ function AppEventFields({ draft, set, setNested, catalog = null }) {
                 )}
                 {provider && !providerListed && (
                     <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 leading-snug">
-                        This app isn't available to you right now (integration not connected or not permitted for your account). The trigger is kept as configured, but it may not fire.
+                        {t('automations.trigger_editors.this_app_isn_t_available_to', 'This app isn\'t available to you right now (integration not connected or not permitted for your account). The trigger is kept as configured, but it may not fire.')}
                     </div>
                 )}
             </FormRow>
@@ -296,6 +299,7 @@ function LayerInputFields({ draft, set, onRenameField = null }) {
  * than a third copy of one that looked like it.
  */
 function AgentCallFields({ draft, set, onRenameField = null }) {
+    const { t } = useTranslation();
     return (
         <>
             <FormRow label="Tool name" hint="What the agent calls. Lowercased & sanitized; blank → automation_<id>.">
@@ -312,7 +316,7 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
                     value={draft.description || ''}
                     onChange={(e) => set('description', e.target.value)}
                     rows={2}
-                    placeholder="Summarise the user's unread email and return the highlights."
+                    placeholder={t('automations.trigger_editors.summarise_the_user_s_unread_email', 'Summarise the user\'s unread email and return the highlights.')}
                     className={inputClass()}
                 />
             </FormRow>
@@ -386,12 +390,13 @@ const FORM_WAIT_CHOICES = [
  * drop values from earlier steps straight into them.
  */
 function FormPageFields({ draft, set, stepId, onFocusField, previewSample, errorSections = new Set(), onRenameField = null }) {
+    const { t } = useTranslation();
     const isEnding = draft.mode === 'ending';
     const form = draft.form || null;
 
     if (!form) {
         return (
-            <AccordionSection stepType="form_page" sectionKey="config" title="Page" defaultOpen forceOpen={errorSections.has('config')}>
+            <AccordionSection stepType="form_page" sectionKey="config" title={t('automations.trigger_editors.page', 'Page')} defaultOpen forceOpen={errorSections.has('config')}>
                 <p className="text-[11px] text-[var(--text-tertiary)] mb-2">
                     {isEnding
                         ? 'A closing page is the last thing the visitor sees. It can summarise what the automation did.'
@@ -402,7 +407,7 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
                     onClick={() => set('form', isEnding ? defaultFormEndingDeclaration() : defaultFormPageDeclaration())}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[var(--accent)] text-white hover:opacity-90"
                 >
-                    Create the page
+                    {t('automations.trigger_editors.create_the_page', 'Create the page')}
                 </button>
             </AccordionSection>
         );
@@ -410,7 +415,7 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
 
     return (
         <>
-            <AccordionSection stepType="form_page" sectionKey="config" title="Page" defaultOpen forceOpen={errorSections.has('config')}>
+            <AccordionSection stepType="form_page" sectionKey="config" title={t('automations.trigger_editors.page', 'Page')} defaultOpen forceOpen={errorSections.has('config')}>
                 <FormBuilderFields
                     form={form}
                     onChange={(next) => set('form', next)}
@@ -426,10 +431,10 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
                 for a real person is a first-class decision, so it must not
                 disappear behind the advanced-density filter. */}
             {!isEnding && (
-                <AccordionSection stepType="form_page" sectionKey="waiting" title="Waiting" defaultOpen forceOpen={errorSections.has('waiting')}>
+                <AccordionSection stepType="form_page" sectionKey="waiting" title={t('automations.trigger_editors.waiting', 'Waiting')} defaultOpen forceOpen={errorSections.has('waiting')}>
                     <FormRow label="Wait for an answer" hint="After this the automation gives up and the run fails.">
                         <select
-                            aria-label="Wait for an answer"
+                            aria-label={t('automations.trigger_editors.wait_for_an_answer', 'Wait for an answer')}
                             value={draft.waitSeconds ?? 3600}
                             onChange={(e) => set('waitSeconds', Number(e.target.value))}
                             className={inputClass()}

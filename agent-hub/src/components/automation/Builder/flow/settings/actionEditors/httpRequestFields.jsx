@@ -8,11 +8,13 @@ import { FormRow, inputClass } from '../formPrimitives';
 import HttpAuthPicker from '../HttpAuthPicker';
 import { AskOnceRow } from './askOnceRow';
 import { CacheIntoRow } from './cacheIntoRow';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
 const HTTP_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set(), catalog = null }) {
+    const { t } = useTranslation();
     const method = (draft.method || 'GET').toUpperCase();
     const headers = draft.headers || {};
     const headerEntries = Object.entries(headers);
@@ -64,7 +66,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
 
     return (
         <>
-            <AccordionSection stepType="http_request" sectionKey="request" title="Request" defaultOpen forceOpen={errorSections.has('request')}>
+            <AccordionSection stepType="http_request" sectionKey="request" title={t('automations.http_request_fields.request', 'Request')} defaultOpen forceOpen={errorSections.has('request')}>
                 <FormRow label="URL" required hint="Click a value in the right panel to insert it, e.g. https://api.example.com/users/{{trigger.output.id}}.">
                     <TemplateField
                         value={draft.url || ''}
@@ -86,7 +88,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
             <AccordionSection
                 stepType="http_request"
                 sectionKey="auth"
-                title="Authentication"
+                title={t('automations.http_request_fields.authentication', 'Authentication')}
                 defaultOpen={!!(draft.auth && draft.auth.connectionId)}
                 forceOpen={errorSections.has('auth')}
             >
@@ -98,9 +100,9 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                 </FormRow>
             </AccordionSection>
 
-            <AccordionSection stepType="http_request" sectionKey="headers" title="Headers" forceOpen={errorSections.has('headers')} hasContent={headerEntries.length > 0}>
+            <AccordionSection stepType="http_request" sectionKey="headers" title={t('automations.http_request_fields.headers', 'Headers')} forceOpen={errorSections.has('headers')} hasContent={headerEntries.length > 0}>
                 {headerEntries.length === 0 && (
-                    <div className="text-xs text-[var(--text-tertiary)] italic mb-2">No headers set.</div>
+                    <div className="text-xs text-[var(--text-tertiary)] italic mb-2">{t('automations.http_request_fields.no_headers_set', 'No headers set.')}</div>
                 )}
                 {headerEntries.map(([key, value]) => (
                     // Two columns that share the row: the name a bounded
@@ -113,7 +115,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                             defaultValue={key}
                             onBlur={(e) => renameHeader(key, e.target.value)}
                             className={inputClass() + ' min-w-0 font-mono'}
-                            placeholder="Header-Name"
+                            placeholder={t('automations.http_request_fields.header_name', 'Header-Name')}
                         />
                         <div className="min-w-0" data-testid="http-header-value">
                             <TemplateField
@@ -122,14 +124,14 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                                 rows={1}
                                 onFocusField={onFocusField}
                                 previewSample={previewSample}
-                                placeholder="value"
+                                placeholder={t('automations.http_request_fields.value', 'value')}
                                 listAs="json"
                             />
                         </div>
                         <button
                             type="button"
                             onClick={() => removeHeader(key)}
-                            title="Remove header"
+                            title={t('automations.http_request_fields.remove_header', 'Remove header')}
                             className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-tertiary)] transition"
                         >
                             <X size={14} />
@@ -146,7 +148,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
             </AccordionSection>
 
             {HTTP_WRITE_METHODS.has(method) && (
-                <AccordionSection stepType="http_request" sectionKey="body" title="Body" forceOpen={errorSections.has('body')}>
+                <AccordionSection stepType="http_request" sectionKey="body" title={t('automations.http_request_fields.body', 'Body')} forceOpen={errorSections.has('body')}>
                     <FormRow label="Body" hint="Raw text or JSON. Click a value in the right panel to insert it.">
                         <TemplateField
                             value={draft.body || ''}
@@ -161,7 +163,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                 </AccordionSection>
             )}
 
-            <AccordionSection stepType="http_request" sectionKey="options" title="Options" forceOpen={errorSections.has('options')} hasContent={(draft.timeoutMs != null && draft.timeoutMs !== 10_000) || (draft.parseResponse && draft.parseResponse !== 'auto')}>
+            <AccordionSection stepType="http_request" sectionKey="options" title={t('automations.http_request_fields.options', 'Options')} forceOpen={errorSections.has('options')} hasContent={(draft.timeoutMs != null && draft.timeoutMs !== 10_000) || (draft.parseResponse && draft.parseResponse !== 'auto')}>
                 <FormRow label="Timeout (ms)">
                     <input
                         type="number"
@@ -186,12 +188,12 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                         onChange={(e) => set('parseResponse', e.target.value)}
                         className={inputClass()}
                     >
-                        <option value="auto">Read JSON automatically</option>
-                        <option value="always">Always read it as JSON</option>
-                        <option value="never">Leave it as plain text</option>
+                        <option value="auto">{t('automations.http_request_fields.read_json_automatically', 'Read JSON automatically')}</option>
+                        <option value="always">{t('automations.http_request_fields.always_read_it_as_json', 'Always read it as JSON')}</option>
+                        <option value="never">{t('automations.http_request_fields.leave_it_as_plain_text', 'Leave it as plain text')}</option>
                     </select>
                     <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                        Pick “always” when the service sends JSON but labels it as text.
+                        {t('automations.http_request_fields.pick_always_when_the_service_sends', 'Pick “always” when the service sends JSON but labels it as text.')}
                     </div>
                 </FormRow>
                 <FormRow label="Security">
@@ -201,18 +203,16 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                             checked={blockPrivateTargets}
                             onChange={(e) => set('blockPrivateTargets', e.target.checked)}
                         />
-                        Block requests to private/internal network addresses
+                        {t('automations.http_request_fields.block_requests_to_private_internal_network', 'Block requests to private/internal network addresses')}
                     </label>
                     <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                        Recommended: on. Only turn this off if this step specifically needs to reach an
-                        internal service (e.g. on your own self-hosted network) — disabling it lets this
-                        step reach localhost, private IP ranges, and cloud metadata endpoints.
+                        {t('automations.http_request_fields.recommended_on_only_turn_this_off', 'Recommended: on. Only turn this off if this step specifically needs to reach an internal service (e.g. on your own self-hosted network) — disabling it lets this step reach localhost, private IP ranges, and cloud metadata endpoints.')}
                     </div>
                 </FormRow>
             </AccordionSection>
 
             <AccordionSection
-                stepType="http_request" sectionKey="advanced" title="Advanced"
+                stepType="http_request" sectionKey="advanced" title={t('automations.http_request_fields.advanced', 'Advanced')}
                 defaultOpen={!!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
                 forceOpen={errorSections.has('advanced')}
                 hasContent={!!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}

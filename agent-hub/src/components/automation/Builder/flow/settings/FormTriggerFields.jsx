@@ -4,6 +4,7 @@ import { denseInputClass } from './formPrimitives';
 import FormBuilderFields, { defaultFormDeclaration } from './FormBuilderFields';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useBuilderConfirm } from '../../BuilderConfirmContext';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * The authoring surface for a hosted form trigger (`kind: 'form'`) — page one
@@ -22,6 +23,7 @@ export { defaultFormDeclaration, slugifyFieldName, THEME_PRESETS } from './FormB
 export const SHOW_PUBLIC_LINK_IN_BUILDER = false;
 
 export default function FormTriggerFields({ draft, set, automation = null, stepId = null, onTestSubmit = null, onRenameField = null }) {
+    const { t } = useTranslation();
     const form = draft.form || null;
 
     // A trigger that has just been switched to `form` has no declaration yet.
@@ -31,7 +33,7 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
         return (
             <div className="space-y-2">
                 <p className="text-[11px] text-[var(--text-tertiary)]">
-                    A form trigger publishes a page for the colleagues it is shared with — who that is, you set under Studio → Forms → Share. Every submission runs this automation once.
+                    {t('automations.form_trigger_fields.a_form_trigger_publishes_a_page', 'A form trigger publishes a page for the colleagues it is shared with — who that is, you set under Studio → Forms → Share. Every submission runs this automation once.')}
                 </p>
                 <button
                     type="button"
@@ -73,6 +75,7 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
  * inside the autosave debounce deterministically 400s.
  */
 export function FormTriggerUrlPanel({ automation, stepId }) {
+    const { t } = useTranslation();
     const api = useAutomationApi();
     const confirmAction = useBuilderConfirm();
     const [page, setPage] = useState(null);
@@ -153,37 +156,37 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
     };
 
     if (!automation?.id || !provisionable) {
-        return <div className="text-[11px] text-[var(--text-tertiary)]">Waiting for the automation to save…</div>;
+        return <div className="text-[11px] text-[var(--text-tertiary)]">{t('automations.form_trigger_fields.waiting_for_the_automation_to_save', 'Waiting for the automation to save…')}</div>;
     }
 
     return (
         <div className="space-y-1.5">
             <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                 <Link2 size={13} />
-                <span className="text-[12px] font-medium">Public link</span>
+                <span className="text-[12px] font-medium">{t('automations.form_trigger_fields.public_link', 'Public link')}</span>
             </div>
             {error && <div className="text-[11px] text-red-600">{error}</div>}
             {!page ? (
                 <div className="text-[11px] text-[var(--text-tertiary)] flex items-center gap-1.5">
                     {busy ? <><Loader2 size={11} className="animate-spin" /> Generating link…</> : (
-                        <button onClick={load} className="underline hover:text-[var(--text-primary)]">Generate the link</button>
+                        <button onClick={load} className="underline hover:text-[var(--text-primary)]">{t('automations.form_trigger_fields.generate_the_link', 'Generate the link')}</button>
                     )}
                 </div>
             ) : (
                 <>
                     <div className="flex items-center gap-1">
-                        <input readOnly value={page.url || ''} aria-label="Public form URL" className={denseInputClass('flex-1 min-w-0 font-mono')} onFocus={(e) => e.target.select()} />
-                        <button type="button" onClick={copy} title="Copy the link" aria-label="Copy the link"
+                        <input readOnly value={page.url || ''} aria-label={t('automations.form_trigger_fields.public_form_url', 'Public form URL')} className={denseInputClass('flex-1 min-w-0 font-mono')} onFocus={(e) => e.target.select()} />
+                        <button type="button" onClick={copy} title={t('automations.form_trigger_fields.copy_the_link', 'Copy the link')} aria-label={t('automations.form_trigger_fields.copy_the_link', 'Copy the link')}
                             className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]">
                             {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                         </button>
-                        <button type="button" onClick={rotate} disabled={busy} title="Create a new link (the current one stops working)" aria-label="Create a new link"
+                        <button type="button" onClick={rotate} disabled={busy} title={t('automations.form_trigger_fields.create_a_new_link_the_current', 'Create a new link (the current one stops working)')} aria-label={t('automations.form_trigger_fields.create_a_new_link', 'Create a new link')}
                             className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40">
                             <RefreshCw size={13} />
                         </button>
                     </div>
                     <p className="text-[11px] text-[var(--text-tertiary)]">
-                        Anyone with this link can submit the form — it only works while the automation is active.
+                        {t('automations.form_trigger_fields.anyone_with_this_link_can_submit', 'Anyone with this link can submit the form — it only works while the automation is active.')}
                         {typeof page.submissions === 'number' && page.submissions > 0 ? ` ${page.submissions} submission${page.submissions === 1 ? '' : 's'} so far.` : ''}
                     </p>
                 </>

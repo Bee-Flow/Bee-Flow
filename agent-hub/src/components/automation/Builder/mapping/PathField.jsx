@@ -189,7 +189,7 @@ export default function PathField({
             {label && (
                 <div className="flex items-center gap-1">
                     <label className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</label>
-                    {required && <span className="text-red-500 text-[12px] leading-none" title="Required">*</span>}
+                    {required && <span className="text-red-500 text-[12px] leading-none" title={t('automations.path_field.required', 'Required')}>*</span>}
                     <FieldHint title={label}>{hint}</FieldHint>
                 </div>
             )}

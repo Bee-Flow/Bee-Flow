@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, AlertTriangle, AlertCircle, X, Loader2 } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Renders the response of POST /:id/diagnose-trigger as a vertical list of
@@ -17,6 +18,7 @@ import { CheckCircle2, AlertTriangle, AlertCircle, X, Loader2 } from 'lucide-rea
  * no anchor is given (keeps callers that don't pass anchorRef working).
  */
 export default function TriggerDiagnosePanel({ result, loading, error, onClose, anchorRef }) {
+    const { t } = useTranslation();
     const wrapRef = useRef(null);
     const [pos, setPos] = useState(null);
 
@@ -68,11 +70,11 @@ export default function TriggerDiagnosePanel({ result, loading, error, onClose, 
             style={positioned || undefined}
         >
             <div className="flex items-center justify-between mb-3">
-                <div className="font-semibold text-sm text-[var(--text-primary)]">Trigger diagnose</div>
+                <div className="font-semibold text-sm text-[var(--text-primary)]">{t('automations.trigger_diagnose_panel.trigger_diagnose', 'Trigger diagnose')}</div>
                 <button
                     onClick={onClose}
                     className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-                    title="Close"
+                    title={t('automations.trigger_diagnose_panel.close', 'Close')}
                 >
                     <X size={14} />
                 </button>

@@ -24,7 +24,7 @@ export function FieldLabelRow({ label, required = false, expectKind = null, hint
     return (
         <div className="flex items-center gap-1">
             <label className={fieldLabelClass()}>{label}</label>
-            {required && <span className={requiredMarkClass()} title="Required">*</span>}
+            {required && <span className={requiredMarkClass()} title={t('automations.field_chrome.required', 'Required')}>*</span>}
             {expectWord && expectKind !== 'text' && (
                 <span className="ml-1 text-[10px] font-normal normal-case tracking-normal text-[var(--text-tertiary)]" data-testid="binding-expects">
                     · {t('automations.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}

@@ -2,6 +2,7 @@ import { Eye, ChevronDown, ChevronUp, X } from 'lucide-react';
 import React, { useMemo } from 'react';
 import OutputView from './OutputView';
 import { humanizeToolName } from './flow/displayHelpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Dry-run preview, rendered as a collapsible, dismissible drawer that
@@ -18,6 +19,7 @@ import { humanizeToolName } from './flow/displayHelpers';
  * yellows so the panel works under both light and dark themes.
  */
 export default function DryRunPanel({ run, steps, definition = null, collapsed = false, onToggleCollapse, onClose }) {
+    const { t } = useTranslation();
     // Map every step id → a friendly name (label / tool / flowlet title) so the
     // preview shows real step NAMES, not ids. Built from the whole definition
     // (root steps + each flowlet's steps).
@@ -53,7 +55,7 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                     <button
                         type="button"
                         onClick={onClose}
-                        title="Dismiss dry-run preview"
+                        title={t('automations.dry_run_panel.dismiss_dry_run_preview', 'Dismiss dry-run preview')}
                         className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                     >
                         <X size={15} />
@@ -91,7 +93,7 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                                                         : 'Synthesized preview — sample data, not a live result.'}
                                                 className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/30"
                                             >
-                                                Sample data
+                                                {t('automations.dry_run_panel.sample_data', 'Sample data')}
                                             </span>
                                         )}
                                     </div>

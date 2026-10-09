@@ -313,8 +313,8 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                             />
                             <button
                                 onClick={() => importInputRef.current?.click()}
-                                title="Import an automation from a JSON export"
-                                aria-label="Import an automation"
+                                title={t('automations.automation_page.import_an_automation_from_a_json', 'Import an automation from a JSON export')}
+                                aria-label={t('automations.automation_page.import_an_automation', 'Import an automation')}
                                 className="p-1 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
                             >
                                 <Upload size={15} />
@@ -341,7 +341,7 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Filter…"
+                        placeholder={t('automations.automation_page.filter', 'Filter…')}
                         className="w-full bg-[var(--bg-secondary)] border border-transparent focus:border-[var(--border-default)] rounded-md pl-7 pr-10 py-1 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                     />
                     {/* The quick switcher's chord, inside the field instead
@@ -363,7 +363,7 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
             <div className="flex-1 overflow-y-auto p-1.5 mt-1">
                     <>
                         {automationsLoading && automations.length === 0 && (
-                            <div className="text-xs text-[var(--text-tertiary)] p-3">Loading…</div>
+                            <div className="text-xs text-[var(--text-tertiary)] p-3">{t('automations.automation_page.loading', 'Loading…')}</div>
                         )}
                         {listEmptyNote}
                         <FolderedAutomationList
@@ -567,8 +567,8 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                             />
                             <button
                                 onClick={() => setListFlyoutOpen(false)}
-                                title="Close"
-                                aria-label="Close"
+                                title={t('automations.automation_page.close', 'Close')}
+                                aria-label={t('automations.automation_page.close', 'Close')}
                                 className="p-1 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
                             >
                                 <X size={16} />
@@ -584,7 +584,7 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Filter…"
+                                placeholder={t('automations.automation_page.filter', 'Filter…')}
                                 className="w-full bg-[var(--bg-secondary)] border border-transparent focus:border-[var(--border-default)] rounded-md pl-7 pr-2 py-1 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                             />
                         </div>
@@ -596,7 +596,7 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                     <div className="flex-1 overflow-y-auto p-1.5 mt-1">
                         {editingBlock && blocksGroup({ inFlyout: true })}
                         {automationsLoading && automations.length === 0 && (
-                            <div className="text-xs text-[var(--text-tertiary)] p-3">Loading…</div>
+                            <div className="text-xs text-[var(--text-tertiary)] p-3">{t('automations.automation_page.loading', 'Loading…')}</div>
                         )}
                         {listEmptyNote}
                         <FolderedAutomationList

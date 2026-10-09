@@ -9,6 +9,7 @@ import RecordTable from './RecordTable';
 import { ClipWarning, Empty, Scalar } from './ScalarValue';
 import { MAX_ROWS, humanize, isPlainObject, type PlainObject } from './valueHelpers';
 import { jsonTextValue, pairKeysOf, readableValue, sameName, textHidesKey } from '../mapping/upstream/fieldTree';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export const isTruncatedOutput = isTruncatedOutputJs as (v: unknown) => boolean;
 type Sentinel = Parameters<typeof TruncatedOutput>[0]['sentinel'];
@@ -73,7 +74,8 @@ function tidyPairs(arr: unknown[]): { name: string; value: string } | null {
 }
 
 function FriendlyArray({ arr: raw, map, allowExpand, nested }: { arr: unknown[]; map: MapCtx | null; allowExpand: boolean; nested: boolean }) {
-    if (raw.length === 0) return <Empty>Empty list</Empty>;
+    const { t } = useTranslation();
+    if (raw.length === 0) return <Empty>{t('automations.friendly_value.empty_list', 'Empty list')}</Empty>;
     // A list of JSON-text records is a table too: `[0].k` reads through the
     // text. A key a path cannot reach through text (`length`) is no column.
     const arr = raw.some(v => typeof v === 'string') ? raw.map(readableValue) : raw;
@@ -100,8 +102,9 @@ interface FriendlyObjectProps {
 }
 
 function FriendlyObject({ obj, map, allowExpand, fromText = false }: FriendlyObjectProps) {
+    const { t } = useTranslation();
     const entries = Object.entries(obj);
-    if (entries.length === 0) return <Empty>No fields</Empty>;
+    if (entries.length === 0) return <Empty>{t('automations.friendly_value.no_fields', 'No fields')}</Empty>;
     // `body.length` on text is the text's length at run time (path.mjs
     // stepInto), so handing out that path would bind the wrong value.
     const mapFor = (k: string): MapCtx | null => (textHidesKey(fromText, k) ? null : map);

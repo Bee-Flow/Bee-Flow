@@ -5,6 +5,7 @@ import {
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { listLayers, getLayerDependencies } from './flow/flowletScope';
 import { nodeTypeLabel } from './flow/nodeDefs';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Flowlets manager — a compact popover that opens UPWARD from the Flowlets
@@ -95,6 +96,7 @@ export default function FlowletsPanel({
     onRefineLayer,
     layerAgentState = null,
 }) {
+    const { t } = useTranslation();
     const layers = useMemo(() => listLayers(rootDef), [rootDef]);
     const popoverRef = useRef(null);
     const [buildOpen, setBuildOpen] = useState(false);
@@ -152,18 +154,18 @@ export default function FlowletsPanel({
                 <div className="min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
                         <Layers size={14} className="text-[var(--text-primary)] flex-shrink-0" />
-                        <span className="text-xs font-semibold text-[var(--text-primary)] truncate">Flowlets</span>
+                        <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{t('automations.flowlets_panel.flowlets', 'Flowlets')}</span>
                         <span className="text-[10px] text-[var(--text-tertiary)] flex-shrink-0">{layers.length}</span>
                     </div>
                     <div className="mt-0.5 text-[10px] text-[var(--text-tertiary)] leading-snug">
-                        Reusable sub-flows. Build one once, then call it from the main flow — or from another flowlet — with a “Call flowlet” step.
+                        {t('automations.flowlets_panel.reusable_sub_flows_build_one_once', 'Reusable sub-flows. Build one once, then call it from the main flow — or from another flowlet — with a “Call flowlet” step.')}
                     </div>
                 </div>
                 <div className="flex items-center gap-0.5">
                     <button
                         type="button"
                         onClick={() => onCreateLayer?.()}
-                        title="Create a new flowlet"
+                        title={t('automations.flowlets_panel.create_a_new_flowlet', 'Create a new flowlet')}
                         className="inline-flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium bg-[var(--accent)] text-white hover:opacity-90"
                     >
                         <Plus size={12} /> Create
@@ -171,8 +173,8 @@ export default function FlowletsPanel({
                     <button
                         type="button"
                         onClick={onClose}
-                        title="Close"
-                        aria-label="Close flowlets panel"
+                        title={t('automations.flowlets_panel.close', 'Close')}
+                        aria-label={t('automations.flowlets_panel.close_flowlets_panel', 'Close flowlets panel')}
                         className="p-1 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition"
                     >
                         <X size={14} />
@@ -193,7 +195,7 @@ export default function FlowletsPanel({
                                         <Sparkles size={12} className="text-[var(--accent)]" /> Build a flowlet with AI
                                     </span>
                                     {!creating && (
-                                        <button type="button" onClick={() => setBuildOpen(false)} aria-label="Close" className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+                                        <button type="button" onClick={() => setBuildOpen(false)} aria-label={t('automations.flowlets_panel.close', 'Close')} className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
                                             <X size={12} />
                                         </button>
                                     )}
@@ -202,7 +204,7 @@ export default function FlowletsPanel({
                                     onSubmit={async (text) => { const ok = await onBuildLayer(text); if (ok) setBuildOpen(false); }}
                                     running={creating}
                                     progress={creating ? agentProgressText(layerAgentState) : ''}
-                                    placeholder="Describe the flowlet — e.g. “Look up a contact by email and return their company and a 0–100 score.”"
+                                    placeholder={t('automations.flowlets_panel.describe_the_flowlet_e_g_look', 'Describe the flowlet — e.g. “Look up a contact by email and return their company and a 0–100 score.”')}
                                     autoFocus
                                 />
                             </>
@@ -231,7 +233,7 @@ export default function FlowletsPanel({
                 {layers.length === 0 ? (
                     <div className="px-2 py-3 text-center">
                         <div className="text-[11px] text-[var(--text-tertiary)]">
-                            No flowlets yet — reusable sub-flows you can call from anywhere.
+                            {t('automations.flowlets_panel.no_flowlets_yet_reusable_sub_flows', 'No flowlets yet — reusable sub-flows you can call from anywhere.')}
                         </div>
                     </div>
                 ) : (
@@ -263,11 +265,11 @@ export default function FlowletsPanel({
             <div className="px-3 py-2 border-t border-[var(--border-default)] flex-shrink-0">
                 <label
                     className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] cursor-pointer select-none"
-                    title="When on, you can generate a one-line AI summary of what each flowlet does. Off by default — no AI is used unless you turn this on."
+                    title={t('automations.flowlets_panel.when_on_you_can_generate_a', 'When on, you can generate a one-line AI summary of what each flowlet does. Off by default — no AI is used unless you turn this on.')}
                 >
                     <input type="checkbox" checked={!!aiEnabled} onChange={() => onToggleAi?.()} />
                     <Sparkles size={12} className="text-[var(--text-tertiary)]" />
-                    AI flowlet summaries
+                    {t('automations.flowlets_panel.ai_flowlet_summaries', 'AI flowlet summaries')}
                 </label>
             </div>
         </div>
@@ -311,10 +313,11 @@ function MainFlowRow({
     isCurrent, calls, titleByKey, onOpen, onNavigate,
     aiEnabled, description, onSummarize, summarizing,
 }) {
+    const { t } = useTranslation();
     return (
         <div
             onClick={onOpen}
-            title="Go to the main flow"
+            title={t('automations.flowlets_panel.go_to_the_main_flow', 'Go to the main flow')}
             className={`rounded-lg border px-2 py-1.5 cursor-pointer transition-colors ${
                 isCurrent
                     ? 'border-[var(--accent)] bg-[var(--accent)]/5'
@@ -323,10 +326,10 @@ function MainFlowRow({
         >
             <div className="flex items-center gap-1.5 min-w-0">
                 <Workflow size={13} className="text-[var(--text-secondary)] flex-shrink-0" />
-                <span className="flex-1 min-w-0 text-xs font-medium text-[var(--text-primary)] truncate">Main flow</span>
+                <span className="flex-1 min-w-0 text-xs font-medium text-[var(--text-primary)] truncate">{t('automations.flowlets_panel.main_flow', 'Main flow')}</span>
                 {isCurrent && (
                     <span className="text-[8px] uppercase tracking-wide font-semibold px-1 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] flex-shrink-0">
-                        Current
+                        {t('automations.flowlets_panel.current', 'Current')}
                     </span>
                 )}
             </div>
@@ -360,6 +363,7 @@ function LayerRow({
     aiEnabled, onSummarize, summarizing,
     onRefine = null, refining = false, refineProgress = '',
 }) {
+    const { t } = useTranslation();
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(layer.title);
     const [expanded, setExpanded] = useState(false);
@@ -436,15 +440,15 @@ function LayerRow({
                 )}
                 {isCurrent && (
                     <span className="text-[8px] uppercase tracking-wide font-semibold px-1 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] flex-shrink-0">
-                        Current
+                        {t('automations.flowlets_panel.current', 'Current')}
                     </span>
                 )}
                 {!editing && onRefine && (
                     <button
                         type="button"
                         onClick={stop(() => setRefineOpen(v => !v))}
-                        title="Refine this flowlet with AI"
-                        aria-label="Refine with AI"
+                        title={t('automations.flowlets_panel.refine_this_flowlet_with_ai', 'Refine this flowlet with AI')}
+                        aria-label={t('automations.flowlets_panel.refine_with_ai', 'Refine with AI')}
                         className={`p-0.5 rounded transition flex-shrink-0 hover:bg-[var(--bg-tertiary)] ${showRefine ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--accent)]'}`}
                     >
                         <Sparkles size={11} />
@@ -454,8 +458,8 @@ function LayerRow({
                     <button
                         type="button"
                         onClick={stop(() => setEditing(true))}
-                        title="Rename"
-                        aria-label="Rename flowlet"
+                        title={t('automations.flowlets_panel.rename', 'Rename')}
+                        aria-label={t('automations.flowlets_panel.rename_flowlet', 'Rename flowlet')}
                         className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition flex-shrink-0"
                     >
                         <Pencil size={11} />
@@ -466,7 +470,7 @@ function LayerRow({
                     onClick={inUse ? stop() : stop(onDelete)}
                     disabled={inUse}
                     title={deleteTitle}
-                    aria-label="Delete flowlet"
+                    aria-label={t('automations.flowlets_panel.delete_flowlet', 'Delete flowlet')}
                     className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-red-600 hover:bg-[var(--bg-tertiary)] transition disabled:opacity-40 disabled:hover:text-[var(--text-tertiary)] disabled:hover:bg-transparent flex-shrink-0"
                 >
                     <Trash2 size={11} />
@@ -487,7 +491,7 @@ function LayerRow({
             {expanded && (
                 <div className="mt-1 ml-5 flex flex-col gap-0.5 border-l border-[var(--border-default)]">
                     {steps.length === 0 ? (
-                        <div className="text-[10px] italic text-[var(--text-tertiary)] pl-2">Empty flowlet — no steps yet.</div>
+                        <div className="text-[10px] italic text-[var(--text-tertiary)] pl-2">{t('automations.flowlets_panel.empty_flowlet_no_steps_yet', 'Empty flowlet — no steps yet.')}</div>
                     ) : (
                         steps.map((s, i) => (
                             <div key={s.id || i} className="flex items-center gap-1.5 text-[10px] pl-2 min-w-0">

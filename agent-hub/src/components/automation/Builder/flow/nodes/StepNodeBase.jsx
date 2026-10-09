@@ -419,7 +419,7 @@ export default function StepNodeBase({
                             disabled={runInFlight || executingThis}
                             title={runInFlight ? 'Run in progress' : 'Run the flow up to here (pinned steps reuse their data) — R'}
                             className={actionBtn}
-                            aria-label="Execute step"
+                            aria-label={t('automations.step_node_base.execute_step', 'Execute step')}
                         >
                             {executingThis ? <Loader2 size={12} className="animate-spin" /> : <Play size={11} fill="currentColor" />}
                         </button>
@@ -429,8 +429,8 @@ export default function StepNodeBase({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); rt.onDuplicateNode(nodeId); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            title="Duplicate this step — D"
-                            aria-label="Duplicate step"
+                            title={t('automations.step_node_base.duplicate_this_step_d', 'Duplicate this step — D')}
+                            aria-label={t('automations.step_node_base.duplicate_step', 'Duplicate step')}
                             className={actionBtn}
                         >
                             <CopyIcon size={11} />
@@ -441,8 +441,8 @@ export default function StepNodeBase({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); rt.onDetachNode(nodeId); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            title="Take this step out of the flow (it stays on the canvas, its neighbours reconnect) — U"
-                            aria-label="Disconnect step"
+                            title={t('automations.step_node_base.take_this_step_out_of_the', 'Take this step out of the flow (it stays on the canvas, its neighbours reconnect) — U')}
+                            aria-label={t('automations.step_node_base.disconnect_step', 'Disconnect step')}
                             className={actionBtn}
                         >
                             <Unlink size={11} />
@@ -466,8 +466,8 @@ export default function StepNodeBase({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); rt.onDeleteNode(nodeId); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            title="Delete this step (reconnects its neighbours) — Del"
-                            aria-label="Delete step"
+                            title={t('automations.step_node_base.delete_this_step_reconnects_its_neighbours', 'Delete this step (reconnects its neighbours) — Del')}
+                            aria-label={t('automations.step_node_base.delete_step', 'Delete step')}
                             className={`${actionBtn} hover:!text-[var(--error)]`}
                         >
                             <Trash2 size={11} />
@@ -485,8 +485,8 @@ export default function StepNodeBase({
                     onMouseDown={(e) => e.stopPropagation()}
                     className={`absolute top-1/2 -translate-y-1/2 -right-7 h-[22px] w-[22px] rounded-full flex items-center justify-center shadow-sm ${chromeVisibility}`}
                     style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
-                    title="Add next step"
-                    aria-label="Add next step"
+                    title={t('automations.step_node_base.add_next_step', 'Add next step')}
+                    aria-label={t('automations.step_node_base.add_next_step', 'Add next step')}
                 >
                     <Plus size={13} />
                 </button>

@@ -5,6 +5,7 @@ import { buildStepGroups, buildSearchResults, gated } from './stepPalette';
 import { actionLabelMap, uiDescription } from './appLabels';
 import { stepDragProps } from './stepDrag';
 import { denseInputClass } from './settings/formStyles';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Shared "add step" list content — rows, the apps category→app→action tree,
@@ -21,6 +22,7 @@ import { denseInputClass } from './settings/formStyles';
  *   autoFocus  — focus the search box on mount
  */
 export default function AddStepMenu({ scope = {}, group = null, showSearch, onAdd, onAfterAdd, autoFocus = false }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const searchRef = useRef(null);
     const searchable = showSearch ?? !group;
@@ -87,7 +89,7 @@ export default function AddStepMenu({ scope = {}, group = null, showSearch, onAd
                             autoFocus={autoFocus}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Search steps…"
+                            placeholder={t('automations.add_step_menu.search_steps', 'Search steps…')}
                             className={denseInputClass('w-full pl-7 pr-2')}
                         />
                     </div>
@@ -139,6 +141,7 @@ function RecoBlock({ title, accent, items, onAdd }) {
 }
 
 function GroupBlock({ group, singleGroup, onAdd }) {
+    const { t } = useTranslation();
     // A consolidated group (Flow) renders its category sub-headings directly —
     // they're descriptive enough, so the group title is omitted to avoid a
     // redundant "Flow › Flow control" double heading.
@@ -175,7 +178,7 @@ function GroupBlock({ group, singleGroup, onAdd }) {
             )}
             <div className="pb-1.5">
                 {empty
-                    ? <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">Nothing here yet.</div>
+                    ? <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.add_step_menu.nothing_here_yet', 'Nothing here yet.')}</div>
                     : body}
             </div>
         </div>
@@ -246,10 +249,11 @@ function SimpleRow({ item, onAdd }) {
 }
 
 function AppsTree({ categories, onAdd }) {
+    const { t } = useTranslation();
     const [openCat, setOpenCat] = useState(categories.length === 1 ? categories[0].category : null);
     const [openApp, setOpenApp] = useState(null);
     if (categories.length === 0) {
-        return <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">No apps available.</div>;
+        return <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.add_step_menu.no_apps_available', 'No apps available.')}</div>;
     }
     return (
         <div>
@@ -278,6 +282,7 @@ function AppsTree({ categories, onAdd }) {
 }
 
 function AppRow({ app, isOpen, onToggle, onAdd }) {
+    const { t } = useTranslation();
     const notConnected = app.connected === false;
     const primary = app.actions[0];
     // The category row directly above already names the vendor, so the app is
@@ -307,7 +312,7 @@ function AppRow({ app, isOpen, onToggle, onAdd }) {
                     <IntegrationLogo integrationId={app.integrationId} size={18} />
                     <span className={`truncate font-medium ${notConnected ? 'text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{shownName}</span>
                     {notConnected && (
-                        <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">Connect</span>
+                        <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">{t('automations.add_step_menu.connect', 'Connect')}</span>
                     )}
                     <span className="ml-auto shrink-0 text-xs text-[var(--text-tertiary)] tabular-nums">{app.actions.length}</span>
                 </button>

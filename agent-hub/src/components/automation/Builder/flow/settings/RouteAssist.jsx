@@ -203,6 +203,7 @@ function RouteAssist({
     // (`fanOut`), and does one output send what it does not match to Otherwise?
     itemSample, onWorkThroughList, fanOut, keepRest,
 }) {
+    const { t } = useTranslation();
     const { text, retype, suggestion, fromAi, asking, askError, askAi, answers, setAnswers, perItem } =
         useRouteSuggestion({ fields, itemVar, sampleRows, unit, perItem: perItemProp, topics: topics?.available === true, element: itemSample });
     const rules = suggestion.rules;
@@ -222,15 +223,14 @@ function RouteAssist({
                 <Lightbulb size={12} /> Suggest outputs
             </div>
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                Describe the outputs in your own words and check them below. Nothing changes until you accept.
-                This runs here in the browser first — no AI, and nothing leaves this page.
+                {t('automations.route_assist.describe_the_outputs_in_your_own', 'Describe the outputs in your own words and check them below. Nothing changes until you accept. This runs here in the browser first — no AI, and nothing leaves this page.')}
             </div>
             <input ref={inputRef}
                 type="text"
                 value={text}
                 onChange={(e) => retype(e.target.value)}
-                aria-label="Describe the outputs you want"
-                placeholder="split these files by pdf, word and powerpoint"
+                aria-label={t('automations.route_assist.describe_the_outputs_you_want', 'Describe the outputs you want')}
+                placeholder={t('automations.route_assist.split_these_files_by_pdf_word', 'split these files by pdf, word and powerpoint')}
                 className={rowInputClass('w-full')}
             />
 
@@ -318,6 +318,7 @@ function previewHeading(suggestion, fromAi, t) {
  * to know that is what they are getting.
  */
 function AskAiRow({ offered, asking, error, onAsk }) {
+    const { t } = useTranslation();
     if (asking) {
         return (
             <div className="inline-flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
@@ -339,8 +340,7 @@ function AskAiRow({ offered, asking, error, onAsk }) {
                     {/* Said BEFORE the click, not after: what travels is the
                         shape of the data, never the data. */}
                     <div className="text-[10px] text-[var(--text-tertiary)]">
-                        This sends your description and the field names — never any rows or values — and every
-                        condition that comes back is checked against those fields before you see it.
+                        {t('automations.route_assist.this_sends_your_description_and_the', 'This sends your description and the field names — never any rows or values — and every condition that comes back is checked against those fields before you see it.')}
                     </div>
                 </div>
             )}
@@ -380,6 +380,7 @@ function HandoffOffer({
     offered = false, answers, onAnswers, named = [], plan, perItem, unit,
     existingRuleCount = 0, losingWires = [], onAccept,
 }) {
+    const { t } = useTranslation();
     if (!offered) return null;
     return (
         <div className="space-y-1.5 rounded border border-[var(--border-default)] p-2">
@@ -387,16 +388,14 @@ function HandoffOffer({
                 <Plus size={12} /> Have an AI step answer it first
             </div>
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                An output can only compare fields that already exist, and none of the fields here holds the answer
-                to that question. An AI step placed before this one can answer it in a single word, and the outputs
-                then check that word. This ADDS A STEP to your automation — it is the only thing in this box that does.
+                {t('automations.route_assist.an_output_can_only_compare_fields', 'An output can only compare fields that already exist, and none of the fields here holds the answer to that question. An AI step placed before this one can answer it in a single word, and the outputs then check that word. This ADDS A STEP to your automation — it is the only thing in this box that does.')}
             </div>
             <input
                 type="text"
                 value={answers}
                 onChange={(e) => onAnswers(e.target.value)}
-                aria-label="Name the possible answers"
-                placeholder="complaint, question, something else"
+                aria-label={t('automations.route_assist.name_the_possible_answers', 'Name the possible answers')}
+                placeholder={t('automations.route_assist.complaint_question_something_else', 'complaint, question, something else')}
                 className={rowInputClass('w-full')}
             />
             {/* A plan this cannot make says why, in a sentence. A greyed-out
@@ -564,7 +563,7 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, keepRest 
                     onClick={onReset}
                     className="text-[10px] text-[var(--text-tertiary)] hover:underline"
                 >
-                    Start over
+                    {t('automations.route_assist.start_over', 'Start over')}
                 </button>
             </div>
             {suggestion.truncated && (

@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 const DECK_FONT_OPTIONS = ['Calibri', 'Arial', 'Helvetica', 'Verdana', 'Segoe UI', 'Trebuchet MS', 'Century Gothic', 'Georgia', 'Cambria', 'Times New Roman', 'Garamond', 'Consolas'];
 
@@ -34,6 +35,7 @@ function ColourTemplateRow({ value, onChange, onFocusField, previewSample, place
  * save into the same `slides` and the runner reads either.
  */
 function PresentationFields({ draft, set, onFocusField, previewSample, errorSections = new Set() }) {
+    const { t } = useTranslation();
     const mode = draft.slidesMode === 'list' ? 'list' : 'source';
     const rows = Array.isArray(draft.slideRows) ? draft.slideRows : [];
     const days = Number.isFinite(Number(draft.expiresInDays)) ? Number(draft.expiresInDays) : 7;
@@ -41,15 +43,15 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
 
     return (
         <>
-            <AccordionSection stepType="presentation" sectionKey="slides" title="Slides" defaultOpen forceOpen={errorSections.has('slides')}>
+            <AccordionSection stepType="presentation" sectionKey="slides" title={t('automations.presentation_fields.slides', 'Slides')} defaultOpen forceOpen={errorSections.has('slides')}>
                 <div className="flex items-center gap-2 mb-2 text-xs">
                     <button type="button" onClick={() => set('slidesMode', 'source')}
                         className={`px-2 py-1 rounded border ${mode === 'source' ? 'bg-[var(--surface-2)] border-[var(--border-default)]' : 'border-transparent text-[var(--text-secondary)]'}`}>
-                        One source
+                        {t('automations.presentation_fields.one_source', 'One source')}
                     </button>
                     <button type="button" onClick={() => set('slidesMode', 'list')}
                         className={`px-2 py-1 rounded border ${mode === 'list' ? 'bg-[var(--surface-2)] border-[var(--border-default)]' : 'border-transparent text-[var(--text-secondary)]'}`}>
-                        Pick slides
+                        {t('automations.presentation_fields.pick_slides', 'Pick slides')}
                     </button>
                 </div>
                 {mode === 'source' ? (
@@ -78,7 +80,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                                             placeholder="{{steps.slide_1.output.slide}}"
                                         />
                                     </div>
-                                    <button type="button" aria-label="Remove slide" onClick={() => setRows(rows.filter((_, j) => j !== i))}
+                                    <button type="button" aria-label={t('automations.presentation_fields.remove_slide', 'Remove slide')} onClick={() => setRows(rows.filter((_, j) => j !== i))}
                                         className="mt-1 p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                                         <Trash2 size={14} />
                                     </button>
@@ -93,11 +95,11 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                 )}
             </AccordionSection>
 
-            <AccordionSection stepType="presentation" sectionKey="output" title="The file" defaultOpen forceOpen={errorSections.has('output')}>
+            <AccordionSection stepType="presentation" sectionKey="output" title={t('automations.presentation_fields.the_file', 'The file')} defaultOpen forceOpen={errorSections.has('output')}>
                 <FormRow label="Format" required>
                     <select value={draft.format === 'pdf' ? 'pdf' : 'pptx'} onChange={(e) => set('format', e.target.value)} className={inputClass()}>
-                        <option value="pptx">PowerPoint (.pptx)</option>
-                        <option value="pdf">PDF deck</option>
+                        <option value="pptx">{t('automations.presentation_fields.power_point_pptx', 'PowerPoint (.pptx)')}</option>
+                        <option value="pdf">{t('automations.presentation_fields.pdf_deck', 'PDF deck')}</option>
                     </select>
                 </FormRow>
                 <FormRow label="Title" hint="The cover title, and the filename when you leave that blank. Falls back to the outline's own title.">
@@ -107,7 +109,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                         rows={1}
                         onFocusField={onFocusField}
                         previewSample={previewSample}
-                        placeholder="Kwartaalcijfers {{trigger.output.kwartaal}}"
+                        placeholder={t('automations.presentation_fields.kwartaalcijfers', 'Kwartaalcijfers {{trigger.output.kwartaal}}')}
                     />
                 </FormRow>
                 <FormRow label="Subtitle" hint="On the cover: audience, date, author.">
@@ -126,25 +128,25 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                         rows={1}
                         onFocusField={onFocusField}
                         previewSample={previewSample}
-                        placeholder="kwartaalcijfers-{{trigger.output.kwartaal}}"
+                        placeholder={t('automations.presentation_fields.kwartaalcijfers_2', 'kwartaalcijfers-{{trigger.output.kwartaal}}')}
                     />
                 </FormRow>
             </AccordionSection>
 
-            <AccordionSection stepType="presentation" sectionKey="options" title="Look" defaultOpen={!!(draft.preset || draft.accent || draft.font || draft.coverStyle || draft.tableStyle || draft.logo || draft.logoPlacement)} forceOpen={errorSections.has('options')} hasContent={!!(draft.preset || draft.accent || draft.background || draft.font || draft.titleFont || draft.coverStyle || draft.tableStyle || draft.logo || draft.logoPlacement || draft.footerText || draft.slideNumbers || draft.template || draft.houseStyle === false)}>
+            <AccordionSection stepType="presentation" sectionKey="options" title={t('automations.presentation_fields.look', 'Look')} defaultOpen={!!(draft.preset || draft.accent || draft.font || draft.coverStyle || draft.tableStyle || draft.logo || draft.logoPlacement)} forceOpen={errorSections.has('options')} hasContent={!!(draft.preset || draft.accent || draft.background || draft.font || draft.titleFont || draft.coverStyle || draft.tableStyle || draft.logo || draft.logoPlacement || draft.footerText || draft.slideNumbers || draft.template || draft.houseStyle === false)}>
                 <FormRow label="House style" hint="Your organisation's colours, font, logo and footer — set under Studio → Documents → House style. Switch off only for a deck in someone else's branding.">
                     <label className="inline-flex items-center gap-2 text-sm">
                         <input type="checkbox" checked={draft.houseStyle !== false} onChange={(e) => set('houseStyle', e.target.checked)} />
-                        <span>Use the house style</span>
+                        <span>{t('automations.presentation_fields.use_the_house_style', 'Use the house style')}</span>
                     </label>
                 </FormRow>
                 <FormRow label="Style" hint="Leave on “house style” to follow the organisation's choice; pick one to override it for this deck.">
                     <select value={draft.preset || ''} onChange={(e) => set('preset', e.target.value)} className={inputClass()}>
-                        <option value="">House style</option>
-                        <option value="band">Title band — white slides, coloured title band</option>
-                        <option value="clean">Clean — white slides, accent titles</option>
-                        <option value="bold">Bold — accent-coloured slides</option>
-                        <option value="dark">Dark — charcoal slides</option>
+                        <option value="">{t('automations.presentation_fields.house_style', 'House style')}</option>
+                        <option value="band">{t('automations.presentation_fields.title_band_white_slides_coloured_title', 'Title band — white slides, coloured title band')}</option>
+                        <option value="clean">{t('automations.presentation_fields.clean_white_slides_accent_titles', 'Clean — white slides, accent titles')}</option>
+                        <option value="bold">{t('automations.presentation_fields.bold_accent_coloured_slides', 'Bold — accent-coloured slides')}</option>
+                        <option value="dark">{t('automations.presentation_fields.dark_charcoal_slides', 'Dark — charcoal slides')}</option>
                     </select>
                 </FormRow>
                 <FormRow label="Accent colour" hint="#RRGGBB, or a value from an earlier step. Blank = the house style's accent.">
@@ -152,7 +154,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                 </FormRow>
                 <FormRow label="Typeface">
                     <select value={draft.font || ''} onChange={(e) => set('font', e.target.value)} className={inputClass()}>
-                        <option value="">House style</option>
+                        <option value="">{t('automations.presentation_fields.house_style', 'House style')}</option>
                         {DECK_FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
                     </select>
                 </FormRow>
@@ -163,60 +165,60 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                         rows={1}
                         onFocusField={onFocusField}
                         previewSample={previewSample}
-                        placeholder="{{steps.image_1.output.imageUrl}} — or: none"
+                        placeholder={t('automations.presentation_fields.or_none', '{{steps.image_1.output.imageUrl}} — or: none')}
                     />
                 </FormRow>
                 <FormRow label="Logo placement">
                     <select value={draft.logoPlacement || ''} onChange={(e) => set('logoPlacement', e.target.value)} className={inputClass()} data-testid="presentation-logo-placement">
-                        <option value="">House style</option>
-                        <option value="footer">Footer</option>
-                        <option value="corner">Top corner</option>
-                        <option value="cover">Cover only</option>
-                        <option value="none">Nowhere</option>
+                        <option value="">{t('automations.presentation_fields.house_style', 'House style')}</option>
+                        <option value="footer">{t('automations.presentation_fields.footer', 'Footer')}</option>
+                        <option value="corner">{t('automations.presentation_fields.top_corner', 'Top corner')}</option>
+                        <option value="cover">{t('automations.presentation_fields.cover_only', 'Cover only')}</option>
+                        <option value="none">{t('automations.presentation_fields.nowhere', 'Nowhere')}</option>
                     </select>
                 </FormRow>
                 <FormRow label="Cover">
                     <select value={draft.coverStyle || ''} onChange={(e) => set('coverStyle', e.target.value)} className={inputClass()}>
-                        <option value="">House style</option>
-                        <option value="accent">Accent block</option>
-                        <option value="light">Light</option>
-                        <option value="split">Split panel</option>
+                        <option value="">{t('automations.presentation_fields.house_style', 'House style')}</option>
+                        <option value="accent">{t('automations.presentation_fields.accent_block', 'Accent block')}</option>
+                        <option value="light">{t('automations.presentation_fields.light', 'Light')}</option>
+                        <option value="split">{t('automations.presentation_fields.split_panel', 'Split panel')}</option>
                     </select>
                 </FormRow>
                 <FormRow label="Tables">
                     <select value={draft.tableStyle || ''} onChange={(e) => set('tableStyle', e.target.value)} className={inputClass()}>
-                        <option value="">House style</option>
-                        <option value="banded">Banded rows</option>
-                        <option value="lines">Lines</option>
-                        <option value="minimal">Minimal</option>
+                        <option value="">{t('automations.presentation_fields.house_style', 'House style')}</option>
+                        <option value="banded">{t('automations.presentation_fields.banded_rows', 'Banded rows')}</option>
+                        <option value="lines">{t('automations.presentation_fields.lines', 'Lines')}</option>
+                        <option value="minimal">{t('automations.presentation_fields.minimal', 'Minimal')}</option>
                     </select>
                 </FormRow>
                 <details className="mt-1" open={!!(draft.background || draft.titleFont || draft.footerText || draft.slideNumbers || draft.template)}>
-                    <summary className="text-xs cursor-pointer text-[var(--text-secondary)] select-none">More look options</summary>
+                    <summary className="text-xs cursor-pointer text-[var(--text-secondary)] select-none">{t('automations.presentation_fields.more_look_options', 'More look options')}</summary>
                     <div className="mt-2 space-y-2">
                         <FormRow label="Background" hint="#RRGGBB or a value from an earlier step; text colours adapt so they stay readable.">
                             <ColourTemplateRow value={draft.background} onChange={(next) => set('background', next)} onFocusField={onFocusField} previewSample={previewSample} placeholder="#FFFFFF" ariaLabel="Background colour" fallback="#ffffff" />
                         </FormRow>
                         <FormRow label="Title typeface">
                             <select value={draft.titleFont || ''} onChange={(e) => set('titleFont', e.target.value)} className={inputClass()}>
-                                <option value="">Same as the body</option>
+                                <option value="">{t('automations.presentation_fields.same_as_the_body', 'Same as the body')}</option>
                                 {DECK_FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
                             </select>
                         </FormRow>
                         <FormRow label="Footer line" hint="Shown small on every slide, e.g. “Vertrouwelijk · Q3 2026”. Blank = the house-style footer.">
-                            <TemplateField value={draft.footerText || ''} onChange={(next) => set('footerText', next)} rows={1} onFocusField={onFocusField} previewSample={previewSample} placeholder="Vertrouwelijk · {{trigger.output.date}}" />
+                            <TemplateField value={draft.footerText || ''} onChange={(next) => set('footerText', next)} rows={1} onFocusField={onFocusField} previewSample={previewSample} placeholder={t('automations.presentation_fields.vertrouwelijk', 'Vertrouwelijk · {{trigger.output.date}}')} />
                         </FormRow>
                         <FormRow label="Slide numbers">
                             <select value={draft.slideNumbers || ''} onChange={(e) => set('slideNumbers', e.target.value)} className={inputClass()} data-testid="presentation-slide-numbers">
-                                <option value="">House style</option>
-                                <option value="true">Shown</option>
-                                <option value="false">Hidden</option>
+                                <option value="">{t('automations.presentation_fields.house_style', 'House style')}</option>
+                                <option value="true">{t('automations.presentation_fields.shown', 'Shown')}</option>
+                                <option value="false">{t('automations.presentation_fields.hidden', 'Hidden')}</option>
                             </select>
                         </FormRow>
                         <FormRow label="Template deck" hint="The .pptx uploaded under House style → Presentations paints its backgrounds and logo under every slide. Choose plain slides to build without it.">
                             <select value={draft.template || ''} onChange={(e) => set('template', e.target.value)} className={inputClass()} data-testid="presentation-template">
-                                <option value="">House style (template when uploaded)</option>
-                                <option value="none">Plain slides — no template</option>
+                                <option value="">{t('automations.presentation_fields.house_style_template_when_uploaded', 'House style (template when uploaded)')}</option>
+                                <option value="none">{t('automations.presentation_fields.plain_slides_no_template', 'Plain slides — no template')}</option>
                             </select>
                         </FormRow>
                     </div>
@@ -224,7 +226,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                 <FormRow label="Also keep it in Documents" hint="Keeps the deck in Studio → Documents as a presentation you can open in Bee Flow, edit and rebuild. Leave it off for an automation that runs often — it makes a document every run.">
                     <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                         <input type="checkbox" checked={draft.saveCopy === true} onChange={(e) => set('saveCopy', e.target.checked)} data-testid="presentation-save-copy" />
-                        Keep a copy
+                        {t('automations.presentation_fields.keep_a_copy', 'Keep a copy')}
                     </label>
                 </FormRow>
                 {draft.saveCopy === true && (
@@ -235,7 +237,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                             rows={1}
                             onFocusField={onFocusField}
                             previewSample={previewSample}
-                            placeholder="Kwartaalcijfers {{trigger.date}}"
+                            placeholder={t('automations.presentation_fields.kwartaalcijfers_3', 'Kwartaalcijfers {{trigger.date}}')}
                         />
                     </FormRow>
                 )}

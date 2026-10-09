@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { EXPR_FUNCTIONS, EXPR_OPERATOR_GROUPS } from './exprFunctions';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Collapsible "Syntax help" for the restricted expression grammar.
@@ -15,15 +16,16 @@ import { EXPR_FUNCTIONS, EXPR_OPERATOR_GROUPS } from './exprFunctions';
  * this list can't drift from what the evaluator actually accepts.
  */
 export function ExpressionHelpBody() {
+    const { t } = useTranslation();
     return (
         <div className="rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-2 space-y-1 text-[10px] text-[var(--text-secondary)]">
-            <div className="font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Functions</div>
+            <div className="font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.expression_help.functions', 'Functions')}</div>
             {EXPR_FUNCTIONS.map(f => (
                 <div key={f.name}>
                     <code className="text-[var(--text-primary)]">{f.signature}</code> — {f.description}
                 </div>
             ))}
-            <div className="font-semibold uppercase tracking-wide text-[var(--text-tertiary)] pt-1">Operators</div>
+            <div className="font-semibold uppercase tracking-wide text-[var(--text-tertiary)] pt-1">{t('automations.expression_help.operators', 'Operators')}</div>
             {EXPR_OPERATOR_GROUPS.map(g => (
                 <div key={g.label}>
                     <span className="text-[var(--text-tertiary)]">{g.label}:</span>{' '}

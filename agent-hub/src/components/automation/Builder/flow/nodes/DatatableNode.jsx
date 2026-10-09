@@ -3,6 +3,7 @@ import { Table2, Search, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { datatableSummary } from '../nodeSummaries';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 // One icon per operation, so "this one deletes" is legible at canvas zoom
 // without reading the summary line.
@@ -15,6 +16,7 @@ const OP_ICON = {
 };
 
 export default function DatatableNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter, tableNameById, datatablesById } = data;
     const Icon = OP_ICON[step.op] || Table2;
     const table = datatablesById?.[step.datatableId];
@@ -25,8 +27,8 @@ export default function DatatableNode({ id, data }) {
     // somebody else can read what this writes. Both worth saying on the card.
     const badges = (writes || shared) ? (
         <>
-            {writes && <NodeChip tone="warn" title="This step changes stored data — the change outlives the run.">writes</NodeChip>}
-            {shared && <NodeChip title="Other people can read this table.">{table.scope === 'org' ? 'org' : 'shared'}</NodeChip>}
+            {writes && <NodeChip tone="warn" title={t('automations.datatable_node.this_step_changes_stored_data_the', 'This step changes stored data — the change outlives the run.')}>writes</NodeChip>}
+            {shared && <NodeChip title={t('automations.datatable_node.other_people_can_read_this_table', 'Other people can read this table.')}>{table.scope === 'org' ? 'org' : 'shared'}</NodeChip>}
         </>
     ) : null;
 

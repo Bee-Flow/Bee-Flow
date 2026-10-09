@@ -2,8 +2,10 @@ import React from 'react';
 import { Braces, Sparkles } from 'lucide-react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { ForEachBadge, NodeChip } from './StepNodeBase';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 export default function ParseJsonNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter } = data;
     const fields = Array.isArray(step.fields) ? step.fields.filter(f => f && f.name).map(f => f.name) : [];
     const sub = fields.length === 0
@@ -12,7 +14,7 @@ export default function ParseJsonNode({ id, data }) {
     const badges = (
         <>
             {step.mode === 'ai' && (
-                <NodeChip tone="accent" title="Extracts with AI on every run">
+                <NodeChip tone="accent" title={t('automations.parse_json_node.extracts_with_ai_on_every_run', 'Extracts with AI on every run')}>
                     <Sparkles size={10} /> AI
                 </NodeChip>
             )}

@@ -16,6 +16,7 @@ import { columnTypeKind, opTakesList, opTakesNoValue } from '../../../../admin/S
 import AccordionSection from '../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
 import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 // Mirrors core/dataEngine FILTER_OPS. Labelled in the words a person would use,
 // and narrowed per column type so a date never offers "contains".
@@ -52,6 +53,7 @@ export default function DatatableFields({
     draft, set, groups, onFocusField, previewSample,
     errorSections = new Set(), catalog = null,
 }) {
+    const { t } = useTranslation();
     const tables = useMemo(() => (catalog?.datatables || []), [catalog]);
     const ops = useMemo(() => (catalog?.datatableOps || []), [catalog]);
     const table = useMemo(
@@ -98,7 +100,7 @@ export default function DatatableFields({
     return (
         <>
             <AccordionSection
-                stepType="datatable" sectionKey="table" title="Table" defaultOpen
+                stepType="datatable" sectionKey="table" title={t('automations.datatable_editors.table', 'Table')} defaultOpen
                 forceOpen={errorSections.has('table')}
             >
                 <FormRow
@@ -163,7 +165,7 @@ export default function DatatableFields({
                             onChange={(e) => set('datatableId', e.target.value)}
                             onFocus={() => onFocusField?.('datatableId')}
                         >
-                            <option value="">Pick a table…</option>
+                            <option value="">{t('automations.datatable_editors.pick_a_table', 'Pick a table…')}</option>
                             {tables.map(t => (
                                 <option key={t.id} value={t.id} disabled={writes && !t.canWrite}>
                                     {t.name}
@@ -192,7 +194,7 @@ export default function DatatableFields({
 
                 {table && table.scope !== 'personal' && writes && (
                     <p className="text-[11px] text-amber-700 dark:text-amber-400 px-1">
-                        This table is shared — other people and other automations read what this step writes.
+                        {t('automations.datatable_editors.this_table_is_shared_other_people', 'This table is shared — other people and other automations read what this step writes.')}
                     </p>
                 )}
             </AccordionSection>
@@ -213,7 +215,7 @@ export default function DatatableFields({
                             value={draft.matchColumn || ''}
                             onChange={(v) => set('matchColumn', v)}
                             options={columnOptions}
-                            placeholder="email"
+                            placeholder={t('automations.datatable_editors.email', 'email')}
                             label="Match on"
                             onFocusField={onFocusField}
                         />
@@ -222,7 +224,7 @@ export default function DatatableFields({
 
                 {needsWhere && where.length === 0 && (
                     <p className="text-[11px] text-rose-700 dark:text-rose-400 px-1 pb-1">
-                        Add at least one condition. Without one this would change every row in the table.
+                        {t('automations.datatable_editors.add_at_least_one_condition_without', 'Add at least one condition. Without one this would change every row in the table.')}
                     </p>
                 )}
 
@@ -238,8 +240,8 @@ export default function DatatableFields({
                             value={draft.match || 'all'}
                             onChange={(e) => set('match', e.target.value === 'any' ? 'any' : 'all')}
                         >
-                            <option value="all">All of these conditions</option>
-                            <option value="any">Any one of these conditions</option>
+                            <option value="all">{t('automations.datatable_editors.all_of_these_conditions', 'All of these conditions')}</option>
+                            <option value="any">{t('automations.datatable_editors.any_one_of_these_conditions', 'Any one of these conditions')}</option>
                         </select>
                     </FormRow>
                 )}
@@ -256,7 +258,7 @@ export default function DatatableFields({
                                             value={w?.field || ''}
                                             onChange={(v) => setWhere(where.map((x, j) => (j === i ? { ...x, field: v } : x)))}
                                             options={columnOptions}
-                                            placeholder="column"
+                                            placeholder={t('automations.datatable_editors.column', 'column')}
                                             label="Column"
                                             onFocusField={onFocusField}
                                         />
@@ -272,9 +274,9 @@ export default function DatatableFields({
                                         type="button"
                                         className="text-xs text-slate-500 hover:text-rose-600 px-1 shrink-0"
                                         onClick={() => setWhere(where.filter((_, j) => j !== i))}
-                                        aria-label="Remove this condition"
+                                        aria-label={t('automations.datatable_editors.remove_this_condition', 'Remove this condition')}
                                     >
-                                        Remove
+                                        {t('automations.datatable_editors.remove', 'Remove')}
                                     </button>
                                 </div>
                                 {/* `isNull`/`isNotNull` are the whole condition on
@@ -286,7 +288,7 @@ export default function DatatableFields({
                                         onChange={(v) => setWhere(where.map((x, j) => (j === i ? { ...x, value: v } : x)))}
                                         label="Value"
                                         showChrome
-                                        placeholder="a value, or drag one in from an earlier step"
+                                        placeholder={t('automations.datatable_editors.a_value_or_drag_one_in', 'a value, or drag one in from an earlier step')}
                                         onFocusField={onFocusField}
                                         previewSample={previewSample}
                                         // What this comparison wants comes from the
@@ -316,7 +318,7 @@ export default function DatatableFields({
                         className="text-xs text-sky-700 dark:text-sky-400 hover:underline"
                         onClick={() => setWhere([...where, { field: '', op: 'eq', value: '' }])}
                     >
-                        + Add a condition
+                        {t('automations.datatable_editors.add_a_condition', '+ Add a condition')}
                     </button>
                 </div>
 
@@ -336,7 +338,7 @@ export default function DatatableFields({
                                         value={sortEntry?.field || ''}
                                         onChange={(v) => setSort(v, sortEntry?.dir)}
                                         options={columnOptions}
-                                        placeholder="added on (default)"
+                                        placeholder={t('automations.datatable_editors.added_on_default', 'added on (default)')}
                                         label="Order by"
                                         onFocusField={onFocusField}
                                     />
@@ -346,7 +348,7 @@ export default function DatatableFields({
                                     value={sortEntry?.dir || 'desc'}
                                     disabled={!sortEntry?.field}
                                     onChange={(e) => setSort(sortEntry?.field, e.target.value)}
-                                    aria-label="Sort direction"
+                                    aria-label={t('automations.datatable_editors.sort_direction', 'Sort direction')}
                                 >
                                     <option value="desc">highest first</option>
                                     <option value="asc">lowest first</option>
@@ -372,12 +374,12 @@ export default function DatatableFields({
 
             {needsValues && (
                 <AccordionSection
-                    stepType="datatable" sectionKey="values" title="What to write" defaultOpen
+                    stepType="datatable" sectionKey="values" title={t('automations.datatable_editors.what_to_write', 'What to write')} defaultOpen
                     forceOpen={errorSections.has('values')}
                 >
                     {columns.length === 0 ? (
                         <p className="text-xs text-slate-500 dark:text-slate-400 px-1">
-                            Pick a table first — its columns appear here.
+                            {t('automations.datatable_editors.pick_a_table_first_its_columns', 'Pick a table first — its columns appear here.')}
                         </p>
                     ) : (
                         <div className="space-y-2">
@@ -413,7 +415,7 @@ export default function DatatableFields({
             {/* Iteration: one write (or lookup) per item of an upstream list —
                 the validator allows forEach on datatable steps since 2026-09-04. */}
             <AccordionSection
-                stepType="datatable" sectionKey="advanced" title="Advanced"
+                stepType="datatable" sectionKey="advanced" title={t('automations.datatable_editors.advanced', 'Advanced')}
                 forceOpen={errorSections.has('advanced')} hasContent={!!draft.forEach || retryIsSet(draft)}
             >
                 <FormRow label="Iteration" hint="Off by default: the step runs once. Turn on to run it once per item of an upstream list (then reference {{loop.item…}} in the conditions and values).">

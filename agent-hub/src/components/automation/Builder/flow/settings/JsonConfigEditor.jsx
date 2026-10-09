@@ -47,6 +47,7 @@ export default function JsonConfigSection({ draft, onApply }) {
  * underneath the user.
  */
 function JsonConfigEditor({ draft, onApply, onClose }) {
+    const { t } = useTranslation();
     const [text, setText] = useState(() => JSON.stringify(draft, null, 2));
     const [error, setError] = useState(null);
 
@@ -66,7 +67,7 @@ function JsonConfigEditor({ draft, onApply, onClose }) {
     return (
         <div className="rounded-md border border-[var(--border-subtle)] p-3 space-y-2" data-testid="settings-json-editor">
             <textarea
-                aria-label="Step config as JSON"
+                aria-label={t('automations.json_config_editor.step_config_as_json', 'Step config as JSON')}
                 value={text}
                 onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
                 rows={Math.min(24, text.split('\n').length + 1)}
@@ -82,14 +83,14 @@ function JsonConfigEditor({ draft, onApply, onClose }) {
                     onClick={apply}
                     className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-[var(--accent)] text-white hover:opacity-90"
                 >
-                    Apply JSON
+                    {t('automations.json_config_editor.apply_json', 'Apply JSON')}
                 </button>
                 <button
                     type="button"
                     onClick={onClose}
                     className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                 >
-                    Back to the form
+                    {t('automations.json_config_editor.back_to_the_form', 'Back to the form')}
                 </button>
             </div>
         </div>

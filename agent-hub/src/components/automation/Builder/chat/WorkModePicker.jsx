@@ -28,7 +28,7 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
         </button>
         {open && <div role="menu" aria-label={t('automations.assistant.work_mode', 'Work mode')}
             className="absolute bottom-full left-0 mb-2 z-50 w-[min(320px,calc(100vw-48px))] max-w-[calc(100cqw-24px)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1.5 shadow-lg">
-            <div className="flex justify-between p-2 text-[11px] text-[var(--text-tertiary)]"><span>{t('automations.assistant.work_mode', 'Work mode')}</span><span>⇧ Tab</span></div>
+            <div className="flex justify-between p-2 text-[11px] text-[var(--text-tertiary)]"><span>{t('automations.assistant.work_mode', 'Work mode')}</span><span>{t('automations.work_mode_picker.tab', '⇧ Tab')}</span></div>
             {WORK_MODES.map(m => <button key={m.id} type="button" role="menuitemradio" aria-checked={value === m.id}
                 onClick={() => { onChange(m.id); setOpen(false); }} className={`flex w-full gap-2.5 rounded-lg p-2.5 text-left ${value === m.id ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}>
                 <m.Icon size={15} className="mt-0.5 shrink-0 text-[var(--text-secondary)]" />
