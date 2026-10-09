@@ -1,4 +1,5 @@
 import { Globe } from 'lucide-react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useRuntime } from '../RuntimeContext';
 import { useBrowserRun } from '../BrowserRunContext';
 
@@ -15,6 +16,7 @@ import { useBrowserRun } from '../BrowserRunContext';
 const ASPECT = { '16:10': '16 / 10', '16:9': '16 / 9', '4:3': '4 / 3' };
 
 export default function AppBrowserView({ node }) {
+    const { t } = useTranslation();
     const { mode } = useRuntime();
     const { previews } = useBrowserRun();
     const props = node.props || {};
@@ -27,7 +29,7 @@ export default function AppBrowserView({ node }) {
     const ended = preview?.ended;
     const queued = preview?.queued;
     const action = preview?.action;
-    const label = preview?.url || preview?.task || 'Browsing…';
+    const label = preview?.url || preview?.task || t('studio_apps_runtime.browser_view.browsing', 'Browsing…');
 
     return (
         <div
@@ -40,14 +42,14 @@ export default function AppBrowserView({ node }) {
                 style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
             >
                 <Globe className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-                <span className="truncate">{preview ? label : 'Live browser'}</span>
-                {ended && <span className="ml-auto flex-shrink-0 opacity-70">done</span>}
+                <span className="truncate">{preview ? label : t('studio_apps_runtime.browser_view.live_browser', 'Live browser')}</span>
+                {ended && <span className="ml-auto flex-shrink-0 opacity-70">{t('studio_apps_runtime.browser_view.done', 'done')}</span>}
             </div>
 
             {frame ? (
                 <img
                     src={`data:image/jpeg;base64,${frame}`}
-                    alt="Live browser preview"
+                    alt={t('studio_apps_runtime.browser_view.preview_alt', 'Live browser preview')}
                     className="w-full h-auto block"
                     style={{ opacity: ended ? 0.75 : 1 }}
                 />
@@ -57,12 +59,14 @@ export default function AppBrowserView({ node }) {
                     style={{ aspectRatio, color: 'var(--text-secondary)' }}
                 >
                     {editing
-                        ? (props.emptyText || 'The live browser appears here while the agent works.')
+                        ? (props.emptyText || t('studio_apps_runtime.browser_view.empty', 'The live browser appears here while the agent works.'))
                         : queued
-                            ? `Waiting for an available browser${preview?.queuePosition ? ` (${preview.queuePosition} ahead)` : ''}…`
+                            ? (preview?.queuePosition
+                                ? t('studio_apps_runtime.browser_view.waiting_ahead', 'Waiting for an available browser ({n} ahead)…', { n: preview.queuePosition })
+                                : t('studio_apps_runtime.browser_view.waiting', 'Waiting for an available browser…'))
                             : preview
-                                ? 'Opening the browser…'
-                                : (props.emptyText || 'The live browser appears here while the agent works.')}
+                                ? t('studio_apps_runtime.browser_view.opening', 'Opening the browser…')
+                                : (props.emptyText || t('studio_apps_runtime.browser_view.empty', 'The live browser appears here while the agent works.'))}
                 </div>
             )}
 

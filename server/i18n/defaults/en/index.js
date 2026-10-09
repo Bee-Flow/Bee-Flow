@@ -140,6 +140,13 @@ const NAMESPACES = {
     "admin_security": require('./admin_security.js'),
     "admin_shared": require('./admin_shared.js'),
     "admin_subscriptions": require('./admin_subscriptions.js'),
+    "studio_apps_bi": require('./studio_apps_bi.js'),
+    "studio_apps_edit": require('./studio_apps_edit.js'),
+    "studio_apps_tables": require('./studio_apps_tables.js'),
+    "studio_apps_insp": require('./studio_apps_insp.js'),
+    "studio_apps_panels": require('./studio_apps_panels.js'),
+    "studio_apps_runtime": require('./studio_apps_runtime.js'),
+    "studio_misc": require('./studio_misc.js'),
 };
 
 function build() {

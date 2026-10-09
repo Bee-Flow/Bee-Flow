@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../../../shared/ConfirmDialog';
 import IconButton from '../../../../../shared/IconButton';
 import { getComponentEntry } from '../../runtime/componentRegistry';
@@ -10,12 +11,6 @@ import { IconField, TextField, SelectField, usePatch } from './kit';
 // Mirror of the tabs `look` enum (componentSpecs.js, authoritative — first
 // value is the default: the bottom-ruled strip with a primary underline on
 // the active tab, exactly what tabs always rendered).
-const LOOKS = [
-    { value: 'underline', label: 'Underline' },
-    { value: 'pills', label: 'Pills' },
-    { value: 'boxed', label: 'Boxed' },
-];
-
 /** Build a fresh `tab` node from the registry defaults (deep-cloned). */
 function newTabNode() {
     const entry = getComponentEntry('tab');
@@ -30,6 +25,12 @@ function newTabNode() {
 
 /** Content panel for the `tabs` container — its look, plus add / rename / remove its tabs. */
 export function TabsInspector({ node, definition, onCommit, disabled = false }) {
+    const { t } = useTranslation();
+    const LOOKS = [
+        { value: 'underline', label: t('studio_apps_panels.tabs.look_underline', 'Underline') },
+        { value: 'pills', label: t('studio_apps_panels.tabs.look_pills', 'Pills') },
+        { value: 'boxed', label: t('studio_apps_panels.tabs.look_boxed', 'Boxed') },
+    ];
     const tabs = Array.isArray(node.children) ? node.children : [];
     const props = node.props || {};
     const patch = usePatch(node, definition, onCommit);
@@ -47,7 +48,7 @@ export function TabsInspector({ node, definition, onCommit, disabled = false }) 
     // faster route — a "Details" tab with a ten-field form vanished on one click
     // with nothing but the editor-wide undo to get it back.
     const [confirmTabId, setConfirmTabId] = useState(null);
-    const confirmTab = tabs.find((t) => t.id === confirmTabId) || null;
+    const confirmTab = tabs.find((tb) => tb.id === confirmTabId) || null;
     const childCount = Array.isArray(confirmTab?.children) ? confirmTab.children.length : 0;
 
     const doDeleteTab = (tabId) => {
@@ -64,7 +65,7 @@ export function TabsInspector({ node, definition, onCommit, disabled = false }) 
     return (
         <div className="flex flex-col gap-3">
             <SelectField
-                label="Look"
+                label={t('studio_apps_panels.common.look', 'Look')}
                 value={props.look ?? 'underline'}
                 onChange={(v) => patch({ look: v })}
                 options={LOOKS}
@@ -78,11 +79,11 @@ export function TabsInspector({ node, definition, onCommit, disabled = false }) 
                             className="flex-1 px-3 py-2 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] focus:border-[var(--accent-primary)]"
                             value={tab.props?.label || ''}
                             onChange={(e) => renameTab(tab.id, e.target.value)}
-                            placeholder={`Tab ${i + 1}`}
+                            placeholder={t('studio_apps_panels.tabs.tab_placeholder', 'Tab {n}', { n: i + 1 })}
                             disabled={disabled}
-                            aria-label={`Tab ${i + 1} label`}
+                            aria-label={t('studio_apps_panels.tabs.tab_label_aria', 'Tab {n} label', { n: i + 1 })}
                         />
-                        <IconButton ariaLabel={`Delete tab ${i + 1}`} variant="danger" onClick={() => deleteTab(tab)} disabled={disabled || tabs.length <= 1}>
+                        <IconButton ariaLabel={t('studio_apps_panels.tabs.delete_tab_aria', 'Delete tab {n}', { n: i + 1 })} variant="danger" onClick={() => deleteTab(tab)} disabled={disabled || tabs.length <= 1}>
                             <Trash2 />
                         </IconButton>
                     </div>
@@ -94,14 +95,14 @@ export function TabsInspector({ node, definition, onCommit, disabled = false }) 
                 disabled={disabled}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50"
             >
-                <Plus className="w-3.5 h-3.5" /> Add tab
+                <Plus className="w-3.5 h-3.5" /> {t('studio_apps_panels.tabs.add_tab', 'Add tab')}
             </button>
 
             <ConfirmDialog
                 open={!!confirmTab}
-                title={`Delete the “${confirmTab?.props?.label || 'tab'}” tab?`}
-                description={`It holds ${childCount} component${childCount === 1 ? '' : 's'} — everything inside it will be deleted too.`}
-                confirmLabel="Delete"
+                title={t('studio_apps_panels.tabs.delete_title', 'Delete the “{name}” tab?', { name: confirmTab?.props?.label || t('studio_apps_panels.tabs.delete_fallback_name', 'tab') })}
+                description={childCount === 1 ? t('studio_apps_panels.tabs.delete_desc_one', 'It holds 1 component — everything inside it will be deleted too.') : t('studio_apps_panels.tabs.delete_desc_many', 'It holds {n} components — everything inside it will be deleted too.', { n: childCount })}
+                confirmLabel={t('studio_apps_panels.common.delete', 'Delete')}
                 destructive
                 onConfirm={() => doDeleteTab(confirmTabId)}
                 onCancel={() => setConfirmTabId(null)}
@@ -113,11 +114,12 @@ export function TabsInspector({ node, definition, onCommit, disabled = false }) 
 /** Content panel for a single `tab` — its label + icon. */
 export function TabInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
     return (
         <div className="flex flex-col gap-4">
-            <TextField label="Tab label" value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
-            <IconField label="Tab icon" value={props.icon} onChange={(v) => patch({ icon: v })} disabled={disabled} />
+            <TextField label={t('studio_apps_panels.tabs.tab_label', 'Tab label')} value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
+            <IconField label={t('studio_apps_panels.tabs.tab_icon', 'Tab icon')} value={props.icon} onChange={(v) => patch({ icon: v })} disabled={disabled} />
         </div>
     );
 }

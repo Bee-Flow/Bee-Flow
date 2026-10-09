@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 
 /**
@@ -65,6 +66,7 @@ export const APP_MEMBERS_KEY = (appId) => ['studio-app-members', appId];
  * simply stays idle).
  */
 export default function useAppRoles(appId) {
+    const { t } = useTranslation();
     const qc = useQueryClient();
     // The model version the SERVER last reported, kept out of the cached data so
     // it is never confused with one the client made up. null = not known yet.
@@ -148,7 +150,7 @@ export default function useAppRoles(appId) {
                     qc.setQueryData(schemaKey, err.body.model);
                 }
                 qc.invalidateQueries({ queryKey: schemaKey });
-                const conflict = new Error("The app's data changed somewhere else while this panel was open — it has been reloaded, so try again.");
+                const conflict = new Error(t('studio_apps_edit.roles_api.conflict', "The app's data changed somewhere else while this panel was open — it has been reloaded, so try again."));
                 conflict.status = 409;
                 conflict.conflict = true;
                 throw conflict;

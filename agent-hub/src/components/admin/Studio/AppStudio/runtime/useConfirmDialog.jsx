@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import useConfirm from '../../../../shared/useConfirm';
 
 /**
@@ -12,18 +13,19 @@ import useConfirm from '../../../../shared/useConfirm';
  * page) and pass `confirm` to useActionRunner.
  */
 export default function useConfirmDialog() {
+    const { t } = useTranslation();
     const { confirm: ask, confirmDialog } = useConfirm();
 
     const confirm = useCallback((step) => {
         const s = step && typeof step === 'object' ? step : {};
         return ask({
-            title: s.title || s.heading || 'Please confirm',
-            description: s.message || 'Are you sure you want to continue?',
-            confirmLabel: s.confirmLabel || 'Continue',
-            cancelLabel: s.cancelLabel || 'Cancel',
+            title: s.title || s.heading || t('studio_apps_runtime.confirm.title', 'Please confirm'),
+            description: s.message || t('studio_apps_runtime.confirm.description', 'Are you sure you want to continue?'),
+            confirmLabel: s.confirmLabel || t('studio_apps_runtime.confirm.continue', 'Continue'),
+            cancelLabel: s.cancelLabel || t('studio_apps_runtime.confirm.cancel', 'Cancel'),
             destructive: !!s.destructive,
         });
-    }, [ask]);
+    }, [ask, t]);
 
     return { confirm, dialog: confirmDialog };
 }

@@ -45,7 +45,7 @@ function lineText(line, t) {
         // The CLASS, in plain words — never the free-text message, which can
         // quote a customer and, in the organisation scope, somebody else's.
         // "Open the run" is where the detail lives, for whoever owns it.
-        const why = errorClassLabel(line.errorClass);
+        const why = errorClassLabel(line.errorClass, t);
         return why
             ? t('runs.now.failed_because', 'failed — {reason}', { reason: why })
             : t('runs.now.failed', 'failed');

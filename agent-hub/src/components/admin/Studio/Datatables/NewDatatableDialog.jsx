@@ -454,7 +454,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                         autoFocus
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Customers"
+                        placeholder={t('studio_misc.newtable.name_placeholder', 'Customers')}
                         className={INPUT}
                         style={INPUT_STYLE}
                     />
@@ -469,7 +469,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                         <input
                             value={effectiveKey}
                             onChange={(e) => { setKeyTouched(true); setKey(e.target.value); }}
-                            placeholder="customers"
+                            placeholder={t('studio_misc.newtable.key_placeholder', 'customers')}
                             className={`${INPUT} font-mono`}
                             style={INPUT_STYLE}
                         />
@@ -488,7 +488,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         rows={2}
-                        placeholder="Customers we have already sent the onboarding e-mail to."
+                        placeholder={t('studio_misc.newtable.purpose_placeholder', 'Customers we have already sent the onboarding e-mail to.')}
                         className={INPUT}
                         style={INPUT_STYLE}
                     />
@@ -704,7 +704,7 @@ export function TypeSelect({ t, value, onChange, disabled = false, ariaLabel, ty
                 onChange={(e) => onChange(e.target.value)}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-default"
             >
-                {types.map(ct => <option key={ct.type} value={ct.type}>{ct.label}</option>)}
+                {types.map(ct => <option key={ct.type} value={ct.type}>{t(`studio_misc.coltype.${ct.type}`, ct.label)}</option>)}
             </select>
         </span>
     );

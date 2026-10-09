@@ -141,11 +141,11 @@ export default function TablesManager({
             setModel(blank);
             setModelVersion(0);
             setSavedSnapshot(JSON.stringify(blank));
-            if (err?.status && err.status !== 404) toast.error(err.message || 'Could not load the data model.');
+            if (err?.status && err.status !== 404) toast.error(err.message || t('studio_apps_tables.manager.load_failed', 'Could not load the data model.'));
         } finally {
             setLoading(false);
         }
-    }, [appId]);
+    }, [appId, t]);
 
     useEffect(() => {
         if (open) load();
@@ -227,15 +227,15 @@ export default function TablesManager({
         });
         setSelectedId(list[0].id);
         toast.success(list.length > 1
-            ? `${list.length} linked tables added — save your changes to create them and start filling them.`
-            : 'Table added — save your changes to create it and start filling it.');
+            ? t('studio_apps_tables.manager.added_many', '{n} linked tables added — save your changes to create them and start filling them.', { n: list.length })
+            : t('studio_apps_tables.manager.added_one', 'Table added — save your changes to create it and start filling it.'));
     };
 
     const addTable = () => {
-        const name = `Table ${tables.length + 1}`;
-        const t = { id: newTableId(), key: uniqueTableKey(name, tables), name, fields: [] };
-        patchModel([...tables, t]);
-        setSelectedId(t.id);
+        const name = t('studio_apps_tables.manager.default_name', 'Table {n}', { n: tables.length + 1 });
+        const created = { id: newTableId(), key: uniqueTableKey(name, tables), name, fields: [] };
+        patchModel([...tables, created]);
+        setSelectedId(created.id);
     };
 
     const renameSelected = (nextTable) => {
@@ -281,7 +281,7 @@ export default function TablesManager({
         const fillers = fillersOf(id);
         if (fillers.length) {
             setActiveTab('connectors');
-            toast.error(`“${fillers[0].name || 'A connector'}” fills this table. Stop it filling the table first, then delete it.`);
+            toast.error(t('studio_apps_tables.manager.filled_by_connector', '“{name}” fills this table. Stop it filling the table first, then delete it.', { name: fillers[0].name || t('studio_apps_tables.manager.a_connector', 'A connector') }));
             return;
         }
         const next = tables.filter((t) => t.id !== id);
@@ -297,7 +297,7 @@ export default function TablesManager({
             const problem = connectorProblem(c);
             if (problem) {
                 setActiveTab('connectors');
-                toast.error(`“${c.name || 'This connector'}” ${problem}.`);
+                toast.error(t('studio_apps_tables.manager.connector_problem', '“{name}” {problem}.', { name: c.name || t('studio_apps_tables.manager.this_connector', 'This connector'), problem }));
                 return false;
             }
         }
@@ -308,21 +308,21 @@ export default function TablesManager({
             if (res.ok) {
                 setModelVersion(res.version ?? modelVersion);
                 setSavedSnapshot(JSON.stringify(sent));
-                toast.success('Data model saved.');
+                toast.success(t('studio_apps_tables.manager.saved', 'Data model saved.'));
                 refetchSaved();
                 return true;
             } else if (res.conflict) {
-                toast.error('The data model changed elsewhere — reloading the latest.');
+                toast.error(t('studio_apps_tables.manager.conflict', 'The data model changed elsewhere — reloading the latest.'));
                 load();
             } else if (res.invalid) {
                 const first = Array.isArray(res.errors) && res.errors.length ? res.errors[0] : null;
-                toast.error((typeof first === 'string' ? first : first?.message) || 'The data model is invalid.');
+                toast.error((typeof first === 'string' ? first : first?.message) || t('studio_apps_tables.manager.invalid', 'The data model is invalid.'));
             } else if (res.managed) {
                 // A Solution stage manages this app (409 managed_part).
-                toast.error(res.error || res.managed.message || 'This app is managed by a Solution stage.');
+                toast.error(res.error || res.managed.message || t('studio_apps_tables.manager.managed', 'This app is managed by a Solution stage.'));
             }
         } catch (err) {
-            toast.error(err?.message || 'Saving the data model failed.');
+            toast.error(err?.message || t('studio_apps_tables.manager.save_failed', 'Saving the data model failed.'));
         } finally {
             setSaving(false);
         }
@@ -346,14 +346,14 @@ export default function TablesManager({
         if (built.actions) def = { ...def, actions: { ...(def.actions || {}), ...built.actions } };
         const screen = findScreen(def, screenId) || def.screens?.[0] || null;
         const sectionId = screen?.sections?.[0]?.id;
-        if (!sectionId) { toast.error('Add a section to the screen first.'); return; }
+        if (!sectionId) { toast.error(t('studio_apps_tables.manager.no_section', 'Add a section to the screen first.')); return; }
 
         const res = insertNode(def, { parentId: sectionId, node: built.node });
         if (!res.nodeId) return;
         onCommit?.(res.def);
         dispatch?.({ type: 'select_node', nodeId: res.nodeId });
         dispatch?.({ type: 'set_recent_ids', ids: [res.nodeId] });
-        toast.success(kind === 'form' ? 'Form added to the screen.' : 'Grid added to the screen.');
+        toast.success(kind === 'form' ? t('studio_apps_tables.manager.form_added', 'Form added to the screen.') : t('studio_apps_tables.manager.grid_added', 'Grid added to the screen.'));
         onClose?.();
     };
 
@@ -363,8 +363,8 @@ export default function TablesManager({
         <Modal
             open={open}
             onClose={() => !saving && onClose?.()}
-            title="Tables"
-            description="Design the data behind your app, then drop a form or grid onto the current screen."
+            title={t('studio_apps_tables.manager.title', 'Tables')}
+            description={t('studio_apps_tables.manager.description', 'Design the data behind your app, then drop a form or grid onto the current screen.')}
             // 'full', not 'xl'. This dialog holds a table list, a field
             // designer, a rows grid and the connector editor side by side —
             // max-w-4xl gave the designer about 616px of usable width, so every
@@ -379,7 +379,7 @@ export default function TablesManager({
                         className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
                         style={{ color: 'var(--text-primary)' }}
                     >
-                        Close
+                        {t('studio_apps_tables.manager.close', 'Close')}
                     </button>
                     <button
                         type="button"
@@ -389,7 +389,7 @@ export default function TablesManager({
                         style={{ background: 'var(--accent-primary)' }}
                     >
                         {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-                        Save changes
+                        {t('studio_apps_tables.manager.save_changes', 'Save changes')}
                     </button>
                 </>
             )}
@@ -397,26 +397,26 @@ export default function TablesManager({
             {loading || !model ? (
                 <div className="flex items-center gap-2 py-10 text-sm justify-center" style={{ color: 'var(--text-tertiary)' }}>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    Loading tables…
+                    {t('studio_apps_tables.manager.loading', 'Loading tables…')}
                 </div>
             ) : (
               <>
                 {/* Tabs: Tables ↔ Rows ↔ Relationships ↔ Connectors — all over the one model. */}
                 <div className="mb-3 flex items-center gap-1 border-b" style={{ borderColor: 'var(--border-default)' }}>
                     {[
-                        { id: 'tables', label: 'Tables', Icon: Table2 },
+                        { id: 'tables', label: t('studio_apps_tables.manager.tab_tables', 'Tables'), Icon: Table2 },
                         {
                             id: 'rows',
-                            label: 'Rows',
+                            label: t('studio_apps_tables.manager.tab_rows', 'Rows'),
                             Icon: Rows3,
                             disabled: !selectedSaved || !!selectedSource,
                             title: selectedSource
                                 ? t('app_studio.tables.rows_linked_title', 'These rows live in a Studio table — open it there to edit them.')
-                                : 'Save the table first — until then there is nowhere to keep its rows.',
+                                : t('studio_apps_tables.manager.rows_unsaved_title', 'Save the table first — until then there is nowhere to keep its rows.'),
                         },
-                        { id: 'relations', label: 'Relationships', Icon: Share2 },
-                        { id: 'connectors', label: 'Connectors', Icon: Plug },
-                        { id: 'people', label: 'People', Icon: UserRound },
+                        { id: 'relations', label: t('studio_apps_tables.manager.tab_relationships', 'Relationships'), Icon: Share2 },
+                        { id: 'connectors', label: t('studio_apps_tables.manager.tab_connectors', 'Connectors'), Icon: Plug },
+                        { id: 'people', label: t('studio_apps_tables.manager.tab_people', 'People'), Icon: UserRound },
                     ].map((tab) => (
                         <button
                             key={tab.id}
@@ -442,7 +442,7 @@ export default function TablesManager({
                         </span>
                     ) : selected && !selectedSaved ? (
                         <span className="ml-auto pr-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                            Save the table to start adding rows.
+                            {t('studio_apps_tables.manager.rows_unsaved_hint', 'Save the table to start adding rows.')}
                         </span>
                     ) : null}
                 </div>
@@ -459,25 +459,22 @@ export default function TablesManager({
                             />
                             <span>
                                 <span className="block text-sm" style={{ color: 'var(--text-primary)' }}>
-                                    Let this app see who is in your organisation
+                                    {t('studio_apps_tables.manager.people_label', 'Let this app see who is in your organisation')}
                                 </span>
                                 <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
-                                    Person fields can then offer your real colleagues, and work assigned to
-                                    someone is assigned to their account — so “only mine” means them, not a
-                                    name that happens to match. Anyone who can open this app sees the list.
+                                    {t('studio_apps_tables.manager.people_desc', 'Person fields can then offer your real colleagues, and work assigned to someone is assigned to their account — so “only mine” means them, not a name that happens to match. Anyone who can open this app sees the list.')}
                                 </span>
                             </span>
                         </label>
                         <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                            Only names are shared — never e-mail addresses, and never anyone outside your
-                            organisation.
+                            {t('studio_apps_tables.manager.people_note', 'Only names are shared — never e-mail addresses, and never anyone outside your organisation.')}
                         </p>
                     </div>
                 ) : activeTab === 'relations' ? (
                     <Suspense fallback={(
                         <div className="flex items-center gap-2 py-10 text-sm justify-center" style={{ color: 'var(--text-tertiary)' }}>
                             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                            Loading the map…
+                            {t('studio_apps_tables.manager.loading_map', 'Loading the map…')}
                         </div>
                     )}>
                         <RelationshipsTab
@@ -509,7 +506,7 @@ export default function TablesManager({
                     <div className="w-56 shrink-0 border-r pr-3 flex flex-col gap-1" style={{ borderColor: 'var(--border-default)' }}>
                         {tables.length === 0 ? (
                             <p className="px-1 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                No tables yet. Add one to store records.
+                                {t('studio_apps_tables.manager.no_tables', 'No tables yet. Add one to store records.')}
                             </p>
                         ) : tables.map((tbl) => {
                           // De soort bepaalt het pictogram, het label en — bij een
@@ -544,12 +541,12 @@ export default function TablesManager({
                                             {t('app_studio.tables.source_badge_linked', 'Linked')}
                                         </span>
                                     ) : !savedIds.has(tbl.id) ? (
-                                        <span className="ml-auto text-[9px] uppercase tracking-wide" style={{ color: 'var(--accent-primary)' }}>New</span>
+                                        <span className="ml-auto text-[9px] uppercase tracking-wide" style={{ color: 'var(--accent-primary)' }}>{t('studio_apps_tables.manager.new_badge', 'New')}</span>
                                     ) : null}
                                 </button>
                                 <button
                                     type="button"
-                                    aria-label={`Delete ${name}`}
+                                    aria-label={t('studio_apps_tables.manager.delete_named', 'Delete {name}', { name })}
                                     onClick={() => setConfirmDeleteId(tbl.id)}
                                     // Always visible. A destructive action hidden behind hover is
                                     // unreachable by keyboard and by touch, and it is only ever
@@ -570,7 +567,7 @@ export default function TablesManager({
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                         >
                             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                            New table
+                            {t('studio_apps_tables.manager.new_table', 'New table')}
                         </button>
                     </div>
 
@@ -634,7 +631,7 @@ export default function TablesManager({
                                 >
                                     <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                                         <Database className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                                        Add to this screen
+                                        {t('studio_apps_tables.manager.add_to_screen', 'Add to this screen')}
                                     </div>
                                     {savedIds.has(selected.id) ? (
                                         <div className="flex flex-wrap gap-2">
@@ -656,7 +653,7 @@ export default function TablesManager({
                                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                             >
                                                 <FileInput className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                                                Make a form
+                                                {t('studio_apps_tables.manager.make_form', 'Make a form')}
                                             </button>
                                             )}
                                             <button
@@ -666,13 +663,13 @@ export default function TablesManager({
                                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                             >
                                                 <Table2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                                                Make a grid
+                                                {t('studio_apps_tables.manager.make_grid', 'Make a grid')}
                                             </button>
                                         </div>
                                     ) : (
                                         <div className="flex flex-wrap items-center gap-2">
                                             <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                                Save this table first, then you can drop a form or a list onto the screen.
+                                                {t('studio_apps_tables.manager.save_first', 'Save this table first, then you can drop a form or a list onto the screen.')}
                                             </p>
                                             <button
                                                 type="button"
@@ -682,7 +679,7 @@ export default function TablesManager({
                                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                             >
                                                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-                                                Save now
+                                                {t('studio_apps_tables.manager.save_now', 'Save now')}
                                             </button>
                                         </div>
                                     )}
@@ -690,7 +687,7 @@ export default function TablesManager({
                             </div>
                         ) : (
                             <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                                Pick a table on the left, or add one to get started.
+                                {t('studio_apps_tables.manager.pick_table', 'Pick a table on the left, or add one to get started.')}
                                 <button
                                     type="button"
                                     onClick={addTable}
@@ -698,7 +695,7 @@ export default function TablesManager({
                                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                 >
                                     <Plus className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                                    Add a table
+                                    {t('studio_apps_tables.manager.add_table', 'Add a table')}
                                 </button>
                             </div>
                         )}
@@ -710,9 +707,9 @@ export default function TablesManager({
 
             <ConfirmDialog
                 open={!!confirmDeleteId}
-                title={`Delete “${deletingTable?.name || 'this table'}”?`}
-                description="Removing the table deletes it (and its records) when you save. This can't be undone."
-                confirmLabel="Delete table"
+                title={t('studio_apps_tables.manager.delete_title', 'Delete “{name}”?', { name: deletingTable?.name || t('studio_apps_tables.manager.this_table', 'this table') })}
+                description={t('studio_apps_tables.manager.delete_desc', 'Removing the table deletes it (and its records) when you save. This can\'t be undone.')}
+                confirmLabel={t('studio_apps_tables.manager.delete_confirm', 'Delete table')}
                 destructive
                 onConfirm={deleteTable}
                 onCancel={() => setConfirmDeleteId(null)}

@@ -1,5 +1,11 @@
 import { TriangleAlert } from 'lucide-react';
 import React from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
+
+function NodeFailedText() {
+    const { t } = useTranslation();
+    return <>{t('studio_apps_runtime.node_error.component_failed', 'This component failed')}</>;
+}
 
 /**
  * App Studio runtime — per-node error containment. Every node renders inside
@@ -103,7 +109,7 @@ export default class NodeErrorBoundary extends React.Component {
                 >
                     <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
                     <span className="flex min-w-0 flex-col gap-0.5 text-left">
-                        <span>This component failed</span>
+                        <span><NodeFailedText /></span>
                         {type ? (
                             <span className="text-xs" data-app-node-error-type="true">{type}</span>
                         ) : null}

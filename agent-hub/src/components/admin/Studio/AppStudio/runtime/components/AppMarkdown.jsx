@@ -1,5 +1,6 @@
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -103,13 +104,14 @@ export function parseBlocks(text) {
  * button hides itself rather than failing on click.
  */
 export function CodeBlock({ code }) {
+    const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
     const canCopy = typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
 
     useEffect(() => {
         if (!copied) return undefined;
-        const t = setTimeout(() => setCopied(false), 1600);
-        return () => clearTimeout(t);
+        const timer = setTimeout(() => setCopied(false), 1600);
+        return () => clearTimeout(timer);
     }, [copied]);
 
     const copy = async () => {
@@ -138,7 +140,7 @@ export function CodeBlock({ code }) {
                 <button
                     type="button"
                     onClick={copy}
-                    aria-label={copied ? 'Copied' : 'Copy to clipboard'}
+                    aria-label={copied ? t('studio_apps_runtime.markdown.copied', 'Copied') : t('studio_apps_runtime.markdown.copy_to_clipboard', 'Copy to clipboard')}
                     className="app-code-copy absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px]"
                     style={{
                         borderColor: 'var(--border-default)',
@@ -147,7 +149,7 @@ export function CodeBlock({ code }) {
                     }}
                 >
                     {copied ? <Check className="w-3 h-3" aria-hidden="true" /> : <Copy className="w-3 h-3" aria-hidden="true" />}
-                    {copied ? 'Copied' : 'Copy'}
+                    {copied ? t('studio_apps_runtime.markdown.copied', 'Copied') : t('studio_apps_runtime.markdown.copy', 'Copy')}
                 </button>
             ) : null}
         </div>

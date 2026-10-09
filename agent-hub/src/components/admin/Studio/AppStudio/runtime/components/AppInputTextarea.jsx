@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -42,9 +43,10 @@ export function matchSnippets(rows, term, { keyField, labelField }) {
 }
 
 export default function AppInputTextarea({ node }) {
+    const { t } = useTranslation();
     const { mode, actionState, dataState, scope } = useRuntime();
     const {
-        name, label = 'Message', placeholder = null, required = false, rows = 4,
+        name, label = t('studio_apps_runtime.rich_text.message', 'Message'), placeholder = null, required = false, rows = 4,
         snippetKey = 'shortcut', snippetBody = 'body', snippetLabel = 'title',
     } = node.props || {};
     const { value, setValue, error } = useFormField({ name, defaultValue: null, required, label });

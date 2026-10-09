@@ -1,6 +1,7 @@
 import { Check, Globe, Loader2, Lock, ShieldAlert, ShieldCheck, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { GROUPS, joinNames, ORG, ownerRunFeeds, PRIVATE, summarizeAudience } from './publishAccessSummary';
+import useTranslation from '../../../../../hooks/useTranslation';
 import useAppRoles, { useOrgDirectory } from '../rbac/useAppRoles';
 
 /**
@@ -17,29 +18,30 @@ import useAppRoles, { useOrgDirectory } from '../rbac/useAppRoles';
  */
 
 export default function AudiencePicker({ open, appId, audience, onChoose, selectedGroups, onToggleGroup, incomplete }) {
+    const { t } = useTranslation();
     const directory = useOrgDirectory(open);
     return (
         <>
             <fieldset className="space-y-2">
-                <legend className="sr-only">Audience</legend>
+                <legend className="sr-only">{t('studio_apps_edit.audience.legend', 'Audience')}</legend>
                 <AudienceOption
                     icon={<Lock className="h-4 w-4" aria-hidden="true" />}
-                    title="Private"
-                    description="Only you (and co-editors) can open the app."
+                    title={t('studio_apps_edit.audience.private', 'Private')}
+                    description={t('studio_apps_edit.audience.private_desc', 'Only you (and co-editors) can open the app.')}
                     checked={audience === PRIVATE}
                     onSelect={() => onChoose(PRIVATE)}
                 />
                 <AudienceOption
                     icon={<Globe className="h-4 w-4" aria-hidden="true" />}
-                    title="Entire organization"
-                    description="Everyone in your organization can open the published app."
+                    title={t('studio_apps_edit.audience.org', 'Entire organization')}
+                    description={t('studio_apps_edit.audience.org_desc', 'Everyone in your organization can open the published app.')}
                     checked={audience === ORG}
                     onSelect={() => onChoose(ORG)}
                 />
                 <AudienceOption
                     icon={<Users className="h-4 w-4" aria-hidden="true" />}
-                    title="Specific groups"
-                    description="Only members of the groups you pick can open the app."
+                    title={t('studio_apps_edit.audience.groups', 'Specific groups')}
+                    description={t('studio_apps_edit.audience.groups_desc', 'Only members of the groups you pick can open the app.')}
                     checked={audience === GROUPS}
                     onSelect={() => onChoose(GROUPS)}
                 />
@@ -65,23 +67,24 @@ export default function AudiencePicker({ open, appId, audience, onChoose, select
 }
 
 function DataImpact({ appId, audience, selectedGroups, groups }) {
+    const { t } = useTranslation();
     const { model, tables, isLoading, isError, hasModel } = useAppRoles(appId);
     const summary = useMemo(
-        () => summarizeAudience({ audience, model, tables, groups, selectedGroupIds: [...selectedGroups] }),
-        [audience, model, tables, groups, selectedGroups],
+        () => summarizeAudience({ audience, model, tables, groups, selectedGroupIds: [...selectedGroups], t }),
+        [audience, model, tables, groups, selectedGroups, t],
     );
 
     if (audience === PRIVATE) {
         return (
             <ImpactPanel tone="calm" icon={<ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />}>
-                <p>Nobody else can open this app, so nobody else can reach the information in its tables.</p>
+                <p>{t('studio_apps_edit.audience.impact_private', 'Nobody else can open this app, so nobody else can reach the information in its tables.')}</p>
             </ImpactPanel>
         );
     }
     if (isLoading) {
         return (
             <ImpactPanel icon={<Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />}>
-                <p>Checking what this would share…</p>
+                <p>{t('studio_apps_edit.audience.impact_loading', 'Checking what this would share…')}</p>
             </ImpactPanel>
         );
     }
@@ -89,8 +92,7 @@ function DataImpact({ appId, audience, selectedGroups, groups }) {
         return (
             <ImpactPanel tone="warn" icon={<ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />}>
                 <p>
-                    We could not check what this would share. Open “Roles &amp; access” and look at who can reach
-                    your tables before you publish.
+                    {t('studio_apps_edit.audience.impact_error', 'We could not check what this would share. Open “Roles & access” and look at who can reach your tables before you publish.')}
                 </p>
             </ImpactPanel>
         );
@@ -103,23 +105,23 @@ function DataImpact({ appId, audience, selectedGroups, groups }) {
     if (!hasModel || tables.length === 0) {
         return (
             <ImpactPanel tone={loud ? 'warn' : 'calm'} icon={<PanelIcon loud={loud} />}>
-                <p>This app has no tables of its own, so there are no stored rows to share.</p>
-                <FeedLine names={feeds} />
+                <p>{t('studio_apps_edit.audience.impact_no_tables', 'This app has no tables of its own, so there are no stored rows to share.')}</p>
+                <FeedLine names={feeds} t={t} />
             </ImpactPanel>
         );
     }
     if (summary.cohorts.length === 0) {
         return (
             <ImpactPanel tone={loud ? 'warn' : 'calm'} icon={<PanelIcon loud={loud} />}>
-                <p>Pick the groups above to see what they will be able to reach.</p>
-                <FeedLine names={feeds} />
+                <p>{t('studio_apps_edit.audience.impact_pick_groups', 'Pick the groups above to see what they will be able to reach.')}</p>
+                <FeedLine names={feeds} t={t} />
             </ImpactPanel>
         );
     }
     return (
         <ImpactPanel tone={loud ? 'warn' : 'calm'} icon={<PanelIcon loud={loud} />}>
-            {summary.cohorts.map((cohort) => <CohortLines key={cohort.key} cohort={cohort} />)}
-            <FeedLine names={feeds} />
+            {summary.cohorts.map((cohort) => <CohortLines key={cohort.key} cohort={cohort} t={t} />)}
+            <FeedLine names={feeds} t={t} />
         </ImpactPanel>
     );
 }
@@ -130,33 +132,42 @@ function PanelIcon({ loud }) {
         : <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />;
 }
 
-function FeedLine({ names }) {
+function FeedLine({ names, t }) {
     if (names.length === 0) return null;
     return (
         <p>
-            Anyone who can open the app can also fetch live data as you through {joinNames(names)},
-            whichever role they land on.
+            {t('studio_apps_edit.audience.feed_line', 'Anyone who can open the app can also fetch live data as you through {names}, whichever role they land on.', { names: joinNames(names, t) })}
         </p>
     );
 }
 
-function CohortLines({ cohort }) {
+function CohortLines({ cohort, t }) {
     if (cohort.grants.length === 0) {
-        return <p><strong>{cohort.who}</strong> will not be able to reach any information in this app.</p>;
+        return <p><strong>{cohort.who}</strong> {t('studio_apps_edit.audience.cohort_none', 'will not be able to reach any information in this app.')}</p>;
     }
-    const opens = cohort.maybe ? ' may be able to ' : ' will be able to ';
-    const adds = cohort.maybe ? ' may also be able to ' : ' will also be able to ';
     return (
         <>
-            {cohort.grants.map((grant, i) => (
-                <p key={grant.phrase}>
-                    {i === 0 ? <strong>{cohort.who}</strong> : 'They'}
-                    {i === 0 ? opens : adds}
-                    {grant.phrase} in {joinNames(grant.names)}.
-                </p>
-            ))}
+            {cohort.grants.map((grant, i) => {
+                const params = { phrase: grant.phrase, names: joinNames(grant.names, t) };
+                let sentence;
+                if (i === 0) {
+                    sentence = cohort.maybe
+                        ? t('studio_apps_edit.audience.cohort_may', 'may be able to {phrase} in {names}.', params)
+                        : t('studio_apps_edit.audience.cohort_will', 'will be able to {phrase} in {names}.', params);
+                } else {
+                    sentence = cohort.maybe
+                        ? t('studio_apps_edit.audience.cohort_may_also', 'They may also be able to {phrase} in {names}.', params)
+                        : t('studio_apps_edit.audience.cohort_will_also', 'They will also be able to {phrase} in {names}.', params);
+                }
+                return (
+                    <p key={grant.phrase}>
+                        {i === 0 ? <><strong>{cohort.who}</strong>{' '}</> : null}
+                        {sentence}
+                    </p>
+                );
+            })}
             {cohort.denied.length > 0 ? (
-                <p>They will not be able to open {joinNames(cohort.denied)}.</p>
+                <p>{t('studio_apps_edit.audience.cohort_denied', 'They will not be able to open {names}.', { names: joinNames(cohort.denied, t) })}</p>
             ) : null}
         </>
     );
@@ -182,21 +193,22 @@ function ImpactPanel({ tone = 'calm', icon, children }) {
 }
 
 function GroupPicker({ directory, selectedGroups, onToggle, incomplete }) {
+    const { t } = useTranslation();
     return (
         <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border-subtle)' }}>
             {directory.isLoading ? (
                 <div className="flex items-center gap-2 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                    Loading groups…
+                    {t('studio_apps_edit.audience.loading_groups', 'Loading groups…')}
                 </div>
             ) : directory.groups.length === 0 ? (
                 <p className="text-xs italic" style={{ color: 'var(--text-tertiary)' }}>
                     {directory.available
-                        ? 'Your organization has no groups yet — create them in Organisation settings, or publish to the entire organization.'
-                        : 'Choosing groups needs organisation-admin access. Publish to the entire organization instead.'}
+                        ? t('studio_apps_edit.audience.no_groups', 'Your organization has no groups yet — create them in Organisation settings, or publish to the entire organization.')
+                        : t('studio_apps_edit.audience.groups_need_admin', 'Choosing groups needs organisation-admin access. Publish to the entire organization instead.')}
                 </p>
             ) : (
-                <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto" aria-label="Groups">
+                <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto" aria-label={t('studio_apps_edit.audience.groups_aria', 'Groups')}>
                     {directory.groups.map((g) => {
                         const id = String(g.id);
                         const checked = selectedGroups.has(id);
@@ -232,7 +244,7 @@ function GroupPicker({ directory, selectedGroups, onToggle, incomplete }) {
             )}
             {incomplete && directory.groups.length > 0 ? (
                 <p className="mt-2 text-xs" style={{ color: '#b45309' }}>
-                    Select at least one group, or choose a different audience.
+                    {t('studio_apps_edit.audience.select_one', 'Select at least one group, or choose a different audience.')}
                 </p>
             ) : null}
         </div>

@@ -1,6 +1,7 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { useMemo } from 'react';
 import ComboBox, { BindingLoader, CANDIDATE_LIMIT, useHasQueryClient } from './comboBox';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { resolveBinding, walkPath } from '../resolveBinding';
@@ -49,11 +50,12 @@ function candidateId(row) {
 }
 
 export default function AppInputRelation({ node }) {
+    const { t } = useTranslation();
     const { mode, actionState, dataState, scope } = useRuntime();
     const { appId, dataState: scopedDataState } = useDataContext();
     const hasQueryClient = useHasQueryClient();
     const {
-        name, label = 'Related', tableId = null, displayField = null,
+        name, label = t('studio_apps_runtime.inputs.related', 'Related'), tableId = null, displayField = null,
         multiple = false, required = false, filter = null,
     } = node.props || {};
     const { value, setValue, error } = useFormField({
@@ -109,11 +111,11 @@ export default function AppInputRelation({ node }) {
                 selectedIds={selectedIds}
                 multiple={multiple}
                 disabled={!tableId}
-                placeholder="Search records…"
-                disabledText="No table selected"
+                placeholder={t('studio_apps_runtime.inputs.search_records', 'Search records…')}
+                disabledText={t('studio_apps_runtime.inputs.no_table', 'No table selected')}
                 isLoading={isLoading}
                 loadError={loadError}
-                emptyText="No matching records."
+                emptyText={t('studio_apps_runtime.inputs.no_records', 'No matching records.')}
                 onPick={(cid) => {
                     if (multiple) { if (!selectedIds.includes(cid)) setValue([...selectedIds, cid]); }
                     else setValue(cid);

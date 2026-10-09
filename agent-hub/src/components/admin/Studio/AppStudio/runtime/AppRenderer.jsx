@@ -11,6 +11,7 @@ import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime } from './RuntimeContext';
 import { resolveNodeStyle, resolveSectionStyle } from './styleResolver';
 import { themeVars } from './themeVars';
+import useTranslation from '../../../../../hooks/useTranslation';
 
 /**
  * App Studio runtime — the renderer shared by the editor canvas and the
@@ -68,6 +69,7 @@ export function DefaultNodeWrapper({ node, className, style, children }) {
 }
 
 function UnknownType({ type }) {
+    const { t } = useTranslation();
     return (
         <div
             className="flex items-center gap-2 border border-dashed px-3 py-2 text-sm"
@@ -78,7 +80,7 @@ function UnknownType({ type }) {
             }}
         >
             <FileQuestion className="w-4 h-4 shrink-0" aria-hidden="true" />
-            <span>Unknown component: {String(type)}</span>
+            <span>{t('studio_apps_runtime.renderer.unknown_component', 'Unknown component: {type}', { type: String(type) })}</span>
         </div>
     );
 }
@@ -189,6 +191,7 @@ function evalComputed(node, scope, bag) {
 }
 
 function HiddenBadge() {
+    const { t } = useTranslation();
     return (
         <span
             className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide mb-1"
@@ -196,20 +199,21 @@ function HiddenBadge() {
             data-app-hidden-badge="true"
         >
             <EyeOff className="w-3 h-3" aria-hidden="true" />
-            Hidden
+            {t('studio_apps_runtime.renderer.hidden', 'Hidden')}
         </span>
     );
 }
 
 function FormulaErrorBadge({ message }) {
+    const { t } = useTranslation();
     return (
         <span
             className="inline-flex items-center gap-1 text-[10px] font-medium mb-1 text-amber-600 dark:text-amber-400"
             data-app-formula-error="true"
-            title={message || 'This formula could not be evaluated.'}
+            title={message || t('studio_apps_runtime.renderer.formula_not_evaluated', 'This formula could not be evaluated.')}
         >
             <TriangleAlert className="w-3 h-3" aria-hidden="true" />
-            Formula error
+            {t('studio_apps_runtime.renderer.formula_error', 'Formula error')}
         </span>
     );
 }

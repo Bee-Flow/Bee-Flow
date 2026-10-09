@@ -61,12 +61,13 @@ function formatUpdated(iso) {
 }
 
 function PublishedBadge() {
+    const { t } = useTranslation();
     return (
         <span
             className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
             style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}
         >
-            Published
+            {t('studio_apps_bi.list.published', 'Published')}
         </span>
     );
 }
@@ -77,15 +78,16 @@ function PublishedBadge() {
 const STORAGE_PILL_THRESHOLD = 0.8;
 
 function StoragePill({ ratio }) {
+    const { t } = useTranslation();
     if (typeof ratio !== 'number' || !(ratio > STORAGE_PILL_THRESHOLD)) return null;
     const pct = Math.min(100, Math.round(ratio * 100));
     return (
         <span
             className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
             style={{ background: 'rgba(245, 158, 11, 0.14)', color: '#b45309' }}
-            title={`Storage ${pct}% of the app's database limit`}
+            title={t('studio_apps_bi.list.storage_title', 'Storage {pct}% of the app\'s database limit', { pct })}
         >
-            Storage {pct}%
+            {t('studio_apps_bi.list.storage', 'Storage {pct}%', { pct })}
         </span>
     );
 }
@@ -97,6 +99,7 @@ function StoragePill({ ratio }) {
 // so this renders purely on that flag. stopPropagation on click AND keydown —
 // the whole card is itself a click/Enter target that opens the editor.
 function TemplateUpdatePill({ app, onUpgrade }) {
+    const { t } = useTranslation();
     if (!app.templateUpgrade?.available || !onUpgrade) return null;
     const { fromVersion, toVersion } = app.templateUpgrade;
     return (
@@ -106,14 +109,15 @@ function TemplateUpdatePill({ app, onUpgrade }) {
             onKeyDown={(e) => e.stopPropagation()}
             className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-opacity hover:opacity-80"
             style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#2563eb' }}
-            title={`Nieuwe templateversie beschikbaar (v${fromVersion} → v${toVersion})`}
+            title={t('studio_apps_bi.list.update_title', 'New template version available (v{from} → v{to})', { from: fromVersion, to: toVersion })}
         >
-            Update beschikbaar
+            {t('studio_apps_bi.list.update_available', 'Update available')}
         </button>
     );
 }
 
 function CardBody({ app, onUpgrade }) {
+    const { t } = useTranslation();
     return (
         <>
             <div className="flex items-start gap-2.5 mb-2">
@@ -138,7 +142,7 @@ function CardBody({ app, onUpgrade }) {
                 {app.isPublished ? <PublishedBadge /> : null}
                 <StoragePill ratio={app.usage?.dbRatio} />
                 <TemplateUpdatePill app={app} onUpgrade={onUpgrade} />
-                {formatUpdated(app.updatedAt) ? <span>Updated {formatUpdated(app.updatedAt)}</span> : null}
+                {formatUpdated(app.updatedAt) ? <span>{t('studio_apps_bi.list.updated', 'Updated {date}', { date: formatUpdated(app.updatedAt) })}</span> : null}
             </div>
         </>
     );
@@ -148,11 +152,12 @@ const CARD_CLASSES = 'group relative rounded-xl border p-3.5 transition-all hove
 const CARD_STYLE = { borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' };
 
 function SkeletonGrid() {
+    const { t } = useTranslation();
     return (
         <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
             role="status"
-            aria-label="Loading apps"
+            aria-label={t('studio_apps_bi.list.loading_apps', 'Loading apps')}
         >
             {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className={`${CARD_CLASSES} animate-pulse`} style={CARD_STYLE}>
@@ -166,7 +171,7 @@ function SkeletonGrid() {
                     <div className="h-2.5 w-1/3 rounded" style={{ background: 'var(--bg-secondary)' }} />
                 </div>
             ))}
-            <span className="sr-only">Loading…</span>
+            <span className="sr-only">{t('studio_apps_bi.list.loading', 'Loading…')}</span>
         </div>
     );
 }
@@ -177,7 +182,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
     const { t } = useTranslation();
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-10" role="status" aria-label="Loading templates">
+            <div className="flex items-center justify-center py-10" role="status" aria-label={t('studio_apps_bi.list.loading_templates', 'Loading templates')}>
                 <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--accent-primary)' }} />
             </div>
         );
@@ -192,7 +197,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                     className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/5 hover:bg-[var(--bg-card-hover)]"
                     style={{ color: 'var(--text-primary)' }}
                 >
-                    Try again
+                    {t('studio_apps_bi.list.try_again', 'Try again')}
                 </button>
             </div>
         );
@@ -200,7 +205,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
     if (!templates || templates.length === 0) {
         return (
             <div className="py-8 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                No templates available yet.
+                {t('studio_apps_bi.list.no_templates', 'No templates available yet.')}
             </div>
         );
     }
@@ -256,10 +261,12 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                             <span
                                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0"
                                                 style={{ background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)', color: 'var(--accent-primary)' }}
-                                                title={`Gemaakt van een eigen app${tpl.version > 1 ? ` — versie ${tpl.version}` : ''}`}
+                                                title={tpl.version > 1
+                                                    ? t('studio_apps_bi.list.own_title_version', 'Made from one of your own apps — version {version}', { version: tpl.version })
+                                                    : t('studio_apps_bi.list.own_title', 'Made from one of your own apps')}
                                             >
                                                 <Users className="w-2.5 h-2.5" />
-                                                Eigen
+                                                {t('studio_apps_bi.list.own', 'Own')}
                                             </span>
                                         ) : null}
                                     </div>
@@ -284,14 +291,14 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                         onClick={() => onDelete(tpl)}
                                         disabled={anyBusy || deletingId === tpl.id}
                                         aria-busy={deletingId === tpl.id}
-                                        title="Dit eigen sjabloon verwijderen"
+                                        title={t('studio_apps_bi.list.delete_template_title', 'Delete this custom template')}
                                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-60 disabled:cursor-not-allowed"
                                         style={{ color: 'var(--text-tertiary)' }}
                                     >
                                         {deletingId === tpl.id
                                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                             : <Trash2 className="w-3.5 h-3.5" />}
-                                        Verwijderen
+                                        {t('studio_apps_bi.list.delete', 'Delete')}
                                     </button>
                                 ) : null}
                                 {/* Every template exports, built-in included: the
@@ -326,7 +333,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                 {remixing
                                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     : <Sparkles className="w-3.5 h-3.5" />}
-                                Remix with AI
+                                {t('studio_apps_bi.list.remix', 'Remix with AI')}
                             </button>
                         </div>
                     </div>
@@ -385,13 +392,13 @@ function previewRowCount(bag) {
 }
 
 /** An app archive: real rows and real files, already installed content. */
-function appFilePreview(envelope, tpl, common) {
+function appFilePreview(envelope, tpl, common, t) {
     const content = (envelope.content && typeof envelope.content === 'object') ? envelope.content : {};
     const files = Array.isArray(content.files) ? content.files : [];
     const bytes = files.reduce((n, f) => n + (Number(f?.size) || 0), 0);
     return {
         kind: 'app',
-        title: previewStr(envelope.app?.name, 120) || previewStr(tpl.title, 80) || 'Untitled app',
+        title: previewStr(envelope.app?.name, 120) || previewStr(tpl.title, 80) || t('studio_apps_bi.list.untitled_app', 'Untitled app'),
         description: previewStr(envelope.app?.description, 400) || '',
         ...common,
         rows: previewRowCount(content.records),
@@ -401,10 +408,10 @@ function appFilePreview(envelope, tpl, common) {
 }
 
 /** A template: a blueprint plus its example seed rows, no files. */
-function templateFilePreview(tpl, common) {
+function templateFilePreview(tpl, common, t) {
     return {
         kind: 'template',
-        title: previewStr(tpl.title, 80) || 'Untitled template',
+        title: previewStr(tpl.title, 80) || t('studio_apps_bi.list.untitled_template', 'Untitled template'),
         description: previewStr(tpl.description, 400) || '',
         ...common,
         rows: previewRowCount(tpl.seed),
@@ -413,7 +420,7 @@ function templateFilePreview(tpl, common) {
     };
 }
 
-function filePreview(envelope) {
+function filePreview(envelope, t) {
     if (!envelope || typeof envelope !== 'object') return null;
     const tpl = (envelope.template && typeof envelope.template === 'object') ? envelope.template : {};
     const common = {
@@ -422,8 +429,8 @@ function filePreview(envelope) {
         screens: Array.isArray(tpl.definition?.screens) ? tpl.definition.screens.length : 0,
     };
     return envelope.format === 'beeflow.app'
-        ? appFilePreview(envelope, tpl, common)
-        : templateFilePreview(tpl, common);
+        ? appFilePreview(envelope, tpl, common, t)
+        : templateFilePreview(tpl, common, t);
 }
 
 /** Bytes as something a person reads at a glance. */
@@ -478,9 +485,25 @@ function importMetaLine(preview, file, t) {
     let line = preview.screens === 1
         ? t('app_studio.list.import_screen_one', '1 screen')
         : t('app_studio.list.import_screen_many', '{n} screens', { n: preview.screens });
-    if (preview.tables) line += ` · ${preview.tables} table${preview.tables === 1 ? '' : 's'}`;
-    if (preview.rows) line += ` · ${preview.rows} ${preview.kind === 'app' ? 'row' : 'example row'}${preview.rows === 1 ? '' : 's'}`;
-    if (preview.files) line += ` · ${preview.files} file${preview.files === 1 ? '' : 's'}`;
+    if (preview.tables) {
+        line += ` · ${preview.tables === 1
+            ? t('studio_apps_bi.list.import_table_one', '1 table')
+            : t('studio_apps_bi.list.import_table_many', '{n} tables', { n: preview.tables })}`;
+    }
+    if (preview.rows) {
+        const one = preview.kind === 'app'
+            ? t('studio_apps_bi.list.import_row_one', '1 row')
+            : t('studio_apps_bi.list.import_example_row_one', '1 example row');
+        const many = preview.kind === 'app'
+            ? t('studio_apps_bi.list.import_row_many', '{n} rows', { n: preview.rows })
+            : t('studio_apps_bi.list.import_example_row_many', '{n} example rows', { n: preview.rows });
+        line += ` · ${preview.rows === 1 ? one : many}`;
+    }
+    if (preview.files) {
+        line += ` · ${preview.files === 1
+            ? t('studio_apps_bi.list.import_file_one', '1 file')
+            : t('studio_apps_bi.list.import_file_many', '{n} files', { n: preview.files })}`;
+    }
     if (preview.bytes) line += ` (${humanBytes(preview.bytes)})`;
     if (file?.name) line += ` · ${file.name}`;
     return line;
@@ -488,13 +511,13 @@ function importMetaLine(preview, file, t) {
 
 /** The provenance block is a claim the file makes, so it is worded as one.
  *  It grants nothing and the server ignores it. */
-function importProvenanceText(preview) {
+function importProvenanceText(preview, t) {
     if (preview.orgName) {
-        return `The file says it came from ${preview.orgName}. That is what it says — check the file comes from someone you trust.`;
+        return t('studio_apps_bi.list.import_provenance_org', 'The file says it came from {org}. That is what it says — check the file comes from someone you trust.', { org: preview.orgName });
     }
     return preview.kind === 'app'
-        ? 'Check the file comes from someone you trust: an app archive brings real rows and real documents with it.'
-        : 'Check the file comes from someone you trust: a template brings screens, tables and example rows with it.';
+        ? t('studio_apps_bi.list.import_provenance_app', 'Check the file comes from someone you trust: an app archive brings real rows and real documents with it.')
+        : t('studio_apps_bi.list.import_provenance_template', 'Check the file comes from someone you trust: a template brings screens, tables and example rows with it.');
 }
 
 /** A file is in hand — what it claims, and the confirm/clear actions. */
@@ -524,7 +547,7 @@ function ImportPreview({ file, preview, error, importing, onClear, onImport }) {
             </div>
 
             <p className="text-[11px] text-[var(--text-tertiary)]">
-                {importProvenanceText(preview)}
+                {importProvenanceText(preview, t)}
             </p>
 
             {error ? (
@@ -552,7 +575,7 @@ function ImportPreview({ file, preview, error, importing, onClear, onImport }) {
                     data-testid="app-template-import-confirm"
                 >
                     {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                    {preview.kind === 'app' ? 'Create the app' : 'Add to gallery'}
+                    {preview.kind === 'app' ? t('studio_apps_bi.list.import_create_app', 'Create the app') : t('studio_apps_bi.list.import_add_gallery', 'Add to gallery')}
                 </button>
             </div>
         </div>
@@ -580,6 +603,7 @@ function ImportPanel({ file, preview, error, importing, onPick, onClear, onImpor
  * NewAppModal uses for every other way of getting one.
  */
 function useImportFile({ open, name, onCreated, onTemplateImported }) {
+    const { t } = useTranslation();
     const [file, setFile] = useState(null);
     const [envelope, setEnvelope] = useState(null);
     const [error, setError] = useState(null);
@@ -609,9 +633,9 @@ function useImportFile({ open, name, onCreated, onTemplateImported }) {
         } catch {
             setFile(null);
             setEnvelope(null);
-            setError('That file is not a template file — it is not readable JSON.');
+            setError(t('studio_apps_bi.list.import_not_json', 'That file is not a template file — it is not readable JSON.'));
         }
-    }, []);
+    }, [t]);
 
     const clear = useCallback(() => {
         setFile(null);
@@ -626,24 +650,24 @@ function useImportFile({ open, name, onCreated, onTemplateImported }) {
     const importArchiveFile = useCallback(async (env, trimmedName) => {
         const res = await studioAppsApi.importApp(env, trimmedName ? { name: trimmedName } : {});
         const app = res?.app;
-        if (!app?.id) throw new Error('The import returned no app.');
+        if (!app?.id) throw new Error(t('studio_apps_bi.list.import_no_app', 'The import returned no app.'));
         const installed = res?.report?.installed || {};
         const warnings = res?.warnings || [];
-        const what = `${installed.rows || 0} rows and ${installed.files || 0} files`;
-        if (warnings.length) toast.error(`App imported with ${what}, but: ${warnings.slice(0, 2).join(' ')}`);
-        else toast.success(`App imported with ${what}.`);
+        const what = t('studio_apps_bi.list.import_what', '{rows} rows and {files} files', { rows: installed.rows || 0, files: installed.files || 0 });
+        if (warnings.length) toast.error(t('studio_apps_bi.list.import_app_warnings', 'App imported with {what}, but: {warnings}', { what, warnings: warnings.slice(0, 2).join(' ') }));
+        else toast.success(t('studio_apps_bi.list.import_app_done', 'App imported with {what}.', { what }));
         clear();
         onCreated(app);
-    }, [clear, onCreated]);
+    }, [clear, onCreated, t]);
 
     const importTemplateFile = useCallback(async (env, trimmedName) => {
         const res = await studioAppsApi.importTemplate(env, trimmedName ? { title: trimmedName } : {});
         const warnings = res?.warnings || [];
-        if (warnings.length) toast.success(`Template imported. ${warnings.slice(0, 2).join(' ')}`);
-        else toast.success('Template imported — it is in your gallery.');
+        if (warnings.length) toast.success(t('studio_apps_bi.list.import_template_warnings', 'Template imported. {warnings}', { warnings: warnings.slice(0, 2).join(' ') }));
+        else toast.success(t('studio_apps_bi.list.import_template_done', 'Template imported — it is in your gallery.'));
         clear();
         onTemplateImported();
-    }, [clear, onTemplateImported]);
+    }, [clear, onTemplateImported, t]);
 
     /**
      * Post the file, to whichever of the two doors it is for.
@@ -662,12 +686,14 @@ function useImportFile({ open, name, onCreated, onTemplateImported }) {
             // leave the only person who can fix the file with nothing to go on.
             const details = err?.body?.details;
             setError(Array.isArray(details) && details.length
-                ? `${err.message}: ${details.slice(0, 3).join('; ')}`
-                : (err?.message || `Could not import the ${isArchive ? 'app' : 'template'}.`));
+                ? t('studio_apps_bi.list.import_error_details', '{message}: {details}', { message: err.message, details: details.slice(0, 3).join('; ') })
+                : (err?.message || (isArchive
+                    ? t('studio_apps_bi.list.import_failed_app', 'Could not import the app.')
+                    : t('studio_apps_bi.list.import_failed_template', 'Could not import the template.'))));
         } finally {
             setImporting(false);
         }
-    }, [envelope, importing, name, importArchiveFile, importTemplateFile]);
+    }, [envelope, importing, name, importArchiveFile, importTemplateFile, t]);
 
     return { file, envelope, error, importing, pick, clear, run };
 }
@@ -679,6 +705,7 @@ function useImportFile({ open, name, onCreated, onTemplateImported }) {
 const MAX_TEMPLATE_ATTEMPTS = 2;
 
 function NewAppModal({ open, onClose, onCreated }) {
+    const { t } = useTranslation();
     const [tab, setTab] = useState('blank');
     const [name, setName] = useState('');
     const [creating, setCreating] = useState(false);
@@ -712,11 +739,11 @@ function NewAppModal({ open, onClose, onCreated }) {
             const res = await studioAppsApi.listTemplates();
             setTemplates(res?.templates || []);
         } catch (err) {
-            setTemplatesError(err?.message || 'Could not load templates.');
+            setTemplatesError(err?.message || t('studio_apps_bi.list.templates_load_failed', 'Could not load templates.'));
         } finally {
             setTemplatesLoading(false);
         }
-    }, []);
+    }, [t]);
 
     /**
      * Delete an org-captured template. Removed from the list optimistically
@@ -728,14 +755,14 @@ function NewAppModal({ open, onClose, onCreated }) {
         setDeletingTemplateId(tpl.id);
         try {
             await studioAppsApi.deleteTemplate(tpl.id);
-            setTemplates((prev) => (prev || []).filter((t) => t.id !== tpl.id));
-            toast.success(`Sjabloon "${tpl.title}" verwijderd`);
+            setTemplates((prev) => (prev || []).filter((x) => x.id !== tpl.id));
+            toast.success(t('studio_apps_bi.list.template_deleted', 'Template "{title}" deleted', { title: tpl.title }));
         } catch (err) {
-            toast.error(err?.message || 'Kon het sjabloon niet verwijderen');
+            toast.error(err?.message || t('studio_apps_bi.list.template_delete_failed', 'Could not delete the template'));
         } finally {
             setDeletingTemplateId(null);
         }
-    }, []);
+    }, [t]);
 
     // A deliberate user retry starts the budget over.
     const retryTemplates = useCallback(() => {
@@ -757,7 +784,7 @@ function NewAppModal({ open, onClose, onCreated }) {
         try {
             const res = await studioAppsApi.createApp(body);
             const app = res?.app;
-            if (!app?.id) throw new Error('Create returned no app');
+            if (!app?.id) throw new Error(t('studio_apps_bi.list.create_no_app', 'Create returned no app'));
             // A data-backed template installs tables, seed rows and connectors
             // AFTER the app row exists, and that half can fail on its own. It
             // used to fail silently, leaving an app with every screen and no
@@ -765,16 +792,16 @@ function NewAppModal({ open, onClose, onCreated }) {
             // failed step. Say it, and keep the app: the screens are still there
             // and the data can be installed again.
             if (res?.dataInstall && res.dataInstall.ok === false) {
-                toast.error(`App created, but its tables and connections did not install: ${res.dataInstall.error}`);
+                toast.error(t('studio_apps_bi.list.create_data_failed', 'App created, but its tables and connections did not install: {error}', { error: res.dataInstall.error }));
             } else {
-                toast.success('App created.');
+                toast.success(t('studio_apps_bi.list.created', 'App created.'));
             }
             onCreated(app, openOptions);
         } catch (err) {
-            toast.error(err?.message || 'Could not create the app.');
+            toast.error(err?.message || t('studio_apps_bi.list.create_failed', 'Could not create the app.'));
             setBusy(false);
         }
-    }, [onCreated]);
+    }, [onCreated, t]);
 
     const busy = creating || !!creatingTemplateId || !!remixingTemplateId;
 
@@ -800,8 +827,7 @@ function NewAppModal({ open, onClose, onCreated }) {
     const handleRemixTemplate = (tpl) => {
         if (busy) return;
         const trimmed = name.trim();
-        const prompt = `Help me remix the "${tpl.title}" template. ${tpl.description || ''} `
-            + 'I want to adapt it to my needs — suggest what to change and build it with me.';
+        const prompt = t('studio_apps_bi.list.remix_prompt', 'Help me remix the "{title}" template. {description} I want to adapt it to my needs — suggest what to change and build it with me.', { title: tpl.title, description: tpl.description || '' });
         create(
             trimmed ? { templateId: tpl.id, name: trimmed } : { templateId: tpl.id },
             (b) => setRemixingTemplateId(b ? tpl.id : null),
@@ -821,17 +847,17 @@ function NewAppModal({ open, onClose, onCreated }) {
         setExportingTemplateId(tpl.id);
         try {
             const res = await studioAppsApi.exportTemplate(tpl.id);
-            if (!res?.envelope) throw new Error('The export came back empty.');
+            if (!res?.envelope) throw new Error(t('studio_apps_bi.list.export_empty', 'The export came back empty.'));
             saveJsonFile(res.filename || 'app-template.beeflow-app.json', res.envelope);
             const warnings = res.warnings || [];
-            if (warnings.length) toast.success(`Template exported. ${warnings.join(' ')}`);
-            else toast.success('Template exported.');
+            if (warnings.length) toast.success(t('studio_apps_bi.list.export_warnings', 'Template exported. {warnings}', { warnings: warnings.join(' ') }));
+            else toast.success(t('studio_apps_bi.list.exported', 'Template exported.'));
         } catch (err) {
-            toast.error(err?.message || 'Could not export the template.');
+            toast.error(err?.message || t('studio_apps_bi.list.export_failed', 'Could not export the template.'));
         } finally {
             setExportingTemplateId(null);
         }
-    }, [exportingTemplateId]);
+    }, [exportingTemplateId, t]);
 
     const importState = useImportFile({
         open, name, onCreated,
@@ -842,34 +868,34 @@ function NewAppModal({ open, onClose, onCreated }) {
         <Modal
             open={open}
             onClose={() => { if (!busy) onClose(); }}
-            title="New app"
-            description="Start from scratch or pick a template — the AI can build the rest with you."
+            title={t('studio_apps_bi.list.new_app', 'New app')}
+            description={t('studio_apps_bi.list.new_app_desc', 'Start from scratch or pick a template — the AI can build the rest with you.')}
             size="lg"
         >
             <Tabs
                 value={tab}
                 onChange={setTab}
-                ariaLabel="How to start"
+                ariaLabel={t('studio_apps_bi.list.how_to_start', 'How to start')}
                 size="sm"
                 className="mb-4"
                 items={[
-                    { id: 'blank', label: 'Start blank' },
-                    { id: 'template', label: 'From template' },
-                    { id: 'import', label: 'From a file' },
+                    { id: 'blank', label: t('studio_apps_bi.list.tab_blank', 'Start blank') },
+                    { id: 'template', label: t('studio_apps_bi.list.tab_template', 'From template') },
+                    { id: 'import', label: t('studio_apps_bi.list.tab_import', 'From a file') },
                 ]}
             />
 
             <div className="mb-4">
                 <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                    {tab === 'blank' ? 'Name'
-                        : tab === 'import' ? 'Name (optional — renames the imported template)'
-                            : 'Name (optional — templates bring their own)'}
+                    {tab === 'blank' ? t('studio_apps_bi.list.name', 'Name')
+                        : tab === 'import' ? t('studio_apps_bi.list.name_import', 'Name (optional — renames the imported template)')
+                            : t('studio_apps_bi.list.name_template', 'Name (optional — templates bring their own)')}
                 </label>
                 <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Vacation requests"
+                    placeholder={t('studio_apps_bi.list.name_placeholder', 'e.g. Vacation requests')}
                     maxLength={120}
                     className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
                     style={{
@@ -883,7 +909,7 @@ function NewAppModal({ open, onClose, onCreated }) {
             {tab === 'import' ? (
                 <ImportPanel
                     file={importState.file}
-                    preview={filePreview(importState.envelope)}
+                    preview={filePreview(importState.envelope, t)}
                     error={importState.error}
                     importing={importState.importing}
                     onPick={importState.pick}
@@ -899,7 +925,7 @@ function NewAppModal({ open, onClose, onCreated }) {
                         style={{ background: 'var(--accent-primary)' }}
                     >
                         {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                        Create app
+                        {t('studio_apps_bi.list.create_app', 'Create app')}
                     </button>
                 </form>
             ) : (
@@ -925,6 +951,7 @@ function NewAppModal({ open, onClose, onCreated }) {
 // ── Owner kebab menu ────────────────────────────────────────────────
 
 function OwnerMenu({ app, onOpen, onRename, onDelete }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
 
@@ -961,8 +988,8 @@ function OwnerMenu({ app, onOpen, onRename, onDelete }) {
             onKeyDown={(e) => e.stopPropagation()}
         >
             <IconButton
-                ariaLabel={`Actions for ${app.name}`}
-                title="App actions"
+                ariaLabel={t('studio_apps_bi.list.actions_for', 'Actions for {name}', { name: app.name })}
+                title={t('studio_apps_bi.list.app_actions', 'App actions')}
                 size="sm"
                 onClick={() => setOpen((v) => !v)}
                 className={open ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity'}
@@ -975,9 +1002,9 @@ function OwnerMenu({ app, onOpen, onRename, onDelete }) {
                     className="absolute right-0 mt-1 w-36 py-1 rounded-lg border shadow-lg z-20"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
                 >
-                    {item('Open', FolderOpen, onOpen)}
-                    {item('Rename', Pencil, onRename)}
-                    {item('Delete', Trash2, onDelete, true)}
+                    {item(t('studio_apps_bi.list.open', 'Open'), FolderOpen, onOpen)}
+                    {item(t('studio_apps_bi.list.rename', 'Rename'), Pencil, onRename)}
+                    {item(t('studio_apps_bi.list.delete', 'Delete'), Trash2, onDelete, true)}
                 </div>
             )}
         </div>
@@ -987,6 +1014,7 @@ function OwnerMenu({ app, onOpen, onRename, onDelete }) {
 // ── The gallery ─────────────────────────────────────────────────────
 
 export default function AppList({ onOpen }) {
+    const { t } = useTranslation();
     const [apps, setApps] = useState([]);
     const [ownedIds, setOwnedIds] = useState(() => new Set());
     const [loading, setLoading] = useState(true);
@@ -1014,11 +1042,11 @@ export default function AppList({ onOpen }) {
             setApps([...[...mineApps].sort(byUpdated), ...shared.sort(byUpdated)]);
             setOwnedIds(owned);
         } catch (err) {
-            setError(err?.message || 'Could not load your apps.');
+            setError(err?.message || t('studio_apps_bi.list.load_failed', 'Could not load your apps.'));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -1038,9 +1066,9 @@ export default function AppList({ onOpen }) {
             const updated = res?.app || { ...renameTarget, name: trimmed };
             setApps((prev) => prev.map((a) => (a.id === renameTarget.id ? { ...a, ...updated } : a)));
             setRenameTarget(null);
-            toast.success('App renamed.');
+            toast.success(t('studio_apps_bi.list.renamed', 'App renamed.'));
         } catch (err) {
-            toast.error(err?.message || 'Could not rename the app.');
+            toast.error(err?.message || t('studio_apps_bi.list.rename_failed', 'Could not rename the app.'));
         } finally {
             setRenameBusy(false);
         }
@@ -1052,10 +1080,10 @@ export default function AppList({ onOpen }) {
         if (!upgradeTarget) return;
         try {
             await studioAppsApi.templateUpgrade(upgradeTarget.id);
-            toast.success('App bijgewerkt naar de nieuwste templateversie.');
+            toast.success(t('studio_apps_bi.list.upgraded', 'App updated to the latest template version.'));
             load();
         } catch (err) {
-            toast.error(err?.message || 'Kon de app niet bijwerken.');
+            toast.error(err?.message || t('studio_apps_bi.list.upgrade_failed', 'Could not update the app.'));
         } finally {
             setUpgradeTarget(null);
         }
@@ -1066,9 +1094,9 @@ export default function AppList({ onOpen }) {
         try {
             await studioAppsApi.deleteApp(deleteTarget.id);
             setApps((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-            toast.success('App deleted.');
+            toast.success(t('studio_apps_bi.list.deleted', 'App deleted.'));
         } catch (err) {
-            toast.error(err?.message || 'Could not delete the app.');
+            toast.error(err?.message || t('studio_apps_bi.list.delete_failed', 'Could not delete the app.'));
         } finally {
             setDeleteTarget(null);
         }
@@ -1094,7 +1122,7 @@ export default function AppList({ onOpen }) {
             >
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                     <LayoutGrid className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-primary)' }} />
-                    <h2 className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>Apps</h2>
+                    <h2 className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{t('studio_apps_bi.list.apps', 'Apps')}</h2>
                 </div>
                 <button
                     type="button"
@@ -1103,7 +1131,7 @@ export default function AppList({ onOpen }) {
                     style={{ background: 'var(--accent-primary)' }}
                 >
                     <Plus className="w-3.5 h-3.5" />
-                    New app
+                    {t('studio_apps_bi.list.new_app', 'New app')}
                 </button>
             </div>
 
@@ -1114,7 +1142,7 @@ export default function AppList({ onOpen }) {
                     role="alert"
                 >
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
-                    <button type="button" onClick={load} className="ml-auto underline font-medium">Retry</button>
+                    <button type="button" onClick={load} className="ml-auto underline font-medium">{t('studio_apps_bi.list.retry', 'Retry')}</button>
                 </div>
             )}
 
@@ -1124,10 +1152,10 @@ export default function AppList({ onOpen }) {
                 ) : isEmpty ? (
                     <EmptyState
                         icon={<LayoutGrid className="w-12 h-12" />}
-                        title="Build your first app"
-                        description="Turn an automation into a small internal tool — a form, a dashboard, a tracker — without writing code. Describe what you need and the AI can build it for you."
+                        title={t('studio_apps_bi.list.empty_title', 'Build your first app')}
+                        description={t('studio_apps_bi.list.empty_desc', 'Turn an automation into a small internal tool — a form, a dashboard, a tracker — without writing code. Describe what you need and the AI can build it for you.')}
                         action={{
-                            label: 'New app',
+                            label: t('studio_apps_bi.list.new_app', 'New app'),
                             onClick: () => setShowCreate(true),
                             icon: <Plus className="w-4 h-4" />,
                         }}
@@ -1151,7 +1179,7 @@ export default function AppList({ onOpen }) {
                                             className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
                                             style={{ color: 'var(--text-secondary)' }}
                                         >
-                                            Open <ExternalLink className="w-3 h-3" />
+                                            {t('studio_apps_bi.list.open', 'Open')} <ExternalLink className="w-3 h-3" />
                                         </span>
                                     </a>
                                 );
@@ -1194,7 +1222,7 @@ export default function AppList({ onOpen }) {
             <Modal
                 open={!!renameTarget}
                 onClose={() => { if (!renameBusy) setRenameTarget(null); }}
-                title="Rename app"
+                title={t('studio_apps_bi.list.rename_app', 'Rename app')}
                 size="sm"
                 footer={
                     <>
@@ -1205,7 +1233,7 @@ export default function AppList({ onOpen }) {
                             className="px-4 py-2 rounded-lg text-sm bg-white/5 hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
                             style={{ color: 'var(--text-primary)' }}
                         >
-                            Cancel
+                            {t('studio_apps_bi.common.cancel', 'Cancel')}
                         </button>
                         <button
                             type="button"
@@ -1215,7 +1243,7 @@ export default function AppList({ onOpen }) {
                             style={{ background: 'var(--accent-primary)' }}
                         >
                             {renameBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                            Save
+                            {t('studio_apps_bi.list.save', 'Save')}
                         </button>
                     </>
                 }
@@ -1225,7 +1253,7 @@ export default function AppList({ onOpen }) {
                         type="text"
                         value={renameValue}
                         onChange={(e) => setRenameValue(e.target.value)}
-                        aria-label="App name"
+                        aria-label={t('studio_apps_bi.list.app_name', 'App name')}
                         maxLength={120}
                         autoFocus
                         className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
@@ -1240,18 +1268,18 @@ export default function AppList({ onOpen }) {
 
             <ConfirmDialog
                 open={!!upgradeTarget}
-                title={`“${upgradeTarget?.name || 'App'}” bijwerken?`}
-                description="De app wordt bijgewerkt naar de nieuwste templateversie. Je gegevens blijven staan."
-                confirmLabel="Bijwerken"
+                title={t('studio_apps_bi.list.upgrade_confirm_title', 'Update “{name}”?', { name: upgradeTarget?.name || t('studio_apps_bi.list.app_fallback', 'App') })}
+                description={t('studio_apps_bi.list.upgrade_confirm_desc', 'The app is updated to the latest template version. Your data stays.')}
+                confirmLabel={t('studio_apps_bi.list.upgrade_confirm', 'Update')}
                 onConfirm={confirmUpgrade}
                 onCancel={() => setUpgradeTarget(null)}
             />
 
             <ConfirmDialog
                 open={!!deleteTarget}
-                title={`Delete “${deleteTarget?.name || 'app'}”?`}
-                description="This permanently deletes the app and its version history for everyone it is shared with. This cannot be undone."
-                confirmLabel="Delete"
+                title={t('studio_apps_bi.list.delete_confirm_title', 'Delete “{name}”?', { name: deleteTarget?.name || t('studio_apps_bi.list.app_fallback_lower', 'app') })}
+                description={t('studio_apps_bi.list.delete_confirm_desc', 'This permanently deletes the app and its version history for everyone it is shared with. This cannot be undone.')}
+                confirmLabel={t('studio_apps_bi.list.delete', 'Delete')}
                 destructive
                 onConfirm={confirmDelete}
                 onCancel={() => setDeleteTarget(null)}

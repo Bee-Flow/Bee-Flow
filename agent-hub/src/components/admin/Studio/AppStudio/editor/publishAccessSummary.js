@@ -37,15 +37,26 @@ export const GROUPS = 'groups';
 const ROW_SCOPES = ['none', 'own', 'all'];
 const CONNECTOR_KINDS = ['integration_tool', 'automation', 'rest'];
 
+/**
+ * Translate with `t` when the caller has one; otherwise the English default
+ * (tests and non-React callers), interpolated the same way.
+ */
+const tr = (t, key, en, params) => (t
+    ? t(key, en, params)
+    : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
+
 /** ["a","b","c"] → "a, b and c" */
-export function joinNames(names) {
+export function joinNames(names, t = null) {
     const list = names.filter(Boolean);
     if (list.length <= 1) return list[0] || '';
-    return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+    return tr(t, 'studio_apps_edit.access_summary.join_and', '{head} and {last}', {
+        head: list.slice(0, -1).join(', '),
+        last: list[list.length - 1],
+    });
 }
 
-export function tableName(table) {
-    return table?.name || table?.key || table?.id || 'a table';
+export function tableName(table, t = null) {
+    return table?.name || table?.key || table?.id || tr(t, 'studio_apps_edit.access_summary.a_table', 'a table');
 }
 
 /**
@@ -107,42 +118,58 @@ export function tableGrant(table, role) {
 }
 
 const VERB_ORDER = ['see', 'add', 'edit', 'delete'];
-const EVERY_ROW = 'every row';
+const everyRow = (t) => tr(t, 'studio_apps_edit.access_summary.every_row', 'every row');
 
-function rowQualifier(scope, rule) {
-    if (scope === 'all') return rule ? 'only the rows your row rule allows' : EVERY_ROW;
+function rowQualifier(scope, rule, t) {
+    if (scope === 'all') {
+        return rule
+            ? tr(t, 'studio_apps_edit.access_summary.rows_rule', 'only the rows your row rule allows')
+            : everyRow(t);
+    }
     return rule
-        ? 'only the rows they added themselves that your row rule also allows'
-        : 'only the rows they added themselves';
+        ? tr(t, 'studio_apps_edit.access_summary.rows_own_rule', 'only the rows they added themselves that your row rule also allows')
+        : tr(t, 'studio_apps_edit.access_summary.rows_own', 'only the rows they added themselves');
 }
+
+const VERB_LABELS = {
+    see: ['studio_apps_edit.access_summary.verb_see', 'see'],
+    add: ['studio_apps_edit.access_summary.verb_add', 'add'],
+    edit: ['studio_apps_edit.access_summary.verb_edit', 'edit'],
+    delete: ['studio_apps_edit.access_summary.verb_delete', 'delete'],
+};
 
 /**
  * One table's grant in words — "see, add, edit and delete every row" — or null
  * when the role cannot touch the table at all. Verbs that share a qualifier are
  * listed together; adding joins them only when nothing narrows the rows.
  */
-export function grantPhrase(grant) {
+export function grantPhrase(grant, t = null) {
     const clauses = [];
     const put = (qualifier, verb) => {
         const found = clauses.find((c) => c.qualifier === qualifier);
         if (found) found.verbs.push(verb); else clauses.push({ qualifier, verbs: [verb] });
     };
-    if (grant.read !== 'none') put(rowQualifier(grant.read, grant.rule), 'see');
-    if (grant.update !== 'none') put(rowQualifier(grant.update, grant.rule), 'edit');
-    if (grant.remove !== 'none') put(rowQualifier(grant.remove, grant.rule), 'delete');
+    if (grant.read !== 'none') put(rowQualifier(grant.read, grant.rule, t), 'see');
+    if (grant.update !== 'none') put(rowQualifier(grant.update, grant.rule, t), 'edit');
+    if (grant.remove !== 'none') put(rowQualifier(grant.remove, grant.rule, t), 'delete');
 
     if (grant.create) {
-        const open = clauses.find((c) => c.qualifier === EVERY_ROW);
+        const open = clauses.find((c) => c.qualifier === everyRow(t));
         if (open) open.verbs.push('add');
-        else if (clauses.length === 0) return 'add rows, without seeing them afterwards';
+        else if (clauses.length === 0) return tr(t, 'studio_apps_edit.access_summary.add_blind', 'add rows, without seeing them afterwards');
         else clauses.unshift({ qualifier: null, verbs: ['add'] });
     }
     if (clauses.length === 0) return null;
     return clauses.map((c) => {
-        if (!c.qualifier) return 'add rows';
-        const verbs = [...c.verbs].sort((a, b) => VERB_ORDER.indexOf(a) - VERB_ORDER.indexOf(b));
-        return `${joinNames(verbs)} ${c.qualifier}`;
-    }).join(', and ');
+        if (!c.qualifier) return tr(t, 'studio_apps_edit.access_summary.add_rows', 'add rows');
+        const verbs = [...c.verbs]
+            .sort((a, b) => VERB_ORDER.indexOf(a) - VERB_ORDER.indexOf(b))
+            .map((v) => tr(t, VERB_LABELS[v][0], VERB_LABELS[v][1]));
+        return tr(t, 'studio_apps_edit.access_summary.verbs_qualifier', '{verbs} {qualifier}', {
+            verbs: joinNames(verbs, t),
+            qualifier: c.qualifier,
+        });
+    }).reduce((acc, clause) => tr(t, 'studio_apps_edit.access_summary.clauses_join', '{a}, and {b}', { a: acc, b: clause }));
 }
 
 function roleMappingOf(model) {
@@ -154,12 +181,12 @@ function roleMappingOf(model) {
     };
 }
 
-function groupNamer(groups) {
+function groupNamer(groups, t) {
     const byId = new Map((Array.isArray(groups) ? groups : []).map((g) => [String(g?.id), g?.name]));
     return (ids) => {
         const named = ids.map((id) => byId.get(String(id))).filter(Boolean);
         // The group directory needs org-admin rights the owner may not hold.
-        return named.length > 0 ? joinNames(named) : 'a group you gave a role';
+        return named.length > 0 ? joinNames(named, t) : tr(t, 'studio_apps_edit.access_summary.a_group', 'a group you gave a role');
     };
 }
 
@@ -180,14 +207,14 @@ function groupsByRole(byGroup, ids, fallback) {
  * marks that as a possibility rather than a promise — when their picked group
  * is mapped too, the server takes whichever it matches first.
  */
-function spilloverCohorts(byGroup, pickedIds, picked, nameGroups) {
+function spilloverCohorts(byGroup, pickedIds, picked, nameGroups, t) {
     const covered = new Set(picked.map((c) => c.role));
     const chosen = new Set(pickedIds);
     const rest = Object.keys(byGroup)
         .filter((id) => byGroup[id] && !chosen.has(String(id)) && !covered.has(byGroup[id]));
     return [...groupsByRole(byGroup, rest, null)].map(([role, ids]) => ({
         key: `x:${role}`,
-        who: `Anyone you share with who is also in ${nameGroups(ids)}`,
+        who: tr(t, 'studio_apps_edit.access_summary.who_spillover', 'Anyone you share with who is also in {groups}', { groups: nameGroups(ids) }),
         role,
         maybe: true,
     }));
@@ -201,19 +228,19 @@ function spilloverCohorts(byGroup, pickedIds, picked, nameGroups) {
  * the exception — the server gives them whichever group it matches first, so
  * both lines name them.
  */
-export function audienceCohorts({ audience, model, groups = [], selectedGroupIds = [] }) {
+export function audienceCohorts({ audience, model, groups = [], selectedGroupIds = [], t = null }) {
     const { fallback, byGroup } = roleMappingOf(model);
-    const nameGroups = groupNamer(groups);
+    const nameGroups = groupNamer(groups, t);
 
     if (audience === GROUPS) {
         const ids = selectedGroupIds.map(String);
         if (ids.length === 0) return [];
         const picked = [...groupsByRole(byGroup, ids, fallback)].map(([role, groupIds]) => ({
             key: `g:${role || 'none'}`,
-            who: `Everyone in ${nameGroups(groupIds)}`,
+            who: tr(t, 'studio_apps_edit.access_summary.who_everyone_in', 'Everyone in {groups}', { groups: nameGroups(groupIds) }),
             role,
         }));
-        return [...picked, ...spilloverCohorts(byGroup, ids, picked, nameGroups)];
+        return [...picked, ...spilloverCohorts(byGroup, ids, picked, nameGroups, t)];
     }
 
     const overrides = [...groupsByRole(byGroup, Object.keys(byGroup).filter((id) => byGroup[id]), fallback)]
@@ -223,11 +250,11 @@ export function audienceCohorts({ audience, model, groups = [], selectedGroupIds
         {
             key: 'org',
             who: overridden.length > 0
-                ? `Everyone in your organisation except ${nameGroups(overridden)}`
-                : 'Everyone in your organisation',
+                ? tr(t, 'studio_apps_edit.access_summary.who_org_except', 'Everyone in your organisation except {groups}', { groups: nameGroups(overridden) })
+                : tr(t, 'studio_apps_edit.access_summary.who_org', 'Everyone in your organisation'),
             role: fallback,
         },
-        ...overrides.map(([role, ids]) => ({ key: `g:${role}`, who: `People in ${nameGroups(ids)}`, role })),
+        ...overrides.map(([role, ids]) => ({ key: `g:${role}`, who: tr(t, 'studio_apps_edit.access_summary.who_people_in', 'People in {groups}', { groups: nameGroups(ids) }), role })),
     ];
 }
 
@@ -240,17 +267,17 @@ export function audienceCohorts({ audience, model, groups = [], selectedGroupIds
  * it cannot open is left out (another line covers that), and one that reaches
  * nothing is dropped rather than contradicting them.
  */
-export function summarizeAudience({ audience, model, tables = [], groups = [], selectedGroupIds = [] }) {
-    const cohorts = audienceCohorts({ audience, model, groups, selectedGroupIds }).map((cohort) => {
+export function summarizeAudience({ audience, model, tables = [], groups = [], selectedGroupIds = [], t = null }) {
+    const cohorts = audienceCohorts({ audience, model, groups, selectedGroupIds, t }).map((cohort) => {
         const buckets = new Map();
         const denied = [];
         let broad = false;
         for (const table of tables) {
             const grant = tableGrant(table, cohort.role);
-            const phrase = cohort.role ? grantPhrase(grant) : null;
-            if (!phrase) { denied.push(tableName(table)); continue; }
+            const phrase = cohort.role ? grantPhrase(grant, t) : null;
+            if (!phrase) { denied.push(tableName(table, t)); continue; }
             if (!grant.rule && (grant.update === 'all' || grant.remove === 'all')) broad = true;
-            buckets.set(phrase, [...(buckets.get(phrase) || []), tableName(table)]);
+            buckets.set(phrase, [...(buckets.get(phrase) || []), tableName(table, t)]);
         }
         const grants = [...buckets].map(([phrase, names]) => ({ phrase, names }));
         return { ...cohort, grants, denied: cohort.maybe ? [] : denied, broad };

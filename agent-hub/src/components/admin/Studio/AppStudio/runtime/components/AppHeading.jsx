@@ -1,3 +1,5 @@
+import useTranslation from '../../../../../../hooks/useTranslation';
+
 /** App Studio runtime — 'heading'. Spec: server/appStudio/componentSpecs.js. */
 
 const LEVEL_TAGS = { 1: 'h1', 2: 'h2', 3: 'h3' };
@@ -14,7 +16,8 @@ const LEVEL_CLASSES = {
  * accents follow the app's primary in every host theme.
  */
 export default function AppHeading({ node }) {
-    const { text = 'Heading', level = 2, accent = 'none' } = node.props || {};
+    const { t } = useTranslation();
+    const { text = t('studio_apps_runtime.heading.default', 'Heading'), level = 2, accent = 'none' } = node.props || {};
     const lvl = LEVEL_TAGS[level] ? level : 2;
     const Tag = LEVEL_TAGS[lvl];
 

@@ -205,11 +205,11 @@ describe('AppList', () => {
         await screen.findByText('Aanvraag automatisering');
 
         // The provenance badge tells you this carries your own data model.
-        expect(screen.getByText('Eigen')).toBeInTheDocument();
+        expect(screen.getByText('Own')).toBeInTheDocument();
 
         // Exactly one delete affordance: the built-in template is code and
         // cannot be removed from the gallery.
-        const removes = screen.getAllByRole('button', { name: /Verwijderen/ });
+        const removes = screen.getAllByRole('button', { name: /Delete/ });
         expect(removes).toHaveLength(1);
 
         fireEvent.click(removes[0]);
@@ -231,7 +231,7 @@ describe('AppList', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Eigen sjabloon');
 
-        fireEvent.click(screen.getByRole('button', { name: /Verwijderen/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Delete/ }));
         await waitFor(() => expect(toast.error).toHaveBeenCalled());
         expect(screen.getByText('Eigen sjabloon')).toBeInTheDocument();
     });
@@ -329,7 +329,7 @@ describe('AppList', () => {
         expect(await screen.findByText('Ticket tracker')).toBeInTheDocument();
     });
 
-    it('shows "Update beschikbaar" on an upgradable owned card, confirms in Dutch, then upgrades and reloads', async () => {
+    it('shows "Update available" on an upgradable owned card, confirms, then upgrades and reloads', async () => {
         studioAppsApi.listMine.mockResolvedValue({
             apps: [
                 { ...OWNED_APP, templateUpgrade: { available: true, fromVersion: 1, toVersion: 2 } },
@@ -344,17 +344,17 @@ describe('AppList', () => {
         await screen.findByText('My tracker');
 
         // Only the upgradable card carries the pill.
-        expect(screen.getAllByRole('button', { name: 'Update beschikbaar' })).toHaveLength(1);
+        expect(screen.getAllByRole('button', { name: 'Update available' })).toHaveLength(1);
 
-        // Clicking the pill opens the Dutch confirm dialog — it must NOT open
+        // Clicking the pill opens the confirm dialog — it must NOT open
         // the editor (the whole card is a click target) and nothing runs yet.
-        fireEvent.click(screen.getByRole('button', { name: 'Update beschikbaar' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Update available' }));
         expect(onOpen).not.toHaveBeenCalled();
         expect(studioAppsApi.templateUpgrade).not.toHaveBeenCalled();
-        expect(await screen.findByText('De app wordt bijgewerkt naar de nieuwste templateversie. Je gegevens blijven staan.')).toBeInTheDocument();
+        expect(await screen.findByText('The app is updated to the latest template version. Your data stays.')).toBeInTheDocument();
 
         // Confirming calls the upgrade route and reloads the list.
-        fireEvent.click(screen.getByRole('button', { name: 'Bijwerken' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Update' }));
         await waitFor(() => expect(studioAppsApi.templateUpgrade).toHaveBeenCalledWith('app-owned'));
         await waitFor(() => expect(toast.success).toHaveBeenCalled());
         // load() ran once on mount and once after the upgrade.
@@ -364,7 +364,7 @@ describe('AppList', () => {
     it('renders no update pill on shared cards or when templateUpgrade is absent', async () => {
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
-        expect(screen.queryByRole('button', { name: 'Update beschikbaar' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Update available' })).not.toBeInTheDocument();
     });
 
     it('renders the empty state with the AI note when there are no apps', async () => {

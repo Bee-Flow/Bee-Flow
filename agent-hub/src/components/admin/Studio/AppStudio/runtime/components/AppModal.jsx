@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import Modal from '../../../../../shared/Modal';
 import { useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';
@@ -56,6 +57,7 @@ const MODAL_SIZE = { sm: 'sm', md: 'md', lg: 'lg' };
 const MODAL_PLACEMENT = { center: 'center', left: 'left', right: 'right', bottom: 'bottom' };
 
 export default function AppModal({ node, children }) {
+    const { t } = useTranslation();
     const { mode } = useRuntime();
     const { title = null, size = 'md', placement = 'center', triggerLabel = null } = node.props || {};
     const [open, setOpen] = useState(false);
@@ -89,10 +91,10 @@ export default function AppModal({ node, children }) {
                         className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
                         style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
                     >
-                        Modal
+                        {t('studio_apps_runtime.modal.badge', 'Modal')}
                     </span>
                     <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                        {title || 'Untitled dialog'}
+                        {title || t('studio_apps_runtime.modal.untitled', 'Untitled dialog')}
                     </span>
                 </div>
                 <div className="p-3">{grid}</div>
@@ -123,14 +125,14 @@ export default function AppModal({ node, children }) {
             <Modal
                 open={open}
                 onClose={() => setOpen(false)}
-                title={title || 'Dialog'}
+                title={title || t('studio_apps_runtime.modal.dialog', 'Dialog')}
                 size={MODAL_SIZE[size] || 'md'}
                 placement={MODAL_PLACEMENT[placement] || 'center'}
                 headerActions={(
                     <button
                         type="button"
                         onClick={() => setOpen(false)}
-                        aria-label="Close dialog"
+                        aria-label={t('studio_apps_runtime.modal.close', 'Close dialog')}
                         className="inline-flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)]"
                         style={{ color: 'var(--text-secondary)' }}
                         data-app-modal-close={node.id}

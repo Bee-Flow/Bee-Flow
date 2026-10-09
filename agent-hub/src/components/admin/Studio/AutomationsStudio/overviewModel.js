@@ -36,6 +36,32 @@ export const STATUS_LABEL = Object.freeze({
     draft: 'Draft',
 });
 
+const TRIGGER_LABEL_KEY = Object.freeze({
+    schedule: 'studio_misc.overview.trigger_schedule',
+    manual: 'studio_misc.overview.trigger_manual',
+    webhook: 'studio_misc.overview.trigger_webhook',
+    app_event: 'studio_misc.overview.trigger_app_event',
+    other: 'studio_misc.overview.trigger_other',
+});
+
+const STATUS_LABEL_KEY = Object.freeze({
+    live: 'studio_misc.overview.status_live',
+    paused: 'studio_misc.overview.status_paused',
+    draft: 'studio_misc.overview.status_draft',
+});
+
+/** The trigger kind's label; translated when a `t` is passed, English otherwise. */
+export function triggerLabelOf(kind, t) {
+    const en = TRIGGER_LABEL[kind];
+    return t && TRIGGER_LABEL_KEY[kind] ? t(TRIGGER_LABEL_KEY[kind], en) : en;
+}
+
+/** The lifecycle label; translated when a `t` is passed, English otherwise. */
+export function statusLabelOf(status, t) {
+    const en = STATUS_LABEL[status];
+    return t && STATUS_LABEL_KEY[status] ? t(STATUS_LABEL_KEY[status], en) : en;
+}
+
 /** The trigger kind the way AutomationRow reads it — column first, definition second. */
 export function triggerKindOf(a) {
     const kind = a?.triggerType || a?.definition?.trigger?.kind || 'manual';
@@ -43,16 +69,16 @@ export function triggerKindOf(a) {
 }
 
 /** "Every day at 09:00 · Europe/Amsterdam" — or the plain kind word. */
-export function triggerTextOf(a) {
+export function triggerTextOf(a, t) {
     const kind = triggerKindOf(a);
     if (kind === 'schedule' && a.scheduleCron) {
         return `${describeCron(a.scheduleCron)}${a.scheduleTz ? ` · ${a.scheduleTz}` : ''}`;
     }
     if (kind === 'app_event') {
         const ev = a.definition?.trigger?.appEvent;
-        return ev ? `${ev.provider}.${ev.event}` : TRIGGER_LABEL.app_event;
+        return ev ? `${ev.provider}.${ev.event}` : triggerLabelOf('app_event', t);
     }
-    return TRIGGER_LABEL[kind];
+    return triggerLabelOf(kind, t);
 }
 
 /** How many steps the definition holds; null when the row carries no definition. */
@@ -195,9 +221,9 @@ export function sortRows(rows, sort = 'updated') {
  * appears once something lands in it does not. Folders are the exception:
  * the lanes are the org's folders plus "No folder", in the order given.
  */
-export function groupRows(rows, groupBy = 'status', { folders = [] } = {}) {
+export function groupRows(rows, groupBy = 'status', { folders = [], t } = {}) {
     if (groupBy === 'trigger') {
-        const lanes = [...TRIGGER_KINDS, 'other'].map(k => ({ id: k, label: TRIGGER_LABEL[k], rows: [] }));
+        const lanes = [...TRIGGER_KINDS, 'other'].map(k => ({ id: k, label: triggerLabelOf(k, t), rows: [] }));
         const idx = new Map(lanes.map(l => [l.id, l]));
         for (const a of rows) idx.get(triggerKindOf(a)).rows.push(a);
         // "Other" only earns a lane when something is in it — it is a catch-all,
@@ -205,15 +231,15 @@ export function groupRows(rows, groupBy = 'status', { folders = [] } = {}) {
         return lanes.filter(l => l.id !== 'other' || l.rows.length > 0);
     }
     if (groupBy === 'folder') {
-        const known = new Map((folders || []).map(f => [f.id, { id: f.id, label: f.name || 'Untitled folder', rows: [] }]));
-        const loose = { id: '__none', label: 'No folder', rows: [] };
+        const known = new Map((folders || []).map(f => [f.id, { id: f.id, label: f.name || (t ? t('studio_misc.overview.untitled_folder', 'Untitled folder') : 'Untitled folder'), rows: [] }]));
+        const loose = { id: '__none', label: t ? t('studio_misc.overview.no_folder', 'No folder') : 'No folder', rows: [] };
         for (const a of rows) {
             const lane = a.folderId && known.get(a.folderId);
             (lane || loose).rows.push(a);
         }
         return [loose, ...known.values()];
     }
-    const lanes = ['live', 'paused', 'draft'].map(s => ({ id: s, label: STATUS_LABEL[s], rows: [] }));
+    const lanes = ['live', 'paused', 'draft'].map(s => ({ id: s, label: statusLabelOf(s, t), rows: [] }));
     const idx = new Map(lanes.map(l => [l.id, l]));
     for (const a of rows) idx.get(lifecycleOf(a)).rows.push(a);
     return lanes;

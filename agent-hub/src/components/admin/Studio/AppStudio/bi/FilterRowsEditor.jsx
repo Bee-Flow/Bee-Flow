@@ -1,5 +1,6 @@
 import { FunctionSquare, Pencil, Type, Undo2 } from 'lucide-react';
 import React, { useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import Toggle from '../../../../shared/Toggle';
 import { RepeatableList } from '../../../product-website/fields';
@@ -39,19 +40,19 @@ import { INPUT_CLS } from '../inspector/panels/kit';
  * always literals.
  */
 
-export const FILTER_OPS = [
-    { value: 'eq', label: 'is' },
-    { value: 'neq', label: 'is not' },
+const filterOps = (t) => [
+    { value: 'eq', label: t('studio_apps_bi.filter.op_eq', 'is') },
+    { value: 'neq', label: t('studio_apps_bi.filter.op_neq', 'is not') },
     { value: 'gt', label: '>' },
     { value: 'gte', label: '≥' },
     { value: 'lt', label: '<' },
     { value: 'lte', label: '≤' },
-    { value: 'contains', label: 'contains' },
-    { value: 'startsWith', label: 'starts with' },
-    { value: 'in', label: 'is one of' },
-    { value: 'between', label: 'is between' },
-    { value: 'isNull', label: 'is empty' },
-    { value: 'isNotNull', label: 'is not empty' },
+    { value: 'contains', label: t('studio_apps_bi.filter.op_contains', 'contains') },
+    { value: 'startsWith', label: t('studio_apps_bi.filter.op_starts_with', 'starts with') },
+    { value: 'in', label: t('studio_apps_bi.filter.op_in', 'is one of') },
+    { value: 'between', label: t('studio_apps_bi.filter.op_between', 'is between') },
+    { value: 'isNull', label: t('studio_apps_bi.filter.op_is_null', 'is empty') },
+    { value: 'isNotNull', label: t('studio_apps_bi.filter.op_is_not_null', 'is not empty') },
 ];
 
 export const NO_VALUE_OPS = new Set(['isNull', 'isNotNull']);
@@ -89,10 +90,10 @@ function allowedOps(field) {
 }
 
 /** The op list to offer, with the current op appended so it always round-trips. */
-function opsFor(field, current) {
+function opsFor(field, current, t) {
     const allowed = allowedOps(field);
     const keys = allowed.includes(current) || !current ? allowed : [...allowed, current];
-    return FILTER_OPS.filter((o) => keys.includes(o.value));
+    return filterOps(t).filter((o) => keys.includes(o.value));
 }
 
 function isFormulaValue(v) {
@@ -155,14 +156,15 @@ function boolSegment(value) {
 
 /** The typed literal control for one row (never rendered for a formula row). */
 function ValueControl({ control, f, field, update }) {
+    const { t } = useTranslation();
     if (control === 'bool') {
         return (
             <SegmentedControl
                 value={boolSegment(f.value)}
                 onChange={(v) => update({ ...f, value: v === 'true' })}
-                options={[{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]}
+                options={[{ value: 'true', label: t('studio_apps_bi.params.yes', 'Yes') }, { value: 'false', label: t('studio_apps_bi.params.no', 'No') }]}
                 size="sm"
-                ariaLabel="Filter value"
+                ariaLabel={t('studio_apps_bi.filter.value', 'Filter value')}
             />
         );
     }
@@ -173,7 +175,7 @@ function ValueControl({ control, f, field, update }) {
                 className={INPUT_CLS}
                 value={typeof f.value === 'string' ? f.value : ''}
                 onChange={(e) => update({ ...f, value: e.target.value })}
-                aria-label="Filter value"
+                aria-label={t('studio_apps_bi.filter.value', 'Filter value')}
             />
         );
     }
@@ -188,7 +190,7 @@ function ValueControl({ control, f, field, update }) {
                 value={f.value ?? ''}
                 onChange={(e) => update({ ...f, value: e.target.value })}
                 placeholder="0"
-                aria-label="Filter value"
+                aria-label={t('studio_apps_bi.filter.value', 'Filter value')}
             />
         );
     }
@@ -200,9 +202,9 @@ function ValueControl({ control, f, field, update }) {
                 className={INPUT_CLS}
                 value={choices.some((c) => c.value === current) ? current : ''}
                 onChange={(e) => update({ ...f, value: e.target.value })}
-                aria-label="Filter value"
+                aria-label={t('studio_apps_bi.filter.value', 'Filter value')}
             >
-                <option value="">Pick one…</option>
+                <option value="">{t('studio_apps_bi.filter.pick_one', 'Pick one…')}</option>
                 {choices.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
         );
@@ -229,8 +231,8 @@ function ValueControl({ control, f, field, update }) {
                     ...f,
                     value: e.target.value.split(',').map((s) => s.trim()).filter((s) => s !== ''),
                 })}
-                placeholder="open, in progress, done"
-                aria-label="Filter values"
+                placeholder={t('studio_apps_bi.filter.list_placeholder', 'open, in progress, done')}
+                aria-label={t('studio_apps_bi.filter.values', 'Filter values')}
             />
         );
     }
@@ -249,17 +251,17 @@ function ValueControl({ control, f, field, update }) {
                     className={INPUT_CLS}
                     value={pair[0] ?? ''}
                     onChange={(e) => setAt(0, e.target.value)}
-                    placeholder="From"
-                    aria-label="Filter value from"
+                    placeholder={t('studio_apps_bi.filter.from', 'From')}
+                    aria-label={t('studio_apps_bi.filter.value_from', 'Filter value from')}
                 />
-                <span className="shrink-0 text-[11px] text-[var(--text-secondary)]">and</span>
+                <span className="shrink-0 text-[11px] text-[var(--text-secondary)]">{t('studio_apps_bi.filter.and', 'and')}</span>
                 <input
                     type={inputType}
                     className={INPUT_CLS}
                     value={pair[1] ?? ''}
                     onChange={(e) => setAt(1, e.target.value)}
-                    placeholder="To"
-                    aria-label="Filter value to"
+                    placeholder={t('studio_apps_bi.filter.to', 'To')}
+                    aria-label={t('studio_apps_bi.filter.value_to', 'Filter value to')}
                 />
             </div>
         );
@@ -270,8 +272,8 @@ function ValueControl({ control, f, field, update }) {
             className={INPUT_CLS}
             value={f.value ?? ''}
             onChange={(e) => update({ ...f, value: e.target.value })}
-            placeholder="Value"
-            aria-label="Filter value"
+            placeholder={t('studio_apps_bi.filter.value_placeholder', 'Value')}
+            aria-label={t('studio_apps_bi.filter.value', 'Filter value')}
         />
     );
 }
@@ -318,12 +320,13 @@ export default function FilterRowsEditor({
     filters,
     onChange,
     allowFormula = false,
-    label = 'Filters',
+    label,
     disabled = false,
     definition = null,
     node = null,
 }) {
-    const fieldName = (key) => (fields.find((f) => f.key === key) || {}).name || key || 'Filter';
+    const { t } = useTranslation();
+    const fieldName = (key) => (fields.find((f) => f.key === key) || {}).name || key || t('studio_apps_bi.filter.filter', 'Filter');
     // Rows the user explicitly sent to free text, keyed by the row OBJECT.
     // Never by index: RepeatableList re-indexes on remove.
     const [escaped, setEscaped] = useState(() => new Set());
@@ -367,11 +370,11 @@ export default function FilterRowsEditor({
     return (
         <fieldset disabled={disabled} className="min-w-0">
             <RepeatableList
-                label={label}
+                label={label ?? t('studio_apps_bi.filter.filters', 'Filters')}
                 items={rows}
                 onChange={onChange}
                 makeNew={() => ({ field: '', op: 'eq', value: '' })}
-                addLabel="Add filter"
+                addLabel={t('studio_apps_bi.filter.add', 'Add filter')}
                 itemLabel={(f) => fieldName(f.field)}
                 renderItem={(f, rawUpdate, idx) => {
                     // Every write goes through here so the free-text marker
@@ -459,9 +462,9 @@ export default function FilterRowsEditor({
                                             ...(usesFormula ? {} : { value: emptyValueFor(nextControl) }),
                                         });
                                     }}
-                                    aria-label="Filter field"
+                                    aria-label={t('studio_apps_bi.filter.field', 'Filter field')}
                                 >
-                                    <option value="">Pick a field…</option>
+                                    <option value="">{t('studio_apps_bi.filter.pick_field', 'Pick a field…')}</option>
                                     {fields.map((x) => <option key={x.key} value={x.key}>{x.name || x.key}</option>)}
                                 </select>
                                 <select
@@ -481,9 +484,9 @@ export default function FilterRowsEditor({
                                             ...(usesFormula || !shapeChanged ? {} : { value: emptyValueFor(nextControl) }),
                                         });
                                     }}
-                                    aria-label="Filter operator"
+                                    aria-label={t('studio_apps_bi.filter.operator', 'Filter operator')}
                                 >
-                                    {opsFor(field, f.op).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    {opsFor(field, f.op, t).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                             </div>
                             {needsValue ? (
@@ -496,8 +499,8 @@ export default function FilterRowsEditor({
                                                 onChange={(expr) => update({ ...f, value: { kind: 'formula', expr } })}
                                                 definition={definition}
                                                 node={node}
-                                                placeholder="e.g. currentUser.id"
-                                                ariaLabel="Filter formula"
+                                                placeholder={t('studio_apps_bi.filter.formula_placeholder', 'e.g. currentUser.id')}
+                                                ariaLabel={t('studio_apps_bi.filter.formula', 'Filter formula')}
                                                 showPicker={!!definition}
                                             />
                                         </div>
@@ -510,8 +513,8 @@ export default function FilterRowsEditor({
                                         <button
                                             type="button"
                                             onClick={toggleEscape}
-                                            title={control === 'text' ? 'Back to the simple picker' : 'Type any value'}
-                                            aria-label={control === 'text' ? 'Back to the simple picker' : 'Type any value'}
+                                            title={control === 'text' ? t('studio_apps_bi.filter.back_to_picker', 'Back to the simple picker') : t('studio_apps_bi.filter.type_any', 'Type any value')}
+                                            aria-label={control === 'text' ? t('studio_apps_bi.filter.back_to_picker', 'Back to the simple picker') : t('studio_apps_bi.filter.type_any', 'Type any value')}
                                             className="shrink-0 px-2 rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                                         >
                                             {control === 'text' ? <Undo2 size={13} /> : <Pencil size={13} />}
@@ -521,8 +524,8 @@ export default function FilterRowsEditor({
                                         <button
                                             type="button"
                                             onClick={toggleFormula}
-                                            title={usesFormula ? 'Use a fixed value' : 'Use a formula'}
-                                            aria-label={usesFormula ? 'Use a fixed value' : 'Use a formula'}
+                                            title={usesFormula ? t('studio_apps_bi.filter.use_fixed', 'Use a fixed value') : t('studio_apps_bi.filter.use_formula', 'Use a formula')}
+                                            aria-label={usesFormula ? t('studio_apps_bi.filter.use_fixed', 'Use a fixed value') : t('studio_apps_bi.filter.use_formula', 'Use a formula')}
                                             className="shrink-0 px-2 rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                                         >
                                             {usesFormula ? <Type size={13} /> : <FunctionSquare size={13} />}
@@ -542,14 +545,14 @@ export default function FilterRowsEditor({
                             {allowFormula && needsValue ? (
                                 <Toggle
                                     size="sm"
-                                    label="Show nothing until this has a value"
-                                    description="Otherwise an unset value means “no filter”, and every row shows."
+                                    label={t('studio_apps_bi.filter.required_label', 'Show nothing until this has a value')}
+                                    description={t('studio_apps_bi.filter.required_desc', 'Otherwise an unset value means “no filter”, and every row shows.')}
                                     checked={!!f.required}
                                     onChange={(v) => {
                                         const { required: _drop, ...rest } = f;
                                         update(v ? { ...rest, required: true } : rest);
                                     }}
-                                    ariaLabel={`Filter ${idx + 1} required`}
+                                    ariaLabel={t('studio_apps_bi.filter.required_aria', 'Filter {n} required', { n: idx + 1 })}
                                 />
                             ) : null}
                         </div>

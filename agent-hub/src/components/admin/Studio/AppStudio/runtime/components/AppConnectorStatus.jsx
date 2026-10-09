@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Link2Off, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
@@ -21,18 +22,18 @@ import { ROLE_COLORS } from '../styleResolver';
  * worse than one that shows the shape it will take.
  */
 
-function relativeTime(iso) {
+function relativeTime(iso, t) {
     if (!iso) return null;
     const then = new Date(iso).getTime();
     if (!Number.isFinite(then)) return null;
     const secs = Math.round((Date.now() - then) / 1000);
-    if (secs < 0) return 'just now';
-    if (secs < 60) return 'just now';
+    if (secs < 0) return t('studio_apps_runtime.connector.just_now', 'just now');
+    if (secs < 60) return t('studio_apps_runtime.connector.just_now', 'just now');
     const mins = Math.round(secs / 60);
-    if (mins < 60) return `${mins} min ago`;
+    if (mins < 60) return t('studio_apps_runtime.connector.min_ago', '{n} min ago', { n: mins });
     const hours = Math.round(mins / 60);
-    if (hours < 24) return `${hours} h ago`;
-    return `${Math.round(hours / 24)} d ago`;
+    if (hours < 24) return t('studio_apps_runtime.connector.hours_ago', '{n} h ago', { n: hours });
+    return t('studio_apps_runtime.connector.days_ago', '{n} d ago', { n: Math.round(hours / 24) });
 }
 
 const PROVIDER_LABELS = { gmail: 'Gmail', outlook: 'Outlook' };
@@ -52,6 +53,7 @@ function Row({ icon, tone, title, detail }) {
 }
 
 export default function AppConnectorStatus({ node }) {
+    const { t } = useTranslation();
     const { mode } = useRuntime();
     const { appId } = useDataContext();
     const { connectorId = '', title = null, showSync = true } = node.props || {};
@@ -95,13 +97,15 @@ export default function AppConnectorStatus({ node }) {
                 { method: 'POST' },
             );
             const body = await res.json().catch(() => null);
-            if (res.status === 429) setNote('Just checked — give it a minute.');
-            else if (res.status === 202) setNote('A refresh is already running.');
-            else if (!res.ok) setNote(body?.error || 'Could not check right now.');
-            else setNote(body?.rowsWritten ? `${body.rowsWritten} new` : 'Up to date');
+            if (res.status === 429) setNote(t('studio_apps_runtime.connector.just_checked', 'Just checked — give it a minute.'));
+            else if (res.status === 202) setNote(t('studio_apps_runtime.connector.refresh_running', 'A refresh is already running.'));
+            else if (!res.ok) setNote(body?.error || t('studio_apps_runtime.connector.check_failed', 'Could not check right now.'));
+            else setNote(body?.rowsWritten
+                ? t('studio_apps_runtime.connector.rows_new', '{n} new', { n: body.rowsWritten })
+                : t('studio_apps_runtime.connector.up_to_date', 'Up to date'));
             await load();
         } catch {
-            setNote('Could not check right now.');
+            setNote(t('studio_apps_runtime.connector.check_failed', 'Could not check right now.'));
         } finally {
             setSyncing(false);
         }
@@ -117,7 +121,7 @@ export default function AppConnectorStatus({ node }) {
         return (
             <div className="app-connector-card flex items-center gap-2 rounded-lg border p-3 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                 <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                Checking the connection…
+                {t('studio_apps_runtime.connector.checking', 'Checking the connection…')}
             </div>
         );
     }
@@ -128,18 +132,18 @@ export default function AppConnectorStatus({ node }) {
                 <Row
                     icon={<AlertTriangle className="w-4 h-4" />}
                     tone={ROLE_COLORS.warning}
-                    title={title || 'Connection'}
+                    title={title || t('studio_apps_runtime.connector.connection', 'Connection')}
                     detail={checkFailed
-                        ? 'Could not check the connection right now.'
-                        : 'This connection is no longer part of the app.'}
+                        ? t('studio_apps_runtime.connector.check_connection_failed', 'Could not check the connection right now.')
+                        : t('studio_apps_runtime.connector.removed', 'This connection is no longer part of the app.')}
                 />
             </div>
         );
     }
 
-    const providerLabel = PROVIDER_LABELS[data.provider] || data.provider || 'Connection';
+    const providerLabel = PROVIDER_LABELS[data.provider] || data.provider || t('studio_apps_runtime.connector.connection', 'Connection');
     const heading = title || `${providerLabel}${data.name ? ` · ${data.name}` : ''}`;
-    const last = relativeTime(data.lastRunAt);
+    const last = relativeTime(data.lastRunAt, t);
 
     const connected = data.connected !== false;
     const icon = !connected
@@ -154,11 +158,15 @@ export default function AppConnectorStatus({ node }) {
             : ROLE_COLORS.success;
 
     const detail = !connected
-        ? `Not connected. Connect ${providerLabel} under Settings → Integrations and this fills up by itself.`
+        ? t('studio_apps_runtime.connector.not_connected', 'Not connected. Connect {provider} under Settings → Integrations and this fills up by itself.', { provider: providerLabel })
         : [
-            data.address ? `Reading ${data.address}` : `Reading the ${providerLabel} account you signed in with`,
-            last ? `checked ${last}` : 'not checked yet',
-            data.hasError ? 'last check reported a problem' : null,
+            data.address
+                ? t('studio_apps_runtime.connector.reading_address', 'Reading {address}', { address: data.address })
+                : t('studio_apps_runtime.connector.reading_account', 'Reading the {provider} account you signed in with', { provider: providerLabel }),
+            last
+                ? t('studio_apps_runtime.connector.checked', 'checked {when}', { when: last })
+                : t('studio_apps_runtime.connector.not_checked', 'not checked yet'),
+            data.hasError ? t('studio_apps_runtime.connector.last_problem', 'last check reported a problem') : null,
         ].filter(Boolean).join(' · ');
 
     return (
@@ -179,7 +187,7 @@ export default function AppConnectorStatus({ node }) {
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
                         <RefreshCw className={`w-3.5 h-3.5${syncing ? ' animate-spin' : ''}`} aria-hidden="true" />
-                        Check now
+                        {t('studio_apps_runtime.connector.check_now', 'Check now')}
                     </button>
                 </div>
             ) : null}

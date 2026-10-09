@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import Modal from '../../../../shared/Modal';
 import { IconField } from '../inspector/panels/kit';
 import { updateNav, updateScreen } from '../state/definitionOps';
@@ -46,6 +47,7 @@ function cloneGroups(definition) {
 }
 
 export default function NavGroupsDialog({ open, definition, onCommit, onClose }) {
+    const { t } = useTranslation();
     const [groups, setGroups] = useState([]);
     const [descriptions, setDescriptions] = useState({});
 
@@ -83,7 +85,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
             const taken = new Set(prev.map((g) => g.id));
             return [...prev, {
                 id: newGroupId(taken),
-                label: `Group ${prev.length + 1}`,
+                label: t('studio_apps_edit.nav_groups.default_label', 'Group {n}', { n: prev.length + 1 }),
                 icon: null,
                 screens: [],
             }];
@@ -99,7 +101,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
         // group alive with a placeholder instead of silently losing it.
         const cleaned = groups.map((g, i) => ({
             ...g,
-            label: (g.label || '').trim().slice(0, MAX_LABEL) || `Group ${i + 1}`,
+            label: (g.label || '').trim().slice(0, MAX_LABEL) || t('studio_apps_edit.nav_groups.default_label', 'Group {n}', { n: i + 1 }),
         }));
         let next = updateNav(definition, { groups: cleaned });
         // One commit for the whole dialog: groups and the descriptions written
@@ -126,8 +128,8 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
         <Modal
             open={open}
             onClose={onClose}
-            title="Manage navigation"
-            description="Group screens into sections. Grouped screens appear under their section in the sidebar; the tab bar shows them after the ungrouped ones."
+            title={t('studio_apps_edit.nav_groups.title', 'Manage navigation')}
+            description={t('studio_apps_edit.nav_groups.description', 'Group screens into sections. Grouped screens appear under their section in the sidebar; the tab bar shows them after the ungrouped ones.')}
             size="lg"
             footer={
                 <>
@@ -136,14 +138,14 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                         onClick={onClose}
                         className="px-4 py-2 rounded-lg text-sm text-[var(--text-primary)] bg-white/5 hover:bg-[var(--bg-card-hover)]"
                     >
-                        Cancel
+                        {t('studio_apps_edit.nav_groups.cancel', 'Cancel')}
                     </button>
                     <button
                         type="button"
                         onClick={save}
                         className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--accent-primary)] hover:opacity-90"
                     >
-                        Save
+                        {t('studio_apps_edit.nav_groups.save', 'Save')}
                     </button>
                 </>
             }
@@ -151,8 +153,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
             <div className="flex flex-col gap-4">
                 {groups.length === 0 ? (
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                        No groups yet. Ungrouped screens are listed directly; add a group to
-                        collect screens under a section label.
+                        {t('studio_apps_edit.nav_groups.empty', 'No groups yet. Ungrouped screens are listed directly; add a group to collect screens under a section label.')}
                     </p>
                 ) : null}
 
@@ -169,16 +170,16 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                                     value={group.label}
                                     maxLength={MAX_LABEL}
                                     onChange={(e) => patchGroup(group.id, { label: e.target.value })}
-                                    aria-label="Group label"
-                                    placeholder="Group label"
+                                    aria-label={t('studio_apps_edit.nav_groups.group_label', 'Group label')}
+                                    placeholder={t('studio_apps_edit.nav_groups.group_label', 'Group label')}
                                     className="w-full px-3 py-2 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] focus:border-[var(--accent-primary)]"
                                 />
                             </div>
                             <button
                                 type="button"
                                 onClick={() => removeGroup(group.id)}
-                                aria-label={`Delete group ${group.label || 'Group'}`}
-                                title="Delete group"
+                                aria-label={t('studio_apps_edit.nav_groups.delete_group_aria', 'Delete group {name}', { name: group.label || t('studio_apps_edit.nav_groups.group', 'Group') })}
+                                title={t('studio_apps_edit.nav_groups.delete_group', 'Delete group')}
                                 className="p-2 rounded-md hover:bg-[var(--bg-card-hover)] shrink-0"
                                 style={{ color: 'var(--text-tertiary)' }}
                             >
@@ -187,14 +188,14 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                         </div>
 
                         <IconField
-                            label="Icon"
+                            label={t('studio_apps_edit.nav_groups.icon', 'Icon')}
                             value={group.icon}
                             onChange={(v) => patchGroup(group.id, { icon: v || null })}
                         />
 
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                                Screens in this group
+                                {t('studio_apps_edit.nav_groups.screens_in_group', 'Screens in this group')}
                             </span>
                             {screens.map((screen) => {
                                 const owning = owner.get(screen.id);
@@ -205,19 +206,19 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                                         <label
                                             className={`flex items-center gap-2 text-sm px-1 py-0.5 rounded ${claimedElsewhere ? 'opacity-50' : ''}`}
                                             style={{ color: 'var(--text-primary)' }}
-                                            title={claimedElsewhere ? `Already in "${owning.label || 'another group'}" — a screen can be in one group.` : undefined}
+                                            title={claimedElsewhere ? t('studio_apps_edit.nav_groups.already_in', 'Already in "{group}" — a screen can be in one group.', { group: owning.label || t('studio_apps_edit.nav_groups.another_group', 'another group') }) : undefined}
                                         >
                                             <input
                                                 type="checkbox"
                                                 checked={included}
                                                 disabled={claimedElsewhere}
                                                 onChange={(e) => toggleScreen(group.id, screen.id, e.target.checked)}
-                                                aria-label={`${screen.name || 'Screen'} in ${group.label || 'group'}`}
+                                                aria-label={t('studio_apps_edit.nav_groups.screen_in_group', '{screen} in {group}', { screen: screen.name || t('studio_apps_edit.nav_groups.screen', 'Screen'), group: group.label || t('studio_apps_edit.nav_groups.group_lower', 'group') })}
                                             />
-                                            <span className="truncate">{screen.name || 'Screen'}</span>
+                                            <span className="truncate">{screen.name || t('studio_apps_edit.nav_groups.screen', 'Screen')}</span>
                                             {screen.showInNav === false ? (
                                                 <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                                                    hidden
+                                                    {t('studio_apps_edit.nav_groups.hidden', 'hidden')}
                                                 </span>
                                             ) : null}
                                         </label>
@@ -226,8 +227,8 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                                                 value={descriptions[screen.id] || ''}
                                                 maxLength={MAX_DESCRIPTION}
                                                 onChange={(e) => setDescriptions((prev) => ({ ...prev, [screen.id]: e.target.value }))}
-                                                aria-label={`Menu description for ${screen.name || 'screen'}`}
-                                                placeholder="One line: what this screen is for"
+                                                aria-label={t('studio_apps_edit.nav_groups.menu_description', 'Menu description for {screen}', { screen: screen.name || t('studio_apps_edit.nav_groups.screen_lower', 'screen') })}
+                                                placeholder={t('studio_apps_edit.nav_groups.description_placeholder', 'One line: what this screen is for')}
                                                 className="ml-6 mt-0.5 mb-1 w-[calc(100%-1.5rem)] px-2 py-1 rounded-md text-xs border bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)] placeholder:text-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] focus:border-[var(--accent-primary)]"
                                             />
                                         ) : null}
@@ -244,9 +245,9 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                     disabled={groups.length >= MAX_GROUPS}
                     className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-md border text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                    title={groups.length >= MAX_GROUPS ? `At most ${MAX_GROUPS} groups` : undefined}
+                    title={groups.length >= MAX_GROUPS ? t('studio_apps_edit.nav_groups.at_most', 'At most {max} groups', { max: MAX_GROUPS }) : undefined}
                 >
-                    <Plus className="w-4 h-4" /> Add group
+                    <Plus className="w-4 h-4" /> {t('studio_apps_edit.nav_groups.add_group', 'Add group')}
                 </button>
             </div>
         </Modal>

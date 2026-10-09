@@ -1,5 +1,6 @@
 import { Box, FileText, Loader2, Maximize2, Minimize2, X } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { entryHref, entryName } from './AppInputFile';
@@ -71,6 +72,7 @@ function descriptorOf(value) {
 }
 
 export default function CadThumb({ value, size = 44 }) {
+    const { t } = useTranslation();
     const { appId } = useDataContext();
     const entry = descriptorOf(value);
     const name = entry ? entryName(entry) : '';
@@ -137,7 +139,7 @@ export default function CadThumb({ value, size = 44 }) {
         return <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />;
     }
     if (state === 'failed' || !url) {
-        return <Box className="h-4 w-4" style={{ color: 'var(--text-muted)' }} aria-label="No 3D preview" />;
+        return <Box className="h-4 w-4" style={{ color: 'var(--text-muted)' }} aria-label={t('studio_apps_runtime.cad.no_preview', 'No 3D preview')} />;
     }
 
     return (
@@ -145,8 +147,8 @@ export default function CadThumb({ value, size = 44 }) {
             <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setZoom('fit'); setOpen(true); }}
-                title={`${name} — klik om te vergroten`}
-                aria-label={`Bekijk 3D-model van ${name}`}
+                title={t('studio_apps_runtime.cad.click_to_enlarge', '{name} — click to enlarge', { name })}
+                aria-label={t('studio_apps_runtime.cad.view_model', 'View 3D model of {name}', { name })}
                 className="block overflow-hidden border p-0"
                 style={{ width: size, height: size, borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-primary)' }}
             >
@@ -160,7 +162,7 @@ export default function CadThumb({ value, size = 44 }) {
                 onClose={() => setOpen(false)}
                 size="auto"
                 variant="bare"
-                label={`3D-model van ${name}`}
+                label={t('studio_apps_runtime.cad.model_of', '3D model of {name}', { name })}
                 className="overflow-hidden"
             >
                 <div
@@ -173,8 +175,8 @@ export default function CadThumb({ value, size = 44 }) {
                                 {kind === 'pdf' ? null : <button
                                     type="button"
                                     onClick={() => setZoom((z) => (z === 'fit' ? 'full' : 'fit'))}
-                                    aria-label={zoom === 'fit' ? 'Op ware grootte tonen' : 'Passend maken'}
-                                    title={zoom === 'fit' ? 'Op ware grootte (spatie)' : 'Passend maken (spatie)'}
+                                    aria-label={zoom === 'fit' ? t('studio_apps_runtime.cad.show_full_size', 'Show at full size') : t('studio_apps_runtime.cad.fit', 'Fit to window')}
+                                    title={zoom === 'fit' ? t('studio_apps_runtime.cad.show_full_size_space', 'Full size (space)') : t('studio_apps_runtime.cad.fit_space', 'Fit to window (space)')}
                                     className="p-1"
                                     style={{ color: 'var(--text-secondary)' }}
                                 >
@@ -185,7 +187,7 @@ export default function CadThumb({ value, size = 44 }) {
                                 <button
                                     type="button"
                                     onClick={() => setOpen(false)}
-                                    aria-label="Sluiten"
+                                    aria-label={t('studio_apps_runtime.cad.close', 'Close')}
                                     className="p-1"
                                     style={{ color: 'var(--text-secondary)' }}
                                 >

@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { INPUT_CLS } from './panels/kit';
 import ExpressionInput from './logic/ExpressionInput';
@@ -30,21 +31,22 @@ import {
  * both validates (BINDING_KINDS) and resolves a raw form value server-side.
  */
 
-const SCHEMA_TYPE_OPTIONS = [
-    { value: 'string', label: 'Text' },
-    { value: 'number', label: 'Number' },
-    { value: 'boolean', label: 'Yes / No' },
-    { value: 'date', label: 'Date' },
-    { value: 'array', label: 'List' },
-    { value: 'object', label: 'Object' },
+const schemaTypeOptions = (t) => [
+    { value: 'string', label: t('studio_apps_insp.ai_actions.type_text', 'Text') },
+    { value: 'number', label: t('studio_apps_insp.ai_actions.type_number', 'Number') },
+    { value: 'boolean', label: t('studio_apps_insp.ai_actions.type_boolean', 'Yes / No') },
+    { value: 'date', label: t('studio_apps_insp.ai_actions.type_date', 'Date') },
+    { value: 'array', label: t('studio_apps_insp.ai_actions.type_list', 'List') },
+    { value: 'object', label: t('studio_apps_insp.ai_actions.type_object', 'Object') },
 ];
 
 // ── Model tier ───────────────────────────────────────────────────────────────
 
 export function ModelTierRow({ value, onChange, disabled }) {
+    const { t } = useTranslation();
     const { modelTiers } = useModelTierSelection({ storageKey: 'appStudioAiTier', taskType: 'direct_chat' });
     return (
-        <FormField label="Model" hint="Runs on the app owner's model tier.">
+        <FormField label={t('studio_apps_insp.ai_actions.model', 'Model')} hint={t('studio_apps_insp.ai_actions.model_hint', "Runs on the app owner's model tier.")}>
             {/* portal: the inspector scrolls, so an absolute panel gets clipped. */}
             <div className={disabled ? 'pointer-events-none opacity-50' : ''}>
                 <ModelTierSelector tiers={modelTiers} value={value || 'auto'} onChange={onChange} dropDirection="down" portal />
@@ -56,6 +58,7 @@ export function ModelTierRow({ value, onChange, disabled }) {
 // ── File / text source picker (formula binding over a form field) ────────────
 
 function FieldSourcePicker({ label, hint, binding, formFields, onChange, disabled, ariaLabel }) {
+    const { t } = useTranslation();
     const current = fieldNameFromBinding(binding);
     const rawExpr = (binding && binding.kind === 'formula' && typeof binding.expr === 'string') ? binding.expr : '';
     // An expression that is not `form.<field>` can only be edited as text — and
@@ -79,7 +82,7 @@ function FieldSourcePicker({ label, hint, binding, formFields, onChange, disable
                         placeholder="item.file"
                         onChange={(expr) => onChange(expr ? { kind: 'formula', expr } : null)}
                         disabled={disabled}
-                        ariaLabel={`${ariaLabel} expression`}
+                        ariaLabel={t('studio_apps_insp.ai_actions.expression_aria', '{label} expression', { label: ariaLabel })}
                     />
                     <button
                         type="button"
@@ -87,7 +90,7 @@ function FieldSourcePicker({ label, hint, binding, formFields, onChange, disable
                         onClick={() => { setExpert(false); onChange(null); }}
                         disabled={disabled}
                     >
-                        Pick a form input instead
+                        {t('studio_apps_insp.ai_actions.pick_form_input', 'Pick a form input instead')}
                     </button>
                 </div>
             ) : (
@@ -100,11 +103,11 @@ function FieldSourcePicker({ label, hint, binding, formFields, onChange, disable
                             disabled={disabled}
                             aria-label={ariaLabel}
                         >
-                            <option value="">Pick an input…</option>
+                            <option value="">{t('studio_apps_insp.ai_actions.pick_input', 'Pick an input…')}</option>
                             {formFields.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
                         </select>
                     ) : (
-                        <p className="text-xs text-[var(--text-tertiary)]">Add an input to the enclosing form to feed this.</p>
+                        <p className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_insp.ai_actions.add_input_hint', 'Add an input to the enclosing form to feed this.')}</p>
                     )}
                     <button
                         type="button"
@@ -112,7 +115,7 @@ function FieldSourcePicker({ label, hint, binding, formFields, onChange, disable
                         onClick={() => setExpert(true)}
                         disabled={disabled}
                     >
-                        Use an expression (e.g. a row from a list)
+                        {t('studio_apps_insp.ai_actions.use_expression', 'Use an expression (e.g. a row from a list)')}
                     </button>
                 </div>
             )}
@@ -123,6 +126,7 @@ function FieldSourcePicker({ label, hint, binding, formFields, onChange, disable
 // ── Output schema (declared fields) ──────────────────────────────────────────
 
 function SchemaFieldsEditor({ fields, onChange, disabled, hint }) {
+    const { t } = useTranslation();
     const list = Array.isArray(fields) ? fields : [];
     // onChange(next, meta) — `meta.renamed` lets the caller carry a write-to
     // mapping across a rename instead of silently orphaning that column.
@@ -137,7 +141,7 @@ function SchemaFieldsEditor({ fields, onChange, disabled, hint }) {
         onChange([...list, { name, type: 'string', description: '', required: false }]);
     };
     return (
-        <FormField label="Fields to return" hint={hint || 'The typed fields the AI should output.'}>
+        <FormField label={t('studio_apps_insp.ai_actions.fields_to_return', 'Fields to return')} hint={hint || t('studio_apps_insp.ai_actions.fields_hint', 'The typed fields the AI should output.')}>
             <div className="flex flex-col gap-2">
                 {list.map((f, i) => (
                     <div key={i} className="rounded-md border border-[var(--border-subtle)] p-2.5 flex flex-col gap-2">
@@ -150,18 +154,18 @@ function SchemaFieldsEditor({ fields, onChange, disabled, hint }) {
                                 placeholder="field_name"
                                 disabled={disabled}
                                 spellCheck={false}
-                                aria-label={`Field ${i + 1} name`}
+                                aria-label={t('studio_apps_insp.ai_actions.field_name_aria', 'Field {n} name', { n: i + 1 })}
                             />
                             <select
                                 className={`${INPUT_CLS} max-w-[8rem]`}
                                 value={f.type || 'string'}
                                 onChange={(e) => update(i, { type: e.target.value })}
                                 disabled={disabled}
-                                aria-label={`Field ${i + 1} type`}
+                                aria-label={t('studio_apps_insp.ai_actions.field_type_aria', 'Field {n} type', { n: i + 1 })}
                             >
-                                {SCHEMA_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                {schemaTypeOptions(t).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
-                            <IconButton ariaLabel={`Remove field ${f.name}`} onClick={() => remove(i)} disabled={disabled} variant="danger" size="sm">
+                            <IconButton ariaLabel={t('studio_apps_insp.ai_actions.remove_field', 'Remove field {name}', { name: f.name })} onClick={() => remove(i)} disabled={disabled} variant="danger" size="sm">
                                 <X />
                             </IconButton>
                         </div>
@@ -170,12 +174,12 @@ function SchemaFieldsEditor({ fields, onChange, disabled, hint }) {
                             className={INPUT_CLS}
                             value={f.description || ''}
                             onChange={(e) => update(i, { description: e.target.value })}
-                            placeholder="Description (helps the AI, optional)"
+                            placeholder={t('studio_apps_insp.ai_actions.description_placeholder', 'Description (helps the AI, optional)')}
                             disabled={disabled}
-                            aria-label={`Field ${i + 1} description`}
+                            aria-label={t('studio_apps_insp.ai_actions.field_description_aria', 'Field {n} description', { n: i + 1 })}
                         />
                         <Toggle
-                            label="Required"
+                            label={t('studio_apps_insp.ai_actions.required', 'Required')}
                             checked={!!f.required}
                             onChange={(v) => update(i, { required: v })}
                             disabled={disabled}
@@ -189,7 +193,7 @@ function SchemaFieldsEditor({ fields, onChange, disabled, hint }) {
                     disabled={disabled}
                     className="px-3 py-1.5 text-xs rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50"
                 >
-                    + Add field
+                    {t('studio_apps_insp.ai_actions.add_field', '+ Add field')}
                 </button>
             </div>
         </FormField>
@@ -199,6 +203,7 @@ function SchemaFieldsEditor({ fields, onChange, disabled, hint }) {
 // ── Knowledge-base grounding multiselect ─────────────────────────────────────
 
 export function KbMultiSelect({ value, onChange, disabled }) {
+    const { t } = useTranslation();
     const [kbs, setKbs] = useState(null); // null = loading
     useEffect(() => {
         let alive = true;
@@ -218,11 +223,11 @@ export function KbMultiSelect({ value, onChange, disabled }) {
         onChange([...next]);
     };
     return (
-        <FormField label="Knowledge bases" hint="Ground the AI in these (optional).">
+        <FormField label={t('studio_apps_insp.ai_actions.knowledge_bases', 'Knowledge bases')} hint={t('studio_apps_insp.ai_actions.knowledge_bases_hint', 'Ground the AI in these (optional).')}>
             {kbs === null ? (
-                <p className="text-xs text-[var(--text-tertiary)]">Loading…</p>
+                <p className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_insp.ai_actions.loading', 'Loading…')}</p>
             ) : kbs.length === 0 ? (
-                <p className="text-xs text-[var(--text-tertiary)]">No knowledge bases yet.</p>
+                <p className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_insp.ai_actions.no_knowledge_bases', 'No knowledge bases yet.')}</p>
             ) : (
                 <div className="flex flex-col gap-1.5 max-h-40 overflow-auto">
                     {kbs.map((kb) => (
@@ -232,7 +237,7 @@ export function KbMultiSelect({ value, onChange, disabled }) {
                                 checked={selected.has(kb.id)}
                                 onChange={() => toggle(kb.id)}
                                 disabled={disabled}
-                                aria-label={`Ground in ${kb.name || kb.id}`}
+                                aria-label={t('studio_apps_insp.ai_actions.ground_in', 'Ground in {name}', { name: kb.name || kb.id })}
                             />
                             <span className="truncate">{kb.name || kb.id}</span>
                         </label>
@@ -247,6 +252,7 @@ export function KbMultiSelect({ value, onChange, disabled }) {
 
 /** One "output field → column" row per declared field. */
 function MappingRows({ fields, targets, columnForField, onPick, disabled }) {
+    const { t } = useTranslation();
     return (
         <div className="flex flex-col gap-1.5">
             {fields.map((f) => (
@@ -258,9 +264,9 @@ function MappingRows({ fields, targets, columnForField, onPick, disabled }) {
                         value={columnForField(f.name)}
                         onChange={(e) => onPick(f.name, e.target.value)}
                         disabled={disabled}
-                        aria-label={`Column for ${f.name}`}
+                        aria-label={t('studio_apps_insp.ai_actions.column_for', 'Column for {name}', { name: f.name })}
                     >
-                        <option value="">(don't save)</option>
+                        <option value="">{t('studio_apps_insp.ai_actions.dont_save', "(don't save)")}</option>
                         {targets.map((c) => <option key={c.key} value={c.key}>{c.name || c.key}</option>)}
                     </select>
                 </div>
@@ -271,18 +277,25 @@ function MappingRows({ fields, targets, columnForField, onPick, disabled }) {
 
 /** What the current mapping will actually save — an unmapped step saves nothing. */
 function MappingSummary({ mapped, total }) {
+    const { t } = useTranslation();
     if (!total) return null;
-    const text = mapped === total
-        ? `All ${mapped} field${mapped === 1 ? '' : 's'} match a column.`
-        : mapped
-            ? `${mapped} of ${total} fields are saved — the rest are ignored.`
-            : 'No field matches a column, so nothing would be saved.';
+    let text;
+    if (mapped === total) {
+        text = mapped === 1
+            ? t('studio_apps_insp.ai_actions.all_match_one', 'All {count} field matches a column.', { count: mapped })
+            : t('studio_apps_insp.ai_actions.all_match_many', 'All {count} fields match a column.', { count: mapped });
+    } else if (mapped) {
+        text = t('studio_apps_insp.ai_actions.some_match', '{mapped} of {total} fields are saved — the rest are ignored.', { mapped, total });
+    } else {
+        text = t('studio_apps_insp.ai_actions.none_match', 'No field matches a column, so nothing would be saved.');
+    }
     return <p className={`text-xs ${mapped ? 'text-[var(--text-tertiary)]' : 'text-amber-600'}`}>{text}</p>;
 }
 
 const MATCH_BTN_CLS = 'px-2.5 py-1 text-xs rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50';
 
 function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }) {
+    const { t } = useTranslation();
     const enabled = !!(writeTo && writeTo.tableId);
     const columns = fieldsForTable(tables, writeTo?.tableId);
     const targets = useMemo(() => writableColumns(columns), [columns]);
@@ -327,17 +340,17 @@ function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }) {
     const canAdopt = enabled && extractableColumns(columns).length > 0;
 
     return (
-        <FormField label="Save results to a table" hint="Insert one row per extracted record.">
+        <FormField label={t('studio_apps_insp.ai_actions.save_to_table', 'Save results to a table')} hint={t('studio_apps_insp.ai_actions.save_to_table_hint', 'Insert one row per extracted record.')}>
             <div className="flex flex-col gap-2">
                 <Toggle
-                    label="Write extracted rows to a data table"
+                    label={t('studio_apps_insp.ai_actions.write_rows', 'Write extracted rows to a data table')}
                     checked={enabled}
                     onChange={(v) => chooseTable(v ? (tables[0]?.id || '') : '')}
                     disabled={disabled || !tables.length}
                     size="sm"
                 />
                 {!tables.length ? (
-                    <p className="text-xs text-[var(--text-tertiary)]">This app has no data tables yet.</p>
+                    <p className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_insp.ai_actions.no_tables', 'This app has no data tables yet.')}</p>
                 ) : enabled ? (
                     <>
                         <select
@@ -345,9 +358,9 @@ function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }) {
                             value={writeTo.tableId}
                             onChange={(e) => chooseTable(e.target.value)}
                             disabled={disabled}
-                            aria-label="Target table"
+                            aria-label={t('studio_apps_insp.ai_actions.target_table', 'Target table')}
                         >
-                            {tables.map((t) => <option key={t.id} value={t.id}>{t.name || t.key}</option>)}
+                            {tables.map((tb) => <option key={tb.id} value={tb.id}>{tb.name || tb.key}</option>)}
                         </select>
                         <MappingRows
                             fields={fields}
@@ -364,16 +377,16 @@ function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }) {
                                 disabled={disabled || !fields.length}
                                 className={MATCH_BTN_CLS}
                             >
-                                Match to columns
+                                {t('studio_apps_insp.ai_actions.match_columns', 'Match to columns')}
                             </button>
                             <button
                                 type="button"
                                 onClick={adoptColumns}
                                 disabled={disabled || !canAdopt}
                                 className={MATCH_BTN_CLS}
-                                title="Replace the fields above with one per column of this table"
+                                title={t('studio_apps_insp.ai_actions.adopt_columns_title', 'Replace the fields above with one per column of this table')}
                             >
-                                Use this table's columns
+                                {t('studio_apps_insp.ai_actions.adopt_columns', "Use this table's columns")}
                             </button>
                         </div>
                     </>
@@ -386,17 +399,18 @@ function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }) {
 // ── resultVar ────────────────────────────────────────────────────────────────
 
 function ResultVarField({ value, onChange, disabled, required }) {
+    const { t } = useTranslation();
     return (
-        <FormField label="Store result as" hint={required ? 'A variable name to reference the result in later steps.' : 'Optional variable name for later steps.'}>
+        <FormField label={t('studio_apps_insp.ai_actions.store_result_as', 'Store result as')} hint={required ? t('studio_apps_insp.ai_actions.result_hint_required', 'A variable name to reference the result in later steps.') : t('studio_apps_insp.ai_actions.result_hint_optional', 'Optional variable name for later steps.')}>
             <input
                 type="text"
                 className={`${INPUT_CLS} font-mono text-xs`}
                 value={value || ''}
                 onChange={(e) => onChange(sanitizeVarName(e.target.value))}
-                placeholder="result"
+                placeholder={t('studio_apps_insp.ai_actions.result_placeholder', 'result')}
                 disabled={disabled}
                 spellCheck={false}
-                aria-label="Result variable name"
+                aria-label={t('studio_apps_insp.ai_actions.result_variable_aria', 'Result variable name')}
             />
         </FormField>
     );
@@ -405,6 +419,7 @@ function ResultVarField({ value, onChange, disabled, required }) {
 // ── Per-kind editors ─────────────────────────────────────────────────────────
 
 function AiExtractEditor({ action, commit, formFields, disabled }) {
+    const { t } = useTranslation();
     const set = (patch) => commit({ ...action, ...patch });
     const chrome = useEditorChrome();
     const { tables } = useAppTables(chrome?.appId ?? null);
@@ -453,21 +468,21 @@ function AiExtractEditor({ action, commit, formFields, disabled }) {
     return (
         <>
             <FieldSourcePicker
-                label="Document input"
-                hint="A File upload input holding the document(s) to read."
+                label={t('studio_apps_insp.ai_actions.document_input', 'Document input')}
+                hint={t('studio_apps_insp.ai_actions.document_input_hint', 'A File upload input holding the document(s) to read.')}
                 binding={action.source}
                 formFields={fileFields}
                 onChange={(b) => set({ source: b })}
                 disabled={disabled}
-                ariaLabel="Document input field"
+                ariaLabel={t('studio_apps_insp.ai_actions.document_input_aria', 'Document input field')}
             />
             <SchemaFieldsEditor
                 fields={action.schema}
                 onChange={setSchema}
                 disabled={disabled}
-                hint={action.writeTo?.tableId ? 'The AI returns these; matching columns are filled in below.' : 'The typed fields the AI should output.'}
+                hint={action.writeTo?.tableId ? t('studio_apps_insp.ai_actions.fields_hint_table', 'The AI returns these; matching columns are filled in below.') : t('studio_apps_insp.ai_actions.fields_hint', 'The typed fields the AI should output.')}
             />
-            <ModelTierRow value={action.modelTier} onChange={(t) => set({ modelTier: t })} disabled={disabled} />
+            <ModelTierRow value={action.modelTier} onChange={(tier) => set({ modelTier: tier })} disabled={disabled} />
             <KbMultiSelect value={action.knowledgeBaseIds} onChange={(ids) => set({ knowledgeBaseIds: ids })} disabled={disabled} />
             <WriteToEditor
                 writeTo={action.writeTo}
@@ -486,30 +501,31 @@ function AiExtractEditor({ action, commit, formFields, disabled }) {
 }
 
 function AiGenerateEditor({ action, commit, formFields, disabled }) {
+    const { t } = useTranslation();
     const set = (patch) => commit({ ...action, ...patch });
     const fileFields = useMemo(() => formFields.filter((f) => f.type === 'input_file'), [formFields]);
     const output = action.output === 'structured' ? 'structured' : 'text';
     return (
         <>
-            <FormField label="Prompt" hint="Use {{form.fieldName}} to insert form values.">
+            <FormField label={t('studio_apps_insp.ai_actions.prompt', 'Prompt')} hint={t('studio_apps_insp.ai_actions.prompt_hint', 'Use {{form.fieldName}} to insert form values.')}>
                 <textarea
                     className={`${INPUT_CLS} min-h-[80px]`}
                     value={action.prompt || ''}
                     onChange={(e) => set({ prompt: e.target.value })}
-                    placeholder="Summarize {{form.notes}} in three bullet points."
+                    placeholder={t('studio_apps_insp.ai_actions.prompt_placeholder', 'Summarize {{form.notes}} in three bullet points.')}
                     disabled={disabled}
-                    aria-label="AI prompt"
+                    aria-label={t('studio_apps_insp.ai_actions.prompt_aria', 'AI prompt')}
                 />
             </FormField>
-            <FormField label="Output">
+            <FormField label={t('studio_apps_insp.ai_actions.output', 'Output')}>
                 <SegmentedControl
                     value={output}
                     onChange={(o) => set({ output: o })}
-                    options={[{ value: 'text', label: 'Text' }, { value: 'structured', label: 'Structured' }]}
+                    options={[{ value: 'text', label: t('studio_apps_insp.ai_actions.type_text', 'Text') }, { value: 'structured', label: t('studio_apps_insp.ai_actions.output_structured', 'Structured') }]}
                     size="sm"
                     fullWidth
                     disabled={disabled}
-                    ariaLabel="Output type"
+                    ariaLabel={t('studio_apps_insp.ai_actions.output_type', 'Output type')}
                 />
             </FormField>
             {output === 'structured' && (
@@ -517,15 +533,15 @@ function AiGenerateEditor({ action, commit, formFields, disabled }) {
             )}
             {fileFields.length > 0 && (
                 <FieldSourcePicker
-                    label="Attach a document (optional)"
+                    label={t('studio_apps_insp.ai_actions.attach_document', 'Attach a document (optional)')}
                     binding={action.attachments}
                     formFields={fileFields}
                     onChange={(b) => set({ attachments: b || undefined })}
                     disabled={disabled}
-                    ariaLabel="Attachment field"
+                    ariaLabel={t('studio_apps_insp.ai_actions.attachment_aria', 'Attachment field')}
                 />
             )}
-            <ModelTierRow value={action.modelTier} onChange={(t) => set({ modelTier: t })} disabled={disabled} />
+            <ModelTierRow value={action.modelTier} onChange={(tier) => set({ modelTier: tier })} disabled={disabled} />
             <KbMultiSelect value={action.knowledgeBaseIds} onChange={(ids) => set({ knowledgeBaseIds: ids })} disabled={disabled} />
             <ResultVarField value={action.resultVar} onChange={(v) => set({ resultVar: v })} disabled={disabled} required />
         </>
@@ -533,46 +549,47 @@ function AiGenerateEditor({ action, commit, formFields, disabled }) {
 }
 
 function KbQueryEditor({ action, commit, formFields, disabled }) {
+    const { t } = useTranslation();
     const set = (patch) => commit({ ...action, ...patch });
     const q = action.query || null;
     const mode = q?.kind === 'static' ? 'static' : 'field';
     return (
         <>
-            <FormField label="Question">
+            <FormField label={t('studio_apps_insp.ai_actions.question', 'Question')}>
                 <SegmentedControl
                     value={mode}
                     onChange={(m) => set({ query: m === 'field' ? bindingForField(formFields[0]?.name || '') : { kind: 'static', value: '' } })}
-                    options={[{ value: 'field', label: 'Form field' }, { value: 'static', label: 'Static' }]}
+                    options={[{ value: 'field', label: t('studio_apps_insp.ai_actions.form_field', 'Form field') }, { value: 'static', label: t('studio_apps_insp.ai_actions.static', 'Static') }]}
                     size="sm"
                     fullWidth
                     disabled={disabled}
-                    ariaLabel="Query source"
+                    ariaLabel={t('studio_apps_insp.ai_actions.query_source', 'Query source')}
                 />
             </FormField>
             {mode === 'field' ? (
                 <FieldSourcePicker
-                    label="From input"
+                    label={t('studio_apps_insp.ai_actions.from_input', 'From input')}
                     binding={q}
                     formFields={formFields}
                     onChange={(b) => set({ query: b || { kind: 'static', value: '' } })}
                     disabled={disabled}
-                    ariaLabel="Query field"
+                    ariaLabel={t('studio_apps_insp.ai_actions.query_field', 'Query field')}
                 />
             ) : (
-                <FormField label="Text">
+                <FormField label={t('studio_apps_insp.ai_actions.text', 'Text')}>
                     <input
                         type="text"
                         className={INPUT_CLS}
                         value={q?.value || ''}
                         onChange={(e) => set({ query: { kind: 'static', value: e.target.value } })}
-                        placeholder="What is the refund policy?"
+                        placeholder={t('studio_apps_insp.ai_actions.query_placeholder', 'What is the refund policy?')}
                         disabled={disabled}
-                        aria-label="Query text"
+                        aria-label={t('studio_apps_insp.ai_actions.query_text', 'Query text')}
                     />
                 </FormField>
             )}
             <KbMultiSelect value={action.knowledgeBaseIds} onChange={(ids) => set({ knowledgeBaseIds: ids })} disabled={disabled} />
-            <FormField label="Max results">
+            <FormField label={t('studio_apps_insp.ai_actions.max_results', 'Max results')}>
                 <input
                     type="number"
                     min={1}
@@ -581,7 +598,7 @@ function KbQueryEditor({ action, commit, formFields, disabled }) {
                     value={action.topK ?? 6}
                     onChange={(e) => { const n = parseInt(e.target.value, 10); set({ topK: Number.isFinite(n) ? Math.min(20, Math.max(1, n)) : 6 }); }}
                     disabled={disabled}
-                    aria-label="Max results"
+                    aria-label={t('studio_apps_insp.ai_actions.max_results', 'Max results')}
                 />
             </FormField>
             <ResultVarField value={action.resultVar} onChange={(v) => set({ resultVar: v })} disabled={disabled} required />

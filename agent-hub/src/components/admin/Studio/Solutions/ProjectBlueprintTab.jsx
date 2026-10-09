@@ -23,13 +23,13 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  * installs it. So every one of those is listed, in words, before the download.
  */
 
-function humanError(status, body) {
+function humanError(status, body, t) {
     if (body?.error === 'feature_locked') {
-        return `Packaging a Solution is part of the ${body.required} plan. This organisation is on ${body.current}.`;
+        return t('studio_misc.blueprint.err_locked', 'Packaging a Solution is part of the {required} plan. This organisation is on {current}.', { required: body.required, current: body.current });
     }
-    if (status === 403) return 'Only the project owner can package it — export reads every member\'s work, not just yours.';
-    if (status === 404) return 'This project could not be read.';
-    return body?.error || 'The export failed.';
+    if (status === 403) return t('studio_misc.blueprint.err_owner_only', 'Only the project owner can package it — export reads every member\'s work, not just yours.');
+    if (status === 404) return t('studio_misc.blueprint.err_not_found', 'This project could not be read.');
+    return body?.error || t('studio_misc.blueprint.err_export', 'The export failed.');
 }
 
 function download(manifest, name) {
@@ -67,7 +67,7 @@ function Result({ manifest, projectName }) {
         <div className="space-y-4">
             <div className={`${CARD} flex flex-wrap items-center justify-between gap-3`}>
                 <span className="text-sm tabular-nums text-[var(--text-secondary)]">
-                    {counts.automations || 0} automations · {counts.apps || 0} apps · {counts.webpages || 0} webpages
+                    {t('studio_misc.blueprint.counts', '{automations} automations · {apps} apps · {webpages} webpages', { automations: counts.automations || 0, apps: counts.apps || 0, webpages: counts.webpages || 0 })}
                 </span>
                 <button
                     onClick={() => download(manifest, projectName)}
@@ -130,13 +130,13 @@ export default function ProjectBlueprintTab({ projectId, projectName, role, forc
                 body: JSON.stringify({ save: keepHere }),
             });
             const body = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(humanError(res.status, body)); return; }
+            if (!res.ok) { setError(humanError(res.status, body, t)); return; }
             // The capture succeeded even if keeping it did not — the manifest
             // still downloads, so say what failed rather than losing the work.
             if (body._saveError) setError(body._saveError);
             setManifest(body);
         } catch {
-            setError('The export failed.');
+            setError(t('studio_misc.blueprint.err_export', 'The export failed.'));
         } finally {
             setBusy(false);
         }

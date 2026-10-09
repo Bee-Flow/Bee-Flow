@@ -1,9 +1,10 @@
 import { Plus, X } from 'lucide-react';
-import React from 'react';
+import React, { useMemo } from 'react';
 import FormulaField from './FormulaField';
-import StudioScopeProvider, { VALUE_GROUP } from './StudioScopeProvider';
+import StudioScopeProvider, { valueGroup } from './StudioScopeProvider';
 import IconButton from '../../../../../shared/IconButton';
 import { INPUT_CLS } from '../panels/kit';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /**
  * ValidationRuleEditor — a repeatable list of field validation rules, written
@@ -32,33 +33,36 @@ const NUMERIC_FORMULAS = {
     max: { build: (n) => `number(value) <= ${n}`, read: /^number\(value\) <= (-?\d+(?:\.\d+)?)$/ },
 };
 
-const RULE_TYPES = [
-    { value: 'required', label: 'Required', input: null },
-    { value: 'email', label: 'Valid email', input: null },
-    { value: 'url', label: 'Valid URL', input: null },
-    { value: 'minLength', label: 'Min length', input: 'number' },
-    { value: 'maxLength', label: 'Max length', input: 'number' },
-    { value: 'min', label: 'Min value', input: 'number' },
-    { value: 'max', label: 'Max value', input: 'number' },
-    { value: 'formula', label: 'Custom expression', input: 'formula' },
+const ruleTypes = (t) => [
+    { value: 'required', label: t('studio_apps_insp.validation.rule_required', 'Required'), input: null },
+    { value: 'email', label: t('studio_apps_insp.validation.rule_email', 'Valid email'), input: null },
+    { value: 'url', label: t('studio_apps_insp.validation.rule_url', 'Valid URL'), input: null },
+    { value: 'minLength', label: t('studio_apps_insp.validation.rule_min_length', 'Min length'), input: 'number' },
+    { value: 'maxLength', label: t('studio_apps_insp.validation.rule_max_length', 'Max length'), input: 'number' },
+    { value: 'min', label: t('studio_apps_insp.validation.rule_min_value', 'Min value'), input: 'number' },
+    { value: 'max', label: t('studio_apps_insp.validation.rule_max_value', 'Max value'), input: 'number' },
+    { value: 'formula', label: t('studio_apps_insp.validation.rule_formula', 'Custom expression'), input: 'formula' },
 ];
 
-const TYPE_BY_VALUE = new Map(RULE_TYPES.map((t) => [t.value, t]));
-
-// Module-level so the memo inside StudioScopeProvider sees a stable reference.
-const VALUE_GROUP_LIST = [VALUE_GROUP];
 
 // A custom rule is born with a working expression: an empty `expr` fails to
 // parse, and the row would be unsaveable before the user has typed anything.
 const NEW_FORMULA = 'value != null';
 
-function defaultMessage(kind) {
+function defaultMessage(t, kind) {
     switch (kind) {
-        case 'required': return 'This field is required.';
-        case 'email': return 'Enter a valid email address.';
-        case 'url': return 'Enter a valid URL.';
+        case 'required': return t('studio_apps_insp.validation.message_required', 'This field is required.');
+        case 'email': return t('studio_apps_insp.validation.message_email', 'Enter a valid email address.');
+        case 'url': return t('studio_apps_insp.validation.message_url', 'Enter a valid URL.');
         default: return '';
     }
+}
+
+// A message that is still the default — in the current language, or in the
+// English an earlier session may have stored — may be replaced when the kind changes.
+const englishOnly = (_key, en) => en;
+function isDefaultMessage(t, kind, message) {
+    return message === defaultMessage(t, kind) || message === defaultMessage(englishOnly, kind);
 }
 
 /**
@@ -117,9 +121,14 @@ function writeRule(row) {
 }
 
 export default function ValidationRuleEditor({ value, onChange, definition = null, node = null, disabled = false }) {
+    const { t } = useTranslation();
     const rules = Array.isArray(value) ? value : [];
+    // Memoised so the memo inside StudioScopeProvider sees a stable reference.
+    const valueGroupList = useMemo(() => [valueGroup(t)], [t]);
+    const RULE_TYPES = ruleTypes(t);
+    const TYPE_BY_VALUE = new Map(RULE_TYPES.map((rt) => [rt.value, rt]));
 
-    const addRule = () => onChange?.([...rules, writeRule({ kind: 'required', message: defaultMessage('required') })]);
+    const addRule = () => onChange?.([...rules, writeRule({ kind: 'required', message: defaultMessage(t, 'required') })]);
     const removeRule = (i) => onChange?.(rules.filter((_, k) => k !== i));
 
     // `value` — the field being checked — is a legal root here and nowhere
@@ -127,7 +136,7 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
     // placeholder promised an expression over `value` while the {} list never
     // mentioned `value` at all.
     return (
-        <StudioScopeProvider definition={definition} node={node} extraGroups={VALUE_GROUP_LIST}>
+        <StudioScopeProvider definition={definition} node={node} extraGroups={valueGroupList}>
             <div className="flex flex-col gap-2">
                 {rules.map((rule, i) => {
                     const row = readRule(rule);
@@ -155,19 +164,19 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
                                         // to "Valid email" left the rule saying
                                         // "This field is required." to someone
                                         // who typed `bob@`.
-                                        message: row.message && row.message !== defaultMessage(row.kind)
+                                        message: row.message && !isDefaultMessage(t, row.kind, row.message)
                                             ? row.message
-                                            : defaultMessage(e.target.value),
+                                            : defaultMessage(t, e.target.value),
                                     })}
                                     disabled={disabled}
-                                    aria-label={`Rule ${i + 1} type`}
+                                    aria-label={t('studio_apps_insp.validation.rule_type_aria', 'Rule {n} type', { n: i + 1 })}
                                 >
-                                    {RULE_TYPES.map((t) => (
-                                        <option key={t.value} value={t.value}>{t.label}</option>
+                                    {RULE_TYPES.map((rt) => (
+                                        <option key={rt.value} value={rt.value}>{rt.label}</option>
                                     ))}
                                 </select>
                                 <IconButton
-                                    ariaLabel={`Remove rule ${i + 1}`}
+                                    ariaLabel={t('studio_apps_insp.validation.remove_rule', 'Remove rule {n}', { n: i + 1 })}
                                     onClick={() => removeRule(i)}
                                     disabled={disabled}
                                     variant="danger"
@@ -185,7 +194,7 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
                                     onChange={(e) => put({ number: e.target.value === '' ? null : Number(e.target.value) })}
                                     placeholder={spec.label}
                                     disabled={disabled}
-                                    aria-label={`Rule ${i + 1} value`}
+                                    aria-label={t('studio_apps_insp.validation.rule_value_aria', 'Rule {n} value', { n: i + 1 })}
                                 />
                             )}
                             {spec.input === 'formula' && (
@@ -194,9 +203,9 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
                                     onChange={(expr) => put({ expr })}
                                     definition={definition}
                                     node={node}
-                                    placeholder="e.g. len(value) > 0"
+                                    placeholder={t('studio_apps_insp.validation.formula_placeholder', 'e.g. len(value) > 0')}
                                     expectsBoolean
-                                    ariaLabel={`Rule ${i + 1} formula`}
+                                    ariaLabel={t('studio_apps_insp.validation.rule_formula_aria', 'Rule {n} formula', { n: i + 1 })}
                                     disabled={disabled}
                                 />
                             )}
@@ -206,9 +215,9 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
                                 className={INPUT_CLS}
                                 value={row.message}
                                 onChange={(e) => put({ message: e.target.value })}
-                                placeholder="Message shown when invalid"
+                                placeholder={t('studio_apps_insp.validation.message_placeholder', 'Message shown when invalid')}
                                 disabled={disabled}
-                                aria-label={`Rule ${i + 1} message`}
+                                aria-label={t('studio_apps_insp.validation.rule_message_aria', 'Rule {n} message', { n: i + 1 })}
                             />
                         </div>
                     );
@@ -220,7 +229,7 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
                     disabled={disabled}
                     className="px-3 py-1.5 text-xs rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1"
                 >
-                    <Plus size={12} /> Add rule
+                    <Plus size={12} /> {t('studio_apps_insp.validation.add_rule', 'Add rule')}
                 </button>
             </div>
         </StudioScopeProvider>

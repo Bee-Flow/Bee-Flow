@@ -101,8 +101,8 @@ describe('AppShell — tab overflow', () => {
         if (originalOffset) Object.defineProperty(HTMLElement.prototype, 'offsetWidth', originalOffset);
     });
 
-    it('collapses tabs that do not fit into a "Meer" menu that navigates', () => {
-        // 3 tabs x 100px in a 250px row with a 100px "Meer" button → 1 visible.
+    it('collapses tabs that do not fit into a "More" menu that navigates', () => {
+        // 3 tabs x 100px in a 250px row with a 100px "More" button → 1 visible.
         Object.defineProperty(Element.prototype, 'clientWidth', {
             configurable: true,
             get() { return this.tagName === 'NAV' ? 250 : 0; },
@@ -122,7 +122,7 @@ describe('AppShell — tab overflow', () => {
         expect(within(nav).getByRole('button', { name: 'Home' })).toBeInTheDocument();
         expect(within(nav).queryByRole('button', { name: 'Settings' })).toBeNull();
 
-        const more = within(nav).getByRole('button', { name: /Meer/ });
+        const more = within(nav).getByRole('button', { name: /More/ });
         fireEvent.click(more);
         const menu = within(nav).getByRole('menu');
         fireEvent.click(within(menu).getByRole('menuitem', { name: 'Settings' }));
@@ -201,16 +201,16 @@ describe('AppShell — user menu', () => {
         const menu = screen.getByRole('menu');
         expect(within(menu).getByText('vera@example.test')).toBeInTheDocument();
         expect(within(menu).getByText('member')).toBeInTheDocument();
-        // No onExit wired → no "Alle apps" link.
-        expect(within(menu).queryByRole('menuitem', { name: 'Alle apps' })).toBeNull();
+        // No onExit wired → no "All apps" link.
+        expect(within(menu).queryByRole('menuitem', { name: 'All apps' })).toBeNull();
     });
 
-    it('shows the owner badge and the "Alle apps" exit when wired', () => {
+    it('shows the owner badge and the "All apps" exit when wired', () => {
         const exits = [];
         renderShell({ viewer: { ...VIEWER, isOwner: true }, onExit: () => exits.push(1) });
         fireEvent.click(screen.getByRole('button', { name: /Account: Vera Viewer/ }));
-        expect(screen.getByText('Eigenaar')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Alle apps' }));
+        expect(screen.getByText('Owner')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('menuitem', { name: 'All apps' }));
         expect(exits).toEqual([1]);
         expect(screen.queryByRole('menu')).toBeNull();
     });

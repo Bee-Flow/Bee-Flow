@@ -1,4 +1,5 @@
 import React from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import FormField from '../../../../shared/FormField';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import { inputCls } from '../../../product-website/fields';
@@ -12,12 +13,12 @@ import { CHART_COLORS, chartColorAt } from '../runtime/chartPalette';
  * anywhere in this file (enforced by AppStudio.noPurple.test).
  */
 
-const CHART_TYPES = [
-    { value: 'bar', label: 'Bar' },
-    { value: 'line', label: 'Line' },
-    { value: 'area', label: 'Area' },
-    { value: 'pie', label: 'Pie' },
-    { value: 'donut', label: 'Donut' },
+const chartTypes = (t) => [
+    { value: 'bar', label: t('studio_apps_bi.chart.type_bar', 'Bar') },
+    { value: 'line', label: t('studio_apps_bi.chart.type_line', 'Line') },
+    { value: 'area', label: t('studio_apps_bi.chart.type_area', 'Area') },
+    { value: 'pie', label: t('studio_apps_bi.chart.type_pie', 'Pie') },
+    { value: 'donut', label: t('studio_apps_bi.chart.type_donut', 'Donut') },
 ];
 
 function isPieType(chartType) {
@@ -49,6 +50,7 @@ export function deriveChartMapping(columns, rows = [], chartType = 'bar') {
 }
 
 export default function ChartDataPanel({ columns = [], rows = [], value, onChange, disabled = false }) {
+    const { t } = useTranslation();
     const mapping = value || deriveChartMapping(columns, rows);
     const cols = (Array.isArray(columns) ? columns : []).filter((c) => typeof c === 'string' && c);
     const isPie = isPieType(mapping.chartType);
@@ -88,26 +90,26 @@ export default function ChartDataPanel({ columns = [], rows = [], value, onChang
 
     return (
         <fieldset disabled={disabled} className="flex flex-col gap-3 min-w-0">
-            <FormField label="Chart type">
+            <FormField label={t('studio_apps_bi.chart.chart_type', 'Chart type')}>
                 <SegmentedControl
                     value={mapping.chartType || 'bar'}
                     onChange={setChartType}
-                    options={CHART_TYPES}
+                    options={chartTypes(t)}
                     size="sm"
                     fullWidth
-                    ariaLabel="Chart type"
+                    ariaLabel={t('studio_apps_bi.chart.chart_type', 'Chart type')}
                 />
             </FormField>
 
-            <FormField label={isPie ? 'Name column' : 'X-axis column'}>
-                <select className={inputCls} value={mapping.xKey || ''} onChange={(e) => setXKey(e.target.value)} aria-label="X-axis column">
-                    <option value="">Pick a column…</option>
+            <FormField label={isPie ? t('studio_apps_bi.chart.name_column', 'Name column') : t('studio_apps_bi.chart.x_axis_column', 'X-axis column')}>
+                <select className={inputCls} value={mapping.xKey || ''} onChange={(e) => setXKey(e.target.value)} aria-label={t('studio_apps_bi.chart.x_axis_column', 'X-axis column')}>
+                    <option value="">{t('studio_apps_bi.chart.pick_column', 'Pick a column…')}</option>
                     {cols.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
             </FormField>
 
             <div>
-                <div className="text-xs font-medium text-[var(--text-secondary)] mb-1.5">{isPie ? 'Value column' : 'Series columns'}</div>
+                <div className="text-xs font-medium text-[var(--text-secondary)] mb-1.5">{isPie ? t('studio_apps_bi.chart.value_column', 'Value column') : t('studio_apps_bi.chart.series_columns', 'Series columns')}</div>
                 <div className="flex flex-wrap gap-1.5">
                     {cols.filter((c) => c !== mapping.xKey).map((c) => {
                         const on = seriesKeys.has(c);
@@ -127,7 +129,7 @@ export default function ChartDataPanel({ columns = [], rows = [], value, onChang
                         );
                     })}
                     {cols.filter((c) => c !== mapping.xKey).length === 0 ? (
-                        <span className="text-[11px] text-[var(--text-muted)]">Run a query to pick series.</span>
+                        <span className="text-[11px] text-[var(--text-muted)]">{t('studio_apps_bi.chart.run_query', 'Run a query to pick series.')}</span>
                     ) : null}
                 </div>
             </div>
@@ -142,7 +144,7 @@ export default function ChartDataPanel({ columns = [], rows = [], value, onChang
                                     <button
                                         key={c}
                                         type="button"
-                                        aria-label={`Colour ${c} for ${s.key}`}
+                                        aria-label={t('studio_apps_bi.chart.series_colour', 'Colour {colour} for {series}', { colour: c, series: s.key })}
                                         onClick={() => setSeriesColor(s.key, c)}
                                         className="w-4 h-4 rounded-full border"
                                         style={{ background: c, borderColor: s.color === c ? 'var(--text-primary)' : 'transparent', outline: s.color === c ? '2px solid var(--text-primary)' : 'none' }}

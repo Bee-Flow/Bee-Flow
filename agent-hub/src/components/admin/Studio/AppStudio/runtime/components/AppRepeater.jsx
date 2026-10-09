@@ -1,4 +1,5 @@
 import React from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import { rowKey, useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';
@@ -26,8 +27,9 @@ import { EmptyText, SkeletonLines } from '../uiBits';
  */
 
 export default function AppRepeater({ node, children }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
-    const { itemActions = [], emptyText = 'Nothing to show yet.' } = node.props || {};
+    const { itemActions = [], emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.') } = node.props || {};
 
     // AppRenderer reads repeat/forEach; the repeater mirrors props.source there.
     // `scope` is the scope of the subtree we sit in (ScopeProvider), so a

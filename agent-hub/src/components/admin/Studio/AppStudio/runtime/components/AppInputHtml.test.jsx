@@ -113,16 +113,16 @@ describe('AppInputHtml', () => {
     it('offers colour, typeface and size — the reason this component exists', () => {
         const { container } = renderField(node());
         const labels = [...container.querySelectorAll('select')].map((s) => s.getAttribute('aria-label'));
-        expect(labels).toEqual(expect.arrayContaining(['Lettertype', 'Grootte', 'Kleur']));
+        expect(labels).toEqual(expect.arrayContaining(['Font', 'Size', 'Color']));
     });
 
     it('hides the image button unless the form asked for images', () => {
         const off = renderField(node({ allowImages: false }));
-        expect(off.container.querySelector('[aria-label="Afbeelding"]')).toBeNull();
+        expect(off.container.querySelector('[aria-label="Image"]')).toBeNull();
         expect(off.container.querySelector('input[type="file"]')).toBeNull();
 
         const on = renderField(node({ allowImages: true }));
-        expect(on.container.querySelector('[aria-label="Afbeelding"]')).toBeTruthy();
+        expect(on.container.querySelector('[aria-label="Image"]')).toBeTruthy();
     });
 
     it('grows with minRows so a mail body is not written through a letterbox', () => {

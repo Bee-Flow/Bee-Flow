@@ -1,5 +1,6 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { useCallback, useMemo, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { buildPeekIndex, peekBadgeLabel, peekBadgeTone, peekKey, peekSections } from '../listPeek';
 import { resolveBinding, walkPath } from '../resolveBinding';
@@ -25,17 +26,17 @@ import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } f
 /** Panel width; also the space the row needs on its right to open there. */
 const PEEK_WIDTH = 320;
 
-/** "3 min", "2 u", "5 d" — short enough for a narrow sidebar. */
-function relativeTime(value) {
+/** "3 min", "2 h", "5 d" — short enough for a narrow sidebar. */
+function relativeTime(value, t) {
     if (value == null || value === '') return null;
-    const t = new Date(value).getTime();
-    if (Number.isNaN(t)) return displayValue(value);
-    const mins = Math.round((Date.now() - t) / 60000);
-    if (mins < 1) return 'nu';
-    if (mins < 60) return `${mins} min`;
+    const then = new Date(value).getTime();
+    if (Number.isNaN(then)) return displayValue(value);
+    const mins = Math.round((Date.now() - then) / 60000);
+    if (mins < 1) return t('studio_apps_runtime.list.now', 'now');
+    if (mins < 60) return t('studio_apps_runtime.list.minutes', '{n} min', { n: mins });
     const hours = Math.round(mins / 60);
-    if (hours < 24) return `${hours} u`;
-    return `${Math.round(hours / 24)} d`;
+    if (hours < 24) return t('studio_apps_runtime.list.hours', '{n} h', { n: hours });
+    return t('studio_apps_runtime.list.days', '{n} d', { n: Math.round(hours / 24) });
 }
 
 function badgeStyle(tone) {
@@ -61,7 +62,7 @@ function renderPeekPanel(entry, at, opts) {
     const moreText = more
         ? (typeof opts.peekMoreText === 'string' && opts.peekMoreText
             ? opts.peekMoreText.split('{count}').join(String(more))
-            : `+ ${more} more`)
+            : opts.t('studio_apps_runtime.list.peek_more', '+ {n} more', { n: more }))
         : null;
     return (
         <div
@@ -102,13 +103,14 @@ function renderPeekPanel(entry, at, opts) {
 }
 
 export default function AppList({ node }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
         titleKey = 'title', subtitleKey = null, metaKey = null,
         timestampKey = null, badgeKey = null, badgeToneMap = [], unreadKey = null,
         badgePlacement = 'meta', selectedWhen = null, selectedDetailKey = null,
         groupKey = null, groupOrder = [], groupLabelMap = [],
-        icon = null, emptyText = 'Nothing to show yet.',
+        icon = null, emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'),
     } = node.props || {};
     const { value: source, isLoading, error, errorCode } = useStickyBinding(
         resolveBinding(node.props?.source, { actionState, dataState, scope }),
@@ -159,7 +161,7 @@ export default function AppList({ node }) {
     if (isLoading) return <SkeletonLines lines={3} />;
 
     const items = (Array.isArray(source) ? source : []).filter((row) => row && typeof row === 'object');
-    if (items.length === 0) return <EmptyText art="empty-inbox" title="Nothing here yet" text={emptyText} />;
+    if (items.length === 0) return <EmptyText art="empty-inbox" title={t('studio_apps_runtime.grid.nothing_here', 'Nothing here yet')} text={emptyText} />;
 
     const size = node.style?.size || 'md';
     const clickable = mode === 'run' && node.onRowClick;
@@ -193,7 +195,7 @@ export default function AppList({ node }) {
     const renderRow = (item, i) => {
         const subtitle = subtitleKey ? walkPath(item, subtitleKey) : null;
         const meta = metaKey ? walkPath(item, metaKey) : null;
-        const stamp = timestampKey ? relativeTime(walkPath(item, timestampKey)) : null;
+        const stamp = timestampKey ? relativeTime(walkPath(item, timestampKey), t) : null;
         const badge = badgeKey ? walkPath(item, badgeKey) : null;
         const unread = unreadKey ? Boolean(walkPath(item, unreadKey)) : false;
         const toneHit = badge != null
@@ -244,7 +246,7 @@ export default function AppList({ node }) {
 
         const peekPanel = hasPeek && openPeek && openPeek.index === i
             ? renderPeekPanel(peekEntry, openPeek, {
-                peekTitle, peekTitleKey, peekTextKey, peekLimit, peekMoreText, showGroups: !!peekGroupKey,
+                peekTitle, peekTitleKey, peekTextKey, peekLimit, peekMoreText, showGroups: !!peekGroupKey, t,
             })
             : null;
 
@@ -262,7 +264,7 @@ export default function AppList({ node }) {
                     <span
                         className="h-1.5 w-1.5 rounded-full shrink-0"
                         style={{ background: 'var(--app-primary)' }}
-                        aria-label="Unread"
+                        aria-label={t('studio_apps_runtime.list.unread', 'Unread')}
                         data-app-list-unread="true"
                     />
                 ) : null}

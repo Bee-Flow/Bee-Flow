@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowRight, ClipboardPaste, Loader2 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { buildImportRows, importableFields, parsePasted, suggestMapping } from './spreadsheetPaste';
 
 /**
@@ -42,6 +43,7 @@ function Button({ children, onClick, disabled, primary = false, className = '' }
 }
 
 export default function PasteImportPanel({ table, onCreate, onImported, onClose }) {
+    const { t } = useTranslation();
     const fields = useMemo(() => importableFields(table?.fields), [table]);
     const [text, setText] = useState('');
     const parsed = useMemo(() => parsePasted(text), [text]);
@@ -63,8 +65,8 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
     }
 
     const built = useMemo(
-        () => buildImportRows(parsed, mapping, fields),
-        [parsed, mapping, fields],
+        () => buildImportRows(parsed, mapping, fields, t),
+        [parsed, mapping, fields, t],
     );
     const mappedCount = mapping.filter((k) => k !== NO_IMPORT).length;
     const badRows = built.filter((r) => r.problems.length > 0).length;
@@ -107,7 +109,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                     setImporting(false);
                     return;
                 }
-                skipped.push({ line: row.line, message: err?.message || 'The app would not take this row.' });
+                skipped.push({ line: row.line, message: err?.message || t('studio_apps_tables.paste.row_rejected', 'The app would not take this row.') });
             }
             setDone(i + 1);
         }
@@ -138,23 +140,33 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
         .map((key, index) => ({ key, index }))
         .filter((c) => c.key !== NO_IMPORT);
 
-    const summary = result
-        ? `${result.added} row${result.added === 1 ? '' : 's'} added`
-            + (result.skipped.length ? `, ${result.skipped.length} skipped — see why` : '')
-        : '';
+    let summary = '';
+    if (result) {
+        const one = result.added === 1;
+        if (result.skipped.length) {
+            summary = one
+                ? t('studio_apps_tables.paste.summary_added_skipped_one', '{n} row added, {skipped} skipped — see why', { n: result.added, skipped: result.skipped.length })
+                : t('studio_apps_tables.paste.summary_added_skipped_many', '{n} rows added, {skipped} skipped — see why', { n: result.added, skipped: result.skipped.length });
+        } else {
+            summary = one
+                ? t('studio_apps_tables.paste.summary_added_one', '{n} row added', { n: result.added })
+                : t('studio_apps_tables.paste.summary_added_many', '{n} rows added', { n: result.added });
+        }
+    }
+    const importCount = parsed.rows.length - badRows;
 
     return (
         <div className="flex min-h-[22rem] flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                     <ClipboardPaste className="h-4 w-4" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                    Paste from a spreadsheet
+                    {t('studio_apps_tables.paste.title', 'Paste from a spreadsheet')}
                 </span>
-                <Button onClick={onClose} disabled={importing} className="ml-auto">Back to rows</Button>
+                <Button onClick={onClose} disabled={importing} className="ml-auto">{t('studio_apps_tables.paste.back', 'Back to rows')}</Button>
             </div>
 
             <label className="flex flex-col gap-1 text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Copy the rows in Excel or Google Sheets — including the header row — and paste them here.
+                {t('studio_apps_tables.paste.instructions', 'Copy the rows in Excel or Google Sheets — including the header row — and paste them here.')}
                 <textarea
                     className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs"
                     style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -164,7 +176,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                     placeholder={PLACEHOLDER}
                     disabled={importing}
                     spellCheck={false}
-                    aria-label="Pasted rows"
+                    aria-label={t('studio_apps_tables.paste.pasted_aria', 'Pasted rows')}
                 />
             </label>
 
@@ -172,12 +184,12 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                 <>
                     <div className="flex flex-col gap-2 rounded-lg border p-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
                         <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                            Where does each column go?
+                            {t('studio_apps_tables.paste.where_each', 'Where does each column go?')}
                         </p>
                         {parsed.header.map((name, index) => (
                             <div key={`${name}-${index}`} className="flex items-center gap-2 text-xs">
                                 <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
-                                    {name || `Column ${index + 1}`}
+                                    {name || t('studio_apps_tables.paste.column_n', 'Column {n}', { n: index + 1 })}
                                 </span>
                                 <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                                 <select
@@ -185,9 +197,9 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                                     value={mapping[index] || NO_IMPORT}
                                     onChange={(e) => setColumn(index, e.target.value)}
                                     disabled={importing}
-                                    aria-label={`Where does “${name || `Column ${index + 1}`}” go?`}
+                                    aria-label={t('studio_apps_tables.paste.where_aria', 'Where does “{name}” go?', { name: name || t('studio_apps_tables.paste.column_n', 'Column {n}', { n: index + 1 }) })}
                                 >
-                                    <option value={NO_IMPORT}>Don’t import this one</option>
+                                    <option value={NO_IMPORT}>{t('studio_apps_tables.paste.dont_import', 'Don’t import this one')}</option>
                                     {fields.map((f) => (
                                         <option key={f.key} value={f.key}>{f.name || f.key}</option>
                                     ))}
@@ -199,7 +211,9 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                     {previewColumns.length > 0 ? (
                         <div className="flex flex-col gap-1">
                             <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                                The first {Math.min(PREVIEW_ROWS, parsed.rows.length)} of {parsed.rows.length} row{parsed.rows.length === 1 ? '' : 's'}
+                                {parsed.rows.length === 1
+                                    ? t('studio_apps_tables.paste.preview_one', 'The first {shown} of {total} row', { shown: Math.min(PREVIEW_ROWS, parsed.rows.length), total: parsed.rows.length })
+                                    : t('studio_apps_tables.paste.preview_many', 'The first {shown} of {total} rows', { shown: Math.min(PREVIEW_ROWS, parsed.rows.length), total: parsed.rows.length })}
                             </p>
                             <div className="w-full overflow-x-auto">
                                 <table className="w-full text-xs">
@@ -241,20 +255,26 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                             {badRows > 0 ? (
                                 <p className="flex items-start gap-1.5 text-xs" style={{ color: '#d97706' }}>
                                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                                    {badRows} of {parsed.rows.length} row{parsed.rows.length === 1 ? '' : 's'} will be skipped — fix them in the spreadsheet and paste again, or import the rest now.
+                                    {parsed.rows.length === 1
+                                        ? t('studio_apps_tables.paste.bad_rows_one', '{bad} of {total} row will be skipped — fix them in the spreadsheet and paste again, or import the rest now.', { bad: badRows, total: parsed.rows.length })
+                                        : t('studio_apps_tables.paste.bad_rows_many', '{bad} of {total} rows will be skipped — fix them in the spreadsheet and paste again, or import the rest now.', { bad: badRows, total: parsed.rows.length })}
                                 </p>
                             ) : null}
                         </div>
                     ) : (
                         <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                            Pick a column above to import first — none of them is matched to a field yet.
+                            {t('studio_apps_tables.paste.pick_column', 'Pick a column above to import first — none of them is matched to a field yet.')}
                         </p>
                     )}
 
                     <div className="flex items-center gap-2">
                         <Button primary onClick={start} disabled={importing || mappedCount === 0 || parsed.rows.length === 0}>
                             {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-                            {importing ? `Adding rows… (${done})` : `Import ${parsed.rows.length - badRows} row${parsed.rows.length - badRows === 1 ? '' : 's'}`}
+                            {importing
+                                ? t('studio_apps_tables.paste.adding', 'Adding rows… ({done})', { done })
+                                : (importCount === 1
+                                    ? t('studio_apps_tables.paste.import_one', 'Import {n} row', { n: importCount })
+                                    : t('studio_apps_tables.paste.import_many', 'Import {n} rows', { n: importCount }))}
                         </Button>
                     </div>
                 </>
@@ -266,12 +286,14 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                     {result.skipped.length ? (
                         <details>
                             <summary className="cursor-pointer text-xs" style={{ color: 'var(--text-secondary)' }}>
-                                Why {result.skipped.length} row{result.skipped.length === 1 ? ' was' : 's were'} skipped
+                                {result.skipped.length === 1
+                                    ? t('studio_apps_tables.paste.why_one', 'Why {n} row was skipped', { n: result.skipped.length })
+                                    : t('studio_apps_tables.paste.why_many', 'Why {n} rows were skipped', { n: result.skipped.length })}
                             </summary>
                             <ul className="mt-1 flex flex-col gap-0.5">
                                 {result.skipped.map((s) => (
                                     <li key={s.line} className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                        Row {s.line}: {s.message}
+                                        {t('studio_apps_tables.paste.row_line', 'Row {line}: {message}', { line: s.line, message: s.message })}
                                     </li>
                                 ))}
                             </ul>
@@ -281,17 +303,22 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                     {paused ? (
                         <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
                             <span>
-                                {paused.queue.length} row{paused.queue.length === 1 ? '' : 's'} to go. The app only takes so many new rows a minute
-                                {paused.seconds > 0 ? `, so this waits ${paused.seconds}s.` : '.'}
+                                {paused.seconds > 0
+                                    ? (paused.queue.length === 1
+                                        ? t('studio_apps_tables.paste.to_go_wait_one', '{n} row to go. The app only takes so many new rows a minute, so this waits {seconds}s.', { n: paused.queue.length, seconds: paused.seconds })
+                                        : t('studio_apps_tables.paste.to_go_wait_many', '{n} rows to go. The app only takes so many new rows a minute, so this waits {seconds}s.', { n: paused.queue.length, seconds: paused.seconds }))
+                                    : (paused.queue.length === 1
+                                        ? t('studio_apps_tables.paste.to_go_one', '{n} row to go. The app only takes so many new rows a minute.', { n: paused.queue.length })
+                                        : t('studio_apps_tables.paste.to_go_many', '{n} rows to go. The app only takes so many new rows a minute.', { n: paused.queue.length }))}
                             </span>
                             <Button primary onClick={resume} disabled={waiting || importing}>
-                                Add the rest
+                                {t('studio_apps_tables.paste.add_rest', 'Add the rest')}
                             </Button>
                         </div>
                     ) : (
                         <div className="flex items-center gap-2">
-                            <Button onClick={() => { setText(''); setResult(null); }}>Paste some more</Button>
-                            <Button primary onClick={onClose}>Back to rows</Button>
+                            <Button onClick={() => { setText(''); setResult(null); }}>{t('studio_apps_tables.paste.paste_more', 'Paste some more')}</Button>
+                            <Button primary onClick={onClose}>{t('studio_apps_tables.paste.back', 'Back to rows')}</Button>
                         </div>
                     )}
                 </div>

@@ -311,7 +311,7 @@ describe('AppInputRichtext — the toolbar', () => {
 
     it('offers the formatting it can actually round-trip, and nothing else', () => {
         mount();
-        for (const label of ['Vet', 'Cursief', 'Opsomming', 'Genummerde lijst', 'Link']) {
+        for (const label of ['Bold', 'Italic', 'Bulleted list', 'Numbered list', 'Link']) {
             expect(screen.getByLabelText(label).disabled).toBe(false);
         }
         expect(screen.queryByText('Preview')).toBeNull();
@@ -320,7 +320,7 @@ describe('AppInputRichtext — the toolbar', () => {
     it('takes the link address inline — window.prompt is blocked in the Nextcloud embed', () => {
         mount();
         fireEvent.mouseDown(screen.getByLabelText('Link'));
-        expect(screen.getByLabelText('Adres van de link')).toBeTruthy();
+        expect(screen.getByLabelText('Link address')).toBeTruthy();
     });
 
     it('keeps the markdown value reachable by field name', () => {

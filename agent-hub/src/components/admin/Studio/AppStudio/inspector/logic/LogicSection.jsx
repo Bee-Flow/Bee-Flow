@@ -5,6 +5,7 @@ import ValidationRuleEditor from './ValidationRuleEditor';
 import VisibilityControls from './VisibilityControls';
 import { getComponentEntry } from '../../runtime/componentRegistry';
 import { setNodeComputed, updateNodeLogic } from '../../state/definitionOps';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /**
  * LogicSection — the inspector's "Logic" accordion body for a component node.
@@ -21,6 +22,7 @@ import { setNodeComputed, updateNodeLogic } from '../../state/definitionOps';
  * variable scope (currentUser / form / screen.params / actions / datasets).
  */
 export default function LogicSection({ node, definition, onCommit, disabled = false }) {
+    const { t } = useTranslation();
     if (!node) return null;
     const isInput = !!getComponentEntry(node.type)?.isInput;
 
@@ -46,7 +48,7 @@ export default function LogicSection({ node, definition, onCommit, disabled = fa
                 {isInput ? (
                     <div className="flex flex-col gap-1.5">
                         <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
-                            Validation
+                            {t('studio_apps_insp.logic.validation', 'Validation')}
                         </span>
                         <ValidationRuleEditor
                             value={node.validations}
@@ -60,7 +62,7 @@ export default function LogicSection({ node, definition, onCommit, disabled = fa
 
                 <div className="flex flex-col gap-1.5">
                     <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
-                        Computed values
+                        {t('studio_apps_insp.logic.computed_values', 'Computed values')}
                     </span>
                     <ComputedPropsEditor
                         node={node}

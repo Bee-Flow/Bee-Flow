@@ -1,5 +1,10 @@
 import { newFieldId, slugifyKey } from './TableDesigner';
 
+/** t() when the caller has one, the English default otherwise (tests, non-React callers). */
+const tr = (t, key, en, params) => (t
+    ? t(key, en, params)
+    : en.replace(/\{(\w+)\}/g, (m, name) => (params && name in params ? String(params[name]) : m)));
+
 /**
  * App Studio — reading and editing the links between tables.
  *
@@ -59,16 +64,16 @@ export function relationKeyFor(table, target) {
  * Returns { tables, error } — `error` is a sentence for the author, and `tables`
  * is then the unchanged input.
  */
-export function addRelation(tables, { fromTableId, toTableId }) {
+export function addRelation(tables, { fromTableId, toTableId }, t) {
     const from = (tables || []).find((t) => t.id === fromTableId);
     const to = (tables || []).find((t) => t.id === toTableId);
-    if (!from || !to) return { tables, error: 'That table is gone — reopen the designer.' };
+    if (!from || !to) return { tables, error: tr(t, 'studio_apps_tables.relations.table_gone', 'That table is gone — reopen the designer.') };
 
     const already = (from.fields || []).some(
         (f) => f.type === 'relation' && f.relation?.table === toTableId,
     );
     if (already) {
-        return { tables, error: `“${from.name || from.key}” already links to “${to.name || to.key}”.` };
+        return { tables, error: tr(t, 'studio_apps_tables.relations.already_linked', '“{from}” already links to “{to}”.', { from: from.name || from.key, to: to.name || to.key }) };
     }
 
     const field = {
