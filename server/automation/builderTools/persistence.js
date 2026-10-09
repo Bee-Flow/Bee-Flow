@@ -11,6 +11,7 @@ const { getDeliverableEvents } = require('../deliverableEvents');
 const { syncDatatableUsage } = require('../datatableUsageSync');
 const { syncKbSources } = require('../../core/kb/kbSourceSync');
 const log = require('../../telemetry/log');
+const { collectPendingRefs } = require('./pendingDatatables');
 
 /**
  * Persist the draft to the automations table. Creates a row on the first
@@ -19,6 +20,14 @@ const log = require('../../telemetry/log');
  */
 async function persistDraft(draftWrap, { finalize = false } = {}) {
     const def = draftWrap.def;
+    // A "pending:<n>" id names a table that was only PROPOSED in a preview. It
+    // is swapped for a real id when the user applies; a draft that still holds
+    // one must never reach the database (a saved flow pointing at a table that
+    // does not exist). The preview path never persists, so this is the net for
+    // the one that does.
+    if (collectPendingRefs(def).size) {
+        throw Object.assign(new Error('The definition still points at a table that was proposed but never created (pending:…).'), { code: 'datatable_pending' });
+    }
     /**
      * De agentpoort, op het ENIGE opslagpad van de builder.
      *

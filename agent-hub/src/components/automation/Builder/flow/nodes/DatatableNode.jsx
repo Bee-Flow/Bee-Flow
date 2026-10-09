@@ -1,5 +1,6 @@
 import React from 'react';
 import { Table2, Search, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { datatableSummary } from '../nodeSummaries';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
@@ -15,6 +16,7 @@ const OP_ICON = {
 };
 
 export default function DatatableNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter, tableNameById, datatablesById } = data;
     const Icon = OP_ICON[step.op] || Table2;
     const table = datatablesById?.[step.datatableId];
@@ -37,7 +39,7 @@ export default function DatatableNode({ id, data }) {
             help={nodeHelp('datatable')}
             name={step.label || nodeDefaultLabel('datatable')}
             sub={datatableSummary(step, { tableNameById })}
-            subTitle={table?.name || step.datatableId}
+            subTitle={table?.pending ? t('automations.assistant.table_new_label', '{name} (new)', { name: table.name }) : (table?.name || step.datatableId)}
             badges={badges}
             runStep={runStep}
             issues={issues}

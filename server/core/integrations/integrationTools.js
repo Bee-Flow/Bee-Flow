@@ -137,7 +137,7 @@ async function webpageToolsAllowed({ userId, session = null, groupIds = [], orgI
  *   or skip credential/session checks.
  * @returns {Object} { tools: Array, n8nOrgId: string|null }
  */
-async function getIntegrationTools({ userId, session, isAdmin, agentConfig, automationStep = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {
+async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agentId = null, automationStep = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {
     const extraAppSet = new Set(Array.isArray(extraEnabledApps) ? extraEnabledApps : []);
     const tools = [];
     let n8nOrgId = null;
@@ -403,20 +403,11 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, auto
     }
 
     // Agent Search — self-hosted AI search, Bing, or cloud-only node-search
-    const hasAgentSearchUrl = !!process.env.SEARCH_SERVICE_URL || !!(await configStore.getConfig('agent_search_url'));
-    const searchProvider = await configStore.getConfig('search_provider') || 'agent-search';
-    const hasBingSearchKey = !!(await configStore.getSecret('bing_search_key'));
-    const hasSerperKey = !!(await configStore.getSecret('serper_api_key'));
-    // When the configured provider is agent-search but the GPU service URL is
-    // gone (typical CPU-only deploy), fall back to node-search transparently
-    // so the agent keeps having a search tool. The dispatcher mirrors this.
-    const canFallbackToNode = searchProvider === 'agent-search' && !hasAgentSearchUrl && hasSerperKey;
-    const searchAvailable = searchProvider !== 'disabled' && (
-        (searchProvider === 'bing' && hasBingSearchKey) ||
-        (searchProvider === 'node-search' && hasSerperKey) ||
-        (searchProvider === 'agent-search' && hasAgentSearchUrl) ||
-        canFallbackToNode
-    );
+    // Shared with the Automation Builder's chat (webSearchAvailability.js), so
+    // both offer web search on exactly the same installations. It includes the
+    // node-search fallback for an agent-search provider without its GPU URL.
+    const { available: searchAvailable, provider: searchProvider, fallbackToNode: canFallbackToNode } =
+        await require('../../integrations/webSearchAvailability').webSearchProviderStatus({ configStore, env: process.env });
     if (searchAvailable && isAppOn('agent-search')) {
         // AGENT_SEARCH_TOOLS carries agent_search AND read_url (see agentSearchTools.js):
         // read_url is offered exactly where web search is.
@@ -802,25 +793,25 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, auto
     await appendCustomIntegrationTools(tools, { effectiveIntegrations, orgId: userOrgId, isToolGranted: _isToolGranted });
 
     // Agent-callable automations (automations with trigger.kind === 'agent_call').
-    // Each active one the user owns becomes a function tool the model can call
-    // from direct chat or a configured agent. Gated by the same 'automations'
-    // capability the scheduler checks — fail closed if the org lacks it or the
-    // lookup throws, so we never surface automations on installs without automations.
+    // They are reachable ONLY through the agent they are bound to
+    // (automation_agent_bindings, automation/agentBinding.js): each active one
+    // bound to `agentId` becomes a function tool the model can call. No agent,
+    // no tool: direct chat, Cowork / AI tasks, voice without an agent and the
+    // /mcp endpoint pass no `agentId` and are offered none. Gated by the same
+    // 'automations' capability the scheduler checks, fail closed if the org
+    // lacks it or the lookup throws, so we never surface automations on
+    // installs without automations.
     //
-    // NARROWED for a CURATED agent. This exposure is keyed to the ASKER, so it
-    // hands an agent every active automation of whoever happens to be chatting —
-    // which is precisely what the per-agent grant list replaces. So an agent
-    // that declares `config.tools.automations` keeps only the automations its
-    // OWNER granted, whoever is asking; direct chat (no agentConfig) is
-    // untouched, and so is an agent nobody has curated yet.
+    // The agent's own grant list (`config.tools.automations`) still NARROWS the
+    // bound set for a CURATED agent: bound AND granted. It can only narrow; a
+    // grant for an automation that is not bound to this agent offers nothing,
+    // so a list written before the bindings existed cannot widen anything.
     //
-    // It NARROWS rather than suppresses on purpose. Suppressing the whole set
-    // here only made sense if a curated set were injected somewhere else, and
-    // nothing injected one: the first person to write `config.tools.automations`
-    // lost every automation the agent could call, including the one they had just
-    // granted. Filtering the caller's own set by the granted ids needs no
-    // second injector and cannot widen — an automation the asker does not have is
-    // simply not in the list to keep.
+    // The presence of the key is the choice, not its content: an empty section
+    // means "I switched all automations off". Treating empty as uncurated
+    // would hand back the whole bound set, the opposite of what the owner
+    // clicked, so the normalisation keeps an empty section on purpose (see
+    // toolPolicy.normaliseToolsConfig).
     const _plainObjectLike = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
     const _automationGrants = (() => {
         try {
@@ -828,22 +819,10 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, auto
             return p.automationGrantsOf(p.toolsConfigOf(agentConfig));
         } catch (_) { return null; }        // policy unreadable — decided below
     })();
-    // With the policy module gone we cannot read the grants, but we can still
-    // see whether there ARE any: a section that is there carries a decision,
-    // and "I could not read the owner's list" is not permission to offer the
-    // asker's whole one.
-    // De AANWEZIGHEID van de sectie is de keuze, niet de inhoud. Een lege
-    // sectie betekent "ik heb alle automatiseringen uitgevinkt" en levert dus geen
-    // enkele automation op. Zou leeg als ongecureerd gelden, dan gaf uitvinken
-    // juist de volledige lijst van de vrager terug — het tegenovergestelde
-    // van wat de eigenaar aanklikte. De normalisatie bewaart die lege sectie
-    // daarom bewust (zie toolPolicy.normaliseToolsConfig).
-    // De AANWEZIGHEID van de sleutel is de keuze — ook als hij naar een lege
-    // map wijst, en ook als hij onleesbaar is. Alleen een agent bij wie
-    // niemand de sectie ooit heeft aangeraakt krijgt de oude, volledige lijst.
     const _curatedAutomations = !!(agentConfig && _plainObjectLike(agentConfig.tools)
         && Object.prototype.hasOwnProperty.call(agentConfig.tools, 'automations'));
     try {
+        if (!agentId) throw { __skip: true };   // nothing to look up: no agent, no automation tools
         if (_curatedAutomations && !_automationGrants) {
             log.warn('[IntegrationTools] Automation grants unreadable — offering no agent-callable automations');
             throw { __skip: true };
@@ -851,8 +830,8 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, auto
         const { hasCapability } = require('../entitlements/entitlements');
         const resolveOrgId = (userOrgId && userOrgId !== '__system__') ? userOrgId : null;
         if (await hasCapability('automations', { userId, orgId: resolveOrgId })) {
-            const { getAgentCallableToolsForUser } = require('../../automation/agentCallableTools');
-            const agentTools = await getAgentCallableToolsForUser(userId);
+            const { getAgentCallableTools } = require('../../automation/agentCallableTools');
+            const agentTools = await getAgentCallableTools({ agentId });
             for (const t of agentTools) {
                 if (_curatedAutomations) {
                     // Fail closed on a definition with no id: the grant is
@@ -865,7 +844,7 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, auto
             }
         }
     } catch (e) {
-        log.warn('[IntegrationTools] Failed to load agent-callable automations:', e.message);
+        if (!(e && e.__skip)) log.warn('[IntegrationTools] Failed to load agent-callable automations:', e.message);
     }
 
     // Reusable Steps (kind='block') the user published and marked "available in

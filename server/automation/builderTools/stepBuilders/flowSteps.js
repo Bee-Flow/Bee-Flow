@@ -55,8 +55,15 @@ function applyAddGuard(draft, args) {
     };
     if (Array.isArray(args.categories) && args.categories.length) step.categories = args.categories;
     if (typeof args.confidence === 'number') step.confidence = args.confidence;
-    if (args.stopOnFound || args.maskOnFound) {
-        step.onFound = { ...(args.stopOnFound ? { stop: true } : {}), ...(args.maskOnFound ? { mask: true } : {}) };
+    // stop = end the run when personal data is found; mask = an irreversible
+    // copy on output.masked; tokenize = "Check + Hide", a REVERSIBLE copy on
+    // output.text (the real values come back at the runner's restore points).
+    if (args.stopOnFound || args.maskOnFound || args.hideOnFound) {
+        step.onFound = {
+            ...(args.stopOnFound ? { stop: true } : {}),
+            ...(args.maskOnFound ? { mask: true } : {}),
+            ...(args.hideOnFound ? { tokenize: true } : {}),
+        };
     }
     const lastId = layerAwareAnchor(draft, args.afterStepId, step.id);
     draft.steps.push(step);
@@ -81,6 +88,27 @@ function applyAddTokenize(draft, args) {
     };
     if (Array.isArray(args.categories) && args.categories.length) step.categories = args.categories;
     if (typeof args.confidence === 'number') step.confidence = args.confidence;
+    const lastId = layerAwareAnchor(draft, args.afterStepId, step.id);
+    draft.steps.push(step);
+    const incoming = branchEdgeFor(draft, lastId, step.id, { branch: args.branch, caseName: args.caseName });
+    if (args.splice === true) spliceSuccessors(draft, lastId, step, incoming);
+    draft.edges.push(incoming);
+    return { added: step };
+}
+
+/**
+ * Untokenize — put the real values back, here, on purpose. The runner already
+ * restores wherever a value comes back into the run (an AI reply, a tool
+ * result); this is for the rest: a tokenized value carried forward by a `set`
+ * step or written to a table. It reports what it could not restore.
+ */
+function applyAddUntokenize(draft, args) {
+    const step = {
+        id: newId('untok'),
+        type: 'untokenize',
+        sourceRef: typeof args.sourceRef === 'string' ? args.sourceRef : '',
+        label: args.label || 'Show real values again',
+    };
     const lastId = layerAwareAnchor(draft, args.afterStepId, step.id);
     draft.steps.push(step);
     const incoming = branchEdgeFor(draft, lastId, step.id, { branch: args.branch, caseName: args.caseName });
@@ -305,6 +333,7 @@ module.exports = {
     applyAddCondition,
     applyAddGuard,
     applyAddTokenize,
+    applyAddUntokenize,
     applyAddLoop,
     applyAddSwitch,
     applyAddWait,

@@ -265,11 +265,21 @@ test('output.<unknown> on a fan-out whose output IS described is refused — "ou
 });
 
 test('output.<anything> passes when the fan-out step\'s output shape is unknown', () => {
-    const code = { id: 'code', type: 'code', forEach: FE_A1 };
+    // An ai_step without an outputSchema: nothing declares what it returns. (A
+    // code step's own envelope is known: loop.c.output.x reads .result.x.)
+    const code = { id: 'code', type: 'ai_step', forEach: FE_A1 };
     const fe = { overRef: 'steps.code.output.results', itemVar: 'c' };
     assert.deepStrictEqual(checkLoopRef(graph(A1, code), 'loop.c.output.anything', fe), { ok: true });
     // …but the item half is still known, so item.<unknown> is not.
     assert.strictEqual(checkLoopRef(graph(A1, code), 'loop.c.item.nope', fe).ok, false);
+});
+
+test('a fan-out code step: loop.<v>.output.<field> reads what the code returned, under .result', () => {
+    const code = { id: 'code', type: 'code', forEach: FE_A1 };
+    const fe = { overRef: 'steps.code.output.results', itemVar: 'c' };
+    const r = checkLoopRef(graph(A1, code), 'loop.c.output.count', fe);
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(r.path, 'loop.c.output.result.count');
 });
 
 test('a name under BOTH output and item is ambiguous, never silently picked', () => {

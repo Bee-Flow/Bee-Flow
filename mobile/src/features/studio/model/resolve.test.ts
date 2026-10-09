@@ -69,13 +69,19 @@ describe('resolveSections', () => {
     });
 
     it('asks only what each gate asks, exactly as the web does', () => {
-        // No permissions at all: Documents (no gate) and Runs & log (licence
-        // only) open; a LICENCE-locked section still shows locked — the web's
-        // resolveStudioNav asks lockReason without looking at the permission
-        // leg — and every permission-gated open section is gone.
+        // No permissions at all: only Documents (no gate) opens. A section
+        // whose role permission is missing is hidden even where its LICENCE
+        // would lock it — an upgrade would not open it for this person either
+        // (the web's resolveStudioNav skips the lock on a permission miss).
         const sections = resolveSections(who([]));
-        expect(ids(sections.filter((s) => !s.locked))).toEqual(['documents', 'runs']);
-        expect(ids(sections.filter((s) => s.locked))).toEqual(['apps', 'playbooks', 'meetingNotes']);
+        expect(ids(sections.filter((s) => !s.locked))).toEqual(['documents']);
+        expect(ids(sections.filter((s) => s.locked))).toEqual([]);
+    });
+
+    it('locks on the licence only for someone whose role opens the section', () => {
+        const sections = resolveSections(who(['use_meeting_notes']));
+        expect(sections.find((s) => s.id === 'meetingNotes')?.locked).toBe('ceiling');
+        expect(ids(sections)).not.toContain('apps');
     });
 });
 

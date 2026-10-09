@@ -114,6 +114,11 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
         try { draftWrap._documents = await require('../../../automation/builderDocumentCatalog').buildDocumentCatalogForUser(userId); }
         catch (e) { log.warn('[LayerAgent] document catalog unavailable:', e.message); draftWrap._documents = null; }
         catalog.documents = draftWrap._documents;
+        // …and the agents and knowledge bases, so a flowlet that runs an ai_step
+        // on an agent or writes to a base has real ids to use (no app_event
+        // providers: a flowlet has no trigger of its own).
+        Object.assign(catalog, await require('../../../automation/builderPickerCatalog')
+            .buildPickerCatalogsForUser(userId, req.session, catalog, { providers: false }));
         // ai_step modelTier gate: sub-agents may only pick the user's tiers.
         //
         // Een onleesbare tiermap WEIGERT, net als de `!modelId` hierboven. Hij

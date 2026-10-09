@@ -29,3 +29,28 @@ test('inspection only reads runs belonging to the automation owner', async () =>
     assert.match(result.error, /owner/);
     assert.equal(readRun, false);
 });
+
+// A code step's outputSchema describes what its code RETURNS, which runs read
+// under output.result; listed bare, the model bound steps.<code>.output.<field>.
+test('mapping inspection says where a code step\'s returned fields are read', async () => {
+    const def = { trigger: { id: 'trg' }, steps: [{ id: 'fmt', type: 'code', outputSchema: { count: 'number' } }, { id: 'ai', type: 'ai_step', outputSchema: { x: 'string' } }, { id: 'out', type: 'set' }] };
+    const r = await inspect('builder_inspect_mapping', { stepId: 'out' }, { def }, { store: {}, pii: {} });
+    const byId = Object.fromEntries(r.sources.map(s => [s.id, s]));
+    assert.equal(byId.fmt.readAt, 'steps.fmt.output.result');
+    assert.equal(byId.ai.readAt, undefined);
+});
+
+// A full run records a flowlet's steps under the step that called it.
+test('run inspection inside a flowlet finds the step recorded under its caller', async () => {
+    const def = { steps: [], layers: { tickets: { trigger: { id: 'trg' }, steps: [{ id: 'fmt', type: 'code' }] } } };
+    const store = {
+        getAutomation: async () => ({ userId: 'owner' }),
+        listRunsForAutomation: async () => ({ runs: [{ id: 'run1' }] }),
+        getRunSteps: async () => [{ stepId: 'cl1', status: 'success', output: {} }, { stepId: 'cl1/fmt', status: 'success', output: { result: { count: 15 } } }],
+    };
+    const r = await inspect('builder_inspect_run', { stepId: 'fmt', scope: 'tickets' }, { automationId: 'a1', userId: 'owner', def }, {
+        store, pii: { detectPii: async () => ({ hasPii: false, entities: [] }), tokenizeText },
+    });
+    assert.equal(r.status, 'success');
+    assert.deepEqual(r.values.output, { result: { count: 15 } });
+});

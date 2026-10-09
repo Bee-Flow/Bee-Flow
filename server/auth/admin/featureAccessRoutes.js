@@ -12,6 +12,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
+const { nextBetaEveryone, nextEveryoneRevoked } = require('./orgAccessCarryOver');
 const { requireAuth, requireAdmin, getUserPermissions, resolveUserOrgIds, invalidateAllPermissionCaches, GROUP_GRANT_IMPLIED_PERMISSIONS } = require('../permissions');
 const { requireOrgAdmin } = require('./orgAdminGuards');
 const configStore = require('../../stores/configStore');
@@ -535,35 +536,6 @@ async function buildGroupAccessResponse(orgId) {
     };
 }
 
-// The org_beta_everyone list to store after an "All members" save. Every
-// group-scoped beta the org may currently use is decided by `chosenBeta` (the
-// clamped grant). One OUTSIDE the org's access keeps its previous state: the
-// admin could not see or toggle it, so a save must not quietly decide it — when
-// the plan or menu brings it back it is as it was. A never-chosen list (null)
-// counts as "everyone" for that carry-over, matching how buildOrgGrant reads it.
-// The scoped ids come from the STATIC beta list, never registry.listCapabilities():
-// that one leaves out betas of an inactive platform module, and a save while the
-// meetingNotes module is off would then store [] and silently narrow Meeting
-// Notes to granted groups once the module is switched on. A stored id that is
-// not (or no longer) a group-scoped beta is kept as-is for the same reason.
-// "Decided by this save" = in the org's access AND listed in the matrix (the
-// filtered list): a beta of an inactive module is not shown, so not chosen.
-async function nextBetaEveryone(orgId, bound, chosenBeta, registry) {
-    const scopedIds = BETA_FEATURES.filter(f => f.groupScoped).map(f => f.id);
-    const scopedSet = new Set(scopedIds);
-    const shown = new Set(registry.listCapabilities().map(c => c.id));
-    const inBound = new Set((bound.beta || []).filter(id => shown.has(id)));
-    const chosen = new Set(chosenBeta);
-    const stored = await userStore.getOrgBetaEveryone(orgId);
-    const next = [];
-    for (const id of scopedIds) {
-        if (inBound.has(id)) { if (chosen.has(id)) next.push(id); continue; }
-        if (stored == null || stored.includes(id)) next.push(id);
-    }
-    for (const id of stored || []) if (!scopedSet.has(id) && !next.includes(id)) next.push(id);
-    return next;
-}
-
 // Shared writer for the org-wide "All members" grants (clamped to ceiling).
 async function writeOrgAccessGrants(orgId, granted, actorId) {
     const entitlements = require('../../core/entitlements/entitlements');
@@ -596,7 +568,19 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     // Group-scoped betas: the everyone-choice is stored in BOTH modes (on cloud
     // the subscription stays the ceiling, it just no longer decides who inside
     // the org gets it).
-    await userStore.setOrgBetaEveryone(orgId, await nextBetaEveryone(orgId, bound, buckets.beta, entitlements.registry));
+    const prevEveryone = await userStore.getOrgBetaEveryone(orgId);
+    const nextEveryone = await nextBetaEveryone(orgId, bound, buckets.beta, entitlements.registry);
+    await userStore.setOrgBetaEveryone(orgId, nextEveryone);
+    // "All members" meeting_notes implies use_meeting_notes (permissions.orgWideGrantImpliedPermissions):
+    // cached permission sets are stale once it flips, as for a group grant. null = everyone.
+    const isEveryone = (list, capId) => list == null || list.includes(capId);
+    const flipped = Object.keys(GROUP_GRANT_IMPLIED_PERMISSIONS).some(capId => isEveryone(prevEveryone, capId) !== isEveryone(nextEveryone, capId));
+    if (flipped) await invalidateAllPermissionCaches().catch(e => log.warn('[Entitlements] permission cache invalidation failed:', e.message));
+    // Self-hosted: the "All members" switch-off is a deny-list the resolver reads
+    // (buildOrgGrant). The writes around it stay so switching modes is lossless.
+    if (snap.mode !== 'cloud') {
+        await userStore.setOrgEveryoneRevoked(orgId, await nextEveryoneRevoked(orgId, bound, buckets, entitlements.registry));
+    }
     await userStore.setOrgGrantedCapabilities(orgId, [...buckets.core]);
     await entitlements.invalidateForOrg(orgId);
     try {

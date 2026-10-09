@@ -14,7 +14,6 @@
  * path, the dispatch table and the exact public surface.
  */
 
-const automationStore = require('../stores/automationStore');
 const { summariseDefinition } = require('./summarise');
 
 // §WS5 — trigger catalog data + tool schemas live in ./builderTools/.
@@ -38,6 +37,7 @@ const {
     generateLayerKey, makeLayerSkeleton, sanitizeLayerParams,
     applyCreateLayer, applySetLayerContract, applyAddCallLayer,
 } = require('./builderTools/layers');
+const { applyInlineLayer } = require('./builderTools/inlineLayer');
 const { applyAddApproval } = require('./builderTools/approval');
 const { applyCreateDatatable } = require('./builderTools/datatableCreate');
 const { applyAddTrigger, applyUpdateTrigger } = require('./builderTools/triggers');
@@ -52,6 +52,7 @@ const {
     compactSample, compactDryRunForModel, truncateToolResultJson,
 } = require('./builderTools/modelPayload');
 const { persistDraft } = require('./builderTools/persistence');
+const { applyRequestDryRun } = require('./builderTools/dryRun');
 const { canonicalJson, applyPatchOps, describePatch } = require('./builderTools/suggestedPatch');
 
 function applySetMetadata(draft, args) {
@@ -99,6 +100,8 @@ const MUTATING_TOOLS = new Set([
     'builder_add_note',
     // inline flowlets
     'builder_create_layer', 'builder_set_layer_contract',
+    // Fold a flowlet into the flow that calls it (an approved plan asks for it).
+    'builder_inline_layer',
     // §WS4 on-error branches
     'builder_wire_error_branch',
 ]);
@@ -185,6 +188,8 @@ const TOPOLOGY_TOOLS = new Set([
     'builder_remove_step', 'builder_replace_step', 'builder_update_step',
     'builder_update_steps', 'builder_add_condition', 'builder_add_switch',
     'builder_wire_error_branch', 'builder_add_loop', 'builder_set_layer_contract',
+    // Replaces one step by the flowlet's whole graph: the model needs the new ids.
+    'builder_inline_layer',
     // Introduces a whole new scoped graph (trigger params + layer_output) —
     // the model needs the structured per-layer section, not just ids.
     'builder_create_layer',
@@ -517,6 +522,9 @@ async function dryRunHint(s, draftWrap, { readFullOutput = null } = {}) {
         const found = findStepAnywhere(draftWrap.def, s.stepId);
         if (found) require('./builderTools/refCheck').rememberStepShape(draftWrap, found.step, out, { partial });
     }
+    // A step on a table that is only proposed ran against nothing: say so, so
+    // the model does not read the empty result as "the table has no rows".
+    if (isObj && out._pendingTable) note = [note, 'table not created yet: a preview reads no rows and writes nothing'].filter(Boolean).join('; ');
     return {
         outputType: Array.isArray(out) ? 'array' : (out === null || out === undefined ? 'null' : typeof out),
         topKeys: isObj ? Object.keys(out) : null,
@@ -562,6 +570,7 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_add_call_layer':     return applyAddCallLayer(draft, args, { graph, scope });
         case 'builder_create_layer':       return applyCreateLayer(draft, args);
         case 'builder_set_layer_contract': return applySetLayerContract(draft, args);
+        case 'builder_inline_layer':       return applyInlineLayer(graph, draft, args);
         case 'builder_add_datetime':       return applyAddDateTime(graph, args);
         case 'builder_add_wait':           return applyAddWait(graph, args);
         case 'builder_add_approval':       return applyAddApproval(graph, args);
@@ -589,36 +598,7 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_set_metadata':       return applySetMetadata(draftWrap, args);
         case 'builder_summarise':          return applySummarise(draft);
         case 'builder_inspect_tool':       return applyInspectTool(args, draftWrap);
-        case 'builder_request_dry_run': {
-            // Which root to enter through: the primary unless the caller names
-            // one of the additional triggers. Resolved against the DRAFT (the
-            // persisted definition is the same object) so a typo is a clear
-            // error rather than a run that silently entered the primary.
-            let rootStepId = null;
-            if (typeof args.triggerStepId === 'string' && args.triggerStepId) {
-                const known = [draft.trigger, ...(Array.isArray(draft.triggers) ? draft.triggers : [])].filter(t => t && t.id);
-                const hit = known.find(t => t.id === args.triggerStepId);
-                if (!hit) {
-                    return { error: `Unknown triggerStepId "${args.triggerStepId}". Triggers: ${known.map(t => `${t.id}(${t.kind})`).join(', ') || '(none)'}.` };
-                }
-                if (hit.id !== draft.trigger?.id) rootStepId = hit.id;
-            }
-            const automation = await persistDraft(draftWrap);
-            const runner = require('../core/automationRunner');
-            // The run is announced the moment its row exists (the route turns
-            // this into a `dryrun_started` SSE event), so the canvas can follow
-            // the steps live instead of showing a silent tool call for as long
-            // as the run takes — a 32-file fan-out is minutes. Absent on the
-            // MCP surface, where nobody is watching.
-            const onRunCreated = typeof draftWrap._onDryRunStarted === 'function'
-                ? (created) => { try { draftWrap._onDryRunStarted(created); } catch { /* a watcher never fails the run */ } }
-                : null;
-            const run = await runner.executeAutomation(automation, { triggerKind: 'dry_run', triggerPayload: args.triggerPayload || null, mode: 'dry_run', rootStepId, onRunCreated });
-            const steps = await automationStore.getRunSteps(run.id);
-            const annotated = [];
-            for (const s of steps) annotated.push({ ...s, _hint: await dryRunHint(s, draftWrap) });
-            return { run, steps: annotated };
-        }
+        case 'builder_request_dry_run':    return applyRequestDryRun(draftWrap, args, { persistDraft, annotate: dryRunHint });
         case 'builder_finalize': {
             const automation = await persistDraft(draftWrap, { finalize: true });
             // Slim echo: the full automation row embeds the entire definition

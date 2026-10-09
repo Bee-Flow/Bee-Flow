@@ -152,7 +152,7 @@ function applyAddAction(draft, rawArgs, draftWrap) {
     // then/else). Everything else on one linear path is a real duplicate.
     const anchor = args.afterStepId ? (draft.steps || []).find(x => x && x.id === args.afterStepId) : null;
     const onOwnBranch = !!args.branch || !!args.caseName
-        || (anchor && (anchor.type === 'condition' || anchor.type === 'switch'));
+        || (anchor && (anchor.type === 'condition' || anchor.type === 'guard' || anchor.type === 'switch'));
     // Only when the call actually carries inputs. A parameterless action is a
     // stub shape (and a legitimate one — "list my rooms" twice is odd but not
     // wrong), whereas every real duplicate observed in builds carried the same

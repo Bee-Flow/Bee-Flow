@@ -287,9 +287,13 @@ async function _initDB() {
         // Any org row that predates the column gets the safe value explicitly,
         // rather than relying on the DEFAULT having applied.
         `UPDATE organizations SET "encryption_tier" = 'none' WHERE "encryption_tier" IS NULL`,
+        // NULL only, never '[]': '[]' is what an admin's deliberate "all three off"
+        // is stored as, and this runs on EVERY boot, so matching it turned that
+        // choice back on at the next restart. The column DEFAULT already seeds
+        // ADDed columns and new orgs, so a '[]' left over is a decision, not a gap.
         `UPDATE organizations
             SET "org_granted_capabilities" = '["notebooks","projects","component_designer"]'
-            WHERE "org_granted_capabilities" = '[]' OR "org_granted_capabilities" IS NULL`,
+            WHERE "org_granted_capabilities" IS NULL`,
 
         // org_available_capabilities = the per-org ACCESS MENU set by the super-admin:
         // which matrix capabilities (within the plan/license ceiling) this org may use.
@@ -307,6 +311,17 @@ async function _initDB() {
         // org_enabled_beta_features: that column holds stale arrays that would
         // silently switch betas off for whole organisations if it were read again.
         `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "org_beta_everyone" TEXT DEFAULT NULL`,
+
+        // org_everyone_revoked = SELF-HOSTED only: the matrix-togglable core and
+        // (non-group-scoped) beta capability ids the org admin switched OFF for
+        // "All members". Groups can still grant them (buildGroupGrant). NULL =
+        // nothing revoked, which is exactly the single-switch behaviour from
+        // before this column existed, so no install changes on upgrade. A
+        // deny-list on purpose: a feature added to the org's access menu later
+        // must default to ON for everyone, as it always did. Cloud ignores it
+        // (org_granted_capabilities leads there). Deliberately NOT
+        // org_enabled_beta_features: stale arrays, see org_beta_everyone above.
+        `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "org_everyone_revoked" TEXT DEFAULT NULL`,
 
         // One-shot backfill: any org that already has a super-admin allow-list
         // gets that list copied into the new "enabled" column so today's

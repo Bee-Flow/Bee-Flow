@@ -46,6 +46,12 @@ module.exports = {
     listAutomationsSharedWithUser: require('./automationStore/shares').listAutomationsSharedWithUser,
     countGroupMembers: require('./automationStore/shares').countGroupMembers,
     transferAutomationOwner: require('./automationStore/shares').transferAutomationOwner,
+    // Which agents may call an agent_call automation (automation/agentBinding.js decides who may write).
+    listBindingsForAutomation: require('./automationStore/agentBindings').listBindingsForAutomation,
+    listAutomationsBoundToAgent: require('./automationStore/agentBindings').listAutomationsBoundToAgent,
+    hasAgentBinding: require('./automationStore/agentBindings').hasAgentBinding,
+    applyAgentBindings: require('./automationStore/agentBindings').applyAgentBindings,
+    deleteBindingsForAgent: require('./automationStore/agentBindings').deleteBindingsForAgent,
     // Handoff 5, the Runs tab: what decorates a page of runs (automation/runListRows.js).
     getJourneyStepStatuses: require('./automationStore/runListing').getJourneyStepStatuses,
     getVersionDefinitions: require('./automationStore/runListing').getVersionDefinitions,

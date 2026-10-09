@@ -10,6 +10,7 @@ import ScheduleBuilder from '../ScheduleBuilder';
 import { CAN_BE_SECONDARY } from '../stepPalette';
 import { defaultTriggerLabel, isGeneratedTriggerLabel } from '../triggerLabels';
 import TriggerProviderPicker from '../TriggerProviderPicker';
+import AgentBindingsSection from './agentBindings/AgentBindingsSection';
 import FieldDesigner from './fieldDesigner';
 import FormBuilderFields, { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './FormBuilderFields';
 import { FormRow, inputClass } from './formPrimitives';
@@ -72,7 +73,7 @@ function TriggerFields({ draft, set, setNested, errorSections = new Set(), catal
             {hasKindForm && (
                 <AccordionSection stepType="trigger" sectionKey="config" title={kindTitle} defaultOpen forceOpen={errorSections.has('config')}>
                     {kind === 'agent_call' && (
-                        <AgentCallFields draft={draft} set={set} onRenameField={onRenameField} />
+                        <AgentCallFields draft={draft} set={set} onRenameField={onRenameField} automationId={automation?.id || null} />
                     )}
                     {kind === 'schedule' && (
                         <ScheduleBuilder
@@ -295,7 +296,7 @@ function LayerInputFields({ draft, set, onRenameField = null }) {
  * the same row editor as the flowlet's and the Studio App trigger's rather
  * than a third copy of one that looked like it.
  */
-function AgentCallFields({ draft, set, onRenameField = null }) {
+function AgentCallFields({ draft, set, onRenameField = null, automationId = null }) {
     return (
         <>
             <FormRow label="Tool name" hint="What the agent calls. Lowercased & sanitized; blank → automation_<id>.">
@@ -312,6 +313,9 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
                     value={draft.description || ''}
                     onChange={(e) => set('description', e.target.value)}
                     rows={2}
+                    // The server cap (MAX_TOOL_DESCRIPTION_LEN in agentCallContract.js): the
+                    // agent is given no more than this, so the field does not accept more.
+                    maxLength={1000}
                     placeholder="Summarise the user's unread email and return the highlights."
                     className={inputClass()}
                 />
@@ -331,6 +335,8 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
                     takenError="Another parameter of this tool already binds that name."
                 />
             </FormRow>
+            {/* Who may call it: saved through its own endpoint, not the definition. */}
+            {automationId ? <AgentBindingsSection automationId={automationId} /> : null}
         </>
     );
 }

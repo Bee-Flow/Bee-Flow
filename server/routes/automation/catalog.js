@@ -202,74 +202,13 @@ router.get('/catalog', async (req, res) => {
 
     // Dynamic app_event provider list — availability derives ONLY from the
     // strict getIntegrationTools result above (same fail-closed authority
-    // as apps[].available) plus explicit connection-backed checks below.
-    const availableAppIds = new Set(apps.filter(a => a.available).map(a => a.id));
-
-    // Connection-backed provider checks — booleans only; no connection
-    // data, no secrets, ever reaches this response. Fail closed.
-    let supportOk = false;
+    // as apps[].available) plus explicit connection-backed checks. The AI
+    // builder reads the same function (automation/builderPickerCatalog.js), so
+    // the dropdown and the prompt cannot offer different providers. Booleans
+    // only; no connection data, no secrets, ever reaches this response.
     const orgId = req.session.user.organizationId || null;
-    try {
-        const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
-        if (await userHasBetaFeature(userId, 'support_inbox', req.session)) {
-            const inboxes = await require('../../stores/supportInboxStore').listInboxes(orgId);
-            supportOk = Array.isArray(inboxes) && inboxes.length > 0;
-        }
-    } catch (_) { /* fail closed */ }
-
-    // Meeting Notes (M5). De declaratie
-    // (automation/triggerSources/declared/meeting-notes.js) gaat op
-    // `availability: { kind:'check', check:'meeting_notes' }`, en
-    // providerIsAvailable eist `checks.meeting_notes === true`. Die sleutel
-    // ontbrak hier, dus de provider was in het dropdown ONZICHTBAAR terwijl
-    // de dispatch, de variabelenkiezer en de bouw-agent hem allang kenden —
-    // een trigger die alleen een mens niet kon kiezen.
-    // Zelfde autoriteit als de rest van Meeting Notes: `meeting_notes` is
-    // een samengestelde capability (licentie én beta, plus de module —
-    // capabilities van een inactieve module vallen uit het plafond), en
-    // userHasBetaFeature delegeert naar diezelfde resolver als de
-    // requireCapability-gate op /api/transcriptions. Faalt dicht.
-    let meetingNotesOk = false;
-    try {
-        const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
-        meetingNotesOk = await userHasBetaFeature(userId, 'meeting_notes', req.session) === true;
-    } catch (_) { /* fail closed */ }
-
-    // msgraph is webhook-only: without a public base URL it can never fire.
-    let publicBaseUrl = false;
-    try { publicBaseUrl = !!require('../../automation/triggerBus').getPublicBaseUrl(); } catch (_) { /* fail closed */ }
-
-    // MCP-backed providers can't be gated on an app id — MCP servers have no
-    // TOOL_REGISTRY row, so they never reach availableAppIds. Resolve them
-    // from the same userToolNames authority plus a per-user credential check.
-    let availableMcpServerIds = new Set();
-    try {
-        availableMcpServerIds = await require('../../core/integrations/integrationTools')
-            .availableMcpServerIds(userToolNames, userId);
-    } catch (_) { /* fail closed — no MCP providers */ }
-
-    // Integrations with no trigger declaration still expose their read-only
-    // list tools as watchable sources, so enabling an app is enough to get a
-    // trigger. Listing costs nothing — nothing polls until an automation using
-    // one is actually activated.
-    let derivedProviders = [];
-    try {
-        const labels = new Map(apps.map(a => [a.id, a.label]));
-        derivedProviders = require('../../automation/triggerSources/autoDerive')
-            .deriveProviders(userToolDefs, { labels, mcpServerIds: availableMcpServerIds });
-    } catch (_) { /* declared providers only */ }
-
-    const { buildAppEventProviders } = require('../../automation/builderTools/triggerProviders');
-    const appEventProviders = buildAppEventProviders({
-        availableAppIds,
-        availableMcpServerIds,
-        // approvals: always on — the events are produced by the approvals
-        // feature itself, which ships with automations (this route already
-        // sits behind the automations license gate).
-        checks: { support: supportOk, approvals: true, meeting_notes: meetingNotesOk },
-        publicBaseUrl,
-        orgId,
-        derivedProviders,
+    const appEventProviders = await require('../../automation/builderPickerCatalog').buildAppEventProvidersFor({
+        userId, session: req.session, apps, userToolNames, userToolDefs, orgId,
     });
 
     // The tables THIS caller may use, already filtered by the same grade
@@ -314,7 +253,6 @@ router.get('/catalog', async (req, res) => {
      */
     let knowledgeBases = [];
     try {
-        const kbStore = require('../../stores/knowledgeBases');
         const { resolveUserOrgIds, hasPermission, resolveUserGroups } = require('../../auth');
         // `userId` is the handler's own, from req.session.user — reaching
         // for req.user here would have been undefined, and an undefined
@@ -336,19 +274,8 @@ router.get('/catalog', async (req, res) => {
         // the ones missing are exactly the unpublished ones they manage.
         let isOrgAdmin = false;
         try { isOrgAdmin = await require('../../support/kbAccess').resolveIsOrgAdmin(req); } catch (_) { isOrgAdmin = false; }
-        const kbs = await kbStore.listKBs(userId, orgIds, { sourceKind: null, isOrgAdmin });
-        for (const kb of kbStore.filterByGroupAccess(kbs, userId, userGroups, { orgIds, isOrgAdmin })) {
-            // A system base is reference text the product ships; nothing
-            // writes into it, so it is not a choice, not a disabled one.
-            if (typeof kbStore.isSystemKB === 'function' && kbStore.isSystemKB(kb)) continue;
-            knowledgeBases.push({
-                id: kb.id,
-                name: kb.name,
-                description: kb.description || null,
-                canWrite: kbStore.canUserManageKB(kb, userId, orgIds, canManage),
-                scope: kb.organization_id ? 'org' : 'personal',
-            });
-        }
+        knowledgeBases = await require('../../automation/builderPickerCatalog')
+            .listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, isOrgAdmin });
     } catch (e) {
         // Same posture as the datatables above: the picker renders its
         // empty state and every other node still works.
@@ -378,43 +305,22 @@ router.get('/catalog', async (req, res) => {
      * header of automation/agentPickerRows.js for why that is safe here
      * and deliberately not safe in the validator.
      */
-    let agents = [];
-    let agentsError = null;
-    try {
-        const agentStore = require('../../stores/agentStore');
-        const { agentPickerRows } = require('../../automation/agentPickerRows');
-        const { resolveUserGroups } = require('../../auth/audience');
-        const { resolveDatatablePrincipal } = require('../../auth/datatableAccess');
-        // The HOME organisation from the user row — `principal.organizationId`,
-        // not `principal.orgId`. The same column the save-time check reads
-        // (automation/agentCatalog.js: agentCatalogForOwner) and the same one
-        // the run measures against (`ctx.userHomeOrgId`, execution.js), so the
-        // picker, the activation and the nightly run cannot disagree about
-        // which workspace this author is in. `orgId` carries a group-derived
-        // fallback the other two do not have, and a fallback only one of three
-        // readers applies is a row that looks fine here and fails at 03:00.
-        const principal = await resolveDatatablePrincipal(req);
-        // A FAILED identity read is not a policy answer. With `orgId` null
-        // because the user row could not be read, every shared org agent
-        // would come back `reason: 'other_org'` — "Belongs to another
-        // workspace" — and the author would pull a perfectly good agent out
-        // of their automation on the strength of a database hiccup. That is
-        // exactly the sentence `agentsError` exists for.
-        if (principal.identityError) throw new Error(`identity unavailable (${principal.identityError})`);
-        const viewerOrgId = principal.organizationId || null;
-        const viewerGroups = await resolveUserGroups(userId);
-        const [mine, published] = await Promise.all([
-            agentStore.getAgents(userId),
-            agentStore.getPublishedAgentsForUser(viewerGroups || [], viewerOrgId, null),
-        ]);
-        agents = agentPickerRows([...(mine || []), ...(published || [])], {
-            userId, orgId: viewerOrgId, groups: viewerGroups || [],
-        });
-    } catch (e) {
-        agentsError = e.message || 'agent list unavailable';
-        agents = [];
-        log.warn('[automation/catalog] agents unavailable:', agentsError);
-    }
+    // The list itself is built by automation/builderPickerCatalog.js, the same
+    // function the AI builder reads its "Agents you may use" block from. The
+    // principal is the one this request already resolved (and cached on req).
+    const agentRead = await (async () => {
+        try {
+            const { resolveDatatablePrincipal } = require('../../auth/datatableAccess');
+            // The HOME organisation from the user row — `principal.organizationId`,
+            // not `principal.orgId` (see buildAgentPickerForUser).
+            return await require('../../automation/builderPickerCatalog')
+                .buildAgentPickerForUser(userId, { principal: await resolveDatatablePrincipal(req) });
+        } catch (e) {
+            log.warn('[automation/catalog] agents unavailable:', e.message);
+            return { agents: [], agentsError: e.message || 'agent list unavailable' };
+        }
+    })();
+    const { agents, agentsError } = agentRead;
 
     // What an `app_pick` form question may ask for. Served from the
     // registry rather than mirrored in the builder, so the list an author

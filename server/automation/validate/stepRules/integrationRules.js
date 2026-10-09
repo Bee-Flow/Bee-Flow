@@ -48,6 +48,29 @@ function checkHttpRequest(ctx, step, at) {
                 if (typeof v !== 'string') { pushE({ code: 'http_request.header_value_shape', severity: 'error', path: at + `.headers.${k}`, message: `Step ${step.id}: header "${k}" value must be a string.`, hint: 'Header values are template strings, not binding objects.' }); break; }
             }
         }
+        if (step.query !== undefined && step.query !== null) {
+            const q = step.query;
+            const qBad = (code, msg, hint, sub = '') => pushE({ code, severity: 'error', path: at + '.query' + sub, message: `Step ${step.id}: ${msg}`, hint });
+            if (!isObject(q)) qBad('http_request.query_shape', 'http_request.query must be an object.', 'Use { mode: "fields", items: [{key, value}] } or { mode: "json", json: "{...}" }.');
+            else if (q.mode !== undefined && q.mode !== 'fields' && q.mode !== 'json') qBad('http_request.query_mode', `query.mode "${String(q.mode)}" is unknown.`, 'Use "fields" or "json".', '.mode');
+            else if (q.arrayFormat !== undefined && !['indices', 'brackets', 'repeat', 'comma'].includes(q.arrayFormat)) qBad('http_request.query_array_format', `query.arrayFormat "${String(q.arrayFormat)}" is unknown.`, 'Use indices (a[0]=x, the default), brackets (a[]=x), repeat (a=x&a=y) or comma (a=x,y).', '.arrayFormat');
+            else if (q.mode === 'json') {
+                if (typeof q.json !== 'string') qBad('http_request.query_json_shape', 'query.json must be a text holding a JSON object.', 'Write the parameters as JSON text, e.g. "{\"page\": {{steps.a.output.n}}}". {{…}} values are allowed.', '.json');
+                else if (q.json.trim() && !/\{\{/.test(q.json)) {
+                    let parsed; let ok = true;
+                    try { parsed = JSON.parse(q.json); } catch { ok = false; }
+                    if (!ok) qBad('http_request.query_json_invalid', 'query.json is not valid JSON.', 'Check commas, quotes and brackets.', '.json');
+                    else if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) qBad('http_request.query_json_not_object', 'query.json must be a JSON object.', 'Wrap the parameters in { }.', '.json');
+                }
+            } else if (!Array.isArray(q.items)) {
+                qBad('http_request.query_items_shape', 'query.items must be a list of {key, value}.', 'Use { mode: "fields", items: [{ "key": "page", "value": "1" }] }.', '.items');
+            } else if (q.items.some((it) => !isObject(it) || typeof it.key !== 'string' || (it.value !== undefined && typeof it.value !== 'string'))) {
+                qBad('http_request.query_items_shape', 'every query row needs a text key and a text value.', 'Values are template strings; write a number as "5".', '.items');
+            }
+            if (typeof step.url === 'string' && /(\?|&)[^=&#]*(\[|%5B)/i.test(step.url)) {
+                pushW({ code: 'http_request.query_in_url', severity: 'warning', path: at + '.url', message: `Step ${step.id}: the URL carries a nested query while the step also has query parameters.`, hint: 'Move the nested parameters into the query setting so they can use {{…}} values.' });
+            }
+        }
         if (step.timeoutMs !== undefined && (typeof step.timeoutMs !== 'number' || step.timeoutMs < 1000 || step.timeoutMs > 60_000)) {
             pushE({ code: 'http_request.timeout_range', severity: 'error', path: at + '.timeoutMs', message: `Step ${step.id}: http_request.timeoutMs must be 1000..60000.`, hint: 'Pick a duration in milliseconds (1-60 seconds).' });
         }

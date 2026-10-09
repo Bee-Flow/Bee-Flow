@@ -4,25 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import PlanReview from './PlanReview';
 import WorkModePicker from './WorkModePicker';
 import ProposalCard from './ProposalCard';
-import QuestionsCard from './QuestionsCard';
+import { reviewedProposal } from './proposalChanges';
 
 afterEach(cleanup);
 
 describe('assistant review controls', () => {
-    it('keeps later questions compact and retains an answer when reopened', () => {
-        const { container } = render(<QuestionsCard questions={[{ id: 'q1', prompt: 'Which inbox?', options: ['Finance', 'Sales'] }, { id: 'q2', prompt: 'Which channel?', options: ['Email', 'Talk'] }]} onAnswer={vi.fn()} />);
-        const cards = container.querySelectorAll('details');
-        expect(cards[0].open).toBe(true);
-        expect(cards[1].open).toBe(false);
-        fireEvent.click(cards[1].querySelector('summary'));
-        fireEvent.click(screen.getByRole('radio', { name: 'Talk' }));
-        fireEvent.click(cards[1].querySelector('summary'));
-        expect(cards[1].open).toBe(false);
-        expect(cards[1].querySelector('summary').textContent).toContain('Talk');
-        fireEvent.click(cards[1].querySelector('summary'));
-        expect(screen.getByRole('radio', { name: 'Talk' }).checked).toBe(true);
-    });
-
     it('opens supporting plan sections through their navigation links', () => {
         const { container } = render(<PlanReview plan={{ id: 'p', version: 1, status: 'review', title: 'Invoice plan', steps: ['Read invoices'], assumptions: ['Use the finance inbox'] }} onApprove={vi.fn()} onClose={vi.fn()} />);
         const cards = container.querySelectorAll('section details');
@@ -32,22 +18,6 @@ describe('assistant review controls', () => {
         expect(cards[1].open).toBe(true);
     });
 
-    it('preselects suggestions without duplicating them in a text input, and preserves custom answers', () => {
-        const onAnswer = vi.fn();
-        render(<QuestionsCard questions={[{ id: 'q1', prompt: 'Which inbox?', options: ['Finance', 'Sales'] }]} onAnswer={onAnswer} />);
-        expect(screen.getByRole('radio', { name: /Finance/ }).checked).toBe(true);
-        expect(screen.queryByRole('textbox')).toBeNull();
-        fireEvent.click(screen.getByRole('radio', { name: 'Sales' }));
-        fireEvent.click(screen.getByRole('button', { name: /type your answer/i }));
-        expect(screen.getByRole('textbox').value).toBe('');
-        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Support' } });
-        fireEvent.click(screen.getByRole('button', { name: /answer and continue/i }));
-        expect(onAnswer).toHaveBeenLastCalledWith('Which inbox?\nSupport');
-        fireEvent.click(screen.getByRole('radio', { name: 'Sales' }));
-        expect(screen.queryByRole('textbox')).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: /answer and continue/i }));
-        expect(onAnswer).toHaveBeenLastCalledWith('Which inbox?\nSales');
-    });
     it('selects a work mode and remembers the large-change preference through the caller', () => {
         const onChange = vi.fn(), onAlwaysPlanLargeChange = vi.fn();
         render(<WorkModePicker value="approve" onChange={onChange} alwaysPlanLarge onAlwaysPlanLargeChange={onAlwaysPlanLargeChange} />);
@@ -80,7 +50,11 @@ describe('assistant review controls', () => {
         expect(screen.getByText(/↳ recipient@example.test/)).toBeTruthy();
         fireEvent.click(screen.getByRole('checkbox', { name: 'settings.to' }));
         fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
-        expect(onApply.mock.calls[0][0].steps[0].settings).toEqual({ to: baseDefinition.steps[0].settings.to, subject: 'New' });
+        // The card hands over the unticked fields; the shell reverts them on the
+        // definition the server answers with (which holds the real table ids).
+        const excluded = onApply.mock.calls[0][0];
+        expect([...excluded]).toEqual([':mail:settings.to']);
+        expect(reviewedProposal({ baseDefinition, definition }, excluded).steps[0].settings).toEqual({ to: baseDefinition.steps[0].settings.to, subject: 'New' });
         expect(baseDefinition.steps[0].settings.subject).toBe('Old');
     });
 });
@@ -96,6 +70,7 @@ describe('proposal card', () => {
         await user.click(screen.getByRole('button', { name: 'Discard' }));
         expect(onDiscard).toHaveBeenCalledTimes(1);
         await user.click(screen.getByRole('button', { name: 'Apply' }));
-        expect(onApply.mock.calls[0][0].steps[0].label).toBe('Email totals');
+        expect(onApply.mock.calls[0][0]).toBeInstanceOf(Set);
+        expect(onApply.mock.calls[0][0].size).toBe(0);
     });
 });

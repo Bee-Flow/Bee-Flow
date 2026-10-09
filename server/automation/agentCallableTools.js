@@ -2,20 +2,26 @@
  * Automations as agent tools — §28.
  *
  * When an automation declares trigger.kind === 'agent_call', it becomes
- * addressable from agents and direct chat as a function-calling tool.
- * The agent calls `automation_<id>` with structured arguments; this
- * module renders the per-tool schema from the automation's declared
- * input shape and invokes the runner with those arguments as the
- * trigger payload.
+ * addressable as a function-calling tool, but ONLY by the agents it is bound
+ * to (automation_agent_bindings, automation/agentBinding.js). No agent, no
+ * access: direct chat without an agent, Cowork / AI tasks, voice without an
+ * agent and the /mcp endpoint are offered none of them. The agent calls the
+ * tool with structured arguments; this module renders the per-tool schema from
+ * the automation's declared input shape and invokes the runner with those
+ * arguments as the trigger payload.
  *
  * Public API:
- *   - getAgentCallableToolsForUser(userId) → tool[] suitable for
- *     dropping into the agent runtime's tool list.
- *   - dispatchAgentCallableTool(toolName, args, ctx) → invokes the
- *     automation synchronously and returns the run's final output.
+ *   - getAgentCallableTools({ agentId }) → tool[] bound to that agent, suitable
+ *     for dropping into the agent runtime's tool list.
+ *   - dispatchAgentCallableTool(toolMeta, args, ctx) → re-checks the binding
+ *     and invokes the automation synchronously, returning the run's final output.
+ *
+ * The run executes as the automation's OWNER, whoever asked: the binding is the
+ * agent's right to call it, so the asker needs no run rights of their own. The
+ * asker and the agent are recorded on the run (startedByUserId, callerAgentId).
  *
  * The tool catalog (server/automation/toolRegistry.js) doesn't list
- * these — they're per-user and per-automation, so they're discovered
+ * these — they're per-agent and per-automation, so they're discovered
  * dynamically at agent-runtime construction time. Phase 2 work moves
  * them into the unified catalog (§15).
  */
@@ -23,20 +29,25 @@
 const automationStore = require('../stores/automationStore');
 // Handoff 5: an agent sees, and runs, the LIVE definition of an automation.
 const { automationForRun } = require('../core/automationRunner/definitionForRun');
+const log = require('../telemetry/log');
+// The tool name is declared by the builder too, so the rule lives in one place.
+const { sanitizeToolName, MAX_TOOL_DESCRIPTION_LEN } = require('./agentCallContract');
 
 /**
  * Convert an automation into the OpenAI/Anthropic-shaped function
  * schema the agent runtime expects.
  */
-function automationToTool(automation) {
+function automationToTool(automation, { agentId = null } = {}) {
     if (!automation || !automation.definition) return null;
     const trigger = automation.definition.trigger;
     if (!trigger || trigger.kind !== 'agent_call') return null;
 
     const toolName = sanitizeToolName(trigger.toolName || `automation_${automation.id}`);
-    const description = trigger.description
+    // Cut to the cap the builder enforces on what it writes: the canvas textarea
+    // allows more, and validation only warns about it.
+    const description = String(trigger.description
         || automation.description
-        || `Run the "${automation.title || 'Untitled automation'}" automation.`;
+        || `Run the "${automation.title || 'Untitled automation'}" automation.`).slice(0, MAX_TOOL_DESCRIPTION_LEN);
     const parameters = normalizeParameters(trigger.parametersSchema);
 
     return {
@@ -52,23 +63,53 @@ function automationToTool(automation) {
             id: automation.id,
             userId: automation.userId,
             organizationId: automation.organizationId || null,
+            // The agent this tool was offered to; dispatch reads the caller's
+            // agent from its own context and re-checks the binding, never this.
+            ...(agentId ? { agentId } : {}),
         },
     };
 }
 
 /**
- * List every agent-callable automation owned by the user (or shared
- * with their org, per the automation visibility rules), shaped as
- * function tools ready to register with the agent.
+ * The agent-callable automations bound to one agent, shaped as function tools
+ * ready to register with it. Active automations whose LIVE definition is an
+ * agent trigger, whose binding exists and whose owner may still use the agent;
+ * anything else is simply not offered. Without an agent there is nothing to
+ * offer, and a lookup that fails offers nothing (fail closed).
+ *
+ * Offering is advisory: dispatchAgentCallableTool decides again at call time.
+ * `forDispatch` is the lookup that call makes to find which automation a tool
+ * NAME means: it keeps paused automations and ones whose owner can no longer
+ * use the agent, so dispatchAgentCallableTool can refuse them with a sentence
+ * instead of the model hearing "unknown tool".
+ *
+ * `deps` is the test seam: { automationStore, agentBinding }.
+ *
+ * @param {{ agentId?: string|null, forDispatch?: boolean }} p
  */
-async function getAgentCallableToolsForUser(userId) {
-    if (!userId) return [];
-    const list = await automationStore.getAutomationsForUser(userId).catch(() => []);
+async function getAgentCallableTools({ agentId = null, forDispatch = false } = {}, deps = {}) {
+    if (!agentId) return [];
+    const store = deps.automationStore || automationStore;
+    const binding = deps.agentBinding || require('./agentBinding');
+    let bound;
+    try { bound = await store.listAutomationsBoundToAgent(agentId); }
+    catch (e) {
+        log.warn(`[agentCallableTools] bindings of agent ${agentId} unreadable — offering none: ${e.message}`);
+        return [];
+    }
     const tools = [];
-    for (const a of list) {
-        if (!a?.isActive) continue;
-        const tool = automationToTool(automationForRun(a, { mode: 'live' }));
-        if (tool) tools.push(tool);
+    const ownerVerdict = new Map();
+    for (const a of bound) {
+        if (!forDispatch && !a?.isActive) continue;
+        const tool = automationToTool(automationForRun(a, { mode: 'live' }), { agentId });
+        if (!tool) continue;
+        if (!forDispatch) {
+            if (!ownerVerdict.has(a.userId)) {
+                ownerVerdict.set(a.userId, await binding.ownerMayUseAgent(a.userId, agentId, { deps }));
+            }
+            if (!ownerVerdict.get(a.userId)) continue;
+        }
+        tools.push(tool);
     }
     return tools;
 }
@@ -104,13 +145,30 @@ function callerTraceOf(ctx) {
  * (automationCallDepth.js) until the schema has a column of its own for it.
  */
 function runnerTraceOptions(trace, ctx) {
+    // The person who asked, never an acting or borrowed integration identity
+    // (`userId` may be one); the dispatcher passes the asker under its own key.
+    const asker = (ctx && (ctx.askerUserId || ctx.userId)) || null;
     return {
         callerAgentId: trace.callerAgentId,
         callerConversationId: trace.callerConversationId,
-        // A person chatting with an agent started it. Inside an automation run the
-        // automation owner is already the run's user, so nothing is added.
-        ...(trace.callerConversationId && ctx && ctx.userId ? { startedByUserId: ctx.userId } : {}),
+        // Whenever a person asked (chat, voice, a call without a conversation id),
+        // they are recorded; a missing conversation id must not erase them. Inside
+        // an automation run (callerRunId) the owner is already the run's user and
+        // nobody asked, so nothing is added.
+        ...(asker && !trace.callerRunId ? { startedByUserId: asker } : {}),
     };
+}
+
+/**
+ * A call the binding does not allow. Carries a `code` so the tool result reads
+ * `{ error, code }` (toolErrorFor) and names no agent or automation.
+ */
+class AgentCallRefusedError extends Error {
+    constructor(message, code = 'agent_not_allowed') {
+        super(message);
+        this.name = 'AgentCallRefusedError';
+        this.code = code;
+    }
 }
 
 /**
@@ -118,26 +176,57 @@ function runnerTraceOptions(trace, ctx) {
  * (no scheduler hop) and the final step's output is returned verbatim
  * to the calling agent.
  *
- * `ctx` carries the caller identity — the user the agent is acting on
- * behalf of. Enforced by the runner's permission catalog re-check.
- * It may also carry the caller trace (callerAgentId / agentId,
- * callerConversationId / conversationId, runScope): see callerTraceOf.
+ * AUTHORITATIVE and independent of what was offered: every call re-reads the
+ * automation and checks, now, that its LIVE definition is an agent trigger, that
+ * it is active, that the calling agent is bound to it and that the owner may
+ * still use that agent, then reads the agent's own curation (granted in
+ * config.tools.automations, and 'ask' only through a surface with a confirm
+ * layer: ctx.confirmLayer). The agent is the one in the server-built ctx
+ * (callerAgentId, else agentId), never anything the model sent in `args`. A
+ * refusal throws AgentCallRefusedError and is logged (ids only).
+ *
+ * `ctx` carries the caller: the agent, the asker (askerUserId, else userId), the
+ * conversation and the run scope (see callerTraceOf). The run is started as the
+ * automation's owner whoever asked.
  *
  * Refuses with `automation_call_depth_exceeded` when agents are already
  * MAX_AUTOMATION_CALL_DEPTH automation starts deep (automationCallDepth.js).
  *
- * `deps` is the test seam: { automationStore, automationRunner }.
+ * `deps` is the test seam: { automationStore, automationRunner, agentBinding }.
  */
 async function dispatchAgentCallableTool(toolMeta, args, ctx, deps = {}) {
     if (!toolMeta?.id) throw new Error('dispatchAgentCallableTool: missing automation id');
     const store = deps.automationStore || automationStore;
+    const trace = callerTraceOf(ctx);
+    const refuse = (reason, message, code) => {
+        log.info(`[agentCallableTools] refused automation=${toolMeta.id} agent=${trace.callerAgentId || 'none'} reason=${reason}`);
+        return new AgentCallRefusedError(message, code);
+    };
+
     const automation = automationForRun(await store.getAutomation(toolMeta.id), { mode: 'live' });
-    if (!automation) throw new Error(`Automation ${toolMeta.id} not found`);
-    if (automation.userId !== (ctx?.userId || toolMeta.userId)) {
-        throw new Error('Forbidden: caller does not own the automation');
+    if (!automation) throw refuse('automation_missing', 'This automation no longer exists.');
+    const trigger = automation.definition && automation.definition.trigger;
+    if (!trigger || trigger.kind !== 'agent_call') {
+        throw refuse('not_agent_call', 'This automation is no longer an agent tool.');
     }
     if (!automation.isActive) {
-        throw new Error('Automation is not active — activate it first or use the manual run endpoint.');
+        throw refuse('inactive', 'Automation is not active — activate it first or use the manual run endpoint.', 'automation_inactive');
+    }
+    const binding = deps.agentBinding || require('./agentBinding');
+    const verdict = await binding.agentMayCall({ automation, agentId: trace.callerAgentId, deps: { ...deps, store } });
+    if (!verdict.ok) {
+        throw refuse(verdict.reason, 'This agent is not allowed to call this automation.');
+    }
+    // The agent's own curation on top of the binding (granted? asks first?). The
+    // offer applies it too, but voice and the non-streaming chat dispatch any
+    // name the model emits, so it is decided again here.
+    const grant = await binding.agentGrantVerdict({
+        automation, agentId: trace.callerAgentId, confirmed: !!(ctx && ctx.confirmLayer === true), deps: { ...deps, store },
+    });
+    if (!grant.ok) {
+        throw grant.reason === 'needs_confirmation'
+            ? refuse(grant.reason, 'This automation needs the user\'s approval first, and this chat cannot ask for it.', 'confirmation_required')
+            : refuse(grant.reason, 'This agent is not allowed to call this automation.');
     }
 
     // Lazy-require the runner so this module stays loadable from any
@@ -145,7 +234,6 @@ async function dispatchAgentCallableTool(toolMeta, args, ctx, deps = {}) {
     // bind at module-load time).
     const automationRunner = deps.automationRunner || require('../core/automationRunner');
     const { runNestedAutomationCall } = require('./automationCallDepth');
-    const trace = callerTraceOf(ctx);
     const result = await runNestedAutomationCall(
         { automationId: automation.id, ...trace },
         () => automationRunner.executeAutomation(automation, {
@@ -158,12 +246,30 @@ async function dispatchAgentCallableTool(toolMeta, args, ctx, deps = {}) {
     return result?.lastOutput ?? null;
 }
 
-function sanitizeToolName(name) {
-    return String(name || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9_]+/g, '_')
-        .replace(/^_+|_+$/g, '')
-        .slice(0, 64) || 'automation_unnamed';
+/**
+ * The dispatcher's entry: find the automation a tool NAME means among the
+ * calling agent's bound automations and start it. `{ handled: false }` when
+ * there is no calling agent or no such tool (the dispatcher tries its next
+ * matcher); otherwise `{ handled: true, result }`, where a refused or failed
+ * start is the `{ error, code }` result the model reads.
+ */
+async function dispatchAgentCallableByName(toolName, toolArgs, ctx, deps = {}) {
+    const agentId = callerTraceOf(ctx).callerAgentId;
+    if (!agentId) return { handled: false };
+    let match = null;
+    try {
+        const tools = await getAgentCallableTools({ agentId, forDispatch: true }, deps);
+        match = tools.find((t) => t?.function?.name === toolName) || null;
+    } catch (e) {
+        log.warn('[agentCallableTools] agent-callable automation lookup failed:', e.message);
+    }
+    if (!match) return { handled: false };
+    try {
+        return { handled: true, result: await dispatchAgentCallableTool(match.__automation, toolArgs, ctx, deps) };
+    } catch (e) {
+        log.warn(`[agentCallableTools] automation ${match.__automation?.id} not started: ${e.message}`);
+        return { handled: true, result: require('./automationCallDepth').toolErrorFor(e) };
+    }
 }
 
 // ── Reusable Steps (kind='block') as chat/agent tools ──────
@@ -255,8 +361,10 @@ function normalizeParameters(schema) {
 
 module.exports = {
     automationToTool,
-    getAgentCallableToolsForUser,
+    getAgentCallableTools,
     dispatchAgentCallableTool,
+    dispatchAgentCallableByName,
+    AgentCallRefusedError,
     stepToTool,
     getStepToolsForUser,
     dispatchStepTool,

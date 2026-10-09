@@ -324,7 +324,7 @@ async function offlineSession(userId) {
 }
 
 async function runGetGuide(userId) {
-    const { buildFullSystemPrompt, renderTurnPreferences } = require('./builderPrompt');
+    const { buildFullSystemPrompt, renderTurnPreferences, renderPickerContextMessage } = require('./builderPrompt');
     const { buildCatalogForUser } = require('./builderCatalog');
     const session = await offlineSession(userId);
     const catalog = await buildCatalogForUser(userId, session);
@@ -334,6 +334,11 @@ async function runGetGuide(userId) {
     catch (_) { catalog.datatables = null; }
     try { catalog.documents = await require('./builderDocumentCatalog').buildDocumentCatalogForUser(userId); }
     catch (_) { catalog.documents = null; }
+    // …and THIS user's agents, knowledge bases and app_event providers: the
+    // full prompt tells the model to take those ids from a block, and the chat
+    // route puts the block in its per-turn message. An MCP client has no such
+    // message, so the lists are appended to the guide below, once.
+    Object.assign(catalog, await require('./builderPickerCatalog').buildPickerCatalogsForUser(userId, session, catalog));
     // The FULL variant, built against THIS user's catalog, so the guide never
     // names an app they cannot reach — the same prompt the in-product builder
     // gets on its first turn.
@@ -348,7 +353,8 @@ async function runGetGuide(userId) {
     // timezone it used to render inline (dropped when buildFullSystemPrompt
     // lost its userTimezone parameter). Ship the note once, appended.
     const turnNote = renderTurnPreferences({ userTimezone: 'Europe/Amsterdam' });
-    return { guide: turnNote ? `${guide}\n\n${turnNote}` : guide };
+    const pickers = renderPickerContextMessage({ catalog });
+    return { guide: [guide, pickers, turnNote].filter(Boolean).join('\n\n') };
 }
 
 /**

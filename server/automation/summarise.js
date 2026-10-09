@@ -9,6 +9,8 @@
 
 const { isSideEffect } = require('./sideEffectMap');
 const { flattenSentenceParts } = require('./expr');
+const { agentCallParams } = require('./agentCallContract');
+const { declaredTriggerFields } = require('./builderTools/triggerCatalog');
 
 function describeTrigger(trigger) {
     if (!trigger) return 'When triggered';
@@ -22,7 +24,8 @@ function describeTrigger(trigger) {
         case 'webhook': return 'When the webhook URL is called';
         case 'agent_call': {
             const name = trigger.toolName || `automation_${trigger.id || ''}`;
-            return `When an AI agent calls it (\`${name}\`)`;
+            const args = agentCallParams(trigger).map(p => (p.required ? p.name : `${p.name}?`));
+            return `When an AI agent calls it (\`${name}\`${args.length ? `, arguments: ${args.join(', ')}` : ''})`;
         }
         case 'app_event': {
             const provider = trigger.appEvent?.provider || 'app';
@@ -359,7 +362,13 @@ function renderGraphState(graph, out, opts = {}) {
             const params = (t.params || []).map(p => (typeof p === 'string' ? p : p.name)).filter(Boolean);
             out.push(`  - \`${t.id || 'trg'}\` trigger:layer_input  inputs: ${params.join(', ') || '(none)'}  (bind inside as trigger.output.<name>)`);
         } else {
-            out.push(`  - \`${t.id || 'trg'}\` trigger:${t.kind || 'manual'}`);
+            // The inputs an author declared are the only place their names are
+            // written down: list them with the path the steps bind, or the
+            // model has to guess (and invent) what trigger.output holds.
+            const declared = declaredTriggerFields(t).map(f => f.name);
+            const tool = t.kind === 'agent_call' && t.toolName ? `  tool: ${t.toolName}` : '';
+            const inputs = declared.length ? `  inputs: ${declared.join(', ')}  (bind as trigger.output.<name>)` : '';
+            out.push(`  - \`${t.id || 'trg'}\` trigger:${t.kind || 'manual'}${tool}${inputs}`);
         }
     }
     for (const x of (Array.isArray(graph.triggers) ? graph.triggers : [])) {

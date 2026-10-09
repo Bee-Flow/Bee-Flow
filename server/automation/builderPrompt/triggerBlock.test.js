@@ -61,6 +61,13 @@ test('two renders are the same bytes (memoised, global registry, no per-user inp
     assert.ok(block.length < 6000, `the block is the diet, not the catalogue: ${block.length} chars`);
 });
 
+test('agent_call and app_trigger are proposable from the lean band, with the binding path and the linking step', () => {
+    assert.match(block, /agent_call \{toolName, description, params:\[\{name,type,required,description\}\]\}/);
+    assert.match(block, /app_trigger \{params:/);
+    assert.match(block, /arrives as trigger\.output\.<name> \(there is no trigger\.payload\)/);
+    assert.match(block, /link it to an agent under "Who can call this" in the trigger panel/);
+});
+
 // ── The sidecar promises only what the runtime reads ────────────────────────
 
 const MATCHER_SOURCES = [

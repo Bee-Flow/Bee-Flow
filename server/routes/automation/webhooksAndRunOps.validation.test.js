@@ -153,6 +153,12 @@ test('args that are not an object are refused by name, instead of silently becom
     await refuses({ method: 'POST', url: '/a1/agent-invoke', body: { args: 'hello' } }, 'body.args');
 });
 
+test('agent-invoke is a human path: a body cannot claim an agent identity', async () => {
+    // No server-trusted agent id exists on an HTTP session, so a claimed one is
+    // refused as an unknown key instead of being believed.
+    await refuses({ method: 'POST', url: '/a1/agent-invoke', body: { args: {}, callerAgentId: 'agent-1' } }, 'body');
+});
+
 // ═══ POST /:id/form-pick ════════════════════════════════════════════
 
 test('a pick with no source is refused in words, before any app is searched', async () => {

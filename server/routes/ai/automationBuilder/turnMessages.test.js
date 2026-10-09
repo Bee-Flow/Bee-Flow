@@ -15,6 +15,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 const { composeTurnMessages, stablePrefixLength } = require('./turnMessages');
+const { historyForModel } = require('./chatTurnLoop');
 const { applyCatalogOrder, catalogOrderOf } = require('../../../automation/builderPrompt/rankApps');
 const { getProfile } = require('../../../automation/builderModelProfiles');
 const { systemPrefixFingerprint } = require('../../../core/llm/promptCacheStability');
@@ -252,4 +253,110 @@ test('(g) the lean prompt is written for the menu the band reads: lean menu on s
 
 test('deterministic: composing the same turn twice yields identical messages', () => {
     assert.deepStrictEqual(turn2().messages, turn2().messages);
+});
+
+// ── The id lists (agents, knowledge bases, the user's app_event providers) ──
+// They change when somebody creates an agent, so they ride in the LATE dynamic
+// message on every band: the system prompt is the front of the prompt cache and
+// must not feel them.
+
+const PICKERS = {
+    agents: [{ id: 'agt_1', name: 'Sales helper', description: 'Prices', scope: 'personal', canUse: true }],
+    agentsError: null,
+    knowledgeBases: [{ id: 'kb_1', name: 'Handbook', canWrite: true, scope: 'org' }],
+    knowledgeBasesError: null,
+    appEventProviders: [{ id: 'gmail', label: 'Gmail', events: [{ id: 'mail.new' }] }],
+    appEventProvidersError: null,
+};
+
+test('the id lists sit in the dynamic message on every band, never in the system prompt', () => {
+    for (const profile of [SMALL, MID]) {
+        const plain = turn2(profile);
+        const withLists = turn2(profile, { promptCatalog: { ...applyCatalogOrder(CATALOG, catalogOrderOf(TURN1_CATALOG)), ...PICKERS } });
+        assert.strictEqual(withLists.sys, plain.sys, 'the system prompt does not change when the lists do');
+        assert.deepStrictEqual(withLists.messages.slice(0, stablePrefixLength(plain.messages)), plain.messages.slice(0, stablePrefixLength(plain.messages)),
+            'and neither does anything before the dynamic message');
+        for (const needle of ['## Agents you may use', 'agt_1', '## Knowledge bases you may use', 'kb_1', '## App events you may use', 'gmail (Gmail): mail.new']) {
+            assert.ok(withLists.dynamicContext.includes(needle), `${needle} is in the dynamic message`);
+            assert.ok(!withLists.sys.includes(needle), `${needle} is not in the system prompt`);
+        }
+        assert.ok(!plain.dynamicContext.includes('Agents you may use'), 'a catalogue without the lists renders none');
+    }
+});
+
+test('the id lists come before the draft state, which stays last', () => {
+    const t = turn2(MID, { promptCatalog: { ...CATALOG, ...PICKERS } });
+    const d = t.dynamicContext;
+    assert.ok(d.indexOf('## Agents you may use') < d.indexOf('## This turn'));
+    assert.ok(d.indexOf('## This turn') < d.indexOf('Current draft — LIVE state'));
+});
+
+test('a list that could not be read renders its marker in the dynamic message', () => {
+    const t = turn2(MID, { promptCatalog: { ...CATALOG, agents: [], agentsError: 'identity unavailable' } });
+    assert.ok(t.dynamicContext.includes('the list of agents could not be read just now'));
+    assert.ok(!t.dynamicContext.includes('none — this user has no agent'));
+});
+
+test('a tool-only assistant turn leaves no empty message and no two user turns in a row', () => {
+    const answers = { role: 'user', content: 'Q: Which inbox?\nA: Finance' };
+    const history = [user1, { role: 'assistant', content: '' }, answers, { role: 'assistant', content: '  \n' }, { role: 'user', content: 'thanks' }];
+    assert.deepStrictEqual(historyForModel(history), [{ role: 'user', content: `${user1.content}\n\n${answers.content}\n\nthanks` }]);
+
+    const normal = [user1, assistant1, { role: 'user', content: 'and sort them' }];
+    assert.deepStrictEqual(historyForModel(normal), normal, 'a conversation without blank turns is untouched');
+    assert.deepStrictEqual(historyForModel([user1, { role: 'assistant', content: '' }]), [user1], 'a trailing blank turn is just dropped');
+});
+
+test('composeTurnMessages feeds the providers an alternating history after a questions turn', () => {
+    const t = composeTurnMessages({
+        profile: SMALL, modelId: MODEL, promptCatalog: TURN1_CATALOG, codeStepEnabled: false,
+        history: [user1, { role: 'assistant', content: '' }, { role: 'user', content: 'Q: Which inbox?\nA: Finance' }, assistant1],
+        message: 'go on', attachments: [], agentDraftState: DRAFT_STATE, draftIsEmpty: false, turnPrefs: PREFS,
+    });
+    assert.deepStrictEqual(t.windowedHistory.map(m => m.role), ['user', 'assistant']);
+    assert.ok(t.windowedHistory.every(m => m.content.trim()), 'no history message is empty');
+    assert.strictEqual(t.messages.at(-1).role, 'user');
+    assert.ok(t.windowedHistory[0].content.includes('A: Finance'));
+});
+
+test('an answer turn after a questions-only turn keeps the roles alternating', () => {
+    // Turn N only called builder_ask_questions, so the stored history ends [user, blank assistant]
+    // and the answer arrives as the new message.
+    const t = composeTurnMessages({
+        profile: SMALL, modelId: MODEL, promptCatalog: TURN1_CATALOG, codeStepEnabled: false,
+        history: [user1, { role: 'assistant', content: '' }],
+        message: 'Q: Which inbox?\nA: Finance', attachments: [], agentDraftState: DRAFT_STATE, draftIsEmpty: false, turnPrefs: PREFS,
+    });
+    const chat = t.messages.slice(1 + t.fewShotMessages.length).filter(m => m.role !== 'system');
+    assert.deepStrictEqual(chat.map(m => m.role), ['user'], 'one user turn, not two in a row');
+    assert.strictEqual(chat[0].content, `${user1.content}\n\nQ: Which inbox?\nA: Finance`);
+    assert.strictEqual(t.messages.at(-1), chat[0], 'it is the last message, behind the dynamic context');
+    assert.deepStrictEqual(t.windowedHistory, [], 'nothing of the history is left in front of it');
+
+    // With earlier turns before it, the roles alternate all the way and the prefix is untouched.
+    const longer = composeTurnMessages({
+        profile: SMALL, modelId: MODEL, promptCatalog: TURN1_CATALOG, codeStepEnabled: false,
+        history: [user1, assistant1, { role: 'user', content: 'and sort them' }, { role: 'assistant', content: '' }],
+        message: 'A: by date', attachments: [{ name: 'a.csv' }], agentDraftState: DRAFT_STATE, draftIsEmpty: false, turnPrefs: PREFS,
+    });
+    const roles = longer.messages.slice(1 + longer.fewShotMessages.length).filter(m => m.role !== 'system').map(m => m.role);
+    assert.deepStrictEqual(roles, ['user', 'assistant', 'user']);
+    assert.ok(longer.messages.at(-1).content.startsWith('and sort them\n\nA: by date'));
+    assert.ok(longer.messages.at(-1).content.includes('a.csv'));
+    assert.deepStrictEqual(longer.windowedHistory, [user1, assistant1]);
+});
+
+test('plan and discuss turns get no few-shots (they build with the checklist); build, approve and no work mode keep theirs', () => {
+    for (const profile of [SMALL, MID]) {
+        const base = turn1(profile);
+        assert.ok(base.fewShotMessages.length > 0, 'a fresh draft has examples');
+        for (const workMode of ['plan', 'discuss']) {
+            assert.deepStrictEqual(turn1(profile, { workMode }).fewShotMessages, [], `${workMode} on ${profile.promptVariant}`);
+        }
+        for (const workMode of ['build', 'approve', null]) {
+            assert.deepStrictEqual(turn1(profile, { workMode }).fewShotMessages, base.fewShotMessages, `${workMode} keeps the cached prefix`);
+        }
+    }
+    // The system prompt itself does not move with the mode.
+    assert.strictEqual(turn1(SMALL, { workMode: 'plan' }).sys, turn1(SMALL, { workMode: 'build' }).sys);
 });

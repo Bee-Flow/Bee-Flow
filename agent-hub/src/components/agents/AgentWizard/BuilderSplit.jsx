@@ -37,6 +37,7 @@ import { adoptedPromptAfterSave, saveAgent } from './state/agentSaveApi';
 import TestSetCard from './tests/TestSetCard';
 import useAgentTests from './tests/useAgentTests';
 import useAgentAutosave from './state/useAgentAutosave';
+import { useLinkedAutomationIds } from '../../../api/queries/automation/agentBindings';
 import useRelativeTime from '../../../hooks/useRelativeTime';
 import useTranslation from '../../../hooks/useTranslation';
 import { pickAgentAvatar, DEFAULT_AGENT_EMOJI } from '../../../utils/agentAvatar';
@@ -902,9 +903,14 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
         // er niets over.
         runtimeCurated,
     });
+    // Welke automatiseringen aan DEZE agent zijn gekoppeld: de runtime biedt een
+    // gegrante automatisering alleen aan als hij ook gekoppeld is. Alleen voor een
+    // opgeslagen agent; een mislukte lezing is `null` en dan zegt de rij er niets over.
+    const linkedAutomations = useLinkedAutomationIds(canUseActive ? agent?.id : null);
     const grantedAutomationRows = automationRows({
         toolsConfig,
         automations,
+        linkedIds: linkedAutomations.data ?? null,
         // `automations` is `[]` zolang de bootstrap loopt én wanneer de
         // organisatie de module niet heeft. Dat verschil kunnen we hier niet
         // zien, dus de grant blijft staan en de naam ontbreekt met uitleg —

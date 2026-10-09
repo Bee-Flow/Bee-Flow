@@ -59,7 +59,9 @@ function branchEdgeFor(draft, fromId, toId, { branch, caseName } = {}) {
         return edge;
     }
     const pred = (draft.steps || []).find(s => s.id === fromId);
-    if (pred && pred.type === 'condition') {
+    // A guard branches exactly like a condition: then = personal data found,
+    // else = clean (core/automationRunner/execFlow.js treats the two alike).
+    if (pred && (pred.type === 'condition' || pred.type === 'guard')) {
         let label = (branch === 'then' || branch === 'else') ? branch : null;
         if (!label) {
             const labels = new Set((draft.edges || []).filter(e => e.from === fromId).map(e => e.label));
@@ -87,9 +89,21 @@ function branchEdgeFor(draft, fromId, toId, { branch, caseName } = {}) {
  */
 function layerAwareAnchor(graph, afterStepId, newStepId) {
     const out = Array.isArray(graph.steps) ? graph.steps.find(s => s && s.type === 'layer_output') : null;
-    // No output, or an explicit anchor on a real (non-output) step → respect it.
-    if (!out || (afterStepId && afterStepId !== out.id)) {
-        return afterStepId || lastStepId(graph);
+    if (!out) return afterStepId || lastStepId(graph);
+    if (afterStepId && afterStepId !== out.id) {
+        // An explicit anchor on a real step is respected — but when that step
+        // is the one feeding the Return, "after it" is still before the
+        // Return. Leaving its plain edge into the Return in place made the new
+        // step a parallel branch BESIDE the Return: `builder_add_code_step
+        // ({afterStepId:"trg"})` in a fresh flowlet gave trg→out and trg→code,
+        // the Return ran before the code and the flowlet returned an empty
+        // record. A labelled edge (a then/else/case branch, on_error) is a
+        // deliberate route and stays where it is.
+        const feed = Array.isArray(graph.edges)
+            ? graph.edges.find(e => e && e.from === afterStepId && e.to === out.id && (!e.label || e.label === 'on_success'))
+            : null;
+        if (feed) feed.from = newStepId;
+        return afterStepId;
     }
     const feed = Array.isArray(graph.edges) ? graph.edges.find(e => e && e.to === out.id) : null;
     const anchor = feed ? feed.from : (graph.trigger?.id || lastStepId(graph));
@@ -132,7 +146,7 @@ function spliceSuccessors(draft, anchorId, step, newEdge) {
         if ((e.label || null) !== label) continue;
         e.from = step.id;
         delete e.caseName;
-        if (step.type === 'condition') e.label = 'then';
+        if (step.type === 'condition' || step.type === 'guard') e.label = 'then';
         else if (firstCase) { e.label = `case:${firstCase}`; e.caseName = firstCase; }
         else delete e.label;
         moved++;

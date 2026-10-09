@@ -24,35 +24,33 @@
  * for a tool the catalog does not know (see applyAddAction). That ordering is
  * what keeps a third-party MCP tool that happens to be called `filter` working.
  *
- * STEP_TYPES duplicates the keys of ADD_FOR_TYPE (builderTools/stepBuilders.js)
- * rather than importing them, because stepBuilders requires this module.
- * builtinStepTools.test.js asserts the two never drift apart.
+ * STEP_TYPES reads the step-type table (builderTools/stepTypeTable.js), the same
+ * list ADD_FOR_TYPE is built from; builtinStepTools.test.js asserts the two agree.
  */
+const { REPLACEABLE_STEP_TYPES } = require('./builderTools/stepTypeTable');
 
-/** Every built-in step type the builder can create. Keys of ADD_FOR_TYPE. */
-const STEP_TYPES = new Set([
-    'integration_action', 'ai_step', 'condition', 'guard', 'tokenize', 'switch',
-    'code', 'notification', 'set', 'http_request', 'generate_document', 'fill_document',
-    'slide', 'presentation',
-    // A step type like ai_step: nothing for an admin to toggle, so a model
-    // reaching for builder_add_action({tool:'data_extraction'}) is redirected
-    // to builder_add_data_extraction rather than told about permissions.
-    'data_extraction',
-    'datetime', 'wait', 'stop_error', 'form_page', 'approval', 'filter',
-    'limit', 'dedupe', 'aggregate', 'summarize', 'flatten', 'call_layer', 'loop',
-    'datatable', 'knowledge_write',
-]);
+/**
+ * Every built-in step type the builder can create: the keys of ADD_FOR_TYPE,
+ * which are the REPLACEABLE_STEP_TYPES of the step-type table (a pure data
+ * module, so this one can import it where it cannot import stepBuilders).
+ * data_extraction, for instance, is a step type like ai_step: nothing for an
+ * admin to toggle, so a model reaching for builder_add_action({tool:'data_extraction'})
+ * is redirected to builder_add_data_extraction rather than told about permissions.
+ */
+const STEP_TYPES = new Set(REPLACEABLE_STEP_TYPES);
 
 /**
  * Step types whose builder tool is not simply `builder_add_<type>`.
- * `guard` and `tokenize` have no add tool at all — they are produced by other
- * paths — so they map to null and the caller falls back to a generic hint.
+ * `guard`, `tokenize` and `untokenize` have no add tool at all — they are made
+ * in a builder_add_steps batch — so they map to null and the caller falls back to
+ * a generic hint.
  */
 const TOOL_NAME_OVERRIDES = {
     integration_action: 'builder_add_action',
     code: 'builder_add_code_step',
     guard: null,
     tokenize: null,
+    untokenize: null,
     // The five array ops each have a builder_add_<type> tool, but the unified
     // builder_add_array_op is the one small models are given (CORE_TOOL_NAMES),
     // so point every one of them at it.

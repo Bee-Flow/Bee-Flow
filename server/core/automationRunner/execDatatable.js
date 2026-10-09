@@ -72,7 +72,7 @@
 const { resolveValue, resolveInputs } = require('../../automation/bind');
 const { hasPlaceholder } = require('../../automation/validate/refPaths');
 const {
-    DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT,
+    DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT, PENDING_DATATABLE_RE,
 } = require('../../automation/validate/constants');
 // Literals only — no store, no pool — so this one may be required eagerly.
 const { SYSTEM_COLUMNS } = require('../dataEngine/dataModel/vocabulary');
@@ -175,6 +175,21 @@ function readCursor(binding, runState) {
 async function execDatatable(step, ctx, runState, mode) {
     const op = step.op || 'find_rows';
     const isWrite = DATATABLE_WRITE_OPS.has(op);
+
+    // A table the builder only PROPOSED ("pending:<n>", not created until the
+    // user applies the proposal). Before any lookup: resolveDatatableForStep
+    // would call it unknown. A preview simulates it (reads return the empty
+    // shape, which is true of a new table; a write returns what it would
+    // write); a live run must never get here, and fails closed.
+    if (typeof step.datatableId === 'string' && PENDING_DATATABLE_RE.test(step.datatableId)) {
+        if (mode !== 'dry_run') {
+            throw fail('This step points at a table that was proposed but never created. Apply the proposal that creates it, or pick a table.', 'datatable_pending');
+        }
+        const preview = (op === 'add_row' || op === 'save_row')
+            ? { row: resolveInputs(step.values || {}, runState, { allowSecrets: false, listAs: 'json' }), id: null, created: true, updated: 0 }
+            : emptyOutput(op);
+        return { output: { ...preview, _dryRunSynthesised: true, _pendingTable: step.datatableId } };
+    }
 
     // Required lazily: the runner must stay loadable in suites that stub the DB,
     // and these pull in the pg pool.

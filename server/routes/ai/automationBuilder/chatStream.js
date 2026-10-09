@@ -50,6 +50,14 @@
  *                    refused). The last two carry `rejected: { tool, error,
  *                    label }` and are followed by ONE `message` sentence for
  *                    the user.
+ *   review_plan    — { plan } — the plan under review: status review | building |
+ *                    paused | built, version, steps (a plan the user approves
+ *                    with the Build button: body approvedPlanId)
+ *   review_questions — { questions, planId } — ONE card of at most 6 questions
+ *                    per plan (planId = the approved plan the questions pause,
+ *                    null in a planning turn)
+ *   plan           — { todos } — the build checklist (emptied in Plan first and
+ *                    Discuss, seeded from the approved plan's steps in a build)
  *   done / error
  */
 
@@ -84,8 +92,11 @@ const { runDelegationTool } = require('./layerDelegation');
 const { streamWithRetry } = require('./modelStream');
 const { inferPlanProgress } = require('./planProgress');
 const { INSPECTION_NAMES, INSPECTION_TOOLS, inspect } = require('./inspectionTools');
-const { MODES, PLAN_TOOL, QUESTIONS_TOOL, LARGE_CHANGE_STEPS, writeQuestions, toolAllowed, modeInstruction, writePlan, changedSteps,
-    isBlankDraft, pendingProposal, reviewStatusNote, withChangeStatus, markStagedView } = require('./workMode');
+const { resolveWebResearch, runWebResearchTool, isWebResearchTool, webResearchPromptLine } = require('./webResearch');
+const { MODES, MAX_QUESTIONS, PLAN_TOOL, QUESTIONS_TOOL, LARGE_CHANGE_STEPS, writeQuestions, toolAllowed, previewRefusal, planMentionsRemoval, planCoversRemoval, resolveRemovalTarget, modeInstruction, writePlan, changedSteps,
+    isBlankDraft, pendingProposal, reviewStatusNote, questionStatusNote, withChangeStatus, markStagedView } = require('./workMode');
+const { withoutStagedTableIssues } = require('../../../automation/builderTools/pendingDatatables');
+const { setupDatatableTurn, proposalPreviewPayload, clientSnapshot, clientProposal } = require('./datatableTurn');
 const { createThoughtNarrator } = require('./thoughtNarrator');
 const { composeTurnMessages } = require('./turnMessages');
 const { scanToolDraft, deriveDraftKey, makeDraftThrottle, makeProgressThrottle } = require('./toolDraft');
@@ -333,7 +344,15 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         let reviewPlan = snapshot?.reviewPlan || null;
         let reviewQuestions = null;
         const planCurrent = !reviewPlan?.baseDefinition || JSON.stringify(reviewPlan.baseDefinition) === JSON.stringify(draftWrap.def);
-        const approvedPlan = workMode === 'plan' && approvedPlanId && reviewPlan?.id === approvedPlanId && ['review', 'paused'].includes(reviewPlan.status) && planCurrent ? reviewPlan : null;
+        // A plan under review is built only against the draft it was written for.
+        // A plan already being built (`building`: the build is not finished;
+        // `paused`: it stopped for a question or a step) is the user's own work
+        // going on: they may have touched the canvas in between, and refusing
+        // every follow-up for that would leave the composer on "Building plan"
+        // with no way to continue. Any work mode may carry the id (the composer
+        // sends the mode the user chose and the id of the plan being built).
+        const approvedPlan = !!req.body.workMode && approvedPlanId && reviewPlan?.id === approvedPlanId
+            && (reviewPlan.status === 'review' ? planCurrent : ['paused', 'building'].includes(reviewPlan.status)) ? reviewPlan : null;
         if (approvedPlanId && !approvedPlan) {
             send('error', { error: 'This plan revision is no longer available. Review and approve the latest plan.' });
             return res.end();
@@ -344,6 +363,10 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         const bufferedBuild = turnMode === 'build' && alwaysPlanLarge && !approvedPlan && !isBlankDraft(draftWrap.def);
         const permissionMode = bufferedBuild ? 'approve' : turnMode;
         const isolated = turnMode !== 'build' || bufferedBuild;
+        // An approved plan that names a step to remove lets this build turn call
+        // builder_remove_step — for exactly the steps that plan names (checked per
+        // call at the dispatch below). Never in a buffered build, which stages.
+        const planAllowsRemoval = !!approvedPlan && !bufferedBuild && planMentionsRemoval(approvedPlan);
         let pausedAfterStep = false;
         let baseDraft = structuredClone(draftWrap.def);
         let baseTitle = draftWrap.title;
@@ -351,12 +374,31 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // Preview mutations operate on their own copy; the persisted definition
         // and all runtime actions remain untouched until a human applies it.
         if (isolated) draftWrap.def = structuredClone(baseDraft);
+        // A dry run in an isolated turn runs the STAGED definition in memory and
+        // saves nothing (builderTools: builder_request_dry_run). The proposal is
+        // the user's to apply; the saved draft stays as it was.
+        draftWrap._stagedDryRun = isolated;
         // A proposal from an earlier turn that still waits for Apply. An
         // isolated turn works ON it, so the agent's draft view shows what it
         // staged and a follow-up adds to the proposal instead of starting over
         // from the live draft (BFSF-486). The live draft stays the base.
         const savedProposal = pendingProposal(snapshot?.proposal, baseDraft);
         const reviewOutcome = snapshot?.reviewOutcome || null;
+        // ── The question round of a plan ──
+        // One round per plan cycle, everything asked at once. The cycle starts
+        // with the first plan turn after a built, rejected or missing plan and
+        // ends when builder_write_plan succeeds. The server remembers that it
+        // asked (`questionsMeta` in the snapshot): the model alone did not, and
+        // asked again after every answer.
+        const priorQuestions = Array.isArray(snapshot?.reviewQuestions) && snapshot.reviewQuestions.length ? snapshot.reviewQuestions : null;
+        const cycleOver = (reviewOutcome?.kind === 'plan' && reviewOutcome.status === 'rejected') || snapshot?.reviewPlan?.status === 'built';
+        const priorMeta = cycleOver ? null : (snapshot?.questionsMeta || null);
+        let planCycleRound = (turnMode === 'plan' && priorMeta?.mode === 'plan') ? (priorMeta.round || 0) : 0;
+        // The previous turn showed the card and this turn is the user's reply
+        // (the card's answers or a typed message): the plan follows now.
+        const answerTurn = turnMode === 'plan' && !!priorQuestions;
+        const questionsClosed = turnMode === 'plan' && (planCycleRound >= 1 || answerTurn);
+        let planWritten = false;
         if (isolated && savedProposal) {
             draftWrap.def = structuredClone(savedProposal.definition);
             if (typeof savedProposal.title === 'string') draftWrap.title = savedProposal.title;
@@ -369,11 +411,26 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // client uses this to rehydrate any chat history + draft +
         // validation state that was lost on a dropped SSE.
         if (wantsResume && snapshot) {
-            send('resume', { snapshot });
+            send('resume', { snapshot: clientSnapshot(snapshot) });
             if (Array.isArray(snapshot.todos) && snapshot.todos.length) send('plan', { todos: snapshot.todos });
         }
         // Per-turn to-do list (builder_set_plan), carried across turns.
         draftWrap._todos = Array.isArray(snapshot?.todos) ? snapshot.todos : [];
+        // The checklist belongs to a build. A list from an earlier turn would
+        // tick and spin in Plan first (the owner saw "Plan 3/4" with no Build
+        // button) and its items ("wait for approval") tell an approved build to
+        // wait. So: nothing in a planning or discussing turn, and the approved
+        // plan's own steps in a build. A paused or continuing build keeps the
+        // list it has when it is already that plan's, so its progress survives.
+        if (approvedPlan) {
+            const steps = Array.isArray(approvedPlan.steps) ? approvedPlan.steps.filter(t => typeof t === 'string') : [];
+            const sameList = draftWrap._todos.length === steps.length && steps.every((t, i) => draftWrap._todos[i]?.text === t);
+            if (!sameList) draftWrap._todos = steps.map(text => ({ text, done: false }));
+            send('plan', { todos: draftWrap._todos });
+        } else if (req.body.workMode && (turnMode === 'plan' || turnMode === 'discuss')) {
+            draftWrap._todos = [];
+            send('plan', { todos: [] });
+        }
         // Catalogue order fixed on this session's first turn; null until then.
         const storedCatalogOrder = Array.isArray(snapshot?.catalogOrder) ? snapshot.catalogOrder : null;
 
@@ -429,6 +486,11 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             draftWrap._datatables = null;
         }
         catalog.datatables = draftWrap._datatables;
+        // Tables and consent (builderTools/pendingDatatables, datatableApproval).
+        // Set AFTER catalog.datatables above, which stays the plain list, so the
+        // cached prompt block does not change when a proposal stages a table;
+        // the model learns of staged tables from the review note instead.
+        const tableChoice = await setupDatatableTurn({ draftWrap, catalog, req, userId, snapshot, savedProposal, baseDraft, approvedPlan, history, message, isolated, permissionMode });
 
         // The DESIGNED documents this user may fill — rendered as the
         // "Documents you may fill" block and read by builder_add_fill_document
@@ -443,6 +505,14 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             draftWrap._documents = null;
         }
         catalog.documents = draftWrap._documents;
+
+        // The lists the model fills ids from — agents, knowledge bases, and the
+        // app_event providers THIS user has — with the canvas pickers' own
+        // permission filters. Each fails into its own "could not read" marker
+        // (never into "none"), and none of them throws. They are rendered into
+        // the late dynamic message, not the cached system prompt.
+        Object.assign(catalog, await require('../../../automation/builderPickerCatalog')
+            .buildPickerCatalogsForUser(userId, req.session, catalog));
 
         // Human-readable summary — seeds `lastSummary` (the "What this
         // automation does" panel + builder_session snapshot). User-facing, so
@@ -608,6 +678,15 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             } catch (e) { log.warn('[AutomationBuilder] schema injection skipped:', e.message); }
         }
 
+        // The composer's Web search toggle: whether the builder model ITSELF
+        // may search this turn, behind the gates direct chat uses. The client
+        // hears the answer so a toggle that cannot work says why.
+        const webResearch = await resolveWebResearch({
+            requested: !!webSearchEnabled, userId, orgId: userOrgForTiers,
+            session: req.session, isAdmin: !!req.session?.isAdmin, attachments, history,
+        });
+        send('web_search', { requested: !!webSearchEnabled, available: webResearch.offered, reason: webResearch.reason });
+
         // Compose the turn: [system] [few-shots] [history window] [dyn] [user].
         // Everything before `dyn` is a pure function of session state, so the
         // prompt-prefix cache survives from one user turn to the next; the
@@ -618,12 +697,14 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             profile, modelId, promptCatalog, codeStepEnabled,
             history, message, attachments,
             agentDraftState, draftIsEmpty, canvasScope, schemaPart,
+            workMode: req.body.workMode ? turnMode : null,
             // The draft-state message opens with the name, or with the fact
             // that there is none yet (renderDraftStateSystemMessage).
             title: draftWrap.title,
             turnPrefs: {
                 userTimezone: timezone || 'Europe/Amsterdam',
                 webSearchEnabled: !!webSearchEnabled,
+                webResearchLine: webResearchPromptLine(webResearch),
                 disabledMedia: disabledMedia || {},
                 // The ONLY ai_step modelTier values this user has (validated
                 // server-side by modelTierGateError as well).
@@ -631,7 +712,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             },
         });
 
-        if (req.body.workMode) messages.push({ role: 'system', content: modeInstruction(turnMode, approvedPlan) + (bufferedBuild ? `\nChanges are staged to check their size. Fewer than ${LARGE_CHANGE_STEPS} changed steps are applied at the end of this turn; ${LARGE_CHANGE_STEPS} or more become a proposal the user applies with one click. Do not claim staged changes are applied. Do not test until staging is committed.` : '') + reviewStatusNote({ outcome: reviewOutcome, pending: savedProposal, isolated }) + (approvedPlan && pauseAfterStep ? '\nPause after ONE step change. Avoid batches; the user must explicitly continue before the next step. Read the current draft to avoid repeating completed changes.' : '') + (selectedStepId ? `\nThe user's selected step is ${selectedStepId}. Resolve its label and settings from the draft above.` : '') });
+        if (req.body.workMode) messages.push({ role: 'system', content: modeInstruction(turnMode, approvedPlan) + (bufferedBuild ? `\nChanges are staged to check their size. Fewer than ${LARGE_CHANGE_STEPS} changed steps are applied at the end of this turn; ${LARGE_CHANGE_STEPS} or more become a proposal the user applies with one click. Do not claim staged changes are applied. You may dry-run them: the run uses the staged definition and saves nothing.` : '') + reviewStatusNote({ outcome: reviewOutcome, pending: savedProposal, isolated, liveDef: baseDraft, choice: tableChoice, plan: turnMode === 'plan' ? reviewPlan : null, planCurrent }) + questionStatusNote({ prior: priorQuestions, answeredText: message, mode: turnMode, approvedPlan }) + (approvedPlan && pauseAfterStep ? '\nPause after ONE step change. Avoid batches; the user must explicitly continue before the next step. Read the current draft to avoid repeating completed changes.' : '') + (selectedStepId ? `\nThe user's selected step is ${selectedStepId}. Resolve its label and settings from the draft above.` : '') });
 
         // Filter the tool schema set: by feature flag AND by profile.
         // The 'core' subset shrinks the tool menu from 26 to 13 for small
@@ -646,7 +727,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // in builderTools/schemaProjection.js — shorter texts, shared params
         // once, four tools fewer; 'full' is the identity and keeps the very
         // objects the cloud bands' prompt caches hold.
-        tools = projectToolSchemas(tools, { variant: profile.schemaVariant });
+        tools = projectToolSchemas(tools, { variant: profile.schemaVariant, codeStepEnabled });
 
         // Inspection tools: if the user has the webpages beta, expose the
         // same surface the direct-chat AI uses (schema/query/exec, file
@@ -689,19 +770,33 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             }
         }
         if (req.body.workMode) {
-            tools = tools.filter(t => (toolAllowed(t.function.name, permissionMode) && !(bufferedBuild && t.function.name === 'builder_remove_step')) || (bufferedBuild && t.function.name === 'builder_request_dry_run'));
-            tools.push(...INSPECTION_TOOLS, QUESTIONS_TOOL);
+            tools = tools.filter(t => toolAllowed(t.function.name, permissionMode, { planAllowsRemoval }) && !(bufferedBuild && t.function.name === 'builder_remove_step'));
+            tools.push(...INSPECTION_TOOLS);
+            // After the user's answers the plan follows; the card is not offered
+            // again (and a hallucinated call is refused at the dispatch).
+            if (!questionsClosed) tools.push(QUESTIONS_TOOL);
             if (turnMode === 'plan') tools.push(PLAN_TOOL);
         }
+        // After the work-mode filter on purpose: the web tools only read, so
+        // every mode may use them (workMode.js READ_TOOLS), and on every model
+        // band, because the turn's prompt line documents them.
+        for (const tool of webResearch.tools) {
+            if (!tools.find(t => t.function.name === tool.function.name)) tools.push(tool);
+        }
+        // What the model can call this turn, so a hint names a tool it has
+        // (a type change is sent as replace_step, or as an update_step patch
+        // where the small-model menu has no replace_step).
+        draftWrap._offeredTools = new Set(tools.map(t => t.function.name));
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../../../integrations/webpageAutomationTools');
         // The webpage tools above are the org's own tools (the dispatcher's
         // webpage_db_query / webpage_file_read / ...), called here on behalf of
         // the builder's model. The Privacy Shield tool block lists ("Outside
         // tools" / "Own server") hold for them as in direct chat (BFSF-354):
         // the turn's shield, resolved on the first such call only. A failed
-        // lookup leaves the lists unapplied, as a missing shield does.
+        // lookup leaves the lists unapplied, as a missing shield does. The web
+        // research tools (agent_search, read_url) go through the same gate.
         const toolPiiGate = require('../../../core/privacy/toolPiiGate');
-        let shieldLookup = null; // started by the first webpage tool call
+        let shieldLookup = null; // started by the first webpage or web tool call
         const webpageToolGate = toolPiiGate.toolLoopGate({
             shield: () => (shieldLookup ??= toolPiiGate.resolveToolShield(
                 () => require('../../../core/privacy/orgShield').resolveShieldFor({ orgId: userOrgForTiers, userId }), 'AutomationBuilder')),
@@ -791,6 +886,10 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // One re-pin of tool_choice after a prose round on an empty draft.
         let repinToolChoice = false;
         let prosePinUsed = false;
+        // One nudge per turn each: a plan turn that ended without a plan, and an
+        // approved build that ended with its checklist still open.
+        let planGuardUsed = false;
+        let buildGuardUsed = false;
         const INVALID_ARGS_MAX_RETRIES = 2;
         // Every event the loop emits from here on passes the narrator, which
         // observes only `thinking` / `thinking_stop` and forwards the rest
@@ -828,7 +927,12 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             // model that has already made progress can still stop and talk.
             // Verified on the demo box 2026-09-16: llama-server honours
             // tool_choice:'required' on later rounds, not just the first.
-            const turnToolChoice = (turnMode !== 'discuss' && turnMode !== 'plan' && profile.forceFirstToolCall && (iter === 0 || repinToolChoice))
+            // A plan turn is never pinned on round 0 (it may only answer a
+            // question); the plan end guard pins it once, and only where a forced
+            // choice is safe (no extended thinking: see the note above).
+            const turnToolChoice = (turnMode === 'plan'
+                ? repinToolChoice
+                : (turnMode !== 'discuss' && profile.forceFirstToolCall && (iter === 0 || repinToolChoice)))
                 ? 'required'
                 : 'auto';
             repinToolChoice = false;
@@ -1034,18 +1138,55 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
                         continue;
                     }
-                    const unchangedRun = bufferedBuild && name === 'builder_request_dry_run' && draftWrap.automationId && JSON.stringify(baseDraft) === JSON.stringify(draftWrap.def);
-                    if (req.body.workMode && !toolAllowed(name, permissionMode) && !unchangedRun) {
-                        toolResult = { error: `This tool is not permitted in ${turnMode} mode. Read, explain or propose a plan instead. Removing a step needs a human-approved proposal.` };
+                    if (req.body.workMode && !toolAllowed(name, permissionMode, { planAllowsRemoval })) {
+                        toolResult = { error: previewRefusal(name, turnMode) };
                         send('tool_call', { name, arguments: args, result: toolResult });
                         messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
                         refusedThisIter = true;
                         continue;
                     }
+                    // An approved plan lets the build turn remove the steps IT names
+                    // and no others: the plan line must say remove and name the step.
+                    if (planAllowsRemoval && name === 'builder_remove_step') {
+                        // Looked up in the graph the call changes (its scope), and a step that
+                        // is not found there is refused, never waved through: the check must
+                        // not depend on the tool failing on its own.
+                        const target = resolveRemovalTarget(draftWrap.def, args);
+                        if (!target || !planCoversRemoval(approvedPlan, target)) {
+                            toolResult = { error: target
+                                ? `The approved plan does not name "${target.label || target.id}" for removal, so it is not removed. Removing a step the plan does not name needs a separate human-approved proposal.`
+                                : `Unknown stepId "${args?.stepId}"${args?.scope ? ` in flowlet "${args.scope}"` : ''}. Nothing was removed; read the draft for the existing step ids.` };
+                            send('tool_call', { name, arguments: args, result: toolResult });
+                            messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+                            refusedThisIter = true;
+                            continue;
+                        }
+                    }
+                    // The plan is written: the user decides now. Whatever else the
+                    // reply held (a checklist, a summary, more questions) is not run.
+                    if (planWritten) {
+                        toolResult = { error: 'The plan is written and waits for the user. Stop here.' };
+                        send('tool_call', { name, arguments: args, result: toolResult });
+                        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+                        continue;
+                    }
                     if (req.body.workMode && name === 'builder_ask_questions') {
-                        reviewQuestions = writeQuestions(args);
-                        toolResult = reviewQuestions ? { ok: true, awaitingAnswers: true } : { error: 'Provide 1–3 questions with 2–4 answers each.' };
-                        if (reviewQuestions) send('review_questions', { questions: reviewQuestions });
+                        // A table choice is consent, not clarification: it is allowed
+                        // after the round is spent. Everything else is refused.
+                        const asksTable = Array.isArray(args?.questions) && args.questions.some(q => q && Array.isArray(q.datatableIds) && q.datatableIds.length);
+                        if (questionsClosed && !asksTable) {
+                            toolResult = { error: 'You already asked your questions for this plan and the user answered. Do not ask again: call builder_write_plan now and list what is still open under assumptions.' };
+                            send('tool_call', { name, arguments: args, result: toolResult });
+                            messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+                            refusedThisIter = true;
+                            continue;
+                        }
+                        const written = writeQuestions(args, { datatables: draftWrap._datatables });
+                        reviewQuestions = written ? written.questions : null;
+                        toolResult = written
+                            ? { ok: true, awaitingAnswers: true, ...(written.dropped ? { _note: `${written.dropped} question(s) were not shown (limit ${MAX_QUESTIONS}). Put what they would have settled under assumptions.` } : {}) }
+                            : { error: `Provide 1–${MAX_QUESTIONS} questions, each with 2–4 short answers (a table question: datatableIds from the Datatables block, plus createLabel).` };
+                        if (reviewQuestions) send('review_questions', { questions: reviewQuestions.map(({ choice, ...q }) => q), planId: approvedPlan?.id || null });
                         send('tool_call', { name, arguments: args, result: toolResult });
                         messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
                         acceptedThisIter = !!reviewQuestions;
@@ -1066,9 +1207,36 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         acceptedThisIter = !toolResult.error;
                         continue;
                     }
+                    if (webResearch.offered && isWebResearchTool(name)) {
+                        const out = await runWebResearchTool(name, args, {
+                            research: webResearch, gate: webpageToolGate,
+                            ids: { userId, orgId: userOrgForTiers, automationId: draftWrap.automationId || null, modelId: modelId || null },
+                        });
+                        toolResult = out.result;
+                        send('tool_call', { name, arguments: args, result: toolResult });
+                        messages.push({
+                            role: 'tool',
+                            tool_call_id: tc.id,
+                            // A web page is outside data: the shield's block
+                            // lists strip what this tool class may not carry.
+                            content: out.modelText != null ? await webpageToolGate.forModel(out.modelText, name) : JSON.stringify(toolResult),
+                        });
+                        if (toolResult.error) { refusedThisIter = true; lastRefusal = { tool: name, error: String(toolResult.error), label: name }; }
+                        else acceptedThisIter = true;
+                        continue;
+                    }
                     if (name === 'builder_write_plan' && turnMode === 'plan') {
-                        const nextPlan = writePlan(args, reviewPlan);
-                        if (nextPlan) { reviewPlan = { ...nextPlan, baseDefinition: structuredClone(baseDraft) }; send('review_plan', { plan: reviewPlan }); }
+                        const nextPlan = writePlan(args, reviewPlan, { datatables: draftWrap._datatables });
+                        if (nextPlan) {
+                            reviewPlan = { ...nextPlan, baseDefinition: structuredClone(baseDraft) };
+                            send('review_plan', { plan: reviewPlan });
+                            // The plan ends the cycle and the turn. A checklist from
+                            // before it would sit beside the Build button.
+                            planWritten = true;
+                            planCycleRound = 0;
+                            draftWrap._todos = [];
+                            send('plan', { todos: [] });
+                        }
                         toolResult = nextPlan ? { ok: true, planId: nextPlan.id, awaitingApproval: true } : { error: 'Provide a title, goal and non-empty list of step descriptions.' };
                         send('tool_call', { name, arguments: args, result: toolResult });
                         messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
@@ -1081,7 +1249,10 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         // Full-list form replaces the plan; the cheap
                         // `markDone` diff form flips existing items so a
                         // progress update doesn't resend the whole list.
-                        const todos = (Array.isArray(args.todos) && args.todos.length)
+                        // In an approved build the list IS the plan's steps: a model
+                        // that rewrites it loses the plan the user approved.
+                        const replacing = Array.isArray(args.todos) && args.todos.length;
+                        const todos = (replacing && !approvedPlan)
                             ? normalizePlanTodos(args.todos)
                             : applyPlanMarkDone(draftWrap._todos || [], args.markDone);
                         draftWrap._todos = todos;
@@ -1094,6 +1265,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                             ok: true,
                             todos: todos.map((t, i) => ({ i, text: t.text, done: !!t.done })),
                             next: (todos.find(t => !t.done) || {}).text || null,
+                            ...(replacing && approvedPlan ? { _note: 'The checklist is the approved plan; only markDone is applied.' } : {}),
                         };
                         send('plan', { todos });
                         send('tool_call', { name, arguments: args, result: planResult });
@@ -1118,7 +1290,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                             await persistDraftWrap(draftWrap);
                             send('draft', { definition: draftWrap.def, automationId: draftWrap.automationId });
                         }
-                        else if (!bufferedBuild) send('proposal_preview', { definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description });
+                        else if (!bufferedBuild) send('proposal_preview', proposalPreviewPayload(draftWrap, baseDraft));
                         mutatedThisIter = true; // post-loop validation feedback runs
                         messages.push({ role: 'tool', tool_call_id: tc.id, content: typeof toolResult === 'string' ? toolResult : truncateToolResultJson(toolResult) });
                         if (toolResult && typeof toolResult === 'object' && toolResult.error) {
@@ -1221,7 +1393,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                     // list and the entries that produced it.
                     const partialBatch = toolResult && typeof toolResult === 'object' && toolResult.error
                         && Array.isArray(toolResult.added) && toolResult.added.length > 0;
-                    if (Array.isArray(draftWrap._todos) && draftWrap._todos.length
+                    if (turnMode !== 'plan' && turnMode !== 'discuss' && Array.isArray(draftWrap._todos) && draftWrap._todos.length
                         && toolResult && typeof toolResult === 'object' && (!toolResult.error || partialBatch)) {
                         const evidence = partialBatch
                             ? {
@@ -1243,6 +1415,15 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         }
                     }
                     if (req.body.workMode && mutates(name)) withChangeStatus(toolResult, { isolated, buffered: bufferedBuild && !savedProposal });
+                    if (name === 'builder_create_datatable') {
+                        if (req.body.workMode) withChangeStatus(toolResult, { isolated: draftWrap._stageDatatables, buffered: bufferedBuild });
+                        // A staged table changes the proposal (not the graph): it needs the
+                        // validation feedback and, outside a buffered build, a fresh preview.
+                        if (draftWrap._stageDatatables && toolResult?.staged) {
+                            mutatedThisIter = true;
+                            if (!bufferedBuild) send('proposal_preview', proposalPreviewPayload(draftWrap, baseDraft));
+                        }
+                    }
                     if (req.body.workMode && name === 'builder_summarise') markStagedView(toolResult, isolated && JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def));
                     send('tool_call', { name, arguments: args, result: toolResult });
                     // A rejected call, with the arguments that were rejected.
@@ -1284,7 +1465,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                             await persistDraftWrap(draftWrap);
                             send('draft', { definition: draftWrap.def, automationId: draftWrap.automationId });
                         }
-                        else if (!bufferedBuild) send('proposal_preview', { definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description });
+                        else if (!bufferedBuild) send('proposal_preview', proposalPreviewPayload(draftWrap, baseDraft));
                         if (approvedPlan && pauseAfterStep && JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def)) pausedAfterStep = true;
                         mutatedThisIter = true;
                     }
@@ -1338,7 +1519,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         acceptedThisIter = true;
                     }
                 }
-                if (reviewQuestions || pausedAfterStep) break;
+                if (reviewQuestions || pausedAfterStep || planWritten) break;
 
 
                 // Validation feedback loop: after any mutation, validate the
@@ -1367,6 +1548,9 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                 // stays unfiltered — user-facing behaviour is unchanged.
                 if (mutatedThisIter || testedThisIter) {
                     lastValidation = validateDefinition(draftWrap.def, { deliverableEvents: getDeliverableEvents() });
+                    // A step on a table this proposal stages is fine; the validator
+                    // flags every pending id, and only the ones nobody staged stay.
+                    if (isolated) lastValidation = withoutStagedTableIssues(lastValidation, new Set((draftWrap._pendingDatatables || []).map(e => e.ref)));
                     send('validation_errors', { errors: lastValidation.errors, warnings: lastValidation.warnings });
                     const note = renderValidationNote(lastValidation, { tested: testedThisIter });
                     if (note) messages.push({ role: 'user', content: note });
@@ -1462,6 +1646,10 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             // plainly instead of ending on a silent `done`.
             const emptyReply = isBlankReply(response.content);
             const rejectedLeaks = recoveredRound ? recoveredRound.rejected : [];
+            // The plan nudge on a turn where the user only asked something: the
+            // answer was already given, an empty reply to the nudge is the model
+            // agreeing. It is not "stopped twice".
+            if (emptyReply && planGuardUsed && !answerTurn && !planWritten && !rejectedLeaks.length) break;
             if (emptyReply || rejectedLeaks.length) {
                 if (emptyReplyRetries < 1) {
                     emptyReplyRetries++;
@@ -1485,6 +1673,38 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                 messages.push({
                     role: 'user',
                     content: '[Instructions from the system — not written by the user]\nNothing has been built yet. Make the next change by CALLING A TOOL now — do not describe it.',
+                });
+                continue;
+            }
+            // A plan turn ends in a plan or in questions, never in prose about
+            // a plan (RC3: the user was left with nothing to approve). One nudge
+            // with the tool list unchanged, so the prompt cache holds. A forced
+            // tool choice only where it is safe: after the user's answers, on a
+            // model without extended thinking (forceFirstToolCall).
+            if (turnMode === 'plan' && !planWritten && !planGuardUsed) {
+                planGuardUsed = true;
+                repinToolChoice = answerTurn && !!profile.forceFirstToolCall;
+                log.warn(`[AutomationBuilder] round ${iter} ended a plan turn in prose without a plan — nudging once${answerTurn ? ' (answer turn)' : ''}`);
+                messages.push({ role: 'assistant', content: response.content });
+                messages.push({
+                    role: 'user',
+                    content: answerTurn
+                        ? '[Instructions from the system — not written by the user]\nThe user answered your questions. End this turn by CALLING builder_write_plan now; put anything still open under assumptions.'
+                        : '[Instructions from the system — not written by the user]\nPlan first: if the user asked for a change or a new automation, end this turn by calling builder_write_plan. If they only asked a question, your answer is complete: reply with nothing more.',
+                });
+                continue;
+            }
+            // An approved build is finished when its checklist is. A model that
+            // stops with items open (the owner's "I can't remove steps") gets one
+            // push to finish them, mark them done, or say what blocks it.
+            if (approvedPlan && !buildGuardUsed && !lastFinalized && (draftWrap._todos || []).some(t => !t.done)) {
+                buildGuardUsed = true;
+                const open = draftWrap._todos.map((t, i) => (t.done ? null : `${i}) ${t.text}`)).filter(Boolean).join('; ');
+                log.warn(`[AutomationBuilder] round ${iter} ended an approved build with open plan steps — nudging once`);
+                messages.push({ role: 'assistant', content: response.content });
+                messages.push({
+                    role: 'user',
+                    content: `[Instructions from the system — not written by the user]\nThe user approved the plan, so building it is your job now. These steps are still open: ${open}. Do them with the build tools, or, if they are already done, mark them with builder_set_plan({markDone:[indices]}). If something blocks you, say exactly what and stop.`,
                 });
                 continue;
             }
@@ -1572,15 +1792,25 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             }
         }
 
-        const staged = JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def) || baseTitle !== draftWrap.title || baseDescription !== draftWrap.description;
+        // A table staged (or dropped) this turn changes the proposal even when
+        // no step did.
+        const pendingChanged = !!draftWrap._stageDatatables
+            && !isDeepStrictEqual(draftWrap._pendingDatatables || [], savedProposal?.pendingDatatables || []);
+        const staged = JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def) || baseTitle !== draftWrap.title || baseDescription !== draftWrap.description || pendingChanged;
         // The same proposal keeps its id while the turn added nothing to it.
-        const stageProposal = () => (savedProposal && isDeepStrictEqual(savedProposal.definition, draftWrap.def)
+        const stageProposal = () => (savedProposal && !pendingChanged && isDeepStrictEqual(savedProposal.definition, draftWrap.def)
             && savedProposal.title === draftWrap.title && savedProposal.description === draftWrap.description)
             ? savedProposal
-            : { id: randomUUID(), definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description };
+            : { id: randomUUID(), ...proposalPreviewPayload(draftWrap, baseDraft) };
         let proposal = turnMode === 'approve' && staged ? stageProposal() : null;
         if (approvedPlan) {
-            reviewPlan = { ...reviewPlan, status: reviewQuestions || pausedAfterStep ? 'paused' : 'built', baseDefinition: structuredClone(draftWrap.def) };
+            // `built` only when the plan is done. A turn that ended any other way
+            // (an error, the iteration budget, a model that gave up) leaves it
+            // `building`, and the follow-up ("continue", "fix X") goes on with
+            // the same approved plan instead of starting a new planning turn.
+            const todosNow = Array.isArray(draftWrap._todos) ? draftWrap._todos : [];
+            const planDone = lastFinalized || (todosNow.length > 0 && todosNow.every(t => t.done));
+            reviewPlan = { ...reviewPlan, status: reviewQuestions || pausedAfterStep ? 'paused' : planDone ? 'built' : 'building', baseDefinition: structuredClone(draftWrap.def) };
             send('review_plan', { plan: reviewPlan });
         }
         if (bufferedBuild) {
@@ -1591,7 +1821,8 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             // definition away and had the agent build it all again (BFSF-486).
             // A turn that worked on a waiting proposal never commits by
             // itself: that proposal's changes have not been approved.
-            if (changes.length >= LARGE_CHANGE_STEPS || (savedProposal && staged)) {
+            // A new table never commits by itself: creating it is the user's Apply.
+            if (changes.length >= LARGE_CHANGE_STEPS || (draftWrap._pendingDatatables || []).length || (savedProposal && staged)) {
                 proposal = stageProposal();
             } else if ((changes.length || baseTitle !== draftWrap.title || baseDescription !== draftWrap.description) && !reviewQuestions) {
                 await persistDraftWrap(draftWrap);
@@ -1605,8 +1836,15 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // A waiting proposal nothing replaced stays waiting, as long as the
         // live draft it was staged against is unchanged.
         if (!proposal && savedProposal && pendingProposal(savedProposal, isolated ? baseDraft : draftWrap.def)) proposal = savedProposal;
-        if (proposal) send('proposal_preview', proposal);
+        if (proposal) send('proposal_preview', clientProposal(proposal));
         if (isolated) { draftWrap.def = baseDraft; draftWrap.title = baseTitle; draftWrap.description = baseDescription; }
+        // What the next turn must know about the question round: which round of the
+        // plan cycle this was, and the approved plan the questions paused (the card
+        // answers into it). A plan, an approval or a finished build closes the cycle.
+        let questionsMeta;
+        if (reviewQuestions) questionsMeta = { round: turnMode === 'plan' ? planCycleRound + 1 : 0, planId: approvedPlan?.id || null, mode: turnMode };
+        else if (planWritten || approvedPlan) questionsMeta = null;
+        else questionsMeta = priorMeta;
         // A new plan needs a document to own its saved conversation. Only the
         // original empty draft is saved here, never a proposed definition.
         if (!draftWrap.automationId && (reviewPlan || proposal || reviewQuestions)) {
@@ -1635,7 +1873,11 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         lastUserMessage,
                         ...(assistantOut ? [assistantOut] : []),
                     ],
-                    reviewPlan, reviewQuestions, proposal,
+                    reviewPlan, reviewQuestions, proposal, questionsMeta,
+                    // Tables the user chose or this session created: binding a step to
+                    // them needs no new consent. Written here because this write
+                    // rebuilds the snapshot field by field.
+                    approvedDatatableIds: [...new Set([...(snapshot?.approvedDatatableIds || []), ...(tableChoice?.approvedIds || []), ...(draftWrap._createdDatatableIds || [])])].slice(-200),
                     todos: Array.isArray(draftWrap._todos) ? draftWrap._todos : [],
                     ...(catalogOrder ? { catalogOrder } : {}),
                     updatedAt: new Date().toISOString(),

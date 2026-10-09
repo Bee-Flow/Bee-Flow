@@ -4,6 +4,8 @@ import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
 import { tierLabel } from '../../../licensing/tierMeta';
 import BuilderThinkingBlock from './BuilderThinkingBlock';
 import BuilderActivity from './BuilderActivity';
+import InlineMarkdown from './InlineMarkdown';
+import { parseAnswersText } from './questionAnswers';
 
 /**
  * Message bubble styled to match direct/agent chat:
@@ -24,6 +26,18 @@ import BuilderActivity from './BuilderActivity';
 // A brief inside the user pill is a document, but a small one: the headings
 // come down to the bubble's own size and the lists lose their fat margins.
 const USER_MD = 'text-sm [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-1 [&_ol]:my-1 [&_ul]:pl-4 [&_ol]:pl-5 [&_li]:my-0.5 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_h1]:mt-0 [&_h2]:mt-0 [&_h1]:mb-1 [&_h2]:mb-1 [&_h3]:mb-1 [&_pre]:my-1';
+
+/**
+ * An assistant message that is only tool calls: no text, nothing streaming into
+ * it. The model is told to leave its questions to the card, so a turn that just
+ * calls builder_ask_questions has no words, and the bubble around nothing was a
+ * 32px empty box above the activity row. Thinking and the activity rows are
+ * drawn outside the bubble and stay.
+ */
+export function isToolOnlyTurn(msg) {
+    return msg.role !== 'user' && !(typeof msg.content === 'string' && msg.content.trim())
+        && Array.isArray(msg.toolCalls) && msg.toolCalls.length > 0;
+}
 
 /**
  * Is this user message a document rather than a sentence? A heading, a list
@@ -49,19 +63,35 @@ export function readsAsMarkdown(text) {
 export default function MessageBubble({ msg, activity, liveRun = null, onFocusStep = null }) {
     const { t } = useTranslation();
     const isUser = msg.role === 'user';
-    const asDoc = isUser && readsAsMarkdown(msg.content);
+    // The answers to the builder's questions: sent as text for the model, shown
+    // as a compact list. The structured field is there during the session; a
+    // conversation restored from the server has only the text, which parses back.
+    const answers = isUser ? (Array.isArray(msg.answers) && msg.answers.length ? msg.answers : parseAnswersText(msg.content)) : null;
+    const asDoc = isUser && !answers && readsAsMarkdown(msg.content);
     return (
-        <div className={`flex flex-col w-full ${isUser ? 'items-end' : 'items-start'}`}>
+        <div className={`flex flex-col w-full min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
             {!isUser && <BuilderThinkingBlock msg={msg} />}
-            <div
-                className={`relative rounded-2xl p-4 transition-all duration-200 overflow-hidden text-sm ${isUser
-                    ? `max-w-[85%] bg-[var(--user-bubble-bg,#e8e8eb)] text-[var(--user-bubble-fg,#000)] rounded-br-none${asDoc ? '' : ' whitespace-pre-wrap'}`
-                    : 'max-w-3xl text-[var(--text-primary)] rounded-bl-none'}`}
-            >
-                {isUser && !asDoc
-                    ? msg.content
-                    : <MarkdownRenderer content={msg.content || ''} className={isUser ? USER_MD : ''} />}
-            </div>
+            {answers ? (
+                <dl aria-label={t('automations.assistant.your_answers', 'Your answers')}
+                    className="m-0 min-w-0 max-w-[85%] space-y-2 overflow-hidden rounded-2xl rounded-br-none bg-[var(--user-bubble-bg,#e8e8eb)] p-3 text-xs text-[var(--user-bubble-fg,#000)]">
+                    {answers.map((a, i) => (
+                        <div key={i} className="min-w-0">
+                            <dt className="opacity-70"><InlineMarkdown text={a.prompt} /></dt>
+                            <dd className="m-0 mt-0.5 text-sm font-medium"><InlineMarkdown text={a.answer} /></dd>
+                        </div>
+                    ))}
+                </dl>
+            ) : !isToolOnlyTurn(msg) && (
+                <div
+                    className={`relative min-w-0 rounded-2xl p-4 transition-all duration-200 overflow-hidden text-sm [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_.table-wrapper]:max-w-full [&_.table-wrapper]:overflow-x-auto ${isUser
+                        ? `max-w-[85%] bg-[var(--user-bubble-bg,#e8e8eb)] text-[var(--user-bubble-fg,#000)] rounded-br-none${asDoc ? '' : ' whitespace-pre-wrap break-words'}`
+                        : 'max-w-3xl text-[var(--text-primary)] rounded-bl-none'}`}
+                >
+                    {isUser && !asDoc
+                        ? msg.content
+                        : <MarkdownRenderer content={msg.content || ''} className={isUser ? USER_MD : ''} />}
+                </div>
+            )}
             {/* Auto-tier badge — same shape as direct chat's MessageItem.
                 Shown only when the server resolved 'auto' to a real tier
                 so the user knows which model produced this turn. */}

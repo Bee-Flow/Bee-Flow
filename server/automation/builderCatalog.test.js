@@ -104,3 +104,39 @@ test('with nothing connected, no app is available and toolNames is empty', async
         assert.equal(cat.toolNames.size, 0);
     } finally { restore(); }
 });
+
+test('a catalog that could not be BUILT (not a resolver failure) carries a marker and is logged, never "no integrations"', async () => {
+    // The registry itself failing to load is the one failure that does not throw:
+    // the caller gets an empty catalog, and without a marker the prompt used to
+    // read that as "the user has no integrations connected".
+    const registryPath = require.resolve('./toolRegistry');
+    const real = require.cache[registryPath];
+    const logPath = require.resolve('../telemetry/log');
+    const realLog = require.cache[logPath];
+    const warnings = [];
+    require.cache[registryPath] = { id: registryPath, filename: registryPath, loaded: true, exports: { get TOOL_REGISTRY() { throw new Error('registry would not load'); }, loadTools: () => [] } };
+    require.cache[logPath] = { id: logPath, filename: logPath, loaded: true, exports: { ...realLog.exports, warn: (...a) => warnings.push(a.join(' ')) } };
+    const { mod, restore } = loadWithStubs({ tools: ['gmail_search'], permitted: ['gmail'] });
+    try {
+        const cat = await mod.buildCatalogForUser('u1', {});
+        assert.deepStrictEqual(cat.apps, []);
+        assert.match(cat.catalogError, /registry would not load/);
+        assert.strictEqual(cat.toolNames, undefined, 'the add-time gate stays permissive: we could not tell');
+        assert.ok(warnings.some(w => /catalog could not be built/.test(w)), 'and it is logged');
+    } finally {
+        restore();
+        if (real) require.cache[registryPath] = real; else delete require.cache[registryPath];
+        if (realLog) require.cache[logPath] = realLog; else delete require.cache[logPath];
+    }
+});
+
+test('a healthy catalog has no marker, and carries the tool definitions out of band', async () => {
+    const { mod, restore } = loadWithStubs({ tools: ['gmail_search'], permitted: ['gmail'] });
+    try {
+        const cat = await mod.buildCatalogForUser('u1', {});
+        assert.ok(!('catalogError' in cat));
+        assert.deepStrictEqual(cat.toolDefs.map(t => t.function.name), ['gmail_search']);
+        assert.ok(!Object.keys(cat).includes('toolDefs'), 'non-enumerable: a spread or a JSON dump does not carry it');
+        assert.ok(!('toolDefs' in { ...cat }));
+    } finally { restore(); }
+});

@@ -8,6 +8,7 @@ import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
 import { appendKey } from '@/shared/expr';
 
+import { schemaToParams } from '../flowDeps/triggerSchemaUtils';
 import type { Catalog, FlowDefinition, FlowNode, TriggerOutputEntry, VariableGroup } from '../types';
 import { walkRelativePath } from '../walkPath';
 import { fieldFor } from './fieldTree';
@@ -87,6 +88,22 @@ function describeParamsTrigger(trigger: FlowNode, kind: string): VariableGroup {
     };
 }
 
+/**
+ * An agent tool's arguments ARE its declared parameters (trigger.
+ * parametersSchema): the agent passes them as trigger.output.<name>.
+ */
+function describeAgentCallTrigger(trigger: FlowNode): VariableGroup {
+    const params = schemaToParams(trigger.parametersSchema);
+    return {
+        id: trigger.id,
+        label: t('mobile.flow.group.agent_inputs', 'Agent inputs'),
+        kind: 'trigger',
+        basePath: 'trigger.output',
+        sample: Object.fromEntries(params.map((p) => [p.name, samplePlaceholderFor(p.type)])),
+        fields: params.map((p) => fieldFor(p.name, appendKey('trigger.output', p.name), samplePlaceholderFor(p.type))),
+    };
+}
+
 /** A hosted form's answers ARE its declared fields — bindable before any submission. */
 function describeFormTrigger(trigger: FlowNode): VariableGroup {
     const fields = namedFormFields(trigger.form);
@@ -108,6 +125,7 @@ function triggerLabel(tr: FlowNode): string {
     if (k === 'form') return t('mobile.flow.group.trigger_form', 'Trigger (form)');
     if (k === 'layer_input') return t('mobile.flow.group.flowlet_input', 'Flowlet input');
     if (k === 'app_trigger') return t('mobile.flow.group.trigger_studio_app', 'Trigger (Studio App)');
+    if (k === 'agent_call') return t('mobile.flow.group.trigger_agent_call', 'Trigger (agent call)');
     if (k === 'app_event' && tr.appEvent) {
         const { provider, event } = tr.appEvent;
         return t('mobile.flow.group.trigger_app_event', 'Trigger ({provider} · {event})', {
@@ -126,6 +144,7 @@ export function describeTrigger(trigger: FlowNode, triggerOutputs: Record<string
     const kind = trigger.kind || 'manual';
     if (kind === 'layer_input' || kind === 'app_trigger') return describeParamsTrigger(trigger, kind);
     if (kind === 'form') return describeFormTrigger(trigger);
+    if (kind === 'agent_call') return describeAgentCallTrigger(trigger);
     const key = kind === 'app_event' && trigger.appEvent ? `${trigger.appEvent.provider}.${trigger.appEvent.event}` : `__${kind}`;
     const entry = ownEntry(triggerOutputs, key) || ownEntry(triggerOutputs, '__manual') || { fields: [], sample: {} };
     return {

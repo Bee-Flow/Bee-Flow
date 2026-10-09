@@ -33,6 +33,7 @@ export function buildComposerTools({
     canWebSearch,
     webSearchEnabled,
     webSearchBlocked,
+    webSearchUnavailable = null,
     setWebSearchEnabled,
     simpleMode,
     showTierSlider,
@@ -71,10 +72,11 @@ export function buildComposerTools({
         canWebSearch && {
             id: 'web-search', group: 'mode', kind: 'toggle', icon: Globe,
             label: t('chat.composer.tools_web_search', 'Web search'),
-            on: webSearchEnabled && !webSearchBlocked,
-            dot: webSearchEnabled && !webSearchBlocked,
-            disabled: webSearchBlocked,
-            hint: t(
+            on: webSearchEnabled && !webSearchBlocked && !webSearchUnavailable,
+            dot: webSearchEnabled && !webSearchBlocked && !webSearchUnavailable,
+            disabled: webSearchBlocked || !!webSearchUnavailable,
+            // The server's reason wins: it is the one that actually refused.
+            hint: webSearchUnavailable || t(
                 webSearchBlocked ? 'chat.composer.tools_web_search_blocked' : 'chat.composer.tools_web_search_hint',
                 webSearchBlocked
                     ? 'Web search disabled by organisation policy (files attached)'

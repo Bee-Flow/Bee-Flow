@@ -362,6 +362,13 @@ test('useTools on: the catalog is asked for the AUTOMATION OWNER with the agent\
     assert.deepStrictEqual(offeredToolNames(), ['gmail_search']);
 });
 
+test('the catalog is asked for the step\'s OWN agent: that agent\'s bound automations are the only ones it may start', async () => {
+    agentConfig = {};
+    catalogTools = [];
+    await execAiStep(agentStep({ useTools: true }), CTX, {}, 'live');
+    assert.strictEqual(catalogCalls[0].agentId, 'agt_org');
+});
+
 test('an automation-only app is refused even when a catalog hands it over', async () => {
     // Twee sloten: de catalogus wordt zonder `automationStep` gevraagd, EN de
     // aftrek weigert wat het registry buiten de agent-context plaatst. Dit is

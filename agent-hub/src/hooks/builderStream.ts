@@ -219,6 +219,10 @@ export interface BuilderStreamData {
     mimeType?: string;
     data?: unknown;
 
+    // web_search: whether the composer's Web search toggle reached the model
+    requested?: boolean;
+    available?: boolean;
+
     // failures
     error?: string;
     code?: string;
