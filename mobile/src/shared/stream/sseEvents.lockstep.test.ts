@@ -40,7 +40,7 @@ const IGNORED: Record<string, string> = {
     browser_frame: 'Browser-automation viewport: a desktop side panel.',
     browser_action: 'Browser-automation viewport: a desktop side panel.',
     browser_session_end: 'Browser-automation viewport: a desktop side panel.',
-    document_update: 'Document canvas: no editor on the phone.',
+    document_suggestions: 'AI suggestions on a document: reviewed in the document editor, which the phone does not have.',
     slides_deck_update: 'Slides builder: no editor on the phone.',
     slides_theme_update: 'Slides builder: no editor on the phone.',
     slides_source_added: 'Slides builder: no editor on the phone.',

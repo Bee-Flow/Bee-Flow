@@ -103,6 +103,11 @@ export const AGENT_FRAMES: FrameAdapter<AgentTurn> = {
     // runtime's own bookkeeping. Listed so ignoring is a decision.
     ping: IGNORE,
     workspace_update: IGNORE,
+    // "A Studio document changed" (core/agentRuntime/toolRoundExecutor.js, after
+    // create_presentation kept a deck): it refreshes an open document editor or
+    // the Documents list on the web. The phone shows neither during a chat, and
+    // the deck's link arrives in the answer itself.
+    document_update: IGNORE,
     memory_extraction_failed: IGNORE,
     tools_loaded: IGNORE,
     tool_progress: IGNORE,
