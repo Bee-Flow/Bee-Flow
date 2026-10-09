@@ -297,7 +297,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
                             fontWeight: i === activeIndex ? 600 : 400,
                         }}
                     >
-                        {metaFor(key).label}
+                        {t(`tier.${key}`, metaFor(key).label)}
                     </span>
                 ))}
             </div>
@@ -332,7 +332,7 @@ function OtherTierPills({ keys, value, metaFor, onSelect }) {
                             }}
                         >
                             <TierIcon tierKey={key} meta={meta} className="w-3 h-3" />
-                            <span>{meta.label}</span>
+                            <span>{t(`tier.${key}`, meta.label)}</span>
                             {meta.beta && (
                                 <span style={{
                                     fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.04em',

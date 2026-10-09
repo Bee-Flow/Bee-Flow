@@ -100,7 +100,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                 ) : (
                     <AppEmoji id={tierCatalogId(value)} default={currentMeta.emoji} />
                 )}
-                <span>{currentMeta.label}</span>
+                <span>{t(`tier.${value}`, currentMeta.label)}</span>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
                     style={{
                         opacity: 0.55,
@@ -207,7 +207,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                                         lineHeight: 1.25,
                                         display: 'flex', alignItems: 'center', gap: '6px',
                                     }}>
-                                        <span>{meta.label}</span>
+                                        <span>{t(`tier.${key}`, meta.label)}</span>
                                         {meta.beta && (
                                             <span
                                                 className="text-[9px] px-1 py-px rounded font-medium flex-shrink-0"
