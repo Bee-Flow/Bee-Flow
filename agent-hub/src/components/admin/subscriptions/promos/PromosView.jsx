@@ -1,6 +1,7 @@
 import { Tag, Plus, Percent, Euro, Hash, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { PromoEditor } from './PromoEditor';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import EmptyState from '../../../shared/EmptyState';
 import { toast } from '../../../shared/Toast';
@@ -11,6 +12,7 @@ import { SectionHeader } from '../ui/SectionHeader';
 import { Spinner } from '../ui/Spinner';
 
 export function PromosView() {
+    const { t } = useTranslation();
     const { data: codes = [], loading, reload } = useResource('/api/stripe/promo-codes', { initial: [] });
     const [creating, setCreating] = useState(false);
 
@@ -18,10 +20,12 @@ export function PromosView() {
         const action = code.active ? 'deactivate' : 'activate';
         try {
             await apiJson(`/api/stripe/promo-codes/${code.id}/${action}`, { method: 'PUT' });
-            toast.success(`${code.code} ${action}d.`);
+            toast.success(code.active
+                ? t('admin_subscriptions.promos_deactivated', '{code} deactivated.', { code: code.code })
+                : t('admin_subscriptions.promos_activated', '{code} activated.', { code: code.code }));
             reload();
         } catch (e) {
-            toast.error(e.message || `${action} failed`);
+            toast.error(e.message || (code.active ? t('admin_subscriptions.promos_deactivate_failed', 'deactivate failed') : t('admin_subscriptions.promos_activate_failed', 'activate failed')));
         }
     };
 
@@ -32,19 +36,19 @@ export function PromosView() {
     return (
         <div className="px-6 py-6 max-w-[1100px] mx-auto">
             <SectionHeader
-                title="Promotion Codes"
-                description="Create and manage discount codes that customers can apply at Stripe checkout."
-                action={<Button icon={Plus} onClick={() => setCreating(true)}>New code</Button>}
+                title={t('admin_subscriptions.promos_title', 'Promotion Codes')}
+                description={t('admin_subscriptions.promos_desc', 'Create and manage discount codes that customers can apply at Stripe checkout.')}
+                action={<Button icon={Plus} onClick={() => setCreating(true)}>{t('admin_subscriptions.promos_new_code', 'New code')}</Button>}
             />
 
             {loading ? (
-                <Spinner label="Loading promo codes…" />
+                <Spinner label={t('admin_subscriptions.promos_loading', 'Loading promo codes…')} />
             ) : codes.length === 0 ? (
                 <EmptyState
                     icon={<Tag className="w-6 h-6" />}
-                    title="No promotion codes yet"
-                    description="Create your first one to start running discount campaigns."
-                    action={<Button icon={Plus} onClick={() => setCreating(true)}>Create code</Button>}
+                    title={t('admin_subscriptions.promos_empty', 'No promotion codes yet')}
+                    description={t('admin_subscriptions.promos_empty_desc', 'Create your first one to start running discount campaigns.')}
+                    action={<Button icon={Plus} onClick={() => setCreating(true)}>{t('admin_subscriptions.promos_create', 'Create code')}</Button>}
                 />
             ) : (
                 <div className="flex flex-col gap-2">
@@ -59,31 +63,33 @@ export function PromosView() {
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[var(--text-primary)]">
                                         {c.discountType === 'percent' ? (
-                                            <><Percent className="w-3.5 h-3.5 text-blue-400" /> {c.discountValue}% off</>
+                                            <><Percent className="w-3.5 h-3.5 text-blue-400" /> {t('admin_subscriptions.promos_percent_off', '{value}% off', { value: c.discountValue })}</>
                                         ) : (
-                                            <><Euro className="w-3.5 h-3.5 text-blue-400" /> {(c.discountValue / 100).toFixed(2)} {c.currency?.toUpperCase()} off</>
+                                            <><Euro className="w-3.5 h-3.5 text-blue-400" /> {t('admin_subscriptions.promos_amount_off', '{amount} {currency} off', { amount: (c.discountValue / 100).toFixed(2), currency: c.currency?.toUpperCase() })}</>
                                         )}
                                         <span className="font-normal text-[11px] text-[var(--text-muted)]">
-                                            · {c.duration === 'once' ? 'one-time' : c.duration === 'forever' ? 'forever' : `${c.durationMonths}mo`}
+                                            · {c.duration === 'once' ? t('admin_subscriptions.promos_one_time', 'one-time') : c.duration === 'forever' ? t('admin_subscriptions.promos_forever_lc', 'forever') : t('admin_subscriptions.promos_months_short', '{n}mo', { n: c.durationMonths })}
                                         </span>
                                     </div>
                                     {c.name && <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{c.name}</div>}
                                     <div className="flex items-center flex-wrap gap-3 mt-1 text-[11px] text-[var(--text-muted)]">
                                         <span className="inline-flex items-center gap-1">
-                                            <Hash className="w-3 h-3" /> {c.timesRedeemed || 0}{c.maxRedemptions ? `/${c.maxRedemptions}` : ''} used
+                                            <Hash className="w-3 h-3" /> {c.maxRedemptions
+                                                ? t('admin_subscriptions.promos_used_of', '{count}/{max} used', { count: c.timesRedeemed || 0, max: c.maxRedemptions })
+                                                : t('admin_subscriptions.promos_used', '{count} used', { count: c.timesRedeemed || 0 })}
                                         </span>
                                         {c.expiresAt && (
                                             <span className="inline-flex items-center gap-1">
-                                                <Clock className="w-3 h-3" /> expires {new Date(c.expiresAt).toLocaleDateString()}
+                                                <Clock className="w-3 h-3" /> {t('admin_subscriptions.promos_expires', 'expires {date}', { date: new Date(c.expiresAt).toLocaleDateString() })}
                                             </span>
                                         )}
-                                        {c.firstTimeOnly && <span className="text-amber-400">new customers only</span>}
+                                        {c.firstTimeOnly && <span className="text-amber-400">{t('admin_subscriptions.promos_new_only', 'new customers only')}</span>}
                                     </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                                 <Badge tone={c.active ? 'success' : 'danger'} size="sm">
-                                    {c.active ? 'Active' : 'Inactive'}
+                                    {c.active ? t('admin_subscriptions.promos_active', 'Active') : t('admin_subscriptions.promos_inactive', 'Inactive')}
                                 </Badge>
                                 <Button
                                     size="sm"
@@ -91,7 +97,7 @@ export function PromosView() {
                                     icon={c.active ? ToggleRight : ToggleLeft}
                                     onClick={() => toggle(c)}
                                 >
-                                    {c.active ? 'Deactivate' : 'Activate'}
+                                    {c.active ? t('admin_subscriptions.promos_deactivate', 'Deactivate') : t('admin_subscriptions.promos_activate', 'Activate')}
                                 </Button>
                             </div>
                         </Card>

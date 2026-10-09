@@ -95,7 +95,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
             <div className="flex-1 overflow-auto p-6">
                 {loading ? (
                     <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
-                        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading data...
+                        <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t('admin_org.user_mgmt_loading', 'Loading data...')}
                     </div>
                 ) : (
                     <>

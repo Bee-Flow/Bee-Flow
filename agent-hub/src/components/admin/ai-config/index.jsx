@@ -102,7 +102,7 @@ const AIConfigPanel = () => {
         return allModels.filter(m => m.providerName === providerName).length;
     };
 
-    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>Loading providers...</div>;
+    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.index_loading_providers', 'Loading providers...')}</div>;
 
     const navItems = [
         { id: 'providers', label: t('admin.ai_api_keys'), icon: '🔑' },
@@ -132,7 +132,7 @@ const AIConfigPanel = () => {
             {/* Left Sidebar */}
             <div className="w-64 flex flex-col p-2 border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
                 <div className="p-4 mb-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">AI Configuration</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{t('admin_ai_config.index_title', 'AI Configuration')}</h3>
                 </div>
                 <div className="space-y-1">
                     {navItems.map(item => (
@@ -181,7 +181,7 @@ const AIConfigPanel = () => {
                                                 <svg className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                 </svg>
-                                                <span>{modelCount} available model{modelCount !== 1 ? 's' : ''}</span>
+                                                <span>{modelCount === 1 ? t('admin_ai_config.index_models_one', '1 available model') : t('admin_ai_config.index_models_other', '{count} available models', { count: modelCount })}</span>
                                             </button>
                                             {isExpanded && (
                                                 <div className="px-5 pb-3 pt-1">
@@ -233,7 +233,7 @@ const AIConfigPanel = () => {
                         {/* Models loading indicator */}
                         {loadingModels && (
                             <p className="text-xs text-center py-2" style={{ color: 'var(--text-muted)' }}>
-                                Loading available models...
+                                {t('admin_ai_config.index_loading_models', 'Loading available models...')}
                             </p>
                         )}
                     </div>

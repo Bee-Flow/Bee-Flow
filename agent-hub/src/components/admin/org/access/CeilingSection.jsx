@@ -1,8 +1,8 @@
 import React from 'react';
 import CeilingReadOnly from './CeilingReadOnly';
 import CloudCeilingEditor from './CloudCeilingEditor';
-import SelfHostedCeilingEditor from './SelfHostedCeilingEditor';
 import OrgAccessEditor from './OrgAccessEditor';
+import SelfHostedCeilingEditor from './SelfHostedCeilingEditor';
 
 /**
  * CeilingSection — routes the ceiling surface by role + deployment mode:

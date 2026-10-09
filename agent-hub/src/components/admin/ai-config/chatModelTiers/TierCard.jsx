@@ -6,6 +6,7 @@ import { CLAUDE_RECOMMENDED } from './constants';
 import { clampToEfforts, defaultTierEffort, getModelMeta, isClaudeAdaptiveOnly, isClaudeModel, isClaudeReasoning, isGpt5, isGpt5Pro, isGpt56Plus, openAIEffortOptions, stampedEffortOptions } from './modelMeta';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export default function TierCard({
     tier, tierConfig, updateFn, defaults,
@@ -13,6 +14,7 @@ export default function TierCard({
     hiddenModelIds, toggleHiddenModel, isLocal, reasoningCapable,
     applyClaudeRecommendedForTier,
 }) {
+    const { t } = useTranslation();
         const isExpanded = expandedTier === tier.key;
         const selectedModel = chatModels.find(m => m.id === tierConfig.modelId);
         const displayName = selectedModel ? getModelDisplayName(selectedModel) : null;
@@ -20,7 +22,7 @@ export default function TierCard({
             ? (displayName !== selectedModel.id
                 ? displayName
                 : selectedModel.id)
-            : '— Not configured —';
+            : t('admin_ai_config.tier_not_configured', 'Not configured');
         // Mistral stamps its own effort vocabulary (none/high) on the model; the
         // select then offers exactly that and shows what is really sent.
         const stampedEfforts = Array.isArray(selectedModel?.efforts) && selectedModel.efforts.length > 0
@@ -44,7 +46,7 @@ export default function TierCard({
                                 className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
                                 style={{ color: 'var(--text-muted)' }}
                             >
-                                {isExpanded ? '▲ Settings' : '▼ Settings'}
+                                {isExpanded ? t('admin_ai_config.custom_settings_open', '▲ Settings') : t('admin_ai_config.custom_settings_closed', '▼ Settings')}
                             </button>
                         )}
                     </div>
@@ -64,11 +66,11 @@ export default function TierCard({
                         const bootstrapDisplayName = bootstrapModel ? getModelDisplayName(bootstrapModel) : null;
                         const bootstrapLabel = bootstrapModel
                             ? (bootstrapDisplayName !== bootstrapModel.id ? bootstrapDisplayName : bootstrapModel.id)
-                            : '— Same as main model —';
+                            : t('admin_ai_config.tier_same_as_main', 'Same as main model');
                         return (
                             <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-default)' }}>
                                 <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                                    Bootstrap model (cheap & fast)
+                                    {t('admin_ai_config.tier_bootstrap', 'Bootstrap model (cheap & fast)')}
                                 </label>
                                 <SearchableModelSelect
                                     value={tierConfig.bootstrapModelId || ''}
@@ -79,7 +81,7 @@ export default function TierCard({
                                     onToggleHidden={toggleHiddenModel}
                                 />
                                 <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                    Used once per direct chat to plan the conversation's Flow stages. Pick a small/fast model (e.g. Haiku) to cut planning cost. Leave empty to reuse the main model.
+                                    {t('admin_ai_config.tier_bootstrap_hint', 'Used once per direct chat to plan the conversation\'s Flow stages. Pick a small/fast model (e.g. Haiku) to cut planning cost. Leave empty to reuse the main model.')}
                                 </p>
                             </div>
                         );
@@ -94,9 +96,9 @@ export default function TierCard({
                                 <div className="mb-3 mt-2 p-2.5 rounded-lg border flex items-center gap-3" style={{ background: 'rgba(217, 119, 6, 0.08)', borderColor: 'rgba(217, 119, 6, 0.3)' }}>
                                     <span className="text-base">💡</span>
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>Bee Flow recommends</div>
+                                        <div className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_rec_title', 'Bee Flow recommends')}</div>
                                         <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                                            {(getModelMeta(rec.modelId)?.name || rec.modelId)} · {rec.maxTokens.toLocaleString()} tokens · {rec.reasoningEffort || 'no'} effort · {rec.budgetTokens ? `extended (${rec.budgetTokens.toLocaleString()})` : 'adaptive'}
+                                            {t('admin_ai_config.tier_rec_line', '{model} · {tokens} tokens · {effort} effort · {mode}', { model: getModelMeta(rec.modelId)?.name || rec.modelId, tokens: rec.maxTokens.toLocaleString(), effort: rec.reasoningEffort || t('admin_ai_config.tier_rec_no_effort', 'no'), mode: rec.budgetTokens ? t('admin_ai_config.tier_rec_extended', 'extended ({n})', { n: rec.budgetTokens.toLocaleString() }) : t('admin_ai_config.claude_adaptive', 'adaptive') })}
                                         </div>
                                     </div>
                                     <button
@@ -104,7 +106,7 @@ export default function TierCard({
                                         className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:bg-white/5 transition-colors shrink-0"
                                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                     >
-                                        Apply
+                                        {t('admin_ai_config.claude_apply', 'Apply')}
                                     </button>
                                 </div>
                             );
@@ -112,7 +114,7 @@ export default function TierCard({
 
                         <div className="flex gap-4 flex-wrap">
                             <div className="flex-1 min-w-[180px]">
-                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Max Tokens</label>
+                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_max_tokens', 'Max Tokens')}</label>
                                 <input
                                     type="number"
                                     value={tierConfig.maxTokens !== undefined ? tierConfig.maxTokens : defaults.maxTokens}
@@ -122,11 +124,11 @@ export default function TierCard({
                                     style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                 />
                                 <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                                    Default: {defaults.maxTokens.toLocaleString()}. Thinking models need higher values.
+                                    {t('admin_ai_config.tier_max_hint', 'Default: {n}. Thinking models need higher values.', { n: defaults.maxTokens.toLocaleString() })}
                                 </p>
                             </div>
                             <div className="flex-1 min-w-[180px]">
-                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Temperature</label>
+                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_temperature', 'Temperature')}</label>
                                 <input
                                     type="number"
                                     value={tierConfig.temperature !== undefined ? tierConfig.temperature : defaults.temperature}
@@ -138,14 +140,14 @@ export default function TierCard({
                                 />
                                 <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
                                     {isClaudeAdaptiveOnly(tierConfig.modelId)
-                                        ? 'This model rejects temperature — thinking depth is set by Effort.'
-                                        : `0 = deterministic, 1 = creative. Default: ${defaults.temperature}`}
+                                        ? t('admin_ai_config.tier_temp_rejected', 'This model rejects temperature: thinking depth is set by Effort.')
+                                        : t('admin_ai_config.tier_temp_hint', '0 = deterministic, 1 = creative. Default: {n}', { n: defaults.temperature })}
                                 </p>
                             </div>
                             {reasoningCapable(tierConfig.modelId) && (
                                 <>
                                     <div className="flex-1 min-w-[180px]">
-                                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>🧠 {isClaudeReasoning(tierConfig.modelId) ? 'Thinking Effort' : 'Reasoning Effort'}</label>
+                                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{isClaudeReasoning(tierConfig.modelId) ? t('admin_ai_config.tier_thinking_effort', '🧠 Thinking Effort') : t('admin_ai_config.tier_reasoning_effort', '🧠 Reasoning Effort')}</label>
                                         <select
                                             value={isGpt5Pro(tierConfig.modelId)
                                                 ? 'high'
@@ -158,24 +160,24 @@ export default function TierCard({
                                             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                         >
                                             {isGpt5Pro(tierConfig.modelId) ? (
-                                                <option value="high">High — pro models reason at high only</option>
+                                                <option value="high">{t('admin_ai_config.tier_eff_pro', 'High: pro models reason at high only')}</option>
                                             ) : stampedEfforts ? (
                                                 stampedEffortOptions(stampedEfforts).map(([value, label]) => (
                                                     <option key={value} value={value}>{label}</option>
                                                 ))
                                             ) : isClaudeReasoning(tierConfig.modelId) ? (
                                                 <>
-                                                    <option value="none">None (disabled)</option>
-                                                    <option value="low">Low — quick tasks</option>
-                                                    <option value="medium">Medium — balanced (default)</option>
-                                                    <option value="high">High — complex reasoning</option>
+                                                    <option value="none">{t('admin_ai_config.tier_eff_none', 'None (disabled)')}</option>
+                                                    <option value="low">{t('admin_ai_config.tier_eff_low_d', 'Low: quick tasks')}</option>
+                                                    <option value="medium">{t('admin_ai_config.tier_eff_medium_d', 'Medium: balanced (default)')}</option>
+                                                    <option value="high">{t('admin_ai_config.tier_eff_high_d', 'High: complex reasoning')}</option>
                                                     {isClaudeAdaptiveOnly(tierConfig.modelId) ? (
                                                         <>
-                                                            <option value="xhigh">xHigh — extended exploration</option>
-                                                            <option value="max">Max — no thinking constraints</option>
+                                                            <option value="xhigh">{t('admin_ai_config.tier_eff_xhigh_d', 'xHigh: extended exploration')}</option>
+                                                            <option value="max">{t('admin_ai_config.tier_eff_max_d', 'Max: no thinking constraints')}</option>
                                                         </>
                                                     ) : (
-                                                        <option value="xhigh">Max — deepest thinking</option>
+                                                        <option value="xhigh">{t('admin_ai_config.tier_eff_max_deep', 'Max: deepest thinking')}</option>
                                                     )}
                                                 </>
                                             ) : (
@@ -189,23 +191,23 @@ export default function TierCard({
                                         </select>
                                         <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
                                             {isGpt5Pro(tierConfig.modelId)
-                                                ? 'Pro models always reason at high effort.'
+                                                ? t('admin_ai_config.tier_hint_pro', 'Pro models always reason at high effort.')
                                                 : stampedEfforts && !isLocal(tierConfig.modelId)
-                                                    ? 'This model takes only these levels. A level set elsewhere is rounded to the nearest one, so Low becomes None and Medium becomes High.'
+                                                    ? t('admin_ai_config.tier_hint_stamped', 'This model takes only these levels. A level set elsewhere is rounded to the nearest one, so Low becomes None and Medium becomes High.')
                                                 : isClaudeReasoning(tierConfig.modelId)
-                                                    ? 'How deep Claude thinks before answering. Default: Medium.'
+                                                    ? t('admin_ai_config.tier_hint_claude', 'How deep Claude thinks before answering. Default: Medium.')
                                                     : isGpt56Plus(tierConfig.modelId)
-                                                        ? 'How much the model reasons. Low is the fast/cheap tier here — Minimal was retired after GPT-5.5.'
+                                                        ? t('admin_ai_config.tier_hint_gpt56', 'How much the model reasons. Low is the fast/cheap tier here: Minimal was retired after GPT-5.5.')
                                                         : isGpt5(tierConfig.modelId)
-                                                            ? 'How much the model reasons. Minimal is the fast/cheap GPT-5 tier.'
+                                                            ? t('admin_ai_config.tier_hint_gpt5', 'How much the model reasons. Minimal is the fast/cheap GPT-5 tier.')
                                                             : isLocal(tierConfig.modelId)
-                                                                ? 'Self-hosted: None switches thinking off — that part always works. The level itself only changes anything when the model\'s template grades it (gpt-oss does; Qwen3 treats every level as "on"). llama.cpp can cap thinking length server-wide with --reasoning-budget in its preset.'
-                                                                : 'Controls how much the model reasons before responding.'}
+                                                                ? t('admin_ai_config.tier_hint_local', 'Self-hosted: None switches thinking off, which always works. The level itself only changes anything when the model\'s template grades it (gpt-oss does; Qwen3 treats every level as "on"). llama.cpp can cap thinking length server-wide with --reasoning-budget in its preset.')
+                                                                : t('admin_ai_config.tier_hint_default', 'Controls how much the model reasons before responding.')}
                                         </p>
                                     </div>
                                     {!isClaudeReasoning(tierConfig.modelId) && (
                                         <div className="flex-1 min-w-[180px]">
-                                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>📝 Reasoning Summary</label>
+                                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_summary', '📝 Reasoning Summary')}</label>
                                             <div
                                                 className="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer"
                                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
@@ -215,31 +217,31 @@ export default function TierCard({
                                                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${tierConfig.reasoningSummary ? 'translate-x-4' : 'translate-x-0.5'}`} />
                                                 </div>
                                                 <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                                                    {tierConfig.reasoningSummary ? 'Enabled' : 'Disabled'}
+                                                    {tierConfig.reasoningSummary ? t('admin_ai_config.enabled', 'Enabled') : t('admin_ai_config.disabled', 'Disabled')}
                                                 </span>
                                             </div>
                                             <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
                                                 {isLocal(tierConfig.modelId)
-                                                    ? "Show the model's own reasoning. A self-hosted runtime streams its full chain of thought rather than a summary — turn this off to keep it out of the reply."
-                                                    : "Show a summary of the model's reasoning process."}
+                                                    ? t('admin_ai_config.tier_summary_local', 'Show the model\'s own reasoning. A self-hosted runtime streams its full chain of thought rather than a summary: turn this off to keep it out of the reply.')
+                                                    : t('admin_ai_config.tier_summary_hint', 'Show a summary of the model\'s reasoning process.')}
                                             </p>
                                         </div>
                                     )}
                                     {isGpt5(tierConfig.modelId) && (
                                         <div className="flex-1 min-w-[180px]">
-                                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>🗣️ Verbosity</label>
+                                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_verbosity', '🗣️ Verbosity')}</label>
                                             <select
                                                 value={tierConfig.verbosity || defaults.verbosity || 'medium'}
                                                 onChange={e => updateFn(tier.key, 'verbosity', e.target.value)}
                                                 className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
                                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                             >
-                                                <option value="low">Low — concise</option>
-                                                <option value="medium">Medium — balanced (default)</option>
-                                                <option value="high">High — detailed</option>
+                                                <option value="low">{t('admin_ai_config.tier_verb_low', 'Low: concise')}</option>
+                                                <option value="medium">{t('admin_ai_config.tier_verb_medium', 'Medium: balanced (default)')}</option>
+                                                <option value="high">{t('admin_ai_config.tier_verb_high', 'High: detailed')}</option>
                                             </select>
                                             <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                                                GPT-5 output length / level of detail.
+                                                {t('admin_ai_config.tier_verb_hint', 'GPT-5 output length / level of detail.')}
                                             </p>
                                         </div>
                                     )}
@@ -256,7 +258,7 @@ export default function TierCard({
                             return (
                                 <div className="mt-4 pt-4 border-t flex gap-4 flex-wrap" style={{ borderColor: 'var(--border-default)' }}>
                                     <div className="flex-1 min-w-[260px]">
-                                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Thinking Mode</label>
+                                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_thinking_mode', 'Thinking Mode')}</label>
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => updateFn(tier.key, 'budgetTokens', undefined)}
@@ -267,7 +269,7 @@ export default function TierCard({
                                                     color: mode === 'adaptive' ? '#fff' : 'var(--text-primary)',
                                                 }}
                                             >
-                                                Adaptive
+                                                {t('admin_ai_config.tier_adaptive', 'Adaptive')}
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -282,18 +284,18 @@ export default function TierCard({
                                                     color: mode === 'extended' ? '#fff' : 'var(--text-primary)',
                                                 }}
                                             >
-                                                Extended (fixed budget)
+                                                {t('admin_ai_config.tier_extended', 'Extended (fixed budget)')}
                                             </button>
                                         </div>
                                         <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
                                             {mode === 'adaptive'
-                                                ? 'Claude decides the thinking depth based on Effort. Shares the output budget — heavy turns can leave no room for the answer.'
-                                                : 'Fixed thinking budget. Output is guaranteed (max tokens − budget). Safer for long answers.'}
+                                                ? t('admin_ai_config.tier_adaptive_hint2', 'Claude decides the thinking depth based on Effort. Shares the output budget: heavy turns can leave no room for the answer.')
+                                                : t('admin_ai_config.tier_extended_hint2', 'Fixed thinking budget. Output is guaranteed (max tokens − budget). Safer for long answers.')}
                                         </p>
                                     </div>
                                     {mode === 'extended' && (
                                         <div className="flex-1 min-w-[180px]">
-                                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Thinking Budget</label>
+                                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_thinking_budget', 'Thinking Budget')}</label>
                                             <input
                                                 type="number"
                                                 value={tierConfig.budgetTokens || ''}
@@ -307,7 +309,7 @@ export default function TierCard({
                                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                             />
                                             <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                                                Tokens reserved for thinking. Must be {'<'} Max Tokens.
+                                                {t('admin_ai_config.tier_budget_hint', 'Tokens reserved for thinking. Must be < Max Tokens.')}
                                             </p>
                                         </div>
                                     )}
@@ -319,7 +321,7 @@ export default function TierCard({
                         {isClaudeAdaptiveOnly(tierConfig.modelId) && (
                             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
                                 <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{getModelMeta(tierConfig.modelId)?.name || 'This model'} uses adaptive thinking only.</span> The API rejects manual thinking budgets and the temperature setting — the Effort dropdown above controls how deep the model thinks. Use Auto-retry on empty output (Claude Settings panel) as a safety net for heavy reasoning runs.
+                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_adaptive_only_lead', '{model} uses adaptive thinking only.', { model: getModelMeta(tierConfig.modelId)?.name || t('admin_ai_config.tier_this_model', 'This model') })}</span> {t('admin_ai_config.tier_adaptive_only_rest', 'The API rejects manual thinking budgets and the temperature setting: the Effort dropdown above controls how deep the model thinks. Use Auto-retry on empty output (Claude Settings panel) as a safety net for heavy reasoning runs.')}
                                 </p>
                             </div>
                         )}

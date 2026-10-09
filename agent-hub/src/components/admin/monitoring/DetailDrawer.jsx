@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "../../../hooks/useTranslation";
 import MarkdownRenderer from "../../renderers/MarkdownRenderer";
 import {
   Activity,
@@ -46,6 +47,7 @@ export function DetailDrawer({
   recent,
   onClose,
 }) {
+  const { t } = useTranslation();
   const { type, data } = detail;
 
   // Get recent calls related to this item
@@ -176,7 +178,7 @@ export function DetailDrawer({
                 marginTop: "2px",
               }}
             >
-              Calls
+              {t('admin_monitoring.drawer_calls', 'Calls')}
             </div>
           </div>
           <div style={statBoxStyle}>
@@ -192,7 +194,7 @@ export function DetailDrawer({
                 marginTop: "2px",
               }}
             >
-              Total Tokens
+              {t('admin_monitoring.drawer_total_tokens', 'Total Tokens')}
             </div>
           </div>
           <div style={statBoxStyle}>
@@ -236,7 +238,7 @@ export function DetailDrawer({
                 letterSpacing: "0.05em",
               }}
             >
-              Breakdown
+              {t('admin_monitoring.drawer_breakdown', 'Breakdown')}
             </div>
             <div
               style={{
@@ -251,7 +253,7 @@ export function DetailDrawer({
                   color: "var(--text-secondary, #aaa)",
                 }}
               >
-                Input tokens
+                {t('admin_monitoring.drawer_input_tokens', 'Input tokens')}
               </span>
               <span
                 style={{
@@ -276,7 +278,7 @@ export function DetailDrawer({
                   color: "var(--text-secondary, #aaa)",
                 }}
               >
-                Output tokens
+                {t('admin_monitoring.drawer_output_tokens', 'Output tokens')}
               </span>
               <span
                 style={{
@@ -310,7 +312,7 @@ export function DetailDrawer({
                       color: "var(--text-secondary, #aaa)",
                     }}
                   >
-                    Input rate
+                    {t('admin_monitoring.drawer_input_rate', 'Input rate')}
                   </span>
                   <span
                     style={{
@@ -318,7 +320,7 @@ export function DetailDrawer({
                       color: "var(--text-muted, #888)",
                     }}
                   >
-                    ${modelCosts[data.model].input}/1M tokens
+                    {t('admin_monitoring.drawer_rate_in', '{price}/1M tokens', { price: `$${modelCosts[data.model].input}` })}
                   </span>
                 </div>
                 <div
@@ -330,7 +332,7 @@ export function DetailDrawer({
                       color: "var(--text-secondary, #aaa)",
                     }}
                   >
-                    Output rate
+                    {t('admin_monitoring.drawer_output_rate', 'Output rate')}
                   </span>
                   <span
                     style={{
@@ -338,7 +340,7 @@ export function DetailDrawer({
                       color: "var(--text-muted, #888)",
                     }}
                   >
-                    ${modelCosts[data.model].output}/1M tokens
+                    {t('admin_monitoring.drawer_rate_out', '{price}/1M tokens', { price: `$${modelCosts[data.model].output}` })}
                   </span>
                 </div>
               </>
@@ -351,7 +353,7 @@ export function DetailDrawer({
                     color: "var(--text-secondary, #aaa)",
                   }}
                 >
-                  Agent type
+                  {t('admin_monitoring.drawer_agent_type', 'Agent type')}
                 </span>
                 <span
                   style={{
@@ -382,7 +384,7 @@ export function DetailDrawer({
               letterSpacing: "0.05em",
             }}
           >
-            Recent Calls ({relatedCalls.length})
+            {t('admin_monitoring.drawer_recent_calls', 'Recent Calls ({n})', { n: relatedCalls.length })}
           </div>
           {relatedCalls.length === 0 ? (
             <div
@@ -393,7 +395,7 @@ export function DetailDrawer({
                 padding: "20px",
               }}
             >
-              No recent calls found
+              {t('admin_monitoring.drawer_no_recent', 'No recent calls found')}
             </div>
           ) : (
             <div
@@ -438,10 +440,10 @@ export function DetailDrawer({
                       {type !== "model" && <span>{r.model || "—"}</span>}
                       {type !== "agent" && <span>{r.agent_name || "—"}</span>}
                       <span style={{ color: COLORS.blue }}>
-                        {fmt(r.prompt_tokens)} in
+                        {t('admin_monitoring.drawer_in_n', '{n} in', { n: fmt(r.prompt_tokens) })}
                       </span>
                       <span style={{ color: COLORS.amber }}>
-                        {fmt(r.completion_tokens)} out
+                        {t('admin_monitoring.drawer_out_n', '{n} out', { n: fmt(r.completion_tokens) })}
                       </span>
                       <span style={{ color: "var(--text-muted, #666)" }}>
                         {fmtDuration(r.duration_ms)}

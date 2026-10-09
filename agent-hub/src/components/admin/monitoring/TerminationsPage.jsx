@@ -9,6 +9,7 @@ import {
 } from './shared';
 import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '../../../utils/terminationsModel';
 import { authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/terminations';
 // authFetch, not raw fetch. Both send credentials, but authFetch also sets the
@@ -23,6 +24,16 @@ const TYPE_META = {
     error:          { label: 'Error',          color: COLORS.rose,   icon: AlertOctagon },
     aborted:        { label: 'Aborted',        color: COLORS.cyan,   icon: XCircle },
 };
+
+function typeLabel(t, type) {
+    switch (type) {
+        case 'max_tokens': return t('admin_monitoring.term_type_max_tokens', 'Max tokens');
+        case 'max_iterations': return t('admin_monitoring.term_type_max_iterations', 'Max iterations');
+        case 'error': return t('admin_monitoring.term_type_error', 'Error');
+        case 'aborted': return t('admin_monitoring.term_type_aborted', 'Aborted');
+        default: return type;
+    }
+}
 
 async function fetchJson(url) {
     try {
@@ -42,6 +53,7 @@ function rangeQuery(range, customStart, customEnd) {
 }
 
 function TypeBadge({ type }) {
+    const { t } = useTranslation();
     const meta = TYPE_META[type] || { label: type, color: COLORS.rose, icon: AlertTriangle };
     const Icon = meta.icon;
     return (
@@ -51,7 +63,7 @@ function TypeBadge({ type }) {
             background: meta.color + '15', color: meta.color, border: `1px solid ${meta.color}30`,
         }}>
             <Icon style={{ width: 11, height: 11 }} />
-            {meta.label}
+            {typeLabel(t, type)}
         </span>
     );
 }
@@ -65,8 +77,9 @@ function fmtBytes(n) {
 }
 
 function LargeInputBadge() {
+    const { t } = useTranslation();
     return (
-        <span title="Prompt or attachment was unusually large — likely cause of the stop"
+        <span title={t('admin_monitoring.term_large_title', 'Prompt or attachment was unusually large, likely cause of the stop')}
             style={{
                 display: 'inline-flex', alignItems: 'center', gap: 3,
                 padding: '2px 6px', borderRadius: 999, fontSize: 10, fontWeight: 600,
@@ -74,13 +87,14 @@ function LargeInputBadge() {
                 marginLeft: 6,
             }}>
             <FileWarning style={{ width: 10, height: 10 }} />
-            Large input
+            {t('admin_monitoring.term_large_input', 'Large input')}
         </span>
     );
 }
 
 function StackedBarChart({ data }) {
-    if (!data || data.length === 0) return <Empty text="No data to display" />;
+    const { t } = useTranslation();
+    if (!data || data.length === 0) return <Empty text={t('admin_monitoring.term_no_data', 'No data to display')} />;
 
     // data: [{ period, type, count }, ...]; aggregate by period
     const buckets = {};
@@ -89,12 +103,12 @@ function StackedBarChart({ data }) {
         buckets[r.period][r.type] = (buckets[r.period][r.type] || 0) + r.count;
     }
     const periods = Object.values(buckets).sort((a, b) => a.period.localeCompare(b.period));
-    const maxTotal = Math.max(...periods.map(p => TYPE_ORDER.reduce((s, t) => s + (p[t] || 0), 0)), 1);
+    const maxTotal = Math.max(...periods.map(p => TYPE_ORDER.reduce((s, ty) => s + (p[ty] || 0), 0)), 1);
 
     return (
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140, padding: '8px 0' }}>
             {periods.map(p => {
-                const total = TYPE_ORDER.reduce((s, t) => s + (p[t] || 0), 0);
+                const total = TYPE_ORDER.reduce((s, ty) => s + (p[ty] || 0), 0);
                 const heightPct = (total / maxTotal) * 100;
                 return (
                     <div key={p.period} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 8 }}>
@@ -103,13 +117,13 @@ function StackedBarChart({ data }) {
                             display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
                             borderRadius: '4px 4px 0 0', overflow: 'hidden',
                         }}>
-                            {TYPE_ORDER.map(t => {
-                                const v = p[t] || 0;
+                            {TYPE_ORDER.map(ty => {
+                                const v = p[ty] || 0;
                                 if (v === 0) return null;
                                 return (
-                                    <div key={t} style={{
+                                    <div key={ty} style={{
                                         height: `${(v / total) * 100}%`,
-                                        background: TYPE_META[t].color,
+                                        background: TYPE_META[ty].color,
                                     }} />
                                 );
                             })}
@@ -125,6 +139,7 @@ function StackedBarChart({ data }) {
 }
 
 export function TerminationsPage({ range = '7d', customStart, customEnd, refreshKey }) {
+    const { t } = useTranslation();
     const [summary, setSummary] = useState(null);
     const [timeline, setTimeline] = useState([]);
     const [rows, setRows] = useState([]);
@@ -187,7 +202,7 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
         return (
             <Card>
                 <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted, #888)' }}>
-                    Loading terminations…
+                    {t('admin_monitoring.term_loading', 'Loading terminations…')}
                 </div>
             </Card>
         );
@@ -200,26 +215,26 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease' }}>
             {/* KPI cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-                <MetricCard icon={AlertTriangle}  label="Total"          value={fmt(total)}                       color={COLORS.rose} />
-                <MetricCard icon={ZapOff}          label="Max tokens"    value={fmt(by.max_tokens || 0)}          color={COLORS.amber}
-                    subtitle={total ? `${Math.round(((by.max_tokens || 0) / total) * 100)}% of stops` : ''} />
-                <MetricCard icon={RefreshCcw}      label="Max iterations" value={fmt(by.max_iterations || 0)}     color={COLORS.orange}
-                    subtitle={total ? `${Math.round(((by.max_iterations || 0) / total) * 100)}% of stops` : ''} />
-                <MetricCard icon={AlertOctagon}    label="Errors"         value={fmt(by.error || 0)}              color={COLORS.rose}
-                    subtitle={total ? `${Math.round(((by.error || 0) / total) * 100)}% of stops` : ''} />
-                <MetricCard icon={XCircle}         label="Aborted"        value={fmt(by.aborted || 0)}            color={COLORS.cyan}
-                    subtitle="Client disconnects" />
-                <MetricCard icon={FileWarning}     label="Large input"    value={fmt(largeInputCount)}            color={COLORS.amber}
-                    subtitle="Likely caused by big prompt / attachment" />
+                <MetricCard icon={AlertTriangle}  label={t('admin_monitoring.col_total', 'Total')}          value={fmt(total)}                       color={COLORS.rose} />
+                <MetricCard icon={ZapOff}          label={typeLabel(t, 'max_tokens')}    value={fmt(by.max_tokens || 0)}          color={COLORS.amber}
+                    subtitle={total ? t('admin_monitoring.term_pct_stops', '{pct}% of stops', { pct: Math.round(((by.max_tokens || 0) / total) * 100) }) : ''} />
+                <MetricCard icon={RefreshCcw}      label={typeLabel(t, 'max_iterations')} value={fmt(by.max_iterations || 0)}     color={COLORS.orange}
+                    subtitle={total ? t('admin_monitoring.term_pct_stops', '{pct}% of stops', { pct: Math.round(((by.max_iterations || 0) / total) * 100) }) : ''} />
+                <MetricCard icon={AlertOctagon}    label={t('admin_monitoring.col_errors', 'Errors')}         value={fmt(by.error || 0)}              color={COLORS.rose}
+                    subtitle={total ? t('admin_monitoring.term_pct_stops', '{pct}% of stops', { pct: Math.round(((by.error || 0) / total) * 100) }) : ''} />
+                <MetricCard icon={XCircle}         label={typeLabel(t, 'aborted')}        value={fmt(by.aborted || 0)}            color={COLORS.cyan}
+                    subtitle={t('admin_monitoring.term_client_disconnects', 'Client disconnects')} />
+                <MetricCard icon={FileWarning}     label={t('admin_monitoring.term_large_input', 'Large input')}    value={fmt(largeInputCount)}            color={COLORS.amber}
+                    subtitle={t('admin_monitoring.term_likely_big', 'Likely caused by big prompt / attachment')} />
             </div>
 
             {/* Timeline chart */}
-            <Card title="Terminations over time" icon={Clock}>
+            <Card title={t('admin_monitoring.term_over_time', 'Terminations over time')} icon={Clock}>
                 <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-muted, #888)', marginBottom: 6 }}>
-                    {TYPE_ORDER.map(t => (
-                        <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: 2, background: TYPE_META[t].color }} />
-                            {TYPE_META[t].label}
+                    {TYPE_ORDER.map(ty => (
+                        <span key={ty} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: 2, background: TYPE_META[ty].color }} />
+                            {typeLabel(t, ty)}
                         </span>
                     ))}
                 </div>
@@ -228,15 +243,15 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
 
             {/* By agent */}
             {byAgent.length > 0 && (
-                <Card title="By agent" icon={Bot}>
+                <Card title={t('admin_monitoring.term_by_agent', 'By agent')} icon={Bot}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 80px', gap: 8, padding: '6px 4px',
                         fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted, #666)' }}>
-                        <span>Agent</span>
-                        <span style={{ textAlign: 'right' }}>Total</span>
-                        <span style={{ textAlign: 'right' }}>Max tok.</span>
-                        <span style={{ textAlign: 'right' }}>Max iter.</span>
-                        <span style={{ textAlign: 'right' }}>Errors</span>
-                        <span style={{ textAlign: 'right' }}>Aborted</span>
+                        <span>{t('admin_monitoring.col_agent', 'Agent')}</span>
+                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_total', 'Total')}</span>
+                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_max_tok', 'Max tok.')}</span>
+                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_max_iter', 'Max iter.')}</span>
+                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_errors', 'Errors')}</span>
+                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_aborted', 'Aborted')}</span>
                     </div>
                     {byAgent.map(a => (
                         <div key={a.agent_id || 'unknown'} style={{
@@ -268,27 +283,27 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                         <input
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            placeholder="Search agent / model / error..."
+                            placeholder={t('admin_monitoring.term_search', 'Search agent / model / error...')}
                             style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary, #fff)', width: '100%' }}
                         />
                     </div>
                     <div style={filterSelectWrapper}>
                         <Filter style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
                         <select value={filterType} onChange={e => setFilterType(e.target.value)} style={filterSelectStyle}>
-                            <option value="">All types</option>
-                            {TYPE_ORDER.map(t => <option key={t} value={t}>{TYPE_META[t].label}</option>)}
+                            <option value="">{t('admin_monitoring.term_all_types', 'All types')}</option>
+                            {TYPE_ORDER.map(ty => <option key={ty} value={ty}>{typeLabel(t, ty)}</option>)}
                         </select>
                     </div>
                     <div style={filterSelectWrapper}>
                         <Bot style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
                         <select value={filterAgent} onChange={e => setFilterAgent(e.target.value)} style={filterSelectStyle}>
-                            <option value="">All agents</option>
+                            <option value="">{t('admin_monitoring.term_all_agents', 'All agents')}</option>
                             {agentOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                         </select>
                     </div>
                     <div style={{ flex: 1 }} />
                     <span style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>
-                        {filtered.length} event{filtered.length !== 1 ? 's' : ''}
+                        {filtered.length === 1 ? t('admin_monitoring.term_event_one', '{n} event', { n: filtered.length }) : t('admin_monitoring.term_event_other', '{n} events', { n: filtered.length })}
                     </span>
                 </div>
 
@@ -300,14 +315,14 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                     fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
                     color: 'var(--text-muted, #666)',
                 }}>
-                    <span>Time</span>
-                    <span>Agent</span>
-                    <span>Model</span>
-                    <span>Type</span>
-                    <span>Error code</span>
-                    <span style={{ textAlign: 'right' }}>Iter.</span>
-                    <span style={{ textAlign: 'right' }}>Duration</span>
-                    <span style={{ textAlign: 'right' }}>Tokens</span>
+                    <span>{t('admin_monitoring.col_time', 'Time')}</span>
+                    <span>{t('admin_monitoring.col_agent', 'Agent')}</span>
+                    <span>{t('admin_monitoring.col_model', 'Model')}</span>
+                    <span>{t('admin_monitoring.col_type', 'Type')}</span>
+                    <span>{t('admin_monitoring.term_col_error_code', 'Error code')}</span>
+                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.term_col_iter', 'Iter.')}</span>
+                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.term_col_duration', 'Duration')}</span>
+                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_tokens', 'Tokens')}</span>
                     <span></span>
                 </div>
 
@@ -367,21 +382,21 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                                     borderTop: '1px solid var(--border-default, rgba(255,255,255,0.06))',
                                 }}>
                                     <DetailRow label="Source"      value={r.source} />
-                                    <DetailRow label="Conversation" value={r.conversation_id} mono />
-                                    <DetailRow label="User"        value={r.user_id} mono />
-                                    <DetailRow label="Organization" value={r.organization_id} mono />
-                                    <DetailRow label="Error class" value={r.error_class} />
-                                    <DetailRow label="Error"       value={r.error_first_line} mono />
-                                    <DetailRow label="Stack"       value={r.stack_first_line} mono />
-                                    <DetailRow label="Tokens"      value={(() => {
+                                    <DetailRow label={t('admin_monitoring.term_d_conversation', 'Conversation')} value={r.conversation_id} mono />
+                                    <DetailRow label={t('admin_monitoring.term_d_user', 'User')}        value={r.user_id} mono />
+                                    <DetailRow label={t('admin_monitoring.term_d_org', 'Organization')} value={r.organization_id} mono />
+                                    <DetailRow label={t('admin_monitoring.term_d_error_class', 'Error class')} value={r.error_class} />
+                                    <DetailRow label={t('admin_monitoring.term_d_error', 'Error')}       value={r.error_first_line} mono />
+                                    <DetailRow label={t('admin_monitoring.term_d_stack', 'Stack')}       value={r.stack_first_line} mono />
+                                    <DetailRow label={t('admin_monitoring.col_tokens', 'Tokens')}      value={(() => {
                                         const total = (r.prompt_tokens || 0) + (r.completion_tokens || 0);
                                         const ratio = total > 0 ? Math.round((r.prompt_tokens / total) * 100) : 0;
-                                        return `prompt ${fmt(r.prompt_tokens)} · completion ${fmt(r.completion_tokens)} · total ${fmt(r.total_tokens)}${total > 0 ? ` (prompt ${ratio}%)` : ''}`;
+                                        return t('admin_monitoring.term_tokens_detail', 'prompt {prompt} · completion {completion} · total {total}', { prompt: fmt(r.prompt_tokens), completion: fmt(r.completion_tokens), total: fmt(r.total_tokens) }) + (total > 0 ? ' ' + t('admin_monitoring.term_tokens_ratio', '(prompt {ratio}%)', { ratio }) : '');
                                     })()} />
                                     <DetailRow
-                                        label="Attachments"
+                                        label={t('admin_monitoring.term_d_attachments', 'Attachments')}
                                         value={r.attachment_count > 0
-                                            ? `${r.attachment_count} file${r.attachment_count !== 1 ? 's' : ''} · ${fmtBytes(r.attachment_bytes || 0)}`
+                                            ? t('admin_monitoring.term_files_detail', '{n} files · {size}', { n: r.attachment_count, size: fmtBytes(r.attachment_bytes || 0) })
                                             : null}
                                     />
                                     {isLargeInput(r) && (
@@ -392,19 +407,19 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                                         }}>
                                             <FileWarning style={{ width: 12, height: 12, marginTop: 1, flexShrink: 0 }} />
                                             <span>
-                                                <strong>Likely caused by large input.</strong>{' '}
+                                                <strong>{t('admin_monitoring.term_likely_large', 'Likely caused by large input.')}</strong>{' '}
                                                 {r.attachment_bytes >= LARGE_ATTACHMENT_BYTES_THRESHOLD
-                                                    ? `Een attachment van ${fmtBytes(r.attachment_bytes)} werd meegestuurd; `
+                                                    ? t('admin_monitoring.term_hint_attachment', 'An attachment of {size} was sent; ', { size: fmtBytes(r.attachment_bytes) })
                                                     : ''}
                                                 {r.prompt_tokens >= LARGE_INPUT_TOKEN_THRESHOLD
-                                                    ? `prompt was ${fmt(r.prompt_tokens)} tokens groot; `
+                                                    ? t('admin_monitoring.term_hint_prompt', 'the prompt was {n} tokens; ', { n: fmt(r.prompt_tokens) })
                                                     : ''}
-                                                Stel een kleinere context voor of split de upload op.
+                                                {t('admin_monitoring.term_hint_smaller', 'Suggest a smaller context or split the upload.')}
                                             </span>
                                         </div>
                                     )}
                                     <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted, #666)', fontStyle: 'italic' }}>
-                                        Privacy: berichten worden niet gelogd. Alleen gesanitiseerde metadata is hier zichtbaar.
+                                        {t('admin_monitoring.term_privacy_note', 'Privacy: messages are not logged. Only sanitised metadata is visible here.')}
                                     </div>
                                 </div>
                             )}

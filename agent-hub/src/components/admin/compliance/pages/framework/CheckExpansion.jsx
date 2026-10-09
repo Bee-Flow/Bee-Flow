@@ -246,7 +246,7 @@ export default function CheckExpansion({
                             {hash && (
                                 <div className="flex items-center gap-1.5 text-[11px] pt-1" data-testid={`${testId}-hash`}>
                                     <Fingerprint size={12} aria-hidden="true" style={{ color: chainIntact === false ? TONES.error.ink : TONES.success.ink }} />
-                                    <span style={MONO} className="text-[var(--text-secondary)]" title={latest?.hash || latest?.payload_hash}>sha256 {hash}</span>
+                                    <span style={MONO} className="text-[var(--text-secondary)]" title={latest?.hash || latest?.payload_hash}>{t('admin_shared.compliance_sha256', 'sha256')} {hash}</span>
                                     <span className="text-[var(--text-tertiary)]">
                                         · {chainIntact === false ? t('compliance.tbl_chain_broken', 'chain broken') : t('compliance.tbl_chain_intact', 'chain intact')}
                                     </span>

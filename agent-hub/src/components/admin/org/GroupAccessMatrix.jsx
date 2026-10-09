@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Loader2, Check, AlertTriangle, Lock, Users, ShieldCheck, Sparkles, Settings, Layers, Search } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { getIntegrationIcon } from '../../../config/integrationIcons';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../utils/helpers';
 
 /**
  * GroupAccessMatrix — the org "Access & Permissions" surface.
@@ -22,9 +23,9 @@ import { getIntegrationIcon } from '../../../config/integrationIcons';
 // MCP servers are integrations now (kind 'integration', category 'MCP servers')
 // — they appear under Integrations, no separate section.
 const KIND_SECTIONS = [
-    { kind: 'core', label: 'Features', icon: Layers },
-    { kind: 'beta', label: 'Beta features', icon: Sparkles },
-    { kind: 'integration', label: 'Integrations', icon: Settings },
+    { kind: 'core', labelKey: 'admin_org.access_matrix_features', label: 'Features', icon: Layers },
+    { kind: 'beta', labelKey: 'admin_org.access_matrix_beta_features', label: 'Beta features', icon: Sparkles },
+    { kind: 'integration', labelKey: 'admin_org.access_matrix_integrations', label: 'Integrations', icon: Settings },
 ];
 
 const SAVE_DEBOUNCE_MS = 450;
@@ -33,6 +34,7 @@ const BLUE = '#3b82f6';
 const EVERYONE = '__everyone__';
 
 export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = null, hideLocked = false, heading, subtitle }) {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
     const [message, setMessage] = useState(null);
@@ -56,7 +58,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         setLoading(true);
         try {
             const res = await authFetch(readPath);
-            if (!res.ok) { setMessage({ type: 'error', text: `Failed to load (${res.status})` }); setLoading(false); return; }
+            if (!res.ok) { setMessage({ type: 'error', text: t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: res.status }) }); setLoading(false); return; }
             const j = await res.json();
             setData(j);
             setEveryone(new Set(j.everyone || []));
@@ -64,15 +66,15 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
             for (const g of (j.groups || [])) gg[g.id] = new Set(g.granted || []);
             setGroupGrants(gg);
         } catch (e) {
-            setMessage({ type: 'error', text: e.message || 'Failed to load' });
+            setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_failed_load', 'Failed to load') });
         } finally { setLoading(false); }
-    }, [readPath]);
+    }, [readPath, t]);
 
     useEffect(() => { load(); }, [load]);
-    useEffect(() => { if (!message) return; const t = setTimeout(() => setMessage(null), 3500); return () => clearTimeout(t); }, [message]);
+    useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(null), 3500); return () => clearTimeout(timer); }, [message]);
     useEffect(() => () => {
         if (everyoneTimer.current) clearTimeout(everyoneTimer.current);
-        Object.values(groupTimers.current).forEach(t => t && clearTimeout(t));
+        Object.values(groupTimers.current).forEach(timer => timer && clearTimeout(timer));
     }, []);
 
     const ceiling = useMemo(() => new Set(data?.ceiling || []), [data]);
@@ -83,9 +85,9 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         everyoneTimer.current = setTimeout(async () => {
             try {
                 const res = await authFetch(orgWritePath, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
-                if (!res.ok) throw new Error('Save failed');
-                setMessage({ type: 'ok', text: 'Saved' });
-            } catch (e) { setMessage({ type: 'error', text: e.message || 'Save failed' }); load(); }
+                if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
+            } catch (e) { setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_save_failed', 'Save failed') }); load(); }
         }, SAVE_DEBOUNCE_MS);
     };
 
@@ -94,9 +96,9 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         groupTimers.current[groupId] = setTimeout(async () => {
             try {
                 const res = await authFetch(`${API_BASE}/auth/groups/${encodeURIComponent(groupId)}/access`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
-                if (!res.ok) throw new Error('Save failed');
-                setMessage({ type: 'ok', text: 'Saved' });
-            } catch (e) { setMessage({ type: 'error', text: e.message || 'Save failed' }); load(); }
+                if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
+            } catch (e) { setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_save_failed', 'Save failed') }); load(); }
         }, SAVE_DEBOUNCE_MS);
     };
 
@@ -145,7 +147,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     if (!data || !data.orgId) {
         return (
             <div className="rounded-2xl p-5 text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-                Your account is not bound to an organisation, so there is nothing to manage here.
+                {t('admin_org.access_matrix_no_org', 'Your account is not bound to an organisation, so there is nothing to manage here.')}
             </div>
         );
     }
@@ -198,7 +200,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                         {locked ? <Lock className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} /> : null}
                     </div>
                     {inherited && !isEveryoneScope ? (
-                        <p className="text-[11px]" style={{ color: BLUE }}>Granted to all members</p>
+                        <p className="text-[11px]" style={{ color: BLUE }}>{t('admin_org.access_matrix_granted_all', 'Granted to all members')}</p>
                     ) : cap.description ? (
                         <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }} title={cap.description}>{cap.description}</p>
                     ) : null}
@@ -215,7 +217,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
             <header className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5" style={{ color: EMERALD }} />
-                    <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{heading || 'Access & Permissions'}</h2>
+                    <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{heading || t('admin_org.access_matrix_heading', 'Access & Permissions')}</h2>
                 </div>
                 {message ? (
                     <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
@@ -227,38 +229,37 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                 <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', maxWidth: 760 }}>{subtitle}</p>
             ) : (
                 <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', maxWidth: 760 }}>
-                    Pick <strong>All members</strong> or a <strong>group</strong>, then grant the features and integrations it should have.
-                    A user gets a capability if it's granted to All members <em>or</em> any group they belong to. Locked items
-                    (<Lock className="w-3 h-3 inline -mt-0.5" />) are outside your organisation's access.
+                    {t('admin_org.access_matrix_pick', 'Pick')} <strong>{t('admin_org.access_matrix_all_members', 'All members')}</strong> {t('admin_org.access_matrix_or_a', 'or a')} <strong>{t('admin_org.access_matrix_group', 'group')}</strong>{t('admin_org.access_matrix_intro_a', ", then grant the features and integrations it should have. A user gets a capability if it's granted to All members")}{' '}
+                    <em>{t('admin_org.access_matrix_or', 'or')}</em> {t('admin_org.access_matrix_intro_b', 'any group they belong to. Locked items (')}<Lock className="w-3 h-3 inline -mt-0.5" />{t('admin_org.access_matrix_intro_c', ") are outside your organisation's access.")}
                 </p>
             )}
 
             <div className="flex flex-col md:flex-row gap-5">
                 {/* ── Scope sidebar ───────────────────────────────────── */}
                 <div className="md:w-60 flex-shrink-0">
-                    <ScopeButton id={EVERYONE} label="All members" accent={BLUE} count={grantCount(EVERYONE)} icon={<Users className="w-3.5 h-3.5" />} />
+                    <ScopeButton id={EVERYONE} label={t('admin_org.access_matrix_all_members', 'All members')} accent={BLUE} count={grantCount(EVERYONE)} icon={<Users className="w-3.5 h-3.5" />} />
                     <div className="my-2 flex items-center gap-2 px-1">
-                        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Groups</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t('admin_org.access_matrix_groups', 'Groups')}</span>
                         <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>({groups.length})</span>
                     </div>
                     {groups.length > 6 ? (
                         <div className="relative mb-2">
                             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                            <input value={groupQuery} onChange={e => setGroupQuery(e.target.value)} placeholder="Search groups…"
+                            <input value={groupQuery} onChange={e => setGroupQuery(e.target.value)} placeholder={t('admin_org.access_matrix_search_groups', 'Search groups…')}
                                 className="w-full text-sm rounded-lg pl-8 pr-2 py-1.5 outline-none"
                                 style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }} />
                         </div>
                     ) : null}
                     {groups.length === 0 ? (
                         <p className="text-[12px] px-1 py-2" style={{ color: 'var(--text-muted)' }}>
-                            No groups yet. Create groups under <strong>Users &amp; Groups</strong> to grant capabilities per team.
+                            {t('admin_org.access_matrix_no_groups_a', 'No groups yet. Create groups under')} <strong>{t('admin_org.access_matrix_users_groups', 'Users & Groups')}</strong> {t('admin_org.access_matrix_no_groups_b', 'to grant capabilities per team.')}
                         </p>
                     ) : (
                         <div className="space-y-0.5 md:max-h-[460px] md:overflow-y-auto pr-1">
                             {filteredGroups.map(g => (
                                 <ScopeButton key={g.id} id={g.id} label={g.name} accent={EMERALD} count={grantCount(g.id)} icon={<Users className="w-3.5 h-3.5" />} />
                             ))}
-                            {filteredGroups.length === 0 ? <p className="text-[12px] px-2 py-2" style={{ color: 'var(--text-muted)' }}>No groups match “{groupQuery}”.</p> : null}
+                            {filteredGroups.length === 0 ? <p className="text-[12px] px-2 py-2" style={{ color: 'var(--text-muted)' }}>{t('admin_org.access_matrix_no_groups_match', 'No groups match “{query}”.', { query: groupQuery })}</p> : null}
                         </div>
                     )}
                 </div>
@@ -267,9 +268,9 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-3">
                         <span className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: `${scopeAccent}1a`, color: scopeAccent }}><Users className="w-3.5 h-3.5" /></span>
-                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{isEveryoneScope ? 'All members' : activeGroup?.name}</h3>
-                        {!isEveryoneScope ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>grants stack on top of All members</span> : null}
-                        {data.betaGoverned ? <span className="text-[11px] ml-auto" style={{ color: 'var(--text-muted)' }}>Beta features follow your subscription</span> : null}
+                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{isEveryoneScope ? t('admin_org.access_matrix_all_members', 'All members') : activeGroup?.name}</h3>
+                        {!isEveryoneScope ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('admin_org.access_matrix_stack', 'grants stack on top of All members')}</span> : null}
+                        {data.betaGoverned ? <span className="text-[11px] ml-auto" style={{ color: 'var(--text-muted)' }}>{t('admin_org.access_matrix_beta_follow', 'Beta features follow your subscription')}</span> : null}
                     </div>
                     {(() => {
                         const sections = KIND_SECTIONS
@@ -283,8 +284,8 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                             return (
                                 <p className="text-sm rounded-xl px-4 py-3" style={{ color: 'var(--text-muted)', background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
                                     {kinds && kinds.length === 1 && kinds[0] === 'integration'
-                                        ? "Your subscription doesn't include any integrations yet."
-                                        : 'Nothing to grant here yet.'}
+                                        ? t('admin_org.access_matrix_no_integrations', "Your subscription doesn't include any integrations yet.")
+                                        : t('admin_org.access_matrix_nothing', 'Nothing to grant here yet.')}
                                 </p>
                             );
                         }
@@ -293,7 +294,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                             return (
                                 <div key={section.kind} className="mb-5">
                                     <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                                        <SectionIcon className="w-3.5 h-3.5" /> {section.label}
+                                        <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)}
                                     </div>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                                         {caps.map(cap => <CapabilityCard key={cap.id} cap={cap} />)}

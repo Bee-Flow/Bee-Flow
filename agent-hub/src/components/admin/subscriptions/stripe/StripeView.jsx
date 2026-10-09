@@ -1,6 +1,7 @@
 import { CreditCard, Settings, Shield, Euro, ExternalLink, CheckCircle, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { StripeKeyField } from './StripeKeyField';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';
 import { apiJson } from '../hooks/useApi';
@@ -12,20 +13,20 @@ import { SectionHeader } from '../ui/SectionHeader';
 import { Spinner } from '../ui/Spinner';
 import { Toggle } from '../ui/Toggle';
 
-const TAX_COUNTRIES = [
-    { value: 'NL', label: '🇳🇱 Netherlands' },
-    { value: 'DE', label: '🇩🇪 Germany' },
-    { value: 'BE', label: '🇧🇪 Belgium' },
-    { value: 'FR', label: '🇫🇷 France' },
-    { value: 'IE', label: '🇮🇪 Ireland' },
-    { value: 'ES', label: '🇪🇸 Spain' },
-    { value: 'IT', label: '🇮🇹 Italy' },
-    { value: 'AT', label: '🇦🇹 Austria' },
-    { value: 'SE', label: '🇸🇪 Sweden' },
-    { value: 'FI', label: '🇫🇮 Finland' },
-];
-
 export function StripeView() {
+    const { t } = useTranslation();
+    const TAX_COUNTRIES = [
+        { value: 'NL', label: `🇳🇱 ${t('admin_subscriptions.stripe_country_nl', 'Netherlands')}` },
+        { value: 'DE', label: `🇩🇪 ${t('admin_subscriptions.stripe_country_de', 'Germany')}` },
+        { value: 'BE', label: `🇧🇪 ${t('admin_subscriptions.stripe_country_be', 'Belgium')}` },
+        { value: 'FR', label: `🇫🇷 ${t('admin_subscriptions.stripe_country_fr', 'France')}` },
+        { value: 'IE', label: `🇮🇪 ${t('admin_subscriptions.stripe_country_ie', 'Ireland')}` },
+        { value: 'ES', label: `🇪🇸 ${t('admin_subscriptions.stripe_country_es', 'Spain')}` },
+        { value: 'IT', label: `🇮🇹 ${t('admin_subscriptions.stripe_country_it', 'Italy')}` },
+        { value: 'AT', label: `🇦🇹 ${t('admin_subscriptions.stripe_country_at', 'Austria')}` },
+        { value: 'SE', label: `🇸🇪 ${t('admin_subscriptions.stripe_country_se', 'Sweden')}` },
+        { value: 'FI', label: `🇫🇮 ${t('admin_subscriptions.stripe_country_fi', 'Finland')}` },
+    ];
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [config, setConfig] = useState({
@@ -70,9 +71,9 @@ export function StripeView() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-            toast.success('Saved.');
+            toast.success(t('admin_subscriptions.stripe_saved', 'Saved.'));
             await load();
-        } catch (e) { toast.error(e.message || 'Failed to save'); }
+        } catch (e) { toast.error(e.message || t('admin_subscriptions.stripe_save_failed', 'Failed to save')); }
         finally { setSaving(false); }
     };
 
@@ -80,21 +81,21 @@ export function StripeView() {
         setSaving(true);
         try {
             await apiJson(`/ai/config/key/${keyName}`, { method: 'DELETE' });
-            toast.success('Key removed.');
+            toast.success(t('admin_subscriptions.stripe_key_removed', 'Key removed.'));
             await load();
-        } catch (e) { toast.error('Failed to remove key'); }
+        } catch (e) { toast.error(t('admin_subscriptions.stripe_key_remove_failed', 'Failed to remove key')); }
         finally { setSaving(false); }
     };
 
-    if (loading) return <Spinner label="Loading Stripe settings…" />;
+    if (loading) return <Spinner label={t('admin_subscriptions.stripe_loading', 'Loading Stripe settings…')} />;
 
     const webhookURL = `${window.location.origin}/api/stripe/webhook`;
 
     return (
         <div className="px-6 py-6 max-w-2xl mx-auto">
             <SectionHeader
-                title="Stripe Payment Integration"
-                description="Connect Stripe to enable subscription billing for your plans."
+                title={t('admin_subscriptions.stripe_title', 'Stripe Payment Integration')}
+                description={t('admin_subscriptions.stripe_desc', 'Connect Stripe to enable subscription billing for your plans.')}
             />
 
             {/* Connection status */}
@@ -102,11 +103,11 @@ export function StripeView() {
                 <CardHeader
                     icon={Settings}
                     iconClass="text-blue-400"
-                    title="Connection status"
+                    title={t('admin_subscriptions.stripe_status', 'Connection status')}
                     action={
                         <div className="flex items-center gap-2">
                             <span className={`text-[11px] font-bold uppercase tracking-wider ${config.stripeEnabled ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
-                                {config.stripeEnabled ? 'Enabled' : 'Disabled'}
+                                {config.stripeEnabled ? t('admin_subscriptions.stripe_enabled', 'Enabled') : t('admin_subscriptions.stripe_disabled', 'Disabled')}
                             </span>
                             <Toggle
                                 checked={config.stripeEnabled}
@@ -118,15 +119,15 @@ export function StripeView() {
                 />
                 <div className="flex flex-col gap-1.5 text-[12.5px]">
                     {[
-                        { ok: config.hasStripeSecretKey,    label: 'Secret key' },
-                        { ok: !!config.stripePublishableKey, label: 'Publishable key' },
-                        { ok: config.hasStripeWebhookSecret, label: 'Webhook secret' },
+                        { ok: config.hasStripeSecretKey,    label: t('admin_subscriptions.stripe_secret_key', 'Secret key') },
+                        { ok: !!config.stripePublishableKey, label: t('admin_subscriptions.stripe_publishable_key', 'Publishable key') },
+                        { ok: config.hasStripeWebhookSecret, label: t('admin_subscriptions.stripe_webhook_secret', 'Webhook secret') },
                     ].map(row => (
                         <div key={row.label} className="flex items-center gap-2">
                             <Dot tone={row.ok ? 'success' : 'danger'} />
                             <span className="text-[var(--text-secondary)]">{row.label}</span>
                             <span className={`ml-auto font-semibold ${row.ok ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {row.ok ? 'Configured' : 'Not configured'}
+                                {row.ok ? t('admin_subscriptions.stripe_configured', 'Configured') : t('admin_subscriptions.stripe_not_configured', 'Not configured')}
                             </span>
                         </div>
                     ))}
@@ -138,21 +139,21 @@ export function StripeView() {
                 <CardHeader
                     icon={Shield}
                     iconClass="text-blue-400"
-                    title="API keys"
+                    title={t('admin_subscriptions.stripe_api_keys', 'API keys')}
                     subtitle={
-                        <>Get your keys from the{' '}
+                        <>{t('admin_subscriptions.stripe_get_keys', 'Get your keys from the')}{' '}
                             <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5">
-                                Stripe Dashboard <ExternalLink className="w-3 h-3" />
+                                {t('admin_subscriptions.stripe_dashboard', 'Stripe Dashboard')} <ExternalLink className="w-3 h-3" />
                             </a>
                         </>
                     }
                 />
                 <StripeKeyField
-                    label="Secret key"
+                    label={t('admin_subscriptions.stripe_secret_key', 'Secret key')}
                     type="password"
                     configured={config.hasStripeSecretKey}
                     placeholderConfigured="••••••••••••••••••"
-                    placeholderEmpty="sk_live_… or sk_test_…"
+                    placeholderEmpty={t('admin_subscriptions.stripe_secret_ph', 'sk_live_… or sk_test_…')}
                     value={secretKey}
                     onChange={setSecretKey}
                     onSave={() => { saveField({ stripeSecretKey: secretKey }); setSecretKey(''); }}
@@ -160,18 +161,18 @@ export function StripeView() {
                     busy={saving}
                 />
                 <StripeKeyField
-                    label="Publishable key"
+                    label={t('admin_subscriptions.stripe_publishable_key', 'Publishable key')}
                     type="text"
                     configured={!!config.stripePublishableKey}
-                    placeholderConfigured="pk_live_… or pk_test_…"
-                    placeholderEmpty="pk_live_… or pk_test_…"
+                    placeholderConfigured={t('admin_subscriptions.stripe_publishable_ph', 'pk_live_… or pk_test_…')}
+                    placeholderEmpty={t('admin_subscriptions.stripe_publishable_ph', 'pk_live_… or pk_test_…')}
                     value={publishableKey}
                     onChange={setPublishableKey}
                     onSave={() => saveField({ stripePublishableKey: publishableKey })}
                     busy={saving}
                 />
                 <StripeKeyField
-                    label="Webhook signing secret"
+                    label={t('admin_subscriptions.stripe_webhook_signing', 'Webhook signing secret')}
                     type="password"
                     configured={config.hasStripeWebhookSecret}
                     placeholderConfigured="••••••••••••••••••"
@@ -189,11 +190,11 @@ export function StripeView() {
                 <CardHeader
                     icon={Euro}
                     iconClass="text-emerald-400"
-                    title="Tax & region (EU compliance)"
+                    title={t('admin_subscriptions.stripe_tax_title', 'Tax & region (EU compliance)')}
                     subtitle={
-                        <>Configure Stripe Tax for automatic VAT calculation.{' '}
+                        <>{t('admin_subscriptions.stripe_tax_subtitle', 'Configure Stripe Tax for automatic VAT calculation.')}{' '}
                             <a href="https://stripe.com/tax" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5">
-                                Learn more <ExternalLink className="w-3 h-3" />
+                                {t('admin_subscriptions.stripe_learn_more', 'Learn more')} <ExternalLink className="w-3 h-3" />
                             </a>
                         </>
                     }
@@ -201,8 +202,8 @@ export function StripeView() {
                 <Toggle
                     checked={config.stripeTaxEnabled}
                     onChange={v => saveField({ stripeTaxEnabled: v })}
-                    label="Enable Stripe Tax"
-                    description="Automatically calculate and collect VAT on subscriptions."
+                    label={t('admin_subscriptions.stripe_tax_enable', 'Enable Stripe Tax')}
+                    description={t('admin_subscriptions.stripe_tax_enable_desc', 'Automatically calculate and collect VAT on subscriptions.')}
                 />
                 {/* BFSF-250: flipping the toggle alone is not enough — prices
                     synced while it was off lack tax_behavior (checkout fails
@@ -210,10 +211,10 @@ export function StripeView() {
                     Existing subscriptions are backfilled automatically on
                     enable; note the real-billing impact. */}
                 <p className="mt-2 text-[11px] text-amber-500/90">
-                    Enabling requires: (1) Stripe Tax activated in the Stripe Dashboard (origin address + NL VAT registration), and (2) re-syncing every plan so new Prices carry tax_behavior. Existing active subscriptions are backfilled automatically — their next invoice will include 21% BTW, so announce this to customers first.
+                    {t('admin_subscriptions.stripe_tax_warning', 'Enabling requires: (1) Stripe Tax activated in the Stripe Dashboard (origin address + NL VAT registration), and (2) re-syncing every plan so new Prices carry tax_behavior. Existing active subscriptions are backfilled automatically: their next invoice will include 21% BTW, so announce this to customers first.')}
                 </p>
                 <div className="mt-3">
-                    <Field label="Tax nexus country" hint="where your business is registered for VAT">
+                    <Field label={t('admin_subscriptions.stripe_nexus', 'Tax nexus country')} hint={t('admin_subscriptions.stripe_nexus_hint', 'where your business is registered for VAT')}>
                         <Select
                             value={config.stripeTaxCountry}
                             onChange={e => saveField({ stripeTaxCountry: e.target.value })}
@@ -230,12 +231,12 @@ export function StripeView() {
                 <CardHeader
                     icon={CreditCard}
                     iconClass="text-amber-400"
-                    title="Subscription notifications"
-                    subtitle="Get an email whenever a customer starts a new subscription."
+                    title={t('admin_subscriptions.stripe_notify_title', 'Subscription notifications')}
+                    subtitle={t('admin_subscriptions.stripe_notify_subtitle', 'Get an email whenever a customer starts a new subscription.')}
                 />
                 <Field
-                    label="Notify this email on new subscriptions"
-                    hint="Leave empty to turn notifications off. One email is sent per new subscription."
+                    label={t('admin_subscriptions.stripe_notify_label', 'Notify this email on new subscriptions')}
+                    hint={t('admin_subscriptions.stripe_notify_hint', 'Leave empty to turn notifications off. One email is sent per new subscription.')}
                 >
                     <div className="flex items-center gap-2 max-w-md">
                         <Input
@@ -249,7 +250,7 @@ export function StripeView() {
                             busy={saving}
                             disabled={notifyEmail.trim() === (config.subscriptionNotifyEmail || '')}
                         >
-                            Save
+                            {t('admin_subscriptions.stripe_save', 'Save')}
                         </Button>
                     </div>
                 </Field>
@@ -257,19 +258,19 @@ export function StripeView() {
 
             {/* Setup checklist */}
             <Card>
-                <CardHeader title="Setup checklist" />
+                <CardHeader title={t('admin_subscriptions.stripe_checklist', 'Setup checklist')} />
                 <ol className="list-none p-0 m-0 space-y-2 text-[12.5px] text-[var(--text-secondary)]">
                     {[
-                        { done: config.hasStripeSecretKey, label: <>Add <strong>Secret Key</strong> and <strong>Publishable Key</strong> from Stripe Dashboard → API keys</> },
+                        { done: config.hasStripeSecretKey, label: t('admin_subscriptions.stripe_step_keys', 'Add the Secret Key and the Publishable Key from Stripe Dashboard → API keys') },
                         { done: config.hasStripeWebhookSecret, label: (
                             <>
-                                Create a <strong>Webhook endpoint</strong> in Stripe Dashboard pointing to:{' '}
+                                {t('admin_subscriptions.stripe_step_webhook', 'Create a Webhook endpoint in Stripe Dashboard pointing to:')}{' '}
                                 <code className="ml-1 px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[11px] text-blue-400">{webhookURL}</code>
                             </>
                         )},
                         { done: config.hasStripeWebhookSecret, label: (
                             <>
-                                Subscribe to events:{' '}
+                                {t('admin_subscriptions.stripe_step_events', 'Subscribe to events:')}{' '}
                                 {['checkout.session.completed','customer.subscription.updated','customer.subscription.deleted','invoice.payment_failed'].map((ev, i, arr) => (
                                     <React.Fragment key={ev}>
                                         <code className="px-1 py-0.5 rounded bg-[var(--bg-tertiary)] text-[10.5px]">{ev}</code>{i < arr.length - 1 ? ', ' : ''}
@@ -277,8 +278,8 @@ export function StripeView() {
                                 ))}
                             </>
                         )},
-                        { done: config.stripeEnabled, label: <><strong>Enable</strong> Stripe payments using the toggle above</> },
-                        { done: false, label: <>Set a <strong>price</strong> on your subscription plans in the Plans tab</> },
+                        { done: config.stripeEnabled, label: t('admin_subscriptions.stripe_step_enable', 'Enable Stripe payments using the toggle above') },
+                        { done: false, label: t('admin_subscriptions.stripe_step_price', 'Set a price on your subscription plans in the Plans tab') },
                     ].map((item, i) => (
                         <li key={i} className="flex items-start gap-2.5">
                             {item.done

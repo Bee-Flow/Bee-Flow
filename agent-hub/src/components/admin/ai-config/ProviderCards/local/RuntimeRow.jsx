@@ -5,9 +5,11 @@ import React, { useState } from 'react';
 import { BTN_PRIMARY, BTN_GHOST, TIER_LABELS, testRuntime, pullModel } from './localRuntimeApi';
 import ProbeResult from './ProbeResult';
 import DeleteConfirmButtons from '../shared/DeleteConfirmButtons';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from '../shared/ProviderCardShell';
 
 const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, onRemove }) => {
+    const { t } = useTranslation();
     const [probe, setProbe] = useState(null);
     const [testing, setTesting] = useState(false);
     const [pullOpen, setPullOpen] = useState(false);
@@ -35,7 +37,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
         });
         if (result.ok) {
             setPull({ model: name, status: 'done', pct: 100, error: null });
-            onMessage?.({ type: 'success', text: `${name} downloaded — assign it to a tier under Chat Models.` });
+            onMessage?.({ type: 'success', text: t('admin_ai_config.row_downloaded', '{name} downloaded: assign it to a tier under Chat Models.', { name }) });
             onChanged?.();
         } else {
             setPull({ model: name, status: 'failed', pct: null, error: result.error });
@@ -47,11 +49,11 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
             <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{provider.name}</span>
                 <ProviderStatusPill tone="blue">{runtime.label || provider.type}</ProviderStatusPill>
-                {isEnvManaged && <ProviderStatusPill tone="orange">from environment</ProviderStatusPill>}
+                {isEnvManaged && <ProviderStatusPill tone="orange">{t('admin_ai_config.row_from_env', 'from environment')}</ProviderStatusPill>}
                 <span className="text-xs font-mono truncate" style={{ color: 'var(--text-muted)' }}>{provider.url}</span>
                 <div className="flex-1" />
                 <button className={BTN_GHOST} style={{ color: 'var(--text-muted)' }} disabled={testing} onClick={runTest}>
-                    {testing ? 'Testing…' : 'Test'}
+                    {testing ? t('admin_ai_config.testing', 'Testing…') : t('admin_ai_config.row_test', 'Test')}
                 </button>
                 {runtime.canPull && (
                     <button
@@ -59,20 +61,20 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                         style={{ color: 'var(--text-muted)' }}
                         onClick={() => { setPullOpen(o => !o); setPullInput(''); }}
                     >
-                        {pullOpen ? 'Close' : '↓ Add model'}
+                        {pullOpen ? t('admin_ai_config.close', 'Close') : t('admin_ai_config.row_add_model', '↓ Add model')}
                     </button>
                 )}
                 <DeleteConfirmButtons
                     size="xs"
                     label="🗑️"
-                    title="Disconnect this runtime"
+                    title={t('admin_ai_config.row_disconnect', 'Disconnect this runtime')}
                     onConfirm={() => onRemove(provider.id)}
                 />
             </div>
 
             {isEnvManaged && (
                 <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Declared by an environment variable, so it is recreated on restart. Remove the variable to disconnect it permanently.
+                    {t('admin_ai_config.row_env_hint', 'Declared by an environment variable, so it is recreated on restart. Remove the variable to disconnect it permanently.')}
                 </p>
             )}
 
@@ -81,7 +83,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
             {pullOpen && (
                 <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-default)' }}>
                     <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                        Pick a starter model, or enter any tag from the Ollama library.
+                        {t('admin_ai_config.row_pick_hint', 'Pick a starter model, or enter any tag from the Ollama library.')}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mb-3">
                         {starterModels.map(m => (
@@ -106,12 +108,12 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                             type="text"
                             value={pullInput}
                             onChange={e => setPullInput(e.target.value)}
-                            placeholder="e.g. qwen3:14b or hf.co/unsloth/gpt-oss-20b-GGUF:Q4_K_M"
+                            placeholder={t('admin_ai_config.row_tag_placeholder', 'e.g. qwen3:14b or hf.co/unsloth/gpt-oss-20b-GGUF:Q4_K_M')}
                             className={PROVIDER_INPUT_CLS}
                             style={PROVIDER_INPUT_STYLE}
                         />
                         <button className={BTN_PRIMARY} disabled={!pullInput.trim() || downloading} onClick={() => download(pullInput)}>
-                            Download
+                            {t('admin_ai_config.download', 'Download')}
                         </button>
                     </div>
                 </div>
@@ -120,7 +122,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
             {pull && (
                 <div className="mt-2">
                     <div className="flex items-center justify-between text-xs gap-2" style={{ color: 'var(--text-muted)' }}>
-                        <span className="truncate">{pull.model} — {pull.error || pull.status}</span>
+                        <span className="truncate">{pull.model}: {pull.error || pull.status}</span>
                         {pull.pct !== null && <span>{pull.pct}%</span>}
                     </div>
                     {pull.pct !== null && !pull.error && (

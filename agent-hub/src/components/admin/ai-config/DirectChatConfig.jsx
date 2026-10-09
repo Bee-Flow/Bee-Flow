@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const DirectChatConfig = () => {
+    const { t } = useTranslation();
     const [systemPrompt, setSystemPrompt] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -32,19 +34,19 @@ const DirectChatConfig = () => {
                 body: JSON.stringify({ systemPrompt })
             });
             if (res.ok) {
-                setMessage({ type: 'success', text: 'System prompt saved!' });
+                setMessage({ type: 'success', text: t('admin_ai_config.direct_saved', 'System prompt saved!') });
             } else {
-                setMessage({ type: 'error', text: 'Failed to save' });
+                setMessage({ type: 'error', text: t('admin_ai_config.direct_save_failed', 'Failed to save') });
             }
         } catch (e) {
-            setMessage({ type: 'error', text: 'Failed to save' });
+            setMessage({ type: 'error', text: t('admin_ai_config.direct_save_failed', 'Failed to save') });
         } finally {
             setSaving(false);
             setTimeout(() => setMessage(null), 3000);
         }
     };
 
-    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>Loading...</div>;
+    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.loading', 'Loading...')}</div>;
 
     return (
         <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
@@ -54,8 +56,8 @@ const DirectChatConfig = () => {
                         💬
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Direct Chat Settings</h3>
-                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Configure the system prompt for Direct Chat</p>
+                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.direct_title', 'Direct Chat Settings')}</h3>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.direct_subtitle', 'Configure the system prompt for Direct Chat')}</p>
                     </div>
                 </div>
                 {message && (
@@ -67,18 +69,17 @@ const DirectChatConfig = () => {
 
             <div className="space-y-4 max-w-3xl">
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>System Prompt</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.direct_prompt_label', 'System Prompt')}</label>
                     <textarea
                         value={systemPrompt}
                         onChange={e => setSystemPrompt(e.target.value)}
-                        placeholder="You are a helpful AI assistant. Respond thoughtfully and concisely."
+                        placeholder={t('admin_ai_config.direct_prompt_placeholder', 'You are a helpful AI assistant. Respond thoughtfully and concisely.')}
                         rows={8}
                         className="w-full px-4 py-3 rounded-lg border outline-none focus:border-[var(--accent-primary)] resize-y font-mono text-sm leading-relaxed"
                         style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', minHeight: '120px' }}
                     />
                     <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                        This prompt defines the AI personality for Direct Chat. The current date and available tools are appended automatically.
-                        Leave empty to use the default.
+                        {t('admin_ai_config.direct_prompt_hint', 'This prompt defines the AI personality for Direct Chat. The current date and available tools are appended automatically. Leave empty to use the default.')}
                     </p>
                 </div>
 
@@ -89,7 +90,7 @@ const DirectChatConfig = () => {
                         className="px-6 py-2.5 rounded-xl font-medium text-white transition-all disabled:opacity-50"
                         style={{ background: 'var(--accent-primary)' }}
                     >
-                        {saving ? 'Saving...' : 'Save System Prompt'}
+                        {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.direct_save', 'Save System Prompt')}
                     </button>
                 </div>
             </div>

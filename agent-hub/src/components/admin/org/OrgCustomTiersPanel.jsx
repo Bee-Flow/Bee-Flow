@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
 
 const TASK_TYPES = [
-    { key: 'direct_chat', label: 'Direct Chat' },
-    { key: 'agent_chat', label: 'Agent Chat' },
+    { key: 'direct_chat', labelKey: 'admin_org.custom_tiers_direct_chat', label: 'Direct Chat' },
+    { key: 'agent_chat', labelKey: 'admin_org.custom_tiers_agent_chat', label: 'Agent Chat' },
 ];
 
 const slugifyTierLabel = (label) => {
@@ -25,6 +26,7 @@ const slugifyTierLabel = (label) => {
  * tiers (created by the super admin) are shown read-only for reference.
  */
 const OrgCustomTiersPanel = () => {
+    const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const [orgTiers, setOrgTiers] = useState([]);
     const [globalTiers, setGlobalTiers] = useState([]);
@@ -66,7 +68,7 @@ const OrgCustomTiersPanel = () => {
             }
         } catch (e) {
             console.error('Failed to load org custom tiers:', e);
-            setMessage({ type: 'error', text: 'Failed to load custom tiers.' });
+            setMessage({ type: 'error', text: t('admin_org.custom_tiers_load_failed', 'Failed to load custom tiers.') });
         } finally {
             setLoading(false);
         }
@@ -110,7 +112,7 @@ const OrgCustomTiersPanel = () => {
     };
 
     const remove = async (id) => {
-        if (!(await confirm({ title: 'Delete this custom tier?', description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
+        if (!(await confirm({ title: t('admin_org.custom_tiers_delete_title', 'Delete this custom tier?'), description: t('admin_org.custom_tiers_delete_desc', 'This cannot be undone.'), confirmLabel: t('admin_org.custom_tiers_delete', 'Delete'), destructive: true }))) return;
         setOrgTiers(prev => prev.filter(t => t.id !== id));
     };
 
@@ -138,35 +140,35 @@ const OrgCustomTiersPanel = () => {
                 const warn = Array.isArray(data.warnings) && data.warnings.length > 0
                     ? ` (${data.warnings.join('; ')})`
                     : '';
-                setMessage({ type: warn ? 'warning' : 'success', text: `Org custom tiers saved${warn}` });
+                setMessage({ type: warn ? 'warning' : 'success', text: t('admin_org.custom_tiers_saved', 'Org custom tiers saved{warn}', { warn }) });
             } else {
                 const body = await res.json().catch(() => ({}));
-                setMessage({ type: 'error', text: body.error || 'Failed to save' });
+                setMessage({ type: 'error', text: body.error || t('admin_org.custom_tiers_save_failed', 'Failed to save') });
             }
         } catch (e) {
-            setMessage({ type: 'error', text: 'Failed to save' });
+            setMessage({ type: 'error', text: t('admin_org.custom_tiers_save_failed', 'Failed to save') });
         } finally {
             setSaving(false);
             setTimeout(() => setMessage(null), 4000);
         }
     };
 
-    if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">Loading custom tiers...</div>;
+    if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_org.custom_tiers_loading', 'Loading custom tiers...')}</div>;
 
     return (
         <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center justify-between">
                 <div>
-                    <h3 className="text-base font-semibold text-[var(--text-primary)]">Organisation Custom Tiers</h3>
+                    <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_org.custom_tiers_title', 'Organisation Custom Tiers')}</h3>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                        Create tiers scoped to this organisation. They appear alongside global tiers for your members.
+                        {t('admin_org.custom_tiers_subtitle', 'Create tiers scoped to this organisation. They appear alongside global tiers for your members.')}
                     </p>
                 </div>
                 <button
                     onClick={addTier}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[var(--accent-primary)] hover:opacity-90 transition-opacity"
                 >
-                    + Add Tier
+                    {t('admin_org.custom_tiers_add', '+ Add Tier')}
                 </button>
             </div>
 
@@ -183,7 +185,7 @@ const OrgCustomTiersPanel = () => {
             <div className="p-5 space-y-4">
                 {orgTiers.length === 0 ? (
                     <div className="p-4 rounded-lg border text-center text-xs border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
-                        No organisation-scoped tiers yet. Click <strong>Add Tier</strong> to create one.
+                        {t('admin_org.custom_tiers_none_a', 'No organisation-scoped tiers yet. Click')} <strong>{t('admin_org.custom_tiers_none_b', 'Add Tier')}</strong> {t('admin_org.custom_tiers_none_c', 'to create one.')}
                     </div>
                 ) : (
                     orgTiers.map(tier => {
@@ -207,12 +209,12 @@ const OrgCustomTiersPanel = () => {
                                                 type="text"
                                                 value={tier.label || ''}
                                                 onChange={e => rename(tier.id, e.target.value)}
-                                                placeholder="Tier name"
+                                                placeholder={t('admin_org.custom_tiers_name_ph', 'Tier name')}
                                                 className="w-full text-sm font-semibold px-2 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none"
                                             />
                                             <p className="text-[10px] mt-0.5 font-mono text-[var(--text-muted)]">{tier.id}</p>
                                         </div>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#eab308' }}>org</span>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#eab308' }}>{t('admin_org.custom_tiers_org', 'org')}</span>
                                         <button
                                             onClick={() => setExpandedId(isExpanded ? null : tier.id)}
                                             className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 text-[var(--text-muted)]"
@@ -222,7 +224,7 @@ const OrgCustomTiersPanel = () => {
                                         <button
                                             onClick={() => remove(tier.id)}
                                             className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-500/20 text-[var(--text-muted)]"
-                                            title="Delete"
+                                            title={t('admin_org.custom_tiers_delete', 'Delete')}
                                         >✕</button>
                                     </div>
 
@@ -230,32 +232,32 @@ const OrgCustomTiersPanel = () => {
                                         type="text"
                                         value={tier.description || ''}
                                         onChange={e => patch(tier.id, { description: e.target.value })}
-                                        placeholder="Short description (shown in tier picker)"
+                                        placeholder={t('admin_org.custom_tiers_desc_ph', 'Short description (shown in tier picker)')}
                                         className="w-full text-xs px-3 py-2 mb-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none"
                                     />
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">Model</label>
+                                            <label className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">{t('admin_org.custom_tiers_model', 'Model')}</label>
                                             <select
                                                 value={tier.modelId || ''}
                                                 onChange={e => patch(tier.id, { modelId: e.target.value })}
                                                 className="w-full px-3 py-2 mt-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm outline-none"
                                             >
-                                                <option value="">— Not configured —</option>
+                                                <option value="">{t('admin_org.custom_tiers_not_configured', 'Not configured')}</option>
                                                 {availableModels.map(m => (
                                                     <option key={m.id} value={m.id}>{m.name || m.id} ({m.providerName})</option>
                                                 ))}
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">EU override (optional)</label>
+                                            <label className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">{t('admin_org.custom_tiers_eu_override', 'EU override (optional)')}</label>
                                             <select
                                                 value={tier.euModelId || ''}
                                                 onChange={e => patch(tier.id, { euModelId: e.target.value })}
                                                 className="w-full px-3 py-2 mt-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm outline-none"
                                             >
-                                                <option value="">— Same as main model —</option>
+                                                <option value="">{t('admin_org.custom_tiers_same_as_main', 'Same as main model')}</option>
                                                 {availableModels.map(m => (
                                                     <option key={m.id} value={m.id}>{m.name || m.id} ({m.providerName})</option>
                                                 ))}
@@ -265,7 +267,7 @@ const OrgCustomTiersPanel = () => {
 
                                     <div className="mt-3">
                                         <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 text-[var(--text-muted)]">
-                                            Available for
+                                            {t('admin_org.custom_tiers_available_for', 'Available for')}
                                         </div>
                                         <div className="flex flex-wrap gap-1.5">
                                             {TASK_TYPES.map(tt => {
@@ -282,7 +284,7 @@ const OrgCustomTiersPanel = () => {
                                                             border: `1px solid ${active ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
                                                         }}
                                                     >
-                                                        {active ? '✓ ' : ''}{tt.label}
+                                                        {active ? '✓ ' : ''}{t(tt.labelKey, tt.label)}
                                                     </button>
                                                 );
                                             })}
@@ -293,7 +295,7 @@ const OrgCustomTiersPanel = () => {
                                 {isExpanded && (
                                     <div className="px-4 pb-4 pt-1 border-t border-[var(--border-subtle)] grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">Max Tokens</label>
+                                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.custom_tiers_max_tokens', 'Max Tokens')}</label>
                                             <input
                                                 type="number"
                                                 value={tier.maxTokens ?? 16384}
@@ -303,7 +305,7 @@ const OrgCustomTiersPanel = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">Temperature</label>
+                                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.custom_tiers_temperature', 'Temperature')}</label>
                                             <input
                                                 type="number"
                                                 value={tier.temperature ?? 0.7}
@@ -324,14 +326,14 @@ const OrgCustomTiersPanel = () => {
                     disabled={saving}
                     className="px-6 py-2.5 rounded-lg font-medium text-sm text-white bg-[var(--accent-primary)] hover:opacity-90 disabled:opacity-50"
                 >
-                    {saving ? 'Saving...' : 'Save Organisation Tiers'}
+                    {saving ? t('admin_org.custom_tiers_saving', 'Saving...') : t('admin_org.custom_tiers_save', 'Save Organisation Tiers')}
                 </button>
 
                 {globalTiers.length > 0 && (
                     <div className="mt-6 pt-6 border-t border-[var(--border-subtle)]">
-                        <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Global tiers (read-only)</h4>
+                        <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-2">{t('admin_org.custom_tiers_global_title', 'Global tiers (read-only)')}</h4>
                         <p className="text-xs text-[var(--text-muted)] mb-3">
-                            These tiers are provided by the system administrator. Your members can see them subject to the group permissions you've set.
+                            {t('admin_org.custom_tiers_global_desc', "These tiers are provided by the system administrator. Your members can see them subject to the group permissions you've set.")}
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {globalTiers.map(t => (

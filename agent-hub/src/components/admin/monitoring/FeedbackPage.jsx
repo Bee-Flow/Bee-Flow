@@ -6,6 +6,7 @@ import {
 import {
     COLORS, fmtTime, shortModel, MetricCard, Card, Empty
 } from './shared';
+import { useTranslation } from '../../../hooks/useTranslation';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 
 const PAGE_SIZE = 10;
@@ -19,6 +20,7 @@ function parseSnapshot(raw) {
 }
 
 export function FeedbackPage({ feedback, summary }) {
+    const { t } = useTranslation();
     const [filter, setFilter] = useState('all'); // all | positive | negative | comments | with_convo
     const [pageNum, setPageNum] = useState(0);
     const [expanded, setExpanded] = useState(null);
@@ -60,25 +62,25 @@ export function FeedbackPage({ feedback, summary }) {
         <div style={{ animation: 'fadeIn 0.3s ease' }}>
             {/* KPI Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '1.25rem' }}>
-                <MetricCard icon={ThumbsUp} label="Positive" color={COLORS.green}
-                    value={posCount} subtitle={`${posRate}% approval`} />
-                <MetricCard icon={ThumbsDown} label="Negative" color={COLORS.rose}
+                <MetricCard icon={ThumbsUp} label={t('admin_monitoring.feedback_positive', 'Positive')} color={COLORS.green}
+                    value={posCount} subtitle={t('admin_monitoring.feedback_approval', '{rate}% approval', { rate: posRate })} />
+                <MetricCard icon={ThumbsDown} label={t('admin_monitoring.feedback_negative', 'Negative')} color={COLORS.rose}
                     value={negCount} />
-                <MetricCard icon={MessageCircle} label="With Comments" color={COLORS.purple}
+                <MetricCard icon={MessageCircle} label={t('admin_monitoring.feedback_with_comments', 'With Comments')} color={COLORS.purple}
                     value={summary?.with_comments || 0} />
-                <MetricCard icon={MessageSquare} label="With Conversation" color={COLORS.blue}
-                    value={withConvoCount} subtitle="Shared context" />
+                <MetricCard icon={MessageSquare} label={t('admin_monitoring.feedback_with_convo', 'With Conversation')} color={COLORS.blue}
+                    value={withConvoCount} subtitle={t('admin_monitoring.feedback_shared_context', 'Shared context')} />
             </div>
 
             {/* Filter & Search */}
             <Card>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {[
-                        { id: 'all', label: 'All' },
-                        { id: 'positive', label: '👍 Positive' },
-                        { id: 'negative', label: '👎 Negative' },
-                        { id: 'comments', label: '💬 Comments' },
-                        { id: 'with_convo', label: '🗨️ With Conversation' },
+                        { id: 'all', label: t('admin_monitoring.feedback_f_all', 'All') },
+                        { id: 'positive', label: `👍 ${t('admin_monitoring.feedback_positive', 'Positive')}` },
+                        { id: 'negative', label: `👎 ${t('admin_monitoring.feedback_negative', 'Negative')}` },
+                        { id: 'comments', label: `💬 ${t('admin_monitoring.feedback_f_comments', 'Comments')}` },
+                        { id: 'with_convo', label: `🗨️ ${t('admin_monitoring.feedback_with_convo', 'With Conversation')}` },
                     ].map(f => (
                         <button
                             key={f.id}
@@ -100,7 +102,7 @@ export function FeedbackPage({ feedback, summary }) {
                         <Search style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
                         <input
                             value={search} onChange={e => { setSearch(e.target.value); setPageNum(0); }}
-                            placeholder="Search feedback..."
+                            placeholder={t('admin_monitoring.feedback_search', 'Search feedback...')}
                             style={{
                                 background: 'transparent', border: 'none', outline: 'none', fontSize: '12px',
                                 color: 'var(--text-primary, #fff)', width: '140px',
@@ -110,7 +112,7 @@ export function FeedbackPage({ feedback, summary }) {
                 </div>
 
                 {/* Feedback List */}
-                {paged.length === 0 ? <Empty text="No feedback entries" /> : paged.map((item, i) => {
+                {paged.length === 0 ? <Empty text={t('admin_monitoring.feedback_empty', 'No feedback entries')} /> : paged.map((item, i) => {
                     const isExpanded = expanded === item.id;
                     const snapshot = parseSnapshot(item.conversation_snapshot);
                     const hasConvo = !!snapshot && snapshot.length > 0;
@@ -183,7 +185,7 @@ export function FeedbackPage({ feedback, summary }) {
                                                 background: COLORS.blue + '15', color: COLORS.blue,
                                             }}>
                                                 <MessageSquare style={{ width: 9, height: 9 }} />
-                                                {snapshot.length} msgs
+                                                {t('admin_monitoring.feedback_msgs', '{n} msgs', { n: snapshot.length })}
                                             </span>
                                         )}
                                     </div>
@@ -247,7 +249,7 @@ export function FeedbackPage({ feedback, summary }) {
                                                 fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
                                                 letterSpacing: '0.04em', marginBottom: '4px',
                                                 color: isUp ? COLORS.green : COLORS.rose,
-                                            }}>User Feedback</div>
+                                            }}>{t('admin_monitoring.feedback_user_feedback', 'User Feedback')}</div>
                                             <div style={{
                                                 fontSize: '13px', color: 'var(--text-primary, #fff)',
                                                 whiteSpace: 'pre-wrap', lineHeight: 1.5,
@@ -264,7 +266,7 @@ export function FeedbackPage({ feedback, summary }) {
                                                 color: COLORS.blue, display: 'flex', alignItems: 'center', gap: '5px',
                                             }}>
                                                 <MessageSquare style={{ width: 11, height: 11 }} />
-                                                Conversation ({snapshot.length} messages)
+                                                {t('admin_monitoring.feedback_conversation', 'Conversation ({n} messages)', { n: snapshot.length })}
                                             </div>
                                             <div style={{
                                                 maxHeight: '400px', overflowY: 'auto',
@@ -347,10 +349,10 @@ export function FeedbackPage({ feedback, summary }) {
                                         }}>
                                             <MessageSquare style={{ width: 20, height: 20, color: 'var(--text-muted, #555)', margin: '0 auto 6px' }} />
                                             <div style={{ fontSize: '12px', color: 'var(--text-muted, #666)' }}>
-                                                No conversation shared
+                                                {t('admin_monitoring.feedback_no_convo', 'No conversation shared')}
                                             </div>
                                             <div style={{ fontSize: '10px', color: 'var(--text-muted, #555)', marginTop: '2px' }}>
-                                                User did not include conversation context with this feedback
+                                                {t('admin_monitoring.feedback_no_convo_hint', 'User did not include conversation context with this feedback')}
                                             </div>
                                         </div>
                                     )}

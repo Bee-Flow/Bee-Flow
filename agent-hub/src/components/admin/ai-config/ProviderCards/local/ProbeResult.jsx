@@ -6,16 +6,18 @@
 
 import React from 'react';
 import { CAT_COLORS } from '../../../../../utils/modelMeta';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const MAX_SHOWN = 12;
 
 const ProbeResult = ({ result }) => {
+    const { t } = useTranslation();
     if (!result) return null;
 
     if (!result.ok) {
         return (
             <p className="text-xs mt-2" style={{ color: 'rgb(248,113,113)' }}>
-                ✕ {result.error || 'Could not reach that address'}
+                ✕ {result.error || t('admin_ai_config.probe_unreachable', 'Could not reach that address')}
             </p>
         );
     }
@@ -24,7 +26,7 @@ const ProbeResult = ({ result }) => {
     return (
         <div className="mt-2">
             <p className="text-xs" style={{ color: 'rgb(74,222,128)' }}>
-                ✓ Reachable{result.version ? ` (v${result.version})` : ''} — {result.modelCount} model{result.modelCount !== 1 ? 's' : ''}
+                {t('admin_ai_config.probe_reachable', '✓ Reachable')}{result.version ? ` (v${result.version})` : ''}: {result.modelCount === 1 ? t('admin_ai_config.model_count_one', '1 model') : t('admin_ai_config.model_count_other', '{count} models', { count: result.modelCount })}
                 {result.error ? `. ${result.error}` : ''}
             </p>
             {result.models?.length > 0 && (
@@ -40,7 +42,7 @@ const ProbeResult = ({ result }) => {
                     ))}
                     {extra > 0 && (
                         <span className="text-[10px] px-1.5 py-0.5" style={{ color: 'var(--text-muted)' }}>
-                            +{extra} more
+                            {t('admin_ai_config.probe_more', '+{extra} more', { extra })}
                         </span>
                     )}
                 </div>

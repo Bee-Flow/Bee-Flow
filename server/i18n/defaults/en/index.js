@@ -128,6 +128,13 @@ const NAMESPACES = {
     "visibility":      require('./visibility.js'),
     "voiceprint":      require('./voiceprint.js'),
     "webpages":        require('./webpages.js'),
+    "admin_ai_config": require('./admin_ai_config.js'),
+    "admin_languages": require('./admin_languages.js'),
+    "admin_monitoring": require('./admin_monitoring.js'),
+    "admin_org": require('./admin_org.js'),
+    "admin_security": require('./admin_security.js'),
+    "admin_shared": require('./admin_shared.js'),
+    "admin_subscriptions": require('./admin_subscriptions.js'),
 };
 
 function build() {

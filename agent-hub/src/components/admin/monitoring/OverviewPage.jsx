@@ -6,6 +6,7 @@ import {
     fmt, fmtCost, fmtDuration, COLORS, MODEL_COLORS,
     MetricCard, Card, Empty, SvgAreaChart, DonutChart, ModelRow, AgentRow, shortModel
 } from './shared';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export function OverviewPage({
     summary, prevSummary, deltas, deltaLabel,
@@ -13,6 +14,7 @@ export function OverviewPage({
     totalCost, costPerModel, modelCosts, range,
     onSelectModel, onSelectAgent, onNavigate
 }) {
+    const { t } = useTranslation();
     const modelsWithCost = byModel.filter(m => costPerModel[m.model]);
 
     // Donut data: top 5 models by cost + "Other"
@@ -27,21 +29,21 @@ export function OverviewPage({
             value: costPerModel[m.model] || 0,
             color: MODEL_COLORS[i % MODEL_COLORS.length],
         }));
-        if (otherCost > 0) items.push({ label: 'Other', value: otherCost, color: '#64748b' });
+        if (otherCost > 0) items.push({ label: t('admin_monitoring.overview_other', 'Other'), value: otherCost, color: '#64748b' });
         return items;
-    }, [byModel, costPerModel]);
+    }, [byModel, costPerModel, t]);
 
     return (
         <div style={{ animation: 'fadeIn 0.3s ease' }}>
             {/* ── KPI Cards ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '1.5rem' }}>
                 <MetricCard
-                    icon={Zap} label="Total Calls" color={COLORS.primary}
+                    icon={Zap} label={t('admin_monitoring.overview_total_calls', 'Total Calls')} color={COLORS.primary}
                     value={fmt(summary?.total_calls || 0)}
                     delta={deltas?.calls} deltaLabel={deltaLabel}
                 />
                 <MetricCard
-                    icon={BarChart3} label="Total Tokens" color={COLORS.green}
+                    icon={BarChart3} label={t('admin_monitoring.overview_total_tokens', 'Total Tokens')} color={COLORS.green}
                     value={fmt(summary?.total_tokens || 0)}
                     delta={deltas?.tokens} deltaLabel={deltaLabel}
                 />
@@ -52,16 +54,16 @@ export function OverviewPage({
                     return (
                         <MetricCard
                             icon={DollarSign}
-                            label={isPayg ? 'Billed (PAYG)' : 'Est. Cost'}
+                            label={isPayg ? t('admin_monitoring.overview_billed_payg', 'Billed (PAYG)') : t('admin_monitoring.overview_est_cost', 'Est. Cost')}
                             color={isPayg ? COLORS.green : COLORS.amber}
                             value={fmtCost(isPayg ? billed : rawCost)}
-                            subtitle={isPayg ? `raw ${fmtCost(rawCost)} · markup applied` : undefined}
+                            subtitle={isPayg ? t('admin_monitoring.overview_raw_markup', 'raw {cost} · markup applied', { cost: fmtCost(rawCost) }) : undefined}
                             delta={deltas?.cost} deltaLabel={deltaLabel}
                         />
                     );
                 })()}
                 <MetricCard
-                    icon={Clock} label="Avg Latency" color={COLORS.pink}
+                    icon={Clock} label={t('admin_monitoring.overview_avg_latency', 'Avg Latency')} color={COLORS.pink}
                     value={fmtDuration(summary?.avg_duration_ms)}
                     delta={deltas?.latency}
                     deltaLabel={deltas?.latency != null ? (deltas.latency > 0 ? 'slower' : 'faster') : deltaLabel}
@@ -71,37 +73,37 @@ export function OverviewPage({
             {((summary?.total_cached_tokens || 0) > 0 || (summary?.total_reasoning_tokens || 0) > 0) && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '1.5rem' }}>
                     <MetricCard
-                        icon={Database} label="Cached Tokens" color={COLORS.green}
+                        icon={Database} label={t('admin_monitoring.overview_cached_tokens', 'Cached Tokens')} color={COLORS.green}
                         value={fmt(summary?.total_cached_tokens || 0)}
                         deltaLabel={(summary?.total_cache_creation_tokens || 0) > 0
-                            ? `+ ${fmt(summary.total_cache_creation_tokens)} written`
-                            : 'cache hits'}
+                            ? t('admin_monitoring.overview_cache_written', '+ {n} written', { n: fmt(summary.total_cache_creation_tokens) })
+                            : t('admin_monitoring.overview_cache_hits', 'cache hits')}
                     />
                     <MetricCard
-                        icon={Brain} label="Reasoning Tokens" color={COLORS.primary}
+                        icon={Brain} label={t('admin_monitoring.overview_reasoning_tokens', 'Reasoning Tokens')} color={COLORS.primary}
                         value={fmt(summary?.total_reasoning_tokens || 0)}
-                        deltaLabel="o-series / thinking"
+                        deltaLabel={t('admin_monitoring.overview_reasoning_hint', 'o-series / thinking')}
                     />
                 </div>
             )}
 
             {/* ── Timeline Charts ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '1.25rem' }}>
-                <Card title="Token Trend" icon={TrendingUp}>
+                <Card title={t('admin_monitoring.overview_token_trend', 'Token Trend')} icon={TrendingUp}>
                     <SvgAreaChart
                         data={timeline} yKey="total_tokens" color={COLORS.primary}
                         formatY={fmt}
                         formatLabel={d => `${d.period || ''} · ${d.calls || 0} calls`}
                     />
                 </Card>
-                <Card title={Number(summary?.total_billed_cost || 0) > 0 ? 'Billed Cost Trend (PAYG)' : 'Cost Trend'} icon={DollarSign}>
+                <Card title={Number(summary?.total_billed_cost || 0) > 0 ? t('admin_monitoring.overview_billed_trend', 'Billed Cost Trend (PAYG)') : t('admin_monitoring.overview_cost_trend', 'Cost Trend')} icon={DollarSign}>
                     <SvgAreaChart
                         data={costTimeline}
                         yKey={Number(summary?.total_billed_cost || 0) > 0 ? 'total_billed_cost' : 'total_cost'}
                         color={Number(summary?.total_billed_cost || 0) > 0 ? COLORS.green : COLORS.amber}
                         formatY={fmtCost}
                         formatLabel={d => Number(summary?.total_billed_cost || 0) > 0
-                            ? `${d.period || ''} · ${fmtCost(d.total_billed_cost || 0)} billed · ${fmtCost(d.total_cost || 0)} raw`
+                            ? t('admin_monitoring.overview_trend_billed_raw', '{period} · {billed} billed · {raw} raw', { period: d.period || '', billed: fmtCost(d.total_billed_cost || 0), raw: fmtCost(d.total_cost || 0) })
                             : `${d.period || ''} · ${fmtCost(d.total_cost || 0)}`}
                     />
                 </Card>
@@ -109,15 +111,15 @@ export function OverviewPage({
 
             {/* ── Two columns: Top Models + Top Agents ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '1.25rem' }}>
-                <Card title="Top Models" icon={Cpu}>
-                    {byModel.length === 0 ? <Empty text="No model data" /> : byModel.slice(0, 5).map((m, i) => (
+                <Card title={t('admin_monitoring.overview_top_models', 'Top Models')} icon={Cpu}>
+                    {byModel.length === 0 ? <Empty text={t('admin_monitoring.overview_no_model_data', 'No model data')} /> : byModel.slice(0, 5).map((m, i) => (
                         <div key={i} onClick={() => onSelectModel?.(m)} style={{ cursor: 'pointer' }}>
                             <ModelRow model={m} index={i} maxTokens={Math.max(...byModel.map(m => m.total_tokens || 0), 1)} cost={costPerModel[m.model]} />
                         </div>
                     ))}
                 </Card>
-                <Card title="Top Agents" icon={Bot}>
-                    {byAgent.length === 0 ? <Empty text="No agent data" /> : byAgent.slice(0, 5).map((a, i) => (
+                <Card title={t('admin_monitoring.overview_top_agents', 'Top Agents')} icon={Bot}>
+                    {byAgent.length === 0 ? <Empty text={t('admin_monitoring.overview_no_agent_data', 'No agent data')} /> : byAgent.slice(0, 5).map((a, i) => (
                         <div key={i} onClick={() => onSelectAgent?.(a)} style={{ cursor: 'pointer' }}>
                             <AgentRow agent={a} index={i} />
                         </div>
@@ -129,7 +131,7 @@ export function OverviewPage({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 {/* Cost donut */}
                 <Card
-                    title="Cost Breakdown"
+                    title={t('admin_monitoring.overview_cost_breakdown', 'Cost Breakdown')}
                     icon={DollarSign}
                     action={onNavigate && (
                         <button
@@ -140,18 +142,18 @@ export function OverviewPage({
                                 border: '1px solid rgba(245, 158, 11, 0.2)', cursor: 'pointer',
                             }}
                         >
-                            ⚙️ Model Costs
+                            ⚙️ {t('admin_monitoring.overview_model_costs', 'Model Costs')}
                         </button>
                     )}
                 >
                     {donutItems.length === 0 ? (
-                        <Empty text="No cost data — configure model pricing in AI Config" />
+                        <Empty text={t('admin_monitoring.overview_no_cost_data', 'No cost data: configure model pricing in AI Config')} />
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <DonutChart items={donutItems} centerLabel="Total" centerValue={fmtCost(totalCost)} />
+                            <DonutChart items={donutItems} centerLabel={t('admin_monitoring.overview_total', 'Total')} centerValue={fmtCost(totalCost)} />
                             {modelsWithCost.length < byModel.length && (
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted, #666)', padding: '6px 0' }}>
-                                    ℹ️ {byModel.length - modelsWithCost.length} model{byModel.length - modelsWithCost.length > 1 ? 's' : ''} without cost data
+                                    ℹ️ {byModel.length - modelsWithCost.length > 1 ? t('admin_monitoring.overview_no_cost_models', '{n} models without cost data', { n: byModel.length - modelsWithCost.length }) : t('admin_monitoring.overview_no_cost_model', '{n} model without cost data', { n: byModel.length - modelsWithCost.length })}
                                 </div>
                             )}
                         </div>
@@ -159,8 +161,8 @@ export function OverviewPage({
                 </Card>
 
                 {/* Tool usage */}
-                <Card title="Tool Usage" icon={Wrench}>
-                    {tools.length === 0 ? <Empty text="No tool calls recorded" /> : (
+                <Card title={t('admin_monitoring.overview_tool_usage', 'Tool Usage')} icon={Wrench}>
+                    {tools.length === 0 ? <Empty text={t('admin_monitoring.overview_no_tool_calls', 'No tool calls recorded')} /> : (
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             {tools.slice(0, 15).map((t, i) => (
                                 <div key={i} style={{
