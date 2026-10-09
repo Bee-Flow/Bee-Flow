@@ -206,6 +206,7 @@ const NL_TRANSLATIONS = [
     'update-nl-legal-register-2026-10', // Legal register review of 6 Oct 2026: corrected framework, milestone and check Dutch (old shipped text only), new milestones, "Legal status checked" chip and Sources
     'update-nl-compliance-detect-2026-10', // Compliance round 2 detection and legal wording: one-month DSR clock, CRA notification, DORA/Data Act/EAA/PLD/Machinery terms, encryption levels (old shipped text only), two new milestones; after the legal register review, whose Dutch it partly replaces
     'update-nl-compliance-ui-2026-10', // Compliance Center UI round 2: Dutch for the strings the eleven UI packages added, and reworded Dutch where the English changed meaning (old shipped text only)
+    'add-nl-hardcoded-integrations-agents-2026-10-translations', // Hard-coded English literals converted to keys: integrations, agents, appearance, support, knowledge, setup wizards
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',
