@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 
 /**
@@ -19,12 +20,15 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
  * and can be resumed by a later visit (same sequential contract) or deleted.
  */
 export default function useDatasetUpload(appId) {
+    const { t } = useTranslation();
+    const tRef = useRef(t);
+    tRef.current = t;
     const abortRef = useRef(null);
 
     useEffect(() => () => { abortRef.current?.abort(); }, []);
 
     const upload = useCallback(async (file, { onProgress } = {}) => {
-        if (!appId || !file) throw new Error('Nothing to upload');
+        if (!appId || !file) throw new Error(tRef.current('studio_apps_runtime.dataset_upload.nothing', 'Nothing to upload'));
         const ac = new AbortController();
         abortRef.current = ac;
         const base = `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/large-datasets`;
@@ -36,10 +40,10 @@ export default function useDatasetUpload(appId) {
             signal: ac.signal,
         });
         const init = await initRes.json().catch(() => ({}));
-        if (!initRes.ok) throw new Error(init.error || `Could not start the upload (${initRes.status})`);
+        if (!initRes.ok) throw new Error(init.error || tRef.current('studio_apps_runtime.dataset_upload.start_failed', 'Could not start the upload ({status})', { status: initRes.status }));
         const { datasetId, partSize, partsTotal } = init;
         if (typeof datasetId !== 'string' || !datasetId || !(partSize > 0) || !Number.isInteger(partsTotal)) {
-            throw new Error(`Could not start the upload (${initRes.status})`);
+            throw new Error(tRef.current('studio_apps_runtime.dataset_upload.start_failed', 'Could not start the upload ({status})', { status: initRes.status }));
         }
 
         let n = 0;
@@ -59,10 +63,10 @@ export default function useDatasetUpload(appId) {
                         // The ledger knows better than our counter — re-sync.
                         const body = await res.json().catch(() => ({}));
                         if (Number.isInteger(body.expected)) { n = body.expected; sent = true; break; }
-                        throw new Error(body.error || 'part out of sequence');
+                        throw new Error(body.error || tRef.current('studio_apps_runtime.dataset_upload.part_out_of_sequence', 'part out of sequence'));
                     }
                     const body = await res.json().catch(() => ({}));
-                    if (!res.ok) throw new Error(body.error || `part ${n} failed (${res.status})`);
+                    if (!res.ok) throw new Error(body.error || tRef.current('studio_apps_runtime.dataset_upload.part_failed', 'part {n} failed ({status})', { n, status: res.status }));
                     n += 1;
                     sent = true;
                 } catch (err) {
@@ -82,7 +86,7 @@ export default function useDatasetUpload(appId) {
             signal: ac.signal,
         });
         const done = await doneRes.json().catch(() => ({}));
-        if (!doneRes.ok) throw new Error(done.error || `Could not finish the upload (${doneRes.status})`);
+        if (!doneRes.ok) throw new Error(done.error || tRef.current('studio_apps_runtime.dataset_upload.finish_failed', 'Could not finish the upload ({status})', { status: doneRes.status }));
         onProgress?.(100);
         return datasetId;
     }, [appId]);

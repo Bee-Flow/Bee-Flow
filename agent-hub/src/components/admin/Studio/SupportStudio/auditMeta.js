@@ -62,13 +62,22 @@ export function categoryFor(event) {
     return byAction || 'system';
 }
 
-export function labelFor(action) {
+export function labelFor(action, t) {
     if (!action) return '';
-    return ACTION_LABEL[action] || action.replace(/_/g, ' ');
+    const en = ACTION_LABEL[action];
+    if (!en) return action.replace(/_/g, ' ');
+    return t ? t(`studio_misc.audit.action_${action}`, en) : en;
+}
+
+/** A category's label (AI, Automation, ...); translated when a `t` is passed. */
+export function categoryLabel(category, t) {
+    const en = CATEGORY_META[category]?.label;
+    return t && en ? t(`studio_misc.audit.cat_${category}`, en) : en;
 }
 
 // A short human summary of an event's payload for the secondary line.
-export function summarize(event) {
+export function summarize(event, t) {
+    const tr = (key, en, params) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
     const p = event?.payload || {};
     switch (event?.action) {
         case 'inbox_settings_changed':
@@ -80,27 +89,27 @@ export function summarize(event) {
         case 'email_ingested':
             return p.subject || p.from || '';
         case 'inbox_access_changed':
-            return Array.isArray(p.sharedGroups) && p.sharedGroups.length ? `restricted to ${p.sharedGroups.length} group(s)` : 'open to all support staff';
+            return Array.isArray(p.sharedGroups) && p.sharedGroups.length ? tr('studio_misc.audit.sum_restricted', 'restricted to {n} group(s)', { n: p.sharedGroups.length }) : tr('studio_misc.audit.sum_open', 'open to all support staff');
         case 'inbox_connected':
         case 'inbox_created':
             return [p.emailAddress, p.provider].filter(Boolean).join(' · ');
         case 'ai_reply':
         case 'ai_draft':
-            return p.confidence != null ? `confidence ${Math.round(p.confidence * 100)}%` : '';
+            return p.confidence != null ? tr('studio_misc.audit.sum_confidence', 'confidence {pct}%', { pct: Math.round(p.confidence * 100) }) : '';
         case 'ai_escalated':
             return p.reason || '';
         case 'kb_automation_changed':
-            return p.enabled ? 'enabled' : 'disabled';
+            return p.enabled ? tr('studio_misc.audit.sum_enabled', 'enabled') : tr('studio_misc.audit.sum_disabled', 'disabled');
         case 'scan_started':
-            return p.windowDays ? `${p.windowDays} days` : '';
+            return p.windowDays ? tr('studio_misc.audit.sum_days', '{n} days', { n: p.windowDays }) : '';
         case 'sla_breach':
-            return p.which === 'first' ? 'first response' : 'resolution';
+            return p.which === 'first' ? tr('studio_misc.audit.sum_first_response', 'first response') : tr('studio_misc.audit.sum_resolution', 'resolution');
         default:
             return '';
     }
 }
 
-export function metaFor(event) {
+export function metaFor(event, t) {
     const category = categoryFor(event);
-    return { category, ...CATEGORY_META[category], label: labelFor(event?.action), summary: summarize(event) };
+    return { category, ...CATEGORY_META[category], label: labelFor(event?.action, t), categoryLabel: categoryLabel(category, t), summary: summarize(event, t) };
 }

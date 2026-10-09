@@ -51,9 +51,11 @@ export function boolValue(value) {
  * being localised: '2026-03-14' has no time zone, so formatting it through
  * Date would shift the day for every viewer west of Greenwich.
  */
-export function cellText(value, field) {
+export function cellText(value, field, t) {
     const type = field?.type || 'text';
-    if (type === 'bool') return boolValue(value) ? 'Yes' : 'No';
+    if (type === 'bool') return boolValue(value)
+        ? (t ? t('studio_apps_tables.cell.yes', 'Yes') : 'Yes')
+        : (t ? t('studio_apps_tables.cell.no', 'No') : 'No');
     if (type === 'multiselect' || type === 'file') {
         const list = listValue(value);
         return list.length ? list.map((v) => optionPair(v).label).join(', ') : displayValue(null);

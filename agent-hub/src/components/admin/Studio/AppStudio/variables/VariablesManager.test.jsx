@@ -152,7 +152,7 @@ describe('VariablesManager — deleting', () => {
         const { onCommit } = renderManager(def);
         fireEvent.click(screen.getByRole('button', { name: 'Delete used' }));
         expect(onCommit).not.toHaveBeenCalled();
-        expect(screen.getByText(/still use it/i)).toBeTruthy();
+        expect(screen.getByText(/still uses? it/i)).toBeTruthy();
         expect(screen.getByText(/Screen “Home”/)).toBeTruthy();
     });
 

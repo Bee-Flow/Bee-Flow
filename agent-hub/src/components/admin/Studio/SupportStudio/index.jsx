@@ -146,7 +146,7 @@ export default function SupportStudio({ user, initialTicketId = null }) {
             sidebarTitle={(
                 <span className="flex items-center gap-2">
                     <LifeBuoy size={15} /> {t('studio.tab.support', 'Support')}
-                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/30">Beta</span>
+                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/30">{t('studio_misc.support.beta', 'Beta')}</span>
                 </span>
             )}
             sidebarActions={(

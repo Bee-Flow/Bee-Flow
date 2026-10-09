@@ -99,7 +99,7 @@ export default function AutomationRow({
     // PascalCase makes it explicit this is a React component, not a DOM tag —
     // otherwise a lowercase rename would silently emit a literal HTML tag.
     const TriggerIcon = isAutomation ? triggerIcon(automation) : Bot;
-    const title = automation.title || (isAutomation ? 'Untitled automation' : 'Untitled task');
+    const title = automation.title || (isAutomation ? t('studio_misc.overview.untitled_automation', 'Untitled automation') : t('studio_misc.row.untitled_task', 'Untitled task'));
     // The name first, so a title the narrow sidebar cut short can still be
     // read in full; then the description, when there is one. A blank
     // description falls away instead of adding an empty line.
@@ -135,7 +135,7 @@ export default function AutomationRow({
     const menuItems = buildAutomationMenuItems({
         isAutomation, isActive,
         onToggleActive: allowed.onToggleActive, onOpenRuns, onDuplicate: allowed.onDuplicate,
-        onExportJson: allowed.onExportJson, onMoveToFolder: allowed.onMoveToFolder, onCopyId, onDelete: allowed.onDelete,
+        onExportJson: allowed.onExportJson, onMoveToFolder: allowed.onMoveToFolder, onCopyId, onDelete: allowed.onDelete, t,
     });
 
     return (

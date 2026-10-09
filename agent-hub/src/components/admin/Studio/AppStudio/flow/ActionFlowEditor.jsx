@@ -11,6 +11,7 @@ import {
 import { isDanglingRef, labelForRef } from './stepReferences';
 import StepSettings from './StepSettings';
 import useStepReferences from './useStepReferences';
+import useTranslation from '../../../../../hooks/useTranslation';
 import NodeContextMenu from '../../../../automation/Builder/flow/NodeContextMenu';
 import { NodeRuntimeContext } from '../../../../automation/Builder/flow/NodeRuntimeContext';
 import StepNodeBase from '../../../../automation/Builder/flow/nodes/StepNodeBase';
@@ -55,13 +56,14 @@ export default function ActionFlowEditor(props) {
 }
 
 function FlowBody({ action, onChange, definition, node = null, disabled = false, formFields = [] }) {
+    const { t } = useTranslation();
     const [selectedId, setSelectedId] = useState(null);
     const [adding, setAdding] = useState(null);   // { prefix, after? } — where
     const [ctxMenu, setCtxMenu] = useState(null); // { id, x, y } — right-click
 
     // Ids are editor-only: assigned on the way in, stripped on the way out.
     const withIds = useMemo(() => withStepIds(normalizeToSequence(action)), [action]);
-    const graph = useMemo(() => stepsToGraph(withIds), [withIds]);
+    const graph = useMemo(() => stepsToGraph(withIds, t), [withIds, t]);
     const positions = useMemo(() => layoutGraph(graph.nodes), [graph.nodes]);
 
     const screens = definition?.screens || [];
@@ -120,7 +122,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
         // Editor-only and thrown away by the commit below; a counter rather than
         // a clock so two adds in the same millisecond cannot share an id.
         tempIdRef.current += 1;
-        const step = { ...newStep(kind, { screenId: screens[0]?.id || '' }), id: `n${tempIdRef.current}` };
+        const step = { ...newStep(kind, { screenId: screens[0]?.id || '', t }), id: `n${tempIdRef.current}` };
         const id = prefix ? `${prefix}/${step.id}` : step.id;
         const scopeNodes = graph.nodes.filter((n) => n.prefix === prefix && !n.isEntry);
         const last = scopeNodes[scopeNodes.length - 1];
@@ -147,7 +149,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
         // edges, which encode the OLD order (see moveStep).
         pendingScopeRef.current = { prefix, at };
         commitSteps(graphToSteps(spliceScope(graph.nodes, prefix, at, fresh), dropScopeEdges(graph.edges, prefix)));
-    }, [graph, screens, commitSteps]);
+    }, [graph, screens, commitSteps, t]);
 
     /**
      * A copy of one step, right after the original — and everything inside it.
@@ -230,13 +232,13 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
     }, [graph, commitSteps]);
 
     const onConnect = useCallback((connection) => {
-        const verdict = canConnect(connection.source, connection.target, graph.edges, graph.nodes);
+        const verdict = canConnect(connection.source, connection.target, graph.edges, graph.nodes, t);
         if (!verdict.ok) { toast.info(verdict.reason); return; }
         commitSteps(graphToSteps(graph.nodes, [
             ...graph.edges,
             { id: `${connection.source}->${connection.target}`, from: connection.source, to: connection.target },
         ]));
-    }, [graph, commitSteps]);
+    }, [graph, commitSteps, t]);
 
     const rfNodes = useMemo(() => graph.nodes.map((n) => ({
         id: n.id,
@@ -247,7 +249,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
         data: {
             node: n,
             selected: n.id === selectedId,
-            summary: summarise(n.step, references.options),
+            summary: summarise(n.step, references.options, t),
             onSelect: () => setSelectedId(n.isEntry ? null : n.id),
             onAdd: () => setAdding({ prefix: n.prefix }),
             // The "+" on the node itself — add a step straight after this one,
@@ -260,7 +262,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
             },
             disabled,
         },
-    })), [graph.nodes, positions, selectedId, disabled, references.options]);
+    })), [graph.nodes, positions, selectedId, disabled, references.options, t]);
 
     /**
      * The step actions StepNodeBase draws on hover. It reads them from this
@@ -305,14 +307,14 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
 
                 {rootEmpty ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
-                        <p className="text-xs text-[var(--text-secondary)]">Nothing happens yet.</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{t('studio_apps_edit.action_flow.nothing_yet', 'Nothing happens yet.')}</p>
                         <button
                             type="button"
                             onClick={() => setAdding({ prefix: '' })}
                             disabled={disabled}
                             className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         >
-                            <Plus className="w-3.5 h-3.5" aria-hidden="true" /> Add the first step
+                            <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('studio_apps_edit.action_flow.add_first', 'Add the first step')}
                         </button>
                     </div>
                 ) : null}
@@ -328,10 +330,10 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
                     <div className="flex flex-col gap-3">
                         <header className="flex items-center gap-2">
                             <h3 className="flex-1 text-sm font-semibold text-[var(--text-primary)]">
-                                {stepMeta(selected.kind).label}
+                                {stepMeta(selected.kind, t).label}
                             </h3>
                             <IconButton
-                                ariaLabel="Move this step earlier"
+                                ariaLabel={t('studio_apps_edit.action_flow.move_earlier', 'Move this step earlier')}
                                 size="sm"
                                 disabled={disabled || !canMove(graph, selected.id, -1)}
                                 onClick={() => moveStep(selected.id, -1)}
@@ -339,7 +341,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
                                 <ChevronUp />
                             </IconButton>
                             <IconButton
-                                ariaLabel="Move this step later"
+                                ariaLabel={t('studio_apps_edit.action_flow.move_later', 'Move this step later')}
                                 size="sm"
                                 disabled={disabled || !canMove(graph, selected.id, 1)}
                                 onClick={() => moveStep(selected.id, 1)}
@@ -347,7 +349,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
                                 <ChevronDown />
                             </IconButton>
                             <IconButton
-                                ariaLabel={`Delete this ${stepMeta(selected.kind).label.toLowerCase()} step`}
+                                ariaLabel={t('studio_apps_edit.action_flow.delete_step', 'Delete this {kind} step', { kind: stepMeta(selected.kind, t).label.toLowerCase() })}
                                 variant="danger"
                                 size="sm"
                                 disabled={disabled}
@@ -369,7 +371,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
                 ) : (
                     <div className="flex flex-col gap-2">
                         <p className="text-xs text-[var(--text-secondary)]">
-                            Pick a step to change it, or add one to the end.
+                            {t('studio_apps_edit.action_flow.pick_or_add', 'Pick a step to change it, or add one to the end.')}
                         </p>
                         <button
                             type="button"
@@ -377,7 +379,7 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
                             disabled={disabled}
                             className="self-start inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         >
-                            <Plus className="w-3.5 h-3.5" aria-hidden="true" /> Add a step
+                            <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('studio_apps_edit.action_flow.add_step', 'Add a step')}
                         </button>
                     </div>
                 )}
@@ -464,6 +466,7 @@ function normalizeToSequence(action) {
  * a second canvas.
  */
 function StepFlowNode({ id, data }) {
+    const { t } = useTranslation();
     const { node, selected, summary, onSelect, onAdd, onAddAfter, onContextMenu, disabled } = data;
 
     if (node.isEntry) {
@@ -477,7 +480,7 @@ function StepFlowNode({ id, data }) {
                         type="button"
                         onClick={onAdd}
                         disabled={disabled}
-                        aria-label={`Add a step to ${node.scopeLabel}`}
+                        aria-label={t('studio_apps_edit.action_flow.add_step_to', 'Add a step to {scope}', { scope: node.scopeLabel })}
                         className="ml-auto px-1.5 py-0.5 rounded border border-dashed border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                     >
                         <Plus className="w-3 h-3" aria-hidden="true" />
@@ -487,9 +490,9 @@ function StepFlowNode({ id, data }) {
         );
     }
 
-    const meta = stepMeta(node.kind);
+    const meta = stepMeta(node.kind, t);
     const Icon = meta.icon;
-    const branches = scopesOf(node.step);
+    const branches = scopesOf(node.step, t);
 
     const body = (
         <div>
@@ -501,7 +504,7 @@ function StepFlowNode({ id, data }) {
                 data-step-missing-ref={summary?.missing ? 'true' : undefined}
             >
                 {summary?.missing ? (
-                    <AlertTriangle className="w-3 h-3 shrink-0" aria-label="This no longer exists" />
+                    <AlertTriangle className="w-3 h-3 shrink-0" aria-label={t('studio_apps_edit.action_flow.missing', 'This no longer exists')} />
                 ) : null}
                 <span className="truncate">{summary?.text}</span>
             </div>
@@ -523,11 +526,11 @@ function StepFlowNode({ id, data }) {
                 help={meta.blurb}
                 body={body}
                 badges={meta.server ? (
-                    <Server className="w-3 h-3 text-[var(--text-tertiary)]" aria-label="Runs on the server" />
+                    <Server className="w-3 h-3 text-[var(--text-tertiary)]" aria-label={t('studio_apps_edit.action_flow.runs_on_server', 'Runs on the server')} />
                 ) : null}
                 // A reference pointing at something deleted is a real error, so
                 // it lights the same validation badge a bad automation step does.
-                issues={summary?.missing ? { errors: ['This no longer exists'], warnings: [] } : null}
+                issues={summary?.missing ? { errors: [t('studio_apps_edit.action_flow.missing', 'This no longer exists')], warnings: [] } : null}
                 nodeId={id}
                 onAddAfter={disabled ? null : onAddAfter}
                 // condition/switch/loop get one output port per branch, the way
@@ -554,7 +557,7 @@ function StepFlowNode({ id, data }) {
  * → { text, missing } — `missing` marks a step pointing at something that has
  * since been deleted, so the canvas can show it before the app is published.
  */
-function summarise(step, options = {}) {
+function summarise(step, options = {}, t) {
     if (!step) return { text: '', missing: false };
 
     const ref = (kind, id, empty) => {
@@ -565,48 +568,49 @@ function summarise(step, options = {}) {
 
     switch (step.kind) {
         case 'navigate': {
-            const r = ref('screen', step.screenId, 'No screen picked yet');
+            const r = ref('screen', step.screenId, t('studio_apps_edit.action_flow.no_screen', 'No screen picked yet'));
             return { ...r, text: step.screenId ? `→ ${r.text}` : r.text };
         }
         case 'open_modal':
-        case 'close_modal': return ref('modal', step.modalId, 'No dialog picked yet');
-        case 'toast': return plain(step.message || 'No message yet');
-        case 'open_url': return plain(step.url || 'No address yet');
-        case 'set_variable': return plain(step.name ? `vars.${step.name}` : 'No variable picked yet');
+        case 'close_modal': return ref('modal', step.modalId, t('studio_apps_edit.action_flow.no_dialog', 'No dialog picked yet'));
+        case 'toast': return plain(step.message || t('studio_apps_edit.action_flow.no_message', 'No message yet'));
+        case 'open_url': return plain(step.url || t('studio_apps_edit.action_flow.no_address', 'No address yet'));
+        case 'set_variable': return plain(step.name ? `vars.${step.name}` : t('studio_apps_edit.action_flow.no_variable', 'No variable picked yet'));
         case 'condition':
-        case 'switch': return plain(step.expr || 'No condition yet');
-        case 'loop': return plain(step.itemVar ? `each ${step.itemVar}` : 'For every row');
+        case 'switch': return plain(step.expr || t('studio_apps_edit.action_flow.no_condition', 'No condition yet'));
+        case 'loop': return plain(step.itemVar ? t('studio_apps_edit.action_flow.each_item', 'each {item}', { item: step.itemVar }) : t('studio_apps_edit.action_flow.every_row', 'For every row'));
         case 'create_record':
         case 'update_record':
-        case 'delete_record': return ref('table', step.tableId, 'No table picked yet');
+        case 'delete_record': return ref('table', step.tableId, t('studio_apps_edit.action_flow.no_table', 'No table picked yet'));
         case 'refresh': {
             if (step.tableId) return ref('table', step.tableId, '');
             if (step.datasetId) return ref('dataset', step.datasetId, '');
-            return plain('Everything on the screen');
+            return plain(t('studio_apps_edit.action_flow.everything', 'Everything on the screen'));
         }
-        case 'run_automation': return ref('automation', step.automationId, 'No automation picked yet');
-        case 'send_email': return ref('connector', step.connectorId, 'No mailbox picked yet');
+        case 'run_automation': return ref('automation', step.automationId, t('studio_apps_edit.action_flow.no_automation', 'No automation picked yet'));
+        case 'send_email': return ref('connector', step.connectorId, t('studio_apps_edit.action_flow.no_mailbox', 'No mailbox picked yet'));
         case 'confirm': return plain(step.message || '');
         default: return plain(step.resultVar ? `→ vars.${step.resultVar}` : '');
     }
 }
 
 function StepPalette({ onPick, onCancel }) {
+    const { t } = useTranslation();
     return (
         <div className="flex flex-col gap-3">
             <header className="flex items-center gap-2">
-                <h3 className="flex-1 text-sm font-semibold text-[var(--text-primary)]">Add a step</h3>
+                <h3 className="flex-1 text-sm font-semibold text-[var(--text-primary)]">{t('studio_apps_edit.action_flow.add_step', 'Add a step')}</h3>
                 <button
                     type="button"
                     onClick={onCancel}
                     className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] rounded px-1"
                 >
-                    Cancel
+                    {t('studio_apps_edit.action_flow.cancel', 'Cancel')}
                 </button>
             </header>
-            {paletteGroups().map(({ group, kinds }) => (
+            {paletteGroups(t).map(({ group, label: groupName, kinds }) => (
                 <div key={group} className="flex flex-col gap-1">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{group}</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{groupName}</span>
                     {kinds.map(({ kind, label, blurb, icon: Icon }) => (
                         <button
                             key={kind}

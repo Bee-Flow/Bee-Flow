@@ -28,7 +28,7 @@ const RANGES = [
     { key: '24h', label: '24h', titleKey: 'runs.tab.period_24h', title: 'Last 24 hours' },
     { key: '7d', label: '7d', titleKey: 'runs.tab.period_7d', title: 'Last 7 days' },
     { key: '30d', label: '30d', titleKey: 'runs.tab.period_30d', title: 'Last 30 days' },
-    { key: 'all', label: 'All', titleKey: 'runs.tab.period_all', title: 'All time' },
+    { key: 'all', label: 'All', labelKey: 'studio_misc.runfilter.all', titleKey: 'runs.tab.period_all', title: 'All time' },
 ];
 
 function statusCount(facets: Facets, key: string): number | undefined {
@@ -123,7 +123,7 @@ export default function ExecutionsFilterBar({
                                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                             }`}
                         >
-                            {r.label}
+                            {r.labelKey ? t(r.labelKey, r.label) : r.label}
                         </button>
                     ))}
                 </div>

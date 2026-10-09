@@ -126,7 +126,7 @@ describe('RelationshipsTab', () => {
     it('warns about a relation whose target was deleted instead of hiding it', () => {
         setup({ tables: LINKED.filter((t) => t.id !== 'tbl_msg') });
         expect(screen.queryAllByTestId('edge')).toHaveLength(0);
-        expect(screen.getByText(/point at a table that no/)).toBeTruthy();
+        expect(screen.getByText(/a table that no longer exists/)).toBeTruthy();
     });
 
     it('says there is nothing to link when the app has no tables', () => {

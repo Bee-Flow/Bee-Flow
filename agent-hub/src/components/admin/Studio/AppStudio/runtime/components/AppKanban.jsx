@@ -5,6 +5,7 @@ import {
 } from '@dnd-kit/core';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { HEIGHT_PX, isFill, ROLE_COLORS } from '../styleResolver';
@@ -459,6 +460,7 @@ function KanbanCell({ column, lane, children, maxHeight, fill, laned }) {
 }
 
 export default function AppKanban({ node }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
         groupByField = 'status', columns = [], titleKey = 'title',
@@ -542,7 +544,7 @@ export default function AppKanban({ node }) {
 
     if (error) return <ErrorText error={error} errorCode={errorCode} />;
     if (isLoading) return <SkeletonLines lines={4} />;
-    if (cols.length === 0) return <EmptyText text={emptyText || 'Nothing to show yet.'} />;
+    if (cols.length === 0) return <EmptyText text={emptyText || t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.')} />;
 
     const isRun = mode === 'run';
     const dragEnabled = isRun && allowDrag !== false && !!node.onCardMove;
@@ -674,7 +676,7 @@ export default function AppKanban({ node }) {
                     style={{ color: over ? ROLE_COLORS.danger : 'var(--text-muted)' }}
                     data-app-kanban-count={column.value}
                     data-app-kanban-overwip={over ? 'true' : undefined}
-                    title={column.wipLimit != null ? `${total} of a ${column.wipLimit} work-in-progress limit` : undefined}
+                    title={column.wipLimit != null ? t('studio_apps_runtime.kanban.wip_limit', '{total} of a {limit} work-in-progress limit', { total, limit: column.wipLimit }) : undefined}
                 >
                     {column.wipLimit != null ? `${total}/${column.wipLimit}` : total}
                 </span>
@@ -756,7 +758,7 @@ export default function AppKanban({ node }) {
                                     <span className="h-2 w-2 rounded-full shrink-0" style={{ background: ROLE_COLORS[lane.color] }} aria-hidden="true" />
                                 ) : null}
                                 <span className="text-[11px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--text-secondary)' }}>
-                                    {lane.label ?? '(none)'}
+                                    {lane.label ?? t('studio_apps_runtime.kanban.no_lane', '(none)')}
                                 </span>
                                 <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
                                     {cols.reduce((n, c) => n + cellOf(lane.value, c.value).length, 0)}

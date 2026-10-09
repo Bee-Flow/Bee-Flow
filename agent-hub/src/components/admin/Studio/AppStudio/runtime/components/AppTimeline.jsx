@@ -1,3 +1,4 @@
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { hoverable } from '../hoverable';
 import { resolveBinding, walkPath } from '../resolveBinding';
@@ -23,10 +24,11 @@ function formatDate(value) {
 }
 
 export default function AppTimeline({ node }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
         titleKey = 'title', dateKey = 'created_at', descriptionKey = null,
-        metaKey = null, icon = null, rowLimit = 25, emptyText = 'Nothing to show yet.',
+        metaKey = null, icon = null, rowLimit = 25, emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'),
     } = node.props || {};
     const { value: source, isLoading, error, errorCode } = useStickyBinding(
         resolveBinding(node.props?.source, { actionState, dataState, scope }),
@@ -40,7 +42,7 @@ export default function AppTimeline({ node }) {
     const rows = (Array.isArray(source) ? source : [])
         .filter((row) => row && typeof row === 'object')
         .slice(0, limit);
-    if (rows.length === 0) return <EmptyText art="all-done" title="Nothing logged yet" text={emptyText} />;
+    if (rows.length === 0) return <EmptyText art="all-done" title={t('studio_apps_runtime.timeline.nothing_logged', 'Nothing logged yet')} text={emptyText} />;
 
     const isRun = mode === 'run';
     const clickable = isRun && node.onRowClick;

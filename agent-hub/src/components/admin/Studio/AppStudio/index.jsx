@@ -4,6 +4,7 @@ import AppList from './AppList';
 import BuilderChatPane from './chat/BuilderChatPane';
 import AppEditorShell from './editor/AppEditorShell';
 import { studioAppsApi } from './studioAppsApi';
+import useTranslation from '../../../../hooks/useTranslation';
 import toast from '../../../shared/Toast';
 
 /**
@@ -24,6 +25,7 @@ export default function AppStudioSection({
     onNavigate = () => {},
     onEditingChange = () => {},
 }) {
+    const { t } = useTranslation();
     const [openApp, setOpenApp] = useState(null);
     const [opening, setOpening] = useState(false);
     // A "Remix with AI" open carries a prompt to prefill the builder composer.
@@ -51,18 +53,18 @@ export default function AppStudioSection({
         try {
             const res = await studioAppsApi.getApp(id);
             const app = res?.app;
-            if (!app?.id) throw new Error('App not found');
+            if (!app?.id) throw new Error(t('studio_apps_edit.index.not_found', 'App not found'));
             setInitialPrompt(prompt || '');
             setOpenApp(app);
             onNavigateRef.current?.(`studio/apps/${app.id}`);
         } catch (err) {
             toast.error(err?.status === 404
-                ? 'This app is not available to you.'
-                : (err?.message || 'Could not open the app.'));
+                ? t('studio_apps_edit.index.not_available', 'This app is not available to you.')
+                : (err?.message || t('studio_apps_edit.index.open_failed', 'Could not open the app.')));
         } finally {
             setOpening(false);
         }
-    }, []);
+    }, [t]);
 
     // Deep link: auto-open the app in the URL exactly once (mirrors the
     // didAutoSelect pattern in WebpagesPage).
@@ -110,7 +112,7 @@ export default function AppStudioSection({
                     aria-live="polite"
                 >
                     <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--accent-primary)' }} />
-                    <span className="sr-only">Opening…</span>
+                    <span className="sr-only">{t('studio_apps_edit.index.opening', 'Opening…')}</span>
                 </div>
             )}
         </div>

@@ -169,8 +169,9 @@ type StepState = 'done' | 'current' | 'todo';
 
 /** Review changes / Checks / Confirm: where the dialog is, as text plus a marker. */
 function Stepper({ steps }: { steps: { id: string; label: string; state: StepState }[] }) {
+    const { t } = useTranslation();
     return (
-        <ol className="flex items-center gap-2 text-xs" data-testid="deploy-stepper" aria-label="Steps">
+        <ol className="flex items-center gap-2 text-xs" data-testid="deploy-stepper" aria-label={t('studio_misc.deploy.steps', 'Steps')}>
             {steps.map((st, i) => (
                 <li
                     key={st.id} data-step={st.id} data-state={st.state}

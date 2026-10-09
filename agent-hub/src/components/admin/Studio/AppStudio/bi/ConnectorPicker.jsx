@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import useIntegrationCatalog from './useIntegrationCatalog';
+import useTranslation from '../../../../../hooks/useTranslation';
 import AppActionPicker from '../../../../shared/AppActionPicker';
 import Modal from '../../../../shared/Modal';
 
@@ -23,6 +24,7 @@ import Modal from '../../../../shared/Modal';
  *   onClose     — () => void
  */
 export default function ConnectorPicker({ connectors = [], onApply, onClose }) {
+    const { t } = useTranslation();
     const { apps, loading, failed, refresh } = useIntegrationCatalog();
 
     // What is already wired, as action names. Only integration_tool connectors
@@ -75,22 +77,22 @@ export default function ConnectorPicker({ connectors = [], onApply, onClose }) {
     // retry rather than rendering an empty overlay.
     if (loading || failed || apps.length === 0) {
         return (
-            <Modal open onClose={() => onClose?.()} size="md" label="Apps">
+            <Modal open onClose={() => onClose?.()} size="md" label={t('studio_apps_bi.picker.modal_label', 'Apps')}>
                 <p className="text-sm text-[var(--text-primary)]">
-                    {loading ? 'Loading your apps…'
-                        : failed ? 'We couldn’t load your apps just now.'
-                            : 'No apps are connected to your account yet. Connect one in Settings → Integrations.'}
+                    {loading ? t('studio_apps_bi.picker.loading', 'Loading your apps…')
+                        : failed ? t('studio_apps_bi.picker.failed', 'We couldn’t load your apps just now.')
+                            : t('studio_apps_bi.picker.none_connected', 'No apps are connected to your account yet. Connect one in Settings → Integrations.')}
                 </p>
                 <div className="mt-4 flex items-center gap-2">
                     {!loading && (
                         <button type="button" onClick={refresh} className="rounded-md border px-2.5 py-1.5 text-xs font-medium"
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
-                            Check again
+                            {t('studio_apps_bi.picker.check_again', 'Check again')}
                         </button>
                     )}
                     <button type="button" onClick={onClose} className="rounded-md px-2.5 py-1.5 text-xs"
                         style={{ color: 'var(--text-secondary)' }}>
-                        Close
+                        {t('studio_apps_bi.picker.close', 'Close')}
                     </button>
                 </div>
             </Modal>
@@ -104,9 +106,9 @@ export default function ConnectorPicker({ connectors = [], onApply, onClose }) {
             onToggle={toggle}
             onToggleApp={toggleApp}
             onClose={onClose}
-            title="Choose apps & actions"
-            emptyLabel="No apps are connected yet"
-            unavailableHint="not connected to your account, so a connector using it will fail unless it runs with each viewer’s own connection"
+            title={t('studio_apps_bi.picker.title', 'Choose apps & actions')}
+            emptyLabel={t('studio_apps_bi.picker.empty', 'No apps are connected yet')}
+            unavailableHint={t('studio_apps_bi.picker.unavailable_hint', 'not connected to your account, so a connector using it will fail unless it runs with each viewer’s own connection')}
             footer={(
                 <div className="flex items-center gap-3">
                     <button
@@ -116,15 +118,15 @@ export default function ConnectorPicker({ connectors = [], onApply, onClose }) {
                         className="rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
                         style={{ background: 'var(--accent-primary)' }}
                     >
-                        {dirty ? 'Apply' : 'Nothing to change'}
+                        {dirty ? t('studio_apps_bi.picker.apply', 'Apply') : t('studio_apps_bi.picker.nothing_to_change', 'Nothing to change')}
                     </button>
                     <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                         {dirty
                             ? [
-                                addedCount ? `${addedCount} connector${addedCount === 1 ? '' : 's'} added` : null,
-                                removedCount ? `${removedCount} removed` : null,
+                                addedCount ? (addedCount === 1 ? t('studio_apps_bi.picker.added_one', '1 connector added') : t('studio_apps_bi.picker.added_many', '{n} connectors added', { n: addedCount })) : null,
+                                removedCount ? t('studio_apps_bi.picker.removed', '{n} removed', { n: removedCount }) : null,
                             ].filter(Boolean).join(', ')
-                            : 'Tick the actions you want — one connector is created per action.'}
+                            : t('studio_apps_bi.picker.tick_hint', 'Tick the actions you want — one connector is created per action.')}
                     </span>
                 </div>
             )}

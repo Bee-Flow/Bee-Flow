@@ -2,6 +2,7 @@ import { Loader2, Plus, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-reac
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useAppRoles, { useOrgDirectory } from './useAppRoles';
 import { resolveAccessEntry } from './rowRuleModel';
+import useTranslation from '../../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import toast from '../../../../shared/Toast';
 import { setDefinitionRoles } from '../state/definitionOps';
@@ -63,44 +64,69 @@ function tableScopeFor(table, roleKey) {
     return { read: entry.read, create: entry.create === true };
 }
 
+/**
+ * Translate with `t` when the caller has one; otherwise the English default
+ * (tests and non-React callers), interpolated the same way.
+ */
+const tr = (t, key, en, params) => (t
+    ? t(key, en, params)
+    : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
+
+/** Which sentence tail a scope reads as; the wording is picked at the end, with the table names. */
 function accessPhrase(scope) {
     if (scope.read === 'none') return null;
-    if (scope.read === 'own') return scope.create ? 'add and see only their own rows in' : 'see only their own rows in';
-    return scope.create ? 'see, add and edit rows in' : 'see rows in';
+    if (scope.read === 'own') return scope.create ? 'own_create' : 'own';
+    return scope.create ? 'all_create' : 'all';
 }
 
-function joinNames(names) {
+function accessSentence(phrase, names, t) {
+    switch (phrase) {
+        case 'own_create': return tr(t, 'studio_apps_edit.roles.can_own_create', 'can add and see only their own rows in {names}', { names });
+        case 'own': return tr(t, 'studio_apps_edit.roles.can_own', 'can see only their own rows in {names}', { names });
+        case 'all_create': return tr(t, 'studio_apps_edit.roles.can_all_create', 'can see, add and edit rows in {names}', { names });
+        default: return tr(t, 'studio_apps_edit.roles.can_all', 'can see rows in {names}', { names });
+    }
+}
+
+function joinNames(names, t) {
     if (names.length <= 1) return names[0] || '';
-    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    return tr(t, 'studio_apps_edit.access_summary.join_and', '{head} and {last}', {
+        head: names.slice(0, -1).join(', '),
+        last: names[names.length - 1],
+    });
 }
 
 /** Plain-language tail describing what `roleKey` (null = no role) can do. */
-export function describeRoleAccess(roleKey, tables) {
-    if (!roleKey) return 'cannot open any of this app’s data';
-    if (!tables.length) return 'can open this app — there is no data to protect yet';
+export function describeRoleAccess(roleKey, tables, t = null) {
+    const none = () => tr(t, 'studio_apps_edit.roles.cannot_open', 'cannot open any of this app’s data');
+    if (!roleKey) return none();
+    if (!tables.length) return tr(t, 'studio_apps_edit.roles.can_open_empty', 'can open this app — there is no data to protect yet');
     const byPhrase = new Map();
-    for (const t of tables) {
-        const phrase = accessPhrase(tableScopeFor(t, roleKey));
+    for (const table of tables) {
+        const phrase = accessPhrase(tableScopeFor(table, roleKey));
         if (!phrase) continue;
-        byPhrase.set(phrase, [...(byPhrase.get(phrase) || []), t.name || t.key || t.id]);
+        byPhrase.set(phrase, [...(byPhrase.get(phrase) || []), table.name || table.key || table.id]);
     }
-    if (!byPhrase.size) return 'cannot open any of this app’s data';
-    return [...byPhrase].map(([phrase, names]) => `can ${phrase} ${joinNames(names)}`).join(', and ');
+    if (!byPhrase.size) return none();
+    return [...byPhrase]
+        .map(([phrase, names]) => accessSentence(phrase, joinNames(names, t), t))
+        .reduce((acc, clause) => tr(t, 'studio_apps_edit.access_summary.clauses_join', '{a}, and {b}', { a: acc, b: clause }));
 }
 
 /** The live consequence of the current default choice, in one sentence. */
-function defaultConsequence(defaultKey, roles, tables) {
+function defaultConsequence(defaultKey, roles, tables, t) {
     if (defaultKey === NO_ACCESS) {
-        return `Right now: only the groups and people you set below can open this app — everyone else ${describeRoleAccess(null, tables)}.`;
+        return t('studio_apps_edit.roles.now_no_access', 'Right now: only the groups and people you set below can open this app — everyone else {access}.', { access: describeRoleAccess(null, tables, t) });
     }
     if (defaultKey === 'app') {
-        return `Right now: everyone in your organisation who opens this app ${describeRoleAccess('app', tables)}.`;
+        return t('studio_apps_edit.roles.now_app', 'Right now: everyone in your organisation who opens this app {access}.', { access: describeRoleAccess('app', tables, t) });
     }
     const label = roles.find((r) => r.key === defaultKey)?.label || defaultKey;
-    return `Right now: everyone without a role of their own counts as “${label}” and ${describeRoleAccess(defaultKey, tables)}.`;
+    return t('studio_apps_edit.roles.now_role', 'Right now: everyone without a role of their own counts as “{label}” and {access}.', { label, access: describeRoleAccess(defaultKey, tables, t) });
 }
 
 export default function RolesManager({ appId, definition = null, onCommit = null, onDirtyChange = null }) {
+    const { t } = useTranslation();
     const {
         roles, roleMapping, members, tables = [], isLoading, hasModel,
         saveRoles, assignMember, removeMember, savingRoles, savingMember,
@@ -152,7 +178,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
 
     const addRole = () => {
         const base = uniqueRoleKey('role', reservedKeys);
-        setDraftRoles((prev) => [...prev, { key: base, label: 'New role' }]);
+        setDraftRoles((prev) => [...prev, { key: base, label: t('studio_apps_edit.roles.new_role', 'New role') }]);
         setDirty(true);
     };
 
@@ -207,9 +233,9 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                 if (next !== definition) onCommit(next);
             }
             setDirty(false);
-            toast.success('Roles saved.');
+            toast.success(t('studio_apps_edit.roles.saved_toast', 'Roles saved.'));
         } catch (err) {
-            toast.error(err?.message || 'Could not save roles.');
+            toast.error(err?.message || t('studio_apps_edit.roles.save_failed', 'Could not save roles.'));
         }
     };
 
@@ -232,12 +258,12 @@ export default function RolesManager({ appId, definition = null, onCommit = null
         try {
             await assignMember(userId, newMemberRole);
             setNewMemberUser('');
-            toast.success('Member assigned.');
+            toast.success(t('studio_apps_edit.roles.assigned_toast', 'Member assigned.'));
         } catch (err) {
             const unknownRole = err?.message === 'invalid_role';
             toast.error(unknownRole
-                ? 'That role isn’t saved yet — save your roles first, then assign people.'
-                : (err?.message || 'Could not assign member.'));
+                ? t('studio_apps_edit.roles.role_unsaved_toast', 'That role isn’t saved yet — save your roles first, then assign people.')
+                : (err?.message || t('studio_apps_edit.roles.assign_failed', 'Could not assign member.')));
         }
     };
 
@@ -249,7 +275,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
     if (isLoading) {
         return (
             <div className="flex items-center gap-2 py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading roles…
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> {t('studio_apps_edit.roles.loading', 'Loading roles…')}
             </div>
         );
     }
@@ -263,14 +289,13 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                     className="rounded-md border border-dashed px-3 py-2 text-xs"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}
                 >
-                    This app has no data yet. Roles you create here are saved with the app&rsquo;s data model and take
-                    effect as soon as you add tables.
+                    {t('studio_apps_edit.roles.no_data', 'This app has no data yet. Roles you create here are saved with the app’s data model and take effect as soon as you add tables.')}
                 </p>
             ) : null}
 
             {/* ── Roles ─────────────────────────────────────────────── */}
             <section className="flex flex-col gap-2">
-                <SectionHeader icon={<ShieldCheck className="h-4 w-4" aria-hidden="true" />} title="Roles">
+                <SectionHeader icon={<ShieldCheck className="h-4 w-4" aria-hidden="true" />} title={t('studio_apps_edit.roles.roles', 'Roles')}>
                     <button
                         type="button"
                         onClick={addRole}
@@ -278,13 +303,13 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
                         <Plus className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                        Add role
+                        {t('studio_apps_edit.roles.add_role', 'Add role')}
                     </button>
                 </SectionHeader>
 
                 {draftRoles.length === 0 ? (
                     <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        No roles yet. Everyone gets the default access below.
+                        {t('studio_apps_edit.roles.no_roles', 'No roles yet. Everyone gets the default access below.')}
                     </p>
                 ) : (
                     <ul className="flex flex-col gap-1.5">
@@ -293,7 +318,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                                 <input
                                     value={r.label}
                                     onChange={(e) => renameRole(r.key, e.target.value)}
-                                    aria-label={`Role name (${r.key})`}
+                                    aria-label={t('studio_apps_edit.roles.role_name_aria', 'Role name ({key})', { key: r.key })}
                                     className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                 />
@@ -301,7 +326,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                                 <button
                                     type="button"
                                     onClick={() => deleteRole(r.key)}
-                                    aria-label={`Delete role ${r.label || r.key}`}
+                                    aria-label={t('studio_apps_edit.roles.delete_role_aria', 'Delete role {name}', { name: r.label || r.key })}
                                     className="shrink-0 rounded p-1 hover:bg-[var(--bg-tertiary)]"
                                     style={{ color: 'var(--text-tertiary)' }}
                                 >
@@ -315,33 +340,33 @@ export default function RolesManager({ appId, definition = null, onCommit = null
 
             {/* ── Who gets which role ───────────────────────────────── */}
             <section className="flex flex-col gap-3">
-                <SectionHeader icon={<Users className="h-4 w-4" aria-hidden="true" />} title="Who gets which role" />
+                <SectionHeader icon={<Users className="h-4 w-4" aria-hidden="true" />} title={t('studio_apps_edit.roles.who_gets', 'Who gets which role')} />
 
                 <label className="flex items-center justify-between gap-3 text-sm">
-                    <span style={{ color: 'var(--text-secondary)' }}>Default role (everyone else)</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('studio_apps_edit.roles.default_role', 'Default role (everyone else)')}</span>
                     <select
                         value={draftDefault}
                         onChange={(e) => { setDraftDefault(e.target.value); setDirty(true); }}
-                        aria-label="Default role"
+                        aria-label={t('studio_apps_edit.roles.default_role_aria', 'Default role')}
                         className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
-                        <option value="app">App default (full access)</option>
-                        <option value={NO_ACCESS}>No access</option>
+                        <option value="app">{t('studio_apps_edit.roles.app_default', 'App default (full access)')}</option>
+                        <option value={NO_ACCESS}>{t('studio_apps_edit.roles.no_access', 'No access')}</option>
                         {roleOptions.map((r) => <option key={r.key} value={r.key}>{r.label || r.key}</option>)}
                     </select>
                 </label>
                 <p className="-mt-1.5 text-xs" data-testid="default-access-consequence" style={{ color: 'var(--text-tertiary)' }}>
-                    {defaultConsequence(draftDefault, draftRoles, tables)}
+                    {defaultConsequence(draftDefault, draftRoles, tables, t)}
                 </p>
 
                 <div className="flex flex-col gap-1.5">
-                    <div className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Organisation groups</div>
+                    <div className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('studio_apps_edit.roles.org_groups', 'Organisation groups')}</div>
                     {directory.groups.length === 0 ? (
                         <p className="text-xs italic" style={{ color: 'var(--text-tertiary)' }}>
                             {directory.available
-                                ? 'Your organisation has no groups yet — create them in Organisation settings.'
-                                : 'Group mapping needs organisation-admin access; assign specific people below instead.'}
+                                ? t('studio_apps_edit.roles.no_groups', 'Your organisation has no groups yet — create them in Organisation settings.')
+                                : t('studio_apps_edit.roles.groups_need_admin', 'Group mapping needs organisation-admin access; assign specific people below instead.')}
                         </p>
                     ) : (
                         <ul className="flex flex-col gap-1">
@@ -351,11 +376,11 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                                     <select
                                         value={draftByGroup[g.id] || ''}
                                         onChange={(e) => setGroupRole(g.id, e.target.value)}
-                                        aria-label={`Role for group ${g.name || g.id}`}
+                                        aria-label={t('studio_apps_edit.roles.role_for_group', 'Role for group {name}', { name: g.name || g.id })}
                                         className="shrink-0 rounded border px-2 py-1 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                     >
-                                        <option value="">— no override —</option>
+                                        <option value="">{t('studio_apps_edit.roles.no_override', '— no override —')}</option>
                                         {roleOptions.map((r) => <option key={r.key} value={r.key}>{r.label || r.key}</option>)}
                                     </select>
                                 </li>
@@ -373,17 +398,17 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                         style={{ background: 'var(--accent-primary)' }}
                     >
                         {savingRoles ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-                        {dirty ? 'Save roles' : 'Saved'}
+                        {dirty ? t('studio_apps_edit.roles.save_roles', 'Save roles') : t('studio_apps_edit.roles.saved', 'Saved')}
                     </button>
                 </div>
             </section>
 
             {/* ── Members (specific people) ─────────────────────────── */}
             <section className="flex flex-col gap-2">
-                <SectionHeader icon={<UserPlus className="h-4 w-4" aria-hidden="true" />} title="Assigned people" />
+                <SectionHeader icon={<UserPlus className="h-4 w-4" aria-hidden="true" />} title={t('studio_apps_edit.roles.assigned_people', 'Assigned people')} />
 
                 {members.length === 0 ? (
-                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No one is assigned directly yet.</p>
+                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_edit.roles.nobody_assigned', 'No one is assigned directly yet.')}</p>
                 ) : (
                     <ul className="flex flex-col gap-1">
                         {members.map((m) => (
@@ -399,7 +424,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                                     <button
                                         type="button"
                                         onClick={() => removeMember(m.userId || m.user_id)}
-                                        aria-label={`Remove ${userLabel(m.userId || m.user_id)}`}
+                                        aria-label={t('studio_apps_edit.roles.remove_person', 'Remove {name}', { name: userLabel(m.userId || m.user_id) })}
                                         className="rounded p-1 hover:bg-[var(--bg-tertiary)]"
                                         style={{ color: 'var(--text-tertiary)' }}
                                     >
@@ -416,11 +441,11 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                         <select
                             value={newMemberUser}
                             onChange={(e) => setNewMemberUser(e.target.value)}
-                            aria-label="Person to assign"
+                            aria-label={t('studio_apps_edit.roles.person_to_assign', 'Person to assign')}
                             className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                             style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         >
-                            <option value="">Choose a person…</option>
+                            <option value="">{t('studio_apps_edit.roles.choose_person', 'Choose a person…')}</option>
                             {directory.users.map((u) => (
                                 <option key={u.id} value={u.id}>{u.displayName || u.username || u.email || u.id}</option>
                             ))}
@@ -429,8 +454,8 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                         <input
                             value={newMemberUser}
                             onChange={(e) => setNewMemberUser(e.target.value)}
-                            placeholder="User id"
-                            aria-label="User id to assign"
+                            placeholder={t('studio_apps_edit.roles.user_id', 'User id')}
+                            aria-label={t('studio_apps_edit.roles.user_id_aria', 'User id to assign')}
                             className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                             style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         />
@@ -438,12 +463,12 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                     <select
                         value={newMemberRole}
                         onChange={(e) => setNewMemberRole(e.target.value)}
-                        aria-label="Role to assign"
+                        aria-label={t('studio_apps_edit.roles.role_to_assign', 'Role to assign')}
                         disabled={!roleOptions.length}
                         className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] disabled:opacity-50"
                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
-                        {roleOptions.length === 0 ? <option value="">No roles</option>
+                        {roleOptions.length === 0 ? <option value="">{t('studio_apps_edit.roles.no_roles_option', 'No roles')}</option>
                             : roleOptions.map((r) => <option key={r.key} value={r.key}>{r.label || r.key}</option>)}
                     </select>
                     <button
@@ -454,25 +479,25 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
                         {savingMember ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Plus className="h-3.5 w-3.5" aria-hidden="true" />}
-                        Assign
+                        {t('studio_apps_edit.roles.assign', 'Assign')}
                     </button>
                 </div>
                 {roleOptions.length === 0 ? (
-                    <p className="text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>Add a role above before assigning people.</p>
+                    <p className="text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_edit.roles.add_role_first', 'Add a role above before assigning people.')}</p>
                 ) : null}
                 {memberRoleUnsaved ? (
                     <p className="text-[11px]" data-testid="member-role-unsaved" style={{ color: 'var(--text-tertiary)' }}>
-                        Save your roles first — &ldquo;{memberRoleLabel}&rdquo; is not saved yet, so nobody can be put in it.
+                        {t('studio_apps_edit.roles.save_first', 'Save your roles first — “{label}” is not saved yet, so nobody can be put in it.', { label: memberRoleLabel })}
                     </p>
                 ) : null}
             </section>
 
             <ConfirmDialog
                 open={!!pendingDelete}
-                title={`Delete “${draftRoles.find((r) => r.key === pendingDelete?.key)?.label || pendingDelete?.key}”?`}
-                description={pendingDelete ? deleteConsequence(pendingDelete, tables) : ''}
-                confirmLabel="Delete role"
-                cancelLabel="Keep it"
+                title={t('studio_apps_edit.roles.delete_title', 'Delete “{name}”?', { name: draftRoles.find((r) => r.key === pendingDelete?.key)?.label || pendingDelete?.key })}
+                description={pendingDelete ? deleteConsequence(pendingDelete, tables, t) : ''}
+                confirmLabel={t('studio_apps_edit.roles.delete_role', 'Delete role')}
+                cancelLabel={t('studio_apps_edit.roles.keep_it', 'Keep it')}
                 destructive
                 onConfirm={() => { applyDeleteRole(pendingDelete.key); setPendingDelete(null); }}
                 onCancel={() => setPendingDelete(null)}
@@ -482,13 +507,16 @@ export default function RolesManager({ appId, definition = null, onCommit = null
 }
 
 /** What deleting a role in use does, spelled out before it happens. */
-function deleteConsequence(usage, tables) {
+function deleteConsequence(usage, tables, t) {
     const parts = [];
     if (usage.groupNames.length) {
-        parts.push(`${joinNames(usage.groupNames)} ${usage.groupNames.length === 1 ? 'gets' : 'get'} this role right now — after deleting they fall back to the default choice above.`);
+        const names = joinNames(usage.groupNames, t);
+        parts.push(usage.groupNames.length === 1
+            ? t('studio_apps_edit.roles.delete_groups_one', '{names} gets this role right now — after deleting they fall back to the default choice above.', { names })
+            : t('studio_apps_edit.roles.delete_groups_many', '{names} get this role right now — after deleting they fall back to the default choice above.', { names }));
     }
     if (usage.isDefault) {
-        parts.push(`It is also the default for everyone else; that switches to “No access”, so they ${describeRoleAccess(null, tables)}.`);
+        parts.push(t('studio_apps_edit.roles.delete_default', 'It is also the default for everyone else; that switches to “No access”, so they {access}.', { access: describeRoleAccess(null, tables, t) }));
     }
     return parts.join(' ');
 }

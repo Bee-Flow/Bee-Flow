@@ -1,4 +1,5 @@
 import React from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { SelectField, NumberField } from './panels/kit';
 import {
     STYLE_KNOBS,
@@ -10,6 +11,7 @@ import {
     unitRange,
     clampKnob,
     knobLabel,
+    valueLabel,
 } from './styleKnobMeta';
 import TokenColorField from './TokenColorField';
 import Disclosure from '../../../../shared/Disclosure';
@@ -71,32 +73,15 @@ export function updateSectionStyle(def, sectionId, patch) {
 // ---------------------------------------------------------------------------
 
 
-// Human labels for enum values (fall back to capitalised value).
-const VALUE_LABELS = {
-    sm: 'S', md: 'M', lg: 'L',
-    start: 'Left', center: 'Center', end: 'Right',
-    regular: 'Regular', medium: 'Medium', semibold: 'Semibold',
-    auto: 'Auto', none: 'None', full: 'Full',
-    surface: 'Surface', tint: 'Tint', panel: 'Panel', gradient: 'Gradient',
-    // Advanced sizing units. 'span'/'preset' are the defaults — they read as
-    // "the ordinary control above still owns this", not as an off switch.
-    span: 'Columns', preset: 'Preset', px: 'px', pct: '%', vh: 'vh',
-};
-
-function valueLabel(v) {
-    if (v in VALUE_LABELS) return VALUE_LABELS[v];
-    return String(v).charAt(0).toUpperCase() + String(v).slice(1);
-}
-
 // SegmentedControl values must be string|number — the radius knob's null
 // ("inherit the theme") rides a sentinel and is mapped back on commit.
 const INHERIT = '__inherit';
 
-function enumOptions(knob, values = STYLE_KNOBS[knob].values) {
+function enumOptions(t, knob, values = STYLE_KNOBS[knob].values) {
     return values.map((v) => (
         v === null
-            ? { value: INHERIT, label: 'Inherit' }
-            : { value: v, label: valueLabel(v) }
+            ? { value: INHERIT, label: t('studio_apps_insp.style.inherit', 'Inherit') }
+            : { value: v, label: valueLabel(v, t) }
     ));
 }
 
@@ -110,33 +95,34 @@ function enumOptions(knob, values = STYLE_KNOBS[knob].values) {
 // of in front of every author.
 // ---------------------------------------------------------------------------
 
-const SIZING_HINTS = {
-    widthMode: 'Columns place the block in the 12-column grid; px and % size the box inside the space those columns reserved. Wide values still shrink to fit on a phone.',
-    heightMode: 'Preset keeps the Height control above (including “Fill”). % needs an enclosing card, pane or section with a fixed height — use vh for a share of the screen.',
-};
+const sizingHints = (t) => ({
+    widthMode: t('studio_apps_insp.style.width_mode_hint', 'Columns place the block in the 12-column grid; px and % size the box inside the space those columns reserved. Wide values still shrink to fit on a phone.'),
+    heightMode: t('studio_apps_insp.style.height_mode_hint', 'Preset keeps the Height control above (including “Fill”). % needs an enclosing card, pane or section with a fixed height — use vh for a share of the screen.'),
+});
 
 /** One mode/value pair: the unit picker, plus the number when a unit is chosen. */
 function SizingPair({ modeKnob, valueKnob, style, modeValues, commitPair, disabled }) {
+    const { t } = useTranslation();
     const mode = effectiveSizeMode(style, valueKnob);
     const range = unitRange(valueKnob, mode);
     const value = style[valueKnob];
 
     return (
         <div className="flex flex-col gap-2">
-            <FormField label={knobLabel(modeKnob)} hint={SIZING_HINTS[modeKnob]}>
+            <FormField label={knobLabel(modeKnob, t)} hint={sizingHints(t)[modeKnob]}>
                 <SegmentedControl
                     value={mode}
                     onChange={(next) => commitPair(next)}
-                    options={enumOptions(modeKnob, modeValues)}
+                    options={enumOptions(t, modeKnob, modeValues)}
                     size="sm"
                     fullWidth
                     disabled={disabled}
-                    ariaLabel={knobLabel(modeKnob)}
+                    ariaLabel={knobLabel(modeKnob, t)}
                 />
             </FormField>
             {range ? (
                 <NumberField
-                    label={`${knobLabel(valueKnob)} (${valueLabel(mode)})`}
+                    label={`${knobLabel(valueKnob, t)} (${valueLabel(mode, t)})`}
                     value={Number.isFinite(value) ? value : null}
                     onChange={(n) => commitPair(mode, n)}
                     step={range.step}
@@ -159,6 +145,7 @@ function SizingPair({ modeKnob, valueKnob, style, modeValues, commitPair, disabl
  * the number so canonicalize drops it and the block stores nothing dead.
  */
 function AdvancedSizing({ knobs, style, isSection, patch, disabled }) {
+    const { t } = useTranslation();
     // Derived, never listed per type (styleKnobMeta mirrors expandStyleKnobs):
     // width refines `span`, height refines `height`.
     const advanced = advancedKnobsFor(knobs);
@@ -185,7 +172,7 @@ function AdvancedSizing({ knobs, style, isSection, patch, disabled }) {
     };
 
     return (
-        <Disclosure title="Advanced sizing" hint="Exact pixels, percent or screen height">
+        <Disclosure title={t('studio_apps_insp.style.advanced_sizing', 'Advanced sizing')} hint={t('studio_apps_insp.style.advanced_sizing_hint', 'Exact pixels, percent or screen height')}>
             <div className="flex flex-col gap-4 pt-3">
                 {advanced.includes('widthMode') && (
                     <SizingPair
@@ -220,21 +207,22 @@ function AdvancedSizing({ knobs, style, isSection, patch, disabled }) {
  * knobs only change the RUN view — hence a disclosure, not a primary control.
  */
 function ResponsiveVisibility({ knobs, style, patch, disabled }) {
+    const { t } = useTranslation();
     if (!advancedKnobsFor(knobs).includes('hideBelow')) return null;
     const current = (knob) => (STYLE_KNOBS[knob].values.includes(style[knob]) ? style[knob] : 'none');
     return (
-        <Disclosure title="Responsive" hint="Hide on narrow or wide viewports">
+        <Disclosure title={t('studio_apps_insp.style.responsive', 'Responsive')} hint={t('studio_apps_insp.style.responsive_hint', 'Hide on narrow or wide viewports')}>
             <div className="flex flex-col gap-4 pt-3">
                 {['hideBelow', 'hideAbove'].map((knob) => (
-                    <FormField key={knob} label={knobLabel(knob)}>
+                    <FormField key={knob} label={knobLabel(knob, t)}>
                         <SegmentedControl
                             value={current(knob)}
                             onChange={(v) => patch({ [knob]: v })}
-                            options={enumOptions(knob)}
+                            options={enumOptions(t, knob)}
                             size="sm"
                             fullWidth
                             disabled={disabled}
-                            ariaLabel={knobLabel(knob)}
+                            ariaLabel={knobLabel(knob, t)}
                         />
                     </FormField>
                 ))}
@@ -250,6 +238,7 @@ export default function StyleSection({
     onCommit,
     disabled = false,
 }) {
+    const { t } = useTranslation();
     const isSection = sectionId != null;
     const knobs = isSection ? SECTION_STYLE_KNOBS : getKnobsForType(node?.type);
     const style = isSection
@@ -279,7 +268,7 @@ export default function StyleSection({
                     return (
                         <Slider
                             key={knob}
-                            label={knobLabel(knob)}
+                            label={knobLabel(knob, t)}
                             value={Number.isFinite(current(knob)) ? current(knob) : spec.default}
                             onChange={(v) => commit(knob, v)}
                             min={spec.min}
@@ -293,7 +282,7 @@ export default function StyleSection({
 
                 if (spec.type === 'colorOrRole') {
                     return (
-                        <FormField key={knob} label={knobLabel(knob)}>
+                        <FormField key={knob} label={knobLabel(knob, t)}>
                             <TokenColorField
                                 value={current(knob)}
                                 onChange={(v) => commit(knob, v)}
@@ -314,24 +303,24 @@ export default function StyleSection({
                     return (
                         <SelectField
                             key={knob}
-                            label={knobLabel(knob)}
+                            label={knobLabel(knob, t)}
                             value={value}
                             onChange={(v) => commit(knob, v)}
-                            options={enumOptions(knob)}
+                            options={enumOptions(t, knob)}
                             disabled={disabled}
                         />
                     );
                 }
                 return (
-                    <FormField key={knob} label={knobLabel(knob)}>
+                    <FormField key={knob} label={knobLabel(knob, t)}>
                         <SegmentedControl
                             value={value === null ? INHERIT : value}
                             onChange={(v) => commit(knob, v === INHERIT ? null : v)}
-                            options={enumOptions(knob)}
+                            options={enumOptions(t, knob)}
                             size="sm"
                             fullWidth
                             disabled={disabled}
-                            ariaLabel={knobLabel(knob)}
+                            ariaLabel={knobLabel(knob, t)}
                         />
                     </FormField>
                 );

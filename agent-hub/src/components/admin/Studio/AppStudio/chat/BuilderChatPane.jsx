@@ -414,10 +414,10 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
     const stageImageFiles = useCallback(async (files) => {
         if (!files || !files.length) return;
         const staged = imagesRef.current;
-        const { images: added, errors } = await prepareComposerImages(files, staged.length);
+        const { images: added, errors } = await prepareComposerImages(files, staged.length, t);
         if (added.length) setImages((prev) => [...prev, ...added].slice(0, MAX_IMAGES_PER_TURN));
         for (const err of errors) toast.error(err);
-    }, []);
+    }, [t]);
 
     // Ctrl+V of a screenshot — the primary way a user shows the builder what
     // they want. Only swallow the paste when it actually carries an image, so
@@ -486,8 +486,8 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
     // and isn't reachable from the chat pane, so point the user at it. (Noted
     // as a leftover — a chrome.openVersions handle would let us open it here.)
     const revertToCheckpoint = useCallback(() => {
-        toast.info('Open “Version history” in the editor header to restore a checkpoint.');
-    }, []);
+        toast.info(t('studio_apps_edit.chat.revert_hint', 'Open “Version history” in the editor header to restore a checkpoint.'));
+    }, [t]);
 
     const onComposerKeyDown = useCallback((e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -818,6 +818,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
  * right so the transcript still reads as a conversation.
  */
 function ScreenshotItem({ item }) {
+    const { t } = useTranslation();
     const fromUser = !!item.fromUser;
     return (
         <figure
@@ -826,7 +827,7 @@ function ScreenshotItem({ item }) {
         >
             <img
                 src={item.dataUrl}
-                alt={item.caption || (fromUser ? 'Image you attached' : 'Screenshot of the app')}
+                alt={item.caption || (fromUser ? t('studio_apps_edit.chat.image_attached', 'Image you attached') : t('studio_apps_edit.chat.screenshot_alt', 'Screenshot of the app'))}
                 className="block w-full"
             />
             {item.caption ? (
@@ -843,6 +844,7 @@ function ScreenshotItem({ item }) {
  * its own remove button. Cleared by the composer the moment the turn is sent.
  */
 function StagedImages({ images, onRemove, disabled = false }) {
+    const { t } = useTranslation();
     if (!images.length) return null;
     return (
         <ul className="flex flex-wrap gap-1.5" data-staged-images="">
@@ -859,7 +861,7 @@ function StagedImages({ images, onRemove, disabled = false }) {
                         type="button"
                         onClick={() => onRemove(img.id)}
                         disabled={disabled}
-                        aria-label={`Remove ${img.name}`}
+                        aria-label={t('studio_apps_edit.chat.remove_image', 'Remove {name}', { name: img.name })}
                         className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border shadow-sm transition-opacity disabled:opacity-40"
                         style={{
                             borderColor: 'var(--border-default)',
@@ -920,6 +922,7 @@ function ErrorItem({ message, code, onRetry, disabled = false }) {
  * history.undo, exposed as chrome.undoTurn), and "Revert to checkpoint".
  */
 function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
+    const { t } = useTranslation();
     const { diff, finalDef } = change;
     const added = [...(diff.addedIds || [])];
     const changed = [...(diff.changedIds || [])].filter((id) => !diff.addedIds?.has(id));
@@ -946,9 +949,9 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                 style={{ color: 'var(--text-secondary)' }}
             >
                 <Chevron size={13} className="shrink-0" aria-hidden="true" />
-                What changed
+                {t('studio_apps_edit.chat.what_changed', 'What changed')}
                 <span style={{ color: 'var(--text-tertiary)' }}>
-                    {`· ${total} ${total === 1 ? 'update' : 'updates'}`}
+                    {total === 1 ? t('studio_apps_edit.chat.updates_one', '· 1 update') : t('studio_apps_edit.chat.updates_many', '· {n} updates', { n: total })}
                 </span>
             </button>
 
@@ -974,7 +977,7 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                                                 color: row.kind === 'added' ? 'var(--accent-primary)' : 'var(--text-tertiary)',
                                             }}
                                         >
-                                            {row.kind === 'added' ? 'new' : 'edit'}
+                                            {row.kind === 'added' ? t('studio_apps_edit.chat.row_new', 'new') : t('studio_apps_edit.chat.row_edit', 'edit')}
                                         </span>
                                         <span className="min-w-0 flex-1 truncate">{type || row.id}</span>
                                     </button>
@@ -983,7 +986,7 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                         })}
                         {total > rows.length ? (
                             <li className="px-1 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                                {`+${total - rows.length} more`}
+                                {t('studio_apps_edit.chat.more_changes', '+{n} more', { n: total - rows.length })}
                             </li>
                         ) : null}
                     </ul>
@@ -996,7 +999,7 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                             >
                                 <Undo2 className="h-3 w-3" aria-hidden="true" />
-                                Undo turn
+                                {t('studio_apps_edit.chat.undo_turn', 'Undo turn')}
                             </button>
                         ) : null}
                         {onRevert ? (
@@ -1007,7 +1010,7 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                             >
                                 <History className="h-3 w-3" aria-hidden="true" />
-                                Revert to checkpoint
+                                {t('studio_apps_edit.chat.revert_checkpoint', 'Revert to checkpoint')}
                             </button>
                         ) : null}
                     </div>
@@ -1024,13 +1027,13 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
  * so `hint` leads and `message` becomes the technical detail behind a
  * disclosure. A bare `code` is never a headline; it means nothing to the reader.
  */
-function issueLines(rec) {
+function issueLines(rec, t) {
     if (typeof rec === 'string') return { text: rec, detail: '' };
     const hint = typeof rec?.hint === 'string' ? rec.hint : '';
     const message = typeof rec?.message === 'string' ? rec.message : '';
     if (hint) return { text: hint, detail: message };
     if (message) return { text: message, detail: '' };
-    return { text: 'Something here needs attention', detail: typeof rec?.code === 'string' ? rec.code : '' };
+    return { text: t ? t('studio_apps_edit.chat.issue_fallback', 'Something here needs attention') : 'Something here needs attention', detail: typeof rec?.code === 'string' ? rec.code : '' };
 }
 function issueNodeId(rec) {
     if (!rec || typeof rec !== 'string') {
@@ -1051,10 +1054,10 @@ function issueNodeId(rec) {
  * "+20 more"), never four lines. The first record of a group is the one the
  * Fix button acts on.
  */
-export function groupIssues(records) {
+export function groupIssues(records, t) {
     const groups = new Map();
     for (const rec of Array.isArray(records) ? records : []) {
-        const { text, detail } = issueLines(rec);
+        const { text, detail } = issueLines(rec, t);
         const key = `${text}\u0000${detail}`;
         const g = groups.get(key);
         if (g) g.count += 1;
@@ -1069,7 +1072,7 @@ function ValidationNotice({ validation, running, onFix, disabled = false }) {
     const warnings = Array.isArray(validation?.warnings) ? validation.warnings : [];
     if (!errors.length && !warnings.length) return null;
 
-    const groups = groupIssues([...errors, ...warnings]);
+    const groups = groupIssues([...errors, ...warnings], t);
     const shown = groups.slice(0, 4);
     const n = errors.length;
 

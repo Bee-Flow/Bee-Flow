@@ -17,149 +17,206 @@ import {
 
 export const STEP_GROUPS = ['On screen', 'Data', 'AI', 'Flow'];
 
+/** group id → [key, English]; the id itself stays English (the catalog and its tests key on it). */
+const GROUP_LABELS = {
+    'On screen': ['studio_apps_edit.step_catalog.group_on_screen', 'On screen'],
+    Data: ['studio_apps_edit.step_catalog.group_data', 'Data'],
+    AI: ['studio_apps_edit.step_catalog.group_ai', 'AI'],
+    Flow: ['studio_apps_edit.step_catalog.group_flow', 'Flow'],
+};
+
+/** The group's name for display. */
+export function groupLabel(group, t = null) {
+    const entry = GROUP_LABELS[group];
+    if (!entry) return group;
+    return t ? t(entry[0], entry[1]) : entry[1];
+}
+
 export const STEP_CATALOG = {
     // ── On screen ───────────────────────────────────────────────────────────
     navigate: {
-        label: 'Go to screen', group: 'On screen', icon: ArrowRight,
+        label: 'Go to screen', labelKey: 'studio_apps_edit.step_catalog.navigate_label', group: 'On screen', icon: ArrowRight,
         blurb: 'Open another screen in this app.',
+        blurbKey: 'studio_apps_edit.step_catalog.navigate_blurb',
     },
     toast: {
-        label: 'Show a message', group: 'On screen', icon: MessageSquare,
+        label: 'Show a message', labelKey: 'studio_apps_edit.step_catalog.toast_label', group: 'On screen', icon: MessageSquare,
         blurb: 'A short confirmation or warning.',
+        blurbKey: 'studio_apps_edit.step_catalog.toast_blurb',
     },
     open_url: {
-        label: 'Open a web page', group: 'On screen', icon: ExternalLink,
+        label: 'Open a web page', labelKey: 'studio_apps_edit.step_catalog.open_url_label', group: 'On screen', icon: ExternalLink,
         blurb: 'Send the person to an address outside the app.',
+        blurbKey: 'studio_apps_edit.step_catalog.open_url_blurb',
     },
     open_modal: {
-        label: 'Open a dialog', group: 'On screen', icon: SquareStack,
+        label: 'Open a dialog', labelKey: 'studio_apps_edit.step_catalog.open_modal_label', group: 'On screen', icon: SquareStack,
         blurb: 'Show one of this screen’s dialogs.',
+        blurbKey: 'studio_apps_edit.step_catalog.open_modal_blurb',
     },
     close_modal: {
-        label: 'Close a dialog', group: 'On screen', icon: SquareStack,
+        label: 'Close a dialog', labelKey: 'studio_apps_edit.step_catalog.close_modal_label', group: 'On screen', icon: SquareStack,
         blurb: 'Put a dialog away — end a save flow with this.',
+        blurbKey: 'studio_apps_edit.step_catalog.close_modal_blurb',
     },
     confirm: {
-        label: 'Ask first', group: 'On screen', icon: CheckCircle2,
+        label: 'Ask first', labelKey: 'studio_apps_edit.step_catalog.confirm_label', group: 'On screen', icon: CheckCircle2,
         blurb: 'Stop and ask. Declining cancels everything after it.',
+        blurbKey: 'studio_apps_edit.step_catalog.confirm_blurb',
     },
     reset_form: {
-        label: 'Clear a form', group: 'On screen', icon: RefreshCw,
+        label: 'Clear a form', labelKey: 'studio_apps_edit.step_catalog.reset_form_label', group: 'On screen', icon: RefreshCw,
         blurb: 'Empty a form’s fields back to their defaults, by form name.',
+        blurbKey: 'studio_apps_edit.step_catalog.reset_form_blurb',
     },
     // 'On screen' rather than 'Data': nothing is stored or changed, the
     // browser just hands the person a file it already has. Pairs with
     // "Make a file", which produces the thing this saves.
     download_file: {
-        label: 'Download a file', group: 'On screen', icon: Download,
+        label: 'Download a file', labelKey: 'studio_apps_edit.step_catalog.download_file_label', group: 'On screen', icon: Download,
         blurb: 'Save a file straight to the person’s computer.',
+        blurbKey: 'studio_apps_edit.step_catalog.download_file_blurb',
     },
     refresh: {
-        label: 'Reload the data', group: 'On screen', icon: RefreshCw,
+        label: 'Reload the data', labelKey: 'studio_apps_edit.step_catalog.refresh_label', group: 'On screen', icon: RefreshCw,
         blurb: 'Fetch the rows again after something changed.',
+        blurbKey: 'studio_apps_edit.step_catalog.refresh_blurb',
     },
     set_variable: {
-        label: 'Set a variable', group: 'On screen', icon: Braces,
+        label: 'Set a variable', labelKey: 'studio_apps_edit.step_catalog.set_variable_label', group: 'On screen', icon: Braces,
         blurb: 'Put a value in one of the app’s shared variables.',
+        blurbKey: 'studio_apps_edit.step_catalog.set_variable_blurb',
     },
 
     // ── Data ────────────────────────────────────────────────────────────────
     create_record: {
-        label: 'Add a row', group: 'Data', icon: Database, server: true,
+        label: 'Add a row', labelKey: 'studio_apps_edit.step_catalog.create_record_label', group: 'Data', icon: Database, server: true,
         blurb: 'Write a new row into one of this app’s tables.',
+        blurbKey: 'studio_apps_edit.step_catalog.create_record_blurb',
     },
     update_record: {
-        label: 'Change a row', group: 'Data', icon: Pencil, server: true,
+        label: 'Change a row', labelKey: 'studio_apps_edit.step_catalog.update_record_label', group: 'Data', icon: Pencil, server: true,
         blurb: 'Update an existing row.',
+        blurbKey: 'studio_apps_edit.step_catalog.update_record_blurb',
     },
     delete_record: {
-        label: 'Delete a row', group: 'Data', icon: Trash2, server: true,
+        label: 'Delete a row', labelKey: 'studio_apps_edit.step_catalog.delete_record_label', group: 'Data', icon: Trash2, server: true,
         blurb: 'Remove a row for good.',
+        blurbKey: 'studio_apps_edit.step_catalog.delete_record_blurb',
     },
     run_automation: {
-        label: 'Run an automation', group: 'Data', icon: Workflow, server: true,
+        label: 'Run an automation', labelKey: 'studio_apps_edit.step_catalog.run_automation_label', group: 'Data', icon: Workflow, server: true,
         blurb: 'Hand the work to one of your automations.',
+        blurbKey: 'studio_apps_edit.step_catalog.run_automation_blurb',
     },
     request_approval: {
-        label: 'Ask for approval', group: 'Data', icon: BadgeCheck, server: true,
+        label: 'Ask for approval', labelKey: 'studio_apps_edit.step_catalog.request_approval_label', group: 'Data', icon: BadgeCheck, server: true,
         blurb: 'Put a question in someone’s Approvals inbox; a record can flip when they decide.',
+        blurbKey: 'studio_apps_edit.step_catalog.request_approval_blurb',
     },
     send_email: {
-        label: 'Send an email', group: 'Data', icon: Mail, server: true,
+        label: 'Send an email', labelKey: 'studio_apps_edit.step_catalog.send_email_label', group: 'Data', icon: Mail, server: true,
         blurb: 'Send a message from the app owner’s mailbox.',
+        blurbKey: 'studio_apps_edit.step_catalog.send_email_blurb',
     },
     generate_file: {
-        label: 'Make a file', group: 'Data', icon: FileDown, server: true,
+        label: 'Make a file', labelKey: 'studio_apps_edit.step_catalog.generate_file_label', group: 'Data', icon: FileDown, server: true,
         blurb: 'Turn rows into a CSV or spreadsheet people can download.',
+        blurbKey: 'studio_apps_edit.step_catalog.generate_file_blurb',
     },
     fill_document: {
-        label: 'Fill a document', group: 'Data', icon: FileSignature, server: true,
+        label: 'Fill a document', labelKey: 'studio_apps_edit.step_catalog.fill_document_label', group: 'Data', icon: FileSignature, server: true,
         blurb: 'Fill an invoice, quote, letter or presentation you designed in Studio → Documents and keep the PDF (a presentation: the .pptx).',
+        blurbKey: 'studio_apps_edit.step_catalog.fill_document_blurb',
     },
     generate_presentation: {
-        label: 'Make a presentation', group: 'Data', icon: Presentation, server: true,
+        label: 'Make a presentation', labelKey: 'studio_apps_edit.step_catalog.generate_presentation_label', group: 'Data', icon: Presentation, server: true,
         blurb: 'Turn an AI-written outline or rows with a title and content into a PowerPoint (or PDF deck) in your house style.',
+        blurbKey: 'studio_apps_edit.step_catalog.generate_presentation_blurb',
     },
     redact_pdf: {
-        label: 'Clean a PDF', group: 'Data', icon: Eraser, server: true,
+        label: 'Clean a PDF', labelKey: 'studio_apps_edit.step_catalog.redact_pdf_label', group: 'Data', icon: Eraser, server: true,
         blurb: 'Remove names, initials, contact details and the customer’s logo from a PDF and keep the rest exactly as it was.',
+        blurbKey: 'studio_apps_edit.step_catalog.redact_pdf_blurb',
     },
     file_intake: {
-        label: 'File the attachments', group: 'Data', icon: Inbox, server: true,
+        label: 'File the attachments', labelKey: 'studio_apps_edit.step_catalog.file_intake_label', group: 'Data', icon: Inbox, server: true,
         blurb: 'Store a conversation’s mailed files and pair drawings with their CAD files.',
+        blurbKey: 'studio_apps_edit.step_catalog.file_intake_blurb',
     },
     dataset_query: {
-        label: 'Query a dataset', group: 'Data', icon: Dna, server: true,
+        label: 'Query a dataset', labelKey: 'studio_apps_edit.step_catalog.dataset_query_label', group: 'Data', icon: Dna, server: true,
         blurb: 'Read a bounded slice out of a large genome file — by gene, region or rsID.',
+        blurbKey: 'studio_apps_edit.step_catalog.dataset_query_blurb',
     },
 
     // ── AI ──────────────────────────────────────────────────────────────────
     ai_browse: {
-        label: 'Browse the web', group: 'AI', icon: Globe, server: true,
+        label: 'Browse the web', labelKey: 'studio_apps_edit.step_catalog.ai_browse_label', group: 'AI', icon: Globe, server: true,
         blurb: 'An AI agent opens live web pages; a Live browser component shows what it does. Needs AI browsing enabled in App settings.',
+        blurbKey: 'studio_apps_edit.step_catalog.ai_browse_blurb',
     },
     ai_extract: {
-        label: 'Read a document', group: 'AI', icon: FileSearch, server: true,
+        label: 'Read a document', labelKey: 'studio_apps_edit.step_catalog.ai_extract_label', group: 'AI', icon: FileSearch, server: true,
         blurb: 'Pull structured fields out of an uploaded file.',
+        blurbKey: 'studio_apps_edit.step_catalog.ai_extract_blurb',
     },
     ai_generate: {
-        label: 'Write something', group: 'AI', icon: Bot, server: true,
+        label: 'Write something', labelKey: 'studio_apps_edit.step_catalog.ai_generate_label', group: 'AI', icon: Bot, server: true,
         blurb: 'Draft or summarise text.',
+        blurbKey: 'studio_apps_edit.step_catalog.ai_generate_blurb',
     },
     kb_query: {
-        label: 'Search the knowledge base', group: 'AI', icon: Search, server: true,
+        label: 'Search the knowledge base', labelKey: 'studio_apps_edit.step_catalog.kb_query_label', group: 'AI', icon: Search, server: true,
         blurb: 'Look something up in a knowledge base.',
+        blurbKey: 'studio_apps_edit.step_catalog.kb_query_blurb',
     },
 
     // ── Flow ────────────────────────────────────────────────────────────────
     condition: {
-        label: 'If…', group: 'Flow', icon: GitBranch, container: true,
+        label: 'If…', labelKey: 'studio_apps_edit.step_catalog.condition_label', group: 'Flow', icon: GitBranch, container: true,
         blurb: 'Take one path or the other.',
+        blurbKey: 'studio_apps_edit.step_catalog.condition_blurb',
     },
     switch: {
-        label: 'Depending on…', group: 'Flow', icon: Layers, container: true,
+        label: 'Depending on…', labelKey: 'studio_apps_edit.step_catalog.switch_label', group: 'Flow', icon: Layers, container: true,
         blurb: 'Several paths, one per case.',
+        blurbKey: 'studio_apps_edit.step_catalog.switch_blurb',
     },
     loop: {
-        label: 'For each', group: 'Flow', icon: Repeat, container: true,
+        label: 'For each', labelKey: 'studio_apps_edit.step_catalog.loop_label', group: 'Flow', icon: Repeat, container: true,
         blurb: 'Do the same thing for every row in a list.',
+        blurbKey: 'studio_apps_edit.step_catalog.loop_blurb',
     },
 };
 
 /** Fallback presentation, so an unknown kind is still readable. */
 export const UNKNOWN_STEP = { label: 'Step', group: 'Flow', icon: Bell, blurb: '' };
 
-export function stepMeta(kind) {
-    return STEP_CATALOG[kind] || { ...UNKNOWN_STEP, label: String(kind || 'Step').replace(/_/g, ' ') };
+/**
+ * The presentation for a kind. With `t`, label and blurb come back translated
+ * (the entries carry their keys); without it, the English as written.
+ */
+export function stepMeta(kind, t = null) {
+    const meta = STEP_CATALOG[kind];
+    if (!meta) {
+        return {
+            ...UNKNOWN_STEP,
+            label: String(kind || '').replace(/_/g, ' ') || (t ? t('studio_apps_edit.step_catalog.unknown_step', 'Step') : UNKNOWN_STEP.label),
+        };
+    }
+    if (!t) return meta;
+    return { ...meta, label: t(meta.labelKey, meta.label), blurb: t(meta.blurbKey, meta.blurb) };
 }
 
 /** The palette, grouped and in a fixed order. */
-export function paletteGroups() {
+export function paletteGroups(t = null) {
     return STEP_GROUPS.map((group) => ({
         group,
+        label: groupLabel(group, t),
         kinds: Object.entries(STEP_CATALOG)
             .filter(([, meta]) => meta.group === group)
-            .map(([kind, meta]) => ({ kind, ...meta })),
+            .map(([kind]) => ({ kind, ...stepMeta(kind, t) })),
     })).filter((g) => g.kinds.length);
 }
 
@@ -168,7 +225,7 @@ export function paletteGroups() {
  * A step that arrives already failing validation makes the author fix a problem
  * they did not create.
  */
-export function newStep(kind, { screenId = '', modalId = '' } = {}) {
+export function newStep(kind, { screenId = '', modalId = '', t = null } = {}) {
     switch (kind) {
         case 'navigate': return { kind, screenId };
         case 'toast': return { kind, message: '', tone: 'info' };
@@ -176,7 +233,7 @@ export function newStep(kind, { screenId = '', modalId = '' } = {}) {
         case 'open_modal': return { kind, modalId };
         case 'close_modal': return { kind, modalId };
         case 'reset_form': return { kind, form: '' };
-        case 'confirm': return { kind, message: 'Are you sure?' };
+        case 'confirm': return { kind, message: t ? t('studio_apps_edit.step_catalog.confirm_default', 'Are you sure?') : 'Are you sure?' };
         case 'refresh': return { kind };
         case 'set_variable': return { kind, name: '', value: { kind: 'static', value: '' } };
         case 'create_record': return { kind, tableId: '', values: {} };

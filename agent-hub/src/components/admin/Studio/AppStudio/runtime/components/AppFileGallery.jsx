@@ -1,5 +1,6 @@
 import { File, FileImage, FileSpreadsheet, FileText, PencilRuler, Presentation } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { resolveBinding } from '../resolveBinding';
@@ -118,6 +119,7 @@ function useThumbnails(rows, fileKey, appId, live) {
 }
 
 export default function AppFileGallery({ node }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const { appId } = useDataContext();
     const {
@@ -128,7 +130,7 @@ export default function AppFileGallery({ node }) {
         groupKey = null,
         columns = 3,
         rowLimit = 24,
-        emptyText = 'No files yet.',
+        emptyText = t('studio_apps_runtime.file_gallery.empty', 'No files yet.'),
     } = node.props || {};
     const { value, isLoading, error, errorCode } = resolveBinding(node.props?.source, { actionState, dataState, scope });
 
@@ -159,7 +161,7 @@ export default function AppFileGallery({ node }) {
         );
     }
 
-    if (rows.length === 0) return <EmptyText art="no-files" title="No files here" text={emptyText} />;
+    if (rows.length === 0) return <EmptyText art="no-files" title={t('studio_apps_runtime.file_gallery.no_files', 'No files here')} text={emptyText} />;
 
     const clickable = mode === 'run' && !!node.onRowClick;
 
@@ -177,7 +179,7 @@ export default function AppFileGallery({ node }) {
         const Icon = iconForMime(mime);
         const name = row?.[titleKey]
             || (descriptor && typeof descriptor === 'object' ? descriptor.name : null)
-            || 'File';
+            || t('studio_apps_runtime.file_gallery.file', 'File');
         const size = formatBytes(sizeKey ? row?.[sizeKey] : row?.size);
         // No subtitleKey means NO subtitle — which is what the spec has always
         // said its default of null means. The mime type used to stand in, and it

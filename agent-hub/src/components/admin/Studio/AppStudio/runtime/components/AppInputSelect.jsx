@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -37,8 +38,9 @@ export function optionsFromRows(rows, valueKey, labelKey) {
 }
 
 export default function AppInputSelect({ node }) {
+    const { t } = useTranslation();
     const {
-        name, label = 'Choice', options = [], required = false,
+        name, label = t('studio_apps_runtime.inputs.choice', 'Choice'), options = [], required = false,
         defaultValue = null, placeholder = null,
         optionsFrom = null, optionValueKey = null, optionLabelKey = null,
     } = node.props || {};
@@ -82,7 +84,7 @@ export default function AppInputSelect({ node }) {
                 style={inputStyle(error)}
             >
                 <option value="" disabled={required}>
-                    {placeholder || 'Choose…'}
+                    {placeholder || t('studio_apps_runtime.inputs.choose', 'Choose…')}
                 </option>
                 {unlisted ? (
                     <option value={String(value)} data-app-unlisted="true">{String(value)}</option>

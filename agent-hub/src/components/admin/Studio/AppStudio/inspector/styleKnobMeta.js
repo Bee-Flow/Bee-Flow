@@ -73,28 +73,66 @@ export const RESPONSIVE_VISIBILITY_KNOBS = ['hideBelow', 'hideAbove'];
  * the literal string "undefined". knobLabel() falls back to the key, so the
  * next knob added to STYLE_KNOBS shows its own name rather than nothing.
  */
-export const KNOB_LABELS = {
-    span: 'Width',
-    size: 'Size',
-    align: 'Align',
-    color: 'Color',
-    radius: 'Corners',
-    padding: 'Padding',
-    gap: 'Gap',
-    weight: 'Weight',
-    height: 'Height',
-    background: 'Background',
-    border: 'Border',
-    widthMode: 'Width unit',
-    widthValue: 'Exact width',
-    heightMode: 'Height unit',
-    heightValue: 'Exact height',
-    hideBelow: 'Hide below',
-    hideAbove: 'Hide from',
+const KNOB_KEYS = {
+    span: ['studio_apps_insp.knobs.span', 'Width'],
+    size: ['studio_apps_insp.knobs.size', 'Size'],
+    align: ['studio_apps_insp.knobs.align', 'Align'],
+    color: ['studio_apps_insp.knobs.color', 'Color'],
+    radius: ['studio_apps_insp.knobs.radius', 'Corners'],
+    padding: ['studio_apps_insp.knobs.padding', 'Padding'],
+    gap: ['studio_apps_insp.knobs.gap', 'Gap'],
+    weight: ['studio_apps_insp.knobs.weight', 'Weight'],
+    height: ['studio_apps_insp.knobs.height', 'Height'],
+    background: ['studio_apps_insp.knobs.background', 'Background'],
+    border: ['studio_apps_insp.knobs.border', 'Border'],
+    widthMode: ['studio_apps_insp.knobs.width_mode', 'Width unit'],
+    widthValue: ['studio_apps_insp.knobs.width_value', 'Exact width'],
+    heightMode: ['studio_apps_insp.knobs.height_mode', 'Height unit'],
+    heightValue: ['studio_apps_insp.knobs.height_value', 'Exact height'],
+    hideBelow: ['studio_apps_insp.knobs.hide_below', 'Hide below'],
+    hideAbove: ['studio_apps_insp.knobs.hide_above', 'Hide from'],
 };
 
-export function knobLabel(knob) {
-    return KNOB_LABELS[knob] || String(knob).charAt(0).toUpperCase() + String(knob).slice(1);
+export const KNOB_LABELS = Object.fromEntries(Object.entries(KNOB_KEYS).map(([k, [, en]]) => [k, en]));
+
+/** `t` is optional: without it (tests, non-UI callers) the English label comes back. */
+export function knobLabel(knob, t = null) {
+    const entry = KNOB_KEYS[knob];
+    if (entry) return t ? t(entry[0], entry[1]) : entry[1];
+    return String(knob).charAt(0).toUpperCase() + String(knob).slice(1);
+}
+
+// Human labels for enum values (fall back to the capitalised value). Advanced
+// sizing units: 'span'/'preset' are the defaults, so they read as "the
+// ordinary control above still owns this", not as an off switch.
+const VALUE_KEYS = {
+    sm: ['studio_apps_insp.values.sm', 'S'],
+    md: ['studio_apps_insp.values.md', 'M'],
+    lg: ['studio_apps_insp.values.lg', 'L'],
+    start: ['studio_apps_insp.values.start', 'Left'],
+    center: ['studio_apps_insp.values.center', 'Center'],
+    end: ['studio_apps_insp.values.end', 'Right'],
+    regular: ['studio_apps_insp.values.regular', 'Regular'],
+    medium: ['studio_apps_insp.values.medium', 'Medium'],
+    semibold: ['studio_apps_insp.values.semibold', 'Semibold'],
+    auto: ['studio_apps_insp.values.auto', 'Auto'],
+    none: ['studio_apps_insp.values.none', 'None'],
+    full: ['studio_apps_insp.values.full', 'Full'],
+    surface: ['studio_apps_insp.values.surface', 'Surface'],
+    tint: ['studio_apps_insp.values.tint', 'Tint'],
+    panel: ['studio_apps_insp.values.panel', 'Panel'],
+    gradient: ['studio_apps_insp.values.gradient', 'Gradient'],
+    span: ['studio_apps_insp.values.span', 'Columns'],
+    preset: ['studio_apps_insp.values.preset', 'Preset'],
+    px: ['studio_apps_insp.values.px', 'px'],
+    pct: ['studio_apps_insp.values.pct', '%'],
+    vh: ['studio_apps_insp.values.vh', 'vh'],
+};
+
+export function valueLabel(v, t = null) {
+    const entry = Object.prototype.hasOwnProperty.call(VALUE_KEYS, v) ? VALUE_KEYS[v] : null;
+    if (entry) return t ? t(entry[0], entry[1]) : entry[1];
+    return String(v).charAt(0).toUpperCase() + String(v).slice(1);
 }
 
 // Mirror of each type's `styleKnobs` list in COMPONENT_SPECS (componentSpecs.js).

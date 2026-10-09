@@ -1,4 +1,5 @@
 import React from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import Slider from '../../../../../shared/Slider';
@@ -16,22 +17,23 @@ import { TextField, NumberField, INPUT_CLS, usePatch } from './kit';
  */
 
 function CommonFields({ props, patch, disabled, placeholder = true }) {
+    const { t } = useTranslation();
     return (
         <>
             <TextField
-                label="Field name"
+                label={t('studio_apps_panels.common.field_name', 'Field name')}
                 value={props.name}
                 onChange={(v) => patch({ name: v })}
-                hint="The key this value submits as."
+                hint={t('studio_apps_panels.common.field_name_hint', 'The key this value submits as.')}
                 disabled={disabled}
             />
-            <TextField label="Label" value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
+            <TextField label={t('studio_apps_panels.common.label', 'Label')} value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
             {placeholder && (
                 <TextField
-                    label="Placeholder"
+                    label={t('studio_apps_panels.common.placeholder', 'Placeholder')}
                     value={props.placeholder}
                     onChange={(v) => patch({ placeholder: v || null })}
-                    placeholder="Optional"
+                    placeholder={t('studio_apps_panels.common.optional', 'Optional')}
                     disabled={disabled}
                 />
             )}
@@ -48,24 +50,26 @@ function CommonFields({ props, patch, disabled, placeholder = true }) {
  * it gets the ordinary BindingField rather than a bespoke box.
  */
 export function PrefillField({ node, definition, patch, disabled }) {
+    const { t } = useTranslation();
     return (
         <BindingField
-            label="Prefill from"
+            label={t('studio_apps_panels.input_panels.prefill_from', 'Prefill from')}
             value={node.props?.valueFrom}
             onChange={(v) => patch({ valueFrom: v })}
             definition={definition}
             node={node}
-            hint="Fills the field from a record, a variable or an action result. The person can still type over it."
-            placeholder="Nothing — the field starts empty"
+            hint={t('studio_apps_panels.input_panels.prefill_hint', 'Fills the field from a record, a variable or an action result. The person can still type over it.')}
+            placeholder={t('studio_apps_panels.input_panels.prefill_placeholder', 'Nothing — the field starts empty')}
             disabled={disabled}
         />
     );
 }
 
 function RequiredToggle({ props, patch, disabled }) {
+    const { t } = useTranslation();
     return (
         <Toggle
-            label="Required"
+            label={t('studio_apps_panels.common.required', 'Required')}
             checked={!!props.required}
             onChange={(v) => patch({ required: v })}
             disabled={disabled}
@@ -76,19 +80,19 @@ function RequiredToggle({ props, patch, disabled }) {
 
 // ── input_text ─────────────────────────────────────────────────────────────
 
-const INPUT_TYPES_OPTS = [
-    { value: 'text', label: 'Text' },
-    { value: 'email', label: 'Email' },
-    { value: 'url', label: 'URL' },
-];
-
 export function InputTextInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
+    const INPUT_TYPES_OPTS = [
+        { value: 'text', label: t('studio_apps_panels.input_text.type_text', 'Text') },
+        { value: 'email', label: t('studio_apps_panels.input_text.type_email', 'Email') },
+        { value: 'url', label: 'URL' },
+    ];
     return (
         <div className="flex flex-col gap-4">
             <CommonFields props={props} patch={patch} disabled={disabled} />
-            <FormField label="Type">
+            <FormField label={t('studio_apps_panels.input_text.type', 'Type')}>
                 <SegmentedControl
                     value={props.inputType ?? 'text'}
                     onChange={(v) => patch({ inputType: v })}
@@ -96,14 +100,14 @@ export function InputTextInspector({ node, definition, onCommit, disabled = fals
                     size="sm"
                     fullWidth
                     disabled={disabled}
-                    ariaLabel="Input type"
+                    ariaLabel={t('studio_apps_panels.input_text.type_aria', 'Input type')}
                 />
             </FormField>
             <TextField
-                label="Default value"
+                label={t('studio_apps_panels.common.default_value', 'Default value')}
                 value={props.defaultValue}
                 onChange={(v) => patch({ defaultValue: v || null })}
-                placeholder="Optional"
+                placeholder={t('studio_apps_panels.common.optional', 'Optional')}
                 disabled={disabled}
             />
             <PrefillField node={node} definition={definition} patch={patch} disabled={disabled} />
@@ -116,12 +120,13 @@ export function InputTextInspector({ node, definition, onCommit, disabled = fals
 
 export function InputTextareaInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
     return (
         <div className="flex flex-col gap-4">
             <CommonFields props={props} patch={patch} disabled={disabled} />
             <Slider
-                label="Rows"
+                label={t('studio_apps_panels.input_textarea.rows', 'Rows')}
                 value={Number.isFinite(props.rows) ? props.rows : 4}
                 onChange={(v) => patch({ rows: Math.max(2, Math.min(10, Math.round(v))) })}
                 min={2}
@@ -139,17 +144,18 @@ export function InputTextareaInspector({ node, definition, onCommit, disabled = 
 
 export function InputNumberInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
     return (
         <div className="flex flex-col gap-4">
             <CommonFields props={props} patch={patch} disabled={disabled} placeholder={false} />
             <div className="grid grid-cols-2 gap-3">
-                <NumberField label="Min" value={props.min} onChange={(v) => patch({ min: v })} placeholder="—" disabled={disabled} />
-                <NumberField label="Max" value={props.max} onChange={(v) => patch({ max: v })} placeholder="—" disabled={disabled} />
+                <NumberField label={t('studio_apps_panels.input_number.min', 'Min')} value={props.min} onChange={(v) => patch({ min: v })} placeholder="—" disabled={disabled} />
+                <NumberField label={t('studio_apps_panels.input_number.max', 'Max')} value={props.max} onChange={(v) => patch({ max: v })} placeholder="—" disabled={disabled} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-                <NumberField label="Step" value={props.step} onChange={(v) => patch({ step: v ?? 1 })} step="any" disabled={disabled} />
-                <NumberField label="Default" value={props.defaultValue} onChange={(v) => patch({ defaultValue: v })} placeholder="—" disabled={disabled} />
+                <NumberField label={t('studio_apps_panels.input_number.step', 'Step')} value={props.step} onChange={(v) => patch({ step: v ?? 1 })} step="any" disabled={disabled} />
+                <NumberField label={t('studio_apps_panels.input_number.default', 'Default')} value={props.defaultValue} onChange={(v) => patch({ defaultValue: v })} placeholder="—" disabled={disabled} />
             </div>
             {/* No "Prefill from" here: input_number is one of the two input
                 types whose spec does not declare valueFrom (checkbox is the
@@ -164,17 +170,18 @@ export function InputNumberInspector({ node, definition, onCommit, disabled = fa
 
 export function InputSelectInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
     return (
         <div className="flex flex-col gap-4">
             <CommonFields props={props} patch={patch} disabled={disabled} />
             <fieldset disabled={disabled} className="min-w-0">
                 <RepeatableList
-                    label="Options"
+                    label={t('studio_apps_panels.common.options', 'Options')}
                     items={props.options || []}
                     onChange={(options) => patch({ options })}
                     makeNew={() => ({ value: '', label: '' })}
-                    addLabel="Add option"
+                    addLabel={t('studio_apps_panels.common.add_option', 'Add option')}
                     itemLabel={(o) => o.label || o.value}
                     renderItem={(opt, update) => (
                         <div className="flex flex-col gap-2">
@@ -183,7 +190,7 @@ export function InputSelectInspector({ node, definition, onCommit, disabled = fa
                                 className={inputCls}
                                 value={opt.value || ''}
                                 onChange={(e) => update({ ...opt, value: e.target.value })}
-                                placeholder="Value (submitted)"
+                                placeholder={t('studio_apps_panels.common.option_value_submitted', 'Value (submitted)')}
                                 spellCheck={false}
                             />
                             <input
@@ -191,17 +198,17 @@ export function InputSelectInspector({ node, definition, onCommit, disabled = fa
                                 className={inputCls}
                                 value={opt.label || ''}
                                 onChange={(e) => update({ ...opt, label: e.target.value })}
-                                placeholder="Label (shown)"
+                                placeholder={t('studio_apps_panels.common.option_label_shown', 'Label (shown)')}
                             />
                         </div>
                     )}
                 />
             </fieldset>
             <TextField
-                label="Default value"
+                label={t('studio_apps_panels.common.default_value', 'Default value')}
                 value={props.defaultValue}
                 onChange={(v) => patch({ defaultValue: v || null })}
-                hint="Must match one of the option values."
+                hint={t('studio_apps_panels.input_select.default_hint', 'Must match one of the option values.')}
                 disabled={disabled}
             />
             <PrefillField node={node} definition={definition} patch={patch} disabled={disabled} />
@@ -214,19 +221,20 @@ export function InputSelectInspector({ node, definition, onCommit, disabled = fa
 
 export function InputCheckboxInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
     return (
         <div className="flex flex-col gap-4">
             <TextField
-                label="Field name"
+                label={t('studio_apps_panels.common.field_name', 'Field name')}
                 value={props.name}
                 onChange={(v) => patch({ name: v })}
-                hint="The key this value submits as."
+                hint={t('studio_apps_panels.common.field_name_hint', 'The key this value submits as.')}
                 disabled={disabled}
             />
-            <TextField label="Label" value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
+            <TextField label={t('studio_apps_panels.common.label', 'Label')} value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
             <Toggle
-                label="Checked by default"
+                label={t('studio_apps_panels.input_checkbox.checked_default', 'Checked by default')}
                 checked={!!props.defaultChecked}
                 onChange={(v) => patch({ defaultChecked: v })}
                 disabled={disabled}
@@ -248,21 +256,21 @@ export function todayLocalIso() {
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-const DATE_DEFAULTS = [
-    { value: 'none', label: 'None' },
-    { value: 'today', label: 'Today' },
-    { value: 'date', label: 'Pick a date' },
-];
-
 export function InputDateInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
     const dv = props.defaultValue ?? null;
     const mode = dv === null ? 'none' : (dv === 'today' ? 'today' : 'date');
+    const DATE_DEFAULTS = [
+        { value: 'none', label: t('studio_apps_panels.input_date.default_none', 'None') },
+        { value: 'today', label: t('studio_apps_panels.input_date.default_today', 'Today') },
+        { value: 'date', label: t('studio_apps_panels.input_date.default_pick', 'Pick a date') },
+    ];
     return (
         <div className="flex flex-col gap-4">
             <CommonFields props={props} patch={patch} disabled={disabled} placeholder={false} />
-            <FormField label="Default">
+            <FormField label={t('studio_apps_panels.input_date.default', 'Default')}>
                 <div className="flex flex-col gap-2">
                     <SegmentedControl
                         value={mode}
@@ -275,7 +283,7 @@ export function InputDateInspector({ node, definition, onCommit, disabled = fals
                         size="sm"
                         fullWidth
                         disabled={disabled}
-                        ariaLabel="Default date"
+                        ariaLabel={t('studio_apps_panels.input_date.default_aria', 'Default date')}
                     />
                     {mode === 'date' && (
                         <input
@@ -284,7 +292,7 @@ export function InputDateInspector({ node, definition, onCommit, disabled = fals
                             value={dv}
                             onChange={(e) => patch({ defaultValue: e.target.value || null })}
                             disabled={disabled}
-                            aria-label="Default date value"
+                            aria-label={t('studio_apps_panels.input_date.default_value_aria', 'Default date value')}
                         />
                     )}
                 </div>

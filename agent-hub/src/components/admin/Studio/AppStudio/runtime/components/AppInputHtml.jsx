@@ -1,5 +1,6 @@
 import { Bold, Image as ImageIcon, Italic, Link2, List, ListOrdered, Underline, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useValueFrom from '../useValueFrom';
@@ -88,16 +89,17 @@ export function cleanPastedHtml(html) {
 }
 
 const FONTS = ['Calibri', 'Arial', 'Helvetica', 'Georgia', 'Times New Roman', 'Verdana'];
-const SIZES = [['Klein', '2'], ['Normaal', '3'], ['Groot', '5']];
-const COLORS = [
-    ['Zwart', '#1a1a1a'], ['Grijs', '#6b7280'], ['Blauw', '#0369a1'],
-    ['Groen', '#15803d'], ['Rood', '#b91c1c'],
+const SIZE_VALUES = [['small', '2'], ['normal', '3'], ['large', '5']];
+const COLOR_VALUES = [
+    ['black', '#1a1a1a'], ['grey', '#6b7280'], ['blue', '#0369a1'],
+    ['green', '#15803d'], ['red', '#b91c1c'],
 ];
 const MAX_IMAGE_BYTES = 512 * 1024;
 
 export default function AppInputHtml({ node }) {
+    const { t } = useTranslation();
     const {
-        name, label = 'Message', required = false, defaultValue = null,
+        name, label = t('studio_apps_runtime.rich_text.message', 'Message'), required = false, defaultValue = null,
         placeholder = null, minRows = 8, allowImages = false,
     } = node.props || {};
     const { value, setValue, error } = useFormField({ name, defaultValue: defaultValue ?? '', required, label });
@@ -164,7 +166,7 @@ export default function AppInputHtml({ node }) {
         // it, so the ceiling is low on purpose. Say so rather than silently
         // producing a 4 MB message body.
         if (file.size > MAX_IMAGE_BYTES) {
-            setImageError(`Deze afbeelding is ${Math.round(file.size / 1024)} kB. Kies er een onder de ${MAX_IMAGE_BYTES / 1024} kB.`);
+            setImageError(t('studio_apps_runtime.rich_text.image_too_large', 'This image is {size} kB. Pick one under {max} kB.', { size: Math.round(file.size / 1024), max: MAX_IMAGE_BYTES / 1024 }));
             return;
         }
         setImageError(null);
@@ -172,6 +174,19 @@ export default function AppInputHtml({ node }) {
         reader.onload = () => exec('insertImage', String(reader.result));
         reader.readAsDataURL(file);
     };
+
+    const SIZES = [
+        [t('studio_apps_runtime.rich_text.size_small', 'Small'), SIZE_VALUES[0][1]],
+        [t('studio_apps_runtime.rich_text.size_normal', 'Normal'), SIZE_VALUES[1][1]],
+        [t('studio_apps_runtime.rich_text.size_large', 'Large'), SIZE_VALUES[2][1]],
+    ];
+    const COLORS = [
+        [t('studio_apps_runtime.rich_text.color_black', 'Black'), COLOR_VALUES[0][1]],
+        [t('studio_apps_runtime.rich_text.color_grey', 'Grey'), COLOR_VALUES[1][1]],
+        [t('studio_apps_runtime.rich_text.color_blue', 'Blue'), COLOR_VALUES[2][1]],
+        [t('studio_apps_runtime.rich_text.color_green', 'Green'), COLOR_VALUES[3][1]],
+        [t('studio_apps_runtime.rich_text.color_red', 'Red'), COLOR_VALUES[4][1]],
+    ];
 
     const btn = (key, Icon, onClick, title) => (
         <button
@@ -215,19 +230,19 @@ export default function AppInputHtml({ node }) {
                     className="flex items-center flex-wrap gap-0.5 px-1.5 py-1 border-b"
                     style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)' }}
                     role="toolbar"
-                    aria-label="Opmaak"
+                    aria-label={t('studio_apps_runtime.rich_text.formatting', 'Formatting')}
                 >
-                    {btn('bold', Bold, () => exec('bold'), 'Vet')}
-                    {btn('italic', Italic, () => exec('italic'), 'Cursief')}
-                    {btn('underline', Underline, () => exec('underline'), 'Onderstrepen')}
-                    {btn('ul', List, () => exec('insertUnorderedList'), 'Opsomming')}
-                    {btn('ol', ListOrdered, () => exec('insertOrderedList'), 'Genummerde lijst')}
-                    {btn('link', Link2, () => setLinking((v) => !v), 'Link')}
-                    {allowImages ? btn('img', ImageIcon, () => fileRef.current?.click(), 'Afbeelding') : null}
+                    {btn('bold', Bold, () => exec('bold'), t('studio_apps_runtime.rich_text.bold', 'Bold'))}
+                    {btn('italic', Italic, () => exec('italic'), t('studio_apps_runtime.rich_text.italic', 'Italic'))}
+                    {btn('underline', Underline, () => exec('underline'), t('studio_apps_runtime.rich_text.underline', 'Underline'))}
+                    {btn('ul', List, () => exec('insertUnorderedList'), t('studio_apps_runtime.rich_text.bullets', 'Bulleted list'))}
+                    {btn('ol', ListOrdered, () => exec('insertOrderedList'), t('studio_apps_runtime.rich_text.numbered', 'Numbered list'))}
+                    {btn('link', Link2, () => setLinking((v) => !v), t('studio_apps_runtime.rich_text.link', 'Link'))}
+                    {allowImages ? btn('img', ImageIcon, () => fileRef.current?.click(), t('studio_apps_runtime.rich_text.image', 'Image')) : null}
                     <span className="w-px h-4 mx-1" style={{ background: 'var(--border-default)' }} aria-hidden="true" />
-                    {select('font', 'Lettertype', FONTS.map((f) => [f, f]), (v) => exec('fontName', v))}
-                    {select('size', 'Grootte', SIZES, (v) => exec('fontSize', v))}
-                    {select('color', 'Kleur', COLORS, (v) => exec('foreColor', v))}
+                    {select('font', t('studio_apps_runtime.rich_text.font', 'Font'), FONTS.map((f) => [f, f]), (v) => exec('fontName', v))}
+                    {select('size', t('studio_apps_runtime.rich_text.size', 'Size'), SIZES, (v) => exec('fontSize', v))}
+                    {select('color', t('studio_apps_runtime.rich_text.color', 'Color'), COLORS, (v) => exec('foreColor', v))}
                 </div>
 
                 {/* An inline field rather than window.prompt: a prompt is blocked
@@ -246,7 +261,7 @@ export default function AppInputHtml({ node }) {
                                 setLinking(false); setHref('');
                             }}
                             placeholder="https://…"
-                            aria-label="Adres van de link"
+                            aria-label={t('studio_apps_runtime.rich_text.link_address', 'Link address')}
                             className="min-w-0 flex-1 px-2 py-1 text-xs outline-none"
                             style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                         />
@@ -256,9 +271,9 @@ export default function AppInputHtml({ node }) {
                             className="px-2 py-1 text-xs font-medium"
                             style={{ color: 'var(--app-primary)' }}
                         >
-                            Toevoegen
+                            {t('studio_apps_runtime.rich_text.add', 'Add')}
                         </button>
-                        <button type="button" onClick={() => { setLinking(false); setHref(''); }} aria-label="Annuleren" className="p-1" style={{ color: 'var(--text-secondary)' }}>
+                        <button type="button" onClick={() => { setLinking(false); setHref(''); }} aria-label={t('studio_apps_runtime.rich_text.cancel', 'Cancel')} className="p-1" style={{ color: 'var(--text-secondary)' }}>
                             <X className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                     </div>
@@ -276,7 +291,7 @@ export default function AppInputHtml({ node }) {
                     contentEditable
                     suppressContentEditableWarning
                     data-app-html-editor="true"
-                    data-placeholder={placeholder || 'Schrijf je bericht…'}
+                    data-placeholder={placeholder || t('studio_apps_runtime.rich_text.html_placeholder', 'Write your message…')}
                     onInput={commit}
                     onBlur={commit}
                     onPaste={onPaste}

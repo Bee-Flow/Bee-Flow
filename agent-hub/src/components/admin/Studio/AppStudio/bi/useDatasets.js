@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 
 /**
@@ -14,7 +15,7 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
  * invalidate the list so the gallery refreshes.
  */
 
-async function request(url, options = {}) {
+async function request(url, options = {}, t) {
     const res = await authFetch(url, {
         headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
         ...options,
@@ -23,7 +24,7 @@ async function request(url, options = {}) {
     let body = null;
     try { body = await res.json(); } catch { body = null; }
     if (!res.ok) {
-        const err = new Error(body?.error || `Request failed (${res.status})`);
+        const err = new Error(body?.error || t('studio_apps_bi.hooks.request_failed', 'Request failed ({status})', { status: res.status }));
         err.status = res.status;
         throw err;
     }
@@ -31,13 +32,14 @@ async function request(url, options = {}) {
 }
 
 export default function useDatasets(appId) {
+    const { t } = useTranslation();
     const qc = useQueryClient();
     const listKey = ['studio-app-datasets', appId];
 
     const listQuery = useQuery({
         queryKey: listKey,
         queryFn: async () => {
-            const body = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/datasets`);
+            const body = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/datasets`, {}, t);
             return Array.isArray(body?.datasets) ? body.datasets : [];
         },
         enabled: !!appId,
@@ -51,15 +53,15 @@ export default function useDatasets(appId) {
     const saveMutation = useMutation({
         mutationFn: async ({ id, ...payload }) => {
             if (id) {
-                return request(`${base}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(payload) });
+                return request(`${base}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(payload) }, t);
             }
-            return request(base, { method: 'POST', body: JSON.stringify(payload) });
+            return request(base, { method: 'POST', body: JSON.stringify(payload) }, t);
         },
         onSuccess: invalidate,
     });
 
     const deleteMutation = useMutation({
-        mutationFn: async (id) => request(`${base}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+        mutationFn: async (id) => request(`${base}/${encodeURIComponent(id)}`, { method: 'DELETE' }, t),
         onSuccess: invalidate,
     });
 

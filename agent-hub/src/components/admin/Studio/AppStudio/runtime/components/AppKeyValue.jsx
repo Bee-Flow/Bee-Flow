@@ -1,3 +1,4 @@
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
@@ -33,8 +34,9 @@ function readableLeaf(value) {
 }
 
 export default function AppKeyValue({ node }) {
+    const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
-    const { fields = [], layout = 'rows', columns = 2, emptyText = 'No data yet.' } = node.props || {};
+    const { fields = [], layout = 'rows', columns = 2, emptyText = t('studio_apps_runtime.key_value.empty', 'No data yet.') } = node.props || {};
     const { value: source, isLoading, error, errorCode } = useStickyBinding(
         resolveBinding(node.props?.source, { actionState, dataState, scope }),
     );

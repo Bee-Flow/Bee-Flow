@@ -1,3 +1,4 @@
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver';
@@ -20,6 +21,7 @@ import { Skeleton, useStickyBinding } from '../uiBits';
 const RING_SIZES = { sm: { dim: 48, stroke: 5 }, md: { dim: 64, stroke: 6 }, lg: { dim: 88, stroke: 8 } };
 
 function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label }) {
+    const { t } = useTranslation();
     const { dim, stroke } = dimSpec;
     const r = (dim - stroke) / 2;
     const c = 2 * Math.PI * r;
@@ -31,7 +33,7 @@ function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label })
                 aria-valuenow={Math.round(clamped)}
                 aria-valuemin={0}
                 aria-valuemax={Math.round(ceiling)}
-                aria-label={label || 'Progress'}
+                aria-label={label || t('studio_apps_runtime.progress.label', 'Progress')}
             >
                 <svg width={dim} height={dim} viewBox={`0 0 ${dim} ${dim}`} aria-hidden="true">
                     <circle cx={dim / 2} cy={dim / 2} r={r} fill="none" stroke="var(--bg-tertiary)" strokeWidth={stroke} />
@@ -68,6 +70,7 @@ function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label })
 }
 
 export default function AppProgress({ node }) {
+    const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
     const { format = 'percent', label = null, tone = 'primary' } = node.props || {};
     // Sticky, like every other bound component (AppList, AppChart, AppStat…).
@@ -166,7 +169,7 @@ export default function AppProgress({ node }) {
                     aria-valuenow={Math.round(sum)}
                     aria-valuemin={0}
                     aria-valuemax={Math.round(sum)}
-                    aria-label={label || 'Progress'}
+                    aria-label={label || t('studio_apps_runtime.progress.label', 'Progress')}
                 >
                     {sum > 0 ? (
                         <div className="flex h-full w-full">
@@ -205,7 +208,7 @@ export default function AppProgress({ node }) {
                 aria-valuenow={Math.round(clamped)}
                 aria-valuemin={0}
                 aria-valuemax={Math.round(ceiling)}
-                aria-label={label || 'Progress'}
+                aria-label={label || t('studio_apps_runtime.progress.label', 'Progress')}
             >
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
             </div>
