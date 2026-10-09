@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
 import PanelResizer from '../../../shared/PanelResizer';
 
@@ -61,10 +62,11 @@ function initWidth(key, fallback, min, max) {
 
 // Blocks pointer input over a panel while the AI assistant is editing.
 function LockScrim() {
+    const { t } = useTranslation();
     return (
         <div className="absolute inset-0 z-20 bg-[var(--bg-primary)]/50 flex items-start justify-center pt-10 cursor-not-allowed">
             <span className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] shadow">
-                AI is editing — Stop to take over
+                {t('cms_site.site.shell.ai_editing', 'AI is editing — Stop to take over')}
             </span>
         </div>
     );

@@ -15,12 +15,14 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import HeatCanvas from './HeatCanvas';
 import { blockLabel } from './model';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { ACCENT } from '../ui';
 
 export default function PageStage({
     frameRef, src, width, height, points, blocks,
     highlightId, onHighlight, mode = 'click', scroll = null, maxHeight = 640,
 }) {
+    const { t } = useTranslation();
     const scrollerRef = useRef(null);
     const [scale, setScale] = useState(1);
 
@@ -63,7 +65,7 @@ export default function PageStage({
                     <iframe
                         ref={frameRef}
                         src={src}
-                        title="Page being analysed"
+                        title={t('cms_site.analytics.page_stage.frame_title', 'Page being analysed')}
                         // The frame renders its full height and never scrolls;
                         // the outer scroller does. That keeps document-Y and
                         // on-screen-Y the same number, which is what lets a
@@ -125,6 +127,7 @@ export default function PageStage({
  * people saw it, the darker it gets. The fold line marks the first screen.
  */
 function ScrollShade({ steps, height, width, viewportH }) {
+    const { t } = useTranslation();
     const bands = [];
     for (let i = 0; i < steps.length; i++) {
         const from = (steps[i].depth / 100) * height;
@@ -153,7 +156,7 @@ function ScrollShade({ steps, height, width, viewportH }) {
                         borderRadius: 6, background: ACCENT, color: '#06241f',
                         fontSize: 11, fontWeight: 800,
                     }}>
-                        The fold — everything below this needs a scroll
+                        {t('cms_site.analytics.page_stage.fold', 'The fold — everything below this needs a scroll')}
                     </span>
                 </div>
             )}

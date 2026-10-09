@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ModalShell from './ModalShell';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
 /**
@@ -16,6 +17,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  * the upload handler returns, so both paths store the same shape.
  */
 export default function AssetPickerDialog({ onPick, onClose, accept = 'image' }) {
+    const { t } = useTranslation();
     const [state, setState] = useState({ loading: true, error: null, assets: [], unavailable: false });
     const [query, setQuery] = useState('');
 
@@ -34,7 +36,7 @@ export default function AssetPickerDialog({ onPick, onClose, accept = 'image' })
             })
             .catch(err => {
                 if (cancelled) return;
-                setState({ loading: false, error: err.message || 'Failed to load', assets: [], unavailable: false });
+                setState({ loading: false, error: err.message || '', assets: [], unavailable: false });
             });
         return () => { cancelled = true; };
     }, []);
@@ -58,34 +60,32 @@ export default function AssetPickerDialog({ onPick, onClose, accept = 'image' })
             <div className="flex flex-col" style={{ height: 'min(72vh, 620px)' }}>
                 <div className="px-4 pt-4 pb-3 border-b border-[var(--border-default)]">
                     <h2 id="cms-asset-picker-title" className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-                        Media library
+                        {t('cms_site.site.dialogs.asset_title', 'Media library')}
                     </h2>
                     <input
                         type="text"
                         autoFocus
                         value={query}
                         onChange={e => setQuery(e.target.value)}
-                        placeholder="Search by file name…"
+                        placeholder={t('cms_site.site.dialogs.asset_search', 'Search by file name…')}
                         className="w-full px-3 py-2 text-sm rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
                     />
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
                     {state.loading ? (
-                        <div className="text-xs text-[var(--text-muted)]">Loading…</div>
-                    ) : state.error ? (
-                        <div className="text-xs text-red-400">Could not load the library: {state.error}</div>
+                        <div className="text-xs text-[var(--text-muted)]">{t('cms_site.site.dialogs.asset_loading', 'Loading…')}</div>
+                    ) : state.error !== null ? (
+                        <div className="text-xs text-red-400">{t('cms_site.site.dialogs.asset_error', 'Could not load the library: {error}', { error: state.error || t('cms_site.site.dialogs.asset_failed', 'Failed to load') })}</div>
                     ) : state.unavailable ? (
                         <div className="text-xs text-[var(--text-muted)] max-w-md">
-                            The media library needs object storage (RustFS/S3). This install is using
-                            local-disk storage, so previously uploaded files can&apos;t be listed —
-                            upload a file or paste its URL instead.
+                            {t('cms_site.site.dialogs.asset_unavailable', "The media library needs object storage (RustFS/S3). This install is using local-disk storage, so previously uploaded files can't be listed — upload a file or paste its URL instead.")}
                         </div>
                     ) : visible.length === 0 ? (
                         <div className="text-xs text-[var(--text-muted)]">
                             {state.assets.length === 0
-                                ? 'No uploads yet. Files you upload from any image field appear here.'
-                                : 'No files match that search.'}
+                                ? t('cms_site.site.dialogs.asset_empty', 'No uploads yet. Files you upload from any image field appear here.')
+                                : t('cms_site.site.dialogs.asset_no_match', 'No files match that search.')}
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -121,7 +121,7 @@ export default function AssetPickerDialog({ onPick, onClose, accept = 'image' })
                         onClick={onClose}
                         className="px-3 py-1.5 text-xs rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                        Cancel
+                        {t('cms_site.site.dialogs.asset_cancel', 'Cancel')}
                     </button>
                 </div>
             </div>

@@ -9,6 +9,7 @@ import {
     MonoTextarea,
 } from '../primitives';
 import { set } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Live Component ────────────────────────────────────────────────────
 //
@@ -18,6 +19,7 @@ import { set } from './shared';
 // can't reach back into the parent page.
 
 export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
+    const { t } = useTranslation();
     const setField = (key, value) => onChange(set(data, key, value));
     const layout   = data.layout || 'full';
     const cta      = data.cta || {};
@@ -30,13 +32,13 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
     // blob. '' (Default) = inherit — the renderer skips it like the other
     // empty StyleTriplet fields.
     const WEIGHT_OPTIONS = [
-        { value: '',    label: 'Default (inherit)' },
-        { value: '300', label: 'Light (300)' },
-        { value: '400', label: 'Regular (400)' },
-        { value: '500', label: 'Medium (500)' },
-        { value: '600', label: 'Semibold (600)' },
-        { value: '700', label: 'Bold (700)' },
-        { value: '800', label: 'Extrabold (800)' },
+        { value: '',    label: t('cms_site.blocks.live_component.weight_default', 'Default (inherit)') },
+        { value: '300', label: t('cms_site.blocks.live_component.weight_light', 'Light (300)') },
+        { value: '400', label: t('cms_site.blocks.live_component.weight_regular', 'Regular (400)') },
+        { value: '500', label: t('cms_site.blocks.live_component.weight_medium', 'Medium (500)') },
+        { value: '600', label: t('cms_site.blocks.live_component.weight_semibold', 'Semibold (600)') },
+        { value: '700', label: t('cms_site.blocks.live_component.weight_bold', 'Bold (700)') },
+        { value: '800', label: t('cms_site.blocks.live_component.weight_extrabold', 'Extrabold (800)') },
     ];
     const weightValue = (s) => (s && s.fontWeight ? String(s.fontWeight) : '');
     const setWeight   = (key, s, v) => setField(key, { ...(s || {}), fontWeight: Number(v) || 0 });
@@ -44,18 +46,16 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
     return (
         <>
             <InlineHint>
-                Paste any self-contained HTML / CSS / JS snippet — useful for
-                AI-built animations or custom widgets that don't fit the other
-                blocks. Runs in a sandboxed iframe.
+                {t('cms_site.blocks.live_component.paste_any_self_contained_html_css', "Paste any self-contained HTML / CSS / JS snippet — useful for AI-built animations or custom widgets that don't fit the other blocks. Runs in a sandboxed iframe.")}
             </InlineHint>
 
             {/* Layout picker — always visible, no collapse. */}
-            <FieldRow label="Layout">
+            <FieldRow label={t('cms_site.blocks.live_component.layout', 'Layout')}>
                 <LayoutPicker value={layout} onChange={v => setField('layout', v)} />
             </FieldRow>
 
-            <CollapsibleCard title="Component" defaultOpen={true} persistKey="blk.live-component.component">
-                <FieldRow label="Code" hint="Paste full HTML including <style> and <script> tags.">
+            <CollapsibleCard title={t('cms_site.blocks.live_component.component', 'Component')} defaultOpen={true} persistKey="blk.live-component.component">
+                <FieldRow label={t('cms_site.blocks.live_component.code', 'Code')} hint={t('cms_site.blocks.live_component.paste_full_html_including_style_and', 'Paste full HTML including <style> and <script> tags.')}>
                     <MonoTextarea
                         rows={16}
                         minHeight={320}
@@ -67,8 +67,8 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
             </CollapsibleCard>
 
             {layout === 'two-components' ? (
-                <CollapsibleCard title="Second component" persistKey="blk.live-component.second-component">
-                    <FieldRow label="Code" hint="Paste full HTML including <style> and <script> tags.">
+                <CollapsibleCard title={t('cms_site.blocks.live_component.second_component', 'Second component')} persistKey="blk.live-component.second-component">
+                    <FieldRow label={t('cms_site.blocks.live_component.code', 'Code')} hint={t('cms_site.blocks.live_component.paste_full_html_including_style_and', 'Paste full HTML including <style> and <script> tags.')}>
                         <MonoTextarea
                             rows={16}
                             minHeight={320}
@@ -81,20 +81,20 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
             ) : null}
 
             {layout === 'component-text' ? (
-                <CollapsibleCard title="Text" persistKey="blk.live-component.text">
+                <CollapsibleCard title={t('cms_site.blocks.live_component.text', 'Text')} persistKey="blk.live-component.text">
                     <TextField
-                        label="Heading"
+                        label={t('cms_site.blocks.live_component.heading', 'Heading')}
                         value={data.heading || ''}
                         onChange={v => setField('heading', v)}
-                        placeholder="Section heading"
+                        placeholder={t('cms_site.blocks.live_component.section_heading', 'Section heading')}
                         align={data.headingAlign || 'left'}
                         onAlignChange={v => setField('headingAlign', v)}
                     />
                     <TextField
-                        label="Body"
+                        label={t('cms_site.blocks.live_component.body', 'Body')}
                         value={data.body || ''}
                         onChange={v => setField('body', v)}
-                        placeholder="Short paragraph next to the component."
+                        placeholder={t('cms_site.blocks.live_component.short_paragraph_next_to_the_component', 'Short paragraph next to the component.')}
                         align={data.bodyAlign || 'left'}
                         onAlignChange={v => setField('bodyAlign', v)}
                     />
@@ -102,30 +102,30 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
             ) : null}
 
             {layout === 'component-cta' ? (
-                <CollapsibleCard title="CTA" persistKey="blk.live-component.cta">
+                <CollapsibleCard title={t('cms_site.blocks.live_component.cta', 'CTA')} persistKey="blk.live-component.cta">
                     <TextField
-                        label="Heading"
+                        label={t('cms_site.blocks.live_component.heading', 'Heading')}
                         value={data.heading || ''}
                         onChange={v => setField('heading', v)}
-                        placeholder="Section heading"
+                        placeholder={t('cms_site.blocks.live_component.section_heading', 'Section heading')}
                         align={data.headingAlign || 'left'}
                         onAlignChange={v => setField('headingAlign', v)}
                     />
                     <Toggle
-                        label="Show CTA"
+                        label={t('cms_site.blocks.live_component.show_cta', 'Show CTA')}
                         value={ctaOn}
                         onChange={v => setCta({ enabled: v })}
                     />
                     {ctaOn ? (
                         <>
                             <TextField
-                                label="Label"
+                                label={t('cms_site.blocks.live_component.label', 'Label')}
                                 value={cta.label || ''}
                                 onChange={v => setCta({ label: v })}
-                                placeholder="Get started"
+                                placeholder={t('cms_site.blocks.live_component.get_started', 'Get started')}
                             />
                             <LinkField
-                                label="Destination"
+                                label={t('cms_site.blocks.live_component.destination', 'Destination')}
                                 value={cta.link}
                                 pages={pages}
                                 onChange={v => setCta({ link: v })}
@@ -145,17 +145,17 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
                 font / size / color; font weight is an extra sibling
                 control since StyleTriplet itself doesn't expose it. */}
             {(layout === 'component-text' || layout === 'component-cta') ? (
-                <CollapsibleCard title="Text styles" defaultOpen={false} persistKey="blk.live-component.text-styles">
+                <CollapsibleCard title={t('cms_site.blocks.live_component.text_styles', 'Text styles')} defaultOpen={false} persistKey="blk.live-component.text-styles">
                     <StyleTriplet
-                        label="Heading"
+                        label={t('cms_site.blocks.live_component.heading', 'Heading')}
                         value={data.headingStyle}
                         onChange={v => setField('headingStyle', v)}
-                        sample={data.heading || 'Heading preview'}
+                        sample={data.heading || t('cms_site.blocks.live_component.heading_preview', 'Heading preview')}
                         weight={700}
                         min={12} max={96}
                     />
                     <FieldSelect
-                        label="Heading weight"
+                        label={t('cms_site.blocks.live_component.heading_weight', 'Heading weight')}
                         value={weightValue(data.headingStyle)}
                         options={WEIGHT_OPTIONS}
                         onChange={v => setWeight('headingStyle', data.headingStyle, v)}
@@ -163,7 +163,7 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
                     {layout === 'component-text' ? (
                         <>
                             <StyleTriplet
-                                label="Body"
+                                label={t('cms_site.blocks.live_component.body', 'Body')}
                                 value={data.bodyStyle}
                                 onChange={v => setField('bodyStyle', v)}
                                 sample={data.body || 'The quick brown fox jumps over the lazy dog.'}
@@ -171,7 +171,7 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
                                 min={10} max={32}
                             />
                             <FieldSelect
-                                label="Body weight"
+                                label={t('cms_site.blocks.live_component.body_weight', 'Body weight')}
                                 value={weightValue(data.bodyStyle)}
                                 options={WEIGHT_OPTIONS}
                                 onChange={v => setWeight('bodyStyle', data.bodyStyle, v)}
@@ -189,11 +189,12 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
 // so the user can see at a glance which mode is active. Click sets
 // `data.layout` via the parent's setField callback.
 function LayoutPicker({ value, onChange }) {
+    const { t } = useTranslation();
     const OPTIONS = [
-        { id: 'full',            label: 'Full width',     diagram: <DiagramFull /> },
-        { id: 'two-components',  label: 'Two components', diagram: <DiagramTwo /> },
-        { id: 'component-text',  label: 'Component + text', diagram: <DiagramText /> },
-        { id: 'component-cta',   label: 'Component + CTA',  diagram: <DiagramCta /> },
+        { id: 'full',            label: t('cms_site.blocks.live_component.layout_full_width', 'Full width'),     diagram: <DiagramFull /> },
+        { id: 'two-components',  label: t('cms_site.blocks.live_component.layout_two_components', 'Two components'), diagram: <DiagramTwo /> },
+        { id: 'component-text',  label: t('cms_site.blocks.live_component.layout_component_text', 'Component + text'), diagram: <DiagramText /> },
+        { id: 'component-cta',   label: t('cms_site.blocks.live_component.layout_component_cta', 'Component + CTA'),  diagram: <DiagramCta /> },
     ];
     return (
         <div className="grid grid-cols-2 gap-2 w-full">

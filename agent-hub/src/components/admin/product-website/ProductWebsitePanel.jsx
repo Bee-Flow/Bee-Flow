@@ -31,6 +31,7 @@ import SitemapView from './SitemapView';
 import { coverageForLocale } from './translatable';
 import { authFetch } from '../../../utils/helpers';
 import AppIcon from '../../icons/AppIcon';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Product Website CMS — multi-site admin panel.
@@ -97,6 +98,7 @@ import AppIcon from '../../icons/AppIcon';
 //   onNavigate(path)  — app-level navigation for cross-links
 //                       (e.g. 'admin/languages', 'admin/website-analytics')
 export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
+    const { t } = useTranslation();
     const {
         sites, setSites, sitesLoaded, setSitesLoaded, activeSiteId, setActiveSiteId, activeSiteIdRef,
         loading, setLoading, error, setError, liveSiteId, setLiveSiteId,
@@ -423,7 +425,11 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
         : null;
 
     const statusText = rightView === 'preview'
-        ? `${isChromeView ? 'site chrome' : isDesignView ? 'design' : isAnalyticsView ? 'analytics' : (activePage?.slug || 'home')} · ${activeLocale}${!isLive ? ' · editor only' : ''} · Click text to edit`
+        ? t('cms_site.site.panel.status', '{view} · {locale}{editorOnly} · Click text to edit', {
+            view: isChromeView ? t('cms_site.site.panel.view_chrome', 'site chrome') : isDesignView ? t('cms_site.site.panel.view_design', 'design') : isAnalyticsView ? t('cms_site.site.panel.view_analytics', 'analytics') : (activePage?.slug || 'home'),
+            locale: activeLocale,
+            editorOnly: !isLive ? t('cms_site.site.panel.editor_only', ' · editor only') : '',
+        })
         : null;
 
     // Stage empty-state overlays — the preview always stays center-stage, so
@@ -438,12 +444,12 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
                     className="w-8 h-8 mx-auto mb-3 text-[var(--text-muted)]"
                 />
                 <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-1">
-                    {noPages ? 'This site has no pages yet' : 'Empty page'}
+                    {noPages ? t('cms_site.site.panel.no_pages_title', 'This site has no pages yet') : t('cms_site.site.panel.empty_page', 'Empty page')}
                 </h4>
                 <p className="text-xs text-[var(--text-muted)] mb-3">
                     {noPages
-                        ? 'Every website starts with a page.'
-                        : 'Add your first block from the Blocks list on the left (+).'}
+                        ? t('cms_site.site.panel.no_pages_body', 'Every website starts with a page.')
+                        : t('cms_site.site.panel.empty_page_body', 'Add your first block from the Blocks list on the left (+).')}
                 </p>
                 {noPages && (
                     <button
@@ -452,7 +458,7 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--accent-primary)] text-white text-xs font-medium hover:bg-[var(--accent-primary)]/90"
                     >
                         <AppIcon name="Plus" className="w-3.5 h-3.5" />
-                        Create your first page
+                        {t('cms_site.site.panel.create_first_page', 'Create your first page')}
                     </button>
                 )}
             </div>
@@ -465,7 +471,7 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
     const iframe = (
         <iframe
             ref={iframeRef}
-            title="Product website preview"
+            title={t('cms_site.site.panel.preview_title', 'Product website preview')}
             src={iframeSrc}
             className="flex-1 w-full bg-white"
             key={activeLocale}

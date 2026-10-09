@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import { FieldRow } from '../fields';
 
@@ -28,8 +29,8 @@ import { FieldRow } from '../fields';
  */
 
 const SPACING_STEPS = [
-    { value: '',       label: 'Default', hint: 'Site rhythm (no override)' },
-    { value: '0',      label: 'None',    hint: '0px' },
+    { value: '',       label: 'Default', hint: 'Site rhythm (no override)', tKey: 'cms_site.site.controls.sp_default', hintKey: 'cms_site.site.controls.sp_default_hint' },
+    { value: '0',      label: 'None',    hint: '0px', tKey: 'cms_site.site.controls.sp_none' },
     { value: '3rem',   label: 'S',       hint: '3rem ≈ 48px' },
     { value: '6rem',   label: 'M',       hint: '6rem ≈ 96px' },
     { value: '7.5rem', label: 'L',       hint: '7.5rem ≈ 120px' },
@@ -39,17 +40,18 @@ const SPACING_STEPS = [
 const CHIP_BASE = 'px-2 py-1 text-[10px] font-medium transition-colors';
 
 function StepButton({ step, active, onClick }) {
+    const { t } = useTranslation();
     return (
         <button
             type="button"
-            title={step.hint}
+            title={step.hintKey ? t(step.hintKey, step.hint) : step.hint}
             aria-pressed={active}
             onClick={onClick}
             className={`${CHIP_BASE} ${active
                 ? 'bg-[var(--accent-primary)] text-white'
                 : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]'}`}
         >
-            {step.label}
+            {step.tKey ? t(step.tKey, step.label) : step.label}
         </button>
     );
 }
@@ -57,6 +59,7 @@ function StepButton({ step, active, onClick }) {
 // Inline escape hatch — buffered: commits on Enter/blur, Escape cancels.
 // Empty commit = reset to Default (remove the key).
 function CustomInput({ initial, onCommit, onCancel }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(initial);
     return (
         <input
@@ -69,9 +72,9 @@ function CustomInput({ initial, onCommit, onCancel }) {
                 if (e.key === 'Enter')  { e.preventDefault(); onCommit(draft.trim()); }
                 if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
             }}
-            placeholder="e.g. 4.5rem"
+            placeholder={t('cms_site.site.controls.sp_custom_placeholder', 'e.g. 4.5rem')}
             spellCheck={false}
-            aria-label="Custom spacing value"
+            aria-label={t('cms_site.site.controls.sp_custom_label', 'Custom spacing value')}
             className="w-20 px-2 py-1 rounded text-[10px] font-mono border border-amber-400/60 bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-amber-400"
         />
     );
@@ -80,6 +83,7 @@ function CustomInput({ initial, onCommit, onCancel }) {
 // One edge (or the linked pair): segmented rhythm scale + optional custom
 // chip for non-step stored values.
 function StepperRow({ label, value, onChange, linkSlot }) {
+    const { t } = useTranslation();
     const v = typeof value === 'string' ? value : '';
     const isCustom = v !== '' && !SPACING_STEPS.some(s => s.value === v);
     const [editingCustom, setEditingCustom] = useState(false);
@@ -106,10 +110,10 @@ function StepperRow({ label, value, onChange, linkSlot }) {
                     <button
                         type="button"
                         onClick={() => setEditingCustom(true)}
-                        title="Stored custom value — click to edit"
+                        title={t('cms_site.site.controls.sp_custom_title', 'Stored custom value — click to edit')}
                         className={`${CHIP_BASE} rounded-md border font-mono bg-amber-400/15 border-amber-400/60 text-amber-500`}
                     >
-                        Custom: {v}
+                        {t('cms_site.site.controls.sp_custom', 'Custom: {value}', { value: v })}
                     </button>
                 ) : null}
                 {editingCustom ? (
@@ -126,11 +130,12 @@ function StepperRow({ label, value, onChange, linkSlot }) {
 }
 
 function LinkToggle({ linked, mixed, onToggle }) {
+    const { t } = useTranslation();
     const title = linked
-        ? 'Unlink — edit top and bottom separately'
+        ? t('cms_site.site.controls.sp_unlink', 'Unlink — edit top and bottom separately')
         : (mixed
-            ? 'Link both edges (sets bottom = top)'
-            : 'Link both edges — one control edits top and bottom');
+            ? t('cms_site.site.controls.sp_link_mixed', 'Link both edges (sets bottom = top)')
+            : t('cms_site.site.controls.sp_link', 'Link both edges — one control edits top and bottom'));
     return (
         <button
             type="button"
@@ -148,6 +153,7 @@ function LinkToggle({ linked, mixed, onToggle }) {
 }
 
 export default function SpacingStepper({ spacing, onChange }) {
+    const { t } = useTranslation();
     const sp = spacing || {};
     const top    = typeof sp.paddingTop === 'string' ? sp.paddingTop : '';
     const bottom = typeof sp.paddingBottom === 'string' ? sp.paddingBottom : '';
@@ -180,7 +186,7 @@ export default function SpacingStepper({ spacing, onChange }) {
     if (linked) {
         return (
             <StepperRow
-                label="Padding (both edges)"
+                label={t('cms_site.site.controls.sp_both', 'Padding (both edges)')}
                 value={top}
                 onChange={(val) => setEdges({ paddingTop: val, paddingBottom: val })}
                 linkSlot={linkSlot}
@@ -190,13 +196,13 @@ export default function SpacingStepper({ spacing, onChange }) {
     return (
         <>
             <StepperRow
-                label="Padding top"
+                label={t('cms_site.site.controls.sp_top', 'Padding top')}
                 value={top}
                 onChange={(val) => setEdges({ paddingTop: val })}
                 linkSlot={linkSlot}
             />
             <StepperRow
-                label="Padding bottom"
+                label={t('cms_site.site.controls.sp_bottom', 'Padding bottom')}
                 value={bottom}
                 onChange={(val) => setEdges({ paddingBottom: val })}
             />

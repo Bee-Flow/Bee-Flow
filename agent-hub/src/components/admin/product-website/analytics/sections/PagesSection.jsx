@@ -10,16 +10,19 @@
  * per row in ONE call, so a page can be judged on engagement instead of
  * popularity. That report was already allow-listed and entirely unused.
  */
-import React, { useMemo, useState } from 'react';
 import { FileText, Compass } from 'lucide-react';
-import { useAnalyticsQuery } from '../useAnalyticsQuery';
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import { pivot } from '../model';
+import { rich } from '../rich';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SortableTable, ShareBar,
     BreakdownTable, fmt, fmtDurationSec, rateColor, maxOf,
 } from '../ui';
-import { pivot } from '../model';
+import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
 export default function PagesSection({ scope, onDrill }) {
+    const { t } = useTranslation();
     const [sortKey, setSortKey] = useState('views');
 
     const breakdown = useAnalyticsQuery('report', 'breakdown', scope, { body: { fields: ['path'] } });
@@ -47,9 +50,9 @@ export default function PagesSection({ scope, onDrill }) {
 
     const columns = [
         {
-            key: 'path', label: 'Page', width: '2fr',
+            key: 'path', label: t('cms_site.analytics.pages.page', 'Page'), width: '2fr',
             render: (r) => (
-                <span title={`Filter the dashboard by ${r.path}`} style={{
+                <span title={t('cms_site.analytics.pages.filter_by', 'Filter the dashboard by {value}', { value: r.path })} style={{
                     fontSize: 12, color: 'var(--text-primary, #fff)',
                     textDecoration: 'underline dotted', textUnderlineOffset: 3,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
@@ -57,7 +60,7 @@ export default function PagesSection({ scope, onDrill }) {
             ),
         },
         {
-            key: 'views', label: 'Views', width: '110px', align: 'right',
+            key: 'views', label: t('cms_site.analytics.pages.views', 'Views'), width: '110px', align: 'right',
             render: (r) => (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
                     <ShareBar value={r.views} of={peakViews} width={40} />
@@ -66,11 +69,11 @@ export default function PagesSection({ scope, onDrill }) {
             ),
         },
         {
-            key: 'visitors', label: 'Visitors', width: '80px', align: 'right',
+            key: 'visitors', label: t('cms_site.analytics.pages.visitors', 'Visitors'), width: '80px', align: 'right',
             render: (r) => <span style={{ fontSize: 12, color: 'var(--text-secondary, #aaa)' }}>{fmt(r.visitors)}</span>,
         },
         {
-            key: 'bounceRate', label: 'Bounce', width: '80px', align: 'right',
+            key: 'bounceRate', label: t('cms_site.analytics.pages.bounce', 'Bounce'), width: '80px', align: 'right',
             render: (r) => (r.bounceRate == null
                 ? <span style={{ fontSize: 12, color: 'var(--text-muted, #777)' }}>—</span>
                 // Colour is a hint; the number is always printed beside it.
@@ -79,7 +82,7 @@ export default function PagesSection({ scope, onDrill }) {
                 </span>),
         },
         {
-            key: 'avgTime', label: 'Time on page', width: '110px', align: 'right',
+            key: 'avgTime', label: t('cms_site.analytics.pages.time_on_page', 'Time on page'), width: '110px', align: 'right',
             render: (r) => (
                 <span style={{ fontSize: 12, color: 'var(--text-secondary, #aaa)' }}>
                     {r.avgTime == null ? '—' : fmtDurationSec(r.avgTime)}
@@ -90,14 +93,14 @@ export default function PagesSection({ scope, onDrill }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Card title="Every page, by engagement" icon={FileText} action={
+            <Card title={t('cms_site.analytics.pages.title', 'Every page, by engagement')} icon={FileText} action={
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>rank by</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.pages.rank_by', 'rank by')}</span>
                     {[
-                        { k: 'views', l: 'Views' },
-                        { k: 'visitors', l: 'Visitors' },
-                        { k: 'bounceRate', l: 'Bounce' },
-                        { k: 'avgTime', l: 'Time' },
+                        { k: 'views', l: t('cms_site.analytics.pages.views', 'Views') },
+                        { k: 'visitors', l: t('cms_site.analytics.pages.visitors', 'Visitors') },
+                        { k: 'bounceRate', l: t('cms_site.analytics.pages.bounce', 'Bounce') },
+                        { k: 'avgTime', l: t('cms_site.analytics.pages.time', 'Time') },
                     ].map(o => (
                         <button key={o.k} onClick={() => setSortKey(o.k)} style={{
                             fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
@@ -109,21 +112,23 @@ export default function PagesSection({ scope, onDrill }) {
                 </div>
             }>
                 {rows.length === 0 ? (
-                    <Empty text="No pageviews in this period." />
+                    <Empty text={t('cms_site.analytics.pages.no_pageviews', 'No pageviews in this period.')} />
                 ) : (
                     <>
                         <SortableTable
                             columns={columns} data={rows.map((r, i) => ({ ...r, _key: `${i}-${r.path}` }))}
-                            maxRows={25} emptyText="No pageviews in this period."
+                            maxRows={25} emptyText={t('cms_site.analytics.pages.no_pageviews', 'No pageviews in this period.')}
                             onRowClick={(r) => onDrill('path', r.path)}
                         />
                         <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'var(--text-muted, #888)' }}>
-                            <span><strong style={{ color: 'var(--text-primary, #fff)' }}>{fmt(rows.length)}</strong> pages visited</span>
-                            <span><strong style={{ color: 'var(--text-primary, #fff)' }}>{fmt(totals.views)}</strong> views</span>
+                            <span>{rich(t('cms_site.analytics.pages.pages_visited', '{n} pages visited'), { n: <strong style={{ color: 'var(--text-primary, #fff)' }}>{fmt(rows.length)}</strong> })}</span>
+                            <span>{rich(t('cms_site.analytics.pages.total_views', '{n} views'), { n: <strong style={{ color: 'var(--text-primary, #fff)' }}>{fmt(totals.views)}</strong> })}</span>
                             <span>
-                                <strong style={{ color: 'var(--text-primary, #fff)' }}>
-                                    {totals.visits ? (totals.views / totals.visits).toFixed(1) : '—'}
-                                </strong> pages per visit
+                                {rich(t('cms_site.analytics.pages.pages_per_visit', '{n} pages per visit'), {
+                                    n: <strong style={{ color: 'var(--text-primary, #fff)' }}>
+                                        {totals.visits ? (totals.views / totals.visits).toFixed(1) : '—'}
+                                    </strong>,
+                                })}
                             </span>
                         </div>
                     </>
@@ -131,15 +136,15 @@ export default function PagesSection({ scope, onDrill }) {
             </Card>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
-                <Card title="By page title" icon={Compass} action={
+                <Card title={t('cms_site.analytics.pages.by_title', 'By page title')} icon={Compass} action={
                     <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>
-                        useful when several paths share a template
+                        {t('cms_site.analytics.pages.by_title_hint', 'useful when several paths share a template')}
                     </span>
                 }>
                     {titles.loading ? <Skeleton height={180} />
                         : titles.error ? <ErrorNote message={titles.error} onRetry={titles.reload} compact />
-                        : <BreakdownTable rows={titles.payload} labelHeader="Title" maxRows={10}
-                            blankLabel="Untitled" emptyText="No titles recorded."
+                        : <BreakdownTable rows={titles.payload} labelHeader={t('cms_site.analytics.pages.title_header', 'Title')} maxRows={10}
+                            blankLabel={t('cms_site.analytics.pages.untitled', 'Untitled')} emptyText={t('cms_site.analytics.pages.no_titles', 'No titles recorded.')}
                             onDrill={(v) => onDrill('title', v)} />}
                 </Card>
 
@@ -158,6 +163,7 @@ export default function PagesSection({ scope, onDrill }) {
  * exactly that ratio rather than pretending to be a true entry report.
  */
 function EntryPages({ scope, onDrill }) {
+    const { t } = useTranslation();
     const breakdown = useAnalyticsQuery('report', 'breakdown', scope, { body: { fields: ['path'] } });
     const rows = useMemo(() => pivot(breakdown.payload, ['path'])
         .filter(r => r.path && r.visits > 0)
@@ -166,12 +172,12 @@ function EntryPages({ scope, onDrill }) {
     const peak = maxOf(rows.map(r => r.visits));
 
     return (
-        <Card title="Where visits start" icon={Compass} action={
-            <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>visits, not views</span>
+        <Card title={t('cms_site.analytics.pages.entry', 'Where visits start')} icon={Compass} action={
+            <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.pages.entry_hint', 'visits, not views')}</span>
         }>
             {breakdown.loading ? <Skeleton height={180} />
                 : breakdown.error ? <ErrorNote message={breakdown.error} onRetry={breakdown.reload} compact />
-                : rows.length === 0 ? <Empty text="No visits in this period." />
+                : rows.length === 0 ? <Empty text={t('cms_site.analytics.pages.no_visits', 'No visits in this period.')} />
                 : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {rows.map((r, i) => (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Toggle, TextField } from './fields';
 import { CollapsibleCard } from './primitives';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Site-chrome editor for the cookie consent banner. Edits site.cookieBanner:
@@ -60,6 +61,7 @@ function LocaleCard({ code, label, text, defaultOpen, onField }) {
 }
 
 export default function CookieBannerEditor({ data = {}, onChange, locales = null, defaultLocale = 'en' }) {
+    const { t } = useTranslation();
     const enabled = data.enabled !== false;
     const text = data.text || {};
 
@@ -92,7 +94,7 @@ export default function CookieBannerEditor({ data = {}, onChange, locales = null
                 onChange={v => onChange({ ...data, enabled: v })}
             />
             <p className="text-[10px] text-[var(--text-muted)] mb-3 -mt-1">
-                Visitors see the copy for their language; languages without copy fall back to English.
+                {t('cms_site.site.cookie.visitors_see', 'Visitors see the copy for their language; languages without copy fall back to English.')}
             </p>
 
             {siteLocales.map(({ code, name }) => (
@@ -107,10 +109,9 @@ export default function CookieBannerEditor({ data = {}, onChange, locales = null
             ))}
 
             {orphaned.length > 0 && (
-                <CollapsibleCard title="Other saved languages" defaultOpen={false}>
+                <CollapsibleCard title={t('cms_site.site.cookie.other_languages', 'Other saved languages')} defaultOpen={false}>
                     <p className="text-[10px] text-[var(--text-muted)] mb-2">
-                        Copy saved for languages that are no longer in the organization's
-                        language list. It stays published until removed here.
+                        {t('cms_site.site.cookie.orphaned_help', "Copy saved for languages that are no longer in the organization's language list. It stays published until removed here.")}
                     </p>
                     {orphaned.map(code => (
                         <LocaleCard

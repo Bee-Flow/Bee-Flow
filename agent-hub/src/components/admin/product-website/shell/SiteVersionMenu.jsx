@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
-import AppIcon from '../../../icons/AppIcon';
 import Dropdown from './Dropdown';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import AppIcon from '../../../icons/AppIcon';
 import SiteSwitcher from '../SiteSwitcher';
 import VersionSwitcher from '../VersionSwitcher';
 
@@ -26,6 +27,7 @@ export default function SiteVersionMenu({
     onImportFile,      // (File)
     ioStatus,          // { kind: 'success'|'error'|'busy', text } | null
 }) {
+    const { t } = useTranslation();
     const importInputRef = useRef(null);
     const activeSite = sites.find(s => s.id === activeSiteId);
     const versionName = activeSite?.versionName || 'v1';
@@ -38,15 +40,15 @@ export default function SiteVersionMenu({
                 <button
                     type="button"
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-subtle)] max-w-[280px]"
-                    title="Site, versions, export & import"
+                    title={t('cms_site.site.shell.sv_title', 'Site, versions, export & import')}
                 >
                     <AppIcon name="Globe" className="w-4 h-4 shrink-0 text-[var(--text-muted)]" />
-                    <span className="truncate font-medium">{activeSite?.name || 'Select a site'}</span>
+                    <span className="truncate font-medium">{activeSite?.name || t('cms_site.site.shell.sv_select', 'Select a site')}</span>
                     <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
                         {versionName}
                     </span>
                     {isLive && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="This site is live" />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title={t('cms_site.site.shell.sv_live', 'This site is live')} />
                     )}
                     <AppIcon name={open ? 'ChevronUp' : 'ChevronDown'} className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)]" />
                 </button>
@@ -54,7 +56,7 @@ export default function SiteVersionMenu({
         >
             {() => (
                 <div className="overflow-hidden rounded-lg">
-                    <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Sites</div>
+                    <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t('cms_site.site.shell.sv_sites', 'Sites')}</div>
                     <SiteSwitcher
                         embedded
                         sites={sites}
@@ -89,20 +91,20 @@ export default function SiteVersionMenu({
                                 onClick={() => onExportSite('zip')}
                                 disabled={!activeSiteId || ioStatus?.kind === 'busy'}
                                 className="flex-1 px-2 py-1 text-[11px] rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/60 hover:text-[var(--accent-primary)] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                                title="Download the complete website — all pages, all languages and all images — as a .zip"
+                                title={t('cms_site.site.shell.sv_export_title', 'Download the complete website — all pages, all languages and all images — as a .zip')}
                             >
                                 <AppIcon name="Download" className="w-3 h-3" />
-                                Export site
+                                {t('cms_site.site.shell.sv_export', 'Export site')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => importInputRef.current?.click()}
                                 disabled={ioStatus?.kind === 'busy'}
                                 className="flex-1 px-2 py-1 text-[11px] rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/60 hover:text-[var(--accent-primary)] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                                title="Restore a site from a previously-exported .zip or .json file"
+                                title={t('cms_site.site.shell.sv_import_title', 'Restore a site from a previously-exported .zip or .json file')}
                             >
                                 <AppIcon name="Upload" className="w-3 h-3" />
-                                Import site
+                                {t('cms_site.site.shell.sv_import', 'Import site')}
                             </button>
                             {/* Hidden input — value reset so the same file can be re-picked. */}
                             <input
@@ -122,10 +124,10 @@ export default function SiteVersionMenu({
                             onClick={() => onExportSite('json')}
                             disabled={!activeSiteId || ioStatus?.kind === 'busy'}
                             className="mt-1 w-full px-2 py-1 text-[10px] rounded-md text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                            title="Content only — images stay referenced by key, so they resolve only on an install sharing this storage"
+                            title={t('cms_site.site.shell.sv_json_title', 'Content only — images stay referenced by key, so they resolve only on an install sharing this storage')}
                         >
                             <AppIcon name="FileJson" className="w-3 h-3" />
-                            Export as JSON (no images)
+                            {t('cms_site.site.shell.sv_json', 'Export as JSON (no images)')}
                         </button>
                         {ioStatus ? (
                             <p

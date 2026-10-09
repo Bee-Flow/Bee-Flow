@@ -11,10 +11,11 @@
  * COLORS.primary is #6366f1 — so every chart/card here is passed an explicit
  * colour and nothing is allowed to fall back to the shared default.
  */
-import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Card as BaseCard, Empty, SortableTable, fmt } from '../../monitoring/shared';
+import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { TrendChip } from '../../../../pages/settings/usage/kit';
+import { Card as BaseCard, Empty, SortableTable, fmt } from '../../monitoring/shared';
 
 export const ACCENT = '#14b8a6';                                  // teal
 export const PALETTE = ['#3b82f6', '#14b8a6', '#10b981', '#f59e0b', '#f97316', '#06b6d4', '#f43f5e', '#0ea5e9'];
@@ -86,16 +87,20 @@ export function fmtDurationMs(ms) {
     return n < 1000 ? '<1s' : fmtDurationSec(n / 1000);
 }
 
-export function fmtAgo(ts, now = Date.now()) {
-    const t = typeof ts === 'number' ? ts : Date.parse(ts);
-    if (!Number.isFinite(t)) return '';
-    const s = Math.max(0, Math.round((now - t) / 1000));
-    if (s < 45) return 'just now';
+// Pure helpers take an optional translator (`t` from useTranslation) so they
+// stay callable from tests and non-React code; without one they print English.
+const plainT = (_key, fallback, params) => String(fallback).replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? ''));
+
+export function fmtAgo(ts, now = Date.now(), tr = plainT) {
+    const at = typeof ts === 'number' ? ts : Date.parse(ts);
+    if (!Number.isFinite(at)) return '';
+    const s = Math.max(0, Math.round((now - at) / 1000));
+    if (s < 45) return tr('cms_site.analytics.common.ago_now', 'just now');
     const m = Math.round(s / 60);
-    if (m < 60) return `${m}m ago`;
+    if (m < 60) return tr('cms_site.analytics.common.ago_minutes', '{n}m ago', { n: m });
     const h = Math.round(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.round(h / 24)}d ago`;
+    if (h < 24) return tr('cms_site.analytics.common.ago_hours', '{n}h ago', { n: h });
+    return tr('cms_site.analytics.common.ago_days', '{n}d ago', { n: Math.round(h / 24) });
 }
 
 /** `{ "/faq": 5, "/": 2 }` → `[{ x, y }]` sorted desc. Umami's realtime
@@ -159,7 +164,7 @@ export function deltaPct(current, previous) {
  * @param kind 'count' | 'rate' (0-100 points) | 'duration' (seconds) | 'ratio' (0-1)
  * @returns { delta, display, state } — state ∈ up | down | flat | new | none
  */
-export function compare(current, previous, kind = 'count') {
+export function compare(current, previous, kind = 'count', tr = plainT) {
     const c = Number(current);
     const p = Number(previous);
     if (!Number.isFinite(c)) return { delta: null, display: null, state: 'none' };
@@ -168,10 +173,10 @@ export function compare(current, previous, kind = 'count') {
         if (!Number.isFinite(p)) return { delta: null, display: null, state: 'none' };
         const scale = kind === 'ratio' ? 100 : 1;
         const points = (c - p) * scale;
-        if (Math.abs(points) < 0.05) return { delta: 0, display: 'no change', state: 'flat' };
+        if (Math.abs(points) < 0.05) return { delta: 0, display: tr('cms_site.analytics.common.no_change', 'no change'), state: 'flat' };
         return {
             delta: points,
-            display: `${Math.abs(points).toFixed(1)} pts`,
+            display: tr('cms_site.analytics.common.points', '{n} pts', { n: Math.abs(points).toFixed(1) }),
             state: points > 0 ? 'up' : 'down',
         };
     }
@@ -180,11 +185,11 @@ export function compare(current, previous, kind = 'count') {
         // A previous period of zero has no meaningful percentage, but "new" is
         // still information — far better than rendering nothing at all.
         if (c === 0) return { delta: null, display: null, state: 'none' };
-        return { delta: 100, display: 'new', state: 'new' };
+        return { delta: 100, display: tr('cms_site.analytics.common.new', 'new'), state: 'new' };
     }
 
     const pct = ((c - p) / p) * 100;
-    if (Math.abs(pct) < 0.5) return { delta: 0, display: 'no change', state: 'flat' };
+    if (Math.abs(pct) < 0.5) return { delta: 0, display: tr('cms_site.analytics.common.no_change', 'no change'), state: 'flat' };
     return {
         delta: Math.round(pct),
         display: `${Math.abs(Math.round(pct))}%`,
@@ -208,14 +213,15 @@ export function StatTile({
     icon: Icon, label, value, color = ACCENT, delta, deltaLabel,
     goodWhenDown = false, subtitle, deltaDisplay, state,
 }) {
+    const { t } = useTranslation();
     // `state: 'new'` has no percentage worth showing — TrendChip would render
     // "100%", implying a measured doubling rather than "there was nothing here
     // before".
     const chipDisplay = deltaDisplay ?? (delta != null ? `${Math.abs(delta)}%` : null);
-    return renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state });
+    return renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t });
 }
 
-function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state }) {
+function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t }) {
     return (
         <div style={{
             background: 'var(--bg-secondary, #1a1a2e)',
@@ -229,16 +235,16 @@ function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLa
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary, #fff)', lineHeight: 1.1 }}>{value}</span>
                 {state === 'new' ? (
-                    <span title={deltaLabel || 'nothing in the previous period'} style={{
+                    <span title={deltaLabel || t('cms_site.analytics.common.new_title', 'nothing in the previous period')} style={{
                         fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
                         padding: '2px 6px', borderRadius: 5, background: `${ACCENT}1f`, color: ACCENT,
-                    }}>new</span>
+                    }}>{t('cms_site.analytics.common.new', 'new')}</span>
                 ) : state === 'flat' ? (
-                    <span title={deltaLabel || 'vs previous period'}
-                        style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>no change</span>
+                    <span title={deltaLabel || t('cms_site.analytics.common.vs_previous', 'vs previous period')}
+                        style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>{t('cms_site.analytics.common.no_change', 'no change')}</span>
                 ) : delta != null && chipDisplay ? (
                     <TrendChip delta={delta} display={chipDisplay} goodWhenDown={goodWhenDown}
-                        title={deltaLabel || 'vs previous period'} />
+                        title={deltaLabel || t('cms_site.analytics.common.vs_previous', 'vs previous period')} />
                 ) : null}
             </div>
             {subtitle && <div style={{ fontSize: 11, color: 'var(--text-muted, #777)', marginTop: 3 }}>{subtitle}</div>}
@@ -264,6 +270,7 @@ export function StatGrid({ children, min = 170 }) {
  * went unnoticed. An empty state must mean "no data", never "we broke".
  */
 export function ErrorNote({ message, onRetry, compact = false }) {
+    const { t } = useTranslation();
     return (
         <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 8,
@@ -274,12 +281,12 @@ export function ErrorNote({ message, onRetry, compact = false }) {
             <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
             <span style={{ flex: 1, wordBreak: 'break-word' }}>{message}</span>
             {onRetry && (
-                <button onClick={onRetry} title="Retry" style={{
+                <button onClick={onRetry} title={t('cms_site.analytics.common.retry', 'Retry')} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent',
                     border: '1px solid rgba(244,63,94,0.35)', borderRadius: 7, color: '#fda4af',
                     fontSize: 11, fontWeight: 700, padding: '3px 8px', cursor: 'pointer', flexShrink: 0,
                 }}>
-                    <RefreshCw style={{ width: 11, height: 11 }} /> Retry
+                    <RefreshCw style={{ width: 11, height: 11 }} /> {t('cms_site.analytics.common.retry', 'Retry')}
                 </button>
             )}
         </div>
@@ -318,10 +325,11 @@ export function AnalyticsStyles() {
  * section from re-implementing loading/error/empty inconsistently.
  */
 export function AsyncCard({ title, icon, loading, error, onRetry, isEmpty, emptyText, children, right, height = 120 }) {
+    const { t } = useTranslation();
     let body;
     if (loading) body = <Skeleton height={height} />;
     else if (error) body = <ErrorNote message={error} onRetry={onRetry} compact />;
-    else if (isEmpty) body = <Empty text={emptyText || 'No data'} />;
+    else if (isEmpty) body = <Empty text={emptyText || t('cms_site.analytics.common.no_data', 'No data')} />;
     else body = children;
     return <Card title={title} icon={icon} action={right}>{body}</Card>;
 }
@@ -333,20 +341,22 @@ export function AsyncCard({ title, icon, loading, error, onRetry, isEmpty, empty
  * dashboard-wide filter when `onDrill` is given.
  */
 export function BreakdownTable({
-    rows, labelHeader, valueHeader = 'Views', onDrill, maxRows = 10, emptyText,
-    blankLabel = 'Unknown',
+    rows, labelHeader, valueHeader, onDrill, maxRows = 10, emptyText,
+    blankLabel,
 }) {
+    const { t } = useTranslation();
+    const blank = blankLabel ?? t('cms_site.analytics.common.unknown', 'Unknown');
     const data = toRows(rows);
     const total = data.reduce((a, r) => a + r.count, 0);
     const columns = [
         {
             key: 'label', label: labelHeader, width: '1fr',
             render: (r) => {
-                const text = r.isBlank ? blankLabel : r.label;
+                const text = r.isBlank ? blank : r.label;
                 const clickable = !!onDrill && !r.isBlank;
                 return (
                     <span
-                        title={clickable ? `Filter by ${text}` : text}
+                        title={clickable ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: text }) : text}
                         style={{
                             fontSize: 12, overflow: 'hidden',
                             color: r.isBlank ? 'var(--text-muted, #888)' : 'var(--text-primary, #fff)',
@@ -360,7 +370,7 @@ export function BreakdownTable({
             },
         },
         {
-            key: 'count', label: valueHeader, width: '120px', align: 'right',
+            key: 'count', label: valueHeader ?? t('cms_site.analytics.common.views', 'Views'), width: '120px', align: 'right',
             render: (r) => (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
                     <ShareBar value={r.count} of={total} width={44} />
@@ -374,7 +384,7 @@ export function BreakdownTable({
             columns={columns}
             data={data}
             maxRows={maxRows}
-            emptyText={emptyText || 'No data'}
+            emptyText={emptyText || t('cms_site.analytics.common.no_data', 'No data')}
             onRowClick={onDrill ? (r) => !r.isBlank && onDrill(r.label) : undefined}
         />
     );
@@ -456,23 +466,24 @@ export function SplitBar({ segments, mode = 'stacked', height = 10, legend = fal
  * `color` to override, or `peak` to keep the scale stable across two lists.
  */
 export function BarList({
-    rows, onDrill, max = 8, formatValue = fmt, emptyText = 'No data',
-    color = ACCENT, peak: peakProp, blankLabel = 'Unknown',
+    rows, onDrill, max = 8, formatValue = fmt, emptyText,
+    color = ACCENT, peak: peakProp, blankLabel,
 }) {
+    const { t } = useTranslation();
     const items = (Array.isArray(rows) ? rows : []).slice(0, max);
-    if (!items.length) return <Empty text={emptyText} />;
+    if (!items.length) return <Empty text={emptyText ?? t('cms_site.analytics.common.no_data', 'No data')} />;
     const peak = peakProp || maxOf(items.map(r => r.y || 0));
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {items.map((r, i) => {
                 const isBlank = !r.x;
-                const label = isBlank ? blankLabel : r.x;
+                const label = isBlank ? (blankLabel ?? t('cms_site.analytics.common.unknown', 'Unknown')) : r.x;
                 const clickable = !!onDrill && !isBlank;
                 return (
                     <button
                         key={`${i}-${label}`}
                         onClick={clickable ? () => onDrill(label) : undefined}
-                        title={clickable ? `Filter by ${label}` : label}
+                        title={clickable ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: label }) : label}
                         style={{
                             display: 'block', width: '100%', textAlign: 'left', background: 'transparent',
                             border: 'none', padding: 0, cursor: clickable ? 'pointer' : 'default',

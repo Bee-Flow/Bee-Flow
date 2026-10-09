@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Save-pipeline status badge — extracted verbatim from ProductWebsitePanel.
@@ -6,12 +7,13 @@ import React from 'react';
  * the container's autosave machinery; `onRetry` re-flushes the failed batch.
  */
 export default function SaveBadge({ status, onRetry }) {
+    const { t } = useTranslation();
     const map = {
         idle:   { label: '',                  color: 'var(--text-muted)' },
-        dirty:  { label: '● Unsaved',         color: '#fbbf24' },
-        saving: { label: 'Saving…',           color: 'var(--text-secondary)' },
-        saved:  { label: '✓ Saved',           color: '#34d399' },
-        error:  { label: '⚠ Save failed',     color: '#f87171' },
+        dirty:  { label: t('cms_site.site.shell.save_unsaved', '● Unsaved'),         color: '#fbbf24' },
+        saving: { label: t('cms_site.site.shell.save_saving', 'Saving…'),           color: 'var(--text-secondary)' },
+        saved:  { label: t('cms_site.site.shell.save_saved', '✓ Saved'),           color: '#34d399' },
+        error:  { label: t('cms_site.site.shell.save_failed', '⚠ Save failed'),     color: '#f87171' },
     };
     const s = map[status] || map.idle;
     if (!s.label) return <span />;
@@ -24,7 +26,7 @@ export default function SaveBadge({ status, onRetry }) {
                     onClick={onRetry}
                     className="ml-1 px-1.5 py-0.5 rounded border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                 >
-                    Retry
+                    {t('cms_site.site.shell.save_retry', 'Retry')}
                 </button>
             ) : null}
         </span>

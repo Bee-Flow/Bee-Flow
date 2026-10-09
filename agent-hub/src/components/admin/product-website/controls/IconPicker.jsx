@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ICON_CATALOGUE } from './iconCatalogue';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import ModalShell from '../dialogs/ModalShell';
 
@@ -39,6 +40,7 @@ function IconTile({ name, selected, onSelect }) {
 }
 
 function FreeTextRow({ value, onSelect }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState('');
     const commit = () => { if (draft.trim()) onSelect(draft.trim()); };
     return (
@@ -53,7 +55,7 @@ function FreeTextRow({ value, onSelect }) {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
-                placeholder={`Any Lucide name… (current: ${value || 'none'})`}
+                placeholder={t('cms_site.site.controls.icon_free_placeholder', 'Any Lucide name… (current: {current})', { current: value || t('cms_site.site.controls.icon_none', 'none') })}
                 spellCheck={false}
                 className="flex-1 px-2 py-1.5 rounded text-xs font-mono border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
             />
@@ -63,13 +65,14 @@ function FreeTextRow({ value, onSelect }) {
                 disabled={!draft.trim()}
                 className="px-3 py-1.5 text-xs rounded-md bg-[var(--accent-primary)] text-white disabled:opacity-40"
             >
-                Use
+                {t('cms_site.site.controls.icon_use', 'Use')}
             </button>
         </div>
     );
 }
 
 export default function IconPicker({ value, onSelect, onClose }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
 
     const groups = useMemo(() => {
@@ -84,14 +87,14 @@ export default function IconPicker({ value, onSelect, onClose }) {
         <ModalShell onClose={onClose} labelledBy="cms-icon-picker-title" width="lg">
             <div className="px-4 pt-4 pb-3 border-b border-[var(--border-subtle)]">
                 <h3 id="cms-icon-picker-title" className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    Choose an icon
+                    {t('cms_site.site.controls.icon_title', 'Choose an icon')}
                 </h3>
                 <input
                     autoFocus
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search icons…"
+                    placeholder={t('cms_site.site.controls.icon_search', 'Search icons…')}
                     spellCheck={false}
                     className="w-full px-3 py-2 rounded-md text-sm border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
                 />
@@ -100,7 +103,7 @@ export default function IconPicker({ value, onSelect, onClose }) {
             <div className="px-4 py-3 max-h-[55vh] overflow-y-auto">
                 {groups.length === 0 ? (
                     <p className="text-xs text-[var(--text-muted)] text-center py-6">
-                        No curated icon matches "{query}" — try the free-text field below.
+                        {t('cms_site.site.controls.icon_no_match', 'No curated icon matches "{query}" — try the free-text field below.', { query })}
                     </p>
                 ) : groups.map(g => (
                     <div key={g.category} className="mb-3">

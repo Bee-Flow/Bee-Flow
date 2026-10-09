@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AppIcon from '../../icons/AppIcon';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Site/project switcher.
@@ -25,6 +26,7 @@ export default function SiteSwitcher({
     onDelete,
     embedded = false,
 }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [renamingId, setRenamingId] = useState(null);
@@ -76,7 +78,7 @@ export default function SiteSwitcher({
             <ul className="max-h-72 overflow-y-auto py-1">
                 {sites.length === 0 && (
                     <li className="px-3 py-2 text-xs text-[var(--text-muted)] italic">
-                        No sites yet
+                        {t('cms_site.site.siteswitcher.no_sites', 'No sites yet')}
                     </li>
                 )}
                 {sites.map(site => (
@@ -109,7 +111,7 @@ export default function SiteSwitcher({
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--accent-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
                     >
                         <AppIcon name="Plus" className="w-3.5 h-3.5" />
-                        New site
+                        {t('cms_site.site.siteswitcher.new_site', 'New site')}
                     </button>
                 )}
             </div>
@@ -124,17 +126,17 @@ export default function SiteSwitcher({
                 type="button"
                 onClick={() => setOpen(o => !o)}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-sm text-[var(--text-primary)] hover:border-[var(--accent-primary)]/60 transition-colors"
-                title="Switch site"
+                title={t('cms_site.site.siteswitcher.switch_site', 'Switch site')}
             >
                 <span className="flex items-center gap-2 min-w-0">
                     <AppIcon name="Globe" className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)]" />
                     <span className="truncate font-medium">
-                        {activeSite ? activeSite.name : 'Select a site'}
+                        {activeSite ? activeSite.name : t('cms_site.site.siteswitcher.select_site', 'Select a site')}
                     </span>
                     {activeSite && activeSite.id === liveSiteId && (
                         <span
                             className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
-                            title="This site is live"
+                            title={t('cms_site.site.siteswitcher.this_live', 'This site is live')}
                         />
                     )}
                 </span>
@@ -156,6 +158,7 @@ export default function SiteSwitcher({
 // ── Row with hover menu + inline rename ─────────────────────────
 
 function SiteRow({ site, isActive, isLive, isRenaming, onPick, onStartRename, onCancelRename, onConfirmRename, onDelete }) {
+    const { t } = useTranslation();
     if (isRenaming) {
         return (
             <li>
@@ -185,15 +188,15 @@ function SiteRow({ site, isActive, isLive, isRenaming, onPick, onStartRename, on
                 {isLive && (
                     <span
                         className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-[10px] font-medium text-emerald-400"
-                        title="Currently live at the public URL"
+                        title={t('cms_site.site.siteswitcher.currently_live', 'Currently live at the public URL')}
                     >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Live
+                        {t('cms_site.site.siteswitcher.live', 'Live')}
                     </span>
                 )}
                 <span className="opacity-40 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                    <IconBtn name="Pencil" title="Rename" onClick={(e) => { e.stopPropagation(); onStartRename(); }} />
-                    <IconBtn name="Trash2" title="Delete" danger onClick={(e) => { e.stopPropagation(); onDelete(); }} />
+                    <IconBtn name="Pencil" title={t('cms_site.site.siteswitcher.rename', 'Rename')} onClick={(e) => { e.stopPropagation(); onStartRename(); }} />
+                    <IconBtn name="Trash2" title={t('cms_site.site.siteswitcher.delete', 'Delete')} danger onClick={(e) => { e.stopPropagation(); onDelete(); }} />
                 </span>
             </div>
         </li>
@@ -217,6 +220,7 @@ function IconBtn({ name, title, onClick, danger }) {
 // ── Inline rename input ─────────────────────────────────────────
 
 function RenameInline({ initial, onConfirm, onCancel }) {
+    const { t } = useTranslation();
     const [name, setName] = useState(initial || '');
     const inputRef = useRef(null);
 
@@ -246,14 +250,14 @@ function RenameInline({ initial, onConfirm, onCancel }) {
                 onClick={submit}
                 className="text-xs text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 px-1"
             >
-                Save
+                {t('cms_site.site.siteswitcher.save', 'Save')}
             </button>
             <button
                 type="button"
                 onClick={onCancel}
                 className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1"
             >
-                Cancel
+                {t('cms_site.site.siteswitcher.cancel', 'Cancel')}
             </button>
         </div>
     );
@@ -262,6 +266,7 @@ function RenameInline({ initial, onConfirm, onCancel }) {
 // ── Create-site inline form ─────────────────────────────────────
 
 function CreateSiteForm({ onConfirm, onCancel }) {
+    const { t } = useTranslation();
     const [name, setName] = useState('');
     const inputRef = useRef(null);
 
@@ -276,14 +281,14 @@ function CreateSiteForm({ onConfirm, onCancel }) {
     return (
         <div className="px-3 py-2 bg-[var(--bg-tertiary)]">
             <label className="block text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">
-                Site name
+                {t('cms_site.site.siteswitcher.site_name', 'Site name')}
             </label>
             <input
                 ref={inputRef}
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Acme Bakery"
+                placeholder={t('cms_site.site.siteswitcher.name_placeholder', 'e.g. Acme Bakery')}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') submit();
                     if (e.key === 'Escape') onCancel();
@@ -296,7 +301,7 @@ function CreateSiteForm({ onConfirm, onCancel }) {
                     onClick={onCancel}
                     className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] px-2 py-1"
                 >
-                    Cancel
+                    {t('cms_site.site.siteswitcher.cancel', 'Cancel')}
                 </button>
                 <button
                     type="button"
@@ -304,7 +309,7 @@ function CreateSiteForm({ onConfirm, onCancel }) {
                     disabled={!name.trim()}
                     className="text-xs px-2 py-1 rounded bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Create
+                    {t('cms_site.site.siteswitcher.create', 'Create')}
                 </button>
             </div>
         </div>
