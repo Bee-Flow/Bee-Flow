@@ -234,9 +234,9 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
             <div className="flex items-center justify-center h-full">
                 <div className="text-center max-w-md p-6 rounded-2xl border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
                     <Globe className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-tertiary)' }} />
-                    <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Webpages disabled</h3>
+                    <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{t('webpages.disabled_title', 'Webpages disabled')}</h3>
                     <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        Webpages isn't enabled for your account. Ask an admin to enable Webpages for your organization, and verify your plan includes it.
+                        {t('webpages.disabled_text', "Webpages isn't enabled for your account. Ask an admin to enable Webpages for your organization, and verify your plan includes it.")}
                     </p>
                 </div>
             </div>

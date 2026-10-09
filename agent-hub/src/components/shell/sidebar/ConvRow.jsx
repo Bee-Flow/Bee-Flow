@@ -137,7 +137,7 @@ const ConvRow = ({
                 <button
                     onClick={(e) => { e.stopPropagation(); setShowMenu(v => !v); }}
                     className={`${showMenu ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100 focus:opacity-100 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] rounded transition-opacity flex-shrink-0`}
-                    title="Options"
+                    title={t('sidebar.options', 'Options')}
                     data-testid={`conv-options-${conv.id}`}
                 >
                     <MoreHorizontal className="w-3.5 h-3.5" />
@@ -190,14 +190,14 @@ const ConvRow = ({
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setEditingLabelId(label.id); }}
                                                 className="p-1 text-[var(--text-tertiary)] hover:text-[var(--accent-primary)] rounded transition-all flex-shrink-0 opacity-0 group-hover/lbl:opacity-100"
-                                                title="Edit label"
+                                                title={t('sidebar.edit_label', 'Edit label')}
                                             >
                                                 <Pencil className="w-2.5 h-2.5" />
                                             </button>
                                             <button
-                                                onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: `Delete label "${label.name}"?`, confirmLabel: 'Delete', destructive: true })) onDeleteLabel?.(label.id); }}
+                                                onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: t('sidebar.delete_label_confirm', 'Delete label "{name}"?', { name: label.name }), confirmLabel: t('common.delete', 'Delete'), destructive: true })) onDeleteLabel?.(label.id); }}
                                                 className="p-1 mr-1 text-[var(--text-tertiary)] hover:text-red-500 rounded transition-all flex-shrink-0 opacity-0 group-hover/lbl:opacity-100"
-                                                title="Delete label"
+                                                title={t('sidebar.delete_label', 'Delete label')}
                                             >
                                                 <X className="w-2.5 h-2.5" />
                                             </button>

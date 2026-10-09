@@ -1,6 +1,7 @@
 import React, { memo, useRef, useState } from 'react';
 import PlayerTooltip from './PlayerTooltip';
 import { NEUTRAL_SPEAKER_COLOR } from '../../../../config/meetingNotesConfig';
+import useTranslation from '../../../../hooks/useTranslation';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { segmentNearTime, segmentSpeakerId, speakerColor } from '../../lib/playerData';
 
@@ -104,6 +105,7 @@ function RowsHoverChip({ hover, colorMap }) {
 }
 
 function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, segments = [], onSeekTo, maxRows = DEFAULT_MAX_ROWS }) {
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
     const [hover, setHover] = useState(null); // { x, width, time, speakerId, text }
     const [focusPos, setFocusPos] = useState([0, 0]); // roving tabindex [row, block]
@@ -150,7 +152,7 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
         <div
             ref={containerRef}
             role="group"
-            aria-label="Speaker timeline"
+            aria-label={t('meeting_notes.timeline_aria', 'Speaker timeline')}
             className="relative flex flex-col gap-[3px]"
             onKeyDown={(e) => rovingKeyDown(e, focusPos, focusBlock)}
         >
@@ -184,16 +186,16 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
                             type="button"
                             onClick={() => setExpanded(true)}
                             aria-expanded={false}
-                            aria-label={`Show ${others.count} more speakers`}
+                            aria-label={t('meeting_notes.timeline_show_more', 'Show {count} more speakers', { count: others.count })}
                             className={`${SPEAKER_LABEL_CLASS} shrink-0 pr-2 truncate text-left text-[11px] leading-3 hover:underline`}
                             style={{ color: 'var(--text-muted)' }}
                         >
-                            +{others.count} more
+                            {t('meeting_notes.timeline_more', '+{count} more', { count: others.count })}
                         </button>
                         <Track
                             blocks={others.blocks}
                             color={NEUTRAL_SPEAKER_COLOR}
-                            label="other speakers"
+                            label={t('meeting_notes.timeline_other', 'other speakers')}
                             rowIdx={visibleRows.length}
                             onHover={hoverFor(null)}
                             {...trackProps}
@@ -210,7 +212,7 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
                     className="self-start text-[11px] hover:underline"
                     style={{ color: 'var(--text-muted)' }}
                 >
-                    Show less
+                    {t('meeting_notes.timeline_less', 'Show less')}
                 </button>
             )}
 

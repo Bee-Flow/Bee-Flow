@@ -300,9 +300,9 @@ export default function OverviewTab({
                 {overBudget && (
                     <AlertBanner
                         severity={critical ? 'red' : 'amber'}
-                        title="Spend over budget"
-                        message={`${fCur(cost)} spent this period — threshold ${fCur(OVERVIEW_COST_ALERT)}.`}
-                        ctaLabel="Review by model"
+                        title={t('usage.overview.spend_over_budget', 'Spend over budget')}
+                        message={t('usage.overview.spend_over_budget_msg', '{cost} spent this period — threshold {threshold}.', { cost: fCur(cost), threshold: fCur(OVERVIEW_COST_ALERT) })}
+                        ctaLabel={t('usage.overview.review_by_model', 'Review by model')}
                         onCta={() => modelByUserRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                     />
                 )}
@@ -428,7 +428,7 @@ export default function OverviewTab({
                                                 <IconBadge icon={Bot} color={getColor(gi)} />
                                                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                                                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group.agent_name}</span>
-                                                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{group.models.length} model{group.models.length !== 1 ? 's' : ''}</span>
+                                                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{group.models.length === 1 ? t('usage.overview.model_count', '{count} model', { count: group.models.length }) : t('usage.overview.model_count_plural', '{count} models', { count: group.models.length })}</span>
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>

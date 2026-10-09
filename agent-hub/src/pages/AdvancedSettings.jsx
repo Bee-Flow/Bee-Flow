@@ -74,6 +74,7 @@ const COMPLIANCE_PERMS = ['admin_compliance'];
  */
 
 export const AvatarDisplay = ({ user, size = 40, className = '' }) => {
+    const { t } = useTranslation();
     const sizeStyle = { width: `${size}px`, height: `${size}px`, flexShrink: 0 };
     if (user?.avatarType === 'emoji' && user?.avatar) {
         return (
@@ -86,7 +87,7 @@ export const AvatarDisplay = ({ user, size = 40, className = '' }) => {
         );
     }
     if (user?.avatarType === 'url' && user?.avatar) {
-        return <img src={user.avatar} alt="Avatar" className={`rounded-full object-cover ${className}`} style={sizeStyle} />;
+        return <img src={user.avatar} alt={t('settings.avatar_alt', 'Avatar')} className={`rounded-full object-cover ${className}`} style={sizeStyle} />;
     }
     return (
         <div

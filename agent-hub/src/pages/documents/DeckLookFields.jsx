@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { fileToDataUrl, uploadDeckTemplate } from './documentsApi';
 
 /**
@@ -39,6 +40,7 @@ const choice = (active) => ({ background: active ? 'var(--bg-tertiary)' : 'trans
 
 /** An optional colour: a tick for "own choice", a picker when ticked, "house style" when not. */
 export function OptionalColour({ label, value, fallback, disabled, onChange, testId }) {
+    const { t } = useTranslation();
     const own = !!value;
     return (
         <label className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -46,7 +48,7 @@ export function OptionalColour({ label, value, fallback, disabled, onChange, tes
             <span className="flex items-center gap-2 mt-1">
                 <input type="checkbox" checked={own} disabled={disabled} onChange={(e) => onChange(e.target.checked ? (fallback || '#123a5e') : '')} aria-label={`${label} own colour`} data-testid={testId ? `${testId}-own` : undefined} />
                 <input type="color" value={own ? value : (fallback || '#ffffff')} disabled={disabled || !own} onChange={(e) => onChange(e.target.value)} className="w-9 h-9 rounded cursor-pointer" aria-label={label} data-testid={testId} />
-                <input type="text" value={own ? value : ''} placeholder="house style" disabled={disabled || !own} onChange={(e) => onChange(e.target.value)} className="w-24 px-2 py-1 rounded text-sm font-mono" style={fieldStyle} />
+                <input type="text" value={own ? value : ''} placeholder={t('documents.deck.house_style_placeholder', 'house style')} disabled={disabled || !own} onChange={(e) => onChange(e.target.value)} className="w-24 px-2 py-1 rounded text-sm font-mono" style={fieldStyle} />
             </span>
         </label>
     );

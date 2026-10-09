@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 import { ArrowLeft, ShieldOff } from 'lucide-react';
 import AgentDesigner from '../components/agents/AgentDesigner/index';
 import OrgUsersPanel from '../components/admin/org/OrgUsersPanel';
@@ -9,6 +10,7 @@ import NextcloudSyncPanel from '../components/integrations/nextcloud/NextcloudSy
 import { AGENT_MANAGEMENT_ROLES, USER_MANAGEMENT_ROLES } from '../config/orgRoles';
 
 const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
+    const { t } = useTranslation();
     // Permission helper — derives from the actual user permission set
     const hasPermission = (perm) => {
         const perms = user?.permissions || [];
@@ -39,8 +41,8 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
         { id: 'users', label: 'Users', allowed: canManageUsers },
     ];
 
-    const allowedTabs = tabs.filter(t => t.allowed);
-    const activeTab = allowedTabs.some(t => t.id === orgSettingsPath.seg1)
+    const allowedTabs = tabs.filter(tab => tab.allowed);
+    const activeTab = allowedTabs.some(tab => tab.id === orgSettingsPath.seg1)
         ? orgSettingsPath.seg1
         : (allowedTabs[0]?.id || 'organisation');
 
@@ -58,9 +60,9 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
                         <ShieldOff className="w-8 h-8" style={{ color: 'rgb(239, 68, 68)' }} />
                     </div>
-                    <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Access Denied</h2>
-                    <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>You don't have permission to access organisation settings.</p>
-                    {onBack && <button onClick={onBack} className="px-4 py-2 rounded-lg font-medium text-white" style={{ background: 'var(--accent-primary)' }}>Go Back</button>}
+                    <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin.access_denied_title', 'Access Denied')}</h2>
+                    <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{t('org.settings_access_denied_text', "You don't have permission to access organisation settings.")}</p>
+                    {onBack && <button onClick={onBack} className="px-4 py-2 rounded-lg font-medium text-white" style={{ background: 'var(--accent-primary)' }}>{t('admin.go_back', 'Go Back')}</button>}
                 </div>
             </div>
         );
@@ -75,13 +77,13 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
                         <button
                             onClick={onBack}
                             className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                            title="Back to chat"
+                            title={t('admin.back_to_chat', 'Back to chat')}
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                     )}
                     <h2 className="text-lg font-semibold text-primary">
-                        Organisation Settings
+                        {t('org.settings_title', 'Organisation Settings')}
                     </h2>
                 </div>
 

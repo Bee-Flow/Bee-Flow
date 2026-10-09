@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Two miniature slides — the cover and a content slide with bullets and a
@@ -86,6 +87,7 @@ function MiniChart({ theme }) {
 }
 
 export function ContentSlide({ theme, title = 'Overview of invoices' }) {
+    const { t } = useTranslation();
     const band = theme.titleStyle === 'band' && !theme.template;
     const cornerLogo = theme.logoPlacement === 'corner';
     const cell = (text, i, header = false) => {
@@ -122,8 +124,8 @@ export function ContentSlide({ theme, title = 'Overview of invoices' }) {
             <div style={{ position: 'absolute', left: '5%', right: '5%', top: band ? '22%' : '26%', bottom: '18%', display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: '5%' }}>
                 <div style={{ minWidth: 0 }}>
                     <ul style={{ margin: 0, paddingLeft: '1em', color: theme.text, fontSize: '0.42em', lineHeight: 1.5 }}>
-                        <li>Revenue up 12%</li>
-                        <li>Margin stable</li>
+                        <li>{t('documents.deck.sample_revenue', 'Revenue up 12%')}</li>
+                        <li>{t('documents.deck.sample_margin', 'Margin stable')}</li>
                     </ul>
                     <MiniChart theme={theme} />
                 </div>

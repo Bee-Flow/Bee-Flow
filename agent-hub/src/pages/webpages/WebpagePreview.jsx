@@ -435,7 +435,7 @@ export default function WebpagePreview({ webpageId, html, css, js, extraFiles = 
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"
                          style={{ background: '#fff', color: '#475569' }}>
                         <RefreshCw className="w-5 h-5 animate-spin" />
-                        <span className="text-sm">Starting the dev server…</span>
+                        <span className="text-sm">{t('webpages.preview_starting_dev', 'Starting the dev server…')}</span>
                     </div>
                 )}
                 {/* While the page is still being generated and nothing has been
@@ -455,8 +455,8 @@ export default function WebpagePreview({ webpageId, html, css, js, extraFiles = 
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none px-6 text-center"
                          style={{ background: '#fff', color: '#94a3b8' }}>
                         <span className="text-2xl">🌐</span>
-                        <span className="text-sm font-medium" style={{ color: '#475569' }}>Nothing to preview yet</span>
-                        <span className="text-xs" style={{ maxWidth: 280 }}>Ask the AI in the chat to build something — the preview will appear here as it works.</span>
+                        <span className="text-sm font-medium" style={{ color: '#475569' }}>{t('webpages.preview_empty_title', 'Nothing to preview yet')}</span>
+                        <span className="text-xs" style={{ maxWidth: 280 }}>{t('webpages.preview_empty_text', 'Ask the AI in the chat to build something — the preview will appear here as it works.')}</span>
                     </div>
                 )}
             </div>

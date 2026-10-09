@@ -93,7 +93,7 @@ const GoogleMapsRow = () => {
                         </button>
                     </div>
                     <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        Enable <strong>Directions API</strong>, <strong>Places API</strong> &amp; <strong>Maps Embed API</strong> in{' '}
+                        {t('settings.org_integrations.maps_enable', 'Enable')} <strong>Directions API</strong>, <strong>Places API</strong> &amp; <strong>Maps Embed API</strong> {t('settings.org_integrations.maps_in', 'in')}{' '}
                         <a href="https://console.cloud.google.com/apis/library" target="_blank" rel="noopener noreferrer"
                             className="underline" style={{ color: 'var(--accent-primary)' }}>Google Cloud Console</a>
                     </p>
@@ -230,7 +230,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                    Configure the integrations themselves — credentials, instance URLs and workflows.
+                                    {t('settings.org_integrations.settings_intro', 'Configure the integrations themselves — credentials, instance URLs and workflows.')}
                                 </p>
                             </div>
 

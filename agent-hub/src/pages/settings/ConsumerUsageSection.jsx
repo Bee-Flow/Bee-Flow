@@ -55,8 +55,9 @@ const StatCard = ({ icon: Icon, label, value, sub, color }) => (
 // Tiny inline SVG line — no chart dep. Renders a single sparkline over the
 // daily cost timeline so the user can see spend trend at a glance.
 const Sparkline = ({ data, color = '#0ea5e9', height = 60 }) => {
+    const { t } = useTranslation();
     if (!Array.isArray(data) || data.length < 2) {
-        return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-muted)' }}>Not enough data yet</div>;
+        return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.consumer_usage.not_enough_data', 'Not enough data yet')}</div>;
     }
     const max = Math.max(...data.map(d => d.value || 0), 0.01);
     const w = 600;
@@ -144,7 +145,7 @@ const ConsumerUsageSection = () => {
                         {t('settings.usage_monitoring', 'Usage & Monitoring')}
                     </h2>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
-                        Track your AI usage and spend
+                        {t('settings.consumer_usage.subtitle', 'Track your AI usage and spend')}
                     </p>
                 </div>
                 <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
@@ -204,7 +205,7 @@ const ConsumerUsageSection = () => {
             <Card>
                 <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <BarChart3 style={{ width: 14, height: 14, color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Cost trend</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{t('settings.consumer_usage.cost_trend', 'Cost trend')}</span>
                 </div>
                 <div style={{ padding: '16px' }}>
                     <Sparkline data={sparklinePoints} color="#10b981" />
@@ -216,10 +217,10 @@ const ConsumerUsageSection = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card>
                     <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        Per model
+                        {t('settings.consumer_usage.per_model', 'Per model')}
                     </div>
                     {byModel.length === 0 ? (
-                        <div style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)' }}>No model usage yet.</div>
+                        <div style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)' }}>{t('settings.consumer_usage.no_model_usage', 'No model usage yet.')}</div>
                     ) : (
                         <div>
                             {byModel.slice(0, 8).map((row, i) => (
@@ -230,7 +231,7 @@ const ConsumerUsageSection = () => {
                                     <div style={{ minWidth: 0, flex: 1 }}>
                                         <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{shortModel(row.model)}</p>
                                         <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                                            {fNum(row.total_tokens || (row.prompt_tokens || 0) + (row.completion_tokens || 0))} tokens · {row.total_calls || 0} calls
+                                            {t('settings.consumer_usage.tokens_calls', '{tokens} tokens · {calls} calls', { tokens: fNum(row.total_tokens || (row.prompt_tokens || 0) + (row.completion_tokens || 0)), calls: row.total_calls || 0 })}
                                         </p>
                                     </div>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{fCur(row.total_cost || row.estimated_cost || 0)}</span>
@@ -241,10 +242,10 @@ const ConsumerUsageSection = () => {
                 </Card>
                 <Card>
                     <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        Per source
+                        {t('settings.consumer_usage.per_source', 'Per source')}
                     </div>
                     {bySource.length === 0 ? (
-                        <div style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)' }}>No source usage yet.</div>
+                        <div style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)' }}>{t('settings.consumer_usage.no_source_usage', 'No source usage yet.')}</div>
                     ) : (
                         <div>
                             {bySource.slice(0, 8).map((row, i) => {
@@ -260,7 +261,7 @@ const ConsumerUsageSection = () => {
                                         </div>
                                         <div style={{ minWidth: 0, flex: 1 }}>
                                             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{meta.label}</p>
-                                            <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{row.total_calls || 0} calls · {fNum(row.total_tokens || 0)} tokens</p>
+                                            <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.consumer_usage.calls_tokens', '{calls} calls · {tokens} tokens', { calls: row.total_calls || 0, tokens: fNum(row.total_tokens || 0) })}</p>
                                         </div>
                                         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{fCur(row.total_cost || row.estimated_cost || 0)}</span>
                                     </div>

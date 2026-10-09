@@ -6,6 +6,7 @@ import AppFontLoader from '../../components/admin/Studio/AppStudio/runtime/AppFo
 import { createPublicAppTransport } from '../../components/admin/Studio/AppStudio/runtime/publicAppTransport';
 import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
 import EmptyState from '../../components/shared/EmptyState';
+import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
 
 /**
@@ -48,14 +49,15 @@ function storeVisitor(token, visitorToken) {
 }
 
 function LoadingSkeleton() {
+    const { t } = useTranslation();
     return (
-        <div className="min-h-screen animate-pulse p-6" role="status" aria-label="Laden">
+        <div className="min-h-screen animate-pulse p-6" role="status" aria-label={t('apps.public_loading_label', 'Loading')}>
             <div className="mx-auto max-w-[720px] space-y-4">
                 <div className="h-7 w-1/2 rounded bg-black/10" />
                 <div className="h-28 w-full rounded-lg bg-black/10" />
                 <div className="h-44 w-full rounded-lg bg-black/10" />
             </div>
-            <span className="sr-only">Laden…</span>
+            <span className="sr-only">{t('apps.loading_short', 'Loading…')}</span>
         </div>
     );
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { NC_BLUE, LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Personal Nextcloud Talk → Meeting Notes settings. Rendered for every account
@@ -10,6 +11,7 @@ import { NC_BLUE, LANGS, Toggle, Row, Select } from './shared/settingsPrimitives
  * when present, take precedence over these per field.
  */
 export default function MeetingNotesSection() {
+    const { t } = useTranslation();
     // recordingFolder: Talk saves to <attachment folder>/Recording/<room token>/,
     // so /Talk/Recording is the default on a stock Nextcloud.
     const [cfg, setCfg] = useState({ autoTranscribe: false, postSummaryBack: false, recordingFolder: '/Talk/Recording', language: 'nl', autoRecord: false, autoRecordScope: 'calendar', recordingMode: 'audio' });
@@ -40,7 +42,7 @@ export default function MeetingNotesSection() {
             const res = await authFetch(`${API_BASE}/api/talk-notes-settings/user/me`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
             });
-            if (res.ok) setMessage({ type: 'success', text: 'Saved' });
+            if (res.ok) setMessage({ type: 'success', text: t('settings.talk_notes.saved', "Saved") });
             else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
         } catch (e) { setMessage({ type: 'error', text: e.message }); }
         finally { setSaving(false); }
@@ -56,42 +58,41 @@ export default function MeetingNotesSection() {
             <div className="flex items-center gap-2 mb-2">
                 <MessageSquare className="w-4 h-4" style={{ color: NC_BLUE }} />
                 <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                    Nextcloud Talk Meeting Notes
+                    {t('settings.talk_notes.title', "Nextcloud Talk Meeting Notes")}
                 </p>
             </div>
             <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-                Bring your Nextcloud Talk call recordings into Meeting Notes, transcribed by your configured engine.
-                Your organisation's settings, where set, take precedence.
+                {t('settings.talk_notes.intro', "Bring your Nextcloud Talk call recordings into Meeting Notes, transcribed by your configured engine. Your organisation's settings, where set, take precedence.")}
             </p>
 
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                <Row title="Auto-record my Talk meetings" desc={recordingEnabled ? 'Automatically start recording calls you moderate, then transcribe them.' : 'Unavailable — the Nextcloud recording backend is not configured.'}>
+                <Row title={t('settings.talk_notes.auto_record_title', "Auto-record my Talk meetings")} desc={recordingEnabled ? t('settings.talk_notes.auto_record_desc', "Automatically start recording calls you moderate, then transcribe them.") : t('settings.talk_notes.auto_record_unavailable', "Unavailable — the Nextcloud recording backend is not configured.")}>
                     <Toggle on={cfg.autoRecord && recordingEnabled} onClick={() => setCfg(c => ({ ...c, autoRecord: !c.autoRecord }))} disabled={saving || !recordingEnabled} />
                 </Row>
                 {cfg.autoRecord && recordingEnabled && (
                     <>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Which calls" desc="Record only scheduled calendar meetings, or every call you moderate.">
+                        <Row title={t('settings.talk_notes.scope_title', "Which calls")} desc={t('settings.talk_notes.scope_desc', "Record only scheduled calendar meetings, or every call you moderate.")}>
                             <Select value={cfg.autoRecordScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, autoRecordScope: e.target.value }))}
-                                options={[{ value: 'calendar', label: 'Calendar meetings' }, { value: 'all', label: 'Any call I moderate' }]} />
+                                options={[{ value: 'calendar', label: t('settings.talk_notes.scope_calendar', "Calendar meetings") }, { value: 'all', label: t('settings.talk_notes.scope_all', "Any call I moderate") }]} />
                         </Row>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Recording quality" desc="Audio-only is smaller and faster to transcribe.">
+                        <Row title={t('settings.talk_notes.quality_title', "Recording quality")} desc={t('settings.talk_notes.quality_desc', "Audio-only is smaller and faster to transcribe.")}>
                             <Select value={cfg.recordingMode} disabled={saving} onChange={e => setCfg(c => ({ ...c, recordingMode: e.target.value }))}
-                                options={[{ value: 'audio', label: 'Audio-only' }, { value: 'video', label: 'Video' }]} />
+                                options={[{ value: 'audio', label: t('settings.talk_notes.quality_audio', "Audio-only") }, { value: 'video', label: t('settings.talk_notes.quality_video', "Video") }]} />
                         </Row>
                     </>
                 )}
                 <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                <Row title="Auto-transcribe my Talk recordings" desc="When a new Talk recording appears, create a Meeting Note automatically.">
+                <Row title={t('settings.talk_notes.transcribe_title', "Auto-transcribe my Talk recordings")} desc={t('settings.talk_notes.transcribe_desc', "When a new Talk recording appears, create a Meeting Note automatically.")}>
                     <Toggle on={cfg.autoTranscribe} onClick={() => setCfg(c => ({ ...c, autoTranscribe: !c.autoTranscribe }))} disabled={saving} />
                 </Row>
                 <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                <Row title="Post summary back into Talk" desc="After transcription, post the summary + action items into the conversation.">
+                <Row title={t('settings.talk_notes.post_summary_title', "Post summary back into Talk")} desc={t('settings.talk_notes.post_summary_desc', "After transcription, post the summary + action items into the conversation.")}>
                     <Toggle on={cfg.postSummaryBack} onClick={() => setCfg(c => ({ ...c, postSummaryBack: !c.postSummaryBack }))} disabled={saving} />
                 </Row>
                 <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                <Row title="Recordings folder" desc="Nextcloud Files folder where Talk saves your recordings — normally /Talk/Recording, with one subfolder per conversation.">
+                <Row title={t('settings.talk_notes.folder_title', "Recordings folder")} desc={t('settings.talk_notes.folder_desc', "Nextcloud Files folder where Talk saves your recordings — normally /Talk/Recording, with one subfolder per conversation.")}>
                     <input
                         type="text" value={cfg.recordingFolder}
                         onChange={e => setCfg(c => ({ ...c, recordingFolder: e.target.value }))}
@@ -101,7 +102,7 @@ export default function MeetingNotesSection() {
                     />
                 </Row>
                 <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                <Row title="Default language" desc="Language used when auto-transcribing your Talk recordings.">
+                <Row title={t('settings.talk_notes.language_title', "Default language")} desc={t('settings.talk_notes.language_desc', "Language used when auto-transcribing your Talk recordings.")}>
                     <select
                         value={cfg.language} onChange={e => setCfg(c => ({ ...c, language: e.target.value }))} disabled={saving}
                         className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px]"
@@ -118,7 +119,7 @@ export default function MeetingNotesSection() {
                     className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
                     style={{ background: NC_BLUE }}
                 >
-                    {saving ? 'Saving…' : 'Save'}
+                    {saving ? t('settings.talk_notes.saving', "Saving…") : t('settings.talk_notes.save', "Save")}
                 </button>
                 {message && (
                     <span className={`text-[12px] font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
