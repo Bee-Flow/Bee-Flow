@@ -1106,6 +1106,8 @@ jobs:
           cache-to:   type=gha,scope=pwt-runner,mode=max
 
   # ── E2E smoke gate (prod only) ─────────────────────────────
+  # SWITCHED OFF (2026-10-09) on the owner's request. Remove `false &&` from
+  # its if to turn the gate back on; release-candidate accepts a skipped run.
   # Boots the self-host stack from the registry — the services this run built
   # at :sha-<fullsha>, the rest at :prod — and runs the Playwright smoke suite
   # against it (e2e/). A prod release candidate is not finalized (the
@@ -1118,7 +1120,7 @@ jobs:
   e2e-smoke:
     needs: [changes, server, agent-hub, pwt-runner]
     if: >-
-      ${{ !cancelled() && needs.changes.outputs.release_prod == 'true'
+      ${{ false && !cancelled() && needs.changes.outputs.release_prod == 'true'
       && !contains(needs.*.result, 'failure') }}
     uses: ./.github/workflows/e2e-smoke.yml
     with:
@@ -1450,7 +1452,7 @@ jobs:
     needs: [candidate-images, candidate-containers, release-security, e2e-smoke]
     # The release candidate is finalized only after the stack those images
     # form has booted and passed the smoke suite (e2e-smoke, prod-only above).
-    if: ${{ !cancelled() && needs.candidate-containers.result == 'success' && needs.release-security.result == 'success' && needs.e2e-smoke.result == 'success' }}
+    if: ${{ !cancelled() && needs.candidate-containers.result == 'success' && needs.release-security.result == 'success' && (needs.e2e-smoke.result == 'success' || needs.e2e-smoke.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
