@@ -371,7 +371,13 @@ function edge(def, fromId) {
         const dw = freshWrap();
         const ai = await applyToolCall('builder_add_ai_step', { prompt: 'x' }, dw);
         const r1 = await applyToolCall('builder_update_step', { stepId: ai.added.id, patch: { type: 'condition' } }, dw);
-        assert.ok(r1.error && /type/.test(r1.error), 'changing type via update_step rejected');
+        // A type patch is performed as builder_replace_step (same id), and says so.
+        assert.deepStrictEqual(r1.replacedType, { from: 'ai_step', to: 'condition' }, 'changing type via update_step is applied as a replace');
+        assert.equal(r1.updated.id, ai.added.id, 'the id is kept');
+        assert.ok(r1._warnings.some(w => /builder_replace_step/.test(w)), 'the result says it was a replace');
+        const ai2 = await applyToolCall('builder_add_ai_step', { prompt: 'y' }, dw);
+        const r1b = await applyToolCall('builder_update_step', { stepId: ai2.added.id, patch: { type: 'trigger' } }, dw);
+        assert.ok(r1b.error && /Cannot change a step's type/.test(r1b.error) && /Allowed types/.test(r1b.error), 'a type that cannot be replaced into is refused with the list');
         const r2 = await applyToolCall('builder_update_step', { stepId: ai.added.id, patch: { tool: 'gmail_search' } }, dw);
         assert.ok(r2.error && /not patchable/.test(r2.error), 'tool not patchable on ai_step');
         const r3 = await applyToolCall('builder_update_step', { stepId: 'ghost', patch: { label: 'x' } }, dw);

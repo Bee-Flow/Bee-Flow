@@ -20,7 +20,10 @@ const { applyUpdateStep } = require('./stepEditing');
 const { resolveValue } = require('../bind');
 
 const ref = path => ({ kind: 'ref', path });
-const draft = { trigger: { id: 'trg', kind: 'manual' }, steps: [{ id: 'g', type: 'code' }, { id: 'shop', type: 'code' }, { id: 'j', type: 'code' }], edges: [] };
+// Steps whose output nothing declares (ai_steps without an outputSchema), so
+// only the path grammar is under test. Not code steps: refCheck knows their
+// { result, logs, httpCalls } envelope and would read these under .result.
+const draft = { trigger: { id: 'trg', kind: 'manual' }, steps: [{ id: 'g', type: 'ai_step' }, { id: 'shop', type: 'ai_step' }, { id: 'j', type: 'ai_step' }], edges: [] };
 const runState = {
     trigger: { output: {} },
     steps: {

@@ -183,12 +183,77 @@ const SYSTEM_PERMISSIONS = [
  * `member` role does not carry that permission — so a group grant alone left
  * the members it was meant for staring at a hidden section. Granting the
  * capability to a group therefore grants the matching permission to that
- * group's members. Everyone else keeps resolving it from their role exactly as
- * before, so the org's Roles screen still decides for org-wide access.
+ * group's members.
+ *
+ * The org-wide "All members" grant of the same beta implies it too (see
+ * orgWideGrantImpliedPermissions below): an admin who switched Meeting Notes
+ * on for everyone was otherwise left with members who still could not see it.
+ *
+ * Every key MUST be a group-scoped beta (betaFeatures.js `groupScoped`): the
+ * org-wide variant reads the org's everyone-list (org_beta_everyone), which
+ * only exists for those.
  */
 const GROUP_GRANT_IMPLIED_PERMISSIONS = Object.freeze({
     meeting_notes: Object.freeze(['use_meeting_notes']),
 });
+
+/**
+ * The permissions the org's "All members" grants imply for one member.
+ *
+ * PRECEDENCE, most specific first:
+ *   1. a GROUP grant of the capability always implies its permission (the
+ *      admin named that group; see the loop in getUserPermissions);
+ *   2. the org's Roles screen, once it has stored a choice for the member's
+ *      role: that stored list is the org's full answer for the role, so an
+ *      unticked use_meeting_notes there WITHDRAWS it even while "All members"
+ *      is on. That is how an org keeps Meeting Notes for one group only;
+ *   3. the "All members" grant fills the permission in for a role the org
+ *      never edited (this function);
+ *   4. the shipped default (config/orgRoles.json).
+ * GET /org-roles shows rule 3 for unedited roles (orgRoleImpliedFill), so the
+ * Roles screen ticks the box members actually get and saving the role keeps
+ * it unless the admin unticks it.
+ *
+ * "All members" means the org's everyone-list holds the capability, or the
+ * org never chose (null = every group-scoped beta for everyone, exactly as
+ * buildOrgGrant in core/entitlements reads it). The licence and the org's
+ * access menu are NOT checked here: like every role permission this is only
+ * the "may this person" layer, and the capability gate stays in force on both
+ * the server routes and the Studio row. A read failure implies nothing.
+ *
+ * @param {string|null|undefined} orgId
+ * @returns {Promise<string[]>}
+ */
+async function orgWideGrantImpliedPermissions(orgId) {
+    if (!orgId || typeof userStore.getOrgBetaEveryone !== 'function') return [];
+    let everyone;
+    try { everyone = await userStore.getOrgBetaEveryone(orgId); } catch (_) { return []; }
+    const out = [];
+    for (const [capId, perms] of Object.entries(GROUP_GRANT_IMPLIED_PERMISSIONS)) {
+        if (everyone == null || (Array.isArray(everyone) && everyone.includes(capId))) out.push(...perms);
+    }
+    return out;
+}
+
+/**
+ * Rule 3 above applied to a whole role mapping, for the Roles screen: every
+ * role the org has no stored choice for gains the org-wide implied
+ * permissions. Pure.
+ *
+ * @param {Record<string, string[]>} mapping   resolveOrgRolePermissions output
+ * @param {Record<string, string[]>} overrides getOrgRoleOverrides output
+ * @param {string[]} implied                   orgWideGrantImpliedPermissions output
+ * @returns {Record<string, string[]>}
+ */
+function orgRoleImpliedFill(mapping, overrides, implied) {
+    /** @type {Record<string, string[]>} */
+    const out = {};
+    for (const [role, perms] of Object.entries(mapping || {})) {
+        const edited = !!overrides && Object.prototype.hasOwnProperty.call(overrides, role);
+        out[role] = edited ? [...(perms || [])] : [...new Set([...(perms || []), ...(implied || [])])];
+    }
+    return out;
+}
 
 // ── Load org role → permissions mapping from config file ──
 let _orgRolePermissions = null;
@@ -667,6 +732,18 @@ async function getUserPermissions(userId, session = null) {
         if (userOrgRole) {
             const granted = await permsForRoleInOrg(userOrgRole, user.organizationId);
             if (granted) for (const p of granted) permSet.add(p);
+        }
+
+        // The org's "All members" grants of a group-scoped beta — only where
+        // the org's Roles screen has not decided this role (precedence: see
+        // orgWideGrantImpliedPermissions).
+        if (user.organizationId) {
+            const { getOrgRoleOverrides } = require('./orgRolePolicy');
+            const overrides = await getOrgRoleOverrides(user.organizationId);
+            const roleDecided = !!userOrgRole && Object.prototype.hasOwnProperty.call(overrides, userOrgRole);
+            if (!roleDecided) {
+                for (const p of await orgWideGrantImpliedPermissions(user.organizationId)) permSet.add(p);
+            }
         }
 
         // Apply group-level orgRoles (a group can grant a role to all its members).
@@ -1306,6 +1383,8 @@ module.exports = {
     invalidateAllPermissionCaches,
     invalidateUserExistenceCache,
     GROUP_GRANT_IMPLIED_PERMISSIONS,
+    orgWideGrantImpliedPermissions,
+    orgRoleImpliedFill,
     OrgRoles,
     SystemRoles,
     Permissions,

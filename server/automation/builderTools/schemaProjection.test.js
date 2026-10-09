@@ -164,15 +164,20 @@ test('builder_set_metadata says FIRST reply on both variants, with the same sent
     assert.match(full, /≤ 60 chars/);
 });
 
-test('the projected trigger tool: kind enum restricted, the long-tail params gone, the form kept', () => {
+test('the projected trigger tool: agent_call and app_trigger offered with a params list, the long tail gone, the form kept', () => {
     const p = leanTool('builder_propose_trigger').function.parameters.properties;
-    assert.deepEqual(p.kind.enum, ['schedule', 'manual', 'webhook', 'form', 'app_event']);
-    for (const gone of ['params', 'toolName', 'parametersSchema']) assert.ok(!(gone in p), `${gone} dropped`);
+    assert.deepEqual(p.kind.enum, ['schedule', 'manual', 'webhook', 'form', 'app_event', 'agent_call', 'app_trigger']);
+    // The lean band declares an agent tool's arguments as a params list; the
+    // JSON Schema twin is the full band's.
+    assert.ok(!('parametersSchema' in p), 'parametersSchema dropped');
+    for (const kept of ['params', 'toolName', 'description']) assert.ok(kept in p, `${kept} kept`);
+    assert.match(p.params.description, /agent_call/);
     const field = p.form.properties.fields.items.properties;
     for (const kept of ['name', 'type', 'label', 'required', 'placeholder', 'options', 'accept', 'maxSizeMb', 'source']) assert.ok(kept in field, `form field ${kept}`);
     for (const gone of ['multiple', 'maxItems', 'withText']) assert.ok(!(gone in field), `form field ${gone} dropped`);
     assert.match(field.source.description, /fireflies_transcript|meeting_note/, 'the real pick-source list survives');
     assert.match(leanTool('builder_propose_trigger').function.description, /## Triggers/);
+    assert.match(leanTool('builder_propose_trigger').function.description, /agent_call/);
 });
 
 test('shared params are stated once, in the lean wording, on every graph tool that has them', () => {
@@ -205,4 +210,15 @@ test('the per-tool diet removed what it says it removed', () => {
 
 test('byte-stable: two projections of the same menu are the same bytes', () => {
     assert.equal(JSON.stringify(lean()), JSON.stringify(lean()));
+});
+
+
+test('the lean table tools carry the staged table, the consent question and the type change', () => {
+    assert.match(leanTool('builder_create_datatable').function.description, /STAGED as "pending:<n>".*created when the user presses Apply/);
+    assert.match(leanTool('builder_create_datatable').function.description, /same-named existing table is only reused once the user chose it/);
+    assert.match(leanTool('builder_add_datatable').function.parameters.properties.datatableId.description, /pending:<n> in a preview/);
+    assert.match(leanTool('builder_add_datatable').function.parameters.properties.datatableId.description, /builder_ask_questions \{datatableIds\}/);
+    assert.match(leanTool('builder_update_step').function.description, /Type change: patch \{type:"datatable", op, datatableId, datatableKey, values\}/);
+    assert.ok(!lean().some(t => t.function.name === 'builder_replace_step'), 'the lean menu has no builder_replace_step: update_step must do the type change');
+    assert.ok(!/Never type or id/.test(leanTool('builder_update_step').function.parameters.properties.patch.description));
 });

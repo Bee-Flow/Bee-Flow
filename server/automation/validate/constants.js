@@ -189,6 +189,13 @@ const DATATABLE_WRITE_OPS = new Set(['add_row', 'save_row', 'update_rows', 'dele
 // records the incident where a dropped filter listed an app's every attachment.
 const DATATABLE_FILTERED_OPS = new Set(['update_rows', 'delete_rows']);
 const DATATABLE_MAX_FILTERS = 20;
+// The id the builder gives a table it has only PROPOSED (not created yet): a
+// step staged in a preview points at "pending:1" until the user presses Apply
+// and the server swaps it for the real id. One definition, shared by the
+// validator, the builder's pendingDatatables helpers and the runner, so a
+// pending id can never be told apart differently in two places. The client
+// twin is agent-hub/src/components/automation/Builder/chat/pendingTables.ts.
+const PENDING_DATATABLE_RE = /^pending:[1-9]\d{0,2}$/;
 const DATATABLE_MAX_LIMIT = 1000;
 // How the conditions join each other. ONE top-level combinator: 'status is new
 // OR retry' is the shape authors ask for, and it compiles to a single OR group
@@ -552,6 +559,7 @@ module.exports = {
     DATATABLE_WRITE_OPS,
     DATATABLE_FILTERED_OPS,
     DATATABLE_MAX_FILTERS,
+    PENDING_DATATABLE_RE,
     DATATABLE_MAX_LIMIT,
     DATATABLE_MATCH_MODES,
     APPROVAL_MAX_EXPIRY_HOURS,

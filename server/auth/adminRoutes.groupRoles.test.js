@@ -39,6 +39,7 @@ const fx = {
     groupUpdates: [],
     orgRolePermissions: {},
     orgRoleOverrides: {},
+    orgWideImplied: {},
     permCacheBusts: 0,
 };
 
@@ -89,11 +90,19 @@ const MOCKS = {
         invalidatePermissionCache: () => { },
         invalidateAllPermissionCaches: () => { fx.permCacheBusts += 1; },
         invalidateUserExistenceCache: () => { },
+        // What the org's "All members" grants imply, per org (the real
+        // resolver reads org_beta_everyone; permissions.test pins that).
+        orgWideGrantImpliedPermissions: async (orgId) => [...(fx.orgWideImplied[orgId] || [])],
+        // Same rule as the real pure helper: an edited role keeps its list.
+        orgRoleImpliedFill: (mapping, overrides, implied) => Object.fromEntries(
+            Object.entries(mapping).map(([role, perms]) => [role, overrides[role] ? perms : [...new Set([...perms, ...implied])]]),
+        ),
     },
     // In-memory stand-in for the per-org override store, so the route can be
     // driven end to end without a config table.
     '../orgRolePolicy': {
         EDITABLE_PERMISSIONS: ['use_notebooks', 'use_forms', 'manage_agents'],
+        async getOrgRoleOverrides(orgId) { return fx.orgRoleOverrides[orgId] || {}; },
         async resolveOrgRolePermissions(orgId, defaults) {
             const ov = fx.orgRoleOverrides[orgId] || {};
             const out = {};
@@ -199,6 +208,7 @@ function resetFx() {
         member: ['use_approvals', 'use_apps', 'use_notebooks'],
     };
     fx.orgRoleOverrides = {};
+    fx.orgWideImplied = {};
     fx.permCacheBusts = 0;
 }
 
@@ -249,6 +259,24 @@ test('PUT /org-roles/:roleId stores the org choice and GET reflects it', async (
     assert.ok(member.permissions.includes('use_apps'));
     // The other role is unaffected — one PUT is one role.
     assert.ok(res.body.roles.find((r) => r.id === 'org_admin').permissions.includes('use_notebooks'));
+});
+
+test('GET /org-roles shows what an "All members" grant implies, on roles the org never edited', async () => {
+    resetFx();
+    // Meeting Notes is on for All members in orgA: its members resolve to
+    // use_meeting_notes, so the Roles screen must tick it — otherwise the
+    // first save of the Member role would withdraw it without anyone seeing.
+    fx.orgWideImplied = { orgA: ['use_meeting_notes'] };
+    let res = await dispatch({ method: 'GET', url: '/org-roles', session: JAN });
+    assert.ok(res.body.roles.find((r) => r.id === 'member').permissions.includes('use_meeting_notes'));
+
+    // Once the org has stored its own choice for Member, that list decides.
+    fx.orgRoleOverrides = { orgA: { member: ['use_forms'] } };
+    res = await dispatch({ method: 'GET', url: '/org-roles', session: JAN });
+    assert.ok(!res.body.roles.find((r) => r.id === 'member').permissions.includes('use_meeting_notes'),
+        'an edited role is the org\'s full answer: unticked means withdrawn');
+    assert.ok(res.body.roles.find((r) => r.id === 'org_admin').permissions.includes('use_meeting_notes'),
+        'a role the org did not edit still shows the implied permission');
 });
 
 test('PUT /org-roles refuses an unknown role and a non-array body', async () => {

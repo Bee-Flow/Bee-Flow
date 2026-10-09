@@ -87,6 +87,10 @@ const InputArea = ({
     placeholder = null,
     compact = false,
     toolbarExtra = null,
+    // Why the route this composer feeds refused web search on its last turn
+    // (the builder chat's `web_search` event), or null. Set, the switch is
+    // shown disabled with this text instead of on and doing nothing.
+    webSearchUnavailable = null,
     // How many sources this chat can actually draw on — a notebook counts its
     // READY sources. `null` means "this surface has no such thing", which is
     // not the same as zero and shows no pill at all.
@@ -388,7 +392,7 @@ const InputArea = ({
         t, onAttachClick: openFilePicker,
         canCreateMedia, mediaMenuOpen, setMediaMenuOpen,
         canPickApps, appsOpen, setAppsOpen,
-        canWebSearch, webSearchEnabled, webSearchBlocked, setWebSearchEnabled,
+        canWebSearch, webSearchEnabled, webSearchBlocked, webSearchUnavailable, setWebSearchEnabled,
         simpleMode: _simpleMode, showTierSlider,
         memoryWriteEnabled, toggleMemoryWrite,
         voiceReady, voiceMode, setVoiceMode,

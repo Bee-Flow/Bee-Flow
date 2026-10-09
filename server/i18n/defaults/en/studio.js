@@ -214,4 +214,8 @@ module.exports = {
     'studio.recent.unreadable': 'Could not read this list: {sections}',
     'studio.recent.unreadable_plural': 'Could not read these lists: {sections}',
     'studio.locked_training': 'Finish the required course first',
+    // Direct URL to a Studio section this person's role does not open
+    // (Studio/index.jsx, studioNav.studioSectionAccess).
+    'studio.no_access.title': 'This part of Studio is not open to you',
+    'studio.no_access.desc': 'Your role does not include it. An administrator can change that under Roles.',
 };

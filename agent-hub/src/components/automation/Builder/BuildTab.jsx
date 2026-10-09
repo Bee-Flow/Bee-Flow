@@ -11,6 +11,7 @@ import CanvasPlanPanel from './CanvasPlanPanel';
 import { AutomationSummary, AssistantWelcome, RunProgressBanner, MessageBubble, BuilderWaitingCard } from './chat/index';
 import { modelKeyFor, recordTtft } from './chat/timeToFirstToken';
 import { addedStepsOf, describeToolCall } from './chat/toolCallDisplay';
+import { webSearchUnavailableHint } from './chat/webSearchStatus';
 import DiagramPane, { applyAddNode } from './DiagramPane';
 import AddStepMenu from './flow/AddStepMenu';
 import AddStepRibbon from './flow/AddStepRibbon';
@@ -53,8 +54,11 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import scopedStorage from '../../../utils/scopedStorage';
 import InputArea from '../../chat/InputArea';
 import WorkModePicker, { WORK_MODES } from './chat/WorkModePicker';
+import { isWorkModeShortcut, nextWorkMode } from './chat/workModeShortcut';
 import PlanReview from './chat/PlanReview';
 import ProposalCard from './chat/ProposalCard';
+import { previewCatalog } from './chat/pendingTables';
+import PlanInlineCard from './chat/PlanInlineCard';
 import QuestionsCard from './chat/QuestionsCard';
 import { AssistantFieldProvider } from './chat/AssistantFieldContext';
 import { toast } from '../../shared/Toast';
@@ -112,6 +116,8 @@ export default function BuildTab({
     alwaysPlanLarge = true, setAlwaysPlanLarge = null,
     workMode = 'approve', setWorkMode = null, assistantContext = null, onClearAssistantContext = null,
     onAskAssistant = null, onApplyProposal = null, onDiscardProposal = null, onApprovePlan = null, onRejectPlan = null,
+    // An Apply in flight, and a counter the shell bumps after Apply created tables (refetch the catalog).
+    applyingProposal = false, catalogNonce = 0,
     chatWidth, onChatResizeStart,
     // The form-test overlay: `{ form, triggerStepId }` while open. Rendered here
     // rather than in the shell so it sits OVER the canvas — the point of the
@@ -182,7 +188,7 @@ export default function BuildTab({
         let alive = true;
         builderApi.getCatalog().then(c => { if (alive) setCatalog(c); }).catch(() => {});
         return () => { alive = false; };
-    }, [builderApi]);
+    }, [builderApi, catalogNonce]);
 
     // ── Expanded flowlets ───────────────────────────────────────────────────
     //
@@ -1203,26 +1209,30 @@ export default function BuildTab({
                             {waitingForFirstToken && (
                                 <BuilderWaitingCard turn={state.turn} startedAt={buildStart.at} modelKey={waitModelKey} />
                             )}
-                            <QuestionsCard key={state.reviewQuestions?.[0]?.id || 'questions'} questions={state.reviewQuestions} running={state.running} onAnswer={text => onSend(text, [])} />
-                            <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={realOutputById} proposal={state.proposal} running={state.running} onApply={onApplyProposal} onDiscard={onDiscardProposal} onPreview={() => setPreviewOpen(true)} />
+                            {/* No `running` here: the questions event arrives while the stream is still closing (the turn ends right after the call), and a card mounted greyed-out and disabled read as unusable. Sending aborts what is left of that stream. */}
+                            <QuestionsCard key={state.reviewQuestions?.[0]?.id || 'questions'} questions={state.reviewQuestions} onAnswer={(text, answers) => onSend(text, [], { answers })} />
+                            {!state.reviewQuestions?.length && <PlanInlineCard plan={state.reviewPlan} running={state.running} onOpen={() => setReviewOpen(true)} onApprove={pauseAfterStep => { setReviewOpen(false); onApprovePlan?.(pauseAfterStep); }} />}
+                            <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={realOutputById} proposal={state.proposal} running={state.running} applying={applyingProposal} onApply={onApplyProposal} onDiscard={onDiscardProposal} onPreview={() => setPreviewOpen(true)} />
                             <div ref={messagesEndRef} />
                         </div>
                     </div>
                     <div className="w-full flex flex-col flex-shrink-0 p-3" onKeyDownCapture={e => {
-                        if (e.key === 'Tab' && e.shiftKey && setWorkMode && !state.running) {
+                        if (isWorkModeShortcut(e.nativeEvent) && setWorkMode && !state.running) {
                             e.preventDefault();
-                            setWorkMode(WORK_MODES[(WORK_MODES.findIndex(m => m.id === workMode) + 1) % WORK_MODES.length].id);
+                            setWorkMode(nextWorkMode(WORK_MODES, workMode));
                         }
                     }}>
                         {assistantContext && <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] text-[var(--type-ai)]"><Sparkles size={12} /><span className="flex-1 min-w-0 truncate">@{assistantContext.label}</span><button type="button" onClick={onClearAssistantContext} aria-label={t('automations.assistant.clear_context', 'Clear step context')}><X size={12} /></button></div>}
                         {/(?:^|\s)@[^@\s]*$/.test(chatInput) && <div className="mb-2 max-h-44 overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1" role="listbox" aria-label={t('automations.assistant.mention_step', 'Mention a step')}>
                             {[flatDef?.trigger, ...(flatDef?.triggers || []), ...(flatDef?.steps || [])].filter(Boolean).filter(step => (step.label || step.type || step.kind || '').toLowerCase().includes(chatInput.split('@').at(-1).toLowerCase())).map(step => <button key={step.id} type="button" role="option" aria-selected={assistantContext?.id === step.id} onClick={() => { onAskAssistant?.(step.id); setChatInput(chatInput.replace(/@[^@\s]*$/, '')); }} className="block w-full rounded-lg px-2 py-2 text-left text-xs hover:bg-[var(--bg-secondary)]">@{step.label || step.type || step.kind}</button>)}
                         </div>}
+                        {applyingProposal && <p role="status" className="mb-2 text-[11px] text-[var(--text-tertiary)]">{t('automations.assistant.applying_hint', 'Applying the proposal. You can write again in a moment.')}</p>}
                         <InputArea
                             compact
                             placeholder={t('automations.assistant.placeholder', 'Describe what you want…')}
-                            toolbarExtra={setWorkMode ? <WorkModePicker alwaysPlanLarge={alwaysPlanLarge} onAlwaysPlanLargeChange={setAlwaysPlanLarge} value={workMode} onChange={setWorkMode} disabled={state.running} /> : null}
-                            onSendMessage={onSend}
+                            webSearchUnavailable={webSearchUnavailableHint(state.webSearch, t)}
+                            toolbarExtra={setWorkMode ? <WorkModePicker anchor="composer" alwaysPlanLarge={alwaysPlanLarge} onAlwaysPlanLargeChange={setAlwaysPlanLarge} value={workMode} onChange={setWorkMode} disabled={state.running} planStatus={state.reviewPlan?.status} planVersion={state.reviewPlan?.version} /> : null}
+                            onSendMessage={applyingProposal ? () => {} : onSend}
                             onStopGenerating={onStopBuild || undefined}
                             isLoading={state.running}
                             directMode={true}
@@ -1256,7 +1266,7 @@ export default function BuildTab({
                 }} />}
                 {previewOpen && state.proposal && <div className="absolute inset-0 z-20 flex flex-col bg-[var(--bg-primary)]">
                     <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs"><Sparkles size={13} /><span className="flex-1">{t('automations.assistant.proposal', 'Proposal')}</span><button type="button" disabled={state.running} onClick={() => { setPreviewOpen(false); setAssistantOpen(true); }} className="rounded-lg px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50">{t('automations.assistant.review_changes', 'Review changes')}</button><button type="button" onClick={() => setPreviewOpen(false)} className="p-1.5" aria-label={t('automations.assistant.show_canvas', 'Show canvas')}><X size={14} /></button></div>
-                    <div className="flex-1 min-h-0 [&_.react-flow__node>div]:!border-dashed [&_.react-flow__node]:opacity-75"><DiagramPane definition={state.proposal.definition} editable={false} /></div>
+                    <div className="flex-1 min-h-0 [&_.react-flow__node>div]:!border-dashed [&_.react-flow__node]:opacity-75"><DiagramPane definition={state.proposal.definition} catalog={previewCatalog(catalog, state.proposal)} editable={false} /></div>
                 </div>}
                 {state.pendingExternalDraft && (
                     <div className="px-4 py-2 border-b border-amber-500/30 bg-amber-500/10 flex items-center justify-between gap-3 flex-shrink-0">

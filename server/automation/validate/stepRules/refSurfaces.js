@@ -228,6 +228,15 @@ function collectStepRefs(step) {
                 for (const [k, v] of Object.entries(step.headers)) template(v, `headers.${k}`);
             }
             template(step.body, 'body');
+            // The structured query: keys, values and the JSON text are templates too.
+            if (isObject(step.query)) {
+                template(step.query.json, 'query.json');
+                (Array.isArray(step.query.items) ? step.query.items : []).forEach((it, i) => {
+                    if (!isObject(it)) return;
+                    template(it.key, `query.items[${i}].key`);
+                    template(it.value, `query.items[${i}].value`);
+                });
+            }
             break;
         case 'approval': {
             // The question and everything around it is rendered for the

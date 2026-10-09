@@ -328,3 +328,32 @@ test('deferral means a sibling Wait has not slept yet when an approval pauses th
     assert.ok(ran.includes('b2'), 'branch B continues past it');
     assert.ok(ran.includes('a2'), 'branch A continues past the approval');
 });
+
+// ── A flowlet's Return goes last (2026-10-09) ────────────────────────────────
+// The AI builder saved "add after the flowlet input" as a branch BESIDE the
+// Return (trg → out, trg → web → fmt). FIFO ran the Return second, before the
+// work it returns, and the flowlet handed its caller an empty record.
+
+const ret = { id: 'out', type: 'layer_output', fields: {} };
+
+test('a Return wired beside the work runs after all of it', async () => {
+    const def = {
+        trigger: { id: 'trg', kind: 'layer_input' },
+        steps: [ret, note('web'), note('fmt')],
+        edges: [{ from: 'trg', to: 'out' }, { from: 'trg', to: 'web' }, { from: 'web', to: 'fmt' }],
+    };
+    const { ran, dispatch } = makeDispatcher();
+    await runDag(def, {}, baseState(), 'live', dispatch, { recordSteps: false });
+    assert.deepStrictEqual(ran, ['web', 'fmt', 'out']);
+});
+
+test('the Return goes after a deferred Wait too', async () => {
+    const def = {
+        trigger: { id: 'trg', kind: 'layer_input' },
+        steps: [ret, wait('w'), note('after')],
+        edges: [{ from: 'trg', to: 'out' }, { from: 'trg', to: 'w' }, { from: 'w', to: 'after' }],
+    };
+    const { ran, dispatch } = makeDispatcher();
+    await runDag(def, {}, baseState(), 'live', dispatch, { recordSteps: false });
+    assert.deepStrictEqual(ran, ['w', 'after', 'out']);
+});

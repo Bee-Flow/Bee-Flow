@@ -30,8 +30,8 @@ export const APP_DEFS: Record<string, NodeDefSource> = {
         defaultLabel: 'Call a web service',
         desc: 'Send a request to a system that has no ready-made action here',
         help: 'Sends a request straight to another system’s web address and passes on what it sends back. For systems with no ready-made action in the Action list. If you let it reuse an answer, a retry after a later failure uses the answer it already has instead of asking again — and a test run neither reuses one nor keeps one.',
-        sectionKeys: ['request', 'auth', 'headers', 'body', 'options', 'advanced'],
-        simpleSections: ['request', 'auth', 'body'],
+        sectionKeys: ['request', 'query', 'auth', 'headers', 'body', 'options', 'advanced'],
+        simpleSections: ['request', 'query', 'auth', 'body'],
         issueSections: {
             fallback: 'request',
             map: {
@@ -40,6 +40,7 @@ export const APP_DEFS: Record<string, NodeDefSource> = {
                 method: 'request',
                 headers: 'headers',
                 body: 'body',
+                query: 'query',
                 timeoutMs: 'options',
                 blockPrivateTargets: 'options',
                 auth: 'auth',

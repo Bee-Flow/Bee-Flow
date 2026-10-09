@@ -15,6 +15,7 @@ const {
     mapColumnKeys, mapColumnName,
 } = require('../datatableRefs');
 const { DATATABLE_MAX_FILTERS, DATATABLE_MAX_LIMIT } = require('../../validate/constants');
+const { approvalGateError } = require('../datatableApproval');
 
 /**
  * Canonicalize a datatable step's bindings.
@@ -474,6 +475,13 @@ function applyAddDatatable(draft, rawArgs, draftWrap) {
     let datatableId = typeof args.datatableId === 'string' ? args.datatableId : '';
     let datatableKey = typeof args.datatableKey === 'string' ? args.datatableKey.trim() : '';
     if (ref.table) {
+        // The one site every route to a new datatable step passes through
+        // (builder_add_datatable, builder_add_steps entries, replace_step, the
+        // add_action redirect): an existing table the user has not chosen is
+        // asked about, never bound. Before the read-only check on purpose: the
+        // question comes first, then access.
+        const deny = approvalGateError(ref.table, draftWrap, { op });
+        if (deny) return deny;
         if (DATATABLE_WRITE_OPS.has(op) && !ref.table.canWrite) return readOnlyTableError(ref.table, op);
         const cols = resolveDatatableColumns({ op, values, where, sort, matchColumn }, ref.table);
         if (cols.error) return cols;

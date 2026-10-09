@@ -346,6 +346,9 @@ test('an automation granted without a confirm runs exactly as before', async () 
     assert.deepStrictEqual(S.dispatched.map(d => d.name), ['automation_send_invoice'],
         'a grant is permission to call it, not an instruction to ask first');
     assert.deepStrictEqual(eventsOfType('tool_confirm'), []);
+    // The dispatcher refuses a grant on "ask" unless the caller vouches that this
+    // confirm layer stood in front of the call: this path is the one that does.
+    assert.strictEqual(S.dispatched[0].confirmLayer, true, 'the streaming round vouches for its confirm layer');
 });
 
 test('nobody watching: the automation set to "ask" is withheld, and naming it anyway is refused', async () => {

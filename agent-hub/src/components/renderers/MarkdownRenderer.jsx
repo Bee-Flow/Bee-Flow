@@ -519,7 +519,13 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
     );
 };
 
-const MarkdownRenderer = ({ content, className = '', isLoading = false, ...props }) => {
+// What `inline` keeps: the marks a short line of prose carries. Everything else
+// (lists, headings, quotes, fences, tables, images) is unwrapped to its text, so
+// a question prompt or a plan line can show **bold**, `code` and a link without
+// growing a block of its own inside a card.
+const INLINE_ELEMENTS = ['strong', 'em', 'del', 'code', 'a', 'br'];
+
+const MarkdownRenderer = ({ content, className = '', isLoading = false, inline = false, ...props }) => {
     // Throttle content updates to prevent flickering during streaming
     const THROTTLE_MS = 150;
     const [renderContent, setRenderContent] = useState(content);
@@ -611,11 +617,13 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, ...props
 
     const unclosedBlock = detectUnclosedCodeBlock(cleanContent);
 
+    const Wrapper = inline ? 'span' : 'div';
     return (
-        <div className={`markdown-content ${className}`}>
+        <Wrapper className={`markdown-content ${className}`}>
             <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeKatex]}
+                remarkPlugins={inline ? [remarkGfm] : [remarkGfm, remarkMath]}
+                rehypePlugins={inline ? [] : [rehypeKatex]}
+                {...(inline ? { allowedElements: INLINE_ELEMENTS, unwrapDisallowed: true } : {})}
                 components={{
                     // Fenced/indented code arrives wrapped in a <pre>; mark the
                     // subtree so the code component can tell block from inline
@@ -741,7 +749,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, ...props
                 {cleanContent}
             </ReactMarkdown>
 
-        </div>
+        </Wrapper>
     );
 };
 

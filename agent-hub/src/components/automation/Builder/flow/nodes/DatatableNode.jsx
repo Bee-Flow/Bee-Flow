@@ -1,9 +1,9 @@
 import React from 'react';
 import { Table2, Search, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { datatableSummary } from '../nodeSummaries';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
-import { useTranslation } from '../../../../../hooks/useTranslation';
 
 // One icon per operation, so "this one deletes" is legible at canvas zoom
 // without reading the summary line.
@@ -39,7 +39,7 @@ export default function DatatableNode({ id, data }) {
             help={nodeHelp('datatable')}
             name={step.label || nodeDefaultLabel('datatable')}
             sub={datatableSummary(step, { tableNameById })}
-            subTitle={table?.name || step.datatableId}
+            subTitle={table?.pending ? t('automations.assistant.table_new_label', '{name} (new)', { name: table.name }) : (table?.name || step.datatableId)}
             badges={badges}
             runStep={runStep}
             issues={issues}

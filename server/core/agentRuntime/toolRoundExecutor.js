@@ -631,6 +631,10 @@ async function executeToolRound({
                                         unattended: false,
                                         fixedParams: fixedParams,
                                         agentId: agent.id,
+                                        // This path holds a call on 'ask' until the
+                                        // person approved it, so the dispatcher may
+                                        // run an automation granted on 'ask'.
+                                        confirmLayer: true,
                                         conversationId: conversation.id,
                                         send: onEvent,
                                         req: messageMetadata.req || null,

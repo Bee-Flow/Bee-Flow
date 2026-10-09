@@ -90,6 +90,9 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
                 session,
                 isAdmin: session?.user?.isAdmin || false,
                 agentConfig: agent.config,
+                // The agent whose bound automations are offered as tools; with no
+                // agent there are none (automation/agentBinding.js).
+                agentId,
                 // Skill-scoped apps: active skills widen the per-user app
                 // toggle (entitlements/credentials still gate inside).
                 extraEnabledApps: skillApps.allowedApps,

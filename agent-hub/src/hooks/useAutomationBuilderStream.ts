@@ -23,6 +23,10 @@ const GATEWAY_DROP_MESSAGE = 'The connection to the builder dropped while it was
  *  canvas and composer contribute to it. */
 export interface AutomationBuilderSendOptions {
     message?: string;
+    /** Set when `message` answers the builder's questions. Only the chat reads
+     *  it, to show a Q/A list; the model gets `message`, which holds the same
+     *  pairs as plain text. */
+    answers?: Array<{ prompt: string; answer: string }> | null;
     targetAutomationId?: string | null;
     modelTier?: string;
     workMode?: string;
@@ -80,6 +84,8 @@ export interface AutomationBuilderState {
     todos: BuilderTodo[];
     reviewPlan: Record<string, unknown> | null;
     reviewQuestions: unknown[] | null;
+    /** The approved plan whose build asked these questions (the build is paused on them); null for a plain plan-mode round. */
+    reviewQuestionsPlanId: string | null;
     proposal: Record<string, unknown> | null;
     /** Bookkeeping for the CURRENT turn's silence before the first token; see
      *  openTurn(). Reset on every send; null until the first one. */
@@ -97,6 +103,17 @@ export interface AutomationBuilderState {
      *  counter bumped on each so the shell can refetch the header row. */
     title: string | null;
     metadataSeq: number;
+    /** The last turn's answer about the Web search toggle (`web_search`): on
+     *  but unusable (no provider, not permitted, file policy) carries the
+     *  reason, so the composer can disable the switch instead of offering a
+     *  dead one. Null until a turn reported it. */
+    webSearch: BuilderWebSearchStatus | null;
+}
+
+export interface BuilderWebSearchStatus {
+    requested: boolean;
+    available: boolean;
+    reason: string | null;
 }
 
 /**
@@ -131,13 +148,14 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
         aborted: null,
         lastDone: null,
         todos: [],
-        reviewPlan: null, reviewQuestions: null, proposal: null,
+        reviewPlan: null, reviewQuestions: null, reviewQuestionsPlanId: null, proposal: null,
         turn: null,
         toolDraft: null,
         engine: null,
         dryRunSeq: 0,
         title: initial.title || null,
         metadataSeq: 0,
+        webSearch: null,
     });
     const abortRef = useRef<AbortController | null>(null);
     // Run-progress polling bookkeeping (see pollRunProgress):
@@ -183,6 +201,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 todos: Array.isArray(snapshot.todos) ? snapshot.todos : s.todos,
                 reviewPlan: 'reviewPlan' in snapshot ? (snapshot.reviewPlan as Record<string, unknown>) ?? null : s.reviewPlan,
                 reviewQuestions: (snapshot.reviewQuestions as unknown[]) || null,
+                reviewQuestionsPlanId: questionsPlanIdOf(snapshot),
                 proposal: 'proposal' in snapshot ? (snapshot.proposal as Record<string, unknown>) ?? null : s.proposal,
                 builderSessionId: snapshot.sessionId || s.builderSessionId,
                 // Allow lazy assignment of the automationId when the builder
@@ -237,7 +256,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
         setState(s => ({ ...s, pendingExternalDraft: null }));
     }, []);
 
-    const send = useCallback(async ({ message, targetAutomationId, modelTier = 'auto', workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId = null, selectedStepId = null, timezone, history, attachments = [], webSearchEnabled = true, disabledMedia = {}, canvasScope = null, resume = false, seedMetadata = null }: AutomationBuilderSendOptions) => {
+    const send = useCallback(async ({ message, answers = null, targetAutomationId, modelTier = 'auto', workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId = null, selectedStepId = null, timezone, history, attachments = [], webSearchEnabled = true, disabledMedia = {}, canvasScope = null, resume = false, seedMetadata = null }: AutomationBuilderSendOptions) => {
         if (abortRef.current) {
             try { abortRef.current.abort(); } catch {}
         }
@@ -254,7 +273,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             // phase however well the build had gone.
             aborted: null,
             lastDone: null,
-            proposal: null, reviewQuestions: null,
+            proposal: null, reviewQuestions: null, reviewQuestionsPlanId: null,
             turn: openTurn(modelTier),
             toolDraft: null,
             // Clear any stale isStreaming on prior messages (e.g. an aborted
@@ -262,7 +281,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             // user turn + an in-flight assistant placeholder.
             messages: [
                 ...s.messages.map(m => (m.isStreaming ? { ...m, isStreaming: false } : m)),
-                { role: 'user', content: message },
+                { role: 'user', content: message, ...(answers?.length ? { answers } : {}) },
                 { role: 'assistant', content: '', toolCalls: [], thinkingParts: [], isStreaming: true },
             ],
         }));
@@ -741,6 +760,14 @@ function openTurn(tier?: string | null): BuilderTurn {
     };
 }
 
+// The server remembers which approved plan its open questions belong to
+// (questionsMeta.planId), so a reload keeps "this answer continues the build".
+function questionsPlanIdOf(snapshot: BuilderSnapshot): string | null {
+    if (!Array.isArray(snapshot.reviewQuestions) || !snapshot.reviewQuestions.length) return null;
+    const planId = (snapshot.questionsMeta as { planId?: unknown } | null | undefined)?.planId;
+    return typeof planId === 'string' && planId ? planId : null;
+}
+
 function touchTurn(s: AutomationBuilderState, patch: Partial<BuilderTurn>): AutomationBuilderState {
     return s.turn ? { ...s, turn: { ...s.turn, ...patch } } : s;
 }
@@ -987,7 +1014,7 @@ function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, even
             });
             break;
         case 'review_questions':
-            setState(s => ({ ...s, reviewQuestions: data.questions as unknown[] }));
+            setState(s => ({ ...s, reviewQuestions: data.questions as unknown[], reviewQuestionsPlanId: typeof data.planId === 'string' ? data.planId : null }));
             break;
         case 'review_plan':
             setState(s => ({ ...s, reviewPlan: data.plan as Record<string, unknown> }));
@@ -1071,6 +1098,12 @@ function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, even
                 metadataSeq: (s.metadataSeq || 0) + 1,
             }));
             break;
+        case 'web_search':
+            setState(s => ({
+                ...s,
+                webSearch: { requested: !!data.requested, available: !!data.available, reason: data.reason || null },
+            }));
+            break;
         case 'validation_errors':
             // Structured records emitted after each mutation. Stored as
             // state.validation so the consolidated banner / step inspector
@@ -1102,6 +1135,7 @@ function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, even
                     todos: Array.isArray(snapshot.todos) ? snapshot.todos : s.todos,
                 reviewPlan: 'reviewPlan' in snapshot ? (snapshot.reviewPlan as Record<string, unknown>) ?? null : s.reviewPlan,
                 reviewQuestions: (snapshot.reviewQuestions as unknown[]) || null,
+                reviewQuestionsPlanId: questionsPlanIdOf(snapshot),
                 proposal: 'proposal' in snapshot ? (snapshot.proposal as Record<string, unknown>) ?? null : s.proposal,
                 }));
             }

@@ -8,7 +8,8 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
-const { applyCreateDatatable, normaliseFieldArgs } = require('./datatableCreate');
+const { applyCreateDatatable, createPendingDatatable, normaliseFieldArgs } = require('./datatableCreate');
+const { normalizeFields } = require('../../core/dataEngine/dataModel/datatableFields');
 const { TOOL_SCHEMAS } = require('./schemas');
 const { CORE_TOOL_NAMES } = require('../builderModelProfiles');
 
@@ -18,6 +19,9 @@ function deps(overrides = {}) {
         calls,
         resolvePrincipal: async (userId) => ({ userId, orgId: 'orgA' }),
         hasManageDatatables: async () => true,
+        defaultCreateScope: (p) => (p.orgId ? { kind: 'org', id: p.orgId } : { kind: 'user', id: p.userId }),
+        evaluateForRequest: async () => ({}),
+        normalizeFields,
         createStudioDatatable: async (args) => { calls.push(args); return { ok: true, table: { id: 'tbl_new01', key: args.key || 'invoice', name: args.name, scope: { kind: 'org', id: 'orgA' }, fields: args.fields.map((f) => ({ key: f.key, name: f.name, type: f.type, ...(f.options ? { options: f.options } : {}) })) } }; },
         catalogFor: async () => [{ id: 'tbl_new01', name: 'invoice', key: 'invoice', columns: [{ key: 'supplier', name: 'Supplier', type: 'text' }] }],
         ...overrides,
@@ -92,4 +96,65 @@ test('no core tool text points at a tool outside the small-model menu', () => {
         }
     }
     assert.deepEqual([...offMenu], [], `core tool texts name tools outside the core menu: ${[...offMenu].join(', ')}`);
+});
+
+test('_stageDatatables delegates to staging: nothing is created and the live catalog is untouched', async () => {
+    const d = deps();
+    const wrap = { userId: 'u1', _stageDatatables: true, _datatables: [{ id: 'tbl_old', name: 'Old', key: 'old', columns: [] }], _pendingDatatables: [], _datatableCreate: { ok: true, scope: { kind: 'org', id: 'orgA' } } };
+    const r = await applyCreateDatatable(wrap, { name: 'Invoice', fields: [{ name: 'Supplier', type: 'text' }] }, d);
+    assert.deepEqual([r.datatableId, r.staged], ['pending:1', true]);
+    assert.equal(d.calls.length, 0);
+    assert.deepEqual(wrap._datatables.filter((t) => !t.pending).map((t) => t.id), ['tbl_old']);
+});
+
+test('_planDatatables: a listed name creates (with the plan\'s fields when the call has none); an unlisted name creates nothing', async () => {
+    const d = deps();
+    const wrap = { userId: 'u1', _datatables: [], _planDatatables: [{ name: 'Invoice', fields: [{ key: 'supplier', name: 'Supplier', type: 'text' }] }] };
+    const ok = await applyCreateDatatable(wrap, { name: ' invoice ' }, d);
+    assert.ok(!ok.error, JSON.stringify(ok));
+    assert.deepEqual(d.calls[0].fields.map((f) => f.key), ['supplier']);
+    const no = await applyCreateDatatable(wrap, { name: 'Klanten', fields: [{ name: 'Naam', type: 'text' }] }, d);
+    assert.match(no.error, /"Klanten" is not in the approved plan, so no table was created/);
+    assert.match(no._fixHint, /Create only the tables the plan lists/);
+    assert.equal(d.calls.length, 1);
+});
+
+test('a direct create runs the access check: an organisation mismatch and a missing permission refuse before anything is made', async () => {
+    const d = deps();
+    const mismatch = await applyCreateDatatable({ userId: 'u1', orgId: 'orgB', _datatables: [] }, { name: 'Nieuw', fields: [{ name: 'A', type: 'text' }] }, d);
+    assert.equal(mismatch.code, 'datatable_org_mismatch');
+    const denied = await applyCreateDatatable({ userId: 'u1', _datatables: [] }, { name: 'Nieuw', fields: [{ name: 'A', type: 'text' }] }, deps({ hasManageDatatables: async () => false }));
+    assert.equal(denied.code, 'manage_datatables_required');
+    const training = await applyCreateDatatable({ userId: 'u1', _req: {}, _datatables: [] }, { name: 'Nieuw', fields: [{ name: 'A', type: 'text' }] }, deps({ evaluateForRequest: async () => ({ datatables: { enforced: true, satisfied: false, courseTitle: 'T' } }) }));
+    assert.equal(training.code, 'training_required');
+    assert.equal(d.calls.length, 0);
+});
+
+test('the created id lands in the approved set and in the created list', async () => {
+    const d = deps();
+    const wrap = { userId: 'u1', _datatables: [], _approvedDatatableIds: new Set(), _createdDatatableIds: [] };
+    const r = await applyCreateDatatable(wrap, { name: 'invoice', fields: [{ name: 'Supplier', type: 'text' }] }, d);
+    assert.ok(!r.error, JSON.stringify(r));
+    assert.ok(wrap._approvedDatatableIds.has('tbl_new01'));
+    assert.deepEqual(wrap._createdDatatableIds, ['tbl_new01']);
+});
+
+test('the same name: with an approval set the user must have chosen that table; with none (MCP) the existing table is returned', async () => {
+    const existing = { id: 'tbl_old', name: 'Invoice', key: 'invoice', canWrite: true, columns: [{ key: 'supplier', type: 'text' }] };
+    const gated = await applyCreateDatatable({ userId: 'u1', _datatables: [existing], _approvedDatatableIds: new Set() }, { name: 'invoice', fields: [{ name: 'X', type: 'text' }] }, deps());
+    assert.equal(gated.code, 'datatable_choice_required');
+    assert.ok(gated._askArgs);
+    const chosen = await applyCreateDatatable({ userId: 'u1', _datatables: [existing], _approvedDatatableIds: new Set(['tbl_old']) }, { name: 'invoice', fields: [{ name: 'X', type: 'text' }] }, deps());
+    assert.equal(chosen.datatableId, 'tbl_old');
+    const mcp = await applyCreateDatatable({ userId: 'u1', _datatables: [existing] }, { name: 'invoice', fields: [{ name: 'X', type: 'text' }] }, deps());
+    assert.equal(mcp.datatableId, 'tbl_old');
+});
+
+test('createPendingDatatable creates with exactKey and the reserved key', async () => {
+    const d = deps();
+    const entry = { name: 'Invoice', description: '', fields: [{ key: 'supplier', name: 'Supplier', type: 'text' }] };
+    const r = await createPendingDatatable('u1', entry, { key: 'invoice_2', principal: { userId: 'u1' }, hasManage: true }, d);
+    assert.equal(r.ok, true);
+    assert.deepEqual([d.calls[0].key, d.calls[0].exactKey, d.calls[0].ownerUserId, d.calls[0].hasManageDatatables], ['invoice_2', true, 'u1', true]);
+    assert.match(d.calls[0].description, /^Created by the automation builder for "Invoice"$/);
 });

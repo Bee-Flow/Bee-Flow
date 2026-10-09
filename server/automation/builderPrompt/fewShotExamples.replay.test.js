@@ -99,7 +99,9 @@ function freshWrap() {
 /** The create-table dependencies, stubbed the way datatableCreate.test.js stubs them. */
 function createDeps() {
     return {
-        resolvePrincipal: async () => ({ kind: 'user', id: 'u_test' }),
+        resolvePrincipal: async () => ({ userId: 'u_test', orgId: null }),
+        defaultCreateScope: (p) => ({ kind: 'user', id: p.userId }),
+        evaluateForRequest: async () => ({}),
         hasManageDatatables: async () => true,
         createStudioDatatable: async ({ name, fields }) => ({
             ok: true,

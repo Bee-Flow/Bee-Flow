@@ -1096,7 +1096,13 @@
     "runs.waited.m": "{m} min",
     "settings.auto_map": "Velden automatisch koppelen",
     "settings.auto_map_desc": "Als je in een automation twee stappen verbindt, worden de velden van de nieuwe stap ingevuld uit de stap ervoor. Je kunt ze altijd aanpassen.",
-    "settings.editor_preferences": "Editor-voorkeuren"
+    "settings.editor_preferences": "Editor-voorkeuren",
+    "automations.step_error.http_query_invalid.cause": "De instelling \"Query parameters\" kan niet worden verstuurd: {reason}",
+    "automations.step_error.http_query_invalid.cause_generic": "De instelling \"Query parameters\" van deze stap kan niet worden verstuurd. Open de stap en controleer haar.",
+    "automations.step_error.http_query_invalid.title": "De query-parameters van deze stap zijn niet bruikbaar",
+    "automations.step_error.http_url_invalid.cause": "De instelling \"URL\" kan niet worden gebruikt: {reason}",
+    "automations.step_error.http_url_invalid.cause_generic": "De instelling \"URL\" van deze stap is geen geldig webadres. Open de stap en controleer haar.",
+    "automations.step_error.http_url_invalid.title": "Het adres van deze stap is geen geldig webadres"
   },
   "sameAsEnglish": [
     "automations.agent_step.group_automations",

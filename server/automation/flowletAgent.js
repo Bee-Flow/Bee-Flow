@@ -31,7 +31,7 @@ const {
     TOOL_SCHEMAS, MUTATING_TOOLS, SCOPED_GRAPH_TOOLS, applyToolCall,
     generateLayerKey, makeLayerSkeleton, truncateToolResultJson,
 } = require('./builderTools');
-const { renderCatalog, renderDatatablesBlock, renderDocumentsBlock } = require('./builderPrompt');
+const { renderCatalog, renderDatatablesBlock, renderDocumentsBlock, renderAgentsBlock, renderKnowledgeBasesBlock } = require('./builderPrompt');
 const log = require('../telemetry/log');
 
 const MAX_LAYER_AGENT_ROUNDS = 12;
@@ -40,10 +40,19 @@ const DEFAULT_PARALLEL_CAP = 3;
 // Tools a flowlet sub-agent may use: every scoped step builder + the flowlet
 // contract tool + read-only tool inspection. NO trigger/finalize/dry-run/
 // create_layer/metadata.
+//
+// The two document tools are read-only and belong here because the gate that
+// needs them travels with every flowlet draft: documentDiscovery.inspectBindings
+// refuses a fill_document step until builder_read_document ran for its
+// document (layerAgent.js and runLayersInParallel both hand the sub-agent the
+// document list). Without them a flowlet could never build that step: the
+// refusal named a tool the sub-agent did not have. Writes stay out of reach.
 const LAYER_AGENT_TOOL_NAMES = new Set([
     ...SCOPED_GRAPH_TOOLS,
     'builder_set_layer_contract',
     'builder_inspect_tool',
+    'builder_search_documents',
+    'builder_read_document',
 ]);
 
 function layerAgentTools() {
@@ -109,6 +118,9 @@ function buildLayerAgentPrompt({ catalog, mode, layerKey, instruction, contract 
     const datatables = renderDatatablesBlock(catalog?.datatables);
     // …and the designed documents, for a flowlet that renders an invoice.
     const documents = renderDocumentsBlock(catalog?.documents);
+    // …and the agents and knowledge bases it may name (same blocks, same
+    // "could not read" versus "none" rule as the main builder's).
+    const pickers = [renderAgentsBlock(catalog), renderKnowledgeBasesBlock(catalog)].filter(Boolean).join('\n\n');
     const contractLines = [];
     if (contract?.params?.length) {
         contractLines.push(`Inputs (already declared; bind inside the flowlet as trigger.output.<name>): ${contract.params.map(p => (typeof p === 'string' ? p : p.name)).join(', ')}`);
@@ -132,7 +144,7 @@ ${contractLines.length ? `\nCONTRACT:\n${contractLines.join('\n')}\n` : ''}
 INSTRUCTION:
 ${instruction}
 
-${datatables ? `${datatables}\n\n` : ''}${documents ? `${documents}\n\n` : ''}CATALOG (apps & actions you may use):
+${datatables ? `${datatables}\n\n` : ''}${documents ? `${documents}\n\n` : ''}${pickers ? `${pickers}\n\n` : ''}CATALOG (apps & actions you may use):
 ${apps}`;
 }
 
@@ -272,7 +284,7 @@ async function runLayerAgent({
 async function runLayersInParallel({
     rootDef, specs, modelId, userId, userOrgId = null, session = null,
     catalog = null, send = () => {}, cap = DEFAULT_PARALLEL_CAP, inputSchemasByTool = null,
-    allowedModelTiers = null, datatables = null, documents = null, availableToolNames = null,
+    allowedModelTiers = null, datatables = null, approvedDatatableIds = null, documents = null, availableToolNames = null,
 }) {
     const preexisting = (rootDef.layers && typeof rootDef.layers === 'object' && !Array.isArray(rootDef.layers)) ? rootDef.layers : {};
     const reserved = { ...preexisting };
@@ -308,7 +320,12 @@ async function runLayersInParallel({
             // draft: a parallel agent must not bind a table or a tool the
             // user does not have. null keeps the permissive "could not tell".
             _datatables: datatables,
+            _approvedDatatableIds: approvedDatatableIds instanceof Set ? approvedDatatableIds : null,
             _documents: documents,
+            // As on the main draft (chatStream.js): a document must be read
+            // (builder_read_document, which this sub-agent has) before its
+            // fill_document step is built.
+            _documentDiscoveryRequired: true,
             ...(availableToolNames instanceof Set ? { _availableToolNames: availableToolNames } : {}),
         };
         send('layer_agent_start', { layerKey, title });

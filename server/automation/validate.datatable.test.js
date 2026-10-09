@@ -304,6 +304,23 @@ test('the sql refusal is NOT downgraded at draft stage', () => {
         'a draft may be incomplete; it may not be dangerous');
 });
 
+// ── a table that was only proposed ──────────────────────────────────────────
+
+test('a pending table id gives datatable.table_pending with the ref, and blocks even at draft stage', () => {
+    const d = def({ ...OK, datatableId: 'pending:1', datatableKey: 'facturen' });
+    const res = validateDefinition(d, { stage: 'draft' });
+    const hit = (res.errors || []).find(e => e.code === 'datatable.table_pending');
+    assert.ok(hit, 'a never-created table must not pass a save');
+    assert.strictEqual(hit.ref, 'pending:1');
+    assert.match(hit.path, /datatableId$/);
+    assert.ok(errorCodes(d).includes('datatable.table_pending'));
+});
+
+test('a real table id does not give datatable.table_pending', () => {
+    assert.ok(!errorCodes(def(OK)).includes('datatable.table_pending'));
+    assert.ok(!errorCodes(def({ ...OK, datatableId: 'pending:' })).includes('datatable.table_pending'), 'only the pending:<n> grammar counts');
+});
+
 // ── draft-stage downgrading ─────────────────────────────────────────────────
 
 test('the "not finished yet" codes downgrade at draft stage', () => {

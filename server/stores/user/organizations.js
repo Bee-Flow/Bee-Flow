@@ -355,6 +355,27 @@ async function setOrgBetaEveryone(orgId, ids) {
     return rowCount > 0;
 }
 
+// SELF-HOSTED: the matrix-togglable core / non-group-scoped beta ids the org
+// admin switched OFF for "All members". Returns null when never chosen (nothing
+// revoked, the single-switch behaviour from before the column existed).
+async function getOrgEveryoneRevoked(orgId) {
+    await initDB();
+    const o = await getOne('SELECT "org_everyone_revoked" FROM organizations WHERE id = $1', [orgId]);
+    if (!o || o.org_everyone_revoked == null) return null;
+    const list = parseJSON(o.org_everyone_revoked, null);
+    return Array.isArray(list) ? list : null;
+}
+
+async function setOrgEveryoneRevoked(orgId, ids) {
+    await initDB();
+    const value = ids == null ? null : JSON.stringify(Array.from(new Set((Array.isArray(ids) ? ids : []).filter(Boolean))));
+    const { rowCount } = await run(
+        'UPDATE organizations SET "org_everyone_revoked" = $1 WHERE id = $2',
+        [value, orgId]
+    );
+    return rowCount > 0;
+}
+
 /**
  * The per-org config rows whose key does NOT follow the `org_<orgId>_*`
  * convention, and which the LIKE wipe in deleteOrganization therefore misses.
@@ -563,6 +584,7 @@ module.exports = {
     getOrgGrantedCapabilities, setOrgGrantedCapabilities,
     getOrgAvailableCapabilities, setOrgAvailableCapabilities,
     getOrgBetaEveryone, setOrgBetaEveryone,
+    getOrgEveryoneRevoked, setOrgEveryoneRevoked,
     backfillAutoProvisionedNcOrgNames,
     orgConfigKeys,
     MAX_ORG_ID_LENGTH,

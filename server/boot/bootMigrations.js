@@ -124,6 +124,15 @@ const LOOSE_MIGRATIONS = [
     // (they served one person's mail-derived scan to colleagues). Skips a
     // table that does not exist yet; a no-op once no org: rows are left.
     'suggestion-user-scope-2026-10',
+    // Which agents may call an agent_call automation became a table
+    // (automation_agent_bindings). Binds an active agent_call automation to the
+    // agents its OWNER already chose per agent (config.tools.automations or a
+    // persona hand-off); everything else stays unbound, so nothing gets wider.
+    // Runs once: the ledger records it, and a marker table written together with
+    // the inserts holds even when the ledger replays it (changed checksum,
+    // unreadable ledger, --force), so an owner who unlinks an agent later never
+    // gets it back. Throws while a table is missing, so the next boot retries.
+    'automation-agent-bindings-backfill-2026-10',
 ];
 
 /**
@@ -213,9 +222,10 @@ const NL_TRANSLATIONS = [
     'add-nl-hardcoded-website-admin-2026-10-translations', // Website admin (Product Website builder) and Component Studio: strings that had no key
     'add-nl-hardcoded-studio-admin-2026-10-translations', // Studio screens (App Studio, Automations, Executions, Solutions, Support): Dutch for literals that now go through t()
     'add-nl-ui-complete-2026-10-translations',    // Every UI string without Dutch (2026-10): agent studio, knowledge, skills, meetings, webpages, cowork, admin, chat, ...
-    'add-nl-learn-content-2026-10-translations',
+    'add-nl-learn-content-2026-10-translations',  // Learning Center lesson content for every course but Foundations (2026-10)
+    'add-nl-builder-fixes-2026-10',            // Builder fixes Oct 2026: HTTP query parameters and cURL import, who can call an automation as an agent tool, assistant questions/plans/tables, Studio no-access
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
-    'add-nl-fix-english-2026-10-translations',  // Learning Center lesson content for every course but Foundations (2026-10)
+    'add-nl-fix-english-2026-10-translations',
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

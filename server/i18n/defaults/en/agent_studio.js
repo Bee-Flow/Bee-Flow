@@ -416,6 +416,7 @@ module.exports = {
     'agent_studio.can_use.param_required': 'required',
     'agent_studio.can_use.automation_row_unreadable': 'Granted, but this automation could not be read — so what it does is unknown.',
     'agent_studio.can_use.automation_not_callable': 'This automation has no agent trigger, so the agent is never offered it.',
+    'agent_studio.can_use.automation_not_linked': 'This automation is not linked to this agent, so the agent is never offered it. Link the agent in the automation\'s trigger panel ("Who can call this").',
     'agent_studio.can_use.automations_unreadable': 'Could not load the automations, so their names and inputs are missing here.',
     'agent_studio.can_use.chooser_title': 'Choose apps & actions',
     'agent_studio.can_use.chooser_empty': 'No apps available for you yet',

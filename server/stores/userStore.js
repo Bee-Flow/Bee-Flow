@@ -24,6 +24,7 @@ const {
     getOrgGrantedCapabilities, setOrgGrantedCapabilities,
     getOrgAvailableCapabilities, setOrgAvailableCapabilities,
     getOrgBetaEveryone, setOrgBetaEveryone,
+    getOrgEveryoneRevoked, setOrgEveryoneRevoked,
     backfillAutoProvisionedNcOrgNames,
 } = require('./user/organizations');
 const {
@@ -92,6 +93,7 @@ module.exports = {
     getOrgGrantedCapabilities, setOrgGrantedCapabilities,
     getOrgAvailableCapabilities, setOrgAvailableCapabilities,
     getOrgBetaEveryone, setOrgBetaEveryone,
+    getOrgEveryoneRevoked, setOrgEveryoneRevoked,
     getUserByNcUid,
     findOrgMemberIdByEmail,
     createPendingNcBinding, getPendingNcBinding, getPendingNcBindingForOrg,

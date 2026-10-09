@@ -772,8 +772,15 @@ export function paramPillsOf(automation) {
  * Een automatisering die GEEN `agent_call`-trigger (meer) heeft wordt niet stil
  * verzwegen maar gemarkeerd (`callable: false`): de runtime biedt hem niet
  * aan, en dat is nieuws voor wie hem gekozen heeft.
+ *
+ * Aanbieden vereist OOK dat de automatisering aan deze agent is gekoppeld
+ * (automation_agent_bindings; de server biedt alleen gekoppelde aan). `linkedIds`
+ * is die lijst (Set of array), of null wanneer zij niet te lezen was: dan zeggen
+ * we er niets over (`linked: null`) in plaats van "niet gekoppeld". Een grant
+ * zonder koppeling is `linked: false`, even stil als `callable: false`.
  */
-export function automationRows({ toolsConfig, automations, state = READ.OK }) {
+export function automationRows({ toolsConfig, automations, state = READ.OK, linkedIds = null }) {
+    const linked = linkedIds ? new Set(linkedIds) : null;
     const grants = automationGrantsOf(toolsConfig);
     const index = state === READ.OK && Array.isArray(automations) ? new Map(
         automations.filter(a => a && typeof a.id === 'string').map(a => [a.id, a]),
@@ -781,7 +788,7 @@ export function automationRows({ toolsConfig, automations, state = READ.OK }) {
     return grants.map(({ id, confirm }) => {
         const automation = index ? index.get(id) : null;
         if (!automation) {
-            return { id, name: null, confirm, params: [], callable: null, readable: false };
+            return { id, name: null, confirm, params: [], callable: null, linked: linked ? linked.has(id) : null, readable: false };
         }
         return {
             id,
@@ -791,6 +798,7 @@ export function automationRows({ toolsConfig, automations, state = READ.OK }) {
             confirm,
             params: paramPillsOf(automation),
             callable: isAgentCallable(automation),
+            linked: linked ? linked.has(id) : null,
             readable: true,
         };
     });

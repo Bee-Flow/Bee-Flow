@@ -19,12 +19,15 @@ const Module = require('module');
 const touched = [];
 const written = [];
 const pass = (req, res, next) => next();
+// requireActiveOrgForMutations() is called once per route that carries it.
+let activeOrgGates = 0;
 
 const MOCKS = {
     '../../../stores/automationStore': {
         getBuilderSession: async (automationId, userId) => {
             touched.push({ automationId, userId });
             if (automationId === 'a2') return { sessionId: 's2', version: 5, proposal: { id: 'prop1' }, reviewPlan: { id: 'plan1' } };
+            if (automationId === 'a3') return { sessionId: 's3', version: 7, approvedDatatableIds: ['tbl_old'], reviewQuestions: [{ id: 'q', prompt: 'P', options: ['A', 'B'], choice: { kind: 'datatable' } }], proposal: { id: 'prop3', applying: { token: 'secret', at: 't' }, pendingDatatables: [{ ref: 'pending:1', name: 'Facturen', createdId: 'tbl_made' }, { ref: 'pending:2', name: 'Klanten' }] } };
             return automationId === 'a1' ? { sessionId: 's1', version: 2 } : null;
         },
         setBuilderSession: async (automationId, userId, snapshot, opts) => {
@@ -32,7 +35,7 @@ const MOCKS = {
             return { ok: true };
         },
     },
-    '../../../auth/permissions': { requireAuth: pass },
+    '../../../auth/permissions': { requireAuth: pass, requireActiveOrgForMutations: () => { activeOrgGates += 1; return pass; } },
 };
 
 const MOCK_IDS = {};
@@ -81,6 +84,10 @@ function dispatch({ method, url, body }) {
 
 test.beforeEach(() => { touched.length = 0; written.length = 0; });
 
+test('the review route is gated by requireActiveOrgForMutations (a suspended organisation cannot create tables)', () => {
+    assert.strictEqual(activeOrgGates, 1);
+});
+
 test('a version the route cannot serve is refused by name, not answered with the latest', async () => {
     const res = await dispatch({ method: 'GET', url: '/session/a1?version=1' });
     assert.strictEqual(res.statusCode, 400);
@@ -118,4 +125,27 @@ test('a review of a revision that is no longer saved is refused and writes nothi
     const res = await dispatch({ method: 'POST', url: '/session/a2/review', body: { action: 'applyProposal', revisionId: 'old' } });
     assert.strictEqual(res.statusCode, 409);
     assert.deepStrictEqual(written, []);
+});
+
+test('a proposal without tables behaves as before: the response adds definition null and no created tables', async () => {
+    const res = await dispatch({ method: 'POST', url: '/session/a2/review', body: { action: 'applyProposal', revisionId: 'prop1' } });
+    assert.deepStrictEqual(res.body, { ok: true, outcome: 'applied', definition: null, createdDatatables: [] });
+});
+
+test('Discard never creates a table; it reports the ones an earlier failed Apply made, remembers them as chosen and does not delete them', async () => {
+    const res = await dispatch({ method: 'POST', url: '/session/a3/review', body: { action: 'discardProposal', revisionId: 'prop3' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.keptDatatables, [{ id: 'tbl_made', name: 'Facturen' }]);
+    const { snapshot } = written[0];
+    assert.strictEqual(snapshot.proposal, null);
+    assert.deepStrictEqual(snapshot.approvedDatatableIds, ['tbl_old', 'tbl_made']);
+    const plain = await dispatch({ method: 'POST', url: '/session/a2/review', body: { action: 'discardProposal', revisionId: 'prop1' } });
+    assert.deepStrictEqual(plain.body.keptDatatables, []);
+});
+
+test('the snapshot the client reads has neither the question `choice` nor the Apply claim', async () => {
+    const res = await dispatch({ method: 'GET', url: '/session/a3' });
+    assert.ok(!('choice' in res.body.snapshot.reviewQuestions[0]));
+    assert.ok(!('applying' in res.body.snapshot.proposal));
+    assert.strictEqual(res.body.snapshot.proposal.pendingDatatables.length, 2);
 });

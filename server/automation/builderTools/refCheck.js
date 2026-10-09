@@ -49,6 +49,7 @@ const { findStepAnywhere } = require('./draftGraph');
 const { formatPath, appendKey, appendMatch, flattenShape } = require('../expr');
 const S = require('./shapeTree');
 const { normalizeAiPath } = require('./aiPaths');
+const { CODE_PAYLOAD_KEY, CODE_DIAGNOSTIC_KEYS } = require('../codeOutput');
 
 const { ANY } = S;
 const MAX_REF_DEPTH = 3;
@@ -155,9 +156,25 @@ function ownOutputShape(step, graph, draftWrap, depth) {
         }
         case 'flatten':
             return depth >= MAX_REF_DEPTH ? ANY : flattenOutputShape(step, graph, draftWrap, depth);
+        case 'code':
+            return codeOutputShape(step);
         default:
             return ANY;
     }
+}
+
+/**
+ * A code step's envelope (execOutbound.execCode, automation/codeOutput.js):
+ * what the code returned sits under `result`, beside the run's diagnostics.
+ * The envelope is fixed, so it is complete; `result` is whatever the code
+ * returns: the step's declared outputSchema when it has one (a hint, never
+ * proof), unknown otherwise. `payload` marks the key a missing field belongs
+ * under (candidateFixes): `….output.count` → `….output.result.count`.
+ */
+function codeOutputShape(step) {
+    const result = step.outputSchema ? schemaShape(step.outputSchema) : ANY;
+    const entries = [[CODE_PAYLOAD_KEY, result], ...CODE_DIAGNOSTIC_KEYS.map(k => [k, ANY])];
+    return { ...obj(entries), payload: CODE_PAYLOAD_KEY };
 }
 
 /**
@@ -252,17 +269,48 @@ function stepOutputShape(graph, step, draftWrap, depth = 0) {
 }
 
 /**
- * trigger.output: the declared samples of the app_event triggers. Left OPEN
- * at every level — a declared sample names what a payload usually carries
- * (Gmail's lists no `attachments`, which the poller adds), so it may confirm
- * a field or fix its spelling, never refuse one. Any other trigger kind
- * (webhook body, form, manual, a flowlet's params) is unknown.
+ * What a declared input (agent_call argument, form answer, app_trigger param)
+ * holds, from the type the author gave it. Anything that is not a plain scalar
+ * stays open below: a `file` answer is an object with more keys than we list,
+ * and the content of an array or object argument is whatever the caller sent.
+ */
+function declaredFieldShape({ type }) {
+    switch (type) {
+        case 'number': return num();
+        case 'boolean': return bool();
+        case 'string': return str();
+        case 'array': return { t: 'arr', item: ANY, sure: false };
+        case 'object':
+        case 'file': return obj([], { open: true, sure: false });
+        default: return ANY;
+    }
+}
+
+/**
+ * trigger.output: the declared samples of the app_event triggers, and the
+ * inputs an author declared on an agent_call, form or app_trigger.
+ *
+ * Left OPEN or unsure at every level — a declared sample names what a payload
+ * usually carries (Gmail's lists no `attachments`, which the poller adds), and
+ * a declared input is something the caller is ASKED to send, not held to (the
+ * runtime does not validate an agent's arguments, and an app action also adds
+ * its own `_`-prefixed audit keys). So a declaration may confirm a field or fix
+ * its spelling (`querry` → `query`), never refuse one. Any other trigger kind
+ * (webhook body, manual, a flowlet's params) is unknown, and so is a declared
+ * trigger that declares nothing yet.
  */
 function triggerOutputShape(graph) {
     const triggers = [graph && graph.trigger, ...(Array.isArray(graph && graph.triggers) ? graph.triggers : [])].filter(Boolean);
     if (!triggers.length) return ANY;
+    const { declaredTriggerFields } = require('./triggerCatalog');
     let shape = null;
     for (const t of triggers) {
+        if (t.kind === 'agent_call' || t.kind === 'form' || t.kind === 'app_trigger') {
+            const declared = declaredTriggerFields(t);
+            if (!declared.length) return ANY;
+            shape = S.merge(shape, obj(declared.map(f => [f.name, declaredFieldShape(f)]), { open: t.kind === 'app_trigger', sure: false }));
+            continue;
+        }
         if (t.kind !== 'app_event') return ANY;
         let ev = null;
         try { ev = require('../triggerSources').getEventDef(t.appEvent && t.appEvent.provider, t.appEvent && t.appEvent.event); }
@@ -341,6 +389,14 @@ function candidateFixes(tokens, r, opts) {
         const key = String(tok.key);
         const ci = keyCi(node, key);
         if (ci) out.push({ tokens: splice(tokens, r.at, 1, { type: 'prop', key: ci }), why: `the field is spelled "${ci}"` });
+        // A code step's own fields are its envelope; anything else the AI
+        // names is a field of what the code returned.
+        if (node.payload && !ci) {
+            out.push({
+                tokens: splice(tokens, r.at, 0, { type: 'prop', key: node.payload }),
+                why: `a code step hands on what its code returned under .${node.payload}`,
+            });
+        }
         // Moving the key into a list entry is a repair only where the shape
         // is complete: on one observed run (or a description) the key may
         // sit where the AI put it on another run — then it is a did-you-mean.
@@ -478,6 +534,13 @@ function checkAgainst(root, tokens, from, opts = {}) {
             // Loop and a list step read their source through bind.walkList,
             // which parses it. Only text known to hold no list is not one.
             if (opts.wantList && r.status === 'ok' && r.node) {
+                // A code step's list is what its code returned, not its envelope.
+                if (r.node.t === 'obj' && r.node.payload) {
+                    const p = formatPath(cur);
+                    cur = [...cur, { type: 'prop', key: r.node.payload }];
+                    fixes.push({ why: `${p} is a code step's envelope; what its code returned is ${formatPath(cur)}` });
+                    continue;
+                }
                 if (r.node.t === 'obj') {
                     const lists = [...r.node.keys].filter(([, v]) => v && v.t === 'arr');
                     if (lists.length === 1) {

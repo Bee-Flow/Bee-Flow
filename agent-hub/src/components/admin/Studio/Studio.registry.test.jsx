@@ -6,8 +6,10 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 // Sidebar.studioNav.test.jsx). What the shell still owns, and what this file
 // asserts: resolving the active section from the registry (built-ins +
 // runtime modules), lazy-mounting it behind the local Suspense boundary,
-// rendering it EVEN when its gate is false (the server 403s the data), and
-// aggregating the per-app fullscreen-editing flags into onEditingChange.
+// refusing a direct URL to a section the person's ROLE does not open (while
+// still rendering one their licence lacks — the section or the server's 403
+// says why), and aggregating the per-app fullscreen-editing flags into
+// onEditingChange.
 
 // Stub every registry app with a marker — these paths must match the lazy()
 // import specifiers in studioApps.jsx (they resolve to the same modules).
@@ -33,6 +35,20 @@ vi.mock('./Playbooks/PlaybooksStudio', () => ({ default: (p) => <div data-testid
 vi.mock('./StudioStart', () => ({ default: () => <div data-testid="app-start" /> }));
 
 import Studio from './index.jsx';
+import EntitlementsContext from '../../licensing/EntitlementsContext';
+
+// The entitlements have answered (nothing licensed, nothing effective), so the
+// shell may pick a redirect target instead of waiting.
+const ANSWERED = { loading: false, error: null, can: () => false, lockReason: () => null };
+const renderAnswered = (props) => render(
+    <EntitlementsContext.Provider value={ANSWERED}>
+        <Studio onNavigate={vi.fn()} {...props} />
+    </EntitlementsContext.Provider>
+);
+const memberWith = (perms) => ({
+    user: { orgRole: 'member', permissions: perms },
+    hasPermission: (p) => perms.includes(p),
+});
 
 const renderStudio = (props = {}) => render(
     <Studio
@@ -94,11 +110,49 @@ describe('Studio shell — registry-driven sections', () => {
         expect(screen.queryByTestId('app-agents')).toBeNull();
     });
 
-    it('still renders the active section for a user its gate would exclude (server 403s the data)', async () => {
-        // No licence features, no permissions — the sidebar would hide this
-        // section, but a deep link into it must still render the app.
-        renderStudio({ section: 'webpages', user: {}, hasPermission: () => false });
+    it('still renders a section the LICENCE excludes (the section or the server 403 says why)', async () => {
+        // No licence features — the sidebar would lock or hide this section —
+        // but the role opens it, so a deep link still renders the app.
+        renderStudio({ section: 'webpages', user: { permissions: ['use_webpages'] }, hasPermission: (p) => p === 'use_webpages' });
         expect(await screen.findByTestId('app-webpages')).toBeTruthy();
+    });
+
+    it('does not render a section the ROLE does not open: it sends them to their own first section', async () => {
+        const onNavigate = vi.fn();
+        renderAnswered({ section: 'webpages', onNavigate, ...memberWith(['manage_knowledge']) });
+        await vi.waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/knowledge', { replace: true }));
+        expect(screen.queryByTestId('app-webpages')).toBeNull();
+    });
+
+    it('shows the no-access state when nothing in Studio is theirs', async () => {
+        const onNavigate = vi.fn();
+        renderAnswered({ section: 'meetingNotes', onNavigate, ...memberWith([]) });
+        expect(await screen.findByTestId('studio-no-access')).toBeTruthy();
+        expect(screen.queryByTestId('app-meetingNotes')).toBeNull();
+        expect(onNavigate).not.toHaveBeenCalled();
+    });
+
+    it('sends a non-builder from Start to their first section', async () => {
+        const onNavigate = vi.fn();
+        renderAnswered({ section: 'start', onNavigate, ...memberWith(['manage_knowledge']) });
+        await vi.waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/knowledge', { replace: true }));
+        expect(screen.queryByTestId('app-start')).toBeNull();
+    });
+
+    it('waits for the entitlements before choosing where to send someone', async () => {
+        // The default context is still loading: a refusal is already certain
+        // (it is the role's), the destination is not.
+        const onNavigate = vi.fn();
+        render(<Studio section="webpages" onNavigate={onNavigate} {...memberWith(['manage_knowledge'])} />);
+        await new Promise((r) => setTimeout(r, 20));
+        expect(onNavigate).not.toHaveBeenCalled();
+        expect(screen.queryByTestId('app-webpages')).toBeNull();
+        expect(screen.queryByTestId('studio-no-access')).toBeNull();
+    });
+
+    it('renders a section of their own for a member', async () => {
+        renderAnswered({ section: 'knowledge', ...memberWith(['manage_knowledge']) });
+        expect(await screen.findByTestId('app-knowledge')).toBeTruthy();
     });
 
     it('fires the aggregate editing flag while an app reports editing', async () => {

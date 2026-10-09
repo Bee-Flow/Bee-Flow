@@ -1,6 +1,7 @@
 // The http_request editor: the call itself (URL, method, credential, headers,
 // body), its options, and the two Advanced ticks about not calling twice.
 import { Plus, X } from 'lucide-react';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
@@ -8,13 +9,17 @@ import { FormRow, inputClass } from '../formPrimitives';
 import HttpAuthPicker from '../HttpAuthPicker';
 import { AskOnceRow } from './askOnceRow';
 import { CacheIntoRow } from './cacheIntoRow';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useState } from 'react';
+import { CurlImportDialog } from './CurlImportDialog';
+import { mergeMovedQuery } from './httpQueryLib';
+import { HttpQuerySection } from './httpQuerySection';
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
 const HTTP_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set(), catalog = null }) {
     const { t } = useTranslation();
+    const [curlOpen, setCurlOpen] = useState(false);
     const method = (draft.method || 'GET').toUpperCase();
     const headers = draft.headers || {};
     const headerEntries = Object.entries(headers);
@@ -44,6 +49,20 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
     const cacheInto = !blockPrivateTargets
         ? { disabled: true, disabledReason: 'Nothing is kept while private targets are allowed.' }
         : { disabled: false, disabledReason: writeCaution };
+
+    // Secrets were already left out by the parser; headers merge over the existing ones.
+    const applyCurl = (p) => {
+        set('method', p.method);
+        set('url', p.url);
+        if (p.query) {
+            const q = draft.query;
+            const hasExisting = !!q && ((q.mode === 'json' && (q.json || '').trim()) || (q.items || []).some((r) => r.key.trim()));
+            const asJson = p.query.mode === 'json' ? p.query : { mode: 'json', json: JSON.stringify(Object.fromEntries((p.query.items || []).map((r) => [r.key, r.value]))), arrayFormat: 'indices' };
+            set('query', hasExisting ? (mergeMovedQuery(q, asJson) || p.query) : p.query);
+        }
+        if (Object.keys(p.headers).length) set('headers', { ...headers, ...p.headers });
+        if (p.body) set('body', p.body);
+    };
 
     const renameHeader = (oldKey, newKey) => {
         if (!newKey || newKey === oldKey) return;
@@ -78,12 +97,18 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                         listAs="json"
                     />
                 </FormRow>
+                <button type="button" onClick={() => setCurlOpen(true)} className="text-xs text-[var(--accent)] hover:opacity-80 transition mb-2">
+                    {t('http_query.curl_button', 'Import cURL')}
+                </button>
+                <CurlImportDialog open={curlOpen} onClose={() => setCurlOpen(false)} onApply={applyCurl} />
                 <FormRow label={t('automations.http_request_fields.method', 'Method')} required>
                     <select value={method} onChange={(e) => set('method', e.target.value)} className={inputClass()}>
                         {HTTP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                 </FormRow>
             </AccordionSection>
+
+            <HttpQuerySection draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
 
             <AccordionSection
                 stepType="http_request"

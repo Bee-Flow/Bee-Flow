@@ -179,9 +179,12 @@ export const TOUR_STEPS = [
     },
 ];
 
-// Mirrors the Studio nav-item visibility check in Sidebar.jsx so we never point
-// a user at a Studio they can't open (or ask them to create an agent they
-// can't create).
+// The BUILDER half of the sidebar's Studio rule — a copy of
+// studioNav.isStudioBuilder, kept here because this module also loads in the
+// node-environment catalogue tests and studioNav pulls in the browser-only
+// registry. These steps walk through building agents and skills, so a member
+// who has Studio only for a section their role opens (Meeting Notes, say)
+// must not be sent there, nor asked to create an agent they cannot create.
 export function canUseStudio(user) {
     const perms = user?.permissions || [];
     return (

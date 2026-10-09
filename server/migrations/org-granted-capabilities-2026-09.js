@@ -21,11 +21,13 @@
  * A blind append is idempotent; a marker-bounded append is idempotent AND
  * respects later admin intent.
  *
- * Rows still at '[]'/NULL get the seeded trio plus the new id: schema.js's
- * own backfill rewrites exactly those rows to the trio at every boot, so
- * appending only the new id would stop that backfill from matching and cost
- * the org its trio. (In the boot/migrate ladders the stores run first, so
- * such rows are normally already the trio by the time this runs.)
+ * Rows still at NULL get the seeded trio plus the new id: schema.js's own
+ * backfill rewrites exactly those rows to the trio at every boot, so appending
+ * only the new id would stop that backfill from matching and cost the org its
+ * trio. A '[]' row is NOT pending: schema.js leaves it alone, because it is
+ * how an admin's deliberate "all off" is stored, so it only gets the new id.
+ * (In the boot/migrate ladders the stores run first, so a NULL row is normally
+ * already the trio by the time this runs.)
  *
  * Orgs created AFTER the marker rely on the column DEFAULT — growing
  * USER_FACING_CORE therefore also means growing that DEFAULT (stores/user/
@@ -77,10 +79,11 @@ async function up({ dryRun = false } = {}) {
             const orgs = await getAll(`SELECT id, "org_granted_capabilities" FROM organizations`);
             for (const o of (orgs || [])) {
                 const list = parseList(o.org_granted_capabilities);
-                // '[]'/NULL means "seed still pending" (schema.js rewrites those
-                // to the trio every boot) — preserve that seed alongside the
-                // new id instead of leaving a list the backfill no longer matches.
-                const base = (Array.isArray(list) && list.length > 0) ? list : SEEDED_DEFAULTS;
+                // NULL means "seed still pending" (schema.js rewrites it to the
+                // trio every boot): preserve that seed alongside the new id
+                // instead of leaving a list the backfill no longer matches. An
+                // empty array is an admin's explicit "all off" and stays a base.
+                const base = Array.isArray(list) ? list : SEEDED_DEFAULTS;
                 if (base.includes(id)) continue;
                 if (dryRun) {
                     console.log(`[org-granted-capabilities] DRY-RUN org ${o.id}: would append '${id}'`);

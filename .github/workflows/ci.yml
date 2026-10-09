@@ -135,6 +135,8 @@ jobs:
               - 'server/appStudio/{appDesignSpec,componentSpecs,mailboxTableTemplates}.js'
               - 'server/appStudio/componentSpecs/**'
               - 'server/automation/builtinStepTools.js'
+              # required by builtinStepTools.js (the replaceable step types)
+              - 'server/automation/builderTools/stepTypeTable.js'
               - 'server/core/cms/themeSpec.js'
               - 'server/core/documents/deckThemeOptions.js'
               # read as text by src/api/serverContract.test.ts

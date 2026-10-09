@@ -330,6 +330,8 @@ function extractTypeFormState(step) {
         method: step.method || 'GET',
         headers: step.headers && typeof step.headers === 'object' ? step.headers : {},
         body: step.body || '',
+        // Structured query parameters; null = the section is off.
+        query: step.query && typeof step.query === 'object' ? step.query : null,
         timeoutMs: typeof step.timeoutMs === 'number' ? step.timeoutMs : 10_000,
         blockPrivateTargets: step.blockPrivateTargets !== false,
         parseResponse: step.parseResponse || 'auto',
@@ -777,6 +779,8 @@ export function buildPatch(step, draft) {
         patch.method = (draft.method || 'GET').toUpperCase();
         patch.headers = draft.headers && typeof draft.headers === 'object' ? draft.headers : {};
         patch.body = draft.body || '';
+        // Off (null) is stored as absence, so a step without parameters stays as it was.
+        patch.query = draft.query && typeof draft.query === 'object' ? draft.query : undefined;
         patch.timeoutMs = clamp(Number(draft.timeoutMs) || 10_000, 1000, 60_000);
         // Optional per-step security toggle (default true = blocked) — not
         // mandatory, but always persisted explicitly so the definition

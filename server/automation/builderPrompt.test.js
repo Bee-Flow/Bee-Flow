@@ -347,7 +347,8 @@ t('caps are announced, never silent: 20 tables, 30 columns per table', () => {
     const many = Array.from({ length: 23 }, (_, i) => ({ ...FACTUREN, id: `tbl_${i}`, key: `t${i}` }));
     const out = renderDatatablesBlock(many);
     assert.ok(out.includes('tbl_19') && !out.includes('tbl_20 '), 'twenty listed');
-    assert.ok(out.includes('…and 3 more tables — search the document library for more'), 'overflow named');
+    assert.ok(out.includes('…and 3 more tables not listed'), 'overflow named');
+    assert.ok(!/document library/i.test(out), 'and it points at no tool that does not exist');
     const wide = { ...FACTUREN, columns: Array.from({ length: 34 }, (_, i) => ({ key: `c${i}`, name: `C${i}`, type: 'text' })) };
     const w = renderDatatablesBlock([wide]);
     assert.ok(w.includes('c29 ("C29")') && !w.includes('c30 ("C30")'), 'thirty columns listed');
@@ -385,7 +386,10 @@ t('the datatable prose points at the block, not "the catalog", and the lean batc
     const lean = buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true });
     // ONE datatable bullet since 2026-09-17 (the small-band diet): exists →
     // add_row with id AND key; missing → create first; keys, refs, forEach.
-    assert.ok(lean.includes('DATATABLES. Table exists in the "Datatables you may use" block → `add_row` into it with its id AND key. Table missing → `builder_create_datatable({name, fields:[{name,type}]})` first'), 'lean table bullet');
+    assert.ok(lean.includes('DATATABLES. Table exists AND the user named it (or the flow uses it) → `add_row` into it with its id AND key; an existing table they did not name → ask with `builder_ask_questions {datatableIds}`. Table missing → `builder_create_datatable({name, fields:[{name,type}]})` first'), 'lean table bullet');
+    assert.ok(lean.includes('in a preview it is staged with a "pending:<n>" id and created when the user applies'), 'the staged create is taught');
+    assert.ok(lean.includes('to turn such a step into a datatable step use `builder_update_step({stepId, patch:{type:"datatable", op, datatableId, datatableKey, values}})` — same id, same wiring'), 'the lean prompt teaches the conversion with the tool the lean menu has (no builder_replace_step there)');
+    assert.ok(full.includes('builder_replace_step({stepId,\n                     newType:"datatable", spec:{op, datatableId, datatableKey, values}}) — same\n                     id, same wiring.'), 'the full prompt teaches the conversion too');
     assert.ok(lean.includes('values = `{kind:"ref"}` bindings, one row per item via forEach over the extraction\'s `output.results`'), 'the bullet carries the write shape');
     assert.ok(lean.includes('tableId:{kind:"literal", value:"Facturen"}'), 'the Nextcloud tableId sentence is kept');
     assert.ok(lean.includes('Entries apply in order; if entry i fails, the entries before it STAY built'), 'partial-batch wording');
@@ -488,7 +492,7 @@ t('menu:"full" — the reasoning band reads the lean prose beside the FULL menu,
     assert.ok(/ONE `builder_update_steps` call for the failing steps/.test(full), 'the batch update is the repair on the full menu');
     // What both menus share: the trigger block, the naming rule, the placing
     // rules and the one datatable bullet.
-    for (const needle of ['## Triggers (builder_propose_trigger', '## Naming', '## Placing steps', 'DATATABLES. Table exists in the "Datatables you may use" block']) {
+    for (const needle of ['## Triggers (builder_propose_trigger', '## Naming', '## Placing steps', 'DATATABLES. Table exists AND the user named it']) {
         assert.ok(full.includes(needle) && lean.includes(needle), `both menus: ${needle}`);
     }
     // Dynamic placement composes with either menu.
@@ -555,6 +559,32 @@ t('the full prompt teaches the rule shapes; neither prompt filters with === or l
         assert.ok(p.includes('expr:"equals(item.status, \\"success\\")"'));
         assert.ok(!/(lower|upper)\((item|trigger|steps)\./.test(p), 'no rule wraps a field in lower()/upper()');
     }
+});
+
+t('every prompt variant teaches agent_call: declared arguments, trigger.output.<name>, and who links the agent', () => {
+    // The full prompt doubles as the MCP guide (automations_get_guide), so one
+    // assertion covers the in-product builder and the MCP surface.
+    const variants = {
+        full: buildFullSystemPrompt({ catalog: CATALOG, codeStepEnabled: false }),
+        lean: buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true }),
+        leanFullMenu: buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true, menu: 'full' }),
+    };
+    for (const [name, p] of Object.entries(variants)) {
+        assert.ok(/agent_call \{toolName, description, params|kind:"agent_call"/.test(p), `${name}: proposes agent_call`);
+        assert.ok(/trigger\.output\.<name>/.test(p) && /no `?trigger\.payload/.test(p), `${name}: arguments arrive as trigger.output.<name>`);
+        assert.ok(/"Who can call this"/.test(p), `${name}: the person links the agent, the builder cannot`);
+        if (name !== 'full') assert.ok(/agent_call \| app_trigger/.test(p), `${name}: both kinds are in the workflow / trigger.kind list`);
+    }
+});
+
+t('the checklist rule is a build rule: the full and lean prompts defer to the work-mode note, and ask for ONE round of questions', () => {
+    const full = buildFullSystemPrompt({ catalog: CATALOG, codeStepEnabled: false });
+    const lean = buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true });
+    assert.ok(full.includes('CHECKLIST FIRST (when building)') && !full.includes('- PLAN FIRST.'), 'full: the checklist rule is named for what it is');
+    for (const [name, p] of Object.entries({ full, lean })) {
+        assert.ok(/In the Plan first work mode the plan is a written plan for the user to review\s+instead/.test(p), `${name}: Plan first has its own plan`);
+    }
+    assert.ok(full.includes('ask ALL open questions in one call'), 'full: bundle the questions when the work mode offers the card');
 });
 
 console.log(`\nbuilderPrompt.test.js: ${passed} assertions passed`);

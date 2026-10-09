@@ -23,6 +23,7 @@ const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 const { storedFlag, FLAG_DEFAULTS } = require('./storedFlag');
+const { makeAgentAccess } = require('../../agents/agentAccess');
 
 const router = express.Router();
 
@@ -572,8 +573,13 @@ function validateAgentConfigReferences(agent, config) {
  * automation really declares `trigger.kind === 'agent_call'`, and it produces the
  * EXACT tool name the runtime will offer — so the prompt line names the action
  * the model actually has instead of one it has to invent.
+ *
+ * It must also be BOUND to this agent (automation_agent_bindings): the runtime
+ * offers an automation only to the agents it is bound to, so a hand-off to an
+ * unbound one would put "hand off via <tool>" in the prompt for a tool that never
+ * exists. See `ensureHandoffBinding` for when a missing binding is made here.
  */
-async function verifyHandoffAutomation(agent, automationId) {
+async function verifyHandoffAutomation(agent, automationId, opts = {}) {
     if (!automationId || !agent || !agent.owner_id) return null;
     try {
         const automationStore = require('../../stores/automationStore');
@@ -585,6 +591,7 @@ async function verifyHandoffAutomation(agent, automationId) {
         const tool = automationToTool(automation);
         const label = tool && tool.function && tool.function.name;
         if (!label) return null;
+        if (!(await ensureHandoffBinding(agent, automation, opts))) return null;
         return { id: automationId, label, title: automation.title || null };
     } catch (e) {
         // "I could not check" is not "yes". No grant, no prompt line promising
@@ -592,6 +599,38 @@ async function verifyHandoffAutomation(agent, automationId) {
         log.warn(`[Agents] hand-off automation ${automationId} could not be verified:`, e.message);
         return null;
     }
+}
+
+/**
+ * Is `automation` bound to this agent, binding it now when this save is what
+ * CHOOSES it?
+ *
+ * The binding is the grant and the persona only points at it, so:
+ *   - already bound: yes;
+ *   - not bound and the persona merely echoes a hand-off that was already stored
+ *     (an autosave): no. The owner unlinked it since, and a save of something
+ *     else must not undo that;
+ *   - not bound and the hand-off is newly picked here: bind it through
+ *     `agentBinding.setAgentBindings`, the one write gate (edit rights on the
+ *     automation AND on this agent, the automation's owner may use the agent, no
+ *     tool-name clash). Any refusal throws and the caller drops the hand-off.
+ * A new agent has no id yet, so nothing can be bound for it: link it after the
+ * first save.
+ */
+async function ensureHandoffBinding(agent, automation, { actorId = null, session = null, newSelection = false } = {}) {
+    if (!agent.id) return false;
+    const automationStore = require('../../stores/automationStore');
+    if (await automationStore.hasAgentBinding(automation.id, agent.id)) return true;
+    if (!newSelection || !actorId) return false;
+    const agentBinding = require('../../automation/agentBinding');
+    const current = await automationStore.listBindingsForAutomation(automation.id);
+    await agentBinding.setAgentBindings({
+        automation,
+        agentIds: [...current.map((b) => b.agentId), agent.id],
+        actorId,
+        session,
+    });
+    return true;
 }
 
 /**
@@ -607,6 +646,9 @@ async function verifyHandoffAutomation(agent, automationId) {
  * @param {string} [opts.sentSystemPrompt] the `systemPrompt` field of the SAME
  *   request, when it sent one. Only an UPDATE passes it — a create has no
  *   stored state to compare against.
+ * @param {string} [opts.actorId] the person saving; without one a hand-off
+ *   automation that is not bound to the agent is dropped instead of linked.
+ * @param {object} [opts.session] their session, for the edit-rights checks.
  * @returns {Promise<{persona: object, config: object|undefined, systemPrompt: string|null, warnings: string[]}>}
  *   `systemPrompt` is null for "leave the stored prompt alone" — see
  *   `renderedPromptFor`; `config` comes back untouched when the request did not
@@ -647,12 +689,19 @@ async function resolvePersonaWrite(agent, rawPersona, config, opts = {}) {
 
     let handoff = null;
     if (persona.unknown.mode === 'handoff' && persona.unknown.automationId) {
-        handoff = await verifyHandoffAutomation(agent, persona.unknown.automationId);
+        const storedUnknown = agent && agent.persona !== undefined && agent.persona !== null
+            ? personaPrompt.normalisePersona(agent.persona).persona.unknown
+            : null;
+        const newSelection = !(storedUnknown && storedUnknown.mode === 'handoff'
+            && storedUnknown.automationId === persona.unknown.automationId);
+        handoff = await verifyHandoffAutomation(agent, persona.unknown.automationId, {
+            actorId: opts.actorId || null, session: opts.session || null, newSelection,
+        });
         if (!handoff) {
             // Dropped, not kept-and-ignored: a stored id that resolves to
             // nothing is a hand-off the editor keeps drawing and the runtime
             // never performs.
-            warnings.push(`persona.unknown: automation ${persona.unknown.automationId} is not an active hand-off automation of this agent's owner — dropped`);
+            warnings.push(`persona.unknown: automation ${persona.unknown.automationId} is not an active agent tool of this agent's owner that is linked to this agent (a new agent has to be saved first) — dropped`);
             persona.unknown.automationId = null;
         }
     }
@@ -717,57 +766,16 @@ async function resolvePersonaWrite(agent, rawPersona, config, opts = {}) {
 
 const { applyConfigValidation } = publishable;
 
-// Prefetch the per-request inputs canModifyAgent needs so list endpoints can
-// compute `can_edit` for many agents without N× user/permission lookups.
-async function buildCanModifyContext(userId, req) {
-    if (!userId) return { hasManage: false, orgIds: new Set(), user: null };
-    const { hasPermission } = require('../../auth');
-    const [hasManage, orgIds, user] = await Promise.all([
-        hasPermission(userId, 'manage_agents', req.session),
-        resolveUserOrgIds(req).catch(() => new Set()),
-        userStore.getUser(userId).catch(() => null),
-    ]);
-    return { hasManage, orgIds, user };
-}
-
-// The single authoritative per-agent write gate, fronting every mutating agent
-// endpoint (PUT/DELETE, tool params, publish, knowledge routes). Rules in order:
-//   1. Owners may always modify their own agent (checked FIRST — owners
-//      without manage_agents must keep their publish/knowledge flows).
-//   2. Super-admins may modify anything.
-//   3. Everyone else needs the manage_agents permission AND membership in the
-//      agent's organization. (BFSF-271: previously ANY manage_agents holder
-//      passed, including users from other orgs — a cross-org IDOR.)
-//   4. Org-less agents (system/swarm/personal drafts) are owner/super-admin only.
-//   5. Agent Editors cannot modify unpublished drafts from others.
-// `ctx` (optional) is a buildCanModifyContext() result for list endpoints.
-async function canModifyAgent(agent, userId, req, ctx = null) {
-    if (agent.owner_id === userId) return true;
-
-    // Super admin bypass
-    if (req.session?.isAdmin || req.session?.user?.role === SystemRoles.SUPER_ADMIN) return true;
-
-    const c = ctx || await buildCanModifyContext(userId, req);
-
-    // Non-owners always need manage_agents. Previously enforced ad-hoc by
-    // (most) callers; centralised here so every caller inherits it.
-    if (!c.hasManage) return false;
-
-    // Org scoping: the requester must belong to the agent's organization.
-    // Org-less agents have no org to scope by → owner/super-admin only.
-    if (!agent.organization_id) return false;
-    // resolveUserOrgIds returns null only for super-admins (handled above);
-    // keep the null-guard so a degenerate ctx can never widen access.
-    if (c.orgIds === null || !c.orgIds.has(agent.organization_id)) return false;
-
-    // Agent Editor restriction: cannot modify unpublished drafts from others
-    const orgRole = c.user ? c.user.orgRole : null;
-    if (orgRole === OrgRoles.AGENT_EDITOR && !agent.is_published) {
-        return false;
-    }
-
-    return true;
-}
+// The edit gate (canModifyAgent) and its prefetch (buildCanModifyContext) live in
+// agents/agentAccess.js, so code below routes/ (the automation bindings) asks the
+// same question. This router builds its instance from ITS imports, which is what
+// keeps the rules testable here (crud.authz.test.js is their contract).
+const { buildCanModifyContext, canModifyAgent } = makeAgentAccess({
+    hasPermission: (...args) => require('../../auth').hasPermission(...args),
+    resolveUserOrgIds: (req) => resolveUserOrgIds(req),
+    getUser: (id) => userStore.getUser(id),
+    roles: () => ({ SystemRoles, OrgRoles }),
+});
 
 // Structured 403 body shared by the mutating endpoints so the client can
 // translate the message and flip the editor into read-only mode.
@@ -885,7 +893,7 @@ router.put('/:id', requirePermission('manage_agents'), validate({ body: AgentUpd
                 { ...agent, organization_id: assignOrgId },
                 persona,
                 configToSave,
-                { sentSystemPrompt: systemPrompt },
+                { sentSystemPrompt: systemPrompt, actorId: userId, session: req.session },
             );
             personaToSave = resolved.persona;
             personaPrompt = resolved.systemPrompt;
