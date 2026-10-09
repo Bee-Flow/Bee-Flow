@@ -64,7 +64,7 @@ export default function AuthenticatorAppSetup({ otpauthUrl, qr, secret }: Props)
             </ol>
             {handheld && addLink}
             <div className="flex justify-center">
-                <img src={qr} alt="MFA QR code" width={200} height={200} className="rounded-lg border border-[var(--border-subtle)] bg-white p-2" />
+                <img src={qr} alt={t('mfa.authenticator_qr_alt', 'MFA QR code')} width={200} height={200} className="rounded-lg border border-[var(--border-subtle)] bg-white p-2" />
             </div>
             {!handheld && addLink}
             <details className="text-xs text-[var(--text-muted)]" open={handheld}>

@@ -31,9 +31,9 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }) {
         setError(null);
         api.getApproval(approvalId)
             .then(d => { if (alive) setData(d); })
-            .catch(e => { if (alive) setError(e.message || 'Could not load this approval'); });
+            .catch(e => { if (alive) setError(e.message || t('studio_misc.errors.load_approval', 'Could not load this approval')); });
         return () => { alive = false; };
-    }, [api, approvalId]);
+    }, [api, approvalId, t]);
 
     if (error) {
         return (

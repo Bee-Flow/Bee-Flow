@@ -74,7 +74,7 @@ export function IntegrationsScreen() {
                 'mobile.integrations.disconnect_message',
                 'Your agents and automations lose access to it immediately. Anything already saved in Bee Flow stays.',
             ),
-            confirmLabel: t('mobile.integrations.disconnect', 'Disconnect'),
+            confirmLabel: t('automations.node_context_menu.disconnect', 'Disconnect'),
         });
         if (ok) disconnect.mutate(connector.provider);
     };

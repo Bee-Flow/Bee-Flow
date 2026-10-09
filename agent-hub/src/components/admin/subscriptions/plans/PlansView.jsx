@@ -59,20 +59,20 @@ export function PlansView() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(form),
                 });
-                toast.success('Plan updated.');
+                toast.success(t('admin_subscriptions.plans_updated', 'Plan updated.'));
             } else {
                 await apiJson('/api/subscriptions/plans', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(form),
                 });
-                toast.success('Plan created.');
+                toast.success(t('admin_subscriptions.plans_created', 'Plan created.'));
             }
             setEditing(null);
             setSeedPlan(null);
             reload();
         } catch (e) {
-            toast.error(e.message || 'Save failed');
+            toast.error(e.message || t('admin_subscriptions.plans_save_failed', 'Save failed'));
         } finally {
             setSaving(false);
         }
@@ -90,13 +90,13 @@ export function PlansView() {
         setSaving(true);
         try {
             await apiJson(`/api/subscriptions/plans/${id}`, { method: 'DELETE' });
-            toast.success('Plan deleted.');
+            toast.success(t('admin_subscriptions.plans_deleted', 'Plan deleted.'));
             setConfirmDel(null);
             setEditing(null);
             setSeedPlan(null);
             reload();
         } catch (e) {
-            toast.error(e.message || 'Delete failed');
+            toast.error(e.message || t('admin_subscriptions.plans_delete_failed', 'Delete failed'));
         } finally {
             setSaving(false);
         }
@@ -106,10 +106,10 @@ export function PlansView() {
         setSyncingId(plan.id);
         try {
             await apiJson(`/api/subscriptions/plans/${plan.id}/sync-stripe`, { method: 'POST' });
-            toast.success('Synced to Stripe.');
+            toast.success(t('admin_subscriptions.plans_synced', 'Synced to Stripe.'));
             reload();
         } catch (e) {
-            toast.error(e.message || 'Stripe sync failed');
+            toast.error(e.message || t('admin_subscriptions.plans_sync_failed', 'Stripe sync failed'));
         } finally {
             setSyncingId(null);
         }
@@ -151,16 +151,16 @@ export function PlansView() {
             <TrialOffersPanel plans={plans} />
 
             {loading ? (
-                <Spinner label="Loading plans…" />
+                <Spinner label={t('admin_subscriptions.plans_loading', 'Loading plans…')} />
             ) : plans.length === 0 ? (
                 <EmptyState
                     icon={<Package className="w-6 h-6" />}
-                    title="No plans yet"
-                    description="Subscription plans bundle a price, a set of limits, and a list of features. Create one to start gating access for organizations and consumers."
+                    title={t('admin_subscriptions.plans_empty_title', 'No plans yet')}
+                    description={t('admin_subscriptions.plans_empty_desc', 'Subscription plans bundle a price, a set of limits, and a list of features. Create one to start gating access for organizations and consumers.')}
                     action={
                         <div className="flex items-center gap-2 justify-center">
-                            <Button variant="secondary" icon={LayoutTemplate} onClick={() => setGalleryOpen(true)}>From template</Button>
-                            <Button icon={Plus} onClick={() => { setSeedPlan(null); setEditing('new'); }}>Create your first plan</Button>
+                            <Button variant="secondary" icon={LayoutTemplate} onClick={() => setGalleryOpen(true)}>{t('admin_subscriptions.plans_from_template', 'From template')}</Button>
+                            <Button icon={Plus} onClick={() => { setSeedPlan(null); setEditing('new'); }}>{t('admin_subscriptions.plans_create_first', 'Create your first plan')}</Button>
                         </div>
                     }
                 />
@@ -171,27 +171,27 @@ export function PlansView() {
                             value={filter}
                             onChange={setFilter}
                             options={[
-                                { value: 'all',          label: 'All',          count: counts.all },
-                                { value: 'organization', label: 'Org',          icon: Building2, count: counts.organization },
-                                { value: 'consumer',     label: 'Consumer',     icon: Users,     count: counts.consumer },
+                                { value: 'all',          label: t('admin_subscriptions.plans_filter_all', 'All'), count: counts.all },
+                                { value: 'organization', label: t('admin_subscriptions.plans_filter_org', 'Org'), icon: Building2, count: counts.organization },
+                                { value: 'consumer',     label: t('admin_subscriptions.plans_filter_consumer', 'Consumer'), icon: Users,     count: counts.consumer },
                             ]}
                         />
                         <div className="flex items-center gap-2">
-                            <SearchInput value={query} onChange={setQuery} placeholder="Search plans…" className="w-56" />
+                            <SearchInput value={query} onChange={setQuery} placeholder={t('admin_subscriptions.plans_search', 'Search plans…')} className="w-56" />
                             <select
                                 value={sort}
                                 onChange={e => setSort(e.target.value)}
                                 className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[12px] text-[var(--text-secondary)] outline-none"
                             >
-                                <option value="sort_order">Sort: order</option>
-                                <option value="name">Sort: name</option>
-                                <option value="price">Sort: price</option>
+                                <option value="sort_order">{t('admin_subscriptions.plans_sort_order', 'Sort: order')}</option>
+                                <option value="name">{t('admin_subscriptions.plans_sort_name', 'Sort: name')}</option>
+                                <option value="price">{t('admin_subscriptions.plans_sort_price', 'Sort: price')}</option>
                             </select>
                         </div>
                     </div>
 
                     {visible.length === 0 ? (
-                        <EmptyState title="No plans match" description="Adjust the filter or search query." icon={<Package className="w-6 h-6" />} />
+                        <EmptyState title={t('admin_subscriptions.plans_no_match', 'No plans match')} description={t('admin_subscriptions.plans_no_match_desc', 'Adjust the filter or search query.')} icon={<Package className="w-6 h-6" />} />
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             {visible.map(plan => (
@@ -214,9 +214,9 @@ export function PlansView() {
                 onClose={() => setConfirmDel(null)}
                 onConfirm={handleDelete}
                 busy={saving}
-                title={`Delete ${confirmDel?.name || 'plan'}?`}
-                message="Organizations currently on this plan will lose their plan assignment and fall back to defaults. This cannot be undone."
-                confirmLabel="Delete plan"
+                title={t('admin_subscriptions.plans_delete_title', 'Delete {name}?', { name: confirmDel?.name || t('admin_subscriptions.plans_plan', 'plan') })}
+                message={t('admin_subscriptions.plans_delete_message', 'Organizations currently on this plan will lose their plan assignment and fall back to defaults. This cannot be undone.')}
+                confirmLabel={t('admin_subscriptions.plans_delete_confirm', 'Delete plan')}
             />
 
             <PlanTemplateGallery

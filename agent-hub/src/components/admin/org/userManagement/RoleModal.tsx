@@ -4,10 +4,10 @@ import Modal from '../../../shared/Modal';
 import type { AdminPermission, RoleFormData } from './types';
 
 const PERMISSION_GROUPS = [
-    { key: 'pages', label: '📄 Pages', color: '#3b82f6' },
-    { key: 'admin', label: '🛡️ Admin Pages', color: '#8b5cf6' },
-    { key: 'actions', label: '⚡ Actions', color: '#f59e0b' },
-    { key: 'super', label: '🔑 Super', color: '#ef4444' },
+    { key: 'pages', labelKey: 'admin_org.role_modal_group_pages', label: '📄 Pages', color: '#3b82f6' },
+    { key: 'admin', labelKey: 'admin_org.role_modal_group_admin', label: '🛡️ Admin Pages', color: '#8b5cf6' },
+    { key: 'actions', labelKey: 'admin_org.role_modal_group_actions', label: '⚡ Actions', color: '#f59e0b' },
+    { key: 'super', labelKey: 'admin_org.role_modal_group_super', label: '🔑 Super', color: '#ef4444' },
 ];
 
 export interface RoleModalProps {
@@ -44,9 +44,9 @@ export default function RoleModal({ open, onClose, showEditRole, roleData, setRo
             }
         >
             <div className="space-y-4">
-                {!showEditRole && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Role Name</label><input type="text" value={roleData.name} onChange={e => setRoleData(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="Editor" /></div>}
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Description</label><input type="text" value={roleData.description} onChange={e => setRoleData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="Can edit content" /></div>
-                <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Permissions</label>
+                {!showEditRole && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.role_modal_name', 'Role Name')}</label><input type="text" value={roleData.name} onChange={e => setRoleData(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.role_modal_name_ph', 'Editor')} /></div>}
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.role_modal_description', 'Description')}</label><input type="text" value={roleData.description} onChange={e => setRoleData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.role_modal_desc_ph', 'Can edit content')} /></div>
+                <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.role_modal_permissions', 'Permissions')}</label>
                     <div className="space-y-3 max-h-60 overflow-auto p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                         {/* Group permissions by their group field */}
                         {PERMISSION_GROUPS.map(group => {
@@ -54,7 +54,7 @@ export default function RoleModal({ open, onClose, showEditRole, roleData, setRo
                             if (groupPerms.length === 0) return null;
                             return (
                                 <div key={group.key}>
-                                    <div className="text-xs font-semibold uppercase tracking-wider mb-1.5 px-1" style={{ color: group.color }}>{group.label}</div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider mb-1.5 px-1" style={{ color: group.color }}>{t(group.labelKey, group.label)}</div>
                                     <div className="space-y-0.5">
                                         {groupPerms.map(p => (
                                             <label key={p.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">

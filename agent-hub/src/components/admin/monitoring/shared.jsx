@@ -3,6 +3,7 @@ import {
     ArrowUp, ArrowDown, Minus, ChevronDown, X, Filter,
     Users, Bot, Cpu, Activity
 } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 
@@ -386,6 +387,7 @@ function FilterSelect({ icon: Icon, value, onChange, options, placeholder }) {
 }
 
 export function FilterBar({ filters, setFilters, userOptions = [], agentOptions = [], modelOptions = [], sourceOptions = [] }) {
+    const { t } = useTranslation();
     const hasFilters = filters.user || filters.agent || filters.model || filters.source;
     const clear = () => setFilters({ user: null, agent: null, model: null, source: null });
 
@@ -399,19 +401,19 @@ export function FilterBar({ filters, setFilters, userOptions = [], agentOptions 
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '4px' }}>
                 <Filter style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted, #888)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filters</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted, #888)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('admin_monitoring.shared_filters', 'Filters')}</span>
             </div>
-            <FilterSelect icon={Users} value={filters.user} onChange={v => setFilters(f => ({ ...f, user: v }))} options={userOptions} placeholder="All Users" />
-            <FilterSelect icon={Bot} value={filters.agent} onChange={v => setFilters(f => ({ ...f, agent: v }))} options={agentOptions} placeholder="All Agents" />
-            <FilterSelect icon={Cpu} value={filters.model} onChange={v => setFilters(f => ({ ...f, model: v }))} options={modelOptions} placeholder="All Models" />
-            <FilterSelect icon={Activity} value={filters.source} onChange={v => setFilters(f => ({ ...f, source: v }))} options={sourceOptions} placeholder="All Sources" />
+            <FilterSelect icon={Users} value={filters.user} onChange={v => setFilters(f => ({ ...f, user: v }))} options={userOptions} placeholder={t('admin_monitoring.shared_all_users', 'All Users')} />
+            <FilterSelect icon={Bot} value={filters.agent} onChange={v => setFilters(f => ({ ...f, agent: v }))} options={agentOptions} placeholder={t('admin_monitoring.shared_all_agents', 'All Agents')} />
+            <FilterSelect icon={Cpu} value={filters.model} onChange={v => setFilters(f => ({ ...f, model: v }))} options={modelOptions} placeholder={t('admin_monitoring.all_models', 'All Models')} />
+            <FilterSelect icon={Activity} value={filters.source} onChange={v => setFilters(f => ({ ...f, source: v }))} options={sourceOptions} placeholder={t('admin_monitoring.all_sources', 'All Sources')} />
             {hasFilters && (
                 <button onClick={clear} style={{
                     display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px', borderRadius: '6px',
                     border: 'none', background: 'var(--bg-tertiary, rgba(255,255,255,0.04))',
                     fontSize: '10px', fontWeight: 600, color: 'var(--text-muted, #888)', cursor: 'pointer',
                 }}>
-                    <X style={{ width: 10, height: 10 }} /> Clear
+                    <X style={{ width: 10, height: 10 }} /> {t('admin_monitoring.shared_clear', 'Clear')}
                 </button>
             )}
         </div>
@@ -420,7 +422,8 @@ export function FilterBar({ filters, setFilters, userOptions = [], agentOptions 
 
 // ── Sortable Table ──────────────────────────────────────────────────────────
 
-export function SortableTable({ columns, data, onRowClick, emptyText = 'No data', maxRows = 50 }) {
+export function SortableTable({ columns, data, onRowClick, emptyText, maxRows = 50 }) {
+    const { t } = useTranslation();
     const [sortCol, setSortCol] = useState(null);
     const [sortDir, setSortDir] = useState('desc');
 
@@ -445,7 +448,7 @@ export function SortableTable({ columns, data, onRowClick, emptyText = 'No data'
         });
     }, [data, sortCol, sortDir]);
 
-    if (data.length === 0) return <Empty text={emptyText} />;
+    if (data.length === 0) return <Empty text={emptyText ?? t('admin_monitoring.shared_no_data', 'No data')} />;
 
     const gridCols = columns.map(c => c.width || '1fr').join(' ');
 
@@ -511,6 +514,7 @@ export function SortableTable({ columns, data, onRowClick, emptyText = 'No data'
 // ── Model / Agent Rows (lightweight) ────────────────────────────────────────
 
 export function ModelRow({ model: m, index, maxTokens, cost }) {
+    const { t } = useTranslation();
     const cached = m.cached_tokens || 0;
     const reasoning = m.reasoning_tokens || 0;
     return (
@@ -529,15 +533,15 @@ export function ModelRow({ model: m, index, maxTokens, cost }) {
                 <InOutBar input={m.prompt_tokens} output={m.completion_tokens} height={3} style={{ marginTop: '4px', maxWidth: '120px' }} />
                 {(cached > 0 || reasoning > 0) && (
                     <div style={{ fontSize: '10px', color: 'var(--text-muted, #888)', marginTop: '2px', display: 'flex', gap: '8px' }}>
-                        {cached > 0 && <span title="Cached input tokens">💾 {fmt(cached)}</span>}
-                        {reasoning > 0 && <span title="Reasoning / thinking tokens (billed at output rate)">🧠 {fmt(reasoning)}</span>}
+                        {cached > 0 && <span title={t('admin_monitoring.shared_cached_title', 'Cached input tokens')}>💾 {fmt(cached)}</span>}
+                        {reasoning > 0 && <span title={t('admin_monitoring.shared_reasoning_title', 'Reasoning / thinking tokens (billed at output rate)')}>🧠 {fmt(reasoning)}</span>}
                     </div>
                 )}
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>{fmt(m.total_tokens)}</div>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted, #888)' }}>
-                    {m.calls} calls{cost ? ` · ${fmtCost(cost)}` : ''}
+                    {t('admin_monitoring.shared_n_calls', '{n} calls', { n: m.calls })}{cost ? ` · ${fmtCost(cost)}` : ''}
                 </div>
             </div>
         </div>
@@ -545,6 +549,7 @@ export function ModelRow({ model: m, index, maxTokens, cost }) {
 }
 
 export function AgentRow({ agent: a, index, detailed }) {
+    const { t } = useTranslation();
     const style = getAgentStyle(a.agent_type);
     return (
         <div style={{
@@ -559,14 +564,14 @@ export function AgentRow({ agent: a, index, detailed }) {
                 <span style={{
                     fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: detailed ? '200px' : '130px',
-                }}>{a.agent_name || a.agent_id || 'Unknown'}</span>
+                }}>{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', flexShrink: 0 }}>
                 {detailed && (
-                    <span style={{ color: 'var(--text-muted, #888)' }}>{fmtDuration(a.avg_duration_ms)} avg</span>
+                    <span style={{ color: 'var(--text-muted, #888)' }}>{t('admin_monitoring.shared_avg', '{duration} avg', { duration: fmtDuration(a.avg_duration_ms) })}</span>
                 )}
-                <span style={{ color: COLORS.green, fontWeight: 600 }}>{fmt(a.total_tokens)} tok</span>
-                <span style={{ color: 'var(--text-muted, #888)' }}>{a.calls} calls</span>
+                <span style={{ color: COLORS.green, fontWeight: 600 }}>{t('admin_monitoring.shared_n_tok', '{n} tok', { n: fmt(a.total_tokens) })}</span>
+                <span style={{ color: 'var(--text-muted, #888)' }}>{t('admin_monitoring.shared_n_calls', '{n} calls', { n: a.calls })}</span>
                 <span style={{ color: COLORS.amber, fontWeight: 600, minWidth: '50px', textAlign: 'right' }}>{fmtCost(a.estimated_cost || 0)}</span>
             </div>
         </div>

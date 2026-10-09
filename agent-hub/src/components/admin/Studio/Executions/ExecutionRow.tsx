@@ -85,6 +85,7 @@ type MenuItem = { label: string; icon: React.ReactNode; onClick: () => void; dan
 
 /** The ⋯ menu of one row, and the state of the action it started. */
 function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: ExecutionRowProps) {
+    const { t } = useTranslation();
     const [pending, setPending] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
 
@@ -95,7 +96,7 @@ function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: Ex
         if (optimistic) patchRow(run.id, optimistic);
         try { await fn(); } catch (e) {
             // Swallowing left the button silently resetting: say what failed.
-            setActionError(`Couldn't do that: ${(e as Error)?.message || 'unknown error'}`);
+            setActionError(t('studio_misc.runrow.couldnt', 'Couldn\'t do that: {message}', { message: (e as Error)?.message || t('studio_misc.runrow.unknown_error', 'unknown error') }));
         } finally { setPending(false); refresh(); }
     };
 
@@ -110,19 +111,19 @@ function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: Ex
     const liveId = run.journeyRunId || run.id;
     const automationId = run.automationId || '';
     const items: Array<MenuItem | false | ''> = [
-        run.status === 'error' && { label: 'Run it again', icon: <RotateCcw size={14} />, onClick: () => act(() => api.retryRun(automationId, liveId)) },
-        running && { label: 'Stop it', icon: <Ban size={14} />, onClick: () => act(() => api.cancelRun(liveId), { status: 'cancelled' }), danger: true },
-        (isAwaitStep || isAwaitRun) && { label: 'Approve', icon: <Check size={14} />, onClick: () => act(() => (isAwaitRun ? api.approveRun(liveId, 'approve') : api.approveStep(liveId, 'approve'))) },
+        run.status === 'error' && { label: t('studio_misc.runrow.run_again', 'Run it again'), icon: <RotateCcw size={14} />, onClick: () => act(() => api.retryRun(automationId, liveId)) },
+        running && { label: t('studio_misc.runrow.stop', 'Stop it'), icon: <Ban size={14} />, onClick: () => act(() => api.cancelRun(liveId), { status: 'cancelled' }), danger: true },
+        (isAwaitStep || isAwaitRun) && { label: t('studio_misc.runrow.approve', 'Approve'), icon: <Check size={14} />, onClick: () => act(() => (isAwaitRun ? api.approveRun(liveId, 'approve') : api.approveStep(liveId, 'approve'))) },
         // A STEP rejection needs a reason (server-enforced), so the menu routes
         // to the run view's decision panel. A RUN-level first-run rejection is
         // one word, decided here in one click, meaning the same as in the run
         // view's bar: this run is closed and the confirm gate stays on.
-        isAwaitRun && { label: 'Reject', icon: <X size={14} />, onClick: () => act(() => api.approveRun(liveId, 'reject'), { status: 'cancelled' }), danger: true },
-        isAwaitStep && { label: 'Review & decide', icon: <Eye size={14} />, onClick: onOpen },
-        { label: 'Open this run', icon: <Eye size={14} />, onClick: onOpen },
-        { label: 'Copy a link to this run', icon: <Link2 size={14} />, onClick: () => copyRunLink(run.id) },
-        automationId && { label: 'Open in editor', icon: <ExternalLink size={14} />, onClick: () => onOpenEditor?.(automationId) },
-        { label: 'Copy run id', icon: <Copy size={14} />, onClick: () => { navigator.clipboard?.writeText(run.id).catch(() => {}); } },
+        isAwaitRun && { label: t('studio_misc.runrow.reject', 'Reject'), icon: <X size={14} />, onClick: () => act(() => api.approveRun(liveId, 'reject'), { status: 'cancelled' }), danger: true },
+        isAwaitStep && { label: t('studio_misc.runrow.review_decide', 'Review & decide'), icon: <Eye size={14} />, onClick: onOpen },
+        { label: t('studio_misc.runrow.open_run', 'Open this run'), icon: <Eye size={14} />, onClick: onOpen },
+        { label: t('studio_misc.runrow.copy_link', 'Copy a link to this run'), icon: <Link2 size={14} />, onClick: () => copyRunLink(run.id) },
+        automationId && { label: t('studio_misc.runrow.open_editor', 'Open in editor'), icon: <ExternalLink size={14} />, onClick: () => onOpenEditor?.(automationId) },
+        { label: t('studio_misc.runrow.copy_id', 'Copy run id'), icon: <Copy size={14} />, onClick: () => { navigator.clipboard?.writeText(run.id).catch(() => {}); } },
     ];
     return { menuItems: items.filter((i): i is MenuItem => !!i), pending, actionError };
 }
@@ -145,15 +146,16 @@ function OutcomeCell({ run, running }: { run: RunLogRow; running: boolean }) {
  * the sentence (`children`) sits under it, so both get the row's width.
  */
 function WhatRanCell({ run, isGlobal, children }: { run: RunLogRow; isGlobal: boolean; children: React.ReactNode }) {
+    const { t } = useTranslation();
     const isDry = run.mode === 'dry_run' || !!run.isTest;
     return (
         <span className="min-w-0 flex flex-col gap-0.5">
             <span className="min-w-0 flex items-center gap-2">
                 <span className="text-sm text-[var(--text-primary)] truncate">
-                    {isGlobal ? (run.automationTitle || 'Untitled') : runTitle(run)}
+                    {isGlobal ? (run.automationTitle || t('studio_misc.runrow.untitled', 'Untitled')) : runTitle(run, undefined, t)}
                 </span>
                 {isDry && <DryRunBadge />}
-                {run.automationKind === 'block' && <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] flex-shrink-0">Step</span>}
+                {run.automationKind === 'block' && <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] flex-shrink-0">{t('studio_misc.runrow.step_badge', 'Step')}</span>}
             </span>
             {children}
         </span>
@@ -166,6 +168,7 @@ function WhatRanCell({ run, isGlobal, children }: { run: RunLogRow; isGlobal: bo
  * keeps the grid intact.
  */
 function ActionsCell({ canOpen, pending, onMenu }: { canOpen: boolean; pending: boolean; onMenu: (at: { x: number; y: number }) => void }) {
+    const { t } = useTranslation();
     if (!canOpen) return <span aria-hidden="true" />;
     return (
         <button
@@ -173,7 +176,7 @@ function ActionsCell({ canOpen, pending, onMenu }: { canOpen: boolean; pending: 
             data-testid="execution-row-actions"
             onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); onMenu({ x: r.right - 8, y: r.bottom }); }}
             className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition justify-self-end"
-            title="Actions"
+            title={t('studio_misc.runrow.actions', 'Actions')}
         >
             {pending ? <Loader2 size={14} className="animate-spin" /> : <MoreHorizontal size={16} />}
         </button>

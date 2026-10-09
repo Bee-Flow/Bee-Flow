@@ -165,15 +165,15 @@ const OrgLicenseSection = ({
                                                                     <h4 className="text-sm font-bold text-[var(--text-primary)]">{plan.name}</h4>
                                                                     {plan.trial_days > 0 && (
                                                                         <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-green-500/15 text-green-500">
-                                                                            {plan.trial_days}d free trial
+                                                                            {t('admin_org.license_free_trial_days', '{days}d free trial', { days: plan.trial_days })}
                                                                         </span>
                                                                     )}
                                                                 </div>
                                                                 {plan.description && <p className="text-[11px] text-[var(--text-muted)] mb-2">{plan.description}</p>}
                                                                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[var(--text-muted)]">
-                                                                    {plan.max_users && plan.max_users !== -1 && <span>{plan.max_users} users</span>}
-                                                                    {plan.max_agents && plan.max_agents !== -1 && <span>{plan.max_agents} agents</span>}
-                                                                    {plan.max_knowledge_sources && plan.max_knowledge_sources !== -1 && <span>{plan.max_knowledge_sources} KB sources</span>}
+                                                                    {plan.max_users && plan.max_users !== -1 && <span>{t('admin_org.license_max_users', '{n} users', { n: plan.max_users })}</span>}
+                                                                    {plan.max_agents && plan.max_agents !== -1 && <span>{t('admin_org.license_max_agents', '{n} agents', { n: plan.max_agents })}</span>}
+                                                                    {plan.max_knowledge_sources && plan.max_knowledge_sources !== -1 && <span>{t('admin_org.license_max_kb', '{n} KB sources', { n: plan.max_knowledge_sources })}</span>}
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-3 ml-4">
@@ -332,9 +332,9 @@ const OrgLicenseSection = ({
                                                                 </div>
                                                                 {plan.description && <p className="text-[11px] text-[var(--text-muted)] mb-2">{plan.description}</p>}
                                                                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[var(--text-muted)]">
-                                                                    {plan.max_users && plan.max_users !== -1 && <span>{plan.max_users} users</span>}
-                                                                    {plan.max_agents && plan.max_agents !== -1 && <span>{plan.max_agents} agents</span>}
-                                                                    {plan.max_knowledge_sources && plan.max_knowledge_sources !== -1 && <span>{plan.max_knowledge_sources} KB sources</span>}
+                                                                    {plan.max_users && plan.max_users !== -1 && <span>{t('admin_org.license_max_users', '{n} users', { n: plan.max_users })}</span>}
+                                                                    {plan.max_agents && plan.max_agents !== -1 && <span>{t('admin_org.license_max_agents', '{n} agents', { n: plan.max_agents })}</span>}
+                                                                    {plan.max_knowledge_sources && plan.max_knowledge_sources !== -1 && <span>{t('admin_org.license_max_kb', '{n} KB sources', { n: plan.max_knowledge_sources })}</span>}
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-3 ml-4">
@@ -429,7 +429,7 @@ const OrgLicenseSection = ({
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <h4 className="text-sm font-bold text-[var(--text-primary)]">{plan.name}</h4>
                                                                     {plan.trial_days > 0 && (
-                                                                        <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-green-500/15 text-green-500">{plan.trial_days}d free trial</span>
+                                                                        <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-green-500/15 text-green-500">{t('admin_org.license_free_trial_days', '{days}d free trial', { days: plan.trial_days })}</span>
                                                                     )}
                                                                 </div>
                                                                 {plan.description && <p className="text-[11px] text-[var(--text-muted)] mb-2">{plan.description}</p>}
@@ -558,15 +558,15 @@ const OrgLicenseSection = ({
                                         <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-[13px] font-semibold text-[var(--text-primary)]">
-                                                You've used {orgCostPct}% of your AI usage budget this period.
+                                                {t('admin_org.license_budget_used', "You've used {pct}% of your AI usage budget this period.", { pct: orgCostPct })}
                                             </p>
-                                            <p className="text-[11.5px] text-[var(--text-muted)]">Upgrade to a higher plan for more AI usage.</p>
+                                            <p className="text-[11.5px] text-[var(--text-muted)]">{t('admin_org.license_upgrade_hint', 'Upgrade to a higher plan for more AI usage.')}</p>
                                         </div>
                                         <a
                                             href="/app/admin/subscriptions"
                                             className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
                                         >
-                                            Upgrade plan
+                                            {t('admin_org.license_upgrade_plan', 'Upgrade plan')}
                                         </a>
                                     </div>
                                 )}

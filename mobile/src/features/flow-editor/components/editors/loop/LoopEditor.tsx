@@ -113,7 +113,7 @@ export function LoopEditor(editor: StepEditorProps) {
             <Band editor={editor} sectionKey="loop" title={t('mobile.flow.loop.loop', 'Loop')} defaultOpen>
                 <LoopOver {...editor} />
                 <NumberField
-                    label={t('mobile.flow.loop.batch_size', 'Batch size')}
+                    label={t('automations.loop_fields.batch_size', 'Batch size')}
                     hint={t(
                         'mobile.flow.loop.batch_size_hint',
                         'Items per iteration. 1 = one at a time; higher values hand the steps inside a LIST of that many items instead of a single item.',
@@ -127,7 +127,7 @@ export function LoopEditor(editor: StepEditorProps) {
                 />
                 <NumberField
                     label={t('automations.canvas.loop_max_title', 'Max iterations')}
-                    hint={t('mobile.flow.loop.max_iterations_hint', 'Safety cap. 1–1000.')}
+                    hint={t('automations.loop_fields.safety_cap_1_1000', 'Safety cap. 1–1000.')}
                     value={draft.maxIterations ?? 100}
                     min={1}
                     max={1000}
@@ -136,8 +136,8 @@ export function LoopEditor(editor: StepEditorProps) {
                     disabled={editor.ctx.disabled}
                 />
             </Band>
-            <Band editor={editor} sectionKey="body" title={t('mobile.flow.loop.body', 'Steps inside the loop')} defaultOpen>
-                <Note>{t('mobile.flow.loop.body_order', 'These run once per item, top to bottom.')}</Note>
+            <Band editor={editor} sectionKey="body" title={t('automations.loop_fields.steps_inside_the_loop', 'Steps inside the loop')} defaultOpen>
+                <Note>{t('automations.loop_fields.these_run_once_per_item_top', 'These run once per item, top to bottom.')}</Note>
                 <LoopBodyList {...editor} />
             </Band>
         </>

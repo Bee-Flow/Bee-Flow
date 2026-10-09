@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import React, { useId } from 'react';
 import { IconButton } from './IconButton';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import SharedModal from '../../../shared/Modal';
 
 /**
@@ -10,6 +11,7 @@ import SharedModal from '../../../shared/Modal';
  * passes none while it is busy); then nothing closes it, as before.
  */
 export function Modal({ open, onClose, title, subtitle, children, footer, width = 'max-w-md' }) {
+    const { t } = useTranslation();
     const titleId = useId();
 
     return (
@@ -27,7 +29,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, width 
                     {title && <h3 id={titleId} className="text-base font-bold text-[var(--text-primary)] truncate">{title}</h3>}
                     {subtitle && <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{subtitle}</p>}
                 </div>
-                <IconButton icon={X} size="sm" onClick={onClose} title="Close" />
+                <IconButton icon={X} size="sm" onClick={onClose} title={t('admin_subscriptions.ui_close', 'Close')} />
             </div>
             <div className="px-5 py-4 overflow-y-auto">{children}</div>
             {footer && (
@@ -39,7 +41,8 @@ export function Modal({ open, onClose, title, subtitle, children, footer, width 
     );
 }
 
-export function ConfirmModal({ open, onClose, onConfirm, title, message, confirmLabel = 'Confirm', confirmTone = 'danger', busy = false }) {
+export function ConfirmModal({ open, onClose, onConfirm, title, message, confirmLabel = undefined, confirmTone = 'danger', busy = false }) {
+    const { t } = useTranslation();
     return (
         <Modal
             open={open}
@@ -53,7 +56,7 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
                         disabled={busy}
                         className="px-3.5 py-2 rounded-lg text-[13px] font-semibold border border-[var(--border-default)] bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
                     >
-                        Cancel
+                        {t('admin_subscriptions.ui_cancel', 'Cancel')}
                     </button>
                     <button
                         type="button"
@@ -65,7 +68,7 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
                                 : 'bg-blue-600 hover:bg-blue-500 text-white border-transparent'
                         } disabled:opacity-50`}
                     >
-                        {busy ? 'Working…' : confirmLabel}
+                        {busy ? t('admin_subscriptions.ui_working', 'Working…') : (confirmLabel ?? t('admin_subscriptions.ui_confirm', 'Confirm'))}
                     </button>
                 </>
             }

@@ -140,11 +140,25 @@ function checkListedEntry(rel, expected) {
 function checkVideoRefs(videos, listed) {
     for (const [id, v] of Object.entries(videos)) {
         if (!v || typeof v !== 'object') throw new Error(`video ${id} is not an object`);
-        const refs = [v.file, v.captions?.en, v.poster].filter((r) => r !== undefined);
-        if (typeof v.file !== 'string') throw new Error(`video ${id} has no file`);
-        for (const r of refs) {
-            if (typeof r !== 'string' || !has(listed, r)) throw new Error(`video ${id} names ${JSON.stringify(r)}, which manifest.files does not cover`);
+        checkClipRefs(`video ${id}`, v, 'en', listed);
+        // The same lesson recorded in another language (manifest.videos[id].locales.<lang>).
+        if (v.locales !== undefined) {
+            if (!v.locales || typeof v.locales !== 'object' || Array.isArray(v.locales)) throw new Error(`video ${id} has locales that are not an object`);
+            for (const [lang, variant] of Object.entries(v.locales)) {
+                if (!/^[a-z]{2}$/.test(lang) || lang === 'en') throw new Error(`video ${id} has a locale ${JSON.stringify(lang)} that is not a two-letter language code`);
+                if (!variant || typeof variant !== 'object') throw new Error(`video ${id} locale ${lang} is not an object`);
+                checkClipRefs(`video ${id} locale ${lang}`, variant, lang, listed);
+            }
         }
+    }
+}
+
+/** One clip's file, caption track (in `lang`) and poster must all be listed in manifest.files. */
+function checkClipRefs(what, v, lang, listed) {
+    if (typeof v.file !== 'string') throw new Error(`${what} has no file`);
+    const refs = [v.file, v.captions?.[lang], v.poster].filter((r) => r !== undefined);
+    for (const r of refs) {
+        if (typeof r !== 'string' || !has(listed, r)) throw new Error(`${what} names ${JSON.stringify(r)}, which manifest.files does not cover`);
     }
 }
 

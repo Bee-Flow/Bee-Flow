@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, Layers, Sparkles, Settings, Lock, Info } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import React, { useEffect, useMemo, useState } from 'react';
 import { getIntegrationIcon } from '../../../../config/integrationIcons';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../../utils/helpers';
 
 /**
  * CeilingReadOnly — the org-admin view of the ceiling. The ceiling (what the
@@ -15,13 +16,14 @@ import { getIntegrationIcon } from '../../../../config/integrationIcons';
 
 // MCP servers are integrations now — they appear under Integrations.
 const KIND_SECTIONS = [
-    { kind: 'core', label: 'Features', icon: Layers },
-    { kind: 'beta', label: 'Beta features', icon: Sparkles },
-    { kind: 'integration', label: 'Integrations', icon: Settings },
+    { kind: 'core', labelKey: 'admin_org.access_matrix_features', label: 'Features', icon: Layers },
+    { kind: 'beta', labelKey: 'admin_org.access_matrix_beta_features', label: 'Beta features', icon: Sparkles },
+    { kind: 'integration', labelKey: 'admin_org.access_matrix_integrations', label: 'Integrations', icon: Settings },
 ];
 const BLUE = '#3b82f6';
 
 export default function CeilingReadOnly({ orgId = null }) {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
@@ -36,15 +38,15 @@ export default function CeilingReadOnly({ orgId = null }) {
             setLoading(true);
             try {
                 const res = await authFetch(readPath);
-                if (!res.ok) { if (alive) setError(`Failed to load (${res.status})`); return; }
+                if (!res.ok) { if (alive) setError(t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: res.status })); return; }
                 const j = await res.json();
                 if (alive) setData(j);
             } catch (e) {
-                if (alive) setError(e.message || 'Failed to load');
+                if (alive) setError(e.message || t('admin_org.access_matrix_failed_load', 'Failed to load'));
             } finally { if (alive) setLoading(false); }
         })();
         return () => { alive = false; };
-    }, [readPath]);
+    }, [readPath, t]);
 
     const byKind = useMemo(() => {
         const ceiling = new Set(data?.ceiling || []);
@@ -67,9 +69,7 @@ export default function CeilingReadOnly({ orgId = null }) {
             <div className="flex items-start gap-2 mb-4">
                 <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: BLUE }} />
                 <p className="text-sm" style={{ color: 'var(--text-muted)', maxWidth: 720 }}>
-                    These are the capabilities your organisation has access to (set by your administrator, within your
-                    {mode === 'cloud' ? ' subscription plan' : ' licence'}). To distribute them to members or groups,
-                    use <strong>Grants</strong>.
+                    {t('admin_org.ceiling_ro_intro', 'These are the capabilities your organisation has access to (set by your administrator, within your {ceiling}). To distribute them to members or groups, use', { ceiling: mode === 'cloud' ? t('admin_org.ceiling_word_plan_long', 'subscription plan') : t('admin_org.ceiling_word_licence', 'licence') })} <strong>{t('admin_org.ceiling_grants', 'Grants')}</strong>.
                 </p>
             </div>
 
@@ -79,11 +79,11 @@ export default function CeilingReadOnly({ orgId = null }) {
                 return (
                     <div key={section.kind} className="mb-5">
                         <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                            <SectionIcon className="w-3.5 h-3.5" /> {section.label} <span style={{ opacity: 0.6 }}>({caps.length})</span>
+                            <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)} <span style={{ opacity: 0.6 }}>({caps.length})</span>
                         </div>
                         {caps.length === 0 ? (
                             <p className="text-[12px] px-1 py-1 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                                <Lock className="w-3 h-3" /> Your organisation has no access in this category.
+                                <Lock className="w-3 h-3" /> {t('admin_org.ceiling_ro_none', 'Your organisation has no access in this category.')}
                             </p>
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">

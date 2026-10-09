@@ -143,7 +143,7 @@ const LoginForm = ({
         return (
             <div className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
                 {preferredMethod === 'password' && allowPasswordLogin && (
-                    <form onSubmit={handlePasswordLogin} className="space-y-5" aria-label="Login form">
+                    <form onSubmit={handlePasswordLogin} className="space-y-5" aria-label={t('login.form_label', 'Login form')}>
                         <div>
                             <label htmlFor="username" className={labelClass}>{t('login.email', 'Email address')}</label>
                             <div className="relative">
@@ -219,7 +219,7 @@ const LoginForm = ({
     return (
         <div className={showAllMethods ? 'animate-[fadeIn_0.3s_ease-out]' : ''}>
             {(setupMode || allowPasswordLogin) && (
-                <form onSubmit={handlePasswordLogin} className="space-y-5" aria-label="Login form">
+                <form onSubmit={handlePasswordLogin} className="space-y-5" aria-label={t('login.form_label', 'Login form')}>
                     {!setupMode && (
                         <div>
                             <label htmlFor="username" className={labelClass}>{t('login.email', 'Email address')}</label>

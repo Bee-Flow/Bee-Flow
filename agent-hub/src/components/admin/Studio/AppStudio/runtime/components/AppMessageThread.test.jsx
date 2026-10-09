@@ -247,8 +247,8 @@ describe('AppMessageThread — mail header', () => {
         expect(getByText('Daniel de Vries')).toBeTruthy();
         expect(getByText('<daniel@acme.nl>')).toBeTruthy();
         // Second line shows only the fields that are set and filled.
-        expect(head.textContent).toContain('Aan: jan@klant.nl');
-        expect(head.textContent).toContain('Onderwerp: Offerte 2231');
+        expect(head.textContent).toContain('To: jan@klant.nl');
+        expect(head.textContent).toContain('Subject: Offerte 2231');
     });
 
     it('shows an avatar with the author initials only when showAvatar is on', () => {
@@ -428,7 +428,7 @@ describe('AppMessageThread — where the mail header sits', () => {
         // The sheet is always white, so the header cannot use theme tokens —
         // in dark mode those are near-white and would disappear on it.
         expect(head.querySelector('span').textContent).toBe('TS');
-        expect(head.textContent).toContain('Aan: verkoop@x.nl');
+        expect(head.textContent).toContain('To: verkoop@x.nl');
     });
 
     it('keeps it above the bubble when there is no sheet to put it in', () => {

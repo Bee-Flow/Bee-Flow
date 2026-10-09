@@ -138,10 +138,10 @@ const FirefliesIntegration = ({ hasFirefliesKey, onSaved, last }) => {
             payloadKey="firefliesApiKey"
             description={t('integ.fireflies_desc')}
             connectedDescription={t('integ.fireflies_connected')}
-            placeholder="Enter your Fireflies.ai API key"
+            placeholder={t('settings.integrations.fireflies_key_placeholder', 'Enter your Fireflies.ai API key')}
             onSaved={onSaved}
             icon={<svg viewBox="22 20 24 24" fill="none" style={{ width: '18px', height: '18px' }}><path d="M30.5749 22H24V28.5267H30.5749V22Z" fill="url(#ffs_g1)" /><path d="M38.3633 29.8789H31.7883V36.4056H38.3633V29.8789Z" fill="url(#ffs_g2)" /><path d="M38.3633 22H31.7883V28.5267H43.9998V27.594C43.9997 26.1104 43.4058 24.6875 42.3489 23.6384C41.2919 22.5894 39.8585 22 38.3638 22H38.3633Z" fill="url(#ffs_g3)" /><path d="M24 29.8789V36.4056C24.0002 37.8892 24.594 39.3121 25.6509 40.3612C26.7079 41.4103 28.1413 41.9996 29.636 41.9996H30.5749V29.8789H24Z" fill="url(#ffs_g4)" /><defs><linearGradient id="ffs_g1" x1="40.08" y1="38.51" x2="12.44" y2="9.47" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g2" x1="40.18" y1="38.42" x2="12.54" y2="9.38" gradientUnits="userSpaceOnUse"><stop stopColor="#FF3C82" /><stop offset="0.49" stopColor="#B251B2" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g3" x1="44.77" y1="34.05" x2="35.4" y2="0.12" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g4" x1="35.55" y1="42.82" x2="2.03" y2="32.61" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient></defs></svg>}
-            hint={<>Get your key from <a href="https://app.fireflies.ai/integrations/custom/fireflies" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">app.fireflies.ai</a></>}
+            hint={<>{t('settings.integrations.get_key_from', 'Get your key from')} <a href="https://app.fireflies.ai/integrations/custom/fireflies" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">app.fireflies.ai</a></>}
         />
     );
 };
@@ -177,7 +177,7 @@ const YouTrackIntegration = ({ hasYouTrackConfig, onSaved, last }) => {
                 <ApiKeyField
                     placeholder={hasYouTrackConfig ? '••••••••••••••••' : 'Permanent token'}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
-                    hint={<>Token from <a href="https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">YouTrack → Profile → Authentication</a></>}
+                    hint={<>{t('settings.integrations.token_from', 'Token from')} <a href="https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.youtrack_path', 'YouTrack → Profile → Authentication')}</a></>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasYouTrackConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -217,7 +217,7 @@ const SignRequestIntegration = ({ hasSignRequestConfig, onSaved, last }) => {
                 <ApiKeyField
                     placeholder={hasSignRequestConfig ? '••••••••••••••••' : 'API Token'}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
-                    hint={<>Get your token from <a href="https://signrequest.com/api/v1/api-docs/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">SignRequest → API Settings</a>. Use your sandbox team subdomain for testing.</>}
+                    hint={<>{t('settings.integrations.get_token_from', 'Get your token from')} <a href="https://signrequest.com/api/v1/api-docs/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.signrequest_path', 'SignRequest → API Settings')}</a>{t('settings.integrations.signrequest_sandbox', '. Use your sandbox team subdomain for testing.')}</>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasSignRequestConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -237,10 +237,10 @@ const GammaIntegration = ({ hasGammaKey, onSaved, last }) => {
             payloadKey="gammaApiKey"
             description={t('integ.gamma_desc')}
             connectedDescription={t('integ.gamma_connected')}
-            placeholder="Enter your Gamma API key"
+            placeholder={t('settings.integrations.gamma_key_placeholder', 'Enter your Gamma API key')}
             onSaved={onSaved}
             icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="url(#gamma_g)" /><path d="M7 8h10v1.5H7zM7 12h8v1.5H7zM7 16h5v1.5H7z" fill="white" fillOpacity="0.9" /><defs><linearGradient id="gamma_g" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset="1" stopColor="#A855F7" /></linearGradient></defs></svg>}
-            hint={<>Get key from <a href="https://gamma.app/settings" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">gamma.app/settings</a> → API Tokens</>}
+            hint={<>{t('settings.integrations.get_key_from_short', 'Get key from')} <a href="https://gamma.app/settings" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">gamma.app/settings</a> {t('settings.integrations.gamma_api_tokens', '→ API Tokens')}</>}
         />
     );
 };
@@ -311,7 +311,7 @@ const AFASIntegration = ({ hasAfasConfig, onSaved, last }) => {
                     placeholder={hasAfasConfig ? '••••••••••••••••' : t('integ.afas_token_placeholder')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(token.trim() || memberNumber.trim() || envTouched)}
-                    hint={<>AFAS Help: <a href="https://help.afas.nl/help/NL/SE/App_Cnr_Rest_Token.htm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">App connector &amp; token aanmaken</a></>}
+                    hint={<>{t('settings.integrations.afas_help', 'AFAS Help:')} <a href="https://help.afas.nl/help/NL/SE/App_Cnr_Rest_Token.htm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.afas_link', 'App connector & token aanmaken')}</a></>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasAfasConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -367,7 +367,7 @@ const VplanIntegration = ({ hasVplanConfig, onSaved, last }) => {
                     placeholder={hasVplanConfig ? '••••••••••••••••' : t('integ.vplan_key_placeholder')}
                     value={apiKey} onChange={e => setApiKey(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(apiKey.trim() || apiEnv.trim())}
-                    hint={<>vPlan Help: <a href="https://support.vplan.com/en/articles/158922-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">create an API key</a> (available from the Basic plan)</>}
+                    hint={<>{t('settings.integrations.vplan_help', 'vPlan Help:')} <a href="https://support.vplan.com/en/articles/158922-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.vplan_link', 'create an API key')}</a> {t('settings.integrations.vplan_plan', '(available from the Basic plan)')}</>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasVplanConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -449,7 +449,7 @@ const NMBRSIntegration = ({ hasNmbrsConfig, apiMode: initialMode, subdomain: ini
                     placeholder={hasNmbrsConfig ? '••••••••••••••••' : t('integ.nmbrs_token_placeholder')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(token.trim() || subdomain.trim() || email.trim())}
-                    hint={<>NMBRS Help: <a href="https://support.nmbrs.nl/hc/nl/articles/360010686800-Connect-Nmbrs-with-an-API-token" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">API-token aanmaken</a></>}
+                    hint={<>{t('settings.integrations.nmbrs_help', 'NMBRS Help:')} <a href="https://support.nmbrs.nl/hc/nl/articles/360010686800-Connect-Nmbrs-with-an-API-token" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.nmbrs_link', 'API-token aanmaken')}</a></>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasNmbrsConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -765,7 +765,7 @@ const GitHubIntegration = ({ onSaved, last }) => {
                 <ApiKeyField
                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
-                    hint={<>Create token at <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">github.com/settings/tokens</a> with <strong>repo</strong> scope</>}
+                    hint={<>{t('settings.integrations.create_token_at', 'Create token at')} <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">github.com/settings/tokens</a> {t('settings.integrations.github_with', 'with')} <strong>repo</strong> {t('settings.integrations.github_scope', 'scope')}</>}
                 />
             ) : (
                 <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />

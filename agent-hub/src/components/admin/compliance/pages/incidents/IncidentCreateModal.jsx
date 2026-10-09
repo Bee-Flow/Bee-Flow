@@ -120,7 +120,7 @@ export default function IncidentCreateModal({ open, kind = 'breach', busy = fals
                 {vuln ? (
                     <>
                         <Field label={t('compliance.vuln_f_cve', 'CVE ids')}>
-                            <input value={draft.cve_ids} onChange={e => patch({ cve_ids: e.target.value })} placeholder="CVE-2026-1234, CVE-2026-5678" className={`${INPUT} font-mono`} data-testid={`${testId}-cve`} />
+                            <input value={draft.cve_ids} onChange={e => patch({ cve_ids: e.target.value })} placeholder={t('admin_shared.compliance_cve_ids_ph', 'CVE-2026-1234, CVE-2026-5678')} className={`${INPUT} font-mono`} data-testid={`${testId}-cve`} />
                         </Field>
                         <Field label={t('compliance.vuln_f_products', 'Affected products (one per line: name version-range)')}>
                             <textarea rows={2} value={draft.affected_products} onChange={e => patch({ affected_products: e.target.value })} className={`${INPUT} resize-y`} data-testid={`${testId}-products`} />

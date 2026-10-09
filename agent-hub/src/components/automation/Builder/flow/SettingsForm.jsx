@@ -306,18 +306,18 @@ export default function SettingsForm({
                 {/* The step's name and symbol on ONE line, without a heading of
                     its own: the panel header already names the step, and the
                     field says what it is (its placeholder and accessible name). */}
-                <div className="flex items-center gap-2" title="A name and an optional symbol for this step, shown on its node.">
+                <div className="flex items-center gap-2" title={t('automations.settings_form.a_name_and_an_optional_symbol', 'A name and an optional symbol for this step, shown on its node.')}>
                     <IconPicker
                         value={draft.icon || ''}
                         onChange={(name) => set('icon', name)}
-                        title="Choose a symbol for this step"
+                        title={t('automations.settings_form.choose_a_symbol_for_this_step', 'Choose a symbol for this step')}
                     />
                     <input
                         type="text"
                         value={draft.label || ''}
                         onChange={(e) => set('label', e.target.value)}
                         placeholder={defaultLabelPlaceholder(step)}
-                        aria-label="Step name"
+                        aria-label={t('automations.settings_form.step_name', 'Step name')}
                         className={inputClass() + ' flex-1'}
                     />
                 </div>

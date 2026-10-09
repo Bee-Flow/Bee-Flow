@@ -1271,20 +1271,20 @@ export default function BuildTab({
                 {state.pendingExternalDraft && (
                     <div className="px-4 py-2 border-b border-amber-500/30 bg-amber-500/10 flex items-center justify-between gap-3 flex-shrink-0">
                         <div className="text-xs text-amber-700 dark:text-amber-400">
-                            The chat assistant proposed changes while you were editing. Accept them, or keep your local edits.
+                            {t('automations.build_tab.the_chat_assistant_proposed_changes_while', 'The chat assistant proposed changes while you were editing. Accept them, or keep your local edits.')}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <button
                                 onClick={dismissExternalDraft}
                                 className="px-2 py-1 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
                             >
-                                Keep mine
+                                {t('automations.build_tab.keep_mine', 'Keep mine')}
                             </button>
                             <button
                                 onClick={acceptExternalDraft}
                                 className="px-2 py-1 text-xs rounded bg-[var(--accent)] text-white hover:opacity-90"
                             >
-                                Accept chat changes
+                                {t('automations.build_tab.accept_chat_changes', 'Accept chat changes')}
                             </button>
                         </div>
                     </div>
@@ -1311,8 +1311,8 @@ export default function BuildTab({
                     {!showChat && mode !== 'step' && !readOnly && (
                         <button
                             onClick={() => setAssistantOpen(true)}
-                            title="Open the AI assistant"
-                            aria-label="Open the AI assistant"
+                            title={t('automations.build_tab.open_the_ai_assistant', 'Open the AI assistant')}
+                            aria-label={t('automations.build_tab.open_the_ai_assistant', 'Open the AI assistant')}
                             className={`absolute left-0 top-[clamp(52px,50%_-_20px,100%_-_245px)] z-20 flex items-center px-1.5 py-3 rounded-r-lg bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:bg-[var(--accent)]/25 shadow-sm transition ${state.running ? 'animate-pulse' : ''}`}
                         >
                             <Sparkles size={16} />
@@ -1414,8 +1414,8 @@ export default function BuildTab({
                         <div className="absolute inset-0 z-30" onMouseDown={closePalette} />
                         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[360px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-default)]">
-                                <span className="text-sm font-semibold text-[var(--text-primary)]">Add a step here</span>
-                                <button type="button" onClick={closePalette} aria-label="Close" className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"><X size={14} /></button>
+                                <span className="text-sm font-semibold text-[var(--text-primary)]">{t('automations.build_tab.add_a_step_here', 'Add a step here')}</span>
+                                <button type="button" onClick={closePalette} aria-label={t('automations.build_tab.close', 'Close')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"><X size={14} /></button>
                             </div>
                             <AddStepMenu
                                 scope={{

@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpD
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import CellValue, { ALIGN_CLASS, alignFor } from './cellValue';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill, ROLE_COLORS, roleTextColor } from '../styleResolver';
@@ -140,6 +141,7 @@ const EDIT_INPUT_STYLE = { borderColor: 'var(--border-default)', borderRadius: '
  * what the column stores.
  */
 function CellEditor({ initial, format, options, onCommit, onCancel }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(() => {
         if (initial == null) return '';
         if (format === 'datetime') return String(initial).slice(0, 16);
@@ -175,7 +177,7 @@ function CellEditor({ initial, format, options, onCommit, onCancel }) {
                 onKeyDown={onKeyDown}
                 className={EDIT_INPUT_CLASS}
                 style={EDIT_INPUT_STYLE}
-                aria-label="Edit cell"
+                aria-label={t('studio_apps_runtime.grid.edit_cell', 'Edit cell')}
             >
                 {/* A blank option so a value can be cleared — without it a
                     required-looking dropdown can never go back to empty. */}
@@ -195,7 +197,7 @@ function CellEditor({ initial, format, options, onCommit, onCancel }) {
             onKeyDown={onKeyDown}
             className={EDIT_INPUT_CLASS}
             style={EDIT_INPUT_STYLE}
-            aria-label="Edit cell"
+            aria-label={t('studio_apps_runtime.grid.edit_cell', 'Edit cell')}
         />
     );
 }
@@ -217,6 +219,7 @@ function CellEditor({ initial, format, options, onCommit, onCancel }) {
  * worse than one that never claimed to.
  */
 function EditableCell({ value, format, col, row, now, onCommit, clamp = 0 }) {
+    const { t } = useTranslation();
     const [editing, setEditing] = useState(false);
     const triggerRef = useRef(null);
     const close = (focusBack) => {
@@ -268,7 +271,9 @@ function EditableCell({ value, format, col, row, now, onCommit, clamp = 0 }) {
             // made a row forty lines tall.
             style={{ textAlign: 'inherit', ...(clamp ? CLAMP_STYLE[clamp] : null) }}
             data-app-clamped={clamp ? 'true' : undefined}
-            aria-label={`Edit ${col?.label || col?.key || 'cell'}`}
+            aria-label={col?.label || col?.key
+                ? t('studio_apps_runtime.grid.edit_column', 'Edit {name}', { name: col?.label || col?.key })
+                : t('studio_apps_runtime.grid.edit_cell', 'Edit cell')}
         >
             <CellValue value={value} format={format} col={col} row={row} now={now} />
         </button>
@@ -276,12 +281,13 @@ function EditableCell({ value, format, col, row, now, onCommit, clamp = 0 }) {
 }
 
 export default function AppDataGrid({ node }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const props = node.props || {};
     const {
         columns: colDefs = [], pageSize: pageSizeProp = 25, selectable = 'none', searchable = false,
         rowActions = [], bulkActions = [], toolbarActions = [], addRowLabel = '', addRowActionId = '',
-        density: densityProp = 'comfortable', emptyText = 'Nothing to show yet.',
+        density: densityProp = 'comfortable', emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'),
         zebra = false, look: lookProp = 'default', clamp: clampProp = 'off', rowTone = [],
         groupBy = null, groupOrder = [], activeWhen = null,
     } = props;
@@ -665,7 +671,7 @@ export default function AppDataGrid({ node }) {
     if (baseRows.length === 0 || cols.length === 0) {
         return (
             <div className="w-full" data-app-datagrid="true">
-                <EmptyText art="no-results" title="Nothing here yet" text={emptyText} />
+                <EmptyText art="no-results" title={t('studio_apps_runtime.grid.nothing_here', 'Nothing here yet')} text={emptyText} />
                 {isRun && addRowActionId ? (
                     <div className="flex justify-center pb-3" data-app-grid-addrow="true">
                         <button
@@ -675,7 +681,7 @@ export default function AppDataGrid({ node }) {
                             style={{ color: 'var(--app-primary)' }}
                         >
                             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                            {addRowLabel || 'Regel toevoegen'}
+                            {addRowLabel || t('studio_apps_runtime.grid.add_row', 'Add row')}
                         </button>
                     </div>
                 ) : null}
@@ -710,7 +716,7 @@ export default function AppDataGrid({ node }) {
                     {selectable === 'multi' ? (
                         <input
                             type="checkbox"
-                            aria-label="Select all rows"
+                            aria-label={t('studio_apps_runtime.grid.select_all', 'Select all rows')}
                             checked={table.getIsAllRowsSelected()}
                             ref={(el) => { if (el) el.indeterminate = table.getIsSomeRowsSelected(); }}
                             onChange={table.getToggleAllRowsSelectedHandler()}
@@ -755,7 +761,7 @@ export default function AppDataGrid({ node }) {
                 );
             })}
             {rowActions.length ? (
-                <th className={`${cellPad}${divider}`} style={{ borderColor: 'var(--border-default)' }} aria-label="Actions" />
+                <th className={`${cellPad}${divider}`} style={{ borderColor: 'var(--border-default)' }} aria-label={t('studio_apps_runtime.grid.actions', 'Actions')} />
             ) : null}
         </tr>
     );
@@ -770,7 +776,7 @@ export default function AppDataGrid({ node }) {
                 const meta = header.column.columnDef.meta || {};
                 // The header's own label, not the raw key — "Filter state" told
                 // a screen reader the column's storage name, not its heading.
-                const name = `Filter ${header.column.columnDef.header || header.column.id}`;
+                const name = t('studio_apps_runtime.grid.filter_column', 'Filter {name}', { name: header.column.columnDef.header || header.column.id });
                 const value = header.column.getFilterValue();
                 return (
                     <th key={header.id} className={`${cellPad}${divider} font-normal`} style={{ borderColor: 'var(--border-default)' }}>
@@ -856,7 +862,7 @@ export default function AppDataGrid({ node }) {
                     <td className={`${cellPad}${divider} align-middle`} style={{ borderColor: 'var(--border-default)' }} onClick={(e) => e.stopPropagation()}>
                         <input
                             type="checkbox"
-                            aria-label="Select row"
+                            aria-label={t('studio_apps_runtime.grid.select_row', 'Select row')}
                             checked={selected}
                             onChange={row.getToggleSelectedHandler()}
                             className="accent-[var(--app-primary)]"
@@ -906,7 +912,7 @@ export default function AppDataGrid({ node }) {
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); runAction(meta.actionId, { formValues: cell.row.original, item: cell.row.original }); }}
                                         className="w-full cursor-pointer bg-transparent p-0 text-left"
-                                        title="Click to edit"
+                                        title={t('studio_apps_runtime.grid.click_to_edit', 'Click to edit')}
                                     >
                                         {body}
                                     </button>
@@ -1081,7 +1087,7 @@ export default function AppDataGrid({ node }) {
                                 style={{ color: 'var(--app-primary)' }}
                             >
                                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                                {addRowLabel || 'Regel toevoegen'}
+                                {addRowLabel || t('studio_apps_runtime.grid.add_row', 'Add row')}
                             </button>
                         </td>
                     </tr>
@@ -1093,13 +1099,13 @@ export default function AppDataGrid({ node }) {
                     // the four flat words it used to print.
                     <tr>
                         <td colSpan={colSpan} className="px-3 py-8 text-center">
-                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>No rows match</p>
+                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('studio_apps_runtime.grid.no_rows_match', 'No rows match')}</p>
                             {activeFilterCount > 0 ? (
                                 <>
                                     <p className="mt-0.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
                                         {activeFilterCount === 1
-                                            ? 'One filter is hiding the rest.'
-                                            : `${activeFilterCount} filters are hiding the rest.`}
+                                            ? t('studio_apps_runtime.grid.one_filter_hiding', 'One filter is hiding the rest.')
+                                            : t('studio_apps_runtime.grid.n_filters_hiding', '{n} filters are hiding the rest.', { n: activeFilterCount })}
                                     </p>
                                     <button
                                         type="button"
@@ -1107,7 +1113,7 @@ export default function AppDataGrid({ node }) {
                                         className="mt-2 px-2.5 py-1 text-xs font-medium border"
                                         style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
                                     >
-                                        Clear filters
+                                        {t('studio_apps_runtime.grid.clear_filters', 'Clear filters')}
                                     </button>
                                 </>
                             ) : null}
@@ -1148,7 +1154,7 @@ export default function AppDataGrid({ node }) {
                     style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)', borderRadius: 'var(--app-radius)' }}
                     data-app-grid-selection="true"
                 >
-                    <span className="font-medium">{selectedCount} selected</span>
+                    <span className="font-medium">{t('studio_apps_runtime.grid.n_selected', '{n} selected', { n: selectedCount })}</span>
                     {isRun && bulkActions.length ? bulkActions.map((a, i) => (
                         <button
                             key={i}
@@ -1188,7 +1194,7 @@ export default function AppDataGrid({ node }) {
                         onClick={() => setRowSelection({})}
                         className="underline underline-offset-2"
                     >
-                        Clear
+                        {t('studio_apps_runtime.grid.clear', 'Clear')}
                     </button>
                 </div>
             ) : null}
@@ -1212,8 +1218,8 @@ export default function AppDataGrid({ node }) {
                             <input
                                 value={globalFilter ?? ''}
                                 onChange={(e) => setGlobalFilter(e.target.value)}
-                                placeholder="Search…"
-                                aria-label="Search rows"
+                                placeholder={t('studio_apps_runtime.grid.search_placeholder', 'Search…')}
+                                aria-label={t('studio_apps_runtime.grid.search_rows', 'Search rows')}
                                 className="w-full border pl-8 pr-2.5 py-1.5 text-sm outline-none focus:border-[var(--app-primary)]"
                                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
                             />
@@ -1238,7 +1244,7 @@ export default function AppDataGrid({ node }) {
                         if (!column) return null;
                         const meta = column.columnDef.meta || {};
                         const label = column.columnDef.header || f.id;
-                        const text = describeFilter(meta.filterKind, f.value, { options: meta.filterOptions });
+                        const text = describeFilter(meta.filterKind, f.value, { options: meta.filterOptions, t });
                         return (
                             <span
                                 key={f.id}
@@ -1257,7 +1263,7 @@ export default function AppDataGrid({ node }) {
                                     style={{ color: 'var(--text-muted)' }}
                                 >
                                     <X className="h-3 w-3" aria-hidden="true" />
-                                    <span className="sr-only">{`Remove filter on ${label}`}</span>
+                                    <span className="sr-only">{t('studio_apps_runtime.grid.remove_filter', 'Remove filter on {name}', { name: label })}</span>
                                 </button>
                             </span>
                         );
@@ -1273,9 +1279,13 @@ export default function AppDataGrid({ node }) {
                             {/* Beside chips that already say what is set, the
                                 count would repeat them: the button becomes the
                                 one thing the chips cannot do. */}
-                            <span>{activeColumnFilters.length ? 'Clear all' : activeFilterCount === 1 ? '1 filter' : `${activeFilterCount} filters`}</span>
+                            <span>{activeColumnFilters.length
+                                ? t('studio_apps_runtime.grid.clear_all', 'Clear all')
+                                : activeFilterCount === 1
+                                    ? t('studio_apps_runtime.grid.one_filter', '1 filter')
+                                    : t('studio_apps_runtime.grid.n_filters', '{n} filters', { n: activeFilterCount })}</span>
                             <X className="w-3 h-3" aria-hidden="true" />
-                            <span className="sr-only">Clear all filters</span>
+                            <span className="sr-only">{t('studio_apps_runtime.grid.clear_all_filters', 'Clear all filters')}</span>
                         </button>
                     ) : null}
                     {/* Pushed right: these belong to the table as a whole, not
@@ -1331,19 +1341,19 @@ export default function AppDataGrid({ node }) {
                       * there IS — the number people actually want from a table.
                       */}
                     <div className="flex items-center gap-3">
-                        <span>{rangeFrom}–{rangeTo} of {filteredCount}</span>
+                        <span>{t('studio_apps_runtime.grid.range', '{from}–{to} of {total}', { from: rangeFrom, to: rangeTo, total: filteredCount })}</span>
                         <label className="inline-flex items-center gap-1.5">
-                            <span className="sr-only">Rows per page</span>
+                            <span className="sr-only">{t('studio_apps_runtime.grid.rows_per_page', 'Rows per page')}</span>
                             <select
                                 value={pageSize}
                                 onChange={(e) => { setPageSize(Number(e.target.value)); setPageIndex(0); }}
-                                aria-label="Rows per page"
+                                aria-label={t('studio_apps_runtime.grid.rows_per_page', 'Rows per page')}
                                 className="border px-1.5 py-0.5 text-xs outline-none focus:border-[var(--app-primary)]"
                                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
                             >
                                 {pageSizeChoices.map((n) => <option key={n} value={n}>{n}</option>)}
                             </select>
-                            <span aria-hidden="true">per page</span>
+                            <span aria-hidden="true">{t('studio_apps_runtime.grid.per_page', 'per page')}</span>
                         </label>
                     </div>
                     <div className="flex items-center gap-1">
@@ -1353,9 +1363,9 @@ export default function AppDataGrid({ node }) {
                             disabled={!table.getCanPreviousPage()}
                             className="inline-flex items-center gap-1 px-2 py-1 border disabled:opacity-40"
                             style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
-                            aria-label="Previous page"
+                            aria-label={t('studio_apps_runtime.grid.previous_page', 'Previous page')}
                         >
-                            <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" /> Prev
+                            <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" /> {t('studio_apps_runtime.grid.prev', 'Prev')}
                         </button>
                         <button
                             type="button"
@@ -1363,9 +1373,9 @@ export default function AppDataGrid({ node }) {
                             disabled={!table.getCanNextPage()}
                             className="inline-flex items-center gap-1 px-2 py-1 border disabled:opacity-40"
                             style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
-                            aria-label="Next page"
+                            aria-label={t('studio_apps_runtime.grid.next_page', 'Next page')}
                         >
-                            Next <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                            {t('studio_apps_runtime.grid.next', 'Next')} <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                     </div>
                 </div>

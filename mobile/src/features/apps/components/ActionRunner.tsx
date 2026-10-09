@@ -54,7 +54,7 @@ function PollFailed({ error, onRetry }: { error: unknown; onRetry: () => void })
     return (
         <Banner
             tone="error"
-            action={<Button label={t('mobile.apps.poll_retry', 'Check again')} variant="ghost" size="sm" onPress={onRetry} testID="app-action-poll-retry" />}
+            action={<Button label={t('forms.public_check_again', 'Check again')} variant="ghost" size="sm" onPress={onRetry} testID="app-action-poll-retry" />}
         >
             {t('mobile.apps.poll_failed', 'Could not check on the run: {reason}', { reason: describeError(error).message })}
         </Banner>

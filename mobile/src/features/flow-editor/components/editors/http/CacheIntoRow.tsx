@@ -37,7 +37,7 @@ export function CacheIntoRow({
     const none = tables.length === 0;
     const reason = disabled ? ownReason : none ? t('mobile.flow.http.cache_no_table', 'Make an answers table first — Studio → Datatables → New table → “Web service answers”.') : null;
     const options = [
-        ...(on && !tables.some((x) => x.id === current?.datatableId) ? [{ value: current?.datatableId ?? '', label: t('mobile.flow.http.table_gone', '(a table you can no longer reach)') }] : []),
+        ...(on && !tables.some((x) => x.id === current?.datatableId) ? [{ value: current?.datatableId ?? '', label: t('automations.cache_into_row.a_table_you_can_no_longer', '(a table you can no longer reach)') }] : []),
         ...tables.map((x) => ({
             value: x.id,
             label: x.name,
@@ -47,7 +47,7 @@ export function CacheIntoRow({
     return (
         <View style={styles.box}>
             <ToggleField
-                label={t('mobile.flow.http.remember', 'Remember answers in a table')}
+                label={t('automations.cache_into_row.remember_answers_in_a_table', 'Remember answers in a table')}
                 description={
                     reason ??
                     t('mobile.flow.http.remember_hint', 'Each answer is written to a table as an ordinary row, so a later run — days or weeks on — uses it instead of asking again. You can open the table, check the answers, correct them and export them.')
@@ -59,19 +59,19 @@ export function CacheIntoRow({
             />
             {on ? (
                 <>
-                    <SelectField label={t('mobile.flow.http.which_table', 'Which table')} value={current?.datatableId ?? ''} options={options} onChange={(id) => onChange(cacheTable(current, id))} disabled={disabled} />
+                    <SelectField label={t('automations.cache_into_row.which_table', 'Which table')} value={current?.datatableId ?? ''} options={options} onChange={(id) => onChange(cacheTable(current, id))} disabled={disabled} />
                     <NumberField
-                        label={t('mobile.flow.http.reuse_for', 'Reuse an answer for')}
+                        label={t('automations.cache_into_row.reuse_an_answer_for', 'Reuse an answer for')}
                         value={cacheDays(current)}
                         onChange={(n) => onChange(cacheForDays(current, n) ?? undefined)}
                         min={1}
                         max={3650}
                         integer
-                        suffix={t('mobile.flow.http.days', 'days')}
+                        suffix={t('automations.cache_into_row.days', 'days')}
                         disabled={disabled}
                     />
                     <Note>
-                        {t('mobile.flow.http.rows_readable', 'Answers land as ordinary rows: everyone with access to that table can read and export them. Old rows are removed by the retention window set on the table itself.')}
+                        {t('automations.cache_into_row.answers_land_as_ordinary_rows_everyone', 'Answers land as ordinary rows: everyone with access to that table can read and export them. Old rows are removed by the retention window set on the table itself.')}
                     </Note>
                 </>
             ) : null}

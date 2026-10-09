@@ -2,6 +2,7 @@ import { Braces } from 'lucide-react';
 import { useState, type ComponentType, type ReactNode } from 'react';
 import ValueBuilderJs from './ValueBuilder';
 import { denseInputClass } from '../flow/settings/formStyles';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // A JS component: TypeScript reads every prop without a default as required.
 const ValueBuilder = ValueBuilderJs as unknown as ComponentType<Record<string, unknown>>;
@@ -37,6 +38,7 @@ interface Props {
  * unchanged.
  */
 export default function ConditionValueSlot({ type, value, onChange, onFocusField, previewSample }: Props) {
+    const { t } = useTranslation();
     const [useBinding, setUseBinding] = useState(false);
     const isLiteral = !value || value.kind == null || value.kind === 'literal';
     const typed = !useBinding && isLiteral && (type === 'number' || type === 'boolean' || type === 'date');
@@ -44,7 +46,7 @@ export default function ConditionValueSlot({ type, value, onChange, onFocusField
     if (!typed) {
         return (
             <ValueBuilder
-                placeholder="value"
+                placeholder={t('automations.condition_builder_value_slot.value', 'value')}
                 value={value}
                 onChange={onChange}
                 onFocusField={onFocusField}
@@ -66,12 +68,13 @@ export default function ConditionValueSlot({ type, value, onChange, onFocusField
 }
 
 function SwapButton({ onClick }: { onClick: () => void }) {
+    const { t } = useTranslation();
     return (
         <button
             type="button"
             onClick={onClick}
-            title="Use a variable instead"
-            aria-label="Use a variable instead"
+            title={t('automations.condition_builder_value_slot.use_a_variable_instead', 'Use a variable instead')}
+            aria-label={t('automations.condition_builder_value_slot.use_a_variable_instead', 'Use a variable instead')}
             className="shrink-0 px-2 rounded border border-[var(--border-default)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center"
         >
             <Braces size={12} />
@@ -86,13 +89,14 @@ interface SlotProps {
 }
 
 function NumberSlot({ value, onChange, swap }: SlotProps) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-stretch gap-1">
             <input
                 type="number"
                 value={value === '' || value == null ? '' : String(value)}
                 onChange={(e) => onChange({ kind: 'literal', value: e.target.value === '' ? '' : Number(e.target.value) })}
-                placeholder="number"
+                placeholder={t('automations.condition_builder_value_slot.number', 'number')}
                 className={slotInputClass}
             />
             {swap}
@@ -101,6 +105,7 @@ function NumberSlot({ value, onChange, swap }: SlotProps) {
 }
 
 function BooleanSlot({ value, onChange, swap }: SlotProps) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-stretch gap-1">
             <select
@@ -108,9 +113,9 @@ function BooleanSlot({ value, onChange, swap }: SlotProps) {
                 onChange={(e) => onChange({ kind: 'literal', value: e.target.value === '' ? '' : e.target.value === 'true' })}
                 className={slotInputClass}
             >
-                <option value="">(choose)</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
+                <option value="">{t('automations.condition_builder_value_slot.choose', '(choose)')}</option>
+                <option value="true">{t('automations.condition_builder_value_slot.true', 'true')}</option>
+                <option value="false">{t('automations.condition_builder_value_slot.false', 'false')}</option>
             </select>
             {swap}
         </div>

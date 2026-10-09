@@ -3,8 +3,10 @@ import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import SecretInput from './shared/SecretInput';
 import ProviderCardShell, { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './shared/ProviderCardShell';
 import useProviderConfig from '../../../../hooks/useProviderConfig';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 const AzureConfigCard = ({ onMessage }) => {
+    const { t } = useTranslation();
     const [endpoint, setEndpoint] = useState('');
     const [apiKey, setApiKey] = useState('');
     const [models, setModels] = useState('');
@@ -29,7 +31,7 @@ const AzureConfigCard = ({ onMessage }) => {
         if (apiKey.trim()) body.azureApiKey = apiKey;
         body.azureModels = models.trim();
 
-        const ok = await save(body, { success: 'Azure AI config saved!', error: 'Failed to save config' });
+        const ok = await save(body, { success: t('admin_ai_config.azure_saved', 'Azure AI config saved!'), error: t('admin_ai_config.provider_save_failed', 'Failed to save config') });
         if (ok) {
             patchConfig({
                 ...(endpoint.trim() ? { hasAzureEndpoint: true } : {}),
@@ -42,7 +44,7 @@ const AzureConfigCard = ({ onMessage }) => {
     };
 
     const handleDeleteKey = async () => {
-        const ok = await deleteKey('azure_api_key', { success: 'Azure API key removed', error: 'Failed to delete Azure API key' });
+        const ok = await deleteKey('azure_api_key', { success: t('admin_ai_config.azure_key_removed', 'Azure API key removed'), error: t('admin_ai_config.azure_key_delete_failed', 'Failed to delete Azure API key') });
         if (ok) {
             patchConfig({ hasAzureApiKey: false });
             setApiKey('');
@@ -50,7 +52,7 @@ const AzureConfigCard = ({ onMessage }) => {
     };
 
     const handleDeleteEndpoint = async () => {
-        const ok = await deleteSetting('azure_endpoint', { success: 'Azure endpoint removed', error: 'Failed to delete Azure endpoint' });
+        const ok = await deleteSetting('azure_endpoint', { success: t('admin_ai_config.azure_endpoint_removed', 'Azure endpoint removed'), error: t('admin_ai_config.azure_endpoint_delete_failed', 'Failed to delete Azure endpoint') });
         if (ok) {
             patchConfig({ hasAzureEndpoint: false });
             setEndpoint('');
@@ -64,12 +66,12 @@ const AzureConfigCard = ({ onMessage }) => {
         <ProviderCardShell
             icon="🔷"
             iconGradient="linear-gradient(135deg, rgba(0,120,212,0.2), rgba(0,153,255,0.2))"
-            title="Azure AI"
-            subtitle={isConfigured ? '✅ Fully configured' : 'Azure OpenAI Service'}
+            title={t('admin_ai_config.azure_title', 'Azure AI')}
+            subtitle={isConfigured ? t('admin_ai_config.fully_configured', '✅ Fully configured') : t('admin_ai_config.azure_subtitle', 'Azure OpenAI Service')}
             badges={<>
-                {hasEndpoint && <ProviderStatusPill>Endpoint</ProviderStatusPill>}
-                {hasKey && <ProviderStatusPill>Key</ProviderStatusPill>}
-                {modelCount > 0 && <ProviderStatusPill tone="blue">{modelCount} model{modelCount !== 1 ? 's' : ''}</ProviderStatusPill>}
+                {hasEndpoint && <ProviderStatusPill>{t('admin_ai_config.endpoint_pill', 'Endpoint')}</ProviderStatusPill>}
+                {hasKey && <ProviderStatusPill>{t('admin_ai_config.key_pill', 'Key')}</ProviderStatusPill>}
+                {modelCount > 0 && <ProviderStatusPill tone="blue">{modelCount === 1 ? t('admin_ai_config.model_count_one', '1 model') : t('admin_ai_config.model_count_other', '{count} models', { count: modelCount })}</ProviderStatusPill>}
             </>}
         >
             {/* Endpoint URL */}
@@ -89,7 +91,7 @@ const AzureConfigCard = ({ onMessage }) => {
                 <SecretInput
                     value={apiKey}
                     onChange={setApiKey}
-                    placeholder={hasKey ? '••••••••••••••••' : 'Azure API Key'}
+                    placeholder={hasKey ? '••••••••••••••••' : t('admin_ai_config.azure_key_placeholder', 'Azure API Key')}
                 />
             </div>
 
@@ -99,14 +101,13 @@ const AzureConfigCard = ({ onMessage }) => {
                     type="text"
                     value={models}
                     onChange={e => setModels(e.target.value)}
-                    placeholder="Deployment names, e.g. gpt-5.6-terra, prod-chat=gpt-6-astra, gpt-4.1"
+                    placeholder={t('admin_ai_config.azure_models_placeholder', 'Deployment names, e.g. gpt-5.6-terra, prod-chat=gpt-6-astra, gpt-4.1')}
                     className={PROVIDER_INPUT_CLS}
                     style={PROVIDER_INPUT_STYLE}
-                    title="Comma-separated list of your Azure deployment names"
+                    title={t('admin_ai_config.azure_models_title', 'Comma-separated list of your Azure deployment names')}
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Comma-separated deployment names from your Azure portal. If a deployment is not named
-                    after its model, write name=model (prod-chat=gpt-6-astra).
+                    {t('admin_ai_config.azure_models_hint', 'Comma-separated deployment names from your Azure portal. If a deployment is not named after its model, write name=model (prod-chat=gpt-6-astra).')}
                 </p>
             </div>
 
@@ -114,15 +115,16 @@ const AzureConfigCard = ({ onMessage }) => {
             <div className="flex items-center justify-between">
                 <div className="flex gap-2 flex-wrap">
                     <p className="text-xs self-center" style={{ color: 'var(--text-muted)' }}>
-                        Get from <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">portal.azure.com</a>
+                        {t('admin_ai_config.get_from', 'Get from')} <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">portal.azure.com</a>
                     </p>
                 </div>
                 <div className="flex gap-2 items-center">
                     {hasEndpoint && (
-                        <DeleteConfirmButtons onConfirm={handleDeleteEndpoint} label="🗑️ Endpoint" title="Remove endpoint" size="xs" />
+                        <DeleteConfirmButtons onConfirm={handleDeleteEndpoint} label={t('admin_ai_config.delete_endpoint', '🗑️ Endpoint')} title={t('admin_ai_config.remove_endpoint', 'Remove endpoint')} size="xs" />
                     )}
                     {hasKey && (
-                        <DeleteConfirmButtons onConfirm={handleDeleteKey} label="🗑️ Key" title="Remove API key" size="xs" />
+                        /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
+                        <DeleteConfirmButtons onConfirm={handleDeleteKey} label={t('admin_ai_config.delete_key', '🗑️ Key')} title={t('admin_ai_config.remove_api_key', 'Remove API key')} size="xs" />
                     )}
                     <button
                         onClick={handleSave}
@@ -130,7 +132,7 @@ const AzureConfigCard = ({ onMessage }) => {
                         className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50"
                         style={{ background: 'var(--accent-primary)' }}
                     >
-                        {saving ? '...' : 'Save'}
+                        {saving ? '...' : t('admin_ai_config.save', 'Save')}
                     </button>
                 </div>
             </div>

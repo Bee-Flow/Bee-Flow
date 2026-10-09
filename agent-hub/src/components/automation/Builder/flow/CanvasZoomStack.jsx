@@ -86,8 +86,8 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
             type="button"
             onClick={onWrapToFit}
             className={`${btn} ${cls}`}
-            title="Wrap the flow into rows that fit the screen (Ctrl+Z undoes it)"
-            aria-label="Wrap to fit"
+            title={t('automations.canvas_zoom_stack.wrap_the_flow_into_rows_that', 'Wrap the flow into rows that fit the screen (Ctrl+Z undoes it)')}
+            aria-label={t('automations.canvas_zoom_stack.wrap_to_fit', 'Wrap to fit')}
         >
             <Rows3 size={14} />
         </button>

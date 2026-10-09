@@ -2,6 +2,7 @@ import { ChevronRight, List } from 'lucide-react';
 import { appendWildcard } from '@shared/expr/path.mjs';
 import { joinPath, mapAttrs, type MapCtx } from './mapAttrs';
 import { COL_MAX_PX } from './valueHelpers';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface ColHeaderProps {
     /** The column's path RELATIVE to one row (`subject`, `from.emailAddress`, `["Story Points"]`). */
@@ -25,6 +26,7 @@ interface ColHeaderProps {
 // clickable to close that level again. The cell itself maps every row's
 // value at that column (`map.path[*]` + the column's path).
 export default function ColHeader({ col, label, trail = [], map, expandable, isListCol = false, onToggle }: ColHeaderProps) {
+    const { t } = useTranslation();
     const rel = joinPath(appendWildcard(''), col);
     const everyRow = map ? joinPath(map.path, rel) : '';
     return (
@@ -69,7 +71,7 @@ export default function ColHeader({ col, label, trail = [], map, expandable, isL
                         // NOT the string "Show fields": the expand chevron is
                         // located by that exact label.
                         aria-label={`Choose how to use every row's ${label}`}
-                        title="Pick one, join them, count them, or run this step once per row"
+                        title={t('automations.col_header.pick_one_join_them_count_them', 'Pick one, join them, count them, or run this step once per row')}
                         className="ml-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         <List size={11} />

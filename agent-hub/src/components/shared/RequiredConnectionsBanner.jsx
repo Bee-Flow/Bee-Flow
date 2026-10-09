@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { AlertCircle } from 'lucide-react';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * RequiredConnectionsBanner — recipient pre-flight for a shared resource. Shows
@@ -15,6 +16,7 @@ import { AlertCircle } from 'lucide-react';
 const BASE = `${API_BASE}/api/integrations/connections`;
 
 const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpose = "to use all of this agent's tools" }) => {
+    const { t } = useTranslation();
     const [required, setRequired] = useState([]);
     const list = (providers || []).filter(Boolean);
 
@@ -40,8 +42,8 @@ const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpos
             style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', color: 'var(--text-primary)' }}>
             <AlertCircle size={14} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
             <span>
-                Connect {required.map(r => r.provider).join(', ')} in{' '}
-                <a href="/settings?tab=integrations" className="underline" style={{ color: 'var(--accent-primary)' }}>Settings → Integrations</a>{' '}
+                {t('connections.required_connect_in', 'Connect {providers} in', { providers: required.map(r => r.provider).join(', ') })}{' '}
+                <a href="/settings?tab=integrations" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('connections.required_settings_link', 'Settings → Integrations')}</a>{' '}
                 {purpose}.
             </span>
         </div>

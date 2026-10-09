@@ -49,12 +49,12 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                 const body = await res.json().catch(() => ({}));
                 setMessage(body?.reembedding
                     ? { type: 'success', text: t('admin.ai_embeddings_reembedding', 'Saved. Your knowledge bases are being re-indexed with the new model in the background; until that is done, search uses keywords only.') }
-                    : { type: 'success', text: 'Embedding settings saved!' });
+                    : { type: 'success', text: t('admin_ai_config.embed_saved', 'Embedding settings saved!') });
             } else {
-                setMessage({ type: 'error', text: 'Failed to save settings' });
+                setMessage({ type: 'error', text: t('admin_ai_config.embed_save_failed', 'Failed to save settings') });
             }
         } catch (e) {
-            setMessage({ type: 'error', text: 'Failed to save settings' });
+            setMessage({ type: 'error', text: t('admin_ai_config.embed_save_failed', 'Failed to save settings') });
         } finally {
             setSaving(false);
         }
@@ -70,7 +70,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
     const isAzure = selectedProvider?.type === 'azure';
     const useModelDropdown = providerModels.length > 0 && !isAzure;
 
-    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>Loading settings...</div>;
+    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.embed_loading', 'Loading settings...')}</div>;
 
     return (
         <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
@@ -80,8 +80,8 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                         🔍
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Embedding Configuration</h3>
-                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Configure vectors for Knowledge Base</p>
+                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.embed_title', 'Embedding Configuration')}</h3>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.embed_subtitle', 'Configure vectors for Knowledge Base')}</p>
                     </div>
                 </div>
                 {message && (
@@ -93,14 +93,14 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
 
             <div className="space-y-6 max-w-2xl">
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Embedding Provider</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.embed_provider', 'Embedding Provider')}</label>
                     <select
                         value={config.embeddingProviderId}
                         onChange={e => setConfig({ ...config, embeddingProviderId: e.target.value, embeddingModel: '' })}
                         className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
                         style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
-                        <option value="">Select Provider...</option>
+                        <option value="">{t('admin_ai_config.embed_select_provider', 'Select Provider...')}</option>
                         {providers.map(p => (
                             <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
                         ))}
@@ -108,7 +108,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Embedding Model</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.embed_model', 'Embedding Model')}</label>
                     {useModelDropdown ? (
                         <select
                             value={config.embeddingModel}
@@ -116,7 +116,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
                             style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         >
-                            <option value="">Select Model...</option>
+                            <option value="">{t('admin_ai_config.embed_select_model', 'Select Model...')}</option>
                             {providerModels.map(m => (
                                 <option key={m.id} value={m.id}>{m.name}</option>
                             ))}
@@ -126,15 +126,15 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                             type="text"
                             value={config.embeddingModel}
                             onChange={e => setConfig({ ...config, embeddingModel: e.target.value })}
-                            placeholder={isAzure ? 'Your Azure deployment name, e.g. text-embedding-3-small' : 'e.g. text-embedding-3-small'}
+                            placeholder={isAzure ? t('admin_ai_config.embed_azure_placeholder', 'Your Azure deployment name, e.g. text-embedding-3-small') : t('admin_ai_config.embed_model_placeholder', 'e.g. text-embedding-3-small')}
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
                             style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         />
                     )}
                     <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                         {isAzure
-                            ? 'For Azure, enter the deployment name of your embedding model (not the base model name).'
-                            : 'For Mistral, "mistral-embed" is recommended.'}
+                            ? t('admin_ai_config.embed_azure_hint', 'For Azure, enter the deployment name of your embedding model (not the base model name).')
+                            : t('admin_ai_config.embed_mistral_hint', 'For Mistral, "mistral-embed" is recommended.')}
                     </p>
                 </div>
 
@@ -145,7 +145,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                         className="px-6 py-2.5 rounded-xl font-medium text-white transition-all disabled:opacity-50"
                         style={{ background: 'var(--accent-primary)' }}
                     >
-                        {saving ? 'Saving...' : 'Save Configuration'}
+                        {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.embed_save', 'Save Configuration')}
                     </button>
                 </div>
             </div>

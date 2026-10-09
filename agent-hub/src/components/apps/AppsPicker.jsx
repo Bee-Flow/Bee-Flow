@@ -18,6 +18,7 @@
  */
 import { ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { groupAppsByCategory } from './appCatalog';
 
 export default function AppsPicker({
@@ -33,6 +34,7 @@ export default function AppsPicker({
     // composer's tools menu does, since it clamps its whole flyout slot.
     placement = 'auto',
 }) {
+    const { t } = useTranslation();
     const wrapRef = useRef(null);
     const panelRef = useRef(null);
     const [openSelf, setOpenSelf] = useState(false);
@@ -116,17 +118,17 @@ export default function AppsPicker({
                         <div className="flex items-center justify-between mb-1">
                             <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Apps</h3>
                             <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                                {activeCount}/{apps.length} active
+                                {t('apps.picker_active', '{active}/{total} active', { active: activeCount, total: apps.length })}
                             </span>
                         </div>
-                        <p className="text-[11px] mb-2.5" style={{ color: 'var(--text-tertiary)' }}>Click to use · Toggle to enable/disable</p>
+                        <p className="text-[11px] mb-2.5" style={{ color: 'var(--text-tertiary)' }}>{t('apps.picker_hint', 'Click to use · Toggle to enable/disable')}</p>
                         <input
                             type="text"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            placeholder="Search apps..."
+                            placeholder={t('apps.picker_search_placeholder', 'Search apps...')}
                             autoFocus
-                            aria-label="Search apps"
+                            aria-label={t('apps.picker_search_label', 'Search apps')}
                             className="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-colors focus:border-[var(--accent-primary)]"
                             style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
                         />
@@ -135,7 +137,7 @@ export default function AppsPicker({
                     {/* App list */}
                     <div className="p-1.5 max-h-72 overflow-y-auto">
                         {filtered.length === 0 ? (
-                            <div className="text-center py-6 text-sm" style={{ color: 'var(--text-tertiary)' }}>No apps found</div>
+                            <div className="text-center py-6 text-sm" style={{ color: 'var(--text-tertiary)' }}>{t('apps.picker_none', 'No apps found')}</div>
                         ) : orderedCats.map(cat => {
                             // Search auto-expands; otherwise honour the collapsed state.
                             const isCollapsed = !q && !!collapsed[cat];
@@ -171,7 +173,7 @@ export default function AppsPicker({
                                                     <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>{app.description}</div>
                                                 </div>
                                                 {app.isStep ? (
-                                                    <span className="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Step</span>
+                                                    <span className="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{t('apps.picker_step', 'Step')}</span>
                                                 ) : (
                                                     <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
                                                         <input

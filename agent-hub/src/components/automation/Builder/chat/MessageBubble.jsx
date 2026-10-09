@@ -97,7 +97,7 @@ export default function MessageBubble({ msg, activity, liveRun = null, onFocusSt
                 so the user knows which model produced this turn. */}
             {!isUser && msg.autoSelectedTier && (
                 <div className="mt-1 text-[11px] text-[var(--text-tertiary)] px-1">
-                    Auto → {tierLabel(msg.autoSelectedTier)}
+                    {t('automations.message_bubble.auto', 'Auto →')} {tierLabel(msg.autoSelectedTier)}
                 </div>
             )}
             {!isUser && (activity !== undefined

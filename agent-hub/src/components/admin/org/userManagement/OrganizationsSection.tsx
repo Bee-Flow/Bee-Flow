@@ -18,8 +18,8 @@ export default function OrganizationsSection({ organizations, isFullAdmin, onAdd
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-6">
-                <div><h3 className="text-lg font-semibold text-[var(--text-primary)]">Organizations</h3><p className="text-sm text-[var(--text-muted)]">Manage organizations and their metadata</p></div>
-                {isFullAdmin && <button onClick={onAddOrg} className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--accent-primary)] text-white"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg> Add Organization</button>}
+                <div><h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.orgs_section_title', 'Organizations')}</h3><p className="text-sm text-[var(--text-muted)]">{t('admin_org.orgs_section_subtitle', 'Manage organizations and their metadata')}</p></div>
+                {isFullAdmin && <button onClick={onAddOrg} className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--accent-primary)] text-white"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg> {t('admin_org.orgs_section_add', 'Add Organization')}</button>}
             </div>
             <div className="grid gap-4">
                 {organizations.map(org => (

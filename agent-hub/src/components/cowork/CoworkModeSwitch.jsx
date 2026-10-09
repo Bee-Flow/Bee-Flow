@@ -12,28 +12,31 @@
  */
 import { Handshake, MessageCircle } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // The mode id matches the caption. It briefly didn't — the button said
 // "Cowork" while the id, the data attributes and the test ids all said "work"
 // — which is exactly how one feature ends up with two vocabularies. Nothing
 // persists this value (it is component state for the length of one empty
 // thread), so there was no stored data to keep it honest to.
+// The labels are the names of the two modes and stay as they are in every language; the hints are sentences.
 const MODES = [
-    { id: 'chat', label: 'Chat', icon: MessageCircle, hint: 'Answers you here, in the conversation' },
-    { id: 'cowork', label: 'Cowork', icon: Handshake, hint: 'Runs on its own — now or on a schedule' },
+    { id: 'chat', label: 'Chat', icon: MessageCircle, hintKey: 'cowork.mode_hint_chat', hintEn: 'Answers you here, in the conversation' },
+    { id: 'cowork', label: 'Cowork', icon: Handshake, hintKey: 'cowork.mode_hint_cowork', hintEn: 'Runs on its own — now or on a schedule' },
 ];
 
 export default function CoworkModeSwitch({ value = 'chat', onChange, size = 'md', className = '' }) {
+    const { t } = useTranslation();
     const compact = size === 'sm';
     return (
         <div
             role="tablist"
-            aria-label="Chat or Cowork"
+            aria-label={t('cowork.mode_switch_label', 'Chat or Cowork')}
             data-testid="cowork-mode-switch"
             className={`inline-flex items-center rounded-full p-0.5 border ${className}`}
             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}
         >
-            {MODES.map(({ id, label, icon: Icon, hint }) => {
+            {MODES.map(({ id, label, icon: Icon, hintKey, hintEn }) => {
                 const active = value === id;
                 return (
                     <button
@@ -41,7 +44,7 @@ export default function CoworkModeSwitch({ value = 'chat', onChange, size = 'md'
                         type="button"
                         role="tab"
                         aria-selected={active}
-                        title={hint}
+                        title={t(hintKey, hintEn)}
                         data-testid={`cowork-mode-${id}`}
                         onClick={() => onChange && onChange(id)}
                         className={`inline-flex items-center gap-1.5 rounded-full font-medium transition-all ${

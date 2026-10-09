@@ -21,19 +21,25 @@ export interface PillOption {
     tone?: string;
 }
 
-const SORT_LABEL: Record<string, string> = {
-    updated: 'Recently updated',
-    name: 'Name',
-    lastRun: 'Last run',
-    nextRun: 'Next run',
-    status: 'Status',
-};
-const GROUP_LABEL: Record<string, string> = { status: 'Status', trigger: 'Trigger', folder: 'Folder' };
+type TFn = ReturnType<typeof useTranslation>['t'];
 
-const VIEW_OPTIONS = [
-    { value: 'list', label: 'List', icon: <LayoutList size={13} aria-hidden="true" /> },
-    { value: 'cards', label: 'Cards', icon: <LayoutGrid size={13} aria-hidden="true" /> },
-    { value: 'board', label: 'Board', icon: <Columns3 size={13} aria-hidden="true" /> },
+const sortLabels = (t: TFn): Record<string, string> => ({
+    updated: t('studio_misc.toolbar.sort_updated', 'Recently updated'),
+    name: t('studio_misc.toolbar.sort_name', 'Name'),
+    lastRun: t('studio_misc.toolbar.sort_last_run', 'Last run'),
+    nextRun: t('studio_misc.toolbar.sort_next_run', 'Next run'),
+    status: t('studio_misc.toolbar.sort_status', 'Status'),
+});
+const groupLabels = (t: TFn): Record<string, string> => ({
+    status: t('studio_misc.toolbar.group_status', 'Status'),
+    trigger: t('studio_misc.toolbar.group_trigger', 'Trigger'),
+    folder: t('studio_misc.toolbar.group_folder', 'Folder'),
+});
+
+const viewOptions = (t: TFn) => [
+    { value: 'list', label: t('studio_misc.toolbar.view_list', 'List'), icon: <LayoutList size={13} aria-hidden="true" /> },
+    { value: 'cards', label: t('studio_misc.toolbar.view_cards', 'Cards'), icon: <LayoutGrid size={13} aria-hidden="true" /> },
+    { value: 'board', label: t('studio_misc.toolbar.view_board', 'Board'), icon: <Columns3 size={13} aria-hidden="true" /> },
 ];
 
 export interface OverviewToolbarProps {
@@ -69,6 +75,7 @@ export interface OverviewToolbarProps {
  * ultrawide screen Sort and New stay above the table they act on.
  */
 export default function OverviewToolbar(props: OverviewToolbarProps) {
+    const { t } = useTranslation();
     const { hasRows, view, sort, groupBy, onCreate, onCreateBlock, onCreateFolder, canCreate = true } = props;
     const showTriggers = props.triggerOptions.length > 2;
     // Like the trigger row: a folder nobody made is not a filter worth offering.
@@ -86,17 +93,17 @@ export default function OverviewToolbar(props: OverviewToolbarProps) {
                             "Filter" button, so a laptop gets one calm row (filter ·
                             sort · view · New) instead of two crowded ones. */}
                         <div className="hidden @[84rem]/overview:flex items-center gap-x-3 gap-y-2 flex-wrap">
-                            <FilterPills value={props.state} onChange={props.onState} options={props.stateOptions} ariaLabel="Filter by state" testId="automations-overview-state" />
+                            <FilterPills value={props.state} onChange={props.onState} options={props.stateOptions} ariaLabel={t('studio_misc.toolbar.filter_by_state', 'Filter by state')} testId="automations-overview-state" />
                             {showTriggers && (
                                 <>
                                     <span aria-hidden="true" className="w-px h-4 bg-[var(--border-default)]" />
-                                    <FilterPills value={props.trigger} onChange={props.onTrigger} options={props.triggerOptions} ariaLabel="Filter by trigger" testId="automations-overview-trigger" />
+                                    <FilterPills value={props.trigger} onChange={props.onTrigger} options={props.triggerOptions} ariaLabel={t('studio_misc.toolbar.filter_by_trigger', 'Filter by trigger')} testId="automations-overview-trigger" />
                                 </>
                             )}
                             {showFolders && (
                                 <>
                                     <span aria-hidden="true" className="w-px h-4 bg-[var(--border-default)]" />
-                                    <FilterPills value={folderValue} onChange={onFolder} options={props.folderOptions} ariaLabel="Filter by folder" testId="automations-overview-folder" />
+                                    <FilterPills value={folderValue} onChange={onFolder} options={props.folderOptions} ariaLabel={t('studio_misc.toolbar.filter_by_folder', 'Filter by folder')} testId="automations-overview-folder" />
                                 </>
                             )}
                             {props.narrowed && (
@@ -105,7 +112,7 @@ export default function OverviewToolbar(props: OverviewToolbarProps) {
                                     onClick={props.onClear}
                                     className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition"
                                 >
-                                    <X size={11} aria-hidden="true" /> Clear
+                                    <X size={11} aria-hidden="true" /> {t('studio_misc.toolbar.clear', 'Clear')}
                                 </button>
                             )}
                         </div>
@@ -116,32 +123,32 @@ export default function OverviewToolbar(props: OverviewToolbarProps) {
                 ) : (
                     <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
                         <Workflow size={14} aria-hidden="true" className="text-[var(--type-trigger)]" />
-                        All automations
+                        {t('studio_misc.toolbar.all_automations', 'All automations')}
                     </span>
                 )}
                 <div className="flex-1" />
                 <div className="flex items-center gap-3">
                     {view === 'board' && (
                         <PickerMenu
-                            label="Group"
+                            label={t('studio_misc.toolbar.group', 'Group')}
                             value={groupBy}
                             options={GROUPS}
-                            labels={GROUP_LABEL}
+                            labels={groupLabels(t)}
                             onChange={props.onGroup}
-                            ariaLabel="Group automations by"
+                            ariaLabel={t('studio_misc.toolbar.group_by', 'Group automations by')}
                             testId="automations-overview-group"
                         />
                     )}
                     <PickerMenu
-                        label="Sort"
+                        label={t('studio_misc.toolbar.sort', 'Sort')}
                         value={sort}
                         options={SORTS}
-                        labels={SORT_LABEL}
+                        labels={sortLabels(t)}
                         onChange={props.onSort}
-                        ariaLabel="Sort automations"
+                        ariaLabel={t('studio_misc.toolbar.sort_automations', 'Sort automations')}
                         testId="automations-overview-sort"
                     />
-                    <SegmentedControl size="sm" value={view} onChange={props.onView} options={VIEW_OPTIONS} ariaLabel="View" />
+                    <SegmentedControl size="sm" value={view} onChange={props.onView} options={viewOptions(t)} ariaLabel={t('studio_misc.toolbar.view', 'View')} />
                     {/* The same split + as the sidebar: the main part makes an
                         automation, the chevron also offers a building block. */}
                     {onCreate && canCreate && (
@@ -208,18 +215,18 @@ function FilterMenu({ state, onState, stateOptions, trigger, onTrigger, triggerO
             >
                 <div className="flex flex-col gap-1.5">
                     <span className={heading}>{t('automations.overview.filterState', 'State')}</span>
-                    <FilterPills value={state} onChange={onState} options={stateOptions} ariaLabel="Filter by state" />
+                    <FilterPills value={state} onChange={onState} options={stateOptions} ariaLabel={t('studio_misc.toolbar.filter_by_state', 'Filter by state')} />
                 </div>
                 {showTriggers && (
                     <div className="flex flex-col gap-1.5">
                         <span className={heading}>{t('automations.overview.filterTrigger', 'Trigger')}</span>
-                        <FilterPills value={trigger} onChange={onTrigger} options={triggerOptions} ariaLabel="Filter by trigger" />
+                        <FilterPills value={trigger} onChange={onTrigger} options={triggerOptions} ariaLabel={t('studio_misc.toolbar.filter_by_trigger', 'Filter by trigger')} />
                     </div>
                 )}
                 {showFolders && (
                     <div className="flex flex-col gap-1.5">
                         <span className={heading}>{t('automations.overview.filterFolder', 'Folder')}</span>
-                        <FilterPills value={folderValue} onChange={onFolderSafe} options={folderOptions} ariaLabel="Filter by folder" />
+                        <FilterPills value={folderValue} onChange={onFolderSafe} options={folderOptions} ariaLabel={t('studio_misc.toolbar.filter_by_folder', 'Filter by folder')} />
                     </div>
                 )}                {narrowed && (
                     <button

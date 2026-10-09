@@ -121,7 +121,7 @@ export function KnowledgeBaseScreen({ kbId, initialTab }: { kbId: string; initia
             <WorkflowSourceSheet key={`n8n:${sheet === 'workflow'}`} kbId={kbId} visible={sheet === 'workflow'} onClose={close} />
             <IngestSheets
                 flow={flow}
-                title={t('mobile.knowledge.add_document', 'Add a document')}
+                title={t('automations.approval_editors.add_a_document', 'Add a document')}
                 subtitle={kb?.name}
                 accepts={t('mobile.knowledge.accepts', 'PDF, Word, Excel, CSV or text · up to 20 MB')}
                 scanName={kb?.name ? t('mobile.knowledge.scan_name', '{name} scan', { name: kb.name }) : undefined}

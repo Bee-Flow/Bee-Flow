@@ -21,6 +21,9 @@
 const fs = require('node:fs');
 
 const NAMESPACES = {
+    "appearance":      require('./appearance.js'),
+    "nc_onboarding":   require('./nc_onboarding.js'),
+    "init_setup":      require('./init_setup.js'),
     "activity":        require('./activity.js'),
     "admin":           require('./admin.js'),
     "agent":           require('./agent.js'),
@@ -39,10 +42,12 @@ const NAMESPACES = {
     "chat":            require('./chat.js'),
     "chat_monitoring": require('./chat_monitoring.js'),
     "checkout":        require('./checkout.js'),
+    "cms_site":         require('./cms_site.js'),
     "code_step":       require('./code_step.js'),
     "comments":        require('./comments.js'),
     "common":          require('./common.js'),
     "compliance":      require('./compliance.js'),
+    "component_studio": require('./component_studio.js'),
     "condition_node":  require('./condition_node.js'),
     "connections":     require('./connections.js'),
     "consent":         require('./consent.js'),
@@ -130,6 +135,20 @@ const NAMESPACES = {
     "visibility":      require('./visibility.js'),
     "voiceprint":      require('./voiceprint.js'),
     "webpages":        require('./webpages.js'),
+    "admin_ai_config": require('./admin_ai_config.js'),
+    "admin_languages": require('./admin_languages.js'),
+    "admin_monitoring": require('./admin_monitoring.js'),
+    "admin_org": require('./admin_org.js'),
+    "admin_security": require('./admin_security.js'),
+    "admin_shared": require('./admin_shared.js'),
+    "admin_subscriptions": require('./admin_subscriptions.js'),
+    "studio_apps_bi": require('./studio_apps_bi.js'),
+    "studio_apps_edit": require('./studio_apps_edit.js'),
+    "studio_apps_tables": require('./studio_apps_tables.js'),
+    "studio_apps_insp": require('./studio_apps_insp.js'),
+    "studio_apps_panels": require('./studio_apps_panels.js'),
+    "studio_apps_runtime": require('./studio_apps_runtime.js'),
+    "studio_misc": require('./studio_misc.js'),
 };
 
 function build() {

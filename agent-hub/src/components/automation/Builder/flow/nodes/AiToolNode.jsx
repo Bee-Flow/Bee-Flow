@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Hammer, X } from 'lucide-react';
 import IntegrationLogo from './IntegrationLogo';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * One tool hanging under an AI step — the canvas half of `ai_step.tools`.
@@ -15,6 +16,7 @@ import IntegrationLogo from './IntegrationLogo';
  * for why none of this is ever written to definition.steps/edges.
  */
 export default function AiToolNode({ data }) {
+    const { t } = useTranslation();
     const [hovered, setHovered] = useState(false);
     const { label, description, integrationId, tool, all, onDetach, stepId } = data || {};
 
@@ -48,7 +50,7 @@ export default function AiToolNode({ data }) {
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onDetach(stepId, tool); }}
                     aria-label={`Remove ${label}`}
-                    title="Take this tool away from the AI step"
+                    title={t('automations.ai_tool_node.take_this_tool_away_from_the', 'Take this tool away from the AI step')}
                     className={`shrink-0 rounded-full p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-opacity ${
                         hovered ? 'opacity-100' : 'opacity-0'
                     }`}

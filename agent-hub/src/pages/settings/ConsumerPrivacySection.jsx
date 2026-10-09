@@ -119,7 +119,7 @@ const ConsumerPrivacySection = () => {
                         {t('settings.privacy_shield', 'Privacy Shield')}
                     </h2>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
-                        Control data privacy and model routing for your account
+                        {t('settings.consumer_privacy.subtitle', 'Control data privacy and model routing for your account')}
                     </p>
                 </div>
                 <button
@@ -164,7 +164,7 @@ const ConsumerPrivacySection = () => {
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold text-[var(--text-primary)]">Enable Privacy Shield</p>
+                                <p className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.consumer_privacy.enable', 'Enable Privacy Shield')}</p>
                                 {implicitDefault && config.enabled && (
                                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'rgba(16,185,129,0.12)', color: 'rgb(4,120,87)' }}>
                                         {t('privacy.implicit_default_badge', 'On by default')}
@@ -198,9 +198,9 @@ const ConsumerPrivacySection = () => {
                                     <Globe className="w-4 h-4 text-blue-500" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)]">EU Data Residency</p>
+                                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.eu_title', 'EU Data Residency')}</p>
                                     <p className="text-xs text-[var(--text-muted)]">
-                                        Route all AI requests through EU-based model endpoints only
+                                        {t('settings.consumer_privacy.eu_desc', 'Route all AI requests through EU-based model endpoints only')}
                                     </p>
                                 </div>
                             </div>
@@ -222,9 +222,9 @@ const ConsumerPrivacySection = () => {
                                     <Search className="w-4 h-4 text-amber-500" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)]">Disable Search on File Upload</p>
+                                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.search_title', 'Disable Search on File Upload')}</p>
                                     <p className="text-xs text-[var(--text-muted)]">
-                                        Prevent web searches when files are attached to conversations
+                                        {t('settings.consumer_privacy.search_desc', 'Prevent web searches when files are attached to conversations')}
                                     </p>
                                 </div>
                             </div>
@@ -246,9 +246,9 @@ const ConsumerPrivacySection = () => {
                                     <ScanEye className="w-4 h-4 text-emerald-500" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)]">Look for personal data</p>
+                                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.pii_title', 'Look for personal data')}</p>
                                     <p className="text-xs text-[var(--text-muted)]">
-                                        Check your messages for personal details — names, email addresses, phone numbers, passwords — and hide them from the AI, or stop the message altogether
+                                        {t('settings.consumer_privacy.pii_desc', 'Check your messages for personal details — names, email addresses, phone numbers, passwords — and hide them from the AI, or stop the message altogether')}
                                     </p>
                                 </div>
                             </div>
@@ -280,7 +280,7 @@ const ConsumerPrivacySection = () => {
                             <div className="mt-3 flex items-start gap-2 text-[11px] px-3 py-2 rounded-lg" style={{ background: 'rgba(234, 179, 8, 0.10)', color: '#92400e', border: '1px solid rgba(234, 179, 8, 0.30)' }}>
                                 <span>⚠️</span>
                                 <span className="leading-relaxed">
-                                    At this level some personal data can slip through. Email addresses, phone numbers and bank account numbers are still recognised by their exact shape, but names and addresses depend on the detector.
+                                    {t('settings.consumer_privacy.threshold_warning', 'At this level some personal data can slip through. Email addresses, phone numbers and bank account numbers are still recognised by their exact shape, but names and addresses depend on the detector.')}
                                 </span>
                             </div>
                         )}
@@ -308,10 +308,10 @@ const ConsumerPrivacySection = () => {
                                 <span className="flex-1">
                                     <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
                                         <Eye className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                                        Show me what was sent to the AI
+                                        {t('settings.consumer_privacy.raw_payload_title', 'Show me what was sent to the AI')}
                                     </span>
                                     <span className="text-[10px] block mt-1 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                                        Adds a section to the &ldquo;How I got this answer&rdquo; panel showing your original message, the version that went to the AI, and which placeholder stood for which value. Only you can see it, in your own conversation.
+                                        {t('settings.consumer_privacy.raw_payload_desc', 'Adds a section to the “How I got this answer” panel showing your original message, the version that went to the AI, and which placeholder stood for which value. Only you can see it, in your own conversation.')}
                                     </span>
                                 </span>
                             </label>
@@ -332,12 +332,9 @@ const ConsumerPrivacySection = () => {
                 <div className="flex gap-3">
                     <span className="text-lg">💡</span>
                     <div>
-                        <p className="text-sm font-medium text-[var(--text-primary)] mb-1">About Privacy Shield</p>
+                        <p className="text-sm font-medium text-[var(--text-primary)] mb-1">{t('settings.consumer_privacy.about_title', 'About Privacy Shield')}</p>
                         <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                            Privacy Shield gives you control over what happens to your data. With EU data residency on,
-                            every request to an AI model goes through European data centres only. The personal-data
-                            check reads your messages on this server and swaps sensitive details for placeholders
-                            — or stops the message — before it reaches the AI.
+                            {t('settings.consumer_privacy.about_body', 'Privacy Shield gives you control over what happens to your data. With EU data residency on, every request to an AI model goes through European data centres only. The personal-data check reads your messages on this server and swaps sensitive details for placeholders — or stops the message — before it reaches the AI.')}
                         </p>
                     </div>
                 </div>

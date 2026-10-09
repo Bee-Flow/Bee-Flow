@@ -390,7 +390,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                     <div className="flex items-center gap-3">
                         {onClose && (
                             <button onClick={onClose} className="p-1.5 -ml-1 rounded-lg transition-colors hover:bg-black/5"
-                                style={{ color: 'var(--text-muted)' }} title="Back to Settings">
+                                style={{ color: 'var(--text-muted)' }} title={t('knowledge.memory_back_to_settings', 'Back to Settings')}>
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
                         )}
@@ -462,7 +462,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                             }}
                             data-testid="memory-filter-all"
                         >
-                            All
+                            {t('knowledge.memory_all', 'All')}
                         </button>
                         {Object.entries(typeConfig).filter(([key]) => allowedAddTypes.includes(key)).map(([key, cfg]) => (
                             // Keep the currently-selected chip visible even when its live
@@ -515,13 +515,13 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                 type="text"
                                 value={newMemory.content}
                                 onChange={(e) => setNewMemory(prev => ({ ...prev, content: e.target.value }))}
-                                placeholder="Enter something to remember..."
+                                placeholder={t('knowledge.memory_enter_something_to_remember', 'Enter something to remember...')}
                                 className="input text-sm flex-1"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                                 autoFocus
                             />
                             <button onClick={handleAdd} className="btn-primary text-sm px-5">
-                                Save
+                                {t('knowledge.memory_save', 'Save')}
                             </button>
                         </div>
                     </div>
@@ -544,7 +544,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                 type="button"
                                 onClick={() => setActionError(null)}
                                 className="p-0.5 rounded-md transition-colors hover:bg-black/5"
-                                title="Dismiss"
+                                title={t('knowledge.memory_dismiss', 'Dismiss')}
                                 data-testid="memory-action-error-dismiss"
                             >
                                 <X className="w-4 h-4" />
@@ -574,7 +574,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                     </p>
                                 </>
                             ) : (
-                                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No memories match your filter</p>
+                                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('knowledge.memory_no_memories_match_your_filter', 'No memories match your filter')}</p>
                             )}
                         </div>
                     ) : (
@@ -590,7 +590,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                             {selectedIds.size === filteredMemories.length ? 'Deselect All' : 'Select All'}
                                         </button>
                                         <span className="text-xs" style={{ color: 'var(--text-muted)' }} data-testid="memory-selected-count">
-                                            {selectedIds.size} selected
+                                            {t('knowledge.memory_selected', '{count} selected', { count: selectedIds.size })}
                                         </span>
                                     </div>
                                     {selectedIds.size > 0 && (
@@ -599,7 +599,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                             style={{ color: '#f87171' }}
                                             data-testid="memory-bulk-delete-btn">
                                             <Trash2 className="w-3.5 h-3.5" />
-                                            Delete {selectedIds.size}
+                                            {t('knowledge.memory_delete_count', 'Delete {count}', { count: selectedIds.size })}
                                         </button>
                                     )}
                                 </div>
@@ -653,7 +653,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                                     )}
                                                     {memory.created_by_name && projectId && (
                                                         <span className="text-xs" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
-                                                            • by {memory.created_by_name}
+                                                            {t('knowledge.memory_by', '• by {name}', { name: memory.created_by_name })}
                                                         </span>
                                                     )}
                                                 </div>
@@ -672,10 +672,10 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                                         />
                                                         <div className="flex gap-2 mt-2">
                                                             <button onClick={() => setEditingId(null)} className="btn-secondary text-xs">
-                                                                Cancel
+                                                                {t('knowledge.memory_cancel', 'Cancel')}
                                                             </button>
                                                             <button onClick={() => handleSaveEdit(memory.id)} className="btn-primary text-xs">
-                                                                Save
+                                                                {t('knowledge.memory_save', 'Save')}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -691,7 +691,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                                         onClick={() => handleEdit(memory)}
                                                         className="p-1.5 rounded-lg transition-colors hover:bg-white/10"
                                                         style={{ color: 'var(--text-muted)' }}
-                                                        title="Edit"
+                                                        title={t('knowledge.memory_edit', 'Edit')}
                                                         data-testid={`memory-edit-${memory.id}`}
                                                     >
                                                         <Edit2 className="w-4 h-4" />
@@ -700,7 +700,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                                                         onClick={() => requestDelete(memory.id)}
                                                         className="p-1.5 rounded-lg transition-colors hover:bg-red-500/20"
                                                         style={{ color: 'var(--text-muted)' }}
-                                                        title="Delete"
+                                                        title={t('knowledge.memory_delete', 'Delete')}
                                                         data-testid={`memory-delete-${memory.id}`}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -740,7 +740,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                         data-testid="memory-clear-all"
                     >
                         <Trash2 className="w-3.5 h-3.5" />
-                        Clear All
+                        {t('knowledge.memory_clear_all', 'Clear All')}
                     </button>
                     <button
                         onClick={handleExport}
@@ -749,7 +749,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, ext
                         data-testid="memory-export"
                     >
                         <Download className="w-3.5 h-3.5" />
-                        Export JSON
+                        {t('knowledge.memory_export_json', 'Export JSON')}
                     </button>
                 </div>
             )}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import EmailHtmlBody from '../../../../../support/EmailHtmlBody';
 import { hoverable } from '../hoverable';
 import { resolveBinding, walkPath } from '../resolveBinding';
@@ -116,6 +117,7 @@ function resolveSide(row, sideField, sideMap) {
 const CHIP_CAP = 6;
 
 function Chips({ items, labelKey, testId }) {
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
     const list = Array.isArray(items) ? items : [];
     if (list.length === 0) return null;
@@ -148,7 +150,7 @@ function Chips({ items, labelKey, testId }) {
                     style={{ background: 'var(--bg-secondary)', color: 'var(--app-primary)' }}
                     data-app-thread-chips-toggle={expanded ? 'less' : 'more'}
                 >
-                    {expanded ? 'Show less' : `+${hidden} more`}
+                    {expanded ? t('studio_apps_runtime.thread.show_less', 'Show less') : t('studio_apps_runtime.thread.more', '+{n} more', { n: hidden })}
                 </button>
             )}
         </div>
@@ -156,6 +158,7 @@ function Chips({ items, labelKey, testId }) {
 }
 
 export default function AppMessageThread({ node }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
         bodyField = 'body', htmlField = null, authorField = 'author',
@@ -166,7 +169,7 @@ export default function AppMessageThread({ node }) {
         emailField = null, toField = null, subjectField = null, showAvatar = false,
         centerMeta = 'hidden',
         eventsBodyField = 'detail', eventsTimestampField = 'at',
-        rowLimit = 100, emptyText = 'No messages yet.',
+        rowLimit = 100, emptyText = t('studio_apps_runtime.thread.empty', 'No messages yet.'),
     } = node.props || {};
     // Any of these turns the plain author line into a mail header.
     const mailHead = !!(emailField || toField || subjectField || showAvatar);
@@ -278,7 +281,7 @@ export default function AppMessageThread({ node }) {
                 // the message for the eye, and it pushes every body down by a
                 // line — three problems that all disappear by moving it out.
                 // With the mail-header props set it becomes a header block:
-                // name + <email>, an "Aan/Onderwerp" line, time on the right.
+                // name + <email>, a "To/Subject" line, time on the right.
                 const headerInside = mailHead && showHtml;
                 let meta = null;
                 if (side !== 'center') {
@@ -287,8 +290,8 @@ export default function AppMessageThread({ node }) {
                         const toStr = to != null && to !== '' ? String(to) : null;
                         const subjStr = subject != null && subject !== '' ? String(subject) : null;
                         const secondLine = [
-                            toStr ? `Aan: ${toStr}` : null,
-                            subjStr ? `Onderwerp: ${subjStr}` : null,
+                            toStr ? t('studio_apps_runtime.thread.to', 'To: {value}', { value: toStr }) : null,
+                            subjStr ? t('studio_apps_runtime.thread.subject', 'Subject: {value}', { value: subjStr }) : null,
                         ].filter(Boolean).join(' · ');
                         // On a sheet the header goes INSIDE, above a rule —
                         // where every mail client puts it, and where artboard 2

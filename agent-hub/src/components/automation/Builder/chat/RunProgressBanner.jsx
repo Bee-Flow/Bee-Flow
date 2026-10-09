@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Sticky banner shown while a run is in flight — n8n's "Workflow is
@@ -6,6 +7,7 @@ import React, { useEffect, useState } from 'react';
  * the top of the diagram column.
  */
 export default function RunProgressBanner({ run, steps, onStop }) {
+    const { t } = useTranslation();
     const total = steps?.length || 0;
     const done = (steps || []).filter(s => s.status === 'success' || s.status === 'skipped' || s.status === 'pinned').length;
     const failed = (steps || []).some(s => s.status === 'error');
@@ -23,17 +25,17 @@ export default function RunProgressBanner({ run, steps, onStop }) {
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${failed ? 'bg-red-500' : 'bg-[var(--accent)]'}`} />
             </span>
             <span className="font-medium text-[var(--text-primary)]">
-                {failed ? 'Run failing' : 'Running'} — {done}/{total || '?'} steps
+                {failed ? t('automations.run_progress_banner.run_failing', 'Run failing') : t('automations.run_progress_banner.running', 'Running')} {t('automations.run_progress_banner.steps_progress', '{done}/{total} steps', { done, total: total || '?' })}
             </span>
             <span className="text-[var(--text-tertiary)] tabular-nums">
                 {Math.floor(elapsed / 1000)}.{Math.floor((elapsed % 1000) / 100)}s
             </span>
             <button
                 onClick={onStop}
-                title="Stop this run"
+                title={t('automations.run_progress_banner.stop_this_run', 'Stop this run')}
                 className="ml-1 px-2 py-0.5 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-red-600 transition"
             >
-                Stop
+                {t('automations.run_progress_banner.stop', 'Stop')}
             </button>
         </div>
     );

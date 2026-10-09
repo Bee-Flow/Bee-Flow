@@ -46,51 +46,51 @@ export default function OrganizationModal({
             <div className="space-y-4">
                 {/* Company Logo */}
                 <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Company Logo</label>
+                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.org_modal_logo', 'Company Logo')}</label>
                     <div className="flex items-center gap-4">
                         {orgData.logo && (
-                            <img src={orgData.logo.startsWith('/') ? `${API_BASE}${orgData.logo}` : orgData.logo} alt="Logo" className="w-16 h-16 object-contain rounded-lg border border-[var(--border-default)]" />
+                            <img src={orgData.logo.startsWith('/') ? `${API_BASE}${orgData.logo}` : orgData.logo} alt={t('admin_org.org_modal_logo_alt', 'Logo')} className="w-16 h-16 object-contain rounded-lg border border-[var(--border-default)]" />
                         )}
                         <div className="flex items-center gap-2">
                             <label className="cursor-pointer px-4 py-2 rounded-lg font-medium text-sm bg-[var(--accent-primary)] text-white">
-                                Upload Logo
+                                {t('admin_org.org_modal_upload_logo', 'Upload Logo')}
                                 <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) onUploadLogo(file);
                                 }} />
                             </label>
                             {orgData.logo && (
-                                <button onClick={onRemoveLogo} className="text-sm font-medium text-[var(--text-muted)]">Remove</button>
+                                <button onClick={onRemoveLogo} className="text-sm font-medium text-[var(--text-muted)]">{t('admin_org.org_modal_remove', 'Remove')}</button>
                             )}
                         </div>
                     </div>
-                    <p className="text-xs mt-1 text-[var(--text-muted)]">Recommended: PNG or SVG, max 500x200px</p>
+                    <p className="text-xs mt-1 text-[var(--text-muted)]">{t('admin_org.org_modal_logo_hint', 'Recommended: PNG or SVG, max 500x200px')}</p>
                 </div>
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Company Name</label><input type="text" value={orgData.name} onChange={e => setOrgData(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="Bee Flow B.V." /></div>
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Company Details / Tagline</label><input type="text" value={orgData.tagline} onChange={e => setOrgData(p => ({ ...p, tagline: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="Intelligence in Action. Results That Stick" /></div>
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Description</label><input type="text" value={orgData.description} onChange={e => setOrgData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="Main organization" /></div>
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Address</label><input type="text" value={orgData.address} onChange={e => setOrgData(p => ({ ...p, address: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="123 Main Street" /></div>
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_company_name', 'Company Name')}</label><input type="text" value={orgData.name} onChange={e => setOrgData(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.org_modal_name_ph', 'Bee Flow B.V.')} /></div>
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_tagline', 'Company Details / Tagline')}</label><input type="text" value={orgData.tagline} onChange={e => setOrgData(p => ({ ...p, tagline: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.org_modal_tagline_ph', 'Intelligence in Action. Results That Stick')} /></div>
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_description', 'Description')}</label><input type="text" value={orgData.description} onChange={e => setOrgData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.org_modal_desc_ph', 'Main organization')} /></div>
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_address', 'Address')}</label><input type="text" value={orgData.address} onChange={e => setOrgData(p => ({ ...p, address: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.org_modal_address_ph', '123 Main Street')} /></div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Email</label><input type="email" value={orgData.email} onChange={e => setOrgData(p => ({ ...p, email: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="info@company.com" /></div>
-                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Phone</label><input type="tel" value={orgData.phone} onChange={e => setOrgData(p => ({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="+1 555 123 4567" /></div>
+                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_email', 'Email')}</label><input type="email" value={orgData.email} onChange={e => setOrgData(p => ({ ...p, email: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="info@company.com" /></div>
+                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_phone', 'Phone')}</label><input type="tel" value={orgData.phone} onChange={e => setOrgData(p => ({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="+1 555 123 4567" /></div>
                 </div>
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Website</label><input type="url" value={orgData.website} onChange={e => setOrgData(p => ({ ...p, website: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="www.beeflow.nl" /></div>
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_website', 'Website')}</label><input type="url" value={orgData.website} onChange={e => setOrgData(p => ({ ...p, website: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="www.beeflow.nl" /></div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Chamber of Commerce</label><input type="text" value={orgData.kvk} onChange={e => setOrgData(p => ({ ...p, kvk: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="12345678" /></div>
-                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">VAT Number</label><input type="text" value={orgData.vat} onChange={e => setOrgData(p => ({ ...p, vat: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="XX123456789" /></div>
+                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_kvk', 'Chamber of Commerce')}</label><input type="text" value={orgData.kvk} onChange={e => setOrgData(p => ({ ...p, kvk: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="12345678" /></div>
+                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.org_modal_vat', 'VAT Number')}</label><input type="text" value={orgData.vat} onChange={e => setOrgData(p => ({ ...p, vat: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.org_modal_vat_ph', 'XX123456789')} /></div>
                 </div>
                 <div>
                     <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                         <input type="checkbox" checked={orgData.allowSignup || false} onChange={e => setOrgData(p => ({ ...p, allowSignup: e.target.checked }))} className="accent-[var(--accent-primary)] w-4 h-4" />
                         <div>
-                            <span className="text-sm font-medium block text-[var(--text-primary)]">Allow Public Signup</span>
-                            <span className="text-xs text-[var(--text-muted)]">Users can register themselves for this organization</span>
+                            <span className="text-sm font-medium block text-[var(--text-primary)]">{t('admin_org.org_modal_signup', 'Allow Public Signup')}</span>
+                            <span className="text-xs text-[var(--text-muted)]">{t('admin_org.org_modal_signup_hint', 'Users can register themselves for this organization')}</span>
                         </div>
                     </label>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Default Groups</label>
-                    <p className="text-xs mb-2 text-[var(--text-muted)]">New users will be automatically assigned to these groups</p>
+                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.org_modal_default_groups', 'Default Groups')}</label>
+                    <p className="text-xs mb-2 text-[var(--text-muted)]">{t('admin_org.org_modal_default_groups_hint', 'New users will be automatically assigned to these groups')}</p>
                     <div className="max-h-40 overflow-auto p-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                         {groups.filter(g => !g.organizationId || g.organizationId === orgData.id).map(g => (
                             <label key={g.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
@@ -101,23 +101,23 @@ export default function OrganizationModal({
                                 </div>
                             </label>
                         ))}
-                        {groups.length === 0 && <p className="text-sm px-2 py-1 text-[var(--text-muted)]">No groups available. Create groups first.</p>}
+                        {groups.length === 0 && <p className="text-sm px-2 py-1 text-[var(--text-muted)]">{t('admin_org.org_modal_no_groups', 'No groups available. Create groups first.')}</p>}
                     </div>
                 </div>
                 {/* Enabled Integrations (Super Admin only) */}
                 {isFullAdmin && showEditOrg && (
                     <div>
-                        <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Enabled Integrations</label>
-                        <p className="text-xs mb-2 text-[var(--text-muted)]">Control which integrations are available for this organization. Deselect all then re-select to customize.</p>
+                        <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.org_modal_integrations', 'Enabled Integrations')}</label>
+                        <p className="text-xs mb-2 text-[var(--text-muted)]">{t('admin_org.org_modal_integrations_hint', 'Control which integrations are available for this organization. Deselect all then re-select to customize.')}</p>
                         <div className="flex items-center gap-2 mb-3">
                             <button
                                 onClick={() => setOrgData(p => ({ ...p, enabledIntegrations: null }))}
                                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all bg-[var(--bg-tertiary)] text-[var(--text-primary)] ${orgData.enabledIntegrations === null ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}
-                            >All Enabled</button>
+                            >{t('admin_org.org_modal_all_enabled', 'All Enabled')}</button>
                             <button
                                 onClick={() => setOrgData(p => ({ ...p, enabledIntegrations: p.enabledIntegrations === null ? ALL_INTEGRATIONS.map(i => i.id) : p.enabledIntegrations }))}
                                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all bg-[var(--bg-tertiary)] text-[var(--text-primary)] ${orgData.enabledIntegrations !== null ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}
-                            >Custom</button>
+                            >{t('admin_org.org_modal_custom', 'Custom')}</button>
                         </div>
                         {orgData.enabledIntegrations !== null && (
                             <div className="grid grid-cols-2 gap-2 p-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)]">

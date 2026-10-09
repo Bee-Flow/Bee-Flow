@@ -251,7 +251,7 @@ export default function VoiceInlinePanel({
                             {latency.sttMs != null && <span>STT {latency.sttMs}ms</span>}
                             {latency.ttftMs != null && <span>TTFT {latency.ttftMs}ms</span>}
                             {latency.ttsMs != null && <span>TTS {latency.ttsMs}ms</span>}
-                            {latency.totalMs != null && <span>Total {latency.totalMs}ms</span>}
+                            {latency.totalMs != null && <span>{t('usage.total', 'Total')} {latency.totalMs}ms</span>}
                         </div>
                     )}
                 </div>

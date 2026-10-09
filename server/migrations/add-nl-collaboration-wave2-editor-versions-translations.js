@@ -533,6 +533,9 @@ const NL_TRANSLATIONS = Object.freeze({
     'notebooks.sign_failed_status': 'Versturen ter ondertekening mislukt ({status})',
     'notebooks.nextcloud_failed_status': 'Opslaan in Nextcloud mislukt ({status})',
     'notebooks.nextcloud_saved': 'Opgeslagen in Nextcloud: {path}',
+    'editor.chart_delete': 'Grafiek verwijderen',
+    'editor.chart_no_data': 'Geen grafiekgegevens',
+    'editor.slash_menu_label': 'Blok invoegen',
 });
 
 /**

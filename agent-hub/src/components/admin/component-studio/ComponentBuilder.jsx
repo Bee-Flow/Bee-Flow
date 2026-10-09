@@ -4,6 +4,7 @@ import AIComponentDesigner from './AIComponentDesigner';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { toast } from '../../shared/Toast';
 import useConfirm from '../../shared/useConfirm';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // Monaco is ~16 KB minified but pulls a large worker dep chain. Defer
 // loading until the user actually opens a tab that needs the editor —
@@ -28,6 +29,7 @@ function Editor(props) {
 }
 
 const ComponentBuilder = ({ onBack, hasPermission = () => true }) => {
+    const { t } = useTranslation();
     const [components, setComponents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedComponent, setSelectedComponent] = useState(null);
@@ -190,11 +192,11 @@ process.stdin.on('end', async () => {
 
     const handleSave = async () => {
         if (isCreating && !formData.id.match(/^[a-z0-9-]+$/)) {
-            toast.error('Component ID must be lowercase letters, numbers, and hyphens only.');
+            toast.error(t('component_studio.builder.err_id_format', 'Component ID must be lowercase letters, numbers, and hyphens only.'));
             return;
         }
         if (!formData.name) {
-            toast.error('Component name is required.');
+            toast.error(t('component_studio.builder.err_name_required', 'Component name is required.'));
             return;
         }
 
@@ -253,7 +255,7 @@ process.stdin.on('end', async () => {
                 }
             }
         } catch (err) {
-            toast.error('Failed to save component: ' + err.message);
+            toast.error(t('component_studio.builder.err_save_failed', 'Failed to save component: {error}', { error: err.message }));
         } finally {
             setIsSaving(false);
         }
@@ -261,20 +263,20 @@ process.stdin.on('end', async () => {
 
     const handleDelete = async () => {
         if (!selectedComponent) return;
-        if (!(await confirm({ title: `Delete "${formData.name}"?`, description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
+        if (!(await confirm({ title: t('component_studio.builder.confirm_delete_title', 'Delete "{name}"?', { name: formData.name }), description: t('component_studio.builder.confirm_cannot_undo', 'This cannot be undone.'), confirmLabel: t('component_studio.builder.delete', 'Delete'), destructive: true }))) return;
 
         try {
             await authFetch(`${API_BASE}/components/${selectedComponent}`, { method: 'DELETE' });
             fetchComponents();
             handleNewComponent();
         } catch (err) {
-            toast.error('Failed to delete component: ' + err.message);
+            toast.error(t('component_studio.builder.err_delete_failed', 'Failed to delete component: {error}', { error: err.message }));
         }
     };
 
     const handleDeleteCategory = async (category, componentsInCategory) => {
         const count = componentsInCategory.length;
-        if (!(await confirm({ title: `Delete all ${count} components in "${category}"?`, description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
+        if (!(await confirm({ title: t('component_studio.builder.confirm_delete_category_title', 'Delete all {count} components in "{category}"?', { count, category }), description: t('component_studio.builder.confirm_cannot_undo', 'This cannot be undone.'), confirmLabel: t('component_studio.builder.delete', 'Delete'), destructive: true }))) return;
 
         try {
             for (const comp of componentsInCategory) {
@@ -285,13 +287,13 @@ process.stdin.on('end', async () => {
                 handleNewComponent();
             }
         } catch (err) {
-            toast.error('Failed to delete category: ' + err.message);
+            toast.error(t('component_studio.builder.err_delete_category_failed', 'Failed to delete category: {error}', { error: err.message }));
         }
     };
 
     const handleDeleteSingleComponent = async (e, compId, compName) => {
         e.stopPropagation();
-        if (!(await confirm({ title: `Delete "${compName}"?`, description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
+        if (!(await confirm({ title: t('component_studio.builder.confirm_delete_title', 'Delete "{name}"?', { name: compName }), description: t('component_studio.builder.confirm_cannot_undo', 'This cannot be undone.'), confirmLabel: t('component_studio.builder.delete', 'Delete'), destructive: true }))) return;
 
         try {
             await authFetch(`${API_BASE}/components/${compId}`, { method: 'DELETE' });
@@ -300,7 +302,7 @@ process.stdin.on('end', async () => {
                 handleNewComponent();
             }
         } catch (err) {
-            toast.error('Failed to delete component: ' + err.message);
+            toast.error(t('component_studio.builder.err_delete_failed', 'Failed to delete component: {error}', { error: err.message }));
         }
     };
 
@@ -382,13 +384,13 @@ process.stdin.on('end', async () => {
             if (res.ok) {
                 // Update local state to reflect new outputs
                 setFormData(prev => ({ ...prev, outputs: flatOutputs }));
-                toast.success('Saved! Updated both sampleOutput and outputs schema.');
+                toast.success(t('component_studio.builder.sample_saved', 'Saved! Updated both sampleOutput and outputs schema.'));
             } else {
                 const err = await res.json();
-                toast.error(`Failed to save: ${err.error}`);
+                toast.error(t('component_studio.builder.err_save_sample_failed', 'Failed to save: {error}', { error: err.error }));
             }
         } catch (err) {
-            toast.error(`Error: ${err.message}`);
+            toast.error(t('component_studio.builder.err_generic', 'Error: {error}', { error: err.message }));
         }
     };
 
@@ -423,13 +425,13 @@ process.stdin.on('end', async () => {
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                     </svg>
-                                    New
+                                    {t('component_studio.builder.new_button', 'New')}
                                 </button>
                                 <button onClick={() => setShowAI(true)} className="btn-secondary flex-1 justify-center" style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}>
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                     </svg>
-                                    AI
+                                    {t('component_studio.builder.ai_button', 'AI')}
                                 </button>
                             </div>
                             <div className="relative">
@@ -440,7 +442,7 @@ process.stdin.on('end', async () => {
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Search components..."
+                                    placeholder={t('component_studio.builder.search_placeholder', 'Search components...')}
                                     className="input w-full pl-10"
                                 />
                             </div>
@@ -452,7 +454,7 @@ process.stdin.on('end', async () => {
                                     <div className="spinner"></div>
                                 </div>
                             ) : sortedCategories.length === 0 ? (
-                                <div className="text-center py-8 text-muted text-sm">No components found</div>
+                                <div className="text-center py-8 text-muted text-sm">{t('component_studio.builder.no_components', 'No components found')}</div>
                             ) : (
                                 sortedCategories.map(category => {
                                     const getCategoryIcon = (cat) => {
@@ -495,7 +497,7 @@ process.stdin.on('end', async () => {
                                                         handleDeleteCategory(category, groupedComponents[category]);
                                                     }}
                                                     className="ml-auto opacity-0 group-hover:opacity-100 p-1 rounded transition-all hover:bg-red-500/20"
-                                                    title={`Delete all ${groupedComponents[category].length} components in ${category}`}
+                                                    title={t('component_studio.builder.delete_category_title', 'Delete all {count} components in {category}', { count: groupedComponents[category].length, category })}
                                                     style={{ color: '#ef4444' }}
                                                 >
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -540,7 +542,7 @@ process.stdin.on('end', async () => {
                                                             ? 'opacity-70 hover:opacity-100'
                                                             : 'opacity-0 group-hover/item:opacity-100'
                                                             }`}
-                                                        title="Delete component"
+                                                        title={t('component_studio.builder.delete_component_title', 'Delete component')}
                                                         style={{ color: selectedComponent === comp.id ? 'white' : '#ef4444' }}
                                                     >
                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -563,9 +565,9 @@ process.stdin.on('end', async () => {
                                 {/* Tabs */}
                                 <div className="flex items-center gap-1 px-4 py-2 border-b" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
                                     {[
-                                        { id: 'config', label: 'Config', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
+                                        { id: 'config', label: t('component_studio.builder.tab_config', 'Config'), icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
                                         { id: 'code', label: 'index.js', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
-                                        { id: 'test', label: 'Test', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+                                        { id: 'test', label: t('component_studio.builder.tab_test', 'Test'), icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
                                     ].map(tab => (
                                         <button
                                             key={tab.id}
@@ -591,26 +593,26 @@ process.stdin.on('end', async () => {
                                         {isDirty && (
                                             <span className="flex items-center gap-1.5 text-xs" style={{ color: '#f59e0b' }}>
                                                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }} />
-                                                Unsaved
+                                                {t('component_studio.builder.unsaved', 'Unsaved')}
                                             </span>
                                         )}
                                         <button
                                             onClick={handleSave}
                                             disabled={isSaving}
                                             className="btn-primary text-xs px-4 py-1.5 flex items-center gap-1.5"
-                                            title="Save component changes"
+                                            title={t('component_studio.builder.save_title', 'Save component changes')}
                                         >
                                             {isSaving ? (
                                                 <>
                                                     <div className="spinner" style={{ width: '12px', height: '12px' }}></div>
-                                                    Saving...
+                                                    {t('component_studio.builder.saving', 'Saving...')}
                                                 </>
                                             ) : (
                                                 <>
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                     </svg>
-                                                    Save
+                                                    {t('component_studio.builder.save', 'Save')}
                                                 </>
                                             )}
                                         </button>
@@ -629,11 +631,11 @@ process.stdin.on('end', async () => {
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
                                                     </div>
-                                                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Basic Information</h3>
+                                                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('component_studio.builder.basic_information', 'Basic Information')}</h3>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="text-xs font-medium text-muted block mb-1.5">Component ID</label>
+                                                        <label className="text-xs font-medium text-muted block mb-1.5">{t('component_studio.builder.component_id', 'Component ID')}</label>
                                                         <input
                                                             type="text"
                                                             value={formData.id}
@@ -643,20 +645,20 @@ process.stdin.on('end', async () => {
                                                             className="input w-full font-mono"
                                                             style={{ opacity: isCreating ? 1 : 0.6 }}
                                                         />
-                                                        <p className="text-xs text-muted mt-1">Lowercase, numbers, hyphens only</p>
+                                                        <p className="text-xs text-muted mt-1">{t('component_studio.builder.id_hint', 'Lowercase, numbers, hyphens only')}</p>
                                                     </div>
                                                     <div>
-                                                        <label className="text-xs font-medium text-muted block mb-1.5">Display Name</label>
+                                                        <label className="text-xs font-medium text-muted block mb-1.5">{t('component_studio.builder.display_name', 'Display Name')}</label>
                                                         <input
                                                             type="text"
                                                             value={formData.name}
                                                             onChange={(e) => { setFormData({ ...formData, name: e.target.value }); setIsDirty(true); }}
-                                                            placeholder="My Component"
+                                                            placeholder={t('component_studio.builder.display_name_placeholder', 'My Component')}
                                                             className="input w-full"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="text-xs font-medium text-muted block mb-1.5">Category</label>
+                                                        <label className="text-xs font-medium text-muted block mb-1.5">{t('component_studio.builder.category', 'Category')}</label>
                                                         <input
                                                             type="text"
                                                             value={formData.category}
@@ -664,14 +666,14 @@ process.stdin.on('end', async () => {
                                                             placeholder="Custom"
                                                             className="input w-full"
                                                         />
-                                                        <p className="text-xs text-muted mt-1">Use / for nesting (e.g., API/REST)</p>
+                                                        <p className="text-xs text-muted mt-1">{t('component_studio.builder.category_hint', 'Use / for nesting (e.g., API/REST)')}</p>
                                                     </div>
                                                     <div className="col-span-2">
-                                                        <label className="text-xs font-medium text-muted block mb-1.5">Description</label>
+                                                        <label className="text-xs font-medium text-muted block mb-1.5">{t('component_studio.builder.description', 'Description')}</label>
                                                         <textarea
                                                             value={formData.description}
                                                             onChange={(e) => { setFormData({ ...formData, description: e.target.value.slice(0, 500) }); setIsDirty(true); }}
-                                                            placeholder="What does this component do? (max 500 chars)"
+                                                            placeholder={t('component_studio.builder.description_placeholder', 'What does this component do? (max 500 chars)')}
                                                             className="input w-full resize-none"
                                                             rows={3}
                                                             maxLength={500}
@@ -691,8 +693,8 @@ process.stdin.on('end', async () => {
                                                                 />
                                                             </div>
                                                             <div>
-                                                                <span className="text-sm font-medium text-primary">Enable as Agent Tool</span>
-                                                                <p className="text-xs text-muted">Allow AI agents to use this tool</p>
+                                                                <span className="text-sm font-medium text-primary">{t('component_studio.builder.agent_tool', 'Enable as Agent Tool')}</span>
+                                                                <p className="text-xs text-muted">{t('component_studio.builder.agent_tool_hint', 'Allow AI agents to use this tool')}</p>
                                                             </div>
                                                         </label>
                                                     </div>
@@ -709,8 +711,8 @@ process.stdin.on('end', async () => {
                                                                 />
                                                             </div>
                                                             <div>
-                                                                <span className="text-sm font-medium text-primary">Enable for Direct Chat</span>
-                                                                <p className="text-xs text-muted">Make this tool available in direct chat mode</p>
+                                                                <span className="text-sm font-medium text-primary">{t('component_studio.builder.direct_chat', 'Enable for Direct Chat')}</span>
+                                                                <p className="text-xs text-muted">{t('component_studio.builder.direct_chat_hint', 'Make this tool available in direct chat mode')}</p>
                                                             </div>
                                                         </label>
                                                     </div>
@@ -726,7 +728,7 @@ process.stdin.on('end', async () => {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14" />
                                                             </svg>
                                                         </div>
-                                                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Inputs</h3>
+                                                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('component_studio.builder.inputs', 'Inputs')}</h3>
                                                         <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
                                                             {inputsList.length}
                                                         </span>
@@ -735,11 +737,11 @@ process.stdin.on('end', async () => {
                                                         onClick={() => setInputsList([...inputsList, { key: '', type: 'string', defaultValue: '', description: '', secure: false, _hasStoredValue: false }])}
                                                         className="btn-secondary text-xs"
                                                     >
-                                                        + Add Input
+                                                        {t('component_studio.builder.add_input', '+ Add Input')}
                                                     </button>
                                                 </div>
                                                 {inputsList.length === 0 ? (
-                                                    <p className="text-sm text-muted">No inputs defined. Click "Add Input" to create one.</p>
+                                                    <p className="text-sm text-muted">{t('component_studio.builder.no_inputs', 'No inputs defined. Click "Add Input" to create one.')}</p>
                                                 ) : (
                                                     <div className="space-y-2.5">
                                                         {inputsList.map((inp, i) => {
@@ -782,7 +784,8 @@ process.stdin.on('end', async () => {
                                                                             <option value="any">any</option>
                                                                         </select>
                                                                         {inp.secure && (
-                                                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#f87171' }}>secret</span>
+                                                                            /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
+                                                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#f87171' }}>{t('component_studio.builder.secret', 'secret')}</span>
                                                                         )}
                                                                         <div className="ml-auto flex items-center gap-1">
                                                                             <button
@@ -792,7 +795,8 @@ process.stdin.on('end', async () => {
                                                                                     background: inp.secure ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
                                                                                     color: inp.secure ? '#ef4444' : 'var(--text-muted)',
                                                                                 }}
-                                                                                title={inp.secure ? 'Marked as secret — click to toggle' : 'Click to mark as secret'}
+                                                                                /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
+                                                                                title={inp.secure ? t('component_studio.builder.secret_marked', 'Marked as secret — click to toggle') : t('component_studio.builder.secret_mark', 'Click to mark as secret')}
                                                                             >
                                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                     {inp.secure ? (
@@ -806,7 +810,7 @@ process.stdin.on('end', async () => {
                                                                                 onClick={() => { setInputsList(inputsList.filter((_, j) => j !== i)); setIsDirty(true); }}
                                                                                 className="p-1.5 rounded-lg transition-all opacity-0 group-hover/card:opacity-100 hover:bg-red-500/20"
                                                                                 style={{ color: 'var(--text-muted)' }}
-                                                                                title="Remove input"
+                                                                                title={t('component_studio.builder.remove_input', 'Remove input')}
                                                                             >
                                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -817,23 +821,23 @@ process.stdin.on('end', async () => {
                                                                     {/* Bottom row: default value + description */}
                                                                     <div className="flex gap-2.5 px-3.5 pb-3 pt-1">
                                                                         <div className="flex-shrink-0" style={{ width: '150px' }}>
-                                                                            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Default</label>
+                                                                            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('component_studio.builder.default', 'Default')}</label>
                                                                             <input
                                                                                 type={inp.secure ? 'password' : 'text'}
                                                                                 value={inp.defaultValue || ''}
                                                                                 onChange={(e) => { const l = [...inputsList]; l[i].defaultValue = e.target.value; l[i]._hasStoredValue = false; setInputsList(l); setIsDirty(true); }}
-                                                                                placeholder={inp.secure ? (inp._hasStoredValue ? '••• stored' : '—') : '—'}
+                                                                                placeholder={inp.secure ? (inp._hasStoredValue ? t('component_studio.builder.stored_placeholder', '••• stored') : '—') : '—'}
                                                                                 className="input w-full text-xs font-mono"
                                                                             />
                                                                         </div>
                                                                         <div className="flex-1">
-                                                                            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</label>
+                                                                            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('component_studio.builder.description', 'Description')}</label>
                                                                             <div className="relative">
                                                                                 <input
                                                                                     type="text"
                                                                                     value={inp.description || ''}
                                                                                     onChange={(e) => { const l = [...inputsList]; l[i].description = e.target.value.slice(0, 150); setInputsList(l); setIsDirty(true); }}
-                                                                                    placeholder="Describe this input for AI agents..."
+                                                                                    placeholder={t('component_studio.builder.input_description_placeholder', 'Describe this input for AI agents...')}
                                                                                     className="input w-full text-xs pr-12"
                                                                                     maxLength={150}
                                                                                 />
@@ -861,7 +865,7 @@ process.stdin.on('end', async () => {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                                             </svg>
                                                         </div>
-                                                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Outputs</h3>
+                                                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('component_studio.builder.outputs', 'Outputs')}</h3>
                                                         <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
                                                             {outputsList.length}
                                                         </span>
@@ -870,7 +874,7 @@ process.stdin.on('end', async () => {
                                                         onClick={() => setOutputsList([...outputsList, { key: '', type: 'any' }])}
                                                         className="btn-secondary text-xs"
                                                     >
-                                                        + Add Output
+                                                        {t('component_studio.builder.add_output', '+ Add Output')}
                                                     </button>
                                                 </div>
                                                 <div className="space-y-2">
@@ -916,7 +920,7 @@ process.stdin.on('end', async () => {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                                             </svg>
                                                         </div>
-                                                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>NPM Dependencies</h3>
+                                                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('component_studio.builder.npm_dependencies', 'NPM Dependencies')}</h3>
                                                         {dependenciesList.length > 0 && (
                                                             <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
                                                                 {dependenciesList.length}
@@ -927,11 +931,11 @@ process.stdin.on('end', async () => {
                                                         onClick={() => setDependenciesList([...dependenciesList, { name: '', version: 'latest' }])}
                                                         className="btn-secondary text-xs"
                                                     >
-                                                        + Add Package
+                                                        {t('component_studio.builder.add_package', '+ Add Package')}
                                                     </button>
                                                 </div>
                                                 {dependenciesList.length === 0 ? (
-                                                    <p className="text-sm text-muted">No dependencies. Built-in Node.js modules are always available.</p>
+                                                    <p className="text-sm text-muted">{t('component_studio.builder.no_dependencies', 'No dependencies. Built-in Node.js modules are always available.')}</p>
                                                 ) : (
                                                     <div className="space-y-2">
                                                         {dependenciesList.map((dep, i) => (
@@ -968,8 +972,8 @@ process.stdin.on('end', async () => {
                                                 <div className="rounded-xl p-5 mt-2" style={{ border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                                                     <div className="flex items-center justify-between">
                                                         <div>
-                                                            <h3 className="text-sm font-semibold" style={{ color: '#ef4444' }}>Danger Zone</h3>
-                                                            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Permanently delete this component and all its files</p>
+                                                            <h3 className="text-sm font-semibold" style={{ color: '#ef4444' }}>{t('component_studio.builder.danger_zone', 'Danger Zone')}</h3>
+                                                            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('component_studio.builder.danger_hint', 'Permanently delete this component and all its files')}</p>
                                                         </div>
                                                         <button
                                                             onClick={handleDelete}
@@ -983,7 +987,7 @@ process.stdin.on('end', async () => {
                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                             </svg>
-                                                            Delete Component
+                                                            {t('component_studio.builder.delete_component', 'Delete Component')}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -999,7 +1003,7 @@ process.stdin.on('end', async () => {
                                                     <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>index.js</span>
                                                 </div>
                                                 <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
-                                                    {formData.code.split('\n').length} lines
+                                                    {t('component_studio.builder.lines', '{n} lines', { n: formData.code.split('\n').length })}
                                                 </span>
                                             </div>
                                             <div className="flex-1 rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border-default)' }}>
@@ -1035,7 +1039,7 @@ process.stdin.on('end', async () => {
                                                     <div className="flex items-center justify-between mb-3 px-1">
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-3 h-3 rounded-full" style={{ background: '#22c55e' }} />
-                                                            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Input (JSON)</span>
+                                                            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('component_studio.builder.input_json', 'Input (JSON)')}</span>
                                                         </div>
                                                         <button
                                                             onClick={() => {
@@ -1048,7 +1052,7 @@ process.stdin.on('end', async () => {
                                                             className="text-xs px-2 py-1 rounded transition-colors"
                                                             style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}
                                                         >
-                                                            Reset to defaults
+                                                            {t('component_studio.builder.reset_defaults', 'Reset to defaults')}
                                                         </button>
                                                     </div>
                                                     <div className="flex-1 rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border-default)' }}>
@@ -1080,12 +1084,12 @@ process.stdin.on('end', async () => {
                                                     <div className="flex items-center justify-between mb-3 px-1">
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-3 h-3 rounded-full" style={{ background: testOutput?.error ? '#ef4444' : '#a855f7' }} />
-                                                            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Output</span>
+                                                            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('component_studio.builder.output', 'Output')}</span>
                                                             {testOutput && !testOutput.error && (
-                                                                <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e' }}>Success</span>
+                                                                <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e' }}>{t('component_studio.builder.success', 'Success')}</span>
                                                             )}
                                                             {testOutput?.error && (
-                                                                <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444' }}>Error</span>
+                                                                <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444' }}>{t('component_studio.builder.error', 'Error')}</span>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -1095,17 +1099,17 @@ process.stdin.on('end', async () => {
                                                                         onClick={() => navigator.clipboard.writeText(JSON.stringify(testOutput, null, 2))}
                                                                         className="text-xs px-2 py-1 rounded transition-colors"
                                                                         style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}
-                                                                        title="Copy to clipboard"
+                                                                        title={t('component_studio.builder.copy_title', 'Copy to clipboard')}
                                                                     >
-                                                                        📋 Copy
+                                                                        {t('component_studio.builder.copy', '📋 Copy')}
                                                                     </button>
                                                                     <button
                                                                         onClick={handleSaveSampleOutput}
                                                                         className="text-xs px-2 py-1 rounded transition-colors"
                                                                         style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#6366f1' }}
-                                                                        title="Save as sample output"
+                                                                        title={t('component_studio.builder.save_sample_title', 'Save as sample output')}
                                                                     >
-                                                                        💾 Save Sample
+                                                                        {t('component_studio.builder.save_sample', '💾 Save Sample')}
                                                                     </button>
                                                                 </>
                                                             )}
@@ -1116,7 +1120,7 @@ process.stdin.on('end', async () => {
                                                             <div className="h-full flex items-center justify-center" style={{ background: '#1e1e1e' }}>
                                                                 <div className="flex items-center gap-3" style={{ color: 'var(--text-muted)' }}>
                                                                     <div className="spinner" style={{ width: '1.25rem', height: '1.25rem' }}></div>
-                                                                    <span>Running component...</span>
+                                                                    <span>{t('component_studio.builder.running_component', 'Running component...')}</span>
                                                                 </div>
                                                             </div>
                                                         ) : testOutput ? (
@@ -1141,7 +1145,7 @@ process.stdin.on('end', async () => {
                                                             />
                                                         ) : (
                                                             <div className="h-full flex items-center justify-center" style={{ background: '#1e1e1e' }}>
-                                                                <span style={{ color: 'var(--text-muted)' }}>Click "Run Test" to execute the component</span>
+                                                                <span style={{ color: 'var(--text-muted)' }}>{t('component_studio.builder.run_hint', 'Click "Run Test" to execute the component')}</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -1162,10 +1166,10 @@ process.stdin.on('end', async () => {
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                                     </svg>
-                                                    {isTesting ? 'Running...' : 'Run Test'}
+                                                    {isTesting ? t('component_studio.builder.running', 'Running...') : t('component_studio.builder.run_test', 'Run Test')}
                                                 </button>
                                                 {isCreating && (
-                                                    <p className="text-xs ml-4 self-center" style={{ color: 'var(--text-muted)' }}>Save the component first to test it</p>
+                                                    <p className="text-xs ml-4 self-center" style={{ color: 'var(--text-muted)' }}>{t('component_studio.builder.save_first', 'Save the component first to test it')}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -1185,20 +1189,20 @@ process.stdin.on('end', async () => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
                                         </svg>
                                     </div>
-                                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Select or Create a Component</h3>
-                                    <p className="text-sm mb-6" style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>Components are reusable tools that your AI agents can call. Pick one from the sidebar or create a new one.</p>
+                                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{t('component_studio.builder.empty_title', 'Select or Create a Component')}</h3>
+                                    <p className="text-sm mb-6" style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>{t('component_studio.builder.empty_body', 'Components are reusable tools that your AI agents can call. Pick one from the sidebar or create a new one.')}</p>
                                     <div className="flex gap-3 justify-center">
                                         <button onClick={handleNewComponent} className="btn-primary flex items-center gap-2 px-5 py-2.5">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                             </svg>
-                                            New Component
+                                            {t('component_studio.builder.new_component', 'New Component')}
                                         </button>
                                         <button onClick={() => setShowAI(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all" style={{ border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.08)' }}>
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                             </svg>
-                                            AI Designer
+                                            {t('component_studio.builder.ai_designer', 'AI Designer')}
                                         </button>
                                     </div>
                                 </div>
@@ -1218,7 +1222,7 @@ process.stdin.on('end', async () => {
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'var(--border-default)' }}>
-                                <h2 className="modal-title">Component Development Guide</h2>
+                                <h2 className="modal-title">{t('component_studio.builder.guide_title', 'Component Development Guide')}</h2>
                                 <button onClick={() => setShowDocs(false)} className="btn-icon">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1227,26 +1231,26 @@ process.stdin.on('end', async () => {
                             </div>
                             <div className="flex-1 overflow-auto pt-4 space-y-6">
                                 <section>
-                                    <h3 className="text-base font-semibold text-primary mb-2">📦 Component Structure</h3>
-                                    <p className="text-sm text-secondary mb-2">Each component is stored in <code className="badge badge-primary font-mono">/components/component-id/</code> and contains:</p>
+                                    <h3 className="text-base font-semibold text-primary mb-2">{t('component_studio.builder.guide_structure', '📦 Component Structure')}</h3>
+                                    <p className="text-sm text-secondary mb-2">{t('component_studio.builder.guide_stored_in', 'Each component is stored in')} <code className="badge badge-primary font-mono">/components/component-id/</code> {t('component_studio.builder.guide_and_contains', 'and contains:')}</p>
                                     <ul className="text-sm text-secondary list-disc pl-5 space-y-1">
-                                        <li><strong>component.json</strong> — Name, inputs, outputs, category</li>
-                                        <li><strong>package.json</strong> — NPM dependencies (isolated per component)</li>
-                                        <li><strong>index.js</strong> — Execution logic</li>
+                                        <li><strong>component.json</strong> {t('component_studio.builder.guide_json_desc', '— Name, inputs, outputs, category')}</li>
+                                        <li><strong>package.json</strong> {t('component_studio.builder.guide_package_desc', '— NPM dependencies (isolated per component)')}</li>
+                                        <li><strong>index.js</strong> {t('component_studio.builder.guide_index_desc', '— Execution logic')}</li>
                                     </ul>
                                 </section>
 
                                 <section>
-                                    <h3 className="text-base font-semibold text-primary mb-2">⚡ Execution Flow</h3>
+                                    <h3 className="text-base font-semibold text-primary mb-2">{t('component_studio.builder.guide_flow', '⚡ Execution Flow')}</h3>
                                     <div className="text-sm text-secondary space-y-1">
-                                        <p>1. Component receives <strong>JSON via stdin</strong> (configured inputs)</p>
-                                        <p>2. Performs logic (API calls, data processing, etc.)</p>
-                                        <p>3. Outputs <strong>JSON via stdout</strong> (available to downstream nodes)</p>
+                                        <p>{t('component_studio.builder.guide_step1_a', '1. Component receives')} <strong>{t('component_studio.builder.guide_step1_b', 'JSON via stdin')}</strong> {t('component_studio.builder.guide_step1_c', '(configured inputs)')}</p>
+                                        <p>{t('component_studio.builder.guide_step2', '2. Performs logic (API calls, data processing, etc.)')}</p>
+                                        <p>{t('component_studio.builder.guide_step3_a', '3. Outputs')} <strong>{t('component_studio.builder.guide_step3_b', 'JSON via stdout')}</strong> {t('component_studio.builder.guide_step3_c', '(available to downstream nodes)')}</p>
                                     </div>
                                 </section>
 
                                 <section>
-                                    <h3 className="text-base font-semibold text-primary mb-2">📝 Code Template</h3>
+                                    <h3 className="text-base font-semibold text-primary mb-2">{t('component_studio.builder.guide_template', '📝 Code Template')}</h3>
                                     <pre className="text-xs p-4 rounded-lg overflow-auto font-mono" style={{ background: '#1a1a2e', color: '#e0e0e0' }}>
                                         {`let inputData = '';
 process.stdin.on('data', chunk => inputData += chunk);
@@ -1268,12 +1272,12 @@ process.stdin.on('end', async () => {
                                 </section>
 
                                 <section>
-                                    <h3 className="text-base font-semibold text-primary mb-2">💡 Tips</h3>
+                                    <h3 className="text-base font-semibold text-primary mb-2">{t('component_studio.builder.guide_tips', '💡 Tips')}</h3>
                                     <ul className="text-sm text-secondary list-disc pl-5 space-y-1">
-                                        <li><strong>Output must be valid JSON</strong> — use <code className="font-mono text-xs">JSON.stringify()</code></li>
-                                        <li><strong>Handle errors</strong> — write to stderr, exit with code 1</li>
-                                        <li><strong>Async is supported</strong> — just output before process ends</li>
-                                        <li><strong>Use categories</strong> — group with / (e.g., "Nextcloud/Files")</li>
+                                        <li><strong>{t('component_studio.builder.tip_json_a', 'Output must be valid JSON')}</strong> {t('component_studio.builder.tip_json_b', '— use')} <code className="font-mono text-xs">JSON.stringify()</code></li>
+                                        <li><strong>{t('component_studio.builder.tip_errors_a', 'Handle errors')}</strong> {t('component_studio.builder.tip_errors_b', '— write to stderr, exit with code 1')}</li>
+                                        <li><strong>{t('component_studio.builder.tip_async_a', 'Async is supported')}</strong> {t('component_studio.builder.tip_async_b', '— just output before process ends')}</li>
+                                        <li><strong>{t('component_studio.builder.tip_categories_a', 'Use categories')}</strong> {t('component_studio.builder.tip_categories_b', '— group with / (e.g., "Nextcloud/Files")')}</li>
                                     </ul>
                                 </section>
                             </div>

@@ -1,5 +1,6 @@
 import { Download, FileText, Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { hoverable } from '../hoverable';
@@ -51,14 +52,14 @@ function wantsCadRender(entry, mime) {
     return CAD_EXT.test(entryName(entry) || '');
 }
 
-function friendlyError(status, message) {
-    if (status === 404) return 'You do not have access to this file.';
-    if (status === 403) return 'You do not have access to this file.';
-    if (status === 409) return "This app's file storage is full — ask the owner to clean up.";
-    if (status === 413) return 'That file is too large to open here.';
-    if (status === 415) return 'That file type cannot be shown.';
-    if (status === 422) return 'That file did not pass the malware scan.';
-    return message || 'Could not open this file.';
+function friendlyError(status, message, t) {
+    if (status === 404) return t('studio_apps_runtime.file_preview.no_access', 'You do not have access to this file.');
+    if (status === 403) return t('studio_apps_runtime.file_preview.no_access', 'You do not have access to this file.');
+    if (status === 409) return t('studio_apps_runtime.file_preview.storage_full', "This app's file storage is full — ask the owner to clean up.");
+    if (status === 413) return t('studio_apps_runtime.file_preview.too_large', 'That file is too large to open here.');
+    if (status === 415) return t('studio_apps_runtime.file_preview.type_unsupported', 'That file type cannot be shown.');
+    if (status === 422) return t('studio_apps_runtime.file_preview.malware', 'That file did not pass the malware scan.');
+    return message || t('studio_apps_runtime.file_preview.open_failed', 'Could not open this file.');
 }
 
 /**
@@ -114,12 +115,13 @@ function Spinner() {
 }
 
 function ErrorState({ message, onRetry }) {
+    const { t } = useTranslation();
     return (
         <div className={CENTERED}>
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{message}</span>
             <button type="button" onClick={onRetry} className={SMALL_BUTTON} style={BUTTON_STYLE}>
                 <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
-                Try again
+                {t('studio_apps_runtime.file_preview.try_again', 'Try again')}
             </button>
         </div>
     );
@@ -131,6 +133,7 @@ function ErrorState({ message, onRetry }) {
  * are downloads and nothing else.
  */
 function DownloadCard({ name, url, allowDownload }) {
+    const { t } = useTranslation();
     return (
         <div className={CENTERED}>
             <FileText className="h-6 w-6" aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
@@ -138,7 +141,7 @@ function DownloadCard({ name, url, allowDownload }) {
             {allowDownload ? (
                 <a href={url} download={name} className={SMALL_BUTTON} style={BUTTON_STYLE}>
                     <Download className="h-3.5 w-3.5" aria-hidden="true" />
-                    Download
+                    {t('studio_apps_runtime.file_preview.download', 'Download')}
                 </a>
             ) : null}
         </div>
@@ -146,15 +149,19 @@ function DownloadCard({ name, url, allowDownload }) {
 }
 
 export default function AppFilePreview({ node }) {
+    const { t } = useTranslation();
     const { mode, actionState, dataState, scope } = useRuntime();
     const { appId } = useDataContext();
-    const { emptyText = 'No document selected.', allowDownload = true } = node.props || {};
+    const { emptyText = t('studio_apps_runtime.file_preview.empty', 'No document selected.'), allowDownload = true } = node.props || {};
     const { value } = resolveBinding(node.props?.source, { actionState, dataState, scope });
 
     const descriptor = firstDescriptor(value);
     const [state, setState] = useState({ status: 'idle', url: null, mime: null, name: null, error: null });
     const [attempt, setAttempt] = useState(0);
     const urlRef = useRef(null);
+    // Read inside the load effect without making the effect re-run when the catalogue loads.
+    const tRef = useRef(t);
+    tRef.current = t;
     // A rendered CAD file holds TWO blobs: the picture on screen and the
     // source file behind Download. Both have to be released on unmount.
     const sourceRef = useRef(null);
@@ -262,7 +269,7 @@ export default function AppFilePreview({ node }) {
                 });
             } catch (err) {
                 if (!alive) return;
-                setState({ status: 'error', url: null, mime: null, name: null, error: friendlyError(err.status, err.message) });
+                setState({ status: 'error', url: null, mime: null, name: null, error: friendlyError(err.status, err.message, tRef.current) });
             }
         })();
 
@@ -308,7 +315,7 @@ export default function AppFilePreview({ node }) {
                     <a
                         href={state.downloadUrl || state.url}
                         download={state.name}
-                        aria-label={`Download ${state.name}`}
+                        aria-label={t('studio_apps_runtime.file_preview.download_name', 'Download {name}', { name: state.name })}
                         className="inline-flex shrink-0 items-center gap-1 text-xs"
                         style={{ color: 'var(--text-muted)' }}
                     >
@@ -318,7 +325,7 @@ export default function AppFilePreview({ node }) {
             ) : null}
             {isPdf ? (
                 <iframe
-                    title={state.name || 'Document'}
+                    title={state.name || t('studio_apps_runtime.file_preview.document', 'Document')}
                     src={state.url}
                     className={`w-full border-0${boxed ? ' flex-1 min-h-0' : ' h-full min-h-[20rem]'}`}
                 />

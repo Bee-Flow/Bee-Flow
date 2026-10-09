@@ -2,6 +2,7 @@ import { Webhook, Plus } from 'lucide-react';
 import React, { useEffect, useMemo, useRef } from 'react';
 import useWebhooks from './useWebhooks';
 import { WebhookRow } from '../WebhookPanel';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * The webhook endpoint, shown inside the webhook trigger node's detail view
@@ -21,6 +22,7 @@ import { WebhookRow } from '../WebhookPanel';
  * with the Settings-tab manager via `useWebhooks`.
  */
 export default function TriggerWebhookPanel({ automation, stepId }) {
+    const { t } = useTranslation();
     const ctl = useWebhooks(automation, { triggerStepId: stepId });
     // Destructured so the effect below can depend on the individual values
     // rather than the whole controller object, which is a fresh literal on
@@ -70,7 +72,7 @@ export default function TriggerWebhookPanel({ automation, stepId }) {
     if (!automation?.id || !provisionable) {
         return (
             <div className="text-[11px] text-[var(--text-tertiary)]">
-                Waiting for the automation to save…
+                {t('automations.trigger_webhook_panel.waiting_for_the_automation_to_save', 'Waiting for the automation to save…')}
             </div>
         );
     }
@@ -80,24 +82,22 @@ export default function TriggerWebhookPanel({ automation, stepId }) {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                     <Webhook size={13} />
-                    <span className="text-[12px] font-medium">Webhook URL</span>
+                    <span className="text-[12px] font-medium">{t('automations.trigger_webhook_panel.webhook_url', 'Webhook URL')}</span>
                 </div>
                 {ctl.webhooks.length > 0 && (
                     <button
                         onClick={ctl.create}
                         disabled={ctl.creating}
-                        title="Add a second URL for this trigger (e.g. to rotate callers independently)"
+                        title={t('automations.trigger_webhook_panel.add_a_second_url_for_this', 'Add a second URL for this trigger (e.g. to rotate callers independently)')}
                         className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
                     >
-                        <Plus size={11} /> Add
+                        <Plus size={11} /> {t('automations.trigger_webhook_panel.add', 'Add')}
                     </button>
                 )}
             </div>
 
             <p className="text-[11px] text-[var(--text-tertiary)]">
-                POST to this URL to fire the automation. Requests must be HMAC-signed —
-                “Copy as cURL” gives you a complete working command, but only while the
-                secret is still on screen (right after Create or Rotate).
+                {t('automations.trigger_webhook_panel.post_to_this_url_to_fire', 'POST to this URL to fire the automation. Requests must be HMAC-signed — “Copy as cURL” gives you a complete working command, but only while the secret is still on screen (right after Create or Rotate).')}
             </p>
 
             {ctl.errorMsg && <div className="text-[11px] text-red-600">{ctl.errorMsg}</div>}
@@ -106,7 +106,7 @@ export default function TriggerWebhookPanel({ automation, stepId }) {
                 <div className="text-[11px] text-[var(--text-tertiary)]">
                     {ctl.loading || ctl.creating ? 'Generating URL…' : (
                         <button onClick={ctl.create} className="underline hover:text-[var(--text-primary)]">
-                            Generate a webhook URL
+                            {t('automations.trigger_webhook_panel.generate_a_webhook_url', 'Generate a webhook URL')}
                         </button>
                     )}
                 </div>

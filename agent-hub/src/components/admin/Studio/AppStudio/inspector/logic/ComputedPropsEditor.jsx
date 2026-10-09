@@ -5,6 +5,7 @@ import { useCatalogComponents } from '../panels/SpecPanel';
 import IconButton from '../../../../../shared/IconButton';
 import { INPUT_CLS } from '../panels/kit';
 import { getComponentEntry } from '../../runtime/componentRegistry';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /**
  * ComputedPropsEditor — the "Computed values" block of the Logic section. Each
@@ -27,6 +28,7 @@ function exprOf(entry) {
 }
 
 export default function ComputedPropsEditor({ node, value, onChange, definition = null, disabled = false }) {
+    const { t } = useTranslation();
     const computed = value && typeof value === 'object' ? value : {};
     const catalog = useCatalogComponents();
     // Rows whose formula is still blank stay here: an empty expression is a
@@ -90,12 +92,12 @@ export default function ComputedPropsEditor({ node, value, onChange, definition 
                             value={key}
                             onChange={(e) => renameKey(key, e.target.value)}
                             disabled={disabled}
-                            aria-label="Computed property"
+                            aria-label={t('studio_apps_insp.logic.computed_property', 'Computed property')}
                         >
                             <option value={key}>{humanize(key)}</option>
                             {available.map((k) => <option key={k} value={k}>{humanize(k)}</option>)}
                         </select>
-                        <IconButton ariaLabel={`Remove computed ${key}`} onClick={() => removeKey(key)} disabled={disabled} variant="danger" size="sm">
+                        <IconButton ariaLabel={t('studio_apps_insp.logic.remove_computed', 'Remove computed {key}', { key })} onClick={() => removeKey(key)} disabled={disabled} variant="danger" size="sm">
                             <X />
                         </IconButton>
                     </div>
@@ -104,7 +106,7 @@ export default function ComputedPropsEditor({ node, value, onChange, definition 
                         onChange={(next) => setKey(key, next)}
                         definition={definition}
                         node={node}
-                        placeholder="e.g. item.status == 'done' ? 'Done' : 'Open'"
+                        placeholder={t('studio_apps_insp.logic.computed_placeholder', "e.g. item.status == 'done' ? 'Done' : 'Open'")}
                         disabled={disabled}
                     />
                 </div>
@@ -117,10 +119,10 @@ export default function ComputedPropsEditor({ node, value, onChange, definition 
                     disabled={disabled}
                     className="px-3 py-1.5 text-xs rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1"
                 >
-                    <Plus size={12} /> Compute a value
+                    <Plus size={12} /> {t('studio_apps_insp.logic.compute_value', 'Compute a value')}
                 </button>
             ) : entries.length === 0 ? (
-                <p className="text-[11px] text-[var(--text-muted)]">This component has no computable properties.</p>
+                <p className="text-[11px] text-[var(--text-muted)]">{t('studio_apps_insp.logic.no_computable', 'This component has no computable properties.')}</p>
             ) : null}
         </div>
     );

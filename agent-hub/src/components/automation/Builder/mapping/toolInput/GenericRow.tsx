@@ -6,6 +6,7 @@ import BindingFieldJs from '../BindingField';
 import { onBindingDragOver, getBindingDropPath } from '../bindingDnd';
 import { AutoMappedPill as AutoMappedPillJs } from '../fieldChrome';
 import ValueBuilderJs from '../ValueBuilder';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 // The two value editors are untyped JS; their props are checked there.
 const BindingField = BindingFieldJs as unknown as ComponentType<Record<string, unknown>>;
@@ -120,6 +121,7 @@ export default function GenericRow({
     namePlaceholder = 'field name', valuePlaceholder = 'value',
     allowRaw = true, autoFocusName = false,
 }: GenericRowProps) {
+    const { t } = useTranslation();
     const slotLabel = (text: string) => (
         <div className={`${subLabelClass()} mb-0.5`}>{text}</div>
     );
@@ -136,12 +138,12 @@ export default function GenericRow({
                         placeholder={namePlaceholder}
                         autoFocus={autoFocusName}
                     />
-                    {autoMapped && <AutoMappedPill kind={autoMapped} title="Auto-mapped" />}
+                    {autoMapped && <AutoMappedPill kind={autoMapped} title={t('automations.generic_row.auto_mapped', 'Auto-mapped')} />}
                     <button
                         type="button"
                         onClick={onRemove}
-                        title="Remove field"
-                        aria-label="Remove field"
+                        title={t('automations.generic_row.remove_field', 'Remove field')}
+                        aria-label={t('automations.generic_row.remove_field', 'Remove field')}
                         className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-secondary)]"
                     >
                         <Trash2 size={12} />

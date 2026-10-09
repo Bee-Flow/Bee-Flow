@@ -14,11 +14,13 @@
  * Thresholds are Google's official Core Web Vitals bands, evaluated at p75 the
  * way CrUX does.
  */
-import React, { useMemo, useState } from 'react';
 import { Gauge, Wrench } from 'lucide-react';
-import { useAnalyticsQuery } from '../useAnalyticsQuery';
-import { ACCENT, Card, Empty, ErrorNote, Skeleton, ShareBar, fmt } from '../ui';
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import TrendChart from '../charts/TrendChart';
+import { rich } from '../rich';
+import { ACCENT, Card, Empty, ErrorNote, Skeleton, ShareBar, fmt } from '../ui';
+import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import { resolveWindow, densify, bucketLabel } from '../window';
 
 const GOOD = '#10b981';
@@ -27,18 +29,18 @@ const POOR = '#ef4444';
 
 // [good <=, needs-improvement <=] in the metric's own unit.
 const METRICS = [
-    { id: 'lcp', label: 'LCP', name: 'Largest Contentful Paint', unit: 'ms', bands: [2500, 4000], fix: 'a large image or font above the fold' },
-    { id: 'inp', label: 'INP', name: 'Interaction to Next Paint', unit: 'ms', bands: [200, 500], fix: 'heavy JavaScript blocking clicks' },
-    { id: 'cls', label: 'CLS', name: 'Cumulative Layout Shift', unit: '', bands: [0.1, 0.25], fix: 'images or embeds without reserved space' },
-    { id: 'fcp', label: 'FCP', name: 'First Contentful Paint', unit: 'ms', bands: [1800, 3000], fix: 'render-blocking CSS or slow hosting' },
-    { id: 'ttfb', label: 'TTFB', name: 'Time to First Byte', unit: 'ms', bands: [800, 1800], fix: 'server or network latency' },
+    { id: 'lcp', label: 'LCP', name: 'Largest Contentful Paint', unit: 'ms', bands: [2500, 4000], fixKey: 'cms_site.analytics.performance.fix_lcp', fix: 'a large image or font above the fold' },
+    { id: 'inp', label: 'INP', name: 'Interaction to Next Paint', unit: 'ms', bands: [200, 500], fixKey: 'cms_site.analytics.performance.fix_inp', fix: 'heavy JavaScript blocking clicks' },
+    { id: 'cls', label: 'CLS', name: 'Cumulative Layout Shift', unit: '', bands: [0.1, 0.25], fixKey: 'cms_site.analytics.performance.fix_cls', fix: 'images or embeds without reserved space' },
+    { id: 'fcp', label: 'FCP', name: 'First Contentful Paint', unit: 'ms', bands: [1800, 3000], fixKey: 'cms_site.analytics.performance.fix_fcp', fix: 'render-blocking CSS or slow hosting' },
+    { id: 'ttfb', label: 'TTFB', name: 'Time to First Byte', unit: 'ms', bands: [800, 1800], fixKey: 'cms_site.analytics.performance.fix_ttfb', fix: 'server or network latency' },
 ];
 
 function band(value, [good, meh]) {
-    if (value == null) return { color: 'var(--text-muted, #888)', label: 'Not measured', rank: -1 };
-    if (value <= good) return { color: GOOD, label: 'Good', rank: 0 };
-    if (value <= meh) return { color: MEH, label: 'Needs work', rank: 1 };
-    return { color: POOR, label: 'Poor', rank: 2 };
+    if (value == null) return { color: 'var(--text-muted, #888)', labelKey: 'cms_site.analytics.performance.band_unmeasured', label: 'Not measured', rank: -1 };
+    if (value <= good) return { color: GOOD, labelKey: 'cms_site.analytics.performance.band_good', label: 'Good', rank: 0 };
+    if (value <= meh) return { color: MEH, labelKey: 'cms_site.analytics.performance.band_meh', label: 'Needs work', rank: 1 };
+    return { color: POOR, labelKey: 'cms_site.analytics.performance.band_poor', label: 'Poor', rank: 2 };
 }
 
 function formatValue(value, unit) {
@@ -62,6 +64,7 @@ function readVital(payload, id, percentile = 'p75') {
 }
 
 export default function PerformanceSection({ scope, onDrill }) {
+    const { t } = useTranslation();
     const [percentile, setPercentile] = useState('p75');
     // One request covers all five vitals plus the per-page and per-device
     // splits — the report returns them together, so fetching per card would be
@@ -113,20 +116,20 @@ export default function PerformanceSection({ scope, onDrill }) {
             </div>
 
             {measured && trend && (
-                <Card title="Largest Contentful Paint over time" icon={Gauge}>
+                <Card title={t('cms_site.analytics.performance.lcp_trend', 'Largest Contentful Paint over time')} icon={Gauge}>
                     <TrendChart
                         labels={trend.labels}
                         series={[{ key: 'lcp', label: `LCP ${percentile}`, data: trend.data, color: ACCENT }]}
                         refLines={[
-                            { y: 2500, label: 'good', color: GOOD },
-                            { y: 4000, label: 'poor', color: POOR },
+                            { y: 2500, label: t('cms_site.analytics.performance.ref_good', 'good'), color: GOOD },
+                            { y: 4000, label: t('cms_site.analytics.performance.ref_poor', 'poor'), color: POOR },
                         ]}
                         formatY={(v) => formatValue(v, 'ms')}
                         height={180}
-                        emptyText="Not enough samples to draw a trend yet."
+                        emptyText={t('cms_site.analytics.performance.trend_empty', 'Not enough samples to draw a trend yet.')}
                     />
                     <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '10px 0 0' }}>
-                        Gaps are periods with no samples — not periods where the site was instant.
+                        {t('cms_site.analytics.performance.gaps', 'Gaps are periods with no samples — not periods where the site was instant.')}
                     </p>
                 </Card>
             )}
@@ -136,10 +139,10 @@ export default function PerformanceSection({ scope, onDrill }) {
             <div style={{ fontSize: 11, color: 'var(--text-muted, #777)', display: 'flex', gap: 7, alignItems: 'flex-start' }}>
                 <Gauge style={{ width: 13, height: 13, marginTop: 1, flexShrink: 0, color: ACCENT }} />
                 <span>
-                    Web vitals ride along with the standard tracker — no extra script, and nothing about the
-                    visitor beyond browser timings. They are reported when someone leaves the page or after
-                    ten seconds on it, so they lag the pageview slightly. Values are {percentile === 'p75'
-                        ? '75th-percentile, matching how Google grades Core Web Vitals' : `${percentile} across real visits`}.
+                    {t('cms_site.analytics.performance.footnote', 'Web vitals ride along with the standard tracker — no extra script, and nothing about the visitor beyond browser timings. They are reported when someone leaves the page or after ten seconds on it, so they lag the pageview slightly.')}{' '}
+                    {percentile === 'p75'
+                        ? t('cms_site.analytics.performance.values_p75', 'Values are 75th-percentile, matching how Google grades Core Web Vitals.')
+                        : t('cms_site.analytics.performance.values_other', 'Values are {percentile} across real visits.', { percentile })}
                 </span>
             </div>
         </div>
@@ -148,11 +151,12 @@ export default function PerformanceSection({ scope, onDrill }) {
 
 /** One sentence at the top saying what to do, before five numbers saying what is. */
 function Verdict({ graded, worst, sampleCount, percentile, onPercentile }) {
+    const { t } = useTranslation();
     const allGood = worst.length === 0;
     return (
-        <Card title="Verdict" icon={Wrench} action={
+        <Card title={t('cms_site.analytics.performance.verdict', 'Verdict')} icon={Wrench} action={
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{fmt(sampleCount)} samples</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.performance.samples', '{n} samples', { n: fmt(sampleCount) })}</span>
                 {['p50', 'p75', 'p95'].map(p => (
                     <button key={p} onClick={() => onPercentile(p)} style={{
                         fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
@@ -165,13 +169,14 @@ function Verdict({ graded, worst, sampleCount, percentile, onPercentile }) {
         }>
             {allGood ? (
                 <p style={{ fontSize: 13, color: 'var(--text-secondary, #ccc)', margin: 0 }}>
-                    All five Core Web Vitals are in Google&apos;s <strong style={{ color: GOOD }}>good</strong> band
-                    for this period. Nothing to fix.
+                    {rich(t('cms_site.analytics.performance.all_good', "All five Core Web Vitals are in Google's {good} band for this period. Nothing to fix."), {
+                        good: <strong style={{ color: GOOD }}>{t('cms_site.analytics.performance.all_good_word', 'good')}</strong>,
+                    })}
                 </p>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <p style={{ fontSize: 13, color: 'var(--text-secondary, #ccc)', margin: 0 }}>
-                        Fix in this order — worst band first, then furthest past its threshold.
+                        {t('cms_site.analytics.performance.fix_order', 'Fix in this order — worst band first, then furthest past its threshold.')}
                     </p>
                     {worst.map((g, i) => (
                         <div key={g.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
@@ -186,7 +191,7 @@ function Verdict({ graded, worst, sampleCount, percentile, onPercentile }) {
                                     {formatValue(g.value, g.unit)}
                                 </span>
                                 <span style={{ color: 'var(--text-muted, #888)' }}>
-                                    {' '}— target {formatValue(g.bands[0], g.unit)}. Usually {g.fix}.
+                                    {' '}{t('cms_site.analytics.performance.target', '— target {target}. Usually {fix}.', { target: formatValue(g.bands[0], g.unit), fix: t(g.fixKey, g.fix) })}
                                 </span>
                             </span>
                         </div>
@@ -198,6 +203,7 @@ function Verdict({ graded, worst, sampleCount, percentile, onPercentile }) {
 }
 
 function VitalMeter({ metric }) {
+    const { t } = useTranslation();
     const { value, band: b, unit, bands } = metric;
     const measured = value != null;
     // Where the value sits across the three bands, capped so a catastrophic
@@ -218,7 +224,7 @@ function VitalMeter({ metric }) {
                     background: measured ? `${b.color}18` : 'transparent',
                     color: measured ? b.color : 'var(--text-muted, #777)',
                     border: measured ? 'none' : '1px solid var(--border-subtle, rgba(255,255,255,0.12))',
-                }}>{b.label}</span>
+                }}>{t(b.labelKey, b.label)}</span>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted, #888)', marginBottom: 8 }}>{metric.name}</div>
 
@@ -226,7 +232,7 @@ function VitalMeter({ metric }) {
                 fontSize: measured ? 24 : 13, fontWeight: measured ? 800 : 600, lineHeight: 1.3,
                 color: measured ? b.color : 'var(--text-muted, #888)',
             }}>
-                {measured ? formatValue(value, unit) : 'No samples yet'}
+                {measured ? formatValue(value, unit) : t('cms_site.analytics.performance.no_samples', 'No samples yet')}
             </div>
 
             {/* Threshold track: good | needs work | poor, with a marker where we sit. */}
@@ -244,7 +250,7 @@ function VitalMeter({ metric }) {
                 )}
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-muted, #777)', marginTop: 6 }}>
-                good ≤ {formatValue(bands[0], unit)} · poor &gt; {formatValue(bands[1], unit)}
+                {t('cms_site.analytics.performance.thresholds', 'good ≤ {good} · poor > {poor}', { good: formatValue(bands[0], unit), poor: formatValue(bands[1], unit) })}
             </div>
         </div>
     );
@@ -252,13 +258,14 @@ function VitalMeter({ metric }) {
 
 /** Which pages are slow — the report already splits by page and device. */
 function PerPage({ payload, onDrill }) {
+    const { t } = useTranslation();
     const pages = Array.isArray(payload?.pages) ? payload.pages : [];
     if (!pages.length) return null;
     const peak = pages.reduce((a, p) => Math.max(a, Number(p.p75) || 0), 1);
 
     return (
-        <Card title="Slowest pages" icon={Gauge} action={
-            <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>LCP p75 · click to filter</span>
+        <Card title={t('cms_site.analytics.performance.slowest', 'Slowest pages')} icon={Gauge} action={
+            <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.performance.slowest_hint', 'LCP p75 · click to filter')}</span>
         }>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[...pages]
@@ -277,7 +284,7 @@ function PerPage({ payload, onDrill }) {
                                     <span style={{
                                         fontSize: 12, color: 'var(--text-primary, #fff)', overflow: 'hidden',
                                         textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                    }}>{p.name || 'Unknown'}</span>
+                                    }}>{p.name || t('cms_site.analytics.common.unknown', 'Unknown')}</span>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: b.color, flexShrink: 0 }}>
                                         {formatValue(v, 'ms')}
                                         <span style={{ color: 'var(--text-muted, #777)', fontWeight: 500 }}>
@@ -300,6 +307,7 @@ function PerPage({ payload, onDrill }) {
  * entire point of this rewrite.
  */
 function NotMeasured() {
+    const { t } = useTranslation();
     return (
         <div style={{
             display: 'flex', gap: 9, alignItems: 'flex-start', padding: '12px 15px',
@@ -308,10 +316,8 @@ function NotMeasured() {
         }}>
             <Gauge style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
             <span>
-                <strong>No web-vitals samples in this period.</strong> The tracker reports them when a visitor
-                leaves the page or after ten seconds on it, so they arrive a little after the pageviews do —
-                a quiet period can legitimately have none. If this stays empty on a site with steady traffic,
-                the published site is probably still serving an older tracker: republish it.
+                <strong>{t('cms_site.analytics.performance.unmeasured_title', 'No web-vitals samples in this period.')}</strong>{' '}
+                {t('cms_site.analytics.performance.unmeasured_body', 'The tracker reports them when a visitor leaves the page or after ten seconds on it, so they arrive a little after the pageviews do — a quiet period can legitimately have none. If this stays empty on a site with steady traffic, the published site is probably still serving an older tracker: republish it.')}
             </span>
         </div>
     );

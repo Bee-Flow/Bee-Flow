@@ -2,6 +2,7 @@ import { ArrowDown, Lightbulb, Plus, Split, Table2, Trash2 } from 'lucide-react'
 import React, { useMemo, useState } from 'react';
 import { paramsOfAction } from './ActionParamsForm';
 import useIntegrationCatalog from './useIntegrationCatalog';
+import useTranslation from '../../../../../hooks/useTranslation';
 
 /**
  * App Studio — combine actions into one connector.
@@ -60,6 +61,7 @@ function bindableFields(availableFields, chain, upToIndex) {
 }
 
 function StepCard({ step, index, chain, connector, catalog, availableFields, onPatch, onRemove, disabled }) {
+    const { t } = useTranslation();
     const hit = catalog.lookup(step.tool);
     const action = hit?.action || null;
     const params = useMemo(() => paramsOfAction(action), [action]);
@@ -86,7 +88,7 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
         <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-default)' }}>
             <div className="flex items-start gap-2">
                 <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                    Step {index + 2}
+                    {t('studio_apps_bi.chain.step_n', 'Step {n}', { n: index + 2 })}
                 </span>
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -97,7 +99,7 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
                     ) : null}
                 </div>
                 <button type="button" onClick={onRemove} disabled={disabled}
-                    aria-label={`Remove step ${index + 2}`}
+                    aria-label={t('studio_apps_bi.chain.remove_step', 'Remove step {n}', { n: index + 2 })}
                     className="p-1 rounded hover:bg-[var(--bg-card-hover)]" style={{ color: 'var(--error)' }}>
                     <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -114,14 +116,14 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
                                 className={`${INPUT} flex-1`}
                                 value={step.argsFrom?.[key] || ''}
                                 disabled={disabled}
-                                aria-label={`Where ${key} of step ${index + 2} comes from`}
+                                aria-label={t('studio_apps_bi.chain.where_from', 'Where {key} of step {n} comes from', { key, n: index + 2 })}
                                 onChange={(e) => setArg(key, e.target.value)}
                             >
                                 <option value="">
                                     {connector.fixedArgs && Object.hasOwn(connector.fixedArgs, key)
-                                        ? 'Not from a row' : 'Not set'}
+                                        ? t('studio_apps_bi.chain.not_from_row', 'Not from a row') : t('studio_apps_bi.params.not_set', 'Not set')}
                                 </option>
-                                {fields.map((f) => <option key={f} value={f}>each row’s {f}</option>)}
+                                {fields.map((f) => <option key={f} value={f}>{t('studio_apps_bi.chain.each_rows_field', 'each row’s {field}', { field: f })}</option>)}
                             </select>
                             {spec?.description ? (
                                 <span className="hidden sm:block w-40 shrink-0 truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}
@@ -135,12 +137,12 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
             ) : null}
 
             <div className="mt-2 flex items-center gap-2">
-                <span className={LABEL}>Result</span>
+                <span className={LABEL}>{t('studio_apps_bi.chain.result', 'Result')}</span>
                 <select
                     className={`${INPUT} max-w-[18rem]`}
                     value={step.expand || (step.ownTable ? OWN_TABLE : '')}
                     disabled={disabled}
-                    aria-label={`How step ${index + 2} folds its result back`}
+                    aria-label={t('studio_apps_bi.chain.folds_back', 'How step {n} folds its result back', { n: index + 2 })}
                     onChange={(e) => {
                         const v = e.target.value;
                         // The two are mutually exclusive — expanding already gives
@@ -152,25 +154,25 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
                         });
                     }}
                 >
-                    <option value={OWN_TABLE}>Keep it in its own linked table</option>
-                    <option value="">Add its fields to each row</option>
+                    <option value={OWN_TABLE}>{t('studio_apps_bi.chain.keep_own_table', 'Keep it in its own linked table')}</option>
+                    <option value="">{t('studio_apps_bi.chain.add_fields', 'Add its fields to each row')}</option>
                     {expandable.map((f) => (
-                        <option key={f} value={f}>One row per {f}</option>
+                        <option key={f} value={f}>{t('studio_apps_bi.chain.one_row_per', 'One row per {field}', { field: f })}</option>
                     ))}
                 </select>
                 <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     {step.expand ? (
                         <>
                             <Split className="h-3 w-3" aria-hidden="true" />
-                            each row becomes one {step.expand.replace(/s$/, '')}, in its own table linked back to the step above
+                            {t('studio_apps_bi.chain.expand_note', 'each row becomes one {item}, in its own table linked back to the step above', { item: step.expand.replace(/s$/, '') })}
                         </>
                     ) : step.ownTable ? (
                         <>
                             <Table2 className="h-3 w-3" aria-hidden="true" />
-                            its own table, one row per row of the step above, linked to it
+                            {t('studio_apps_bi.chain.own_table_note', 'its own table, one row per row of the step above, linked to it')}
                         </>
                     ) : (
-                        <>one wide table — these columns sit next to the ones above</>
+                        <>{t('studio_apps_bi.chain.wide_table_note', 'one wide table — these columns sit next to the ones above')}</>
                     )}
                 </span>
             </div>
@@ -181,6 +183,7 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
 export default function ConnectorChainEditor({
     connector, onChange, availableFields = [], suggestions = [], disabled = false, maxSteps = 3,
 }) {
+    const { t } = useTranslation();
     const catalog = useIntegrationCatalog();
     const chain = Array.isArray(connector.chain) ? connector.chain : [];
     const [adding, setAdding] = useState(false);
@@ -209,15 +212,14 @@ export default function ConnectorChainEditor({
     return (
         <div className="flex flex-col gap-2">
             <div>
-                <span className={LABEL}>Combine actions</span>
+                <span className={LABEL}>{t('studio_apps_bi.chain.combine_actions', 'Combine actions')}</span>
                 <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    Run another action for every row this one returns — that is how an action gets an id it can only
-                    learn from a different action.
+                    {t('studio_apps_bi.chain.combine_intro', 'Run another action for every row this one returns — that is how an action gets an id it can only learn from a different action.')}
                 </p>
             </div>
 
             <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Step 1</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_bi.chain.step_n', 'Step {n}', { n: 1 })}</span>
                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {baseAction?.label || connector.tool}
                 </p>
@@ -242,17 +244,17 @@ export default function ConnectorChainEditor({
 
             {chain.length >= maxSteps ? (
                 <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    That’s the most steps one connector can chain ({maxSteps}).
+                    {t('studio_apps_bi.chain.max_steps', 'That’s the most steps one connector can chain ({max}).', { max: maxSteps })}
                 </p>
             ) : adding ? (
                 <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-default)' }}>
                     <label className="flex flex-col gap-1">
-                        <span className={LABEL}>Which action should run for each row?</span>
+                        <span className={LABEL}>{t('studio_apps_bi.chain.which_action', 'Which action should run for each row?')}</span>
                         <select
                             className={INPUT}
                             defaultValue=""
                             disabled={disabled}
-                            aria-label="Follow-up action"
+                            aria-label={t('studio_apps_bi.chain.followup_action', 'Follow-up action')}
                             onChange={(e) => {
                                 if (!e.target.value) return;
                                 const action = siblings.find((a) => a.name === e.target.value);
@@ -265,14 +267,14 @@ export default function ConnectorChainEditor({
                                 addStep({ tool: action.name, ...(Object.keys(argsFrom).length ? { argsFrom } : {}) });
                             }}
                         >
-                            <option value="">Choose an action…</option>
+                            <option value="">{t('studio_apps_bi.chain.choose_action', 'Choose an action…')}</option>
                             {siblings.filter((a) => !a.sideEffect).map((a) => (
                                 <option key={a.name} value={a.name}>{a.label || a.name}</option>
                             ))}
                         </select>
                     </label>
                     <button type="button" onClick={() => setAdding(false)} className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        Cancel
+                        {t('studio_apps_bi.common.cancel', 'Cancel')}
                     </button>
                 </div>
             ) : (
@@ -289,7 +291,7 @@ export default function ConnectorChainEditor({
                             <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                             <span>
                                 <span className="font-medium">{s.why}</span>
-                                <span className="block mt-0.5" style={{ color: 'var(--text-tertiary)' }}>Add it as a step.</span>
+                                <span className="block mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_bi.chain.add_as_step', 'Add it as a step.')}</span>
                             </span>
                         </button>
                     ))}
@@ -300,7 +302,7 @@ export default function ConnectorChainEditor({
                         className="self-start inline-flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs disabled:opacity-50"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                     >
-                        <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Add a follow-up step
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" /> {t('studio_apps_bi.chain.add_followup', 'Add a follow-up step')}
                     </button>
                 </>
             )}

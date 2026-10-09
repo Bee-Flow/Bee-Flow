@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { controlSurfaceClass, CONTROL_BORDER_STRONG, FOCUS_RING } from '../../../../../automation/Builder/flow/settings/formStyles';
 import AppIcon from '../../../../../icons/AppIcon';
 import FormField from '../../../../../shared/FormField';
@@ -131,18 +132,20 @@ export function NumberField({ label, value, onChange, placeholder, hint, disable
  * the value is discoverable; the text input stays as the power-user path.
  * Both store the same PascalCase name. Empty commits null.
  */
-export function IconField({ label = 'Icon', value, onChange, hint, disabled = false }) {
+export function IconField({ label = null, value, onChange, hint, disabled = false }) {
+    const { t } = useTranslation();
     const [picking, setPicking] = useState(false);
-    const name = typeof label === 'string' ? label : 'Icon';
+    const shownLabel = label ?? t('studio_apps_panels.common.icon', 'Icon');
+    const name = typeof shownLabel === 'string' ? shownLabel : t('studio_apps_panels.common.icon', 'Icon');
     return (
-        <FormField label={label} hint={hint ?? 'Browse the icons, or type a name.'}>
+        <FormField label={shownLabel} hint={hint ?? t('studio_apps_panels.kit.icon_hint', 'Browse the icons, or type a name.')}>
             <div className="flex items-center gap-2">
                 <button
                     type="button"
                     onClick={() => setPicking(true)}
                     disabled={disabled}
-                    title="Browse icons…"
-                    aria-label={`${name} — browse icons`}
+                    title={t('studio_apps_panels.kit.browse_icons', 'Browse icons…')}
+                    aria-label={t('studio_apps_panels.kit.browse_icons_aria', '{name} — browse icons', { name })}
                     className={`shrink-0 w-9 h-9 rounded-md border ${CONTROL_BORDER_STRONG} bg-[var(--bg-secondary)] inline-flex items-center justify-center text-[var(--text-secondary)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`}
                 >
                     {value ? <AppIcon name={value} className="w-4 h-4" /> : <span className="text-xs">—</span>}
@@ -152,7 +155,7 @@ export function IconField({ label = 'Icon', value, onChange, hint, disabled = fa
                     className={INPUT_CLS}
                     value={value ?? ''}
                     onChange={(e) => onChange(e.target.value.trim() || null)}
-                    placeholder="Activity"
+                    placeholder={t('studio_apps_panels.kit.icon_placeholder', 'Activity')}
                     disabled={disabled}
                     spellCheck={false}
                 />
@@ -185,6 +188,7 @@ function staticSourceKeys(source) {
 }
 
 function FieldKeyInput({ label, value, onChange, keys, placeholder, hint, ariaLabel, disabled }) {
+    const { t } = useTranslation();
     const [typing, setTyping] = useState(false);
     // A value the source doesn't know about is already a typed-in name.
     const showText = !keys.length || typing || (!!value && !keys.includes(value));
@@ -203,9 +207,9 @@ function FieldKeyInput({ label, value, onChange, keys, placeholder, hint, ariaLa
                         disabled={disabled}
                         aria-label={ariaLabel}
                     >
-                        <option value="">Pick a field…</option>
+                        <option value="">{t('studio_apps_panels.kit.pick_field', 'Pick a field…')}</option>
                         {keys.map((k) => <option key={k} value={k}>{k}</option>)}
-                        <option value={TYPE_MY_OWN}>Type a name myself…</option>
+                        <option value={TYPE_MY_OWN}>{t('studio_apps_panels.kit.type_name', 'Type a name myself…')}</option>
                     </select>
                 ) : null}
                 {showText ? (
@@ -217,7 +221,7 @@ function FieldKeyInput({ label, value, onChange, keys, placeholder, hint, ariaLa
                         placeholder={placeholder}
                         disabled={disabled}
                         spellCheck={false}
-                        aria-label={`${ariaLabel} name`}
+                        aria-label={t('studio_apps_panels.kit.field_name_aria', '{label} name', { label: ariaLabel })}
                     />
                 ) : null}
             </div>
@@ -240,14 +244,15 @@ function TableFieldKeyInput({ appId, tableId, fallbackKeys, ...rest }) {
  */
 export function FieldKeyField({
     label = null, value, onChange, source = null,
-    placeholder, hint, ariaLabel = 'Field', disabled = false,
+    placeholder, hint, ariaLabel = null, disabled = false,
 }) {
+    const { t } = useTranslation();
     const chrome = useEditorChrome();
     const appId = chrome?.appId ?? null;
     const kind = source?.kind;
     const tableId = kind === 'record' || kind === 'records' ? (source.tableId || null) : null;
     const localKeys = staticSourceKeys(source);
-    const shared = { label, value, onChange, placeholder, hint, ariaLabel, disabled };
+    const shared = { label, value, onChange, placeholder, hint, ariaLabel: ariaLabel ?? t('studio_apps_panels.kit.field', 'Field'), disabled };
     // useAppTables is a network hook: only mount it inside the editor shell,
     // which is exactly where an app id exists.
     if (appId && tableId) {

@@ -19,7 +19,7 @@ export function LicenceHealthRows({ health }: { health: LicenseHealth }) {
                 label={t('mobile.org.licence_refresher', 'Refresher')}
                 value={
                     refresher.enabled
-                        ? t('mobile.org.licence_running', 'Running')
+                        ? t('automations.run_progress_banner.running', 'Running')
                         : t('common.off', 'Off')
                 }
                 tone={refresher.enabled ? 'success' : 'tertiary'}

@@ -9,6 +9,7 @@ import SupportCannedResponsesTab from './tabs/SupportCannedResponsesTab';
 import SupportTagsTab from './tabs/SupportTagsTab';
 import SupportInsightsTab from './tabs/SupportInsightsTab';
 import SupportToolsTab from './tabs/SupportToolsTab';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const CONFIG_TABS = [
     { id: 'agent', label: 'Agent' },
@@ -51,6 +52,7 @@ function deriveAgentData(agent) {
 }
 
 export default function SupportAIConfig() {
+    const { t } = useTranslation();
     const [agent, setAgent] = useState(null);
     const [data, setData] = useState(null);
     const [knowledgeBaseIds, setKnowledgeBaseIds] = useState([]);
@@ -212,7 +214,7 @@ export default function SupportAIConfig() {
             {tab === 'insights' && <div className="flex-1 overflow-auto"><SupportInsightsTab /></div>}
 
             {tab === 'agent' && loading && (
-                <div className="p-8 text-sm" style={{ color: 'var(--text-muted)' }}>Loading Bee Flow Support agent…</div>
+                <div className="p-8 text-sm" style={{ color: 'var(--text-muted)' }}>{t('support.support_aiconfig_loading_bee_flow_support_agent', 'Loading Bee Flow Support agent…')}</div>
             )}
             {tab === 'agent' && !loading && !data && (
                 <div className="p-8 text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -226,7 +228,7 @@ export default function SupportAIConfig() {
                 style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
                 <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
                     <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
-                    <span>Singleton agent · same editor as Agent Studio</span>
+                    <span>{t('support.support_aiconfig_singleton_agent_same_editor_as_agent', 'Singleton agent · same editor as Agent Studio')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     {saveError && (
@@ -235,7 +237,7 @@ export default function SupportAIConfig() {
                         </span>
                     )}
                     {dirty && !saveError && (
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Unsaved changes</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('support.support_aiconfig_unsaved_changes', 'Unsaved changes')}</span>
                     )}
                     <button
                         onClick={handleSave}
@@ -261,7 +263,7 @@ export default function SupportAIConfig() {
                     if (tier && tier.modelId) {
                         return (
                             <div className="max-w-2xl mx-auto px-4 pt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-                                Current tier <strong>{tierKey}</strong> resolves to model <code>{tier.modelId}</code>.
+                                {t('support.support_aiconfig_current_tier', 'Current tier')} <strong>{tierKey}</strong> {t('support.support_aiconfig_resolves_to_model', 'resolves to model')} <code>{tier.modelId}</code>.
                             </div>
                         );
                     }
@@ -271,8 +273,8 @@ export default function SupportAIConfig() {
                                 style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.35)', color: '#991b1b' }}>
                                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                                 <div>
-                                    <div className="font-medium">Tier <code>{tierKey}</code> has no model configured.</div>
-                                    <div className="opacity-80">Every customer thread will escalate to staff until you either pick a different tier above or set <code>{tierKey}</code> in Admin → AI Config → Model tiers.</div>
+                                    <div className="font-medium">{t('support.support_aiconfig_tier', 'Tier')} <code>{tierKey}</code> {t('support.support_aiconfig_has_no_model_configured', 'has no model configured.')}</div>
+                                    <div className="opacity-80">{t('support.support_aiconfig_every_customer_thread_will_escalate_to', 'Every customer thread will escalate to staff until you either pick a different tier above or set')} <code>{tierKey}</code> {t('support.support_aiconfig_in_admin_ai_config_model_tiers', 'in Admin → AI Config → Model tiers.')}</div>
                                 </div>
                             </div>
                         </div>
@@ -299,17 +301,17 @@ export default function SupportAIConfig() {
                     <div className="rounded-xl border" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
                         <div className="px-4 py-2 border-b text-xs font-semibold uppercase tracking-wide"
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}>
-                            Preview
+                            {t('support.support_aiconfig_preview', 'Preview')}
                         </div>
                         <div className="p-4 space-y-3">
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                Test the support AI without creating a real thread. No emails, no notifications, no DB writes.
+                                {t('support.support_aiconfig_test_the_support_ai_without_creating_a', 'Test the support AI without creating a real thread. No emails, no notifications, no DB writes.')}
                             </p>
                             <textarea
                                 value={previewInput}
                                 onChange={e => setPreviewInput(e.target.value)}
                                 rows={3}
-                                placeholder="Type a question as if you were a customer…"
+                                placeholder={t('support.support_aiconfig_type_a_question_as_if_you_were_a', 'Type a question as if you were a customer…')}
                                 className="w-full px-3 py-2 rounded-lg border text-sm resize-y"
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             />
@@ -338,7 +340,7 @@ export default function SupportAIConfig() {
                                         color: 'var(--text-primary)',
                                     }}>
                                     <div className="flex items-center gap-2 mb-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                                        <span className="font-medium">Bee Flow Support (AI)</span>
+                                        <span className="font-medium">{t('support.support_aiconfig_bee_flow_support_ai', 'Bee Flow Support (AI)')}</span>
                                         {previewReply.modelTier && (
                                             <span className="px-1.5 py-0.5 rounded"
                                                 style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
@@ -348,7 +350,7 @@ export default function SupportAIConfig() {
                                         {previewReply.escalated && (
                                             <span className="px-1.5 py-0.5 rounded"
                                                 style={{ background: 'rgba(245,158,11,0.18)', color: '#b45309' }}>
-                                                would escalate{previewReply.escalateReason ? `: ${previewReply.escalateReason}` : ''}
+                                                {t('support.support_aiconfig_would_escalate', 'would escalate')}{previewReply.escalateReason ? `: ${previewReply.escalateReason}` : ''}
                                             </span>
                                         )}
                                     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
-import AppIcon from '../../../icons/AppIcon';
 import Dropdown from './Dropdown';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import AppIcon from '../../../icons/AppIcon';
 
 /**
  * TopBar locale switcher — THE one locale control for the builder.
@@ -21,6 +22,7 @@ export default function LocaleMenu({
     onSetDefault,        // (code) — parent confirms + persists
     onManageLanguages,   // optional — cross-link to admin/languages
 }) {
+    const { t } = useTranslation();
     const active = locales.find(l => l.code === activeLocale);
 
     return (
@@ -31,7 +33,7 @@ export default function LocaleMenu({
                 <button
                     type="button"
                     className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-subtle)]"
-                    title="Language"
+                    title={t('cms_site.site.shell.locale_title', 'Language')}
                 >
                     <AppIcon name="Languages" className="w-4 h-4 text-[var(--text-muted)]" />
                     <span className="font-medium uppercase">{activeLocale}</span>
@@ -66,13 +68,13 @@ export default function LocaleMenu({
                                                 <span className="truncate">{l.name}</span>
                                                 <span className="text-[10px] text-[var(--text-muted)] uppercase">{l.code}</span>
                                                 {isDefault && (
-                                                    <span className="text-[10px] text-[var(--text-muted)]" title="Source language">★</span>
+                                                    <span className="text-[10px] text-[var(--text-muted)]" title={t('cms_site.site.shell.locale_source', 'Source language')}>★</span>
                                                 )}
                                             </span>
                                             {!isDefault && cov && cov.total > 0 ? (
                                                 <span className="block mt-1">
                                                     <span className="block text-[10px] text-[var(--text-muted)]">
-                                                        {cov.done}/{cov.total} fields have a translation
+                                                        {t('cms_site.site.shell.locale_coverage', '{done}/{total} fields have a translation', { done: cov.done, total: cov.total })}
                                                     </span>
                                                     <span className="block h-0.5 mt-0.5 rounded bg-[var(--border-subtle)] overflow-hidden">
                                                         <span
@@ -96,7 +98,7 @@ export default function LocaleMenu({
                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] text-left"
                             >
                                 <AppIcon name="Star" className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                                Set {active?.name || activeLocale} as default locale
+                                {t('cms_site.site.shell.locale_set_default', 'Set {locale} as default locale', { locale: active?.name || activeLocale })}
                             </button>
                         )}
                         {onManageLanguages && (
@@ -106,12 +108,12 @@ export default function LocaleMenu({
                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] text-left"
                             >
                                 <AppIcon name="Settings2" className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                                Manage languages →
+                                {t('cms_site.site.shell.manage_languages', 'Manage languages →')}
                             </button>
                         )}
                         {locales.length <= 1 && (
                             <p className="px-3 py-1.5 text-[10px] text-[var(--text-muted)]">
-                                Add languages in the Languages tab to translate this site.
+                                {t('cms_site.site.shell.locale_add', 'Add languages in the Languages tab to translate this site.')}
                             </p>
                         )}
                     </div>

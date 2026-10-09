@@ -5,9 +5,10 @@ import ConnectorChainEditor from './ConnectorChainEditor';
 import ConnectorPicker from './ConnectorPicker';
 import ConnectorSyncPanel from './ConnectorSyncPanel';
 import useIntegrationCatalog from './useIntegrationCatalog';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import { getIntegrationIcon } from '../../../../../config/integrationIcons';
+import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import useTranslation from '../../../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import ChoiceCards from '../../../../shared/ChoiceCards';
 import Disclosure from '../../../../shared/Disclosure';
 import { useEditorChrome } from '../editor/EditorChromeContext';
@@ -52,35 +53,35 @@ import AutomationPicker from '../inspector/AutomationPicker';
  *   <ConnectorsManager connectors={model.connectors} onChange={next => …} />
  */
 
-const KINDS = [
+const kinds = (t) => [
     {
         value: 'mailbox',
-        tag: 'Mailbox',
-        label: 'My mailbox',
-        description: 'Reads mail into a table using the Google or Microsoft account you signed in to Bee Flow with. Your own inbox, or a shared one you have access to.',
+        tag: t('studio_apps_bi.connectors.kind_mailbox_tag', 'Mailbox'),
+        label: t('studio_apps_bi.connectors.kind_mailbox_label', 'My mailbox'),
+        description: t('studio_apps_bi.connectors.kind_mailbox_desc', 'Reads mail into a table using the Google or Microsoft account you signed in to Bee Flow with. Your own inbox, or a shared one you have access to.'),
         Icon: Mail,
-        badge: 'For inboxes',
+        badge: t('studio_apps_bi.connectors.kind_mailbox_badge', 'For inboxes'),
     },
     {
         value: 'integration_tool',
-        tag: 'App',
-        label: 'An app you already use',
-        description: 'Gmail, Slack, Google Sheets… — pick the app, then what it should fetch.',
+        tag: t('studio_apps_bi.connectors.kind_app_tag', 'App'),
+        label: t('studio_apps_bi.connectors.kind_app_label', 'An app you already use'),
+        description: t('studio_apps_bi.connectors.kind_app_desc', 'Gmail, Slack, Google Sheets… — pick the app, then what it should fetch.'),
         Icon: AppWindow,
-        badge: 'Easiest',
+        badge: t('studio_apps_bi.connectors.kind_app_badge', 'Easiest'),
     },
     {
         value: 'automation',
-        tag: 'Automation',
-        label: 'One of my Automations',
-        description: 'Run an automation you already built and show whatever it hands back.',
+        tag: t('studio_apps_bi.connectors.kind_automation_tag', 'Automation'),
+        label: t('studio_apps_bi.connectors.kind_automation_label', 'One of my Automations'),
+        description: t('studio_apps_bi.connectors.kind_automation_desc', 'Run an automation you already built and show whatever it hands back.'),
         Icon: Workflow,
     },
     {
         value: 'rest',
-        tag: 'Web address',
-        label: 'Another system via its web address',
-        description: 'Advanced. For a system with no ready-made app — you need its web address and sign-in details from whoever runs it.',
+        tag: t('studio_apps_bi.connectors.kind_rest_tag', 'Web address'),
+        label: t('studio_apps_bi.connectors.kind_rest_label', 'Another system via its web address'),
+        description: t('studio_apps_bi.connectors.kind_rest_desc', 'Advanced. For a system with no ready-made app — you need its web address and sign-in details from whoever runs it.'),
         Icon: Globe,
     },
 ];
@@ -97,8 +98,14 @@ function randHex(n) {
 }
 function newConnectorId() { return `conn_${randHex(6)}`; }
 
-function labelForKind(kind) {
-    return KINDS.find((k) => k.value === kind)?.tag || kind;
+function labelForKind(kind, t) {
+    return kinds(t).find((k) => k.value === kind)?.tag || kind;
+}
+
+// connectorProblem is also called outside React (at save time), so `t` is
+// optional: without it the English default is used, with placeholders filled.
+function plainT(_key, english, params) {
+    return english.replace(/\{(\w+)\}/g, (m, k) => (params && Object.hasOwn(params, k) ? String(params[k]) : m));
 }
 
 /**
@@ -114,20 +121,20 @@ function labelForKind(kind) {
  *
  * Returns null when the connector is complete.
  */
-export function connectorProblem(connector, action = null) {
+export function connectorProblem(connector, action = null, t = plainT) {
     if (!connector) return null;
-    if (connector.kind === 'rest' && !connector.url) return 'still needs the web address it reads from';
-    if (connector.kind === 'integration_tool' && !connector.tool) return 'still needs an app and an action';
-    if (connector.kind === 'automation' && !connector.automationId) return 'still needs the automation it runs';
+    if (connector.kind === 'rest' && !connector.url) return t('studio_apps_bi.connectors.problem_rest_url', 'still needs the web address it reads from');
+    if (connector.kind === 'integration_tool' && !connector.tool) return t('studio_apps_bi.connectors.problem_tool', 'still needs an app and an action');
+    if (connector.kind === 'automation' && !connector.automationId) return t('studio_apps_bi.connectors.problem_automation', 'still needs the automation it runs');
     if (connector.kind === 'mailbox') {
-        if (!connector.provider) return 'still needs to know whether it reads Gmail or Outlook';
-        if (connector.mode === 'shared' && !connector.address) return 'still needs the address of the shared mailbox';
-        if (!connector.sync?.tableId) return 'still needs the table it writes messages into';
+        if (!connector.provider) return t('studio_apps_bi.connectors.problem_provider', 'still needs to know whether it reads Gmail or Outlook');
+        if (connector.mode === 'shared' && !connector.address) return t('studio_apps_bi.connectors.problem_address', 'still needs the address of the shared mailbox');
+        if (!connector.sync?.tableId) return t('studio_apps_bi.connectors.problem_table', 'still needs the table it writes messages into');
     }
     if (connector.kind === 'integration_tool' && action) {
         const missing = missingRequiredParams(action, connector);
         if (missing.length) {
-            return `still needs ${missing.join(' and ')} — pin a value, ask the viewer, or get it from another action`;
+            return t('studio_apps_bi.connectors.problem_params', 'still needs {params} — pin a value, ask the viewer, or get it from another action', { params: missing.join(` ${t('studio_apps_bi.filter.and', 'and')} `) });
         }
     }
     return null;
@@ -137,6 +144,7 @@ export function connectorProblem(connector, action = null) {
 // objects upward — an invalid draft shows an inline hint without corrupting the
 // model (parity with how the data model tolerates half-typed input).
 function JsonObjectField({ label, value, onChange, disabled, placeholder }) {
+    const { t } = useTranslation();
     const [text, setText] = useState(() => (value && Object.keys(value).length ? JSON.stringify(value, null, 2) : ''));
     const [error, setError] = useState(null);
     const commit = (raw) => {
@@ -145,11 +153,11 @@ function JsonObjectField({ label, value, onChange, disabled, placeholder }) {
         if (trimmed === '') { setError(null); onChange(undefined); return; }
         try {
             const parsed = JSON.parse(trimmed);
-            if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) { setError('Must be a JSON object'); return; }
+            if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) { setError(t('studio_apps_bi.connectors.json_must_be_object', 'Must be a JSON object')); return; }
             setError(null);
             onChange(parsed);
         } catch {
-            setError('Invalid JSON');
+            setError(t('studio_apps_bi.params.invalid_json', 'Invalid JSON'));
         }
     };
     return (
@@ -169,15 +177,16 @@ function JsonObjectField({ label, value, onChange, disabled, placeholder }) {
 }
 
 function ParamsEditor({ params, onChange, disabled }) {
+    const { t } = useTranslation();
     const list = Array.isArray(params) ? params : [];
     const patch = (i, p) => onChange(list.map((x, j) => (j === i ? { ...x, ...p } : x)));
     const add = () => onChange([...list, { key: '', type: 'text', required: false }]);
     const remove = (i) => onChange(list.filter((_, j) => j !== i));
     return (
         <div className="flex flex-col gap-1.5">
-            <span className={LABEL}>Viewer params</span>
+            <span className={LABEL}>{t('studio_apps_bi.connectors.viewer_params', 'Viewer params')}</span>
             {list.length === 0 ? (
-                <p className="text-xs text-[var(--text-tertiary)]">No params — the connector runs with only its pinned arguments.</p>
+                <p className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_bi.connectors.no_params', 'No params — the connector runs with only its pinned arguments.')}</p>
             ) : null}
             {list.map((p, i) => (
                 <div key={i} className="flex items-center gap-1.5">
@@ -185,9 +194,9 @@ function ParamsEditor({ params, onChange, disabled }) {
                         className={`${INPUT} flex-1`}
                         value={p.key || ''}
                         onChange={(e) => patch(i, { key: e.target.value })}
-                        placeholder="key"
+                        placeholder={t('studio_apps_bi.connectors.param_key_placeholder', 'key')}
                         disabled={disabled}
-                        aria-label={`Param ${i + 1} key`}
+                        aria-label={t('studio_apps_bi.connectors.param_key', 'Param {n} key', { n: i + 1 })}
                         spellCheck={false}
                     />
                     <select
@@ -195,9 +204,9 @@ function ParamsEditor({ params, onChange, disabled }) {
                         value={p.type || 'text'}
                         onChange={(e) => patch(i, { type: e.target.value })}
                         disabled={disabled}
-                        aria-label={`Param ${i + 1} type`}
+                        aria-label={t('studio_apps_bi.connectors.param_type', 'Param {n} type', { n: i + 1 })}
                     >
-                        {PARAM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                        {PARAM_TYPES.map((pt) => <option key={pt} value={pt}>{pt}</option>)}
                     </select>
                     <label className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)]">
                         <input
@@ -207,13 +216,13 @@ function ParamsEditor({ params, onChange, disabled }) {
                             disabled={disabled}
                             className="accent-[var(--accent-primary)]"
                         />
-                        req
+                        {t('studio_apps_bi.connectors.param_req', 'req')}
                     </label>
                     <button
                         type="button"
                         onClick={() => remove(i)}
                         disabled={disabled}
-                        aria-label={`Remove param ${i + 1}`}
+                        aria-label={t('studio_apps_bi.connectors.remove_param', 'Remove param {n}', { n: i + 1 })}
                         className="p-1 rounded hover:bg-[var(--bg-card-hover)]"
                         style={{ color: 'var(--error)' }}
                     >
@@ -228,7 +237,7 @@ function ParamsEditor({ params, onChange, disabled }) {
                 className="self-start inline-flex items-center gap-1 rounded-md border border-dashed px-2 py-1 text-xs"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
             >
-                <Plus className="h-3 w-3" aria-hidden="true" /> Add param
+                <Plus className="h-3 w-3" aria-hidden="true" /> {t('studio_apps_bi.connectors.add_param', 'Add param')}
             </button>
         </div>
     );
@@ -259,20 +268,21 @@ function TextField({ label, value, onChange, disabled, placeholder }) {
  * URL is genuinely one thing you then fill in.
  */
 function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
+    const { t } = useTranslation();
     const [kind, setKind] = useState('integration_tool');
     const pickingApps = kind === 'integration_tool';
     return (
         <div className="flex flex-col gap-3">
             <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Where should this get its data?</p>
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>You can change this later.</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('studio_apps_bi.connectors.where_data', 'Where should this get its data?')}</p>
+                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_bi.connectors.change_later', 'You can change this later.')}</p>
             </div>
             <ChoiceCards
                 value={kind}
                 onChange={setKind}
-                options={KINDS}
+                options={kinds(t)}
                 columns={1}
-                ariaLabel="Where should this get its data?"
+                ariaLabel={t('studio_apps_bi.connectors.where_data', 'Where should this get its data?')}
                 disabled={disabled}
             />
             <div className="flex items-center gap-2">
@@ -284,7 +294,7 @@ function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
                     style={{ background: 'var(--accent-primary)' }}
                 >
                     {pickingApps ? <AppWindow className="h-3.5 w-3.5" aria-hidden="true" /> : null}
-                    {pickingApps ? 'Choose apps & actions' : 'Add it'}
+                    {pickingApps ? t('studio_apps_bi.connectors.choose_apps', 'Choose apps & actions') : t('studio_apps_bi.connectors.add_it', 'Add it')}
                 </button>
                 {onCancel ? (
                     <button
@@ -293,7 +303,7 @@ function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
                         className="rounded-md px-3 py-1.5 text-sm"
                         style={{ color: 'var(--text-secondary)' }}
                     >
-                        Cancel
+                        {t('studio_apps_bi.common.cancel', 'Cancel')}
                     </button>
                 ) : null}
             </div>
@@ -307,6 +317,7 @@ function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
  * the list can't reach (another owner's, or one built after this loaded).
  */
 function AutomationField({ connector, onChangeId, disabled }) {
+    const { t } = useTranslation();
     const api = useAutomationApi();
     const [open, setOpen] = useState(false);
     const [titles, setTitles] = useState({});
@@ -327,10 +338,10 @@ function AutomationField({ connector, onChangeId, disabled }) {
 
     return (
         <div className="flex flex-col gap-1.5">
-            <span className={LABEL}>Automation</span>
+            <span className={LABEL}>{t('studio_apps_bi.connectors.kind_automation_tag', 'Automation')}</span>
             <div className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm" style={{ color: automationId ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                    {title || automationId || 'No automation chosen yet'}
+                    {title || automationId || t('studio_apps_bi.connectors.no_automation', 'No automation chosen yet')}
                 </span>
                 <button
                     type="button"
@@ -339,12 +350,12 @@ function AutomationField({ connector, onChangeId, disabled }) {
                     className="shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 >
-                    {automationId ? 'Choose another' : 'Choose an automation'}
+                    {automationId ? t('studio_apps_bi.connectors.choose_another', 'Choose another') : t('studio_apps_bi.connectors.choose_automation', 'Choose an automation')}
                 </button>
             </div>
-            <Disclosure title="Type the id myself">
+            <Disclosure title={t('studio_apps_bi.connectors.type_id', 'Type the id myself')}>
                 <TextField
-                    label="Automation id"
+                    label={t('studio_apps_bi.connectors.automation_id', 'Automation id')}
                     value={connector.automationId}
                     onChange={onChangeId}
                     disabled={disabled}
@@ -383,14 +394,14 @@ function previewGrid(rows) {
 }
 
 /** What the server's failure means for the person who pressed the button. */
-function testFailureMessage(status, body) {
-    if (status === 404) return 'Save your changes first — a test always runs the last saved version of this connector.';
+function testFailureMessage(status, body, t) {
+    if (status === 404) return t('studio_apps_bi.connectors.test_save_first', 'Save your changes first — a test always runs the last saved version of this connector.');
     if (body?.code === 'connection_required') {
-        const app = body.provider || 'that app';
-        return `Connect ${app} to your account first (Settings → Integrations), then test again.`;
+        const app = body.provider || t('studio_apps_bi.sync.err_connect_that_app', 'that app');
+        return t('studio_apps_bi.connectors.test_connect_first', 'Connect {app} to your account first (Settings → Integrations), then test again.', { app });
     }
-    if (status === 429) return 'That is a lot of tests in one minute. Wait a moment and try again.';
-    return body?.error || `It did not work (${status}).`;
+    if (status === 429) return t('studio_apps_bi.connectors.test_rate_limited', 'That is a lot of tests in one minute. Wait a moment and try again.');
+    return body?.error || t('studio_apps_bi.sync.err_failed', 'It did not work ({status}).', { status });
 }
 
 /**
@@ -399,6 +410,7 @@ function testFailureMessage(status, body) {
  * reached the server (a 404 for an id that exists right here on screen).
  */
 function TestPanel({ connector, appId, disabled, problem }) {
+    const { t } = useTranslation();
     const [values, setValues] = useState({});
     const [result, setResult] = useState(null); // {status:'running'|'done'|'error', rows?, message?}
     const params = (Array.isArray(connector.params) ? connector.params : []).filter((p) => p && p.key);
@@ -412,10 +424,10 @@ function TestPanel({ connector, appId, disabled, problem }) {
             );
             let body = null;
             try { body = await res.json(); } catch { body = null; }
-            if (!res.ok) { setResult({ status: 'error', message: testFailureMessage(res.status, body) }); return; }
+            if (!res.ok) { setResult({ status: 'error', message: testFailureMessage(res.status, body, t) }); return; }
             setResult({ status: 'done', rows: Array.isArray(body?.rows) ? body.rows : [] });
         } catch (e) {
-            setResult({ status: 'error', message: e.message || 'Could not reach the server.' });
+            setResult({ status: 'error', message: e.message || t('studio_apps_bi.sync.err_unreachable', 'Could not reach the server.') });
         }
     };
 
@@ -425,7 +437,7 @@ function TestPanel({ connector, appId, disabled, problem }) {
         <div className="flex flex-col gap-2 border-t pt-3" style={{ borderColor: 'var(--border-default)' }}>
             {params.length ? (
                 <div className="flex flex-wrap items-end gap-2">
-                    <span className={LABEL}>Try it with</span>
+                    <span className={LABEL}>{t('studio_apps_bi.connectors.try_with', 'Try it with')}</span>
                     {params.map((p) => (
                         <input
                             key={p.key}
@@ -433,7 +445,7 @@ function TestPanel({ connector, appId, disabled, problem }) {
                             value={values[p.key] ?? ''}
                             onChange={(e) => setValues({ ...values, [p.key]: e.target.value })}
                             placeholder={p.key}
-                            aria-label={`Test value for ${p.key}`}
+                            aria-label={t('studio_apps_bi.connectors.test_value', 'Test value for {key}', { key: p.key })}
                             disabled={disabled}
                             spellCheck={false}
                         />
@@ -451,14 +463,14 @@ function TestPanel({ connector, appId, disabled, problem }) {
                     {result?.status === 'running'
                         ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                         : <Plug className="h-3.5 w-3.5" aria-hidden="true" />}
-                    Test it
+                    {t('studio_apps_bi.connectors.test_it', 'Test it')}
                 </button>
                 <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     {!appId
-                        ? 'Open the app to test this.'
+                        ? t('studio_apps_bi.connectors.test_open_app', 'Open the app to test this.')
                         : problem
-                            ? 'Finish the connector first.'
-                            : 'Runs the last saved version and shows what comes back.'}
+                            ? t('studio_apps_bi.connectors.test_finish_first', 'Finish the connector first.')
+                            : t('studio_apps_bi.connectors.test_hint', 'Runs the last saved version and shows what comes back.')}
                 </span>
             </div>
 
@@ -479,8 +491,10 @@ function TestPanel({ connector, appId, disabled, problem }) {
                         <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         <span>
                             {result.rows.length
-                                ? `It works — ${result.rows.length} row${result.rows.length === 1 ? '' : 's'} came back.`
-                                : 'It works, but nothing came back. Check the pinned arguments or try other values.'}
+                                ? (result.rows.length === 1
+                                    ? t('studio_apps_bi.connectors.test_works_one', 'It works — 1 row came back.')
+                                    : t('studio_apps_bi.connectors.test_works_many', 'It works — {n} rows came back.', { n: result.rows.length }))
+                                : t('studio_apps_bi.connectors.test_works_empty', 'It works, but nothing came back. Check the pinned arguments or try other values.')}
                         </span>
                     </p>
                     {grid ? (
@@ -525,6 +539,7 @@ function TestPanel({ connector, appId, disabled, problem }) {
  * inside your own.
  */
 function MailboxFields({ connector, setOpt, disabled, appId, saved }) {
+    const { t } = useTranslation();
     const [verify, setVerify] = useState(null);
     const [verifying, setVerifying] = useState(false);
     const shared = connector.mode === 'shared';
@@ -539,7 +554,7 @@ function MailboxFields({ connector, setOpt, disabled, appId, saved }) {
                 { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
             );
             const body = await res.json().catch(() => null);
-            setVerify(body || { ok: false, error: `Check failed (${res.status})` });
+            setVerify(body || { ok: false, error: t('studio_apps_bi.connectors.check_failed', 'Check failed ({status})', { status: res.status }) });
         } catch (e) {
             setVerify({ ok: false, error: e.message });
         } finally {
@@ -551,43 +566,42 @@ function MailboxFields({ connector, setOpt, disabled, appId, saved }) {
         <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-2">
                 <label className="flex flex-col gap-1">
-                    <span className={LABEL}>Mail provider</span>
+                    <span className={LABEL}>{t('studio_apps_bi.connectors.mail_provider', 'Mail provider')}</span>
                     <select
                         className={INPUT}
                         value={connector.provider || ''}
                         onChange={(e) => setOpt('provider', e.target.value || undefined)}
                         disabled={disabled}
-                        aria-label="Mail provider"
+                        aria-label={t('studio_apps_bi.connectors.mail_provider', 'Mail provider')}
                     >
-                        <option value="">Choose…</option>
+                        <option value="">{t('studio_apps_bi.connectors.choose', 'Choose…')}</option>
                         <option value="gmail">Gmail</option>
                         <option value="outlook">Outlook</option>
                     </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                    <span className={LABEL}>Which mailbox</span>
+                    <span className={LABEL}>{t('studio_apps_bi.connectors.which_mailbox', 'Which mailbox')}</span>
                     <select
                         className={INPUT}
                         value={connector.mode || 'personal'}
                         onChange={(e) => setOpt('mode', e.target.value)}
                         disabled={disabled}
-                        aria-label="Which mailbox"
+                        aria-label={t('studio_apps_bi.connectors.which_mailbox', 'Which mailbox')}
                     >
-                        <option value="personal">Mine (the account I signed in with)</option>
-                        <option value="shared">A shared mailbox</option>
+                        <option value="personal">{t('studio_apps_bi.connectors.mailbox_mine', 'Mine (the account I signed in with)')}</option>
+                        <option value="shared">{t('studio_apps_bi.connectors.mailbox_shared', 'A shared mailbox')}</option>
                     </select>
                 </label>
             </div>
 
             <p className="-mt-1 text-xs text-[var(--text-tertiary)]">
-                Uses the {isGmail ? 'Google' : connector.provider === 'outlook' ? 'Microsoft' : 'Google or Microsoft'} account
-                you signed in to Bee Flow with — there is no separate sign-in here.
+                {t('studio_apps_bi.connectors.mailbox_uses_account', 'Uses the {provider} account you signed in to Bee Flow with — there is no separate sign-in here.', { provider: isGmail ? 'Google' : connector.provider === 'outlook' ? 'Microsoft' : t('studio_apps_bi.connectors.google_or_microsoft', 'Google or Microsoft') })}
             </p>
 
             {shared ? (
                 <>
                     <TextField
-                        label="Shared mailbox address"
+                        label={t('studio_apps_bi.connectors.shared_address', 'Shared mailbox address')}
                         value={connector.address}
                         onChange={(v) => setOpt('address', v)}
                         disabled={disabled}
@@ -595,22 +609,22 @@ function MailboxFields({ connector, setOpt, disabled, appId, saved }) {
                     />
                     <p className="-mt-1 text-xs text-[var(--text-tertiary)]">
                         {isGmail
-                            ? 'Gmail cannot open someone else’s mailbox, so this must be a team address delivered to your own inbox and verified as a “send mail as” alias.'
-                            : 'Your Microsoft admin must have given you access to this mailbox, and the connection needs the shared-mailbox permission (reconnect Microsoft in Settings → Integrations if it does not).'}
+                            ? t('studio_apps_bi.connectors.shared_gmail_note', 'Gmail cannot open someone else’s mailbox, so this must be a team address delivered to your own inbox and verified as a “send mail as” alias.')
+                            : t('studio_apps_bi.connectors.shared_outlook_note', 'Your Microsoft admin must have given you access to this mailbox, and the connection needs the shared-mailbox permission (reconnect Microsoft in Settings → Integrations if it does not).')}
                     </p>
                 </>
             ) : null}
 
             <div className="grid grid-cols-2 gap-2">
                 <TextField
-                    label="Folder or label"
+                    label={t('studio_apps_bi.connectors.folder_or_label', 'Folder or label')}
                     value={connector.folder}
                     onChange={(v) => setOpt('folder', v)}
                     disabled={disabled}
                     placeholder="inbox"
                 />
                 <TextField
-                    label="Only mail matching (optional)"
+                    label={t('studio_apps_bi.connectors.mail_matching', 'Only mail matching (optional)')}
                     value={connector.query}
                     onChange={(v) => setOpt('query', v)}
                     disabled={disabled}
@@ -618,7 +632,7 @@ function MailboxFields({ connector, setOpt, disabled, appId, saved }) {
                 />
             </div>
             <p className="-mt-1 text-xs text-[var(--text-tertiary)]">
-                A search keeps the table to the mail you actually want. Leave it empty to take everything in the folder.
+                {t('studio_apps_bi.connectors.mail_matching_hint', 'A search keeps the table to the mail you actually want. Leave it empty to take everything in the folder.')}
             </p>
 
             {saved ? (
@@ -630,16 +644,16 @@ function MailboxFields({ connector, setOpt, disabled, appId, saved }) {
                         className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-default)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] disabled:opacity-50"
                     >
                         {verifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                        Check access
+                        {t('studio_apps_bi.connectors.check_access', 'Check access')}
                     </button>
                     {verify ? (
                         <span className={`text-xs ${verify.ok ? 'text-[var(--text-secondary)]' : 'text-[var(--warning)]'}`}>
                             {verify.ok
-                                ? `Reachable — ${verify.mailbox || 'your mailbox'}.`
-                                : (verify.hint || verify.error || 'Could not reach that mailbox.')}
+                                ? t('studio_apps_bi.connectors.reachable', 'Reachable — {mailbox}.', { mailbox: verify.mailbox || t('studio_apps_bi.connectors.your_mailbox', 'your mailbox') })
+                                : (verify.hint || verify.error || t('studio_apps_bi.connectors.mailbox_unreachable', 'Could not reach that mailbox.'))}
                         </span>
                     ) : (
-                        <span className="text-xs text-[var(--text-tertiary)]">Confirms the mailbox is reachable before you rely on it.</span>
+                        <span className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_bi.connectors.check_access_hint', 'Confirms the mailbox is reachable before you rely on it.')}</span>
                     )}
                 </div>
             ) : null}
@@ -648,6 +662,7 @@ function MailboxFields({ connector, setOpt, disabled, appId, saved }) {
 }
 
 function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreateTable, saved, onSave, catalog }) {
+    const { t } = useTranslation();
     // A patch value of `undefined` REMOVES the key rather than parking it as an
     // own property — a leftover `chain: undefined` reads as absent over the
     // wire but not to code that asks `'chain' in connector`.
@@ -664,7 +679,7 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
 
     const hit = connector.kind === 'integration_tool' && connector.tool ? catalog.lookup(connector.tool) : null;
     const action = hit?.action || null;
-    const problem = connectorProblem(connector, action);
+    const problem = connectorProblem(connector, action, t);
 
     // The row shape the chain editor binds against. /inspect fills this in when
     // the owner sets up a table; before that we fall back to the action's
@@ -711,13 +726,13 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
                     tool: sibling.name,
                     label: sibling.label || sibling.name,
                     field,
-                    why: `${action.label || action.name} needs ${param} — ${sibling.label || sibling.name} gives one as \`${field}\``,
+                    why: t('studio_apps_bi.connectors.suggestion_why', '{action} needs {param} — {sibling} gives one as `{field}`', { action: action.label || action.name, param, sibling: sibling.label || sibling.name, field }),
                 });
                 break;
             }
         }
         return out;
-    }, [inspected, action, catalog, connector]);
+    }, [inspected, action, catalog, connector, t]);
 
     return (
         <div className="flex flex-col gap-3">
@@ -727,13 +742,13 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
                     style={{ borderColor: 'rgba(217, 119, 6, 0.4)', background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}
                 >
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    <span>This connector {problem}.</span>
+                    <span>{t('studio_apps_bi.connectors.this_connector', 'This connector {problem}.', { problem })}</span>
                 </p>
             ) : null}
             <div className="grid grid-cols-2 gap-2">
-                <TextField label="Name" value={connector.name} onChange={(v) => set({ name: v })} disabled={disabled} placeholder="Recent emails" />
+                <TextField label={t('studio_apps_bi.connectors.name', 'Name')} value={connector.name} onChange={(v) => set({ name: v })} disabled={disabled} placeholder={t('studio_apps_bi.connectors.name_placeholder', 'Recent emails')} />
                 <label className="flex flex-col gap-1">
-                    <span className={LABEL}>Gets data from</span>
+                    <span className={LABEL}>{t('studio_apps_bi.connectors.gets_data_from', 'Gets data from')}</span>
                     <select
                         className={INPUT}
                         value={connector.kind}
@@ -748,9 +763,9 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
                             ? { kind: e.target.value }
                             : { kind: e.target.value, chain: undefined })}
                         disabled={disabled}
-                        aria-label="Connector kind"
+                        aria-label={t('studio_apps_bi.connectors.connector_kind', 'Connector kind')}
                     >
-                        {KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
+                        {kinds(t).map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
                     </select>
                 </label>
             </div>
@@ -762,10 +777,10 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
                             {getIntegrationIcon(connector.integrationId || '')}
                         </div>
                         <span className="min-w-0 flex-1 truncate text-sm" style={{ color: 'var(--text-primary)' }}>
-                            {action?.label || connector.tool || 'No action chosen yet'}
+                            {action?.label || connector.tool || t('studio_apps_bi.connectors.no_action', 'No action chosen yet')}
                         </span>
                         {hit?.app?.available === false ? (
-                            <span className="shrink-0 text-[10px] uppercase tracking-wide" style={{ color: '#d97706' }}>not connected</span>
+                            <span className="shrink-0 text-[10px] uppercase tracking-wide" style={{ color: '#d97706' }}>{t('studio_apps_bi.connectors.not_connected', 'not connected')}</span>
                         ) : null}
                     </div>
 
@@ -786,16 +801,16 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
                     />
 
                     <label className="flex flex-col gap-1">
-                        <span className={LABEL}>Runs with</span>
+                        <span className={LABEL}>{t('studio_apps_bi.connectors.runs_with', 'Runs with')}</span>
                         <select
                             className={INPUT}
                             value={connector.runAs === 'viewer' ? 'viewer' : 'owner'}
                             onChange={(e) => setOpt('runAs', e.target.value === 'viewer' ? 'viewer' : '')}
                             disabled={disabled}
-                            aria-label="Connector identity"
+                            aria-label={t('studio_apps_bi.connectors.connector_identity', 'Connector identity')}
                         >
-                            <option value="owner">My connection — viewers never need their own</option>
-                            <option value="viewer">Each user&apos;s own connection — viewers must connect the app</option>
+                            <option value="owner">{t('studio_apps_bi.connectors.runs_owner', 'My connection — viewers never need their own')}</option>
+                            <option value="viewer">{t('studio_apps_bi.connectors.runs_viewer', 'Each user\'s own connection — viewers must connect the app')}</option>
                         </select>
                     </label>
                 </>
@@ -811,35 +826,35 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
 
             {connector.kind === 'rest' ? (
                 <>
-                    <TextField label="URL template (https)" value={connector.url} onChange={(v) => setOpt('url', v)} disabled={disabled} placeholder="https://api.example.com/items?q={q}" />
-                    <p className="-mt-1 text-xs text-[var(--text-tertiary)]">Use {'{param}'} placeholders for declared params. The host is fixed — it may not be templated.</p>
-                    <Disclosure title="Advanced settings">
+                    <TextField label={t('studio_apps_bi.connectors.url_template', 'URL template (https)')} value={connector.url} onChange={(v) => setOpt('url', v)} disabled={disabled} placeholder="https://api.example.com/items?q={q}" />
+                    <p className="-mt-1 text-xs text-[var(--text-tertiary)]">{t('studio_apps_bi.connectors.url_hint', 'Use {placeholder} placeholders for declared params. The host is fixed — it may not be templated.', { placeholder: '{param}' })}</p>
+                    <Disclosure title={t('studio_apps_bi.connectors.advanced', 'Advanced settings')}>
                         <div className="flex flex-col gap-3">
-                            <JsonObjectField label="Static headers" value={connector.headers} onChange={(v) => setOpt('headers', v)} disabled={disabled} placeholder={'{ "X-Api-Version": "2" }'} />
+                            <JsonObjectField label={t('studio_apps_bi.connectors.static_headers', 'Static headers')} value={connector.headers} onChange={(v) => setOpt('headers', v)} disabled={disabled} placeholder={'{ "X-Api-Version": "2" }'} />
                             <div className="grid grid-cols-3 gap-2">
                                 <label className="flex flex-col gap-1">
-                                    <span className={LABEL}>Auth type</span>
+                                    <span className={LABEL}>{t('studio_apps_bi.connectors.auth_type', 'Auth type')}</span>
                                     <select
                                         className={INPUT}
                                         value={connector.auth?.type || ''}
                                         onChange={(e) => setOpt('auth', e.target.value ? { ...(connector.auth || {}), type: e.target.value } : undefined)}
                                         disabled={disabled}
-                                        aria-label="Auth type"
+                                        aria-label={t('studio_apps_bi.connectors.auth_type', 'Auth type')}
                                     >
-                                        <option value="">None</option>
+                                        <option value="">{t('studio_apps_bi.connectors.auth_none', 'None')}</option>
                                         <option value="bearer">Bearer</option>
                                         <option value="header">Header</option>
                                     </select>
                                 </label>
                                 <TextField
-                                    label="Auth header"
+                                    label={t('studio_apps_bi.connectors.auth_header', 'Auth header')}
                                     value={connector.auth?.header}
                                     onChange={(v) => setOpt('auth', { ...(connector.auth || {}), header: v || undefined })}
                                     disabled={disabled || connector.auth?.type !== 'header'}
                                     placeholder="X-Api-Key"
                                 />
                                 <TextField
-                                    label="Credential provider"
+                                    label={t('studio_apps_bi.connectors.credential_provider', 'Credential provider')}
                                     value={connector.auth?.credentialProvider}
                                     onChange={(v) => setOpt('auth', { ...(connector.auth || {}), credentialProvider: v || undefined })}
                                     disabled={disabled || !connector.auth?.type}
@@ -847,10 +862,10 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
                                 />
                             </div>
                             <div className="grid grid-cols-3 gap-2">
-                                <TextField label="Rows path" value={connector.rowsPath} onChange={(v) => setOpt('rowsPath', v)} disabled={disabled} placeholder="data.items" />
-                                <TextField label="Next-page path" value={connector.nextPagePath} onChange={(v) => setOpt('nextPagePath', v)} disabled={disabled} placeholder="data.next_cursor" />
+                                <TextField label={t('studio_apps_bi.connectors.rows_path', 'Rows path')} value={connector.rowsPath} onChange={(v) => setOpt('rowsPath', v)} disabled={disabled} placeholder="data.items" />
+                                <TextField label={t('studio_apps_bi.connectors.next_page_path', 'Next-page path')} value={connector.nextPagePath} onChange={(v) => setOpt('nextPagePath', v)} disabled={disabled} placeholder="data.next_cursor" />
                                 <label className="flex flex-col gap-1">
-                                    <span className={LABEL}>Max rows</span>
+                                    <span className={LABEL}>{t('studio_apps_bi.connectors.max_rows', 'Max rows')}</span>
                                     <input
                                         type="number"
                                         className={INPUT}
@@ -859,11 +874,11 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
                                         max={500}
                                         onChange={(e) => { const n = Number(e.target.value); setOpt('maxRows', e.target.value === '' || !Number.isFinite(n) ? '' : Math.max(1, Math.min(500, Math.round(n)))); }}
                                         disabled={disabled}
-                                        aria-label="Max rows"
+                                        aria-label={t('studio_apps_bi.connectors.max_rows', 'Max rows')}
                                     />
                                 </label>
                             </div>
-                            <p className="text-xs text-[var(--text-tertiary)]">Never paste API keys here — reference a saved credential by provider id. The server attaches the owner&apos;s secret.</p>
+                            <p className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_bi.connectors.never_paste_keys', 'Never paste API keys here — reference a saved credential by provider id. The server attaches the owner\'s secret.')}</p>
                         </div>
                     </Disclosure>
                 </>
@@ -888,14 +903,14 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
                 schema doesn't declare. The REST kind keeps its own disclosure
                 above (URL, auth and paging are its whole configuration). */}
             {connector.kind === 'integration_tool' ? (
-                <Disclosure title="Advanced settings">
+                <Disclosure title={t('studio_apps_bi.connectors.advanced', 'Advanced settings')}>
                     <div className="flex flex-col gap-3">
-                        <TextField label="Tool" value={connector.tool} onChange={(v) => setOpt('tool', v)} disabled={disabled} placeholder="gmail_list_messages" />
-                        <TextField label="Rows path" value={connector.rowsPath} onChange={(v) => setOpt('rowsPath', v)} disabled={disabled} placeholder="results" />
+                        <TextField label={t('studio_apps_bi.connectors.tool', 'Tool')} value={connector.tool} onChange={(v) => setOpt('tool', v)} disabled={disabled} placeholder="gmail_list_messages" />
+                        <TextField label={t('studio_apps_bi.connectors.rows_path', 'Rows path')} value={connector.rowsPath} onChange={(v) => setOpt('rowsPath', v)} disabled={disabled} placeholder="results" />
                         <p className="-mt-2 text-xs text-[var(--text-tertiary)]">
-                            Only needed when a response holds more than one list and we can’t tell which one holds the rows.
+                            {t('studio_apps_bi.connectors.rows_path_hint', 'Only needed when a response holds more than one list and we can’t tell which one holds the rows.')}
                         </p>
-                        <JsonObjectField label="Pinned arguments (fixedArgs)" value={connector.fixedArgs} onChange={(v) => setOpt('fixedArgs', v)} disabled={disabled} placeholder={'{ "labelIds": ["INBOX"] }'} />
+                        <JsonObjectField label={t('studio_apps_bi.connectors.pinned_args', 'Pinned arguments (fixedArgs)')} value={connector.fixedArgs} onChange={(v) => setOpt('fixedArgs', v)} disabled={disabled} placeholder={'{ "labelIds": ["INBOX"] }'} />
                         <ParamsEditor params={connector.params} onChange={(params) => set({ params })} disabled={disabled} />
                     </div>
                 </Disclosure>
@@ -911,12 +926,12 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
  * things" rather than five unrelated rows. Automations and REST connectors have no
  * app, so they fall into their own bucket at the bottom.
  */
-function groupConnectors(list, catalog) {
+function groupConnectors(list, catalog, t) {
     const groups = new Map();
     for (const c of list) {
         const appId = c.kind === 'integration_tool' ? (c.integrationId || catalog.lookup(c.tool)?.app?.id || 'other') : 'other';
         const label = appId === 'other'
-            ? 'Automations & web addresses'
+            ? t('studio_apps_bi.connectors.group_other', 'Automations & web addresses')
             : (catalog.lookup(c.tool)?.app?.label || c.integrationId || appId);
         if (!groups.has(appId)) groups.set(appId, { appId, label, items: [] });
         groups.get(appId).items.push(c);
@@ -928,6 +943,7 @@ function groupConnectors(list, catalog) {
 export default function ConnectorsManager({
     connectors, onChange, disabled = false, appId = null, tables = [], onCreateTable, saved = true, onSave = null,
 }) {
+    const { t } = useTranslation();
     const list = useMemo(() => (Array.isArray(connectors) ? connectors : []), [connectors]);
     const [selectedId, setSelectedId] = useState(list[0]?.id || null);
     const [adding, setAdding] = useState(false);
@@ -940,7 +956,7 @@ export default function ConnectorsManager({
     const effectiveAppId = appId || chrome?.appId || null;
 
     const createConnector = (kind) => {
-        const c = { id: newConnectorId(), kind, name: `Connector ${list.length + 1}`, params: [] };
+        const c = { id: newConnectorId(), kind, name: t('studio_apps_bi.connectors.default_name', 'Connector {n}', { n: list.length + 1 }), params: [] };
         onChange([...list, c]);
         setSelectedId(c.id);
         setAdding(false);
@@ -975,7 +991,7 @@ export default function ConnectorsManager({
         setAdding(false);
     };
 
-    const grouped = useMemo(() => groupConnectors(list, catalog), [list, catalog]);
+    const grouped = useMemo(() => groupConnectors(list, catalog, t), [list, catalog, t]);
     // Nothing to pick from yet → skip the empty pane and ask the one question.
     const choosing = adding || list.length === 0;
 
@@ -985,7 +1001,7 @@ export default function ConnectorsManager({
             <div className="w-60 shrink-0 border-r pr-3 flex flex-col gap-1 overflow-y-auto max-h-[26rem]" style={{ borderColor: 'var(--border-default)' }}>
                 {list.length === 0 ? (
                     <p className="px-1 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        No connectors yet. Pick the apps and actions this app should pull data from.
+                        {t('studio_apps_bi.connectors.none_yet', 'No connectors yet. Pick the apps and actions this app should pull data from.')}
                     </p>
                 ) : grouped.map((group) => (
                     <div key={group.appId} className="flex flex-col gap-0.5">
@@ -1008,17 +1024,17 @@ export default function ConnectorsManager({
                                 >
                                     <Plug className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                                     <span className="truncate">{c.name || c.id}</span>
-                                    {connectorProblem(c, catalog.lookup(c.tool)?.action || null) ? (
-                                        <AlertTriangle className="ml-auto h-3 w-3 shrink-0" style={{ color: '#d97706' }} aria-label="Not finished yet" />
+                                    {connectorProblem(c, catalog.lookup(c.tool)?.action || null, t) ? (
+                                        <AlertTriangle className="ml-auto h-3 w-3 shrink-0" style={{ color: '#d97706' }} aria-label={t('studio_apps_bi.connectors.not_finished', 'Not finished yet')} />
                                     ) : c.sync ? (
-                                        <Database className="ml-auto h-3 w-3 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-label="Fills a table" />
+                                        <Database className="ml-auto h-3 w-3 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-label={t('studio_apps_bi.connectors.fills_table', 'Fills a table')} />
                                     ) : (
-                                        <span className="ml-auto text-[9px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{labelForKind(c.kind)}</span>
+                                        <span className="ml-auto text-[9px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{labelForKind(c.kind, t)}</span>
                                     )}
                                 </button>
                                 <button
                                     type="button"
-                                    aria-label={`Delete ${c.name || c.id}`}
+                                    aria-label={t('studio_apps_bi.connectors.delete', 'Delete {name}', { name: c.name || c.id })}
                                     onClick={() => removeConnector(c.id)}
                                     disabled={disabled}
                                     // Always visible. A destructive action hidden behind hover is
@@ -1046,7 +1062,7 @@ export default function ConnectorsManager({
                             style={{ background: 'var(--accent-primary)' }}
                         >
                             <AppWindow className="h-3.5 w-3.5" aria-hidden="true" />
-                            Choose apps &amp; actions
+                            {t('studio_apps_bi.connectors.choose_apps', 'Choose apps & actions')}
                         </button>
                         <button
                             type="button"
@@ -1056,7 +1072,7 @@ export default function ConnectorsManager({
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                         >
                             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                            Automation or web address
+                            {t('studio_apps_bi.connectors.automation_or_web', 'Automation or web address')}
                         </button>
                     </>
                 )}
@@ -1086,7 +1102,7 @@ export default function ConnectorsManager({
                     />
                 ) : (
                     <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                        Pick a connector on the left, or add one to get started.
+                        {t('studio_apps_bi.connectors.pick_connector', 'Pick a connector on the left, or add one to get started.')}
                         <button
                             type="button"
                             onClick={() => setPicking(true)}
@@ -1095,7 +1111,7 @@ export default function ConnectorsManager({
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         >
                             <AppWindow className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                            Choose apps &amp; actions
+                            {t('studio_apps_bi.connectors.choose_apps', 'Choose apps & actions')}
                         </button>
                     </div>
                 )}

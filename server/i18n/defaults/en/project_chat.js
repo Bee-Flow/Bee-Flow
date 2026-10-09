@@ -221,4 +221,7 @@ module.exports = {
     "project_chat.starter_summary_text": "@ai Can you summarise where this project stands?",
     "project_chat.task_tag_needs_message": "Add a first message to share the tagged tasks.",
     "project_chat.unread_divider": "New since your last visit",
+    // Hardcoded literals converted (2026-10)
+    'project_chat.tag_tasks': 'Tag project tasks',
+    'project_chat.remove_task_tag': 'Remove task tag',
 };

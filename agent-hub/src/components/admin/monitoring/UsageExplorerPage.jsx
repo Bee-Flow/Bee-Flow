@@ -7,17 +7,19 @@ import {
     Card, Empty, FilterBar, SortableTable, InOutBar, InOutLabel,
     getAgentStyle, getSourceDetails
 } from './shared';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export function UsageExplorerPage({
     byModel, byAgent, byUser, byConversation, costPerModel, modelCosts,
     onSelectModel, onSelectAgent
 }) {
+    const { t } = useTranslation();
     const [filters, setFilters] = useState({ user: null, agent: null, model: null, source: null });
     const [expandedAgent, setExpandedAgent] = useState(null);
 
     // Generate filter options
     const userOptions = useMemo(() => byUser.map(u => ({ value: u.user_id, label: u.display_name || u.user_id })), [byUser]);
-    const agentOptions = useMemo(() => byAgent.map(a => ({ value: a.agent_name || a.agent_id, label: a.agent_name || 'Unknown' })), [byAgent]);
+    const agentOptions = useMemo(() => byAgent.map(a => ({ value: a.agent_name || a.agent_id, label: a.agent_name || t('admin_monitoring.unknown', 'Unknown') })), [byAgent, t]);
     const modelOptions = useMemo(() => byModel.map(m => ({ value: m.model, label: shortModel(m.model) })), [byModel]);
 
     // Filtered data
@@ -49,7 +51,7 @@ export function UsageExplorerPage({
     // Model table columns
     const modelColumns = [
         {
-            key: 'model', label: 'Model', width: '2fr', sortable: true,
+            key: 'model', label: t('admin_monitoring.col_model', 'Model'), width: '2fr', sortable: true,
             render: (row, i) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: MODEL_COLORS[i % MODEL_COLORS.length], flexShrink: 0 }} />
@@ -60,7 +62,7 @@ export function UsageExplorerPage({
             ),
         },
         {
-            key: 'tokens_bar', label: 'In / Out', width: '1.2fr', sortable: false,
+            key: 'tokens_bar', label: t('admin_monitoring.usage_in_out', 'In / Out'), width: '1.2fr', sortable: false,
             render: row => (
                 <div>
                     <InOutBar input={row.prompt_tokens} output={row.completion_tokens} height={4} style={{ maxWidth: '100px' }} />
@@ -69,15 +71,15 @@ export function UsageExplorerPage({
             ),
         },
         {
-            key: 'total_tokens', label: 'Tokens', width: '80px', align: 'right', sortable: true,
+            key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true,
             render: row => <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green }}>{fmt(row.total_tokens)}</span>,
         },
         {
-            key: 'calls', label: 'Calls', width: '70px', align: 'right', sortable: true,
+            key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '70px', align: 'right', sortable: true,
             render: row => <span style={{ fontSize: '12px', color: 'var(--text-secondary, #aaa)' }}>{row.calls}</span>,
         },
         {
-            key: 'cost', label: 'Cost', width: '80px', align: 'right', sortable: false,
+            key: 'cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: false,
             render: row => (
                 <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber }}>
                     {fmtCost(costPerModel[row.model] || row.estimated_cost || 0)}
@@ -89,7 +91,7 @@ export function UsageExplorerPage({
     // User table columns
     const userColumns = [
         {
-            key: 'display_name', label: 'User', width: '1.5fr', sortable: true,
+            key: 'display_name', label: t('admin_monitoring.d_user', 'User'), width: '1.5fr', sortable: true,
             render: (row, i) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{
@@ -109,21 +111,21 @@ export function UsageExplorerPage({
             ),
         },
         {
-            key: 'tokens_bar', label: 'In / Out', width: '1fr', sortable: false,
+            key: 'tokens_bar', label: t('admin_monitoring.usage_in_out', 'In / Out'), width: '1fr', sortable: false,
             render: row => (
                 <InOutBar input={row.prompt_tokens} output={row.completion_tokens} height={4} style={{ maxWidth: '100px' }} />
             ),
         },
         {
-            key: 'total_tokens', label: 'Tokens', width: '80px', align: 'right', sortable: true,
+            key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true,
             render: row => <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green }}>{fmt(row.total_tokens)}</span>,
         },
         {
-            key: 'calls', label: 'Calls', width: '60px', align: 'right', sortable: true,
+            key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '60px', align: 'right', sortable: true,
             render: row => <span style={{ fontSize: '12px', color: 'var(--text-secondary, #aaa)' }}>{row.calls}</span>,
         },
         {
-            key: 'estimated_cost', label: 'Cost', width: '80px', align: 'right', sortable: true,
+            key: 'estimated_cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: true,
             render: row => <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber }}>{fmtCost(row.estimated_cost || 0)}</span>,
         },
     ];
@@ -140,23 +142,23 @@ export function UsageExplorerPage({
 
             {/* By Model + By User */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '1.25rem' }}>
-                <Card title="By Model" icon={Cpu}>
+                <Card title={t('admin_monitoring.usage_by_model', 'By Model')} icon={Cpu}>
                     <SortableTable
-                        columns={modelColumns} data={filteredModels} emptyText="No model data"
+                        columns={modelColumns} data={filteredModels} emptyText={t('admin_monitoring.usage_no_model', 'No model data')}
                         onRowClick={onSelectModel}
                     />
                 </Card>
-                <Card title="By User" icon={Users}>
+                <Card title={t('admin_monitoring.usage_by_user', 'By User')} icon={Users}>
                     <SortableTable
-                        columns={userColumns} data={filteredUsers} emptyText="No user data"
+                        columns={userColumns} data={filteredUsers} emptyText={t('admin_monitoring.usage_no_user', 'No user data')}
                         onRowClick={u => setFilters(f => ({ ...f, user: f.user === u.user_id ? null : u.user_id }))}
                     />
                 </Card>
             </div>
 
             {/* By Agent — expandable with model sub-rows */}
-            <Card title="By Agent" icon={Bot} style={{ marginBottom: '1.25rem' }}>
-                {filteredAgents.length === 0 ? <Empty text="No agent data" /> : filteredAgents.map((a, i) => {
+            <Card title={t('admin_monitoring.usage_by_agent', 'By Agent')} icon={Bot} style={{ marginBottom: '1.25rem' }}>
+                {filteredAgents.length === 0 ? <Empty text={t('admin_monitoring.usage_no_agent', 'No agent data')} /> : filteredAgents.map((a, i) => {
                     const isExpanded = expandedAgent === (a.agent_name || a.agent_id);
                     const style = getAgentStyle(a.agent_type);
 
@@ -180,17 +182,17 @@ export function UsageExplorerPage({
                                     <span style={{
                                         fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #fff)',
                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                    }}>{a.agent_name || a.agent_id || 'Unknown'}</span>
+                                    }}>{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
                                     <span style={{ fontSize: '12px', color: 'var(--text-muted, #888)' }}>
-                                        {fmtDuration(a.avg_duration_ms)} avg
+                                        {t('admin_monitoring.usage_avg', '{duration} avg', { duration: fmtDuration(a.avg_duration_ms) })}
                                     </span>
                                     <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>
                                         {fmt(a.total_tokens)}
                                     </span>
                                     <span style={{ fontSize: '12px', color: 'var(--text-muted, #888)' }}>
-                                        {a.calls} calls
+                                        {t('admin_monitoring.usage_n_calls', '{n} calls', { n: a.calls })}
                                     </span>
                                     <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber, minWidth: '50px', textAlign: 'right' }}>
                                         {fmtCost(a.estimated_cost || 0)}
@@ -220,7 +222,7 @@ export function UsageExplorerPage({
                                             </div>
                                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                                 <span style={{ color: COLORS.green, fontWeight: 600 }}>{fmt(m.total_tokens)}</span>
-                                                <span style={{ color: 'var(--text-muted, #888)' }}>{m.calls} calls</span>
+                                                <span style={{ color: 'var(--text-muted, #888)' }}>{t('admin_monitoring.usage_n_calls', '{n} calls', { n: m.calls })}</span>
                                                 <span style={{ color: COLORS.amber, fontWeight: 600 }}>{fmtCost(m.estimated_cost || 0)}</span>
                                             </div>
                                         </div>
@@ -234,11 +236,11 @@ export function UsageExplorerPage({
 
             {/* By Conversation */}
             {filteredConversations.length > 0 && (
-                <Card title="Conversations" icon={MessageSquare}>
+                <Card title={t('admin_monitoring.usage_conversations', 'Conversations')} icon={MessageSquare}>
                     <SortableTable
                         columns={[
                             {
-                                key: 'agent_name', label: 'Agent', width: '1.5fr', sortable: true,
+                                key: 'agent_name', label: t('admin_monitoring.col_agent', 'Agent'), width: '1.5fr', sortable: true,
                                 render: row => (
                                     <div>
                                         <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)' }}>
@@ -250,14 +252,14 @@ export function UsageExplorerPage({
                                     </div>
                                 ),
                             },
-                            { key: 'calls', label: 'Calls', width: '70px', align: 'right', sortable: true,
+                            { key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '70px', align: 'right', sortable: true,
                               render: row => <span style={{ fontSize: '12px', color: 'var(--text-secondary, #aaa)' }}>{row.calls}</span> },
-                            { key: 'total_tokens', label: 'Tokens', width: '80px', align: 'right', sortable: true,
+                            { key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true,
                               render: row => <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green }}>{fmt(row.total_tokens)}</span> },
-                            { key: 'estimated_cost', label: 'Cost', width: '80px', align: 'right', sortable: true,
+                            { key: 'estimated_cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: true,
                               render: row => <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber }}>{fmtCost(row.estimated_cost || 0)}</span> },
                             {
-                                key: 'models_used', label: 'Models', width: '1.2fr', sortable: false,
+                                key: 'models_used', label: t('admin_monitoring.usage_col_models', 'Models'), width: '1.2fr', sortable: false,
                                 render: row => (
                                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                                         {(row.models_used || '').split(',').filter(Boolean).slice(0, 3).map((m, j) => (
@@ -272,7 +274,7 @@ export function UsageExplorerPage({
                             },
                         ]}
                         data={filteredConversations}
-                        emptyText="No conversation data"
+                        emptyText={t('admin_monitoring.usage_no_convo', 'No conversation data')}
                         maxRows={20}
                     />
                 </Card>

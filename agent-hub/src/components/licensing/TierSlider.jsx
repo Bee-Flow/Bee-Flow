@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, DEPTH_TIER_KEYS } from './tierMeta';
 import scopedStorage from '../../utils/scopedStorage';
 import AppEmoji from '../icons/AppEmoji';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * Composer tier control — a slider, not a menu.
@@ -198,6 +199,7 @@ const fillGradientFor = (travel) => {
  * dims the whole track rather than parking the thumb somewhere misleading.
  */
 function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerDown, onPointerMove, onPointerEnd, onKeyDown }) {
+    const { t } = useTranslation();
     const onScale = activeIndex >= 0;
     const count = stops.length;
     // How far along the track the thumb has travelled, 0–1.
@@ -209,7 +211,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
                 ref={trackRef}
                 role="slider"
                 tabIndex={0}
-                aria-label="Response depth"
+                aria-label={t('tier.response_depth', 'Response depth')}
                 aria-valuemin={0}
                 aria-valuemax={Math.max(0, count - 1)}
                 aria-valuenow={Math.max(0, activeIndex)}
@@ -295,7 +297,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
                             fontWeight: i === activeIndex ? 600 : 400,
                         }}
                     >
-                        {metaFor(key).label}
+                        {t(`tier.${key}`, metaFor(key).label)}
                     </span>
                 ))}
             </div>
@@ -305,6 +307,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
 
 /** Kinds of work that don't sit on the depth scale — Flow, Swarm, Write, custom. */
 function OtherTierPills({ keys, value, metaFor, onSelect }) {
+    const { t } = useTranslation();
     return (
         <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -329,7 +332,7 @@ function OtherTierPills({ keys, value, metaFor, onSelect }) {
                             }}
                         >
                             <TierIcon tierKey={key} meta={meta} className="w-3 h-3" />
-                            <span>{meta.label}</span>
+                            <span>{t(`tier.${key}`, meta.label)}</span>
                             {meta.beta && (
                                 <span style={{
                                     fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.04em',
@@ -337,7 +340,7 @@ function OtherTierPills({ keys, value, metaFor, onSelect }) {
                                     background: selected ? 'rgba(255,255,255,0.25)' : 'var(--bg-secondary)',
                                     color: selected ? '#fff' : 'var(--text-tertiary)',
                                 }}>
-                                    beta
+                                    {t('chat.composer.beta_badge', 'beta')}
                                 </span>
                             )}
                         </button>
@@ -382,6 +385,7 @@ function MemoryToggle({ enabled, onToggle }) {
 }
 
 export default function TierSlider({ tiers = {}, value = 'fast', onChange, variant = 'input', memory = null }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
     const trackRef = useRef(null);
@@ -533,7 +537,7 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
                     className="model-tier-panel absolute"
                     data-surface="opaque"
                     role="dialog"
-                    aria-label="Response depth"
+                    aria-label={t('tier.response_depth', 'Response depth')}
                     style={{
                         position: 'absolute', bottom: 'calc(100% + 8px)', zIndex: 100,
                         // Centred over the gauge, then nudged back inside the

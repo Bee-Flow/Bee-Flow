@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Toggle } from './Toggle';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Tri-state, org-settings-style card grid for plan-level integrations and
@@ -33,9 +34,12 @@ export function FeatureCardGrid({
     renderIcon,
     grouped = true,
     emptyHint,
-    restrictLabel = 'Restrict to selected items',
-    restrictDescription = 'When off, every option is included automatically.',
+    restrictLabel,
+    restrictDescription,
 }) {
+    const { t } = useTranslation();
+    const restrictLabelText = restrictLabel ?? t('admin_subscriptions.ui_restrict_label', 'Restrict to selected items');
+    const restrictDescriptionText = restrictDescription ?? t('admin_subscriptions.ui_restrict_desc', 'When off, every option is included automatically.');
     const restricted = Array.isArray(value);
     const arrValue = Array.isArray(value) ? value : [];
     const selected = useMemo(
@@ -49,12 +53,12 @@ export function FeatureCardGrid({
         if (!grouped) return [['', options]];
         const map = new Map();
         for (const opt of options) {
-            const cat = opt.category || 'Other';
+            const cat = opt.category || t('admin_subscriptions.ui_other', 'Other');
             if (!map.has(cat)) map.set(cat, []);
             map.get(cat).push(opt);
         }
         return Array.from(map.entries());
-    }, [grouped, options]);
+    }, [grouped, options, t]);
 
     const setRestricted = next => {
         if (next && !restricted) onChange(options.map(o => o.id));
@@ -79,19 +83,19 @@ export function FeatureCardGrid({
                 <Toggle
                     checked={restricted}
                     onChange={setRestricted}
-                    label={restrictLabel}
-                    description={restrictDescription}
+                    label={restrictLabelText}
+                    description={restrictDescriptionText}
                 />
                 {restricted && (
                     <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-                        <span>{arrValue.length} of {options.length} included in this plan.</span>
+                        <span>{t('admin_subscriptions.ui_of_included', '{count} of {total} included in this plan.', { count: arrValue.length, total: options.length })}</span>
                         <div className="flex gap-2">
                             <button
                                 type="button"
                                 onClick={() => onChange(options.map(o => o.id))}
                                 className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
                             >
-                                Select all
+                                {t('admin_subscriptions.ui_select_all', 'Select all')}
                             </button>
                             <span className="text-[var(--text-muted)]">·</span>
                             <button
@@ -99,7 +103,7 @@ export function FeatureCardGrid({
                                 onClick={() => onChange([])}
                                 className="font-semibold text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                             >
-                                Clear
+                                {t('admin_subscriptions.ui_clear', 'Clear')}
                             </button>
                         </div>
                     </div>

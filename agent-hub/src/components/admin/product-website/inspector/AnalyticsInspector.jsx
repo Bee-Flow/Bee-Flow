@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 
 // Also enforced server-side (cmsStore sanitizeAnalytics) and again in the
@@ -9,6 +10,7 @@ const MEASUREMENT_ID_RE = /^G-[A-Z0-9]{4,20}$/;
 // on blur / Enter, Escape reverts, invalid non-empty input blocks the commit
 // with a red border + message. Empty commits are allowed (clears GA).
 function GaIdField({ value, onCommit }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(value || '');
     useEffect(() => { setDraft(value || ''); }, [value]);
 
@@ -23,7 +25,7 @@ function GaIdField({ value, onCommit }) {
 
     return (
         <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-[var(--text-muted)]">GA4 measurement ID</span>
+            <span className="text-[10px] text-[var(--text-muted)]">{t('cms_site.analytics.inspector.ga_id_label', 'GA4 measurement ID')}</span>
             <input
                 type="text"
                 value={draft}
@@ -39,11 +41,11 @@ function GaIdField({ value, onCommit }) {
             />
             {invalid ? (
                 <p className="text-[10px] leading-tight text-red-400">
-                    ⚠ Not a GA4 measurement ID — it looks like G-XXXXXXXXXX (Esc reverts)
+                    {t('cms_site.analytics.inspector.ga_id_invalid', '⚠ Not a GA4 measurement ID — it looks like G-XXXXXXXXXX (Esc reverts)')}
                 </p>
             ) : (
                 <p className="text-[10px] leading-tight text-[var(--text-muted)]">
-                    Google Analytics → Admin → Data streams → your web stream. Leave empty to disable.
+                    {t('cms_site.analytics.inspector.ga_id_help', 'Google Analytics → Admin → Data streams → your web stream. Leave empty to disable.')}
                 </p>
             )}
         </div>
@@ -65,6 +67,7 @@ export default function AnalyticsInspector({
     onOpenCookieSettings,   // () → select the cookie-banner entry
     onOpenAnalytics,        // () → the built-in visitor-stats admin tab (optional)
 }) {
+    const { t } = useTranslation();
     const analytics = site?.analytics || {};
     const gaId = analytics.gaMeasurementId || '';
     const bannerDisabled = site?.cookieBanner?.enabled === false;
@@ -74,11 +77,11 @@ export default function AnalyticsInspector({
             <div className="px-4 pt-4 pb-6 space-y-4">
                 <div className="flex items-center gap-2">
                     <AppIcon name="BarChart3" className="w-4 h-4 text-[var(--accent-primary)]" />
-                    <span className="text-sm font-semibold text-[var(--text-primary)]">Analytics</span>
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">{t('cms_site.analytics.inspector.title', 'Analytics')}</span>
                 </div>
 
                 <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-[var(--text-secondary)]">Google Analytics</p>
+                    <p className="text-xs font-medium text-[var(--text-secondary)]">{t('cms_site.analytics.inspector.ga_heading', 'Google Analytics')}</p>
                     <GaIdField
                         value={gaId}
                         onCommit={(next) => onChange({ ...analytics, gaMeasurementId: next })}
@@ -88,8 +91,7 @@ export default function AnalyticsInspector({
                 {gaId && bannerDisabled && (
                     <div className="p-2.5 rounded-md border border-amber-500/30 bg-amber-500/10">
                         <p className="text-[11px] text-amber-500">
-                            The cookie banner is disabled, so visitors can't consent and
-                            Google Analytics will never load. Enable the banner to collect data.
+                            {t('cms_site.analytics.inspector.banner_disabled', "The cookie banner is disabled, so visitors can't consent and Google Analytics will never load. Enable the banner to collect data.")}
                         </p>
                         {onOpenCookieSettings && (
                             <button
@@ -97,7 +99,7 @@ export default function AnalyticsInspector({
                                 onClick={onOpenCookieSettings}
                                 className="mt-1.5 text-[11px] px-2 py-1 rounded border border-amber-500/40 text-amber-500 hover:bg-amber-500/15"
                             >
-                                Open cookie banner settings
+                                {t('cms_site.analytics.inspector.open_cookie_settings', 'Open cookie banner settings')}
                             </button>
                         )}
                     </div>
@@ -105,13 +107,10 @@ export default function AnalyticsInspector({
 
                 <div className="p-2.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50 space-y-1">
                     <p className="text-[11px] text-[var(--text-secondary)]">
-                        Google Analytics sets cookies and sends visitor data to Google, so it
-                        only loads after a visitor accepts the cookie banner — and is removed
-                        again if they withdraw. Mention analytics in your banner text.
+                        {t('cms_site.analytics.inspector.consent_note', 'Google Analytics sets cookies and sends visitor data to Google, so it only loads after a visitor accepts the cookie banner — and is removed again if they withdraw. Mention analytics in your banner text.')}
                     </p>
                     <p className="text-[11px] text-[var(--text-muted)]">
-                        Changes apply to the live site after you publish. Pages can opt out
-                        individually via "Exclude from analytics" in their page settings.
+                        {t('cms_site.analytics.inspector.publish_note', 'Changes apply to the live site after you publish. Pages can opt out individually via "Exclude from analytics" in their page settings.')}
                     </p>
                 </div>
 
@@ -121,7 +120,7 @@ export default function AnalyticsInspector({
                         onClick={onOpenAnalytics}
                         className="text-xs text-[var(--accent-primary)] hover:underline"
                     >
-                        Built-in visitor stats →
+                        {t('cms_site.analytics.inspector.builtin_stats', 'Built-in visitor stats →')}
                     </button>
                 )}
             </div>

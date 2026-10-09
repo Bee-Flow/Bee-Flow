@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import ProviderApiKeyCard from './ProviderApiKeyCard';
 import { PROVIDER_KEY_CONFIGS } from './providerKeyConfig';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 const EU_HOST = 'eu.api.openai.com';
 
@@ -18,6 +19,7 @@ const EU_HOST = 'eu.api.openai.com';
  * the product is still the Privacy Shield's job.
  */
 const EuResidencyToggle = ({ onMessage }) => {
+    const { t } = useTranslation();
     const [provider, setProvider] = useState(null);
     const [saving, setSaving] = useState(false);
 
@@ -53,15 +55,15 @@ const EuResidencyToggle = ({ onMessage }) => {
                 onMessage?.({
                     type: 'success',
                     text: data.region === 'eu'
-                        ? 'OpenAI requests now run in the EU'
-                        : 'OpenAI requests now use the default endpoint',
+                        ? t('admin_ai_config.openai_eu_on', 'OpenAI requests now run in the EU')
+                        : t('admin_ai_config.openai_eu_off', 'OpenAI requests now use the default endpoint'),
                 });
             } else {
                 const err = await res.json().catch(() => ({}));
-                onMessage?.({ type: 'error', text: err.error || 'Failed to change the processing region' });
+                onMessage?.({ type: 'error', text: err.error || t('admin_ai_config.openai_region_failed', 'Failed to change the processing region') });
             }
         } catch (e) {
-            onMessage?.({ type: 'error', text: 'Failed to change the processing region' });
+            onMessage?.({ type: 'error', text: t('admin_ai_config.openai_region_failed', 'Failed to change the processing region') });
         } finally {
             setSaving(false);
         }
@@ -76,15 +78,15 @@ const EuResidencyToggle = ({ onMessage }) => {
                 </div>
                 <div>
                     <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        🇪🇺 Process in the EU
+                        {t('admin_ai_config.openai_eu_title', '🇪🇺 Process in the EU')}
                     </div>
                     <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         {isEU
-                            ? 'Requests go to eu.api.openai.com — inference runs inside the EU. Models released since March 2026 cost 10% more on this endpoint.'
-                            : 'Requests go to the default endpoint, where inference runs in the US. Turn this on to keep processing inside the EU (10% surcharge on newer models).'}
+                            ? t('admin_ai_config.openai_eu_hint_on', 'Requests go to eu.api.openai.com: inference runs inside the EU. Models released since March 2026 cost 10% more on this endpoint.')
+                            : t('admin_ai_config.openai_eu_hint_off', 'Requests go to the default endpoint, where inference runs in the US. Turn this on to keep processing inside the EU (10% surcharge on newer models).')}
                     </p>
                     <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                        This changes <em>where</em> the model runs, not what is sent to it — the Privacy Shield still decides that.
+                        {t('admin_ai_config.openai_eu_note', 'This changes where the model runs, not what is sent to it: the Privacy Shield still decides that.')}
                     </p>
                 </div>
             </div>

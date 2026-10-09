@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Eye, EyeOff, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Release notes review queue — the human gate.
@@ -20,6 +21,7 @@ const KIND_LABELS = { feature: 'New', improvement: 'Improved', fix: 'Fixed' };
 const KIND_ORDER = ['feature', 'improvement', 'fix'];
 
 export default function ReleaseNotesPanel() {
+    const { t } = useTranslation();
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [busyId, setBusyId] = useState(null);
@@ -62,7 +64,7 @@ export default function ReleaseNotesPanel() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full gap-2" style={{ color: 'var(--text-secondary)' }}>
-                <Loader2 className="w-4 h-4 animate-spin" /> Loading release notes…
+                <Loader2 className="w-4 h-4 animate-spin" /> {t('cms_site.site.releasenotes.loading', 'Loading release notes…')}
             </div>
         );
     }
@@ -71,9 +73,9 @@ export default function ReleaseNotesPanel() {
         <div className="h-full overflow-y-auto p-6" style={{ background: 'var(--bg-primary)' }}>
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Release notes</h1>
+                    <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('cms_site.site.releasenotes.title', 'Release notes')}</h1>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                        Drafted automatically on every build. Nothing appears on the website until you publish it.
+                        {t('cms_site.site.releasenotes.intro', 'Drafted automatically on every build. Nothing appears on the website until you publish it.')}
                     </p>
                 </div>
                 <button
@@ -81,7 +83,7 @@ export default function ReleaseNotesPanel() {
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                 >
-                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                    <RefreshCw className="w-3.5 h-3.5" /> {t('cms_site.site.releasenotes.refresh', 'Refresh')}
                 </button>
             </div>
 
@@ -94,7 +96,7 @@ export default function ReleaseNotesPanel() {
 
             {entries.length === 0 ? (
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    No release notes yet. They appear here after the next build.
+                    {t('cms_site.site.releasenotes.empty', 'No release notes yet. They appear here after the next build.')}
                 </p>
             ) : null}
 
@@ -132,7 +134,7 @@ export default function ReleaseNotesPanel() {
                                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs border"
                                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                                         >
-                                            <EyeOff className="w-3.5 h-3.5" /> Unpublish
+                                            <EyeOff className="w-3.5 h-3.5" /> {t('cms_site.site.releasenotes.unpublish', 'Unpublish')}
                                         </button>
                                     ) : (
                                         <button
@@ -141,7 +143,7 @@ export default function ReleaseNotesPanel() {
                                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium"
                                             style={{ background: 'var(--accent-primary)', color: '#fff' }}
                                         >
-                                            <Check className="w-3.5 h-3.5" /> Publish
+                                            <Check className="w-3.5 h-3.5" /> {t('cms_site.site.releasenotes.publish', 'Publish')}
                                         </button>
                                     )}
                                     <button
@@ -149,7 +151,7 @@ export default function ReleaseNotesPanel() {
                                         onClick={() => act(entry.id, '', 'DELETE')}
                                         className="p-1.5 rounded-md"
                                         style={{ color: 'var(--text-muted)' }}
-                                        title="Discard"
+                                        title={t('cms_site.site.releasenotes.discard', 'Discard')}
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
@@ -158,8 +160,7 @@ export default function ReleaseNotesPanel() {
 
                             {rolling && !published ? (
                                 <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
-                                    This is the rolling draft — the next build will regenerate it, replacing any edits.
-                                    Publish it to freeze the copy.
+                                    {t('cms_site.site.releasenotes.rolling_draft', 'This is the rolling draft — the next build will regenerate it, replacing any edits. Publish it to freeze the copy.')}
                                 </p>
                             ) : null}
 
@@ -167,7 +168,7 @@ export default function ReleaseNotesPanel() {
                                 className="w-full mb-2 px-2 py-1.5 rounded-md text-sm border bg-transparent"
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                 value={entry.title || ''}
-                                placeholder="Headline"
+                                placeholder={t('cms_site.site.releasenotes.headline', 'Headline')}
                                 onChange={e => setEntries(prev => prev.map(x => x.id === entry.id ? { ...x, title: e.target.value } : x))}
                                 onBlur={e => patch(entry.id, { title: e.target.value })}
                             />
@@ -176,7 +177,7 @@ export default function ReleaseNotesPanel() {
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                                 rows={2}
                                 value={entry.lead || ''}
-                                placeholder="One or two sentences for a customer"
+                                placeholder={t('cms_site.site.releasenotes.lead', 'One or two sentences for a customer')}
                                 onChange={e => setEntries(prev => prev.map(x => x.id === entry.id ? { ...x, lead: e.target.value } : x))}
                                 onBlur={e => patch(entry.id, { lead: e.target.value })}
                             />
@@ -205,7 +206,7 @@ export default function ReleaseNotesPanel() {
 
                             {published && entry.publishedAt ? (
                                 <div className="mt-2 flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                                    <Eye className="w-3 h-3" /> Live since {new Date(entry.publishedAt).toLocaleDateString()}
+                                    <Eye className="w-3 h-3" /> {t('cms_site.site.releasenotes.live_since', 'Live since {date}', { date: new Date(entry.publishedAt).toLocaleDateString() })}
                                 </div>
                             ) : null}
                         </div>

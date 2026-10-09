@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, AlertCircle, Info, X } from 'lucide-react';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * Toast — minimal local toast system. Event-based so any module can call
@@ -68,6 +69,7 @@ const KIND_STYLES: Record<ToastKind, { bg: string; color: string; icon: React.Co
 };
 
 export function Toaster() {
+    const { t } = useTranslation();
     const [items, setItems] = useState<ToastItem[]>([]);
     // The list is mutated from DOM event handlers that need to READ it to decide
     // whether an arriving message is a repeat, so the ref — not the state — is
@@ -165,7 +167,7 @@ export function Toaster() {
                         <span className="text-sm flex-1 min-w-0">{item.message}</span>
                         {(item.count || 1) > 1 && (
                             <span
-                                title={`This happened ${item.count} times`}
+                                title={t('common.toast_repeat_times', 'This happened {count} times', { count: item.count })}
                                 className="shrink-0 self-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums"
                                 style={{ background: s.bg, color: s.color }}
                             >
@@ -175,7 +177,7 @@ export function Toaster() {
                         <button
                             type="button"
                             onClick={() => toast.dismiss(item.id)}
-                            aria-label="Dismiss"
+                            aria-label={t('common.dismiss', 'Dismiss')}
                             className="shrink-0 rounded p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                         >
                             <X className="w-3 h-3" />

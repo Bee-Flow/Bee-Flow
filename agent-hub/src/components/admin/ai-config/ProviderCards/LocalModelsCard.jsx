@@ -14,6 +14,7 @@
 //     curated starter list or any tag from the Ollama library.
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import AddRuntimeForm from './local/AddRuntimeForm';
 import {
     BTN_PRIMARY,
@@ -28,6 +29,7 @@ import RuntimeRow from './local/RuntimeRow';
 import ProviderCardShell, { ProviderStatusPill } from './shared/ProviderCardShell';
 
 const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
+    const { t } = useTranslation();
     const [runtimes, setRuntimes] = useState([]);
     const [starterModels, setStarterModels] = useState([]);
     const [providers, setProviders] = useState([]);
@@ -68,7 +70,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
         setSaving(true);
         const result = await connectRuntime({ type, name, url, apiKey });
         if (result.ok) {
-            onMessage?.({ type: 'success', text: `${name} connected. Its models are now selectable under Chat Models.` });
+            onMessage?.({ type: 'success', text: t('admin_ai_config.local_connected_msg', '{name} connected. Its models are now selectable under Chat Models.', { name }) });
             setShowAdd(false);
             // Reflect it immediately in the detect list so the row doesn't keep
             // offering a Connect button for something already connected.
@@ -83,8 +85,8 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
     const handleRemove = async (id) => {
         const { ok } = await disconnectRuntime(id);
         onMessage?.(ok
-            ? { type: 'success', text: 'Runtime disconnected' }
-            : { type: 'error', text: 'Failed to disconnect the runtime' });
+            ? { type: 'success', text: t('admin_ai_config.local_disconnected', 'Runtime disconnected') }
+            : { type: 'error', text: t('admin_ai_config.local_disconnect_failed', 'Failed to disconnect the runtime') });
         if (ok) await reload();
     };
 
@@ -104,12 +106,12 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
         <ProviderCardShell
             icon="🖥️"
             iconGradient="linear-gradient(135deg, rgba(34,197,94,0.2), rgba(16,185,129,0.2))"
-            title="Local models (self-hosted)"
-            subtitle="Ollama, vLLM, llama.cpp, LM Studio and other OpenAI-compatible runtimes — nothing leaves your infrastructure, and there is no per-token cost"
-            badges={localProviders.length > 0 ? <ProviderStatusPill>{localProviders.length} connected</ProviderStatusPill> : null}
+            title={t('admin_ai_config.local_title', 'Local models (self-hosted)')}
+            subtitle={t('admin_ai_config.local_subtitle', 'Ollama, vLLM, llama.cpp, LM Studio and other OpenAI-compatible runtimes: nothing leaves your infrastructure, and there is no per-token cost')}
+            badges={localProviders.length > 0 ? <ProviderStatusPill>{t('admin_ai_config.local_connected_count', '{count} connected', { count: localProviders.length })}</ProviderStatusPill> : null}
         >
             {loading ? (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Loading…</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.loading_ellipsis', 'Loading…')}</p>
             ) : (
                 <>
                     {localProviders.map(provider => (
@@ -138,14 +140,14 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
                     ) : (
                         <div className="flex gap-2 flex-wrap">
                             <button className={BTN_PRIMARY} disabled={detecting} onClick={handleDetect}>
-                                {detecting ? 'Scanning…' : '🔍 Find running runtimes'}
+                                {detecting ? t('admin_ai_config.local_scanning', 'Scanning…') : t('admin_ai_config.local_find', '🔍 Find running runtimes')}
                             </button>
                             <button
                                 className={BTN_GHOST}
                                 style={{ color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}
                                 onClick={() => setShowAdd(s => !s)}
                             >
-                                {showAdd ? 'Cancel' : '+ Add manually'}
+                                {showAdd ? t('admin_ai_config.cancel', 'Cancel') : t('admin_ai_config.local_add_manual', '+ Add manually')}
                             </button>
                         </div>
                     )}
@@ -154,9 +156,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
                         <div className="space-y-1.5">
                             {detected.found.length === 0 ? (
                                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                    Nothing found on the {detected.probed} usual addresses. Start a runtime (for example <code>ollama serve</code>)
-                                    and scan again, or add its address manually. If Bee Flow itself runs in Docker, the runtime has to be
-                                    reachable from inside that container — use <code>host.docker.internal</code> rather than <code>localhost</code>.
+                                    {t('admin_ai_config.local_none_found', 'Nothing found on the {count} usual addresses. Start a runtime (for example ollama serve) and scan again, or add its address manually. If Bee Flow itself runs in Docker, the runtime has to be reachable from inside that container: use host.docker.internal rather than localhost.', { count: detected.probed })}
                                 </p>
                             ) : detected.found.map(f => (
                                 <div
@@ -166,17 +166,17 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
                                 >
                                     <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{f.label}</span>
                                     <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{f.url}</span>
-                                    <ProviderStatusPill tone="blue">{f.modelCount} model{f.modelCount !== 1 ? 's' : ''}</ProviderStatusPill>
+                                    <ProviderStatusPill tone="blue">{f.modelCount === 1 ? t('admin_ai_config.model_count_one', '1 model') : t('admin_ai_config.model_count_other', '{count} models', { count: f.modelCount })}</ProviderStatusPill>
                                     <div className="flex-1" />
                                     {f.alreadyConfigured ? (
-                                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Already connected</span>
+                                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.local_already', 'Already connected')}</span>
                                     ) : (
                                         <button
                                             className={BTN_PRIMARY}
                                             disabled={saving}
                                             onClick={() => handleConnect({ type: f.type, name: f.label, url: f.url, apiKey: '' })}
                                         >
-                                            Connect
+                                            {t('admin_ai_config.local_connect', 'Connect')}
                                         </button>
                                     )}
                                 </div>
@@ -190,8 +190,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
 
                     {localProviders.length === 0 && !showAdd && !detected && !unsupported && (
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            Nothing connected yet. Models served this way run on your own hardware and are billed at €0 — connect a
-                            runtime here, then assign its models to tiers under <strong>Chat Models</strong>.
+                            {t('admin_ai_config.local_empty', 'Nothing connected yet. Models served this way run on your own hardware and are billed at €0: connect a runtime here, then assign its models to tiers under Chat Models.')}
                         </p>
                     )}
                 </>

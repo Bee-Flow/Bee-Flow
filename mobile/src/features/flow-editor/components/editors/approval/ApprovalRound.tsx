@@ -37,7 +37,7 @@ function Panel({ draft, setMany, directory, disabled }: RoundProps) {
         <>
             <FieldRow
                 label={t('automations.versions.setting.approvers', 'Approvers')}
-                hint={t('mobile.flow.approval.approvers_hint', 'Up to 10 seats — a person, or a group whose first voting member fills the seat. How the votes resolve is set below. Remove every seat to go back to a single approver.')}
+                hint={t('automations.approval_editors.up_to_10_seats_a_person', 'Up to 10 seats — a person, or a group whose first voting member fills the seat. How the votes resolve is set below. Remove every seat to go back to a single approver.')}
             >
                 {seats.map((seat, i) => (
                     <FieldRow
@@ -65,8 +65,8 @@ function Panel({ draft, setMany, directory, disabled }: RoundProps) {
             </FieldRow>
             {real >= 2 ? (
                 <FieldRow
-                    label={t('mobile.flow.approval.decision_rule', 'Decision rule')}
-                    hint={t('mobile.flow.approval.decision_rule_hint', 'How the votes become one answer. With “everyone”, one reject declines immediately — the requester hears fast.')}
+                    label={t('automations.approval_editors.decision_rule', 'Decision rule')}
+                    hint={t('automations.approval_editors.how_the_votes_become_one_answer', 'How the votes become one answer. With “everyone”, one reject declines immediately — the requester hears fast.')}
                 >
                     <RuleSelect value={rule} onChange={(r) => setMany({ rule: r })} disabled={disabled} />
                     {rule === 'quorum' ? <QuorumSelect value={draft.quorum} seats={real} onChange={(quorum) => setMany({ quorum })} disabled={disabled} /> : null}
@@ -89,10 +89,10 @@ export function ApprovalRound(props: RoundProps & { onUseStages: () => void }) {
             ) : (
                 <>
                     <SelectField
-                        label={t('mobile.flow.approval.who_decides', 'Who decides')}
-                        hint={t('mobile.flow.approval.who_decides_hint', 'A person or group in your organisation. They get the notification; the first decision wins. Leave empty and you decide.')}
+                        label={t('automations.approval_editors.who_decides', 'Who decides')}
+                        hint={t('automations.approval_editors.a_person_or_group_in_your', 'A person or group in your organisation. They get the notification; the first decision wins. Leave empty and you decide.')}
                         value={seatValue(draft.assignee)}
-                        options={[{ value: '', label: t('mobile.flow.approval.me', 'Me (the owner)') }, ...people]}
+                        options={[{ value: '', label: t('automations.approval_editors.me_the_owner', 'Me (the owner)') }, ...people]}
                         onChange={(v) => setMany({ assignee: decodeSeat(v) })}
                         disabled={disabled}
                         testID="approval-assignee"
@@ -102,9 +102,9 @@ export function ApprovalRound(props: RoundProps & { onUseStages: () => void }) {
             )}
             <SelectField
                 label={t('automations.builder.approval_final_stage_name', 'Final sign-off')}
-                hint={t('mobile.flow.approval.final_signoff_hint', 'Optional second stage: once the approver(s) say yes, this person or group has the last word — only then does the run continue.')}
+                hint={t('automations.approval_editors.optional_second_stage_once_the_approver', 'Optional second stage: once the approver(s) say yes, this person or group has the last word — only then does the run continue.')}
                 value={seatValue(draft.finalApprover)}
-                options={[{ value: '', label: t('mobile.flow.approval.no_final', 'No final sign-off') }, ...people]}
+                options={[{ value: '', label: t('automations.approval_editors.no_final_sign_off', 'No final sign-off') }, ...people]}
                 onChange={(v) => setMany({ finalApprover: decodeSeat(v) })}
                 disabled={disabled}
             />

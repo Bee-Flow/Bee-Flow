@@ -215,7 +215,17 @@ const NL_TRANSLATIONS = [
     'update-nl-legal-register-2026-10', // Legal register review of 6 Oct 2026: corrected framework, milestone and check Dutch (old shipped text only), new milestones, "Legal status checked" chip and Sources
     'update-nl-compliance-detect-2026-10', // Compliance round 2 detection and legal wording: one-month DSR clock, CRA notification, DORA/Data Act/EAA/PLD/Machinery terms, encryption levels (old shipped text only), two new milestones; after the legal register review, whose Dutch it partly replaces
     'update-nl-compliance-ui-2026-10', // Compliance Center UI round 2: Dutch for the strings the eleven UI packages added, and reworded Dutch where the English changed meaning (old shipped text only)
+    'add-nl-hardcoded-admin-2026-10-translations', // Admin screens (subscriptions, organisation, AI configuration, monitoring, languages, SSO): Dutch for strings that used to be hard-coded English
+    'add-nl-hardcoded-pages-shell-2026-10-translations', // Dutch for the user-facing text agent-hub used to hard-code in English: pages, shell, chat footer, meetings, renderers
+    'add-nl-hardcoded-integrations-agents-2026-10-translations', // Hard-coded English literals converted to keys: integrations, agents, appearance, support, knowledge, setup wizards
+    'add-nl-hardcoded-automation-builder-2026-10-translations', // Automation builder: Dutch for the strings that used to be hard-coded English (panels, step editors, trigger filters, pickers, output views)
+    'add-nl-hardcoded-website-admin-2026-10-translations', // Website admin (Product Website builder) and Component Studio: strings that had no key
+    'add-nl-hardcoded-studio-admin-2026-10-translations', // Studio screens (App Studio, Automations, Executions, Solutions, Support): Dutch for literals that now go through t()
+    'add-nl-ui-complete-2026-10-translations',    // Every UI string without Dutch (2026-10): agent studio, knowledge, skills, meetings, webpages, cowork, admin, chat, ...
+    'add-nl-learn-content-2026-10-translations',  // Learning Center lesson content for every course but Foundations (2026-10)
     'add-nl-builder-fixes-2026-10',            // Builder fixes Oct 2026: HTTP query parameters and cURL import, who can call an automation as an agent tool, assistant questions/plans/tables, Studio no-access
+    // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
+    'add-nl-fix-english-2026-10-translations',
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

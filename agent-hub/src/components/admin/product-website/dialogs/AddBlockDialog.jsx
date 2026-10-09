@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ModalShell from './ModalShell';
-import AppIcon from '../../../icons/AppIcon';
-import { BLOCK_CATALOGUE } from '../editors';
-import { BLOCK_VARIANTS } from '../blockEditors/catalogue';
 import SectionThumb from './SectionThumb';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import AppIcon from '../../../icons/AppIcon';
+import { BLOCK_VARIANTS } from '../blockEditors/catalogue';
+import { BLOCK_CATALOGUE } from '../editors';
 
 /**
  * AddBlockDialog — the block picker, lifted out of BlockList onto the
@@ -31,6 +32,7 @@ import SectionThumb from './SectionThumb';
  *   design                — optional site design blob for palette-true thumbs
  */
 export default function AddBlockDialog({ onAdd, onCancel, design = null }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [focusIdx, setFocusIdx] = useState(0);
     // Block type whose variant strip is expanded (one at a time).
@@ -96,14 +98,14 @@ export default function AddBlockDialog({ onAdd, onCancel, design = null }) {
                 <div className="px-4 py-3 border-b border-[var(--border-subtle)] shrink-0">
                     <div className="flex items-center justify-between mb-2">
                         <span id="add-block-dialog-title" className="text-sm font-semibold text-[var(--text-primary)]">
-                            Add block
+                            {t('cms_site.site.dialogs.add_title', 'Add block')}
                         </span>
                         <button
                             type="button"
                             onClick={onCancel}
                             className="w-7 h-7 inline-flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-                            title="Close"
-                            aria-label="Close add block dialog"
+                            title={t('cms_site.site.dialogs.add_close', 'Close')}
+                            aria-label={t('cms_site.site.dialogs.add_close_label', 'Close add block dialog')}
                         >
                             <AppIcon name="X" className="w-4 h-4" />
                         </button>
@@ -115,7 +117,7 @@ export default function AddBlockDialog({ onAdd, onCancel, design = null }) {
                             type="text"
                             value={query}
                             onChange={e => setQuery(e.target.value)}
-                            placeholder="Search blocks… (↑↓←→ to browse, Enter to add)"
+                            placeholder={t('cms_site.site.dialogs.add_search', 'Search blocks… (↑↓←→ to browse, Enter to add)')}
                             className="w-full pl-8 pr-3 py-1.5 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
                         />
                     </div>
@@ -124,7 +126,7 @@ export default function AddBlockDialog({ onAdd, onCancel, design = null }) {
                 <div className="flex-1 overflow-y-auto p-4">
                     {filtered.length === 0 ? (
                         <p className="text-xs text-[var(--text-muted)] text-center py-10">
-                            No blocks match "{query}".
+                            {t('cms_site.site.dialogs.add_no_match', 'No blocks match "{query}".', { query })}
                         </p>
                     ) : [...categories.entries()].map(([cat, items]) => (
                         <div key={cat} className="mb-4 last:mb-0">
@@ -167,7 +169,7 @@ export default function AddBlockDialog({ onAdd, onCancel, design = null }) {
                                                             name="ChevronRight"
                                                             className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
                                                         />
-                                                        {variants.length} layouts
+                                                        {t('cms_site.site.dialogs.add_layouts', '{count} layouts', { count: variants.length })}
                                                     </button>
                                                     {expanded ? (
                                                         <div className="grid grid-cols-2 gap-1.5 px-2 pb-2">
@@ -176,7 +178,7 @@ export default function AddBlockDialog({ onAdd, onCancel, design = null }) {
                                                                     key={v}
                                                                     type="button"
                                                                     onClick={() => onAdd(meta.type, v)}
-                                                                    title={`Add ${meta.label} — ${v} layout`}
+                                                                    title={t('cms_site.site.dialogs.add_variant', 'Add {block} — {layout} layout', { block: meta.label, layout: v })}
                                                                     className="flex flex-col rounded border border-[var(--border-subtle)] overflow-hidden text-left hover:border-[var(--accent-primary)] transition-colors"
                                                                 >
                                                                     <SectionThumb type={meta.type} variant={v} design={design} />

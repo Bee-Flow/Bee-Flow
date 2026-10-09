@@ -7,6 +7,7 @@ import {
     STATUS_LABELS,
     formatRelative,
 } from '../../components/support/SupportDrawer';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * HelpSupportSection — user-facing support inbox inside AdvancedSettings.
@@ -16,6 +17,7 @@ import {
  * canonical entry point for a logged-in user to talk to Bee Flow.
  */
 export default function HelpSupportSection({ user }) {
+    const { t } = useTranslation();
     const [threads, setThreads] = useState([]);
     const [view, setView] = useState('list'); // 'list' | 'new' | 'detail'
     const [activeId, setActiveId] = useState(null);
@@ -64,10 +66,10 @@ export default function HelpSupportSection({ user }) {
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <LifeBuoy className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Help & Support</h2>
+                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.help_support.title', 'Help & Support')}</h2>
                     </div>
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                        Ask Bee Flow anything. Our AI replies first; a human takes over if needed.
+                        {t('settings.help_support.subtitle', 'Ask Bee Flow anything. Our AI replies first; a human takes over if needed.')}
                     </p>
                 </div>
                 {view === 'list' && (
@@ -77,16 +79,16 @@ export default function HelpSupportSection({ user }) {
                             onClick={() => { window.history.pushState({}, '', '/app/settings/learning'); window.dispatchEvent(new PopStateEvent('popstate')); }}
                             className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border hover:bg-[var(--bg-tertiary)] transition-colors"
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
-                            title="Hands-on courses in the Learning Center"
+                            title={t('settings.help_support.learning_title', 'Hands-on courses in the Learning Center')}
                         >
-                            <GraduationCap className="w-3.5 h-3.5" /> Learning Center
+                            <GraduationCap className="w-3.5 h-3.5" /> {t('settings.help_support.learning_center', 'Learning Center')}
                         </button>
                         <button
                             onClick={() => setView('new')}
                             className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5"
                             style={{ background: 'var(--accent-primary)', color: 'white' }}
                         >
-                            <Plus className="w-3.5 h-3.5" /> New question
+                            <Plus className="w-3.5 h-3.5" /> {t('settings.help_support.new_question', 'New question')}
                         </button>
                     </div>
                 )}
@@ -96,27 +98,27 @@ export default function HelpSupportSection({ user }) {
                 <div className="rounded-xl border overflow-hidden"
                     style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
                     {loading ? (
-                        <div className="p-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>Loading…</div>
+                        <div className="p-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>{t('settings.help_support.loading', 'Loading…')}</div>
                     ) : threads.length === 0 ? (
                         <div className="p-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>
-                            No conversations yet. Click <strong>New question</strong> to ask Bee Flow something — the AI will reply within seconds.
+                            {t('settings.help_support.empty_prefix', 'No conversations yet. Click')} <strong>{t('settings.help_support.new_question', 'New question')}</strong> {t('settings.help_support.empty_suffix', 'to ask Bee Flow something — the AI will reply within seconds.')}
                         </div>
-                    ) : threads.map(t => (
+                    ) : threads.map(th => (
                         <button
-                            key={t.id}
-                            onClick={() => { setActiveId(t.id); setView('detail'); }}
+                            key={th.id}
+                            onClick={() => { setActiveId(th.id); setView('detail'); }}
                             className="w-full text-left px-4 py-3 border-b last:border-b-0 hover:bg-[var(--bg-tertiary)]"
                             style={{ borderColor: 'var(--border-default)' }}
                         >
-                            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t.subject}</div>
+                            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{th.subject}</div>
                             <div className="text-xs mt-0.5 flex items-center justify-between" style={{ color: 'var(--text-muted)' }}>
-                                <span>{STATUS_LABELS[t.status] || t.status}</span>
-                                <span>{formatRelative(t.last_message_at)}</span>
+                                <span>{STATUS_LABELS[th.status] || th.status}</span>
+                                <span>{formatRelative(th.last_message_at)}</span>
                             </div>
-                            {(t.requester_org_role || t.requester_org_name) && (
+                            {(th.requester_org_role || th.requester_org_name) && (
                                 <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                                    Posted as <strong style={{ color: 'var(--text-secondary)' }}>{t.requester_org_role || 'member'}</strong>
-                                    {t.requester_org_name ? ` at ${t.requester_org_name}` : ''}
+                                    {t('settings.help_support.posted_as', 'Posted as')} <strong style={{ color: 'var(--text-secondary)' }}>{th.requester_org_role || 'member'}</strong>
+                                    {th.requester_org_name ? ` ${t('settings.help_support.posted_at', 'at {org}', { org: th.requester_org_name })}` : ''}
                                 </div>
                             )}
                         </button>
@@ -131,7 +133,7 @@ export default function HelpSupportSection({ user }) {
                         <button onClick={() => setView('list')} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>
                             <ArrowLeft className="w-4 h-4" />
                         </button>
-                        <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>New question</div>
+                        <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('settings.help_support.new_question', 'New question')}</div>
                     </div>
                     <NewThreadForm
                         onCancel={() => setView('list')}

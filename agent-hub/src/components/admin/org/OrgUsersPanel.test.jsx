@@ -33,6 +33,9 @@ vi.mock('../../../hooks/useTranslation', () => ({
         // Mirrors the real t(): key, optional string fallback, optional params.
         t: (key, fallbackOrParams, maybeParams) => {
             const params = typeof fallbackOrParams === 'object' ? fallbackOrParams : maybeParams;
+            if (params && typeof fallbackOrParams === 'string') {
+                return fallbackOrParams.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
+            }
             if (params) return `${key}:${JSON.stringify(params)}`;
             return typeof fallbackOrParams === 'string' ? fallbackOrParams : key;
         },
@@ -921,7 +924,7 @@ describe('OrgUsersPanel — group allowed tiers', () => {
     it('reads an empty allowedTiers as "no restriction" — every tier permitted (fail-open by design)', async () => {
         await renderPanel();
         fireEvent.click(screen.getByText('Finance'));
-        expect(within(groupCard('Finance')).getByText(/No restriction set — members can use every tier/)).toBeInTheDocument();
+        expect(within(groupCard('Finance')).getByText(/No restriction set: members can use every tier/)).toBeInTheDocument();
         expect(within(groupCard('Finance')).queryByText('Clear restrictions')).not.toBeInTheDocument();
     });
 

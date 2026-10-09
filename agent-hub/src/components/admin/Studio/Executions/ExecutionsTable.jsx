@@ -133,10 +133,10 @@ export default function ExecutionsTable({ scope, automationId, stepId, runScope 
             <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="mx-auto max-w-[110rem]">
                 {loading ? (
-                    <div className="py-10 text-center text-sm text-[var(--text-tertiary)]">Loading runs…</div>
+                    <div className="py-10 text-center text-sm text-[var(--text-tertiary)]">{t('studio_misc.runtable.loading', 'Loading runs…')}</div>
                 ) : error ? (
                     <div className="py-10 text-center space-y-2">
-                        <div className="text-sm text-red-600 dark:text-red-400">We couldn't load the runs.</div>
+                        <div className="text-sm text-red-600 dark:text-red-400">{t('studio_misc.runtable.load_failed', "We couldn't load the runs.")}</div>
                         {/* refresh exists on the hook but used to be reachable
                             only from the filter bar — which this branch never
                             rendered. A dead end with a working retry one
@@ -146,7 +146,7 @@ export default function ExecutionsTable({ scope, automationId, stepId, runScope 
                             onClick={refresh}
                             className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                         >
-                            Try again
+                            {t('studio_misc.runtable.try_again', 'Try again')}
                         </button>
                     </div>
                 ) : rows.length === 0 ? (
@@ -181,7 +181,7 @@ export default function ExecutionsTable({ scope, automationId, stepId, runScope 
                         )))}
                         {hasMore && (
                             <div ref={sentinelRef} className="py-4 text-center text-xs text-[var(--text-tertiary)]">
-                                {loadingMore ? 'Loading more…' : ' '}
+                                {loadingMore ? t('studio_misc.runtable.loading_more', 'Loading more…') : ' '}
                             </div>
                         )}
                     </>
@@ -193,24 +193,25 @@ export default function ExecutionsTable({ scope, automationId, stepId, runScope 
 }
 
 function EmptyState({ scope, range, onShowAllTime }) {
+    const { t } = useTranslation();
     if (range && range !== 'all') {
         return (
             <div className="py-12 text-center px-6 space-y-2">
-                <div className="text-sm text-[var(--text-primary)]">No runs in this time range.</div>
-                <div className="text-xs text-[var(--text-secondary)]">Older runs are still here — widen the time range to see them.</div>
+                <div className="text-sm text-[var(--text-primary)]">{t('studio_misc.runtable.empty_range', 'No runs in this time range.')}</div>
+                <div className="text-xs text-[var(--text-secondary)]">{t('studio_misc.runtable.empty_range_hint', 'Older runs are still here — widen the time range to see them.')}</div>
                 <button
                     type="button"
                     onClick={onShowAllTime}
                     className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                 >
-                    Show all time
+                    {t('studio_misc.runtable.show_all_time', 'Show all time')}
                 </button>
             </div>
         );
     }
     const msg = scope === 'step'
-        ? 'No runs yet. Test this Step or call it from an automation to see its runs.'
-        : 'No runs yet. Run the automation to see what happened here, step by step.';
+        ? t('studio_misc.runtable.empty_step', 'No runs yet. Test this Step or call it from an automation to see its runs.')
+        : t('studio_misc.runtable.empty_automation', 'No runs yet. Run the automation to see what happened here, step by step.');
     return (
         <div className="py-12 text-center text-sm text-[var(--text-tertiary)] px-6">{msg}</div>
     );

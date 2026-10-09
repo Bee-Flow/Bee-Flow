@@ -1,5 +1,6 @@
 import React from 'react';
 import AppActionPicker from '../../../shared/AppActionPicker';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Tool picker for the AI step — which functions the step may call.
@@ -20,6 +21,7 @@ import AppActionPicker from '../../../shared/AppActionPicker';
  *   onClose      — () => void
  */
 export default function ToolPicker({ apps = [], selected = [], onToggleTool, onToggleApp, onClose }) {
+    const { t } = useTranslation();
     return (
         <AppActionPicker
             apps={apps}
@@ -27,7 +29,7 @@ export default function ToolPicker({ apps = [], selected = [], onToggleTool, onT
             onToggle={(name) => onToggleTool?.(name)}
             onToggleApp={(app, on) => onToggleApp?.(app, on)}
             onClose={onClose}
-            title="Choose tools"
+            title={t('automations.tool_picker.choose_tools', 'Choose tools')}
             emptyLabel="No tools available"
         />
     );

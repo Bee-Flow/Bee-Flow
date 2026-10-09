@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import ColorControl from './controls/ColorControl';
 import { FieldRow, inputCls } from './fields';
 import { GOOGLE_FONTS, fontStack } from './googleFonts';
+import { useTranslation } from '../../../hooks/useTranslation';
 import AppIcon from '../../icons/AppIcon';
-import ColorControl from './controls/ColorControl';
 // Self-hosted Fontshare @font-face — needed so FontRow's dropdown previews
 // render in the chosen face. Same CSS file DesignEditor and the preview
 // iframe import; loading it here keeps font previews working for every
@@ -93,6 +94,7 @@ export function ColorSwatch({ value, onChange, title }) {
 // controls. Empty value (and value of 0) display as "inherit" placeholder
 // so users can see they're falling back to the page CSS / Design tab.
 export function PxSizeInput({ value, onChange, min = 8, max = 96, ariaLabel }) {
+    const { t } = useTranslation();
     const numeric = Number.isFinite(value) && value > 0 ? value : '';
     return (
         <input
@@ -101,7 +103,7 @@ export function PxSizeInput({ value, onChange, min = 8, max = 96, ariaLabel }) {
             max={max}
             step={1}
             value={numeric}
-            placeholder="inherit"
+            placeholder={t('cms_site.site.fields.px_inherit', 'inherit')}
             aria-label={ariaLabel}
             onChange={(e) => onChange(Number(e.target.value) || 0)}
             className={inputCls + ' shrink-0'}
@@ -160,29 +162,30 @@ export function StyleTriplet({
     min = 8,
     max = 96,
 }) {
+    const { t } = useTranslation();
     const setStyle = (patch) => onChange({ ...value, ...patch });
     return (
         <>
             <FontRow
-                label={`${label} font`}
+                label={t('cms_site.site.fields.triplet_font', '{label} font', { label })}
                 value={value.fontFamily || ''}
                 onChange={v => setStyle({ fontFamily: v })}
-                sample={sample || `${label} preview`}
+                sample={sample || t('cms_site.site.fields.triplet_preview', '{label} preview', { label })}
                 weight={weight}
             />
-            <FieldRow label={`${label} size & color`}>
+            <FieldRow label={t('cms_site.site.fields.triplet_size_color', '{label} size & color', { label })}>
                 <div className="flex items-center gap-2">
                     <PxSizeInput
                         value={Number.isFinite(value.fontSize) ? value.fontSize : 0}
                         onChange={v => setStyle({ fontSize: v })}
                         min={min}
                         max={max}
-                        ariaLabel={`${label} size in pixels`}
+                        ariaLabel={t('cms_site.site.fields.triplet_size_px', '{label} size in pixels', { label })}
                     />
                     <ColorSwatch
                         value={value.color || ''}
                         onChange={v => setStyle({ color: v })}
-                        title={`${label} color`}
+                        title={t('cms_site.site.fields.triplet_color', '{label} color', { label })}
                     />
                 </div>
             </FieldRow>
@@ -192,6 +195,7 @@ export function StyleTriplet({
 
 // Labelled <select> with an optional hint line (FieldRow-style).
 export function FieldSelect({ value, onChange, options, label, hint }) {
+    const { t } = useTranslation();
     return (
         <div className="flex flex-col gap-1.5 mb-3">
             {label ? <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label> : null}
@@ -200,7 +204,7 @@ export function FieldSelect({ value, onChange, options, label, hint }) {
                 value={value || ''}
                 onChange={e => onChange(e.target.value)}
             >
-                {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {options.map(o => <option key={o.value} value={o.value}>{o.labelKey ? t(o.labelKey, o.label) : o.label}</option>)}
             </select>
             {hint ? <span className="text-xs text-[var(--text-muted)]">{hint}</span> : null}
         </div>
@@ -211,30 +215,32 @@ export function FieldSelect({ value, onChange, options, label, hint }) {
 // Previously duplicated as two CTA_STYLE_OPTIONS consts and three raw
 // inline <select> copies across editors.jsx.
 export const CTA_STYLE_OPTIONS = [
-    { value: 'primary',   label: 'Primary (filled)' },
-    { value: 'secondary', label: 'Secondary (outlined)' },
-    { value: 'ghost',     label: 'Ghost (no border)' },
-    { value: 'link',      label: 'Link (underlined)' },
+    { value: 'primary',   label: 'Primary (filled)', labelKey: 'cms_site.site.fields.cta_primary' },
+    { value: 'secondary', label: 'Secondary (outlined)', labelKey: 'cms_site.site.fields.cta_secondary' },
+    { value: 'ghost',     label: 'Ghost (no border)', labelKey: 'cms_site.site.fields.cta_ghost' },
+    { value: 'link',      label: 'Link (underlined)', labelKey: 'cms_site.site.fields.cta_link' },
 ];
 
 // Callers pass the resolved value including their own fallback
 // (`cta.style || 'primary'`, Hero's secondary uses `|| 'secondary'`).
-export function CtaStyleSelect({ label = 'Style', value, onChange }) {
-    return <FieldSelect label={label} value={value} options={CTA_STYLE_OPTIONS} onChange={onChange} />;
+export function CtaStyleSelect({ label, value, onChange }) {
+    const { t } = useTranslation();
+    return <FieldSelect label={label ?? t('cms_site.site.fields.style', 'Style')} value={value} options={CTA_STYLE_OPTIONS} onChange={onChange} />;
 }
 
 // Standard block background vocabulary (`data.backgroundVariant`).
 // ContentEditor keeps its different none/light/dark/primary vocabulary by
 // passing its own `options`.
 export const BACKGROUND_VARIANT_OPTIONS = [
-    { value: 'default', label: 'Default (page bg)' },
-    { value: 'surface', label: 'Surface (alt bg)' },
-    { value: 'primary', label: 'Primary (brand color)' },
-    { value: 'dark',    label: 'Dark (secondary color)' },
+    { value: 'default', label: 'Default (page bg)', labelKey: 'cms_site.site.fields.bg_default' },
+    { value: 'surface', label: 'Surface (alt bg)', labelKey: 'cms_site.site.fields.bg_surface' },
+    { value: 'primary', label: 'Primary (brand color)', labelKey: 'cms_site.site.fields.bg_primary' },
+    { value: 'dark',    label: 'Dark (secondary color)', labelKey: 'cms_site.site.fields.bg_dark' },
 ];
 
-export function BackgroundVariantSelect({ label = 'Variant', value, onChange, options = BACKGROUND_VARIANT_OPTIONS }) {
-    return <FieldSelect label={label} value={value} options={options} onChange={onChange} />;
+export function BackgroundVariantSelect({ label, value, onChange, options = BACKGROUND_VARIANT_OPTIONS }) {
+    const { t } = useTranslation();
+    return <FieldSelect label={label ?? t('cms_site.site.fields.variant', 'Variant')} value={value} options={options} onChange={onChange} />;
 }
 
 // BackgroundCard — the standard background-variant picker, wrapped in
@@ -244,10 +250,11 @@ export function BackgroundVariantSelect({ label = 'Variant', value, onChange, op
 // working; blocks that didn't have it before treat it as the no-op
 // default until their renderer picks it up in a later pass.
 export function BackgroundCard({ data = {}, onChange, persistKey = null }) {
+    const { t } = useTranslation();
     return (
-        <CollapsibleCard title="Background" defaultOpen={false} persistKey={persistKey}>
+        <CollapsibleCard title={t('cms_site.site.fields.background', 'Background')} defaultOpen={false} persistKey={persistKey}>
             <BackgroundVariantSelect
-                label="Variant"
+                label={t('cms_site.site.fields.variant', 'Variant')}
                 value={data.backgroundVariant || 'default'}
                 onChange={v => onChange({ ...(data || {}), backgroundVariant: v })}
             />
@@ -259,16 +266,18 @@ export function BackgroundCard({ data = {}, onChange, persistKey = null }) {
 // `icon` renders an AppIcon (with `iconOnly` hiding the label); `hint`
 // becomes the button tooltip (falls back to the label).
 export function SegmentedControl({ options, value, onChange, iconOnly }) {
+    const { t } = useTranslation();
     return (
         <div className="inline-flex rounded-md border border-[var(--border-default)] bg-[var(--bg-tertiary)] overflow-hidden">
             {options.map((opt) => {
                 const active = opt.value === value;
+                const optLabel = opt.labelKey ? t(opt.labelKey, opt.label) : opt.label;
                 return (
                     <button
                         key={opt.value}
                         type="button"
                         onClick={() => onChange(opt.value)}
-                        title={opt.hint || opt.label}
+                        title={opt.hint || optLabel}
                         className={`px-3 py-1.5 text-xs font-medium transition-colors
                             ${active
                                 ? 'bg-[var(--accent-primary)] text-white'
@@ -278,9 +287,9 @@ export function SegmentedControl({ options, value, onChange, iconOnly }) {
                         {opt.icon
                             ? <span className="inline-flex items-center gap-1.5">
                                   <AppIcon name={opt.icon} className="w-3.5 h-3.5" />
-                                  {!iconOnly && opt.label}
+                                  {!iconOnly && optLabel}
                               </span>
-                            : opt.label}
+                            : optLabel}
                     </button>
                 );
             })}

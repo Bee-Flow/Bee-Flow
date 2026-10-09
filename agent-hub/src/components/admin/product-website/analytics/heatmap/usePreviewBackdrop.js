@@ -20,6 +20,7 @@
  * what visitors actually saw, not the current draft.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { API_BASE } from '../../../../../utils/helpers';
 
 export const PREVIEW_SRC = '/__cms_preview__?preview=1';
@@ -46,6 +47,10 @@ export function pathToSlug(path) {
  */
 export function usePreviewBackdrop({ urlPath, locale = 'en', width, enabled = true }) {
     const frameRef = useRef(null);
+    // Latest translator, read inside async callbacks without re-running effects.
+    const { t } = useTranslation();
+    const tRef = useRef(t);
+    useEffect(() => { tRef.current = t; }, [t]);
     const [status, setStatus] = useState('idle');
     const [error, setError] = useState(null);
     const [pageHeight, setPageHeight] = useState(null);
@@ -98,10 +103,10 @@ export function usePreviewBackdrop({ urlPath, locale = 'en', width, enabled = tr
         };
 
         fetch(`${API_BASE}/api/cms/site?${qs}`, { credentials: 'include' })
-            .then(r => (r.ok ? r.json() : Promise.reject(new Error(`Page fetch failed (${r.status})`))))
+            .then(r => (r.ok ? r.json() : Promise.reject(new Error(tRef.current('cms_site.analytics.errors.page_fetch', 'Page fetch failed ({status})', { status: r.status })))))
             .then(data => {
                 if (cancelled) return;
-                if (data?.found === false) throw new Error('That page is no longer published.');
+                if (data?.found === false) throw new Error(tRef.current('cms_site.analytics.errors.unpublished', 'That page is no longer published.'));
                 content = data?.content || {};
                 design = data?.design || data?.content?.design || null;
                 push();
@@ -135,7 +140,7 @@ export function usePreviewBackdrop({ urlPath, locale = 'en', width, enabled = tr
             if (cancelled || rendered()) return;
             clearInterval(poll);
             setStatus('error');
-            setError('The page preview did not load.');
+            setError(tRef.current('cms_site.analytics.errors.preview_failed', 'The page preview did not load.'));
         }, READY_TIMEOUT_MS);
 
         return () => {

@@ -153,7 +153,7 @@ export default function IconsEditor() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>
-                Loading icon packs...
+                {t('appearance.icons_editor_loading_icon_packs', 'Loading icon packs...')}
             </div>
         );
     }
@@ -164,7 +164,7 @@ export default function IconsEditor() {
                 <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{error}</span>
-                    <button onClick={() => setError('')} className="ml-auto" aria-label="Dismiss error"><X className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => setError('')} className="ml-auto" aria-label={t('appearance.icons_editor_dismiss_error', 'Dismiss error')}><X className="w-3.5 h-3.5" /></button>
                 </div>
             )}
 
@@ -176,10 +176,10 @@ export default function IconsEditor() {
                             {t('admin.tab_appearance', 'Icon Packs')}
                         </span>
                         <div className="flex items-center gap-0.5">
-                            <button onClick={handleImport} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title="Import pack" aria-label="Import pack">
+                            <button onClick={handleImport} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_import_pack', 'Import pack')} aria-label={t('appearance.icons_editor_import_pack', 'Import pack')}>
                                 <Upload className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                             </button>
-                            <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title="New pack" aria-label="New pack">
+                            <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_new_pack', 'New pack')} aria-label={t('appearance.icons_editor_new_pack', 'New pack')}>
                                 <Plus className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                             </button>
                         </div>
@@ -210,7 +210,7 @@ export default function IconsEditor() {
 
                         {packs.length === 0 && (
                             <p className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>
-                                No custom packs yet — click + to create one.
+                                {t('appearance.icons_editor_no_custom_packs_yet_click_to_create', 'No custom packs yet — click + to create one.')}
                             </p>
                         )}
                     </div>
@@ -234,7 +234,7 @@ export default function IconsEditor() {
                         <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
                             <div className="text-center">
                                 <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                <p className="text-sm">Select a pack to edit, or create a new one.</p>
+                                <p className="text-sm">{t('appearance.icons_editor_select_a_pack_to_edit_or_create_a_new', 'Select a pack to edit, or create a new one.')}</p>
                             </div>
                         </div>
                     )}
@@ -250,6 +250,7 @@ export default function IconsEditor() {
 }
 
 const PackListItem = ({ label, sub, isActive, isSelected, onSelect, onActivate, onExport, onDelete }) => {
+    const { t } = useTranslation();
     const isHighlight = isSelected;
     return (
         <div
@@ -271,24 +272,24 @@ const PackListItem = ({ label, sub, isActive, isSelected, onSelect, onActivate, 
                             color: 'var(--accent-primary-fg, #ffffff)',
                         }}
                     >
-                        Active
+                        {t('appearance.icons_editor_active', 'Active')}
                     </span>
                 )}
             </div>
             {(onActivate || onExport || onDelete) && (
                 <div className={`flex items-center gap-0.5 shrink-0 ${isHighlight ? 'opacity-80' : 'opacity-0 group-hover:opacity-60'} transition-opacity`}>
                     {onActivate && !isActive && (
-                        <button onClick={(e) => { e.stopPropagation(); onActivate(); }} className="p-1 rounded hover:bg-black/10" title="Set as active" aria-label="Set as active">
+                        <button onClick={(e) => { e.stopPropagation(); onActivate(); }} className="p-1 rounded hover:bg-black/10" title={t('appearance.icons_editor_set_as_active', 'Set as active')} aria-label={t('appearance.icons_editor_set_as_active', 'Set as active')}>
                             <Star className="w-3 h-3" />
                         </button>
                     )}
                     {onExport && (
-                        <button onClick={(e) => { e.stopPropagation(); onExport(); }} className="p-1 rounded hover:bg-black/10" title="Export" aria-label="Export">
+                        <button onClick={(e) => { e.stopPropagation(); onExport(); }} className="p-1 rounded hover:bg-black/10" title={t('appearance.icons_editor_export', 'Export')} aria-label={t('appearance.icons_editor_export', 'Export')}>
                             <Download className="w-3 h-3" />
                         </button>
                     )}
                     {onDelete && (
-                        <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 rounded hover:bg-red-500/20" title="Delete" aria-label="Delete">
+                        <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 rounded hover:bg-red-500/20" title={t('appearance.icons_editor_delete', 'Delete')} aria-label={t('appearance.icons_editor_delete', 'Delete')}>
                             <Trash2 className="w-3 h-3" />
                         </button>
                     )}
@@ -302,24 +303,25 @@ const PackListItem = ({ label, sub, isActive, isSelected, onSelect, onActivate, 
 // the backdrop close them (the backdrop did before), Tab stays inside, focus
 // returns to the button that opened them.
 const AddPackModal = ({ onAdd, onClose }) => {
+    const { t } = useTranslation();
     const [name, setName] = useState('');
     const titleId = useId();
     return (
         <Modal open onClose={onClose} variant="bare" size="sm" labelledBy={titleId}>
             <div className="w-full rounded-2xl border shadow-2xl p-5" data-surface="opaque" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                <h3 id={titleId} className="text-lg font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>New Icon Pack</h3>
+                <h3 id={titleId} className="text-lg font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>{t('appearance.icons_editor_new_icon_pack', 'New Icon Pack')}</h3>
                 <input
                     autoFocus
                     value={name}
                     onChange={e => setName(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') onAdd(name); }}
-                    placeholder="Pack name"
+                    placeholder={t('appearance.icons_editor_pack_name', 'Pack name')}
                     className="w-full px-3 py-2 rounded-lg text-sm border bg-[var(--bg-primary)] mb-4"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }}
                 />
                 <div className="flex gap-2">
                     <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                        Cancel
+                        {t('appearance.icons_editor_cancel', 'Cancel')}
                     </button>
                     <button
                         onClick={() => onAdd(name)}
@@ -327,7 +329,7 @@ const AddPackModal = ({ onAdd, onClose }) => {
                         className="flex-1 py-2 rounded-lg text-sm font-medium disabled:opacity-40"
                         style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #ffffff)' }}
                     >
-                        Create
+                        {t('appearance.icons_editor_create', 'Create')}
                     </button>
                 </div>
             </div>
@@ -336,6 +338,7 @@ const AddPackModal = ({ onAdd, onClose }) => {
 };
 
 const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPackChanged }) => {
+    const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const [pack, setPack] = useState(null);
     const [search, setSearch] = useState('');
@@ -430,7 +433,7 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
     };
 
     if (!pack) {
-        return <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>Loading pack...</div>;
+        return <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>{t('appearance.icons_editor_loading_pack', 'Loading pack...')}</div>;
     }
 
     return (
@@ -438,10 +441,10 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
             <div className="px-4 py-3 border-b flex items-center justify-between flex-wrap gap-3 shrink-0" style={{ borderColor: 'var(--border-default)' }}>
                 <div className="min-w-0">
                     <h3 className="font-semibold text-base truncate" style={{ color: 'var(--text-primary)' }}>
-                        Editing "{pack.name}"
+                        {t('appearance.icons_editor_editing_name', 'Editing "{name}"', { name: pack.name })}
                     </h3>
                     <p className="text-xs mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
-                        <span>Click any icon to customise it.</span>
+                        <span>{t('appearance.icons_editor_click_any_icon_to_customise_it', 'Click any icon to customise it.')}</span>
                         {isActive && (
                             <span
                                 className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase"
@@ -450,7 +453,7 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
                                     color: 'var(--accent-primary)',
                                 }}
                             >
-                                Active Preview
+                                {t('appearance.icons_editor_active_preview', 'Active Preview')}
                             </span>
                         )}
                     </p>
@@ -462,17 +465,17 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
                         className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5 transition-opacity"
                         style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)' }}
                     >
-                        AI Generate All
+                        {t('appearance.icons_editor_ai_generate_all', 'AI Generate All')}
                     </button>
                     <button onClick={onExport} className="px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                        <Download className="w-3.5 h-3.5" /> Export
+                        <Download className="w-3.5 h-3.5" /> {t('appearance.icons_editor_export', 'Export')}
                     </button>
                     <button
                         onClick={handleResetAll}
                         className="px-3 py-1.5 rounded-lg text-xs font-medium border hover:text-[var(--danger,#ef4444)]"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
                     >
-                        Reset All
+                        {t('appearance.icons_editor_reset_all', 'Reset All')}
                     </button>
                     {!isActive && (
                         <button
@@ -480,7 +483,7 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
                             className="px-3 py-1.5 rounded-lg text-xs font-medium"
                             style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #ffffff)' }}
                         >
-                            Set as Active
+                            {t('appearance.icons_editor_set_as_active_2', 'Set as Active')}
                         </button>
                     )}
                 </div>
@@ -498,7 +501,7 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
                     <input
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Search icons..."
+                        placeholder={t('appearance.icons_editor_search_icons', 'Search icons...')}
                         className="pl-7 pr-3 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)]"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none', width: 180 }}
                     />
@@ -509,9 +512,9 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
                     className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)]"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }}
                 >
-                    <option value="all">All ({stats.total})</option>
-                    <option value="customized">Customized ({stats.customized})</option>
-                    <option value="missing">Default ({stats.total - stats.customized})</option>
+                    <option value="all">{t('appearance.icons_editor_all_total', 'All ({total})', { total: stats.total })}</option>
+                    <option value="customized">{t('appearance.icons_editor_customized_customized', 'Customized ({customized})', { customized: stats.customized })}</option>
+                    <option value="missing">{t('appearance.icons_editor_default', 'Default (')}{stats.total - stats.customized})</option>
                 </select>
             </div>
 
@@ -588,6 +591,7 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
 };
 
 const IconCell = React.memo(({ entry, custom, onClick }) => {
+    const { t } = useTranslation();
     const display = custom
         ? (custom.type === 'image'
             ? <img src={custom.value} alt={entry.label} className="w-6 h-6 object-contain" />
@@ -608,7 +612,7 @@ const IconCell = React.memo(({ entry, custom, onClick }) => {
             <span className="text-[10px] text-center w-full truncate px-1" style={{ color: custom ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                 {entry.label}
             </span>
-            {custom && <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent-primary)' }} title="Customized" />}
+            {custom && <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent-primary)' }} title={t('appearance.icons_editor_customized', 'Customized')} />}
             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-lg transition-opacity">
                 <div className="p-1 rounded-full shadow-sm" style={{ background: 'var(--bg-card)' }}>
                     <Pencil className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />
@@ -619,6 +623,7 @@ const IconCell = React.memo(({ entry, custom, onClick }) => {
 });
 
 const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }) => {
+    const { t } = useTranslation();
     const [style, setStyle] = useState('flat 2D vector icon, single subject centred, solid background, no text, app-icon style');
     const [model, setModel] = useState(nanoSettings?.image?.model || 'gemini-3.1-flash-image-preview');
     const [overwrite, setOverwrite] = useState(false);
@@ -629,13 +634,13 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }) => {
         <Modal open onClose={onClose} variant="bare" size="md" labelledBy={titleId}>
             <div className="w-full rounded-2xl border shadow-2xl p-5" data-surface="opaque" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                 <div className="flex items-center gap-2 mb-3">
-                    <h3 id={titleId} className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>AI Generate All Emojis</h3>
+                    <h3 id={titleId} className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('appearance.icons_editor_ai_generate_all_emojis', 'AI Generate All Emojis')}</h3>
                 </div>
                 <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                    Generates an icon for every entry in the catalog using Nano Banana. Existing custom overrides are kept unless you tick overwrite.
+                    {t('appearance.icons_editor_generates_an_icon_for_every_entry_in', 'Generates an icon for every entry in the catalog using Nano Banana. Existing custom overrides are kept unless you tick overwrite.')}
                 </p>
 
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Style prompt</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('appearance.icons_editor_style_prompt', 'Style prompt')}</label>
                 <textarea
                     value={style}
                     onChange={e => setStyle(e.target.value)}
@@ -644,26 +649,26 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }) => {
                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }}
                 />
 
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Model</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('appearance.icons_editor_model', 'Model')}</label>
                 <select
                     value={model}
                     onChange={e => setModel(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border text-xs mb-3"
                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }}
                 >
-                    <option value="gemini-3.1-flash-image-preview">Nano Banana 2 — Flash (fast)</option>
-                    <option value="gemini-3-pro-image-preview">Nano Banana Pro — Quality</option>
-                    <option value="gemini-2.5-flash-image">Nano Banana — 2.5 Flash</option>
+                    <option value="gemini-3.1-flash-image-preview">{t('appearance.icons_editor_nano_banana_2_flash_fast', 'Nano Banana 2 — Flash (fast)')}</option>
+                    <option value="gemini-3-pro-image-preview">{t('appearance.icons_editor_nano_banana_pro_quality', 'Nano Banana Pro — Quality')}</option>
+                    <option value="gemini-2.5-flash-image">{t('appearance.icons_editor_nano_banana_2_5_flash', 'Nano Banana — 2.5 Flash')}</option>
                 </select>
 
                 <label className="flex items-center gap-2 text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
                     <input type="checkbox" checked={overwrite} onChange={e => setOverwrite(e.target.checked)} />
-                    Overwrite existing customised icons ({customCount} currently set)
+                    {t('appearance.icons_editor_overwrite_existing_customised_icons', 'Overwrite existing customised icons ({custom_count} currently set)', { custom_count: customCount })}
                 </label>
 
                 <div className="flex gap-2">
                     <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                        Cancel
+                        {t('appearance.icons_editor_cancel', 'Cancel')}
                     </button>
                     <button
                         onClick={() => onRun({ style, model, overwrite })}

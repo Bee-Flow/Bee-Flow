@@ -43,13 +43,13 @@ export function ApprovalEditor(editor: StepEditorProps) {
     const disabled = ctx.disabled;
     return (
         <>
-            <Band editor={editor} sectionKey="config" title={t('mobile.flow.approval.what', 'What to approve')} defaultOpen>
-                <Note>{t('mobile.flow.approval.intro', 'The run stops here until someone decides. Approve and it continues from the next step. Reject and the run ends — nothing after this step runs.')}</Note>
+            <Band editor={editor} sectionKey="config" title={t('automations.approval_editors.what_to_approve', 'What to approve')} defaultOpen>
+                <Note>{t('automations.approval_editors.the_run_stops_here_until_someone', 'The run stops here until someone decides. Approve and it continues from the next step. Reject and the run ends — nothing after this step runs.')}</Note>
                 <BindingInput
                     mode="template"
                     multiline
                     required
-                    label={t('mobile.flow.approval.question', 'Question for the approver')}
+                    label={t('automations.approval_editors.question_for_the_approver', 'Question for the approver')}
                     hint={t('mobile.flow.approval.question_hint', 'What the person is asked. Tap Insert data to pull in values from earlier steps, so they can see what they are deciding on.')}
                     value={typeof draft.prompt === 'string' ? draft.prompt : ''}
                     onChange={(v) => set('prompt', String(v))}
@@ -60,8 +60,8 @@ export function ApprovalEditor(editor: StepEditorProps) {
                 <BindingInput
                     mode="template"
                     multiline
-                    label={t('mobile.flow.approval.more_info', 'More information')}
-                    hint={t('mobile.flow.approval.more_info_hint', 'Shown under the question. Give the approver the context they need — amounts, recipients, the drafted text. Markdown works.')}
+                    label={t('automations.approval_editors.more_information', 'More information')}
+                    hint={t('automations.approval_editors.shown_under_the_question_give_the', 'Shown under the question. Give the approver the context they need — amounts, recipients, the drafted text. Markdown works.')}
                     value={typeof draft.details === 'string' ? draft.details : ''}
                     onChange={(v) => set('details', String(v))}
                     prompt={readableExample(DETAILS_EXAMPLE)}
@@ -70,7 +70,7 @@ export function ApprovalEditor(editor: StepEditorProps) {
                 <ApprovalDocuments rows={listOf(draft.attachments)} onChange={(next) => set('attachments', next)} disabled={disabled} />
                 <ApprovalQuestions questions={listOf<Question>(draft.approvalFields)} onChange={(next) => set('approvalFields', next)} disabled={disabled} />
             </Band>
-            <Band editor={editor} sectionKey="waiting" title={t('mobile.flow.approval.deadline', 'Deadline')} defaultOpen>
+            <Band editor={editor} sectionKey="waiting" title={t('automations.approval_editors.deadline', 'Deadline')} defaultOpen>
                 {chained ? (
                     <ApprovalStages
                         stages={stages}

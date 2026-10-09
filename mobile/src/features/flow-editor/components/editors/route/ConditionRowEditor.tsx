@@ -59,9 +59,9 @@ function TypedValue({ type, value, onChange, onVariable, disabled }: { type: Val
             <SelectField
                 value={v === true ? 'true' : v === false ? 'false' : ''}
                 options={[
-                    { value: '', label: t('mobile.flow.condition.choose', '(choose)') },
-                    { value: 'true', label: t('mobile.flow.condition.true', 'true') },
-                    { value: 'false', label: t('mobile.flow.condition.false', 'false') },
+                    { value: '', label: t('automations.route_editors.choose', '(choose)') },
+                    { value: 'true', label: t('automations.route_editors.true', 'true') },
+                    { value: 'false', label: t('automations.route_editors.false', 'false') },
                 ]}
                 onChange={(s) => onChange({ kind: 'literal', value: s === '' ? '' : s === 'true' })}
                 disabled={disabled}
@@ -73,7 +73,7 @@ function TypedValue({ type, value, onChange, onVariable, disabled }: { type: Val
     return (
         <View style={styles.typed}>
             <View style={styles.grow}>{control}</View>
-            <IconButton icon={<Icon name="Braces" size={16} color={styles.glyph.color} />} onPress={onVariable} disabled={disabled} accessibilityLabel={t('mobile.flow.condition.use_variable', 'Use a variable instead')} />
+            <IconButton icon={<Icon name="Braces" size={16} color={styles.glyph.color} />} onPress={onVariable} disabled={disabled} accessibilityLabel={t('automations.condition_builder_value_slot.use_a_variable_instead', 'Use a variable instead')} />
         </View>
     );
 }
@@ -118,7 +118,7 @@ function ValueSlot({ row, type, onChange, disabled, testID }: { row: ConditionRo
     if (type === 'fileType' && isLiteral(row.value)) return <FileTypeValue value={row.value} onChange={onChange} disabled={disabled} testID={testID} />;
     const typed = !variable && isLiteral(row.value) && (type === 'number' || type === 'boolean' || type === 'date');
     if (typed) return <TypedValue type={type} value={row.value} onChange={onChange} onVariable={() => setVariable(true)} disabled={disabled} />;
-    return <BindingInput value={row.value} onChange={onChange} label={t('automations.builder.value_word', 'Value')} prompt={t('mobile.flow.condition.value', 'value')} disabled={disabled} />;
+    return <BindingInput value={row.value} onChange={onChange} label={t('automations.builder.value_word', 'Value')} prompt={t('automations.condition_builder_value_slot.value', 'value')} disabled={disabled} />;
 }
 
 /** The row's field: picked by name, or written as an expression (never in Simple mode). */
@@ -131,7 +131,7 @@ function FieldSlot(props: ConditionRowEditorProps & { rawField: boolean; onRawFi
         const pick = (path: string) => (props.onPickField ? props.onPickField({ kind: 'ref', path }) : onChange({ field: { kind: 'ref', path } }));
         return (
             <FieldPicker
-                label={t('mobile.flow.condition.field', 'Field')}
+                label={t('automations.collection_editors.field', 'Field')}
                 path={f?.kind === 'ref' ? f.path : ''}
                 onPick={pick}
                 options={fieldOptions}
@@ -154,7 +154,7 @@ function FieldSlot(props: ConditionRowEditorProps & { rawField: boolean; onRawFi
                 onRawField();
                 onChange({ field: fieldFromExpression(String(text ?? '')) });
             }}
-            label={t('mobile.flow.condition.field', 'Field')}
+            label={t('automations.collection_editors.field', 'Field')}
             prompt={t('mobile.flow.condition.field_prompt', 'Tap Insert data to pick a field')}
             disabled={disabled}
             testID={`${id}-expr`}
@@ -186,7 +186,7 @@ export function ConditionRowEditor(props: ConditionRowEditorProps) {
             />
             {isUnaryOp(row.op) ? (
                 <Text variant="caption" tone="tertiary">
-                    {t('mobile.flow.condition.no_value', 'no value needed')}
+                    {t('automations.condition_builder_row.no_value_needed', 'no value needed')}
                 </Text>
             ) : (
                 <ValueSlot row={row} type={type} onChange={(value) => onChange({ value })} disabled={disabled} testID={`${id}-value`} />
@@ -196,7 +196,7 @@ export function ConditionRowEditor(props: ConditionRowEditorProps) {
                     {hint}
                 </Text>
             ))}
-            {onRemove ? <Button size="sm" variant="ghost" iconName="Trash2" label={t('mobile.flow.condition.remove', 'Remove condition')} onPress={onRemove} disabled={disabled} /> : null}
+            {onRemove ? <Button size="sm" variant="ghost" iconName="Trash2" label={t('automations.condition_builder_row.remove_condition', 'Remove condition')} onPress={onRemove} disabled={disabled} /> : null}
         </View>
     );
 }

@@ -488,6 +488,12 @@ const NL_TRANSLATIONS = Object.freeze({
     'compliance.dsr_discovery_not_scanned_co_edited_documents': 'Samen bewerkte projectdocumenten en notitieboeken worden niet doorzocht op deze persoon.',
     'compliance.dsr_found_team_chat': '{n} teamchatberichten die de betrokkene schreef',
     'compliance.dsr_found_projects': '{n} projectitems',
+    'documents.deck.house_style_placeholder': 'huisstijl',
+    'documents.deck.sample_margin': 'Marge stabiel',
+    'documents.deck.sample_revenue': 'Omzet 12% hoger',
+    'documents.workspace.font_mono': 'Vaste breedte',
+    'documents.workspace.font_sans': 'Schreefloos',
+    'documents.workspace.font_serif': 'Schreef',
 });
 
 /**

@@ -57,12 +57,12 @@ export function DiagnoseSheet({ visible, onClose, result, loading, error }: { vi
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
-        <Sheet visible={visible} onClose={onClose} title={t('mobile.flow.diagnose.title', 'Trigger diagnose')}>
+        <Sheet visible={visible} onClose={onClose} title={t('automations.trigger_diagnose_panel.trigger_diagnose', 'Trigger diagnose')}>
             {loading ? (
                 <View style={styles.loading}>
                     <Spinner />
                     <Text variant="caption" tone="secondary">
-                        {t('mobile.flow.diagnose.probing', 'Probing the trigger pipeline…')}
+                        {t('automations.trigger_diagnose_panel.probing_the_trigger_pipeline', 'Probing the trigger pipeline…')}
                     </Text>
                 </View>
             ) : null}

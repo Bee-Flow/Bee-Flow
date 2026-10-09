@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from '../../hooks/useTranslation';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -86,6 +87,7 @@ const PreContext = React.createContext(false);
 
 const COLLAPSE_HEIGHT = 200; // px
 const CollapsibleCodeBlock = ({ className, children, ...props }) => {
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
     const [needsCollapse, setNeedsCollapse] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -223,7 +225,7 @@ const CollapsibleCodeBlock = ({ className, children, ...props }) => {
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            Copied
+                            {t('common.copied_short', 'Copied')}
                         </>
                     ) : (
                         <>
@@ -231,7 +233,7 @@ const CollapsibleCodeBlock = ({ className, children, ...props }) => {
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                                 <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                             </svg>
-                            Copy
+                            {t('common.copy', 'Copy')}
                         </>
                     )}
                 </button>

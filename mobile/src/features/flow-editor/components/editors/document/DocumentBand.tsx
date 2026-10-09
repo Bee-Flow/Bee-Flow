@@ -54,10 +54,10 @@ export function DocumentBand({ editor, look }: { editor: StepEditorProps; look: 
     const empty = look.templates?.length === 0 && !look.templatesFailed && look.term.trim() === '';
     return (
         <Band editor={editor} sectionKey="document" title={t('automations.versions.setting.documentId', 'Document')} defaultOpen hasContent={id !== ''}>
-            <SearchField value={look.term} onChangeText={look.onTerm} placeholder={t('mobile.flow.fill.search', 'Search all templates…')} />
+            <SearchField value={look.term} onChangeText={look.onTerm} placeholder={t('automations.document_fields.search_all_templates', 'Search all templates…')} />
             <SelectField
-                label={t('mobile.flow.fill.which', 'Which document')}
-                hint={t('mobile.flow.fill.which_hint', 'One of the documents you designed in Studio → Documents. Design it there first if it is not in the list.')}
+                label={t('automations.document_fields.which_document', 'Which document')}
+                hint={t('automations.document_fields.one_of_the_documents_you_designed', 'One of the documents you designed in Studio → Documents. Design it there first if it is not in the list.')}
                 required
                 value={id}
                 options={documentOptions(editor, look, (d) => say(t, placeholderCount(d)))}

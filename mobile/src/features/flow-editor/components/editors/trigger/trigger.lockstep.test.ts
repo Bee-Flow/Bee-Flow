@@ -15,6 +15,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { CLIENT_DICT, readDict } from '@/core/i18n/dictionaryText';
+
 import { LEGACY_PROVIDER_LABELS } from './appEvent';
 import { FILTER_FORMS } from './filters';
 import { kindTitle, TRIGGER_KINDS } from './kinds';
@@ -23,8 +25,14 @@ import type { Msg } from '../declarative/spec';
 
 const BUILDER = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder');
 const read = (rel: string) => fs.readFileSync(path.join(BUILDER, rel), 'utf8');
+const client = readDict(CLIENT_DICT);
 const editors = read('flow/settings/triggerEditors.jsx');
 const filters = read('flow/settings/triggerFilters.jsx');
+
+/** `t('key', 'English')` as the web writes it: the pair, with the English unescaped. */
+const T = String.raw`t\(\s*'([a-z0-9_.]+)'\s*,\s*'((?:[^'\\]|\\.)*)'`;
+const unescape = (s: string) => s.replace(/\\(['"\\])/g, '$1');
+const pair = (m: RegExpMatchArray | null, at = 1): [string, string] | undefined => (m ? [m[at] as string, unescape(m[at + 1] as string)] : undefined);
 
 /** One function's source: from `function Name(` to the next top-level declaration. */
 function fnSource(src: string, name: string): string {
@@ -37,15 +45,15 @@ function fnSource(src: string, name: string): string {
 
 describe('the trigger kinds', () => {
     const select = editors.slice(editors.indexOf('<select'), editors.indexOf('</select>'));
-    const options = [...select.matchAll(/(\{!isSecondaryTrigger && )?<option value="([a-z_]+)">([^<]+)<\/option>/g)].map((m) => ({
+    const options = [...select.matchAll(new RegExp(`(\\{!isSecondaryTrigger && )?<option value="([a-z_]+)">\\{${T}\\)\\}</option>`, 'g'))].map((m) => ({
         value: m[2],
-        label: (m[3] as string).trim(),
+        label: pair(m, 3),
         primaryOnly: !!m[1],
     }));
 
-    it('offers the web’s kinds, in its order, with its words', () => {
+    it('offers the web’s kinds, in its order, with its words and its keys', () => {
         expect(options.length).toBe(7);
-        expect(TRIGGER_KINDS.map((k) => ({ value: k.value, label: k.label[1], primaryOnly: k.primaryOnly }))).toEqual(options);
+        expect(TRIGGER_KINDS.map((k) => ({ value: k.value, label: [k.label[0], k.label[1]], primaryOnly: k.primaryOnly }))).toEqual(options);
     });
 
     it('names each kind’s band as the web does', () => {
@@ -94,13 +102,22 @@ describe('the app-event filters', () => {
         '%s labels its rows and titles itself in the web’s words',
         (key, fn) => {
             const src = fnSource(filters, fn);
-            const webLabels = [...src.matchAll(/<FormRow label="([^"]+)"/g)].map((m) => m[1]);
+            const webLabels = [...src.matchAll(new RegExp(`<FormRow label=\\{${T}\\)\\}`, 'g'))].map((m) => pair(m) as [string, string]);
             const form = FILTER_FORMS[key];
-            const labels = (form?.fields ?? []).filter((f) => f.kind !== 'note').map((f) => (f.label as Msg)[1]);
-            // The phone's list replaces the web's "(comma-separated)" box.
-            expect(labels).toEqual(webLabels.map((l) => (l as string).replace(' (comma-separated)', '')));
-            const title = /FilterShell title="([^"]+)"/.exec(src)?.[1] ?? /sectionHeaderClass\(\)}>([^<]+)</.exec(src)?.[1];
-            expect(form?.title[1]).toBe(title);
+            const labels = (form?.fields ?? []).filter((f) => f.kind !== 'note').map((f) => [(f.label as Msg)[0], (f.label as Msg)[1]]);
+            // The phone's list replaces the web's "(comma-separated)" box, so that row says its
+            // words without the suffix: under the web's own key for the shorter words when the
+            // dictionary has one (the box's aria-label), else under a mobile.* key. Every other
+            // row is the web's key, word for word.
+            const asPhone = ([k, english]: [string, string]) => {
+                const plain = english.replace(' (comma-separated)', '');
+                return plain === english ? [k, english] : ['<its own key>', plain];
+            };
+            // A row that dropped the suffix: its key is a mobile.* key or one whose dictionary words are the shorter ones.
+            const keyed = labels.map(([k, english], i) => (webLabels[i]?.[1].includes(' (comma-separated)') && (k?.startsWith('mobile.') || client.get(k as string) === english) ? '<its own key>' : k));
+            expect(labels.map(([, english], i) => [keyed[i], english])).toEqual(webLabels.map(asPhone));
+            const title = pair(new RegExp(`FilterShell title=\\{${T}\\)\\}`).exec(src) ?? new RegExp(`sectionHeaderClass\\(\\)\\}>\\{${T}\\)\\}<`).exec(src));
+            expect([form?.title[0], form?.title[1]]).toEqual(title);
         },
     );
 });

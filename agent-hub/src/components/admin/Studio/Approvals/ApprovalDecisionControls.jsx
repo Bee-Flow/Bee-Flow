@@ -141,6 +141,7 @@ export default function ApprovalDecisionControls({ fields = null, onDecide, disa
  * approver is answering a couple of questions, not filling in a form product.
  */
 function ApprovalFieldInput({ field, value, onChange }) {
+    const { t } = useTranslation();
     const cls = denseInputClass('w-full');
     switch (field.type) {
         case 'textarea':
@@ -154,7 +155,7 @@ function ApprovalFieldInput({ field, value, onChange }) {
         case 'select':
             return (
                 <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} className={cls}>
-                    <option value="">— choose —</option>
+                    <option value="">{t('studio_misc.approvals.decision.choose', '— choose —')}</option>
                     {(field.options || []).map(o => (
                         <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o.value ?? o}</option>
                     ))}

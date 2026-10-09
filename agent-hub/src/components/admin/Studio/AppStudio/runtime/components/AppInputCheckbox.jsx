@@ -1,3 +1,4 @@
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useInputChange from '../useInputChange';
@@ -12,7 +13,8 @@ import useInputChange from '../useInputChange';
  * never explained on screen.
  */
 export default function AppInputCheckbox({ node }) {
-    const { name, label = 'Yes', defaultChecked = false, required = false } = node.props || {};
+    const { t } = useTranslation();
+    const { name, label = t('studio_apps_runtime.inputs.yes', 'Yes'), defaultChecked = false, required = false } = node.props || {};
     const { value, setValue, error } = useFormField({
         name, defaultValue: !!defaultChecked, required, label,
     });

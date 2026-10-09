@@ -909,7 +909,7 @@ const LoginPage = ({ onLogin }) => {
                     <div className="text-center mb-8">
                         <div className="w-36 h-36 mx-auto mb-5 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)] flex items-center justify-center bg-[var(--bg-primary)]">
                             {deploymentMode === 'self-hosted' && orgLogo
-                                ? <img src={orgLogo} alt="Organization" className="max-w-[80%] max-h-[80%] object-contain" />
+                                ? <img src={orgLogo} alt={t('login.org_logo_alt', 'Organization')} className="max-w-[80%] max-h-[80%] object-contain" />
                                 : <img src={beeFlowLogo} alt="Bee Flow" className="w-full h-full object-cover" />}
                         </div>
                         <p className="text-sm text-[var(--text-secondary)] mt-1">

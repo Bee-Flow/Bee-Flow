@@ -53,7 +53,7 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                             rows={4}
                             onFocusField={onFocusField}
                             previewSample={previewSample}
-                            placeholder="Summarise this email and decide if it needs an urgent reply."
+                            placeholder={t('automations.ai_step_editors.summarise_this_email_and_decide_if', 'Summarise this email and decide if it needs an urgent reply.')}
                             listAs="json"
                         />
                     </FormRow>
@@ -70,12 +70,12 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
     hid a configured section in Simple mode with no way to reach it. Same
     reasoning for `knowledgeBaseIds` (BFSF-410): a configured grounding list
     must show as configured in Simple mode too, not just Advanced. */}
-            <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced" forceOpen={errorSections.has('advanced') || !!tierProblem} hasContent={!!draft.systemPrompt || (!!draft.modelTier && draft.modelTier !== 'auto') || !!draft.model || !!draft.forEach || retryIsSet(draft) || !!draft.allowTools || (draft.tools?.length > 0) || (draft.knowledgeBaseIds?.length > 0) || !!draft.useMemory}>
-                <FormRow label="System prompt" hint="Optional. Overrides the default 'You are a step inside a no-code automation' framing — set a tone, role, or domain.">
-                    <textarea rows={3} value={draft.systemPrompt || ''} onChange={(e) => set('systemPrompt', e.target.value)} placeholder="(default: a generic automation-step system prompt)" className={textareaClass()} />
+            <AccordionSection stepType="ai_step" sectionKey="advanced" title={t('automations.ai_step_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced') || !!tierProblem} hasContent={!!draft.systemPrompt || (!!draft.modelTier && draft.modelTier !== 'auto') || !!draft.model || !!draft.forEach || retryIsSet(draft) || !!draft.allowTools || (draft.tools?.length > 0) || (draft.knowledgeBaseIds?.length > 0) || !!draft.useMemory}>
+                <FormRow label={t('automations.ai_step_editors.system_prompt', 'System prompt')} hint={t('automations.ai_step_editors.optional_overrides_the_default_you_are', 'Optional. Overrides the default \'You are a step inside a no-code automation\' framing — set a tone, role, or domain.')}>
+                    <textarea rows={3} value={draft.systemPrompt || ''} onChange={(e) => set('systemPrompt', e.target.value)} placeholder={t('automations.ai_step_editors.default_a_generic_automation_step_system', '(default: a generic automation-step system prompt)')} className={textareaClass()} />
                 </FormRow>
                 <ProblemRing problem={tierProblem}>
-                <FormRow label="Model tier">
+                <FormRow label={t('automations.ai_step_editors.model_tier', 'Model tier')}>
                     {(() => {
                         // Only list the tiers the chat actually offers — same
                         // configured-tier filter the ModelTierSelector uses, so
@@ -99,23 +99,23 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                     })()}
                 </FormRow>
                 </ProblemRing>
-                <FormRow label="Tools" hint="Choose which tools the AI may call during this step. Only tools you have permission for are listed. Leave empty for a pure text answer.">
+                <FormRow label={t('automations.ai_step_editors.tools', 'Tools')} hint={t('automations.ai_step_editors.choose_which_tools_the_ai_may', 'Choose which tools the AI may call during this step. Only tools you have permission for are listed. Leave empty for a pure text answer.')}>
                     <AiStepToolSelect draft={draft} set={set} catalog={catalog} />
                 </FormRow>
-                <FormRow label="Personal memory" hint="Ground this step in what you have told the assistant about yourself, your preferences and your contacts. The memories closest to this step's prompt are added before the model answers. Good for steps that write in your name or decide on your behalf.">
+                <FormRow label={t('automations.ai_step_editors.personal_memory', 'Personal memory')} hint={t('automations.ai_step_editors.ground_this_step_in_what_you', 'Ground this step in what you have told the assistant about yourself, your preferences and your contacts. The memories closest to this step\'s prompt are added before the model answers. Good for steps that write in your name or decide on your behalf.')}>
                     <label className="inline-flex items-center gap-2 text-sm text-[var(--text-primary)]">
                         <input
                             type="checkbox"
                             checked={draft.useMemory === true}
                             onChange={(e) => set('useMemory', e.target.checked)}
                         />
-                        Use my personal memory
+                        {t('automations.ai_step_editors.use_my_personal_memory', 'Use my personal memory')}
                     </label>
                 </FormRow>
-                <FormRow label="Knowledge bases" hint="Ground this step in these knowledge bases — searched once before the step runs and added to the prompt as reference material. Good for steerable content like a brand style guide or a positioning doc.">
+                <FormRow label={t('automations.ai_step_editors.knowledge_bases', 'Knowledge bases')} hint={t('automations.ai_step_editors.ground_this_step_in_these_knowledge', 'Ground this step in these knowledge bases — searched once before the step runs and added to the prompt as reference material. Good for steerable content like a brand style guide or a positioning doc.')}>
                     <AiStepKbSelect draft={draft} set={set} />
                 </FormRow>
-                <FormRow label="Iteration" hint="Off by default: the AI runs once and sees all mapped data at once. Turn on to run the prompt once per item of an upstream list (then reference {{loop.item…}}).">
+                <FormRow label={t('automations.ai_step_editors.iteration', 'Iteration')} hint={t('automations.ai_step_editors.off_by_default_the_ai_runs', 'Off by default: the AI runs once and sees all mapped data at once. Turn on to run the prompt once per item of an upstream list (then reference {{loop.item…}}).')}>
                     <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 </FormRow>
                 <RetrySection draft={draft} set={set} />
@@ -124,9 +124,9 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                 carries only its hint — repeating the name read as two
                 headings stacked on each other. */}
             <AccordionSection
-                stepType="ai_step" sectionKey="inputs" title="Inputs"
+                stepType="ai_step" sectionKey="inputs" title={t('automations.ai_step_editors.inputs', 'Inputs')}
                 defaultOpen={hasInputs} forceOpen={errorSections.has('inputs')}
-                meta={<FieldHint title="About Inputs">Named values the AI can read alongside the prompt. Mention a name in the prompt to use it.</FieldHint>}
+                meta={<FieldHint title={t('automations.ai_step_editors.about_inputs', 'About Inputs')}>{t('automations.ai_step_editors.named_values_the_ai_can_read', 'Named values the AI can read alongside the prompt. Mention a name in the prompt to use it.')}</FieldHint>}
             >
                 <ToolInputForm
                     inputs={draft.inputs || {}}
@@ -137,10 +137,10 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                 />
             </AccordionSection>
             <AccordionSection
-                stepType="ai_step" sectionKey="output" title="Structured output"
+                stepType="ai_step" sectionKey="output" title={t('automations.ai_step_editors.structured_output', 'Structured output')}
                 defaultOpen={hasOutput} forceOpen={errorSections.has('output')}
                 hasContent={!!(draft.outputFields?.length)}
-                meta={<FieldHint title="About Structured output">Define the JSON fields the AI should return. Downstream steps can then reference them by name. Leave empty for free-form text.</FieldHint>}
+                meta={<FieldHint title={t('automations.ai_step_editors.about_structured_output', 'About Structured output')}>{t('automations.ai_step_editors.define_the_json_fields_the_ai', 'Define the JSON fields the AI should return. Downstream steps can then reference them by name. Leave empty for free-form text.')}</FieldHint>}
             >
                 <StructuredOutputFields
                     fields={draft.outputFields || []}
@@ -161,6 +161,7 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
  * only convert it to an explicit list once the user opens the picker.
  */
 function AiStepToolSelect({ draft, set, catalog }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
 
     // Apps the user can actually use (catalog is already permission-gated
@@ -211,7 +212,7 @@ function AiStepToolSelect({ draft, set, catalog }) {
                 <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-default)] px-2.5 py-1 text-xs">
                         <Sparkles size={12} className="text-[var(--accent)]" />
-                        All available tools
+                        {t('automations.ai_step_editors.all_available_tools', 'All available tools')}
                     </span>
                 </div>
                 <button
@@ -219,7 +220,7 @@ function AiStepToolSelect({ draft, set, catalog }) {
                     onClick={chooseSpecific}
                     className="text-xs font-medium text-[var(--accent)] hover:underline"
                 >
-                    Choose specific tools…
+                    {t('automations.ai_step_editors.choose_specific_tools', 'Choose specific tools…')}
                 </button>
                 {open && (
                     <ToolPicker
@@ -242,13 +243,13 @@ function AiStepToolSelect({ draft, set, catalog }) {
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-1.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
             >
                 <Plus size={14} />
-                Browse tools
+                {t('automations.ai_step_editors.browse_tools', 'Browse tools')}
             </button>
             {selected.length === 0 ? (
                 <p className="text-xs text-[var(--text-tertiary)]">
-                    No tools — the AI step answers from its prompt only.
-                    {' '}You can also drag an app from the ribbon onto this step&apos;s
-                    {' '}<span className="whitespace-nowrap">Tools</span> port on the canvas.
+                    {t('automations.ai_step_editors.no_tools_the_ai_step_answers', 'No tools — the AI step answers from its prompt only.')}
+                    {' '}{t('automations.ai_step_editors.you_can_also_drag_an_app', 'You can also drag an app from the ribbon onto this step\'s')}
+                    {' '}<span className="whitespace-nowrap">{t('automations.ai_step_editors.tools', 'Tools')}</span> {t('automations.ai_step_editors.port_on_the_canvas', 'port on the canvas.')}
                 </p>
             ) : (
                 <div className="flex flex-wrap gap-1.5">
@@ -304,6 +305,7 @@ function AiStepToolSelect({ draft, set, catalog }) {
  * column.
  */
 function AiStepKbSelect({ draft, set }) {
+    const { t } = useTranslation();
     const [kbs, setKbs] = useState(null); // null = loading
     useEffect(() => {
         let alive = true;
@@ -325,9 +327,9 @@ function AiStepKbSelect({ draft, set }) {
         set('knowledgeBaseIds', [...next]);
     };
 
-    if (kbs === null) return <p className="text-xs text-[var(--text-tertiary)]">Loading…</p>;
+    if (kbs === null) return <p className="text-xs text-[var(--text-tertiary)]">{t('automations.ai_step_editors.loading', 'Loading…')}</p>;
     if (kbs.length === 0) {
-        return <p className="text-xs text-[var(--text-tertiary)]">No knowledge bases yet — add one under Knowledge Bases first.</p>;
+        return <p className="text-xs text-[var(--text-tertiary)]">{t('automations.ai_step_editors.no_knowledge_bases_yet_add_one', 'No knowledge bases yet — add one under Knowledge Bases first.')}</p>;
     }
     return (
         <div className="flex flex-col gap-1.5 max-h-40 overflow-auto">

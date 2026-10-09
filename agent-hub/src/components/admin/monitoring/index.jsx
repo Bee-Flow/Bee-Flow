@@ -28,7 +28,7 @@ const RANGES = [
     { id: '7d', labelKey: 'admin.mon_7d' },
     { id: '30d', labelKey: 'admin.mon_30d' },
     { id: 'all', labelKey: 'admin.mon_all_time' },
-    { id: 'custom', label: 'Custom' },
+    { id: 'custom', labelKey: 'admin_monitoring.range_custom', label: 'Custom' },
 ];
 
 function rangeToFilter(rangeId, customStart, customEnd) {
@@ -93,11 +93,11 @@ function toLocalInput(date) {
 }
 
 const PAGES = [
-    { id: 'overview', labelKey: 'admin.mon_overview', icon: BarChart3, description: 'Dashboard & cost overview' },
-    { id: 'usage', labelKey: 'admin.mon_usage_explorer', icon: Activity, description: 'Explore models, agents, users & conversations' },
-    { id: 'feedback', labelKey: 'admin.mon_feedback', icon: ThumbsUp, description: 'User feedback on AI responses' },
-    { id: 'activity', labelKey: 'admin.mon_activity', icon: Clock, description: 'Recent API call log' },
-    { id: 'terminations', labelKey: 'admin.mon_terminations', icon: AlertTriangle, description: 'Voortijdig beëindigde taken & errors' },
+    { id: 'overview', labelKey: 'admin.mon_overview', icon: BarChart3, descriptionKey: 'admin_monitoring.desc_overview', description: 'Dashboard & cost overview' },
+    { id: 'usage', labelKey: 'admin.mon_usage_explorer', icon: Activity, descriptionKey: 'admin_monitoring.desc_usage', description: 'Explore models, agents, users & conversations' },
+    { id: 'feedback', labelKey: 'admin.mon_feedback', icon: ThumbsUp, descriptionKey: 'admin_monitoring.desc_feedback', description: 'User feedback on AI responses' },
+    { id: 'activity', labelKey: 'admin.mon_activity', icon: Clock, descriptionKey: 'admin_monitoring.desc_activity', description: 'Recent API call log' },
+    { id: 'terminations', labelKey: 'admin.mon_terminations', icon: AlertTriangle, descriptionKey: 'admin_monitoring.desc_terminations', description: 'Prematurely ended tasks & errors' },
 ];
 
 async function fetchJson(url) {
@@ -243,7 +243,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }) {
             <div style={styles.sidebar}>
                 <div style={styles.sidebarHeader}>
                     <Activity style={{ width: 20, height: 20, color: COLORS.primary }} />
-                    <span style={styles.sidebarTitle}>AI Monitor</span>
+                    <span style={styles.sidebarTitle}>{t('admin_monitoring.title', 'AI Monitor')}</span>
                 </div>
 
                 <nav style={styles.nav}>
@@ -282,7 +282,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }) {
                             {t(PAGES.find(p => p.id === page)?.labelKey)}
                         </h2>
                         <p style={styles.pageDesc}>
-                            {PAGES.find(p => p.id === page)?.description}
+                            {t(PAGES.find(p => p.id === page)?.descriptionKey, PAGES.find(p => p.id === page)?.description)}
                         </p>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -298,14 +298,14 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }) {
                                     }}
                                 >
                                     {r.id === 'custom' && <Calendar style={{ width: 12, height: 12 }} />}
-                                    {r.labelKey ? t(r.labelKey) : r.label}
+                                    {r.labelKey ? t(r.labelKey, r.label) : r.label}
                                 </button>
                             ))}
                         </div>
                         {range === 'custom' && (
                             <div style={styles.datePickerRow}>
                                 <div style={styles.datePickerField}>
-                                    <span style={styles.datePickerLabel}>From</span>
+                                    <span style={styles.datePickerLabel}>{t('admin_monitoring.from', 'From')}</span>
                                     <input
                                         type="datetime-local"
                                         value={customStart}
@@ -316,7 +316,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }) {
                                 </div>
                                 <span style={{ color: 'var(--text-muted, #666)', fontSize: '12px', padding: '0 2px' }}>→</span>
                                 <div style={styles.datePickerField}>
-                                    <span style={styles.datePickerLabel}>To</span>
+                                    <span style={styles.datePickerLabel}>{t('admin_monitoring.to', 'To')}</span>
                                     <input
                                         type="datetime-local"
                                         value={customEnd}
@@ -327,7 +327,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }) {
                                 </div>
                             </div>
                         )}
-                        <button onClick={fetchData} style={styles.refreshBtn} title="Refresh">
+                        <button onClick={fetchData} style={styles.refreshBtn} title={t('admin_monitoring.refresh', 'Refresh')}>
                             <RefreshCw style={{ width: 15, height: 15, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
                         </button>
                     </div>

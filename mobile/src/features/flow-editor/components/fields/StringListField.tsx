@@ -57,8 +57,8 @@ export function StringListField({
                     </View>
                     {disabled ? null : (
                         <View style={styles.tools}>
-                            <IconButton icon={<Icon name="ChevronUp" size={16} color={glyph} />} accessibilityLabel={t('mobile.flow.list.up', 'Move up')} disabled={i === 0} onPress={() => onChange(moveRow(rows, i, -1))} />
-                            <IconButton icon={<Icon name="ChevronDown" size={16} color={glyph} />} accessibilityLabel={t('mobile.flow.list.down', 'Move down')} disabled={i === rows.length - 1} onPress={() => onChange(moveRow(rows, i, 1))} />
+                            <IconButton icon={<Icon name="ChevronUp" size={16} color={glyph} />} accessibilityLabel={t('automations.loop_body_editor.move_up', 'Move up')} disabled={i === 0} onPress={() => onChange(moveRow(rows, i, -1))} />
+                            <IconButton icon={<Icon name="ChevronDown" size={16} color={glyph} />} accessibilityLabel={t('automations.loop_body_editor.move_down', 'Move down')} disabled={i === rows.length - 1} onPress={() => onChange(moveRow(rows, i, 1))} />
                             <IconButton icon={<Icon name="Trash2" size={16} color={glyph} />} accessibilityLabel={t('common.remove', 'Remove')} onPress={() => onChange(rows.filter((_, k) => k !== i))} />
                         </View>
                     )}

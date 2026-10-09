@@ -223,7 +223,7 @@ export default function StudioRail({
                 label() where a built-in carries an i18n key. This file used
                 to answer that question itself, which is how the rail and the
                 flyout could end up calling one section two things. */}
-            <nav aria-label="Studio navigation" data-testid="studio-rail-nav" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-2 flex flex-col gap-0.5">
+            <nav aria-label={t('studio_misc.rail.nav', 'Studio navigation')} data-testid="studio-rail-nav" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-2 flex flex-col gap-0.5">
                 {showStart && (
                     <RailRow
                         label={t(STUDIO_START.labelKey, STUDIO_START.labelFallback)}

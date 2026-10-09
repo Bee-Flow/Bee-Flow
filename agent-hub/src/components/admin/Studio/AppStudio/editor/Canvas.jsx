@@ -57,6 +57,7 @@ const EMPTY_ACTION_STATE = {};
 const STARTER_CHIPS = ['heading', 'text', 'button'];
 
 function SectionDropZone({ sectionId, container, onAddStarter, disabled }) {
+    const { t } = useTranslation();
     const { setNodeRef, isOver } = useDroppable({
         id: sectionDroppableId(sectionId),
         data: { type: 'section', sectionId },
@@ -76,7 +77,7 @@ function SectionDropZone({ sectionId, container, onAddStarter, disabled }) {
         >
             <span className="flex items-center gap-2 text-center">
                 <MousePointerClick className="w-4 h-4 shrink-0" aria-hidden="true" />
-                Drag a component from the strip above — or just click one to drop it here
+                {t('studio_apps_edit.canvas.drop_hint', 'Drag a component from the strip above — or just click one to drop it here')}
             </span>
             <span className="flex flex-wrap items-center justify-center gap-1.5">
                 {STARTER_CHIPS.filter((type) => APP_COMPONENT_TYPES[type]).map((type) => (
@@ -88,7 +89,7 @@ function SectionDropZone({ sectionId, container, onAddStarter, disabled }) {
                         className="rounded-full border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                     >
-                        Add {APP_COMPONENT_TYPES[type].label.toLowerCase()}
+                        {t('studio_apps_edit.canvas.add_type', 'Add {type}', { type: APP_COMPONENT_TYPES[type].label.toLowerCase() })}
                     </button>
                 ))}
             </span>
@@ -114,6 +115,7 @@ function CanvasBody({
         definition, screenId, selectedNodeId, selectedNodeIds, mode, streamLock, recentlyAddedIds,
         previewRole, previewUser, dispatch,
     } = useAppEditor();
+    const { t } = useTranslation();
 
     const screen = findScreen(definition, screenId) || definition?.screens?.[0] || null;
 
@@ -140,9 +142,9 @@ function CanvasBody({
         if (action.kind === 'navigate' && action.screenId) {
             dispatch({ type: 'set_screen', screenId: action.screenId });
         } else if (action.kind === 'run_automation') {
-            toast.info('Runs automation when the app is used');
+            toast.info(t('studio_apps_edit.canvas.runs_automation', 'Runs automation when the app is used'));
         }
-    }, [dispatch]);
+    }, [dispatch, t]);
 
     // Stable wrapper component so the renderer never remounts cells.
     const NodeWrapper = useMemo(() => {
@@ -196,7 +198,6 @@ function CanvasBody({
     // until the person touches the surface.
     const cue = useBuildCue();
     const reducedMotion = useReducedMotion();
-    const { t } = useTranslation();
     const follow = useBuildFollow({
         surfaceRef,
         reveal: cue?.reveal || null,

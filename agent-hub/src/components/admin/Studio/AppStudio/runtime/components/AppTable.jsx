@@ -1,4 +1,5 @@
 import CellValue, { ALIGN_CLASS, alignFor } from './cellValue';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
@@ -13,8 +14,9 @@ import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits
  */
 
 export default function AppTable({ node }) {
+    const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
-    const { columns = [], emptyText = 'Nothing to show yet.', rowLimit = 25 } = node.props || {};
+    const { columns = [], emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'), rowLimit = 25 } = node.props || {};
     const { value: source, isLoading, error, errorCode } = useStickyBinding(
         resolveBinding(node.props?.source, { actionState, dataState, scope }),
     );
@@ -105,7 +107,7 @@ export default function AppTable({ node }) {
                     style={{ color: 'var(--text-secondary)' }}
                     data-app-table-truncated={hidden}
                 >
-                    Showing {rows.length} of {allRows.length.toLocaleString()}.
+                    {t('studio_apps_runtime.table.showing', 'Showing {shown} of {total}.', { shown: rows.length, total: allRows.length.toLocaleString() })}
                 </p>
             ) : null}
         </div>

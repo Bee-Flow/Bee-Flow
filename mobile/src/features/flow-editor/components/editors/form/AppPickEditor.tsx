@@ -31,7 +31,7 @@ export function AppPickEditor({ field, index, sources, onChange, disabled = fals
     const unknown = !!source && sources.length > 0 && !chosen;
     const withText = field.withText !== false;
     const options = [
-        { value: '', label: t('mobile.flow.form.choose_app', 'Choose an app…') },
+        { value: '', label: t('automations.form_builder_fields.choose_an_app', 'Choose an app…') },
         ...sources.map((s) => ({
             value: s.id,
             label: s.available ? s.label : t('mobile.flow.form.app_not_connected', '{app} — not connected for you', { app: s.label }),
@@ -40,7 +40,7 @@ export function AppPickEditor({ field, index, sources, onChange, disabled = fals
     return (
         <>
             <SelectField
-                label={t('mobile.flow.form.app_to_pick', 'App to pick from')}
+                label={t('automations.form_builder_fields.app_to_pick_from', 'App to pick from')}
                 value={source}
                 options={options}
                 onChange={(next) => onChange({ source: next })}
@@ -66,12 +66,12 @@ export function AppPickEditor({ field, index, sources, onChange, disabled = fals
             <ToggleField
                 value={!!field.multiple}
                 onChange={(on) => onChange(on ? { multiple: true } : { multiple: false, maxItems: undefined })}
-                label={t('mobile.flow.form.allow_many', 'Allow more than one')}
+                label={t('automations.form_builder_fields.allow_more_than_one', 'Allow more than one')}
                 disabled={disabled}
             />
             {field.multiple ? (
                 <NumberField
-                    label={t('mobile.flow.form.max_records', 'Max')}
+                    label={t('automations.form_builder_fields.max', 'Max')}
                     value={field.maxItems ?? 5}
                     min={1}
                     max={10}
@@ -83,7 +83,7 @@ export function AppPickEditor({ field, index, sources, onChange, disabled = fals
             <ToggleField
                 value={withText}
                 onChange={(on) => onChange({ withText: on })}
-                label={t('mobile.flow.form.bring_content', 'Bring the content into the automation')}
+                label={t('automations.form_builder_fields.bring_the_content_into_the_automation', 'Bring the content into the automation')}
                 description={
                     withText
                         ? t(
@@ -91,7 +91,7 @@ export function AppPickEditor({ field, index, sources, onChange, disabled = fals
                               'The record is read when the form is submitted, so a later step can use {name}.text — the transcript, the email body, the note.',
                               { name: field.name },
                           )
-                        : t('mobile.flow.form.bring_content_off', 'Only a reference travels: the title and the id. Nothing is read from the app.')
+                        : t('automations.form_builder_fields.only_a_reference_travels_the_title', 'Only a reference travels: the title and the id. Nothing is read from the app.')
                 }
                 disabled={disabled}
             />

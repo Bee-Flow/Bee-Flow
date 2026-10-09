@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { inputClass, FormRow } from './formPrimitives';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { HTTP_AUTH_TYPES, HTTP_AUTH_TYPE_BY_ID, httpKindName, splitHttpAuthValues, missingHttpAuthFields } from '../../../../../utils/httpCredentialTypes';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * Credential picker for the http_request step's Authentication section.
@@ -15,6 +16,7 @@ import { HTTP_AUTH_TYPES, HTTP_AUTH_TYPE_BY_ID, httpKindName, splitHttpAuthValue
  * id, or null when "None" is picked.
  */
 export default function HttpAuthPicker({ value, onChange }) {
+    const { t } = useTranslation();
     const api = useAutomationApi();
     const [conns, setConns] = useState(null); // null = loading; array = loaded
     const [error, setError] = useState(null);
@@ -37,15 +39,15 @@ export default function HttpAuthPicker({ value, onChange }) {
                     type="text"
                     value={value || ''}
                     onChange={(e) => onChange(e.target.value || null)}
-                    placeholder="credential id"
+                    placeholder={t('automations.http_auth_picker.credential_id', 'credential id')}
                     className={inputClass() + ' font-mono'}
                 />
-                <div className="text-xs text-[var(--text-tertiary)] mt-1">Could not load your credentials — paste a credential id instead.</div>
+                <div className="text-xs text-[var(--text-tertiary)] mt-1">{t('automations.http_auth_picker.could_not_load_your_credentials_paste', 'Could not load your credentials — paste a credential id instead.')}</div>
             </div>
         );
     }
     if (conns === null) {
-        return <div className="text-xs text-[var(--text-tertiary)] py-1.5">Loading credentials…</div>;
+        return <div className="text-xs text-[var(--text-tertiary)] py-1.5">{t('automations.http_auth_picker.loading_credentials', 'Loading credentials…')}</div>;
     }
 
     const known = !value || conns.some(c => c.id === value);
@@ -57,9 +59,9 @@ export default function HttpAuthPicker({ value, onChange }) {
                 onChange={(e) => onChange(e.target.value || null)}
                 className={inputClass()}
             >
-                <option value="">None (no credential)</option>
+                <option value="">{t('automations.http_auth_picker.none_no_credential', 'None (no credential)')}</option>
                 {!known && (
-                    <option value={value} disabled>Unknown credential (not accessible) — pick another</option>
+                    <option value={value} disabled>{t('automations.http_auth_picker.unknown_credential_not_accessible_pick_another', 'Unknown credential (not accessible) — pick another')}</option>
                 )}
                 {conns.map(c => (
                     <option key={c.id} value={c.id}>
@@ -68,8 +70,8 @@ export default function HttpAuthPicker({ value, onChange }) {
                 ))}
             </select>
             <div className="text-xs text-[var(--text-tertiary)]">
-                The secret is stored encrypted in your organization's vault and injected at run time.
-                It is never shown here and never stored in the flow.
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */}
+                {t('automations.http_auth_picker.the_secret_is_stored_encrypted_in', 'The secret is stored encrypted in your organization\'s vault and injected at run time. It is never shown here and never stored in the flow.')}
             </div>
             {adding ? (
                 <InlineCredentialForm
@@ -88,7 +90,7 @@ export default function HttpAuthPicker({ value, onChange }) {
                         onClick={() => setAdding(true)}
                         className="flex items-center gap-1 text-xs text-[var(--accent)] hover:opacity-80 transition"
                     >
-                        <Plus size={12} /> Add credential
+                        <Plus size={12} /> {t('automations.http_auth_picker.add_credential', 'Add credential')}
                     </button>
                     <a
                         href="/app/settings/integrations"
@@ -96,7 +98,7 @@ export default function HttpAuthPicker({ value, onChange }) {
                         rel="noreferrer"
                         className="text-xs text-[var(--text-tertiary)] underline hover:text-[var(--text-secondary)] transition"
                     >
-                        Manage credentials in Settings
+                        {t('automations.http_auth_picker.manage_credentials_in_settings', 'Manage credentials in Settings')}
                     </a>
                 </div>
             )}
@@ -105,6 +107,7 @@ export default function HttpAuthPicker({ value, onChange }) {
 }
 
 function InlineCredentialForm({ api, onCreated, onCancel }) {
+    const { t } = useTranslation();
     const [label, setLabel] = useState('');
     const [typeId, setTypeId] = useState(HTTP_AUTH_TYPES[0].id);
     const [values, setValues] = useState({});
@@ -133,7 +136,7 @@ function InlineCredentialForm({ api, onCreated, onCancel }) {
 
     return (
         <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 space-y-3">
-            <FormRow label="Name">
+            <FormRow label={t('automations.http_auth_picker.name', 'Name')}>
                 <input
                     type="text"
                     value={label}
@@ -142,7 +145,7 @@ function InlineCredentialForm({ api, onCreated, onCancel }) {
                     className={inputClass()}
                 />
             </FormRow>
-            <FormRow label="Auth type">
+            <FormRow label={t('automations.http_auth_picker.auth_type', 'Auth type')}>
                 <select
                     value={typeId}
                     onChange={(e) => { setTypeId(e.target.value); setValues({}); }}
@@ -170,14 +173,14 @@ function InlineCredentialForm({ api, onCreated, onCancel }) {
                     disabled={busy}
                     className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded bg-[var(--accent)] text-white disabled:opacity-40"
                 >
-                    {busy ? <Loader2 size={12} className="animate-spin" /> : null} Save credential
+                    {busy ? <Loader2 size={12} className="animate-spin" /> : null} {t('automations.http_auth_picker.save_credential', 'Save credential')}
                 </button>
                 <button
                     type="button"
                     onClick={onCancel}
                     className="text-xs px-2.5 py-1.5 rounded border border-[var(--border-default)] text-[var(--text-tertiary)]"
                 >
-                    Cancel
+                    {t('automations.http_auth_picker.cancel', 'Cancel')}
                 </button>
             </div>
         </div>

@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { stepMeta } from './stepCatalog';
 import {
     columnOptions, isDanglingRef, labelForRef, REFERENCE_EMPTY_HINTS,
-    REFERENCE_FIELDS, REFERENCE_PLACEHOLDERS,
+    REFERENCE_FIELDS, REFERENCE_PLACEHOLDERS, referenceText,
 } from './stepReferences';
 import useStepReferences from './useStepReferences';
 import DocumentFillFields from './DocumentFillFields';
+import useTranslation from '../../../../../hooks/useTranslation';
 import FormField from '../../../../shared/FormField';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import Toggle from '../../../../shared/Toggle';
@@ -81,16 +82,16 @@ const IGNORED_FIELDS = new Set(['refresh.actionId']);
  * the builder knows the thing by.
  */
 const FIELD_LABELS = {
-    automationId: 'Automation',
-    modalId: 'Dialog',
-    connectorId: 'Connection',
-    datasetId: 'Saved view',
-    fileName: 'File name',
-    attachToRecordId: 'Attach to record',
-    attachToFieldKey: 'Attach to file column',
-    threadKey: 'Conversation',
-    poPattern: 'Purchase-order filename pattern',
-    documentMode: 'Read documents as',
+    automationId: ['studio_apps_edit.step_settings.field_automation', 'Automation'],
+    modalId: ['studio_apps_edit.step_settings.field_dialog', 'Dialog'],
+    connectorId: ['studio_apps_edit.step_settings.field_connection', 'Connection'],
+    datasetId: ['studio_apps_edit.step_settings.field_saved_view', 'Saved view'],
+    fileName: ['studio_apps_edit.step_settings.field_file_name', 'File name'],
+    attachToRecordId: ['studio_apps_edit.step_settings.field_attach_record', 'Attach to record'],
+    attachToFieldKey: ['studio_apps_edit.step_settings.field_attach_column', 'Attach to file column'],
+    threadKey: ['studio_apps_edit.step_settings.field_conversation', 'Conversation'],
+    poPattern: ['studio_apps_edit.step_settings.field_po_pattern', 'Purchase-order filename pattern'],
+    documentMode: ['studio_apps_edit.step_settings.field_document_mode', 'Read documents as'],
 };
 
 /** 'screenId' → 'Screen', 'maxIterations' → 'Max iterations'. */
@@ -104,40 +105,41 @@ function humanize(key) {
 }
 
 const HINTS = {
-    resultVar: 'The variable this step’s result lands in — formulas read it as vars.<name>.',
-    itemVar: 'What each row is called inside the loop.',
-    indexVar: 'What the position in the list is called (0, 1, 2…).',
-    maxIterations: 'A ceiling, so a long list cannot run away.',
-    expr: 'Worked out each time the step runs.',
-    tableId: 'Which of this app’s tables the step works on.',
-    datasetId: 'Reload just this saved view instead of everything.',
-    rows: 'The rows that become the file — usually a table, filtered to what you want exported.',
-    slides: 'The outline a “Write with AI” step wrote (“# ” title, “## ” per slide, “- ” bullets), or rows with a title and content column — one slide per row.',
-    houseStyle: 'Your organisation’s colours, font, logo and footer. Switch off only for a deck in someone else’s branding.',
-    columns: 'The column layout: rows of { name, from, value, order } — bind a table so admins edit the format as data.',
-    attachToRecordId: 'The record the file hangs off. Without it, only the app owner can download the result.',
-    attachToFieldKey: 'The file column on that record — set both or neither.',
-    threadKey: 'Which conversation’s mailed attachments to file.',
-    poPattern: 'Filenames matching this (regex) count as the purchase order.',
-    documentMode: '“Images” forces page pictures — use it for technical drawings, whose text layer alone misleads.',
-    promptContext: 'Live rows added to the prompt — the purchase-order lines, the open record, the vocabulary table.',
+    resultVar: ['studio_apps_edit.step_settings.hint_result_var', 'The variable this step’s result lands in — formulas read it as vars.<name>.'],
+    itemVar: ['studio_apps_edit.step_settings.hint_item_var', 'What each row is called inside the loop.'],
+    indexVar: ['studio_apps_edit.step_settings.hint_index_var', 'What the position in the list is called (0, 1, 2…).'],
+    maxIterations: ['studio_apps_edit.step_settings.hint_max_iterations', 'A ceiling, so a long list cannot run away.'],
+    expr: ['studio_apps_edit.step_settings.hint_expr', 'Worked out each time the step runs.'],
+    tableId: ['studio_apps_edit.step_settings.hint_table_id', 'Which of this app’s tables the step works on.'],
+    datasetId: ['studio_apps_edit.step_settings.hint_dataset_id', 'Reload just this saved view instead of everything.'],
+    rows: ['studio_apps_edit.step_settings.hint_rows', 'The rows that become the file — usually a table, filtered to what you want exported.'],
+    slides: ['studio_apps_edit.step_settings.hint_slides', 'The outline a “Write with AI” step wrote (“# ” title, “## ” per slide, “- ” bullets), or rows with a title and content column — one slide per row.'],
+    houseStyle: ['studio_apps_edit.step_settings.hint_house_style', 'Your organisation’s colours, font, logo and footer. Switch off only for a deck in someone else’s branding.'],
+    columns: ['studio_apps_edit.step_settings.hint_columns', 'The column layout: rows of { name, from, value, order } — bind a table so admins edit the format as data.'],
+    attachToRecordId: ['studio_apps_edit.step_settings.hint_attach_record', 'The record the file hangs off. Without it, only the app owner can download the result.'],
+    attachToFieldKey: ['studio_apps_edit.step_settings.hint_attach_column', 'The file column on that record — set both or neither.'],
+    threadKey: ['studio_apps_edit.step_settings.hint_thread_key', 'Which conversation’s mailed attachments to file.'],
+    poPattern: ['studio_apps_edit.step_settings.hint_po_pattern', 'Filenames matching this (regex) count as the purchase order.'],
+    documentMode: ['studio_apps_edit.step_settings.hint_document_mode', '“Images” forces page pictures — use it for technical drawings, whose text layer alone misleads.'],
+    promptContext: ['studio_apps_edit.step_settings.hint_prompt_context', 'Live rows added to the prompt — the purchase-order lines, the open record, the vocabulary table.'],
 };
 
 export default function StepSettings({ step, onChange, definition, node = null, screens = [], disabled = false, formFields = [] }) {
+    const { t } = useTranslation();
     const stepSpecs = useCatalogStepSpecs();
     const references = useStepReferences(definition);
     if (!step) return null;
-    const meta = stepMeta(step.kind);
+    const meta = stepMeta(step.kind, t);
     const spec = stepSpecs ? stepSpecs[step.kind] : null;
     const set = (patch) => onChange({ ...step, ...patch });
 
     if (!stepSpecs) {
-        return <p className="text-xs text-[var(--text-secondary)]">Loading the step settings…</p>;
+        return <p className="text-xs text-[var(--text-secondary)]">{t('studio_apps_edit.step_settings.loading', 'Loading the step settings…')}</p>;
     }
     if (!spec) {
         return (
             <p className="text-xs text-[var(--text-secondary)]">
-                This step type has no editor yet — it was written by the AI builder.
+                {t('studio_apps_edit.step_settings.no_editor', 'This step type has no editor yet — it was written by the AI builder.')}
             </p>
         );
     }
@@ -178,8 +180,7 @@ export default function StepSettings({ step, onChange, definition, node = null, 
 
             {meta.server ? (
                 <p className="text-[11px] text-[var(--text-secondary)]">
-                    Runs on the server, as the app’s owner — so it can reach data the person using
-                    the app cannot.
+                    {t('studio_apps_edit.step_settings.runs_on_server', 'Runs on the server, as the app’s owner — so it can reach data the person using the app cannot.')}
                 </p>
             ) : null}
         </div>
@@ -189,8 +190,11 @@ export default function StepSettings({ step, onChange, definition, node = null, 
 function StepField({
     fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled,
 }) {
-    const label = FIELD_LABELS[fieldKey] || humanize(fieldKey);
-    const hint = HINTS[fieldKey];
+    const { t } = useTranslation();
+    const labelEntry = FIELD_LABELS[fieldKey];
+    const label = labelEntry ? t(labelEntry[0], labelEntry[1]) : humanize(fieldKey);
+    const hintEntry = HINTS[fieldKey];
+    const hint = hintEntry ? t(hintEntry[0], hintEntry[1]) : undefined;
     const required = !!fs.required;
 
     // Every reference is a pick, never a typed id.
@@ -235,7 +239,7 @@ function StepField({
                         node={node}
                         ariaLabel={label}
                         expectsBoolean={fieldKey === 'expr'}
-                        placeholder="e.g. vars.status == 'open'"
+                        placeholder={t('studio_apps_edit.step_settings.formula_example', "e.g. vars.status == 'open'")}
                         disabled={disabled}
                     />
                 </FormField>
@@ -294,7 +298,7 @@ function StepField({
                 </FormField>
             );
         case 'switchCases':
-            return <SwitchCasesField label="Cases" value={value} onChange={onChange} disabled={disabled} />;
+            return <SwitchCasesField label={t('studio_apps_edit.step_settings.cases', 'Cases')} value={value} onChange={onChange} disabled={disabled} />;
         case 'navParams':
         case 'recordValues':
         case 'inputMapping':
@@ -318,7 +322,7 @@ function StepField({
                     columns={fs.type !== 'recordValues'
                         ? []
                         : (step?.kind === 'fill_document'
-                            ? placeholderOptions(references.placeholdersFor?.(step?.documentId))
+                            ? placeholderOptions(references.placeholdersFor?.(step?.documentId), t)
                             : columnOptions(references.fieldsFor(step?.tableId)))}
                     required={required}
                     formFields={formFields}
@@ -335,7 +339,7 @@ function StepField({
                         className={INPUT_CLS}
                         value={value ?? ''}
                         onChange={(e) => onChange(e.target.value || (fs.nullable ? null : ''))}
-                        placeholder={required ? 'Required' : undefined}
+                        placeholder={required ? t('studio_apps_edit.step_settings.required', 'Required') : undefined}
                         maxLength={fs.maxLen}
                         disabled={disabled}
                         spellCheck={false}
@@ -351,14 +355,16 @@ function StepField({
  * `columns` takes. A list placeholder says so and names the fields each item
  * needs — that is the one binding with a rule (a whole array, never text).
  */
-function placeholderOptions(placeholders) {
+function placeholderOptions(placeholders, t) {
     return (Array.isArray(placeholders) ? placeholders : [])
         .filter((p) => p && typeof p.key === 'string')
         .map((p) => ({
             key: p.key,
             label: p.kind === 'list'
-                ? `${p.key} (list${p.fields?.length ? ` of ${p.fields.join(', ')}` : ''})`
-                : (p.kind === 'condition' ? `${p.key} (shown only if set)` : p.key),
+                ? (p.fields?.length
+                    ? t('studio_apps_edit.step_settings.placeholder_list_of', '{key} (list of {fields})', { key: p.key, fields: p.fields.join(', ') })
+                    : t('studio_apps_edit.step_settings.placeholder_list', '{key} (list)', { key: p.key }))
+                : (p.kind === 'condition' ? t('studio_apps_edit.step_settings.placeholder_condition', '{key} (shown only if set)', { key: p.key }) : p.key),
         }));
 }
 
@@ -371,6 +377,7 @@ function placeholderOptions(placeholders) {
  * the only evidence of what the step used to do.
  */
 function ReferenceField({ label, hint, kind, value, onChange, options, disabled }) {
+    const { t } = useTranslation();
     const dangling = isDanglingRef(options, value);
     const empty = options.length === 0;
 
@@ -384,18 +391,18 @@ function ReferenceField({ label, hint, kind, value, onChange, options, disabled 
                 aria-label={label}
                 aria-invalid={dangling ? 'true' : undefined}
             >
-                <option value="">{REFERENCE_PLACEHOLDERS[kind] || 'Pick one…'}</option>
+                <option value="">{referenceText(REFERENCE_PLACEHOLDERS[kind], t) || t('studio_apps_edit.step_settings.pick_one', 'Pick one…')}</option>
                 {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-                {dangling ? <option value={value}>{value} — missing</option> : null}
+                {dangling ? <option value={value}>{t('studio_apps_edit.step_settings.value_missing', '{value} — missing', { value })}</option> : null}
             </select>
             {dangling ? (
                 <span className="mt-1 flex items-center gap-1 text-[11px] text-[var(--error)]" data-ref-missing="true">
                     <AlertTriangle size={11} aria-hidden="true" />
-                    This no longer exists. Pick another one.
+                    {t('studio_apps_edit.step_settings.ref_missing', 'This no longer exists. Pick another one.')}
                 </span>
             ) : empty ? (
                 <span className="mt-1 block text-[11px] text-[var(--text-secondary)]">
-                    {REFERENCE_EMPTY_HINTS[kind]}
+                    {referenceText(REFERENCE_EMPTY_HINTS[kind], t)}
                 </span>
             ) : null}
         </FormField>
@@ -404,6 +411,7 @@ function ReferenceField({ label, hint, kind, value, onChange, options, disabled 
 
 /** The searchable automation picker, as a field. */
 function AutomationRefField({ label, hint, value, onChange, options, formFields, disabled }) {
+    const { t } = useTranslation();
     const [picking, setPicking] = useState(false);
     const name = value ? labelForRef(options, value) : '';
     const dangling = isDanglingRef(options, value);
@@ -421,14 +429,14 @@ function AutomationRefField({ label, hint, value, onChange, options, formFields,
             >
                 <Workflow className="w-3.5 h-3.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
                 <span className={`flex-1 min-w-0 truncate ${name ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                    {name || REFERENCE_PLACEHOLDERS.automation}
+                    {name || referenceText(REFERENCE_PLACEHOLDERS.automation, t)}
                 </span>
-                <span className="shrink-0 text-[11px] text-[var(--text-secondary)]">{value ? 'Change' : ''}</span>
+                <span className="shrink-0 text-[11px] text-[var(--text-secondary)]">{value ? t('studio_apps_edit.step_settings.change', 'Change') : ''}</span>
             </button>
             {dangling ? (
                 <span className="mt-1 flex items-center gap-1 text-[11px] text-[var(--error)]" data-ref-missing="true">
                     <AlertTriangle size={11} aria-hidden="true" />
-                    This automation no longer exists. Pick another one.
+                    {t('studio_apps_edit.step_settings.automation_missing', 'This automation no longer exists. Pick another one.')}
                 </span>
             ) : null}
             <AutomationPicker
@@ -454,6 +462,7 @@ function AutomationRefField({ label, hint, value, onChange, options, formFields,
  * kind nobody had chosen from a list that offered it.
  */
 function RowValueField({ shape, value, onChange, definition, node, formFields, disabled }) {
+    const { t } = useTranslation();
     if (shape === 'recordValues') {
         return (
             <BindingField
@@ -477,9 +486,9 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
                     onChange={(next) => onChange(next === 'formula'
                         ? { kind: 'formula', expr: '' }
                         : { kind: 'static', value: '' })}
-                    options={[{ value: 'static', label: 'A fixed value' }, { value: 'formula', label: 'Worked out' }]}
+                    options={[{ value: 'static', label: t('studio_apps_edit.step_settings.fixed_value_option', 'A fixed value') }, { value: 'formula', label: t('studio_apps_edit.step_settings.worked_out', 'Worked out') }]}
                     size="sm"
-                    ariaLabel="Where this value comes from"
+                    ariaLabel={t('studio_apps_edit.step_settings.value_source', 'Where this value comes from')}
                 />
                 {isFormula ? (
                     <ExpressionInput
@@ -488,7 +497,7 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
                         onChange={(expr) => onChange({ kind: 'formula', expr })}
                         definition={definition}
                         node={node}
-                        ariaLabel="Value formula"
+                        ariaLabel={t('studio_apps_edit.step_settings.value_formula', 'Value formula')}
                         disabled={disabled}
                     />
                 ) : (
@@ -498,7 +507,7 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
                         value={value?.value ?? ''}
                         onChange={(e) => onChange({ kind: 'static', value: e.target.value })}
                         disabled={disabled}
-                        aria-label="Fixed value"
+                        aria-label={t('studio_apps_edit.step_settings.fixed_value', 'Fixed value')}
                     />
                 )}
             </div>
@@ -514,9 +523,9 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
                 onChange={(next) => onChange(next === 'field'
                     ? { kind: 'field', name: formFields[0]?.name || '' }
                     : { kind: 'static', value: '' })}
-                options={[{ value: 'static', label: 'A fixed value' }, { value: 'field', label: 'From the form' }]}
+                options={[{ value: 'static', label: t('studio_apps_edit.step_settings.fixed_value_option', 'A fixed value') }, { value: 'field', label: t('studio_apps_edit.step_settings.from_form', 'From the form') }]}
                 size="sm"
-                ariaLabel="Where this value comes from"
+                ariaLabel={t('studio_apps_edit.step_settings.value_source', 'Where this value comes from')}
             />
             {isField ? (
                 <select
@@ -524,12 +533,12 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
                     value={value?.name || ''}
                     onChange={(e) => onChange({ kind: 'field', name: e.target.value })}
                     disabled={disabled}
-                    aria-label="Form field"
+                    aria-label={t('studio_apps_edit.step_settings.form_field', 'Form field')}
                 >
-                    <option value="">Pick a field…</option>
+                    <option value="">{t('studio_apps_edit.step_settings.pick_field', 'Pick a field…')}</option>
                     {formFields.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
                     {value?.name && !formFields.some((f) => f.name === value.name)
-                        ? <option value={value.name}>{value.name} — not on this form</option>
+                        ? <option value={value.name}>{t('studio_apps_edit.step_settings.not_on_form', '{name} — not on this form', { name: value.name })}</option>
                         : null}
                 </select>
             ) : (
@@ -539,7 +548,7 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
                     value={value?.value ?? ''}
                     onChange={(e) => onChange({ kind: 'static', value: e.target.value })}
                     disabled={disabled}
-                    aria-label="Fixed value"
+                    aria-label={t('studio_apps_edit.step_settings.fixed_value', 'Fixed value')}
                 />
             )}
         </div>
@@ -556,6 +565,7 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
  * can never match anything.
  */
 function SwitchCasesField({ label, value, onChange, disabled }) {
+    const { t } = useTranslation();
     const cases = Array.isArray(value) ? value : [];
     const commit = (next) => onChange(next);
 
@@ -563,8 +573,7 @@ function SwitchCasesField({ label, value, onChange, disabled }) {
         <div className="flex flex-col gap-2">
             <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
             <p className="text-[11px] text-[var(--text-secondary)]">
-                Each case runs when the value above equals what you type here. Anything that
-                matches nothing runs “Otherwise”.
+                {t('studio_apps_edit.step_settings.cases_help', 'Each case runs when the value above equals what you type here. Anything that matches nothing runs “Otherwise”.')}
             </p>
             {cases.map((c, i) => (
                 <div key={i} className="flex items-center gap-1.5">
@@ -573,19 +582,19 @@ function SwitchCasesField({ label, value, onChange, disabled }) {
                         className={INPUT_CLS}
                         value={c?.value ?? ''}
                         onChange={(e) => commit(cases.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}
-                        placeholder="e.g. paid"
+                        placeholder={t('studio_apps_edit.step_settings.case_example', 'e.g. paid')}
                         disabled={disabled}
                         spellCheck={false}
-                        aria-label={`Case ${i + 1} value`}
+                        aria-label={t('studio_apps_edit.step_settings.case_value', 'Case {n} value', { n: i + 1 })}
                     />
                     <button
                         type="button"
                         onClick={() => commit(cases.filter((_, j) => j !== i))}
                         disabled={disabled}
-                        aria-label={`Remove case ${i + 1}`}
+                        aria-label={t('studio_apps_edit.step_settings.remove_case', 'Remove case {n}', { n: i + 1 })}
                         className="shrink-0 px-2 py-1 text-[11px] rounded border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--error)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                     >
-                        Remove
+                        {t('studio_apps_edit.step_settings.remove', 'Remove')}
                     </button>
                 </div>
             ))}
@@ -595,7 +604,7 @@ function SwitchCasesField({ label, value, onChange, disabled }) {
                 disabled={disabled}
                 className="self-start px-2.5 py-1 text-[11px] font-medium rounded border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
             >
-                Add a case
+                {t('studio_apps_edit.step_settings.add_case', 'Add a case')}
             </button>
         </div>
     );
@@ -626,6 +635,7 @@ function SwitchCasesField({ label, value, onChange, disabled }) {
  * the schema accepts, so the app keeps saving while the step is incomplete.
  */
 function KeyedBindingsField({ label, shape, value, onChange, definition, node, columns = [], required = false, formFields = [], disabled }) {
+    const { t } = useTranslation();
     const stored = Object.entries(value && typeof value === 'object' ? value : {});
     // Rows the author has added or blanked but not yet named. Local, because
     // they cannot be represented in an object keyed by name — and held WITH
@@ -650,7 +660,7 @@ function KeyedBindingsField({ label, shape, value, onChange, definition, node, c
         commit(rows.map((r, j) => (j === i ? [name, r[1]] : r)));
     };
 
-    const namePlaceholder = shape === 'recordValues' ? 'column' : 'name';
+    const namePlaceholder = shape === 'recordValues' ? t('studio_apps_edit.step_settings.column_word', 'column') : t('studio_apps_edit.step_settings.name_word', 'name');
     const used = new Set(rows.map(([n]) => n));
     const nextColumn = columns.find((c) => !used.has(c.key))?.key || '';
 
@@ -658,7 +668,7 @@ function KeyedBindingsField({ label, shape, value, onChange, definition, node, c
         <div className="flex flex-col gap-2">
             <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
             {rows.length === 0 ? (
-                <p className="text-[11px] text-[var(--text-secondary)]">Nothing set.</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">{t('studio_apps_edit.step_settings.nothing_set', 'Nothing set.')}</p>
             ) : null}
             {rows.map(([name, binding], i) => (
                 <div key={i} className="rounded-md border border-[var(--border-subtle)] p-2 flex flex-col gap-1.5">
@@ -669,16 +679,16 @@ function KeyedBindingsField({ label, shape, value, onChange, definition, node, c
                                 value={name}
                                 onChange={(e) => setRowName(i, e.target.value)}
                                 disabled={disabled}
-                                aria-label={`${label} ${i + 1} name`}
+                                aria-label={t('studio_apps_edit.step_settings.row_name', '{label} {n} name', { label, n: i + 1 })}
                             >
-                                <option value="">Pick a column…</option>
+                                <option value="">{t('studio_apps_edit.step_settings.pick_column', 'Pick a column…')}</option>
                                 {columns.map((c) => (
                                     <option key={c.key} value={c.key} disabled={c.key !== name && used.has(c.key)}>
                                         {c.label}{c.required ? ' *' : ''}
                                     </option>
                                 ))}
                                 {name && !columns.some((c) => c.key === name)
-                                    ? <option value={name}>{name} — not a column</option>
+                                    ? <option value={name}>{t('studio_apps_edit.step_settings.not_a_column', '{name} — not a column', { name })}</option>
                                     : null}
                             </select>
                         ) : (
@@ -690,27 +700,29 @@ function KeyedBindingsField({ label, shape, value, onChange, definition, node, c
                                 placeholder={namePlaceholder}
                                 disabled={disabled}
                                 spellCheck={false}
-                                aria-label={`${label} ${i + 1} name`}
+                                aria-label={t('studio_apps_edit.step_settings.row_name', '{label} {n} name', { label, n: i + 1 })}
                             />
                         )}
                         <button
                             type="button"
                             onClick={() => commit(rows.filter((_, j) => j !== i))}
                             disabled={disabled}
-                            aria-label={`Remove ${label.toLowerCase()} ${i + 1}`}
+                            aria-label={t('studio_apps_edit.step_settings.remove_row', 'Remove {label} {n}', { label: label.toLowerCase(), n: i + 1 })}
                             className="shrink-0 px-2 py-1 text-[11px] rounded border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--error)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         >
-                            Remove
+                            {t('studio_apps_edit.step_settings.remove', 'Remove')}
                         </button>
                     </div>
                     {clash === i ? (
                         <span className="text-[11px] text-[var(--error)]" data-name-clash="true">
-                            That name is already used above. Pick another one.
+                            {t('studio_apps_edit.step_settings.name_clash', 'That name is already used above. Pick another one.')}
                         </span>
                     ) : null}
                     {!name ? (
                         <span className="text-[11px] text-[var(--text-tertiary)]">
-                            Give this a {namePlaceholder} — it is not saved until you do.
+                            {shape === 'recordValues'
+                                ? t('studio_apps_edit.step_settings.give_column', 'Give this a column — it is not saved until you do.')
+                                : t('studio_apps_edit.step_settings.give_name', 'Give this a name — it is not saved until you do.')}
                         </span>
                     ) : null}
                     <RowValueField
@@ -730,7 +742,7 @@ function KeyedBindingsField({ label, shape, value, onChange, definition, node, c
                 disabled={disabled}
                 className="self-start px-2.5 py-1 text-[11px] font-medium rounded border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
             >
-                Add one
+                {t('studio_apps_edit.step_settings.add_one', 'Add one')}
             </button>
         </div>
     );

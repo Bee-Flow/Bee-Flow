@@ -4,8 +4,10 @@ import React, { useId, useState, useRef } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import { toast } from '../shared/Toast';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, currentCustom, onApply, nanoBananaSettings }) {
+    const { t } = useTranslation();
     const [tab, setTab] = useState('emoji');
     const [prompt, setPrompt] = useState('');
     const [generating, setGenerating] = useState(false);
@@ -90,12 +92,12 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                 <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
                     <div>
                         <h2 id={titleId} className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                            <span>Change emoji:</span>
+                            <span>{t('common.icon_picker.title', 'Change emoji:')}</span>
                             {defaultEmoji && <span className="text-xl leading-none" aria-hidden>{defaultEmoji}</span>}
                             <span>{iconLabel || iconKey}</span>
                         </h2>
                         <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                            Pick an emoji, upload an image, or generate one with AI. Default: {defaultEmoji || iconKey}
+                            {t('common.icon_picker.subtitle', 'Pick an emoji, upload an image, or generate one with AI. Default: {default}', { default: defaultEmoji || iconKey })}
                         </p>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5">
@@ -105,13 +107,13 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
 
                 <div className="flex border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                     <button onClick={() => setTab('emoji')} className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2`} style={{ borderColor: tab === 'emoji' ? 'var(--accent-primary)' : 'transparent', color: tab === 'emoji' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-                        <span className="flex items-center justify-center gap-2"><Smile className="w-4 h-4"/> Emoji</span>
+                        <span className="flex items-center justify-center gap-2"><Smile className="w-4 h-4"/> {t('common.icon_picker.tab_emoji', 'Emoji')}</span>
                     </button>
                     <button onClick={() => setTab('image')} className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2`} style={{ borderColor: tab === 'image' ? 'var(--accent-primary)' : 'transparent', color: tab === 'image' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-                        <span className="flex items-center justify-center gap-2"><Upload className="w-4 h-4"/> Upload</span>
+                        <span className="flex items-center justify-center gap-2"><Upload className="w-4 h-4"/> {t('common.icon_picker.tab_upload', 'Upload')}</span>
                     </button>
                     <button onClick={() => setTab('nano')} className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2`} style={{ borderColor: tab === 'nano' ? '#f59e0b' : 'transparent', color: tab === 'nano' ? '#f59e0b' : 'var(--text-secondary)' }}>
-                        <span className="flex items-center justify-center gap-2">AI Gen</span>
+                        <span className="flex items-center justify-center gap-2">{t('common.icon_picker.tab_ai', 'AI Gen')}</span>
                     </button>
                 </div>
 
@@ -131,8 +133,8 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                                 style={{ borderColor: 'var(--border-subtle)' }}
                             >
                                 {uploading ? <Loader2 className="w-8 h-8 animate-spin mb-3" style={{ color: 'var(--accent-primary)' }} /> : <ImageIcon className="w-8 h-8 mb-3" style={{ color: 'var(--text-muted)' }} />}
-                                <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Click to upload</h3>
-                                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>PNG, JPG, WEBP (Max 2MB)</p>
+                                <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('common.icon_picker.click_upload', 'Click to upload')}</h3>
+                                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('common.icon_picker.upload_hint', 'PNG, JPG, WEBP (Max 2MB)')}</p>
                             </div>
                         </div>
                     )}
@@ -140,12 +142,12 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                     {tab === 'nano' && (
                         <div className="flex-1 flex flex-col">
                             <p className="text-sm mb-4 p-3 rounded-lg border flex items-start gap-2" style={{ background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.2)', color: 'var(--text-primary)' }}>
-                                🍌 <span><strong>Nano Banana:</strong> Describe the icon you want to generate. It will use your configured Nano Banana settings.</span>
+                                🍌 <span><strong>{t('common.icon_picker.nano_label', 'Nano Banana:')}</strong> {t('common.icon_picker.nano_hint', 'Describe the icon you want to generate. It will use your configured Nano Banana settings.')}</span>
                             </p>
                             <textarea
                                 value={prompt}
                                 onChange={e => setPrompt(e.target.value)}
-                                placeholder="A minimalist 3D icon of a glowing orb..."
+                                placeholder={t('common.icon_picker.prompt_placeholder', 'A minimalist 3D icon of a glowing orb...')}
                                 className="w-full p-3 rounded-xl border resize-none h-32 text-sm focus:outline-none focus:ring-1"
                                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)', outlineColor: '#f59e0b' }}
                             />
@@ -156,7 +158,7 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                                     className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg font-medium shadow-md shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
                                 >
                                     {generating && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    Generate Icon
+                                    {t('common.icon_picker.generate', 'Generate Icon')}
                                 </button>
                             </div>
                         </div>
@@ -169,7 +171,7 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                         disabled={!currentCustom}
                         className="text-sm text-red-500 px-4 py-2 rounded-lg font-medium transition-colors hover:bg-red-500 hover:bg-opacity-10 disabled:opacity-50 disabled:hover:bg-transparent"
                     >
-                        Reset to Default
+                        {t('common.icon_picker.reset', 'Reset to Default')}
                     </button>
                     {currentCustom && (
                         <div className="flex items-center gap-3 text-sm font-medium px-4 py-2 rounded-lg shadow-sm border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>

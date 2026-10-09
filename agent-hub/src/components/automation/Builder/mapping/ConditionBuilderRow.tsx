@@ -182,7 +182,7 @@ export default function ConditionBuilderRow(props: Props) {
                         type="button"
                         onClick={onRemove}
                         className="mt-1.5 p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
-                        title="Remove condition"
+                        title={t('automations.condition_builder_row.remove_condition', 'Remove condition')}
                     >
                         <Trash2 size={12} />
                     </button>
@@ -222,10 +222,11 @@ function RowField({ row, fieldOptions, fieldBase, simple, rawField, context, pla
 
 /** The right side: a file type, a topic, nothing (unary), or a typed value. */
 function RowValue({ row, type, previewSample, onFocusField, onReplace }: Props & { type: string }) {
+    const { t } = useTranslation();
     if (isTopicOp(row.op)) {
         return <TopicValueSlot value={row.value} threshold={row.threshold} onChange={(patch: TopicRowPatch) => onReplace({ ...row, ...patch } as RuleRow)} />;
     }
-    if (isUnaryOp(row.op)) return <div className="text-[10px] text-[var(--text-tertiary)] italic pt-1.5">no value needed</div>;
+    if (isUnaryOp(row.op)) return <div className="text-[10px] text-[var(--text-tertiary)] italic pt-1.5">{t('automations.condition_builder_row.no_value_needed', 'no value needed')}</div>;
     if (type === 'fileType') return <FileTypeSelect value={row.value} onChange={(value) => onReplace({ ...row, value })} />;
     return (
         <ConditionValueSlot

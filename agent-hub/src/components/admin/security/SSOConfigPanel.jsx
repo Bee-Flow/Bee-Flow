@@ -178,7 +178,7 @@ const SSOConfigPanel = () => {
             {/* Left Sidebar */}
             <div className="w-64 flex flex-col p-2 border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
                 <div className="p-4 mb-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">SSO Providers</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{t('admin_security.sso_providers_title', 'SSO Providers')}</h3>
                 </div>
                 <div className="space-y-1">
                     {navItems.map(item => (
@@ -201,13 +201,13 @@ const SSOConfigPanel = () => {
 
                 {/* Overall Status */}
                 <div className="mt-auto p-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
-                    <p className="text-xs text-muted mb-2">Configured providers</p>
+                    <p className="text-xs text-muted mb-2">{t('admin_security.sso_configured_providers', 'Configured providers')}</p>
                     <div className="flex gap-2 flex-wrap">
                         {Object.entries(providers).filter(([_, v]) => v.enabled).map(([key]) => (
                             <span key={key} className="px-2 py-1 rounded text-xs bg-green-500/10 text-green-400 capitalize">{key}</span>
                         ))}
                         {!Object.values(providers).some(p => p.enabled) && (
-                            <span className="text-xs text-muted">None</span>
+                            <span className="text-xs text-muted">{t('admin_security.sso_none', 'None')}</span>
                         )}
                     </div>
                 </div>
@@ -235,15 +235,15 @@ const SSOConfigPanel = () => {
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-primary">Nextcloud OAuth 2.0</h3>
-                                    <p className="text-sm text-muted">Allow users to sign in with their Nextcloud account</p>
+                                    <h3 className="text-lg font-semibold text-primary">{t('admin_security.sso_nc_title', 'Nextcloud OAuth 2.0')}</h3>
+                                    <p className="text-sm text-muted">{t('admin_security.sso_nc_desc', 'Allow users to sign in with their Nextcloud account')}</p>
                                 </div>
                                 {renderProviderStatus('nextcloud')}
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="lg:col-span-2">
-                                    <label className="block text-sm font-medium text-secondary mb-2">Nextcloud URL</label>
+                                    <label className="block text-sm font-medium text-secondary mb-2">{t('admin_security.sso_nc_url', 'Nextcloud URL')}</label>
                                     <input
                                         type="url"
                                         value={providers.nextcloud.url}
@@ -259,7 +259,7 @@ const SSOConfigPanel = () => {
                                         type="text"
                                         value={providers.nextcloud.clientId}
                                         onChange={(e) => updateProviderField('nextcloud', 'clientId', e.target.value)}
-                                        placeholder="OAuth Client ID"
+                                        placeholder={t('admin_security.sso_nc_client_id_ph', 'OAuth Client ID')}
                                         className="w-full px-4 py-2.5 rounded-lg text-sm font-mono"
                                         style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
                                     />
@@ -281,12 +281,12 @@ const SSOConfigPanel = () => {
                         </div>
 
                         <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                            <h4 className="font-semibold text-primary mb-3">📋 Setup Instructions</h4>
+                            <h4 className="font-semibold text-primary mb-3">{t('admin_security.sso_setup_title', '📋 Setup Instructions')}</h4>
                             <ol className="text-sm text-secondary space-y-2 list-decimal list-inside">
-                                <li>Go to Nextcloud → Settings → Security → OAuth 2.0 clients</li>
-                                <li>Click "Add client" and enter a name (e.g., "Bee Flow")</li>
-                                <li>Set the redirect URL to: <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">{redirectBase}/auth/callback/nextcloud</code></li>
-                                <li>Copy the Client ID and Client Secret here</li>
+                                <li>{t('admin_security.sso_nc_step1', 'Go to Nextcloud → Settings → Security → OAuth 2.0 clients')}</li>
+                                <li>{t('admin_security.sso_nc_step2', 'Click "Add client" and enter a name (e.g., "Bee Flow")')}</li>
+                                <li>{t('admin_security.sso_nc_step3', 'Set the redirect URL to:')} <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">{redirectBase}/auth/callback/nextcloud</code></li>
+                                <li>{t('admin_security.sso_copy_client', 'Copy the Client ID and Client Secret here')}</li>
                             </ol>
                         </div>
 
@@ -319,8 +319,8 @@ const SSOConfigPanel = () => {
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-primary">Google OAuth 2.0</h3>
-                                    <p className="text-sm text-muted">Allow users to sign in with their Google account</p>
+                                    <h3 className="text-lg font-semibold text-primary">{t('admin_security.sso_g_title', 'Google OAuth 2.0')}</h3>
+                                    <p className="text-sm text-muted">{t('admin_security.sso_g_desc', 'Allow users to sign in with their Google account')}</p>
                                 </div>
                                 {renderProviderStatus('google')}
                             </div>
@@ -354,12 +354,12 @@ const SSOConfigPanel = () => {
                         </div>
 
                         <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                            <h4 className="font-semibold text-primary mb-3">📋 Setup Instructions</h4>
+                            <h4 className="font-semibold text-primary mb-3">{t('admin_security.sso_setup_title', '📋 Setup Instructions')}</h4>
                             <ol className="text-sm text-secondary space-y-2 list-decimal list-inside">
-                                <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Google Cloud Console → Credentials</a></li>
-                                <li>Create a new OAuth 2.0 Client ID (Web application)</li>
-                                <li>Add authorized redirect URI: <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">{redirectBase}/auth/callback/google</code></li>
-                                <li>Copy the Client ID and Client Secret here</li>
+                                <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{t('admin_security.sso_g_console', 'Google Cloud Console → Credentials')}</a></li>
+                                <li>{t('admin_security.sso_g_step2', 'Create a new OAuth 2.0 Client ID (Web application)')}</li>
+                                <li>{t('admin_security.sso_g_step3', 'Add authorized redirect URI:')} <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">{redirectBase}/auth/callback/google</code></li>
+                                <li>{t('admin_security.sso_copy_client', 'Copy the Client ID and Client Secret here')}</li>
                             </ol>
                         </div>
 
@@ -392,20 +392,20 @@ const SSOConfigPanel = () => {
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-primary">Microsoft / Azure AD</h3>
-                                    <p className="text-sm text-muted">Allow users to sign in with Microsoft accounts</p>
+                                    <h3 className="text-lg font-semibold text-primary">{t('admin_security.sso_ms_title', 'Microsoft / Azure AD')}</h3>
+                                    <p className="text-sm text-muted">{t('admin_security.sso_ms_desc', 'Allow users to sign in with Microsoft accounts')}</p>
                                 </div>
                                 {renderProviderStatus('microsoft')}
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-secondary mb-2">Application ({t('admin.sso_client_id')})</label>
+                                    <label className="block text-sm font-medium text-secondary mb-2">{t('admin_security.sso_ms_application', 'Application ({label})', { label: t('admin.sso_client_id') })}</label>
                                     <input
                                         type="text"
                                         value={providers.microsoft.clientId}
                                         onChange={(e) => updateProviderField('microsoft', 'clientId', e.target.value)}
-                                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                                        placeholder={t('admin_security.sso_ms_client_id_ph', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')}
                                         className="w-full px-4 py-2.5 rounded-lg text-sm font-mono"
                                         style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
                                     />
@@ -425,20 +425,20 @@ const SSOConfigPanel = () => {
                                 </div>
                                 <div className="lg:col-span-2">
                                     <label className="block text-sm font-medium text-secondary mb-2">
-                                        Tenant ID
+                                        {t('admin_security.sso_tenant_id', 'Tenant ID')}
                                         {isMultiTenant ? (
-                                            <span className="text-blue-400 text-xs ml-2">(multi-tenant)</span>
+                                            <span className="text-blue-400 text-xs ml-2">{t('admin_security.sso_multi_tenant', '(multi-tenant)')}</span>
                                         ) : tenantIdValid ? (
-                                            <span className="text-green-400 text-xs ml-2">(single-tenant)</span>
+                                            <span className="text-green-400 text-xs ml-2">{t('admin_security.sso_single_tenant', '(single-tenant)')}</span>
                                         ) : (
-                                            <span className="text-orange-400 text-xs ml-2">(invalid format — should be a GUID or "common")</span>
+                                            <span className="text-orange-400 text-xs ml-2">{t('admin_security.sso_tenant_invalid', '(invalid format: should be a GUID or "common")')}</span>
                                         )}
                                     </label>
                                     <input
                                         type="text"
                                         value={providers.microsoft.tenantId}
                                         onChange={(e) => updateProviderField('microsoft', 'tenantId', e.target.value)}
-                                        placeholder="common"
+                                        placeholder={t('admin_security.sso_tenant_ph', 'common')}
                                         className="w-full px-4 py-2.5 rounded-lg text-sm font-mono"
                                         style={{
                                             background: 'var(--bg-tertiary)',
@@ -447,23 +447,23 @@ const SSOConfigPanel = () => {
                                         }}
                                     />
                                     <div className="mt-2 p-3 rounded-lg text-xs" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-default)' }}>
-                                        <p className="text-secondary mb-1"><strong>Single-tenant app</strong> — paste your Directory (tenant) ID from Azure Portal → App Overview (e.g. <code className="text-muted">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>). Required if "Supported account types" is set to "Single tenant".</p>
-                                        <p className="text-secondary"><strong>Multi-tenant app</strong> — use <code className="text-muted">common</code> (any Microsoft account), <code className="text-muted">organizations</code> (work/school only), or <code className="text-muted">consumers</code> (personal only).</p>
+                                        <p className="text-secondary mb-1"><strong>{t('admin_security.sso_single_app', 'Single-tenant app')}</strong> {t('admin_security.sso_single_app_desc', 'paste your Directory (tenant) ID from Azure Portal → App Overview (e.g.')} <code className="text-muted">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>{t('admin_security.sso_single_app_desc2', '). Required if "Supported account types" is set to "Single tenant".')}</p>
+                                        <p className="text-secondary"><strong>{t('admin_security.sso_multi_app', 'Multi-tenant app')}</strong> {t('admin_security.sso_multi_app_use', 'use')} <code className="text-muted">common</code> {t('admin_security.sso_multi_app_any', '(any Microsoft account),')} <code className="text-muted">organizations</code> {t('admin_security.sso_multi_app_work', '(work/school only), or')} <code className="text-muted">consumers</code> {t('admin_security.sso_multi_app_personal', '(personal only).')}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                            <h4 className="font-semibold text-primary mb-3">📋 Setup Instructions</h4>
+                            <h4 className="font-semibold text-primary mb-3">{t('admin_security.sso_setup_title', '📋 Setup Instructions')}</h4>
                             <ol className="text-sm text-secondary space-y-2 list-decimal list-inside">
-                                <li>Go to <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Azure Portal → App registrations</a></li>
-                                <li>Register a new application or select an existing one</li>
-                                <li>Add a redirect URI (Web): <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">{redirectBase}/auth/callback/microsoft</code></li>
-                                <li>Create a client secret under "Certificates & secrets"</li>
-                                <li>Copy the Application (Client) ID and Secret Value here</li>
-                                <li>For <strong>single-tenant apps</strong>: copy the Directory (tenant) ID from the app Overview page and paste it in the Tenant ID field above</li>
-                                <li>Under "API permissions", add the following <strong>Microsoft Graph</strong> delegated permissions and grant admin consent: <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Mail.Read</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Mail.Send</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Calendars.ReadWrite</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Files.ReadWrite</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Contacts.ReadWrite</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">offline_access</code></li>
+                                <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{t('admin_security.sso_ms_portal', 'Azure Portal → App registrations')}</a></li>
+                                <li>{t('admin_security.sso_ms_step2', 'Register a new application or select an existing one')}</li>
+                                <li>{t('admin_security.sso_ms_step3', 'Add a redirect URI (Web):')} <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">{redirectBase}/auth/callback/microsoft</code></li>
+                                <li>{t('admin_security.sso_ms_step4', 'Create a client secret under "Certificates & secrets"')}</li>
+                                <li>{t('admin_security.sso_ms_step5', 'Copy the Application (Client) ID and Secret Value here')}</li>
+                                <li>{t('admin_security.sso_ms_step6_for', 'For')} <strong>{t('admin_security.sso_ms_step6_apps', 'single-tenant apps')}</strong>{t('admin_security.sso_ms_step6_rest', ': copy the Directory (tenant) ID from the app Overview page and paste it in the Tenant ID field above')}</li>
+                                <li>{t('admin_security.sso_ms_step7_a', 'Under "API permissions", add the following')} <strong>{t('admin_security.sso_ms_graph', 'Microsoft Graph')}</strong> {t('admin_security.sso_ms_step7_b', 'delegated permissions and grant admin consent:')} <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Mail.Read</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Mail.Send</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Calendars.ReadWrite</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Files.ReadWrite</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">Contacts.ReadWrite</code>, <code className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">offline_access</code></li>
                             </ol>
                         </div>
 

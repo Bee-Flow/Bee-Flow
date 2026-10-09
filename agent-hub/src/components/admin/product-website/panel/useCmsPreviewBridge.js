@@ -2,11 +2,7 @@
 // cms-select / cms-block-action / cms-insert-at / cms-hotkey / cms-scroll)
 // of the ProductWebsitePanel container — moved verbatim from
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in).
-/* eslint-disable react-hooks/preserve-manual-memoization -- verbatim move
-   out of ProductWebsitePanel.jsx: the React Compiler lint can no longer see
-   that the threaded panel refs/setters are stable, so it reports advisory
-   "compilation skipped" notes; the dep arrays are unchanged from the
-   original component. */
+ 
 import { useCallback, useEffect, useEffectEvent } from 'react';
 import { toast } from '../../../shared/Toast';
 import { mergePreviewPage, mergePreviewSite } from '../localeMerge';

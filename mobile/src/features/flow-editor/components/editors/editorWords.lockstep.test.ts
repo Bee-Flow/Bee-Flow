@@ -69,12 +69,9 @@ const OWN_WORDS: Record<string, string> = {
     'mobile.flow.webhook.url_copied': 'the web shows a tick; the phone a toast',
     'mobile.flow.webhook.curl_copied': 'same',
     'mobile.flow.webhook.secret_copied': 'same',
-    'mobile.flow.form.answer_type': 'the web’s type select is unlabelled (aria "Question n type")',
     'mobile.flow.form.app_searches_own_unconnected': 'the web builds one sentence from two halves; the phone has it whole',
     'mobile.flow.route.collapse_title': 'the web asks inline, the phone in a confirmation sheet',
     'mobile.flow.route.value_to_match': 'the web’s placeholder "value to match", as a label',
-    'mobile.flow.route.assist.losing_one': 'the web assembles it from conditionals (is/are, its/their); the phone words each case whole',
-    'mobile.flow.route.assist.losing_many': 'same',
     'mobile.flow.condition.test': 'the web’s condition row has no labels; the phone stacks field, test and value',
     'mobile.flow.condition.match_all': 'the web: "Match [all] of these conditions"',
     'mobile.flow.condition.match_any': 'the web: "Match [any] of these conditions"',
@@ -144,6 +141,12 @@ function usesIn(folder: string): Use[] {
 }
 
 /**
+ * The web calls `t('key', 'English', { params })` (the English may be split over
+ * several calls around a `<code>` mark); the words a person reads are the English.
+ */
+const WEB_T = new RegExp(`\\{?\\s*\\bt\\(\\s*'[a-z0-9_.]+'\\s*,\\s*(?:'((?:[^'\\\\]|\\\\.)*)'|"((?:[^"\\\\]|\\\\.)*)")(?:\\s*,\\s*\\{[^{}]*\\})?\\s*\\)\\s*\\}?`, 'g');
+
+/**
  * The web files as the words a person reads, twice over: as written (the
  * words inside attributes and string literals), and with the inline marks a
  * sentence wraps a word in (`<code>`, `<strong>`, `<span …>`) taken out.
@@ -152,6 +155,7 @@ function webText(files: string[]): string {
     const raw = files
         .map((f) => fs.readFileSync(path.join(BUILDER, f), 'utf8'))
         .join('\n')
+        .replace(WEB_T, (_all, single: string | undefined, double: string | undefined) => `${single ?? double ?? ''}`)
         .replace(/\{\s*['"] ['"]\s*\}/g, ' ')
         .replace(/&apos;/g, "'")
         .replace(/&quot;/g, '"')

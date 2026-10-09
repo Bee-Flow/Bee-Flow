@@ -1,5 +1,6 @@
 import { AlertTriangle, ClipboardPaste, Loader2, Plus, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import PasteImportPanel from './PasteImportPanel';
 import { PAGE_SIZE, createRecord, deleteRecord, listRecords, updateRecord } from './recordsApi';
 import RowCellEditor from './RowCellEditor';
@@ -24,6 +25,7 @@ import toast from '../../../../shared/Toast';
  */
 
 export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = false }) {
+    const { t } = useTranslation();
     const fields = useMemo(() => importableFields(table?.fields), [table]);
     const columns = useMemo(
         () => (Array.isArray(table?.fields) ? table.fields : []).filter((f) => f && f.key),
@@ -55,11 +57,11 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             setRows(page.records);
             setCursor(page.nextCursor);
         } catch (err) {
-            setError(err?.message || 'The rows could not be loaded.');
+            setError(err?.message || t('studio_apps_tables.rows.load_failed', 'The rows could not be loaded.'));
         } finally {
             setLoading(false);
         }
-    }, [appId, tableId]);
+    }, [appId, tableId, t]);
 
     useEffect(() => {
         setDraft(null);
@@ -101,9 +103,9 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                 // Show them what won rather than their lost edit, and say so.
                 const current = err.body.record;
                 setRows((cur) => cur.map((r) => (r.id === row.id ? current : r)));
-                toast.error('Someone else changed this row — it has been refreshed with their version.');
+                toast.error(t('studio_apps_tables.rows.conflict', 'Someone else changed this row — it has been refreshed with their version.'));
             } else {
-                toast.error(err?.message || 'That change could not be saved.');
+                toast.error(err?.message || t('studio_apps_tables.rows.save_failed', 'That change could not be saved.'));
             }
         } finally {
             setSavingId(null);
@@ -119,7 +121,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             else await load();
             setDraft(null);
         } catch (err) {
-            setDraftError(err?.message || 'That row could not be added.');
+            setDraftError(err?.message || t('studio_apps_tables.rows.add_failed', 'That row could not be added.'));
         } finally {
             setSavingDraft(false);
         }
@@ -133,7 +135,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             await deleteRecord(appId, tableId, id);
             setRows((cur) => cur.filter((r) => r.id !== id));
         } catch (err) {
-            toast.error(err?.message || 'That row could not be deleted.');
+            toast.error(err?.message || t('studio_apps_tables.rows.delete_failed', 'That row could not be deleted.'));
         }
     };
 
@@ -145,7 +147,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             setRows((cur) => [...cur, ...page.records]);
             setCursor(page.nextCursor);
         } catch (err) {
-            toast.error(err?.message || 'The next rows could not be loaded.');
+            toast.error(err?.message || t('studio_apps_tables.rows.load_more_failed', 'The next rows could not be loaded.'));
         } finally {
             setLoadingMore(false);
         }
@@ -162,7 +164,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
         >
             <Plus className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-            Add a row
+            {t('studio_apps_tables.rows.add_row', 'Add a row')}
         </button>
     );
 
@@ -175,7 +177,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
         >
             <ClipboardPaste className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-            Paste from a spreadsheet
+            {t('studio_apps_tables.rows.paste', 'Paste from a spreadsheet')}
         </button>
     );
 
@@ -193,7 +195,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
     if (columns.length === 0) {
         return (
             <p className="py-10 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                This table has no columns yet — add a few on the Tables tab first, then come back to fill them in.
+                {t('studio_apps_tables.rows.no_columns', 'This table has no columns yet — add a few on the Tables tab first, then come back to fill them in.')}
             </p>
         );
     }
@@ -202,8 +204,8 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
         const isEditing = editing && editing.rowId === row.id && editing.key === field.key;
         if (field.type === 'computed') {
             return (
-                <span className="text-sm" style={{ color: 'var(--text-tertiary)' }} title="Worked out automatically">
-                    {cellText(row[field.key], field)}
+                <span className="text-sm" style={{ color: 'var(--text-tertiary)' }} title={t('studio_apps_tables.rows.computed_title', 'Worked out automatically')}>
+                    {cellText(row[field.key], field, t)}
                 </span>
             );
         }
@@ -237,18 +239,32 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                 onClick={() => setEditing({ rowId: row.id, key: field.key })}
                 className="w-full truncate rounded-md px-1 py-1 text-left text-sm hover:bg-[var(--bg-tertiary)]"
                 style={{ color: 'var(--text-primary)' }}
-                aria-label={`${field.name || field.key} — click to change`}
+                aria-label={t('studio_apps_tables.rows.click_to_change', '{name} — click to change', { name: field.name || field.key })}
             >
-                {cellText(row[field.key], field)}
+                {cellText(row[field.key], field, t)}
             </button>
         );
     };
+
+    const countParams = { n: rows.length, table: table?.name || table?.key };
+    let rowCountLabel;
+    if (rows.length === 1) {
+        rowCountLabel = cursor
+            ? t('studio_apps_tables.rows.count_one_so_far', '{n} row so far in {table}', countParams)
+            : t('studio_apps_tables.rows.count_one', '{n} row in {table}', countParams);
+    } else {
+        rowCountLabel = cursor
+            ? t('studio_apps_tables.rows.count_many_so_far', '{n} rows so far in {table}', countParams)
+            : t('studio_apps_tables.rows.count_many', '{n} rows in {table}', countParams);
+    }
 
     return (
         <div className="flex min-h-[22rem] flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    {loading ? 'Loading rows…' : `${rows.length} row${rows.length === 1 ? '' : 's'}${cursor ? ' so far' : ''} in ${table?.name || table?.key}`}
+                    {loading
+                        ? t('studio_apps_tables.rows.loading', 'Loading rows…')
+                        : rowCountLabel}
                 </span>
                 <div className="ml-auto flex items-center gap-2">
                     {addButton()}
@@ -262,7 +278,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                     style={{ borderColor: 'rgba(217, 119, 6, 0.4)', background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}
                 >
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    <span>You changed the columns but haven’t saved yet — these rows still show the saved ones. Save the table to see the change here.</span>
+                    <span>{t('studio_apps_tables.rows.unsaved_columns', 'You changed the columns but haven’t saved yet — these rows still show the saved ones. Save the table to see the change here.')}</span>
                 </p>
             ) : null}
 
@@ -275,7 +291,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                         className="rounded-md border px-2 py-0.5"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
-                        Try again
+                        {t('studio_apps_tables.rows.try_again', 'Try again')}
                     </button>
                 </div>
             ) : null}
@@ -283,13 +299,13 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             {loading ? (
                 <div className="flex items-center justify-center gap-2 py-10 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    Loading rows…
+                    {t('studio_apps_tables.rows.loading', 'Loading rows…')}
                 </div>
             ) : rows.length === 0 && !draft && !error ? (
                 <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>No rows yet.</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('studio_apps_tables.rows.empty', 'No rows yet.')}</p>
                     <p className="max-w-sm text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        Type the first one here, or paste a block straight out of Excel or Google Sheets — you pick which column goes where.
+                        {t('studio_apps_tables.rows.empty_hint', 'Type the first one here, or paste a block straight out of Excel or Google Sheets — you pick which column goes where.')}
                     </p>
                     <div className="flex flex-wrap items-center justify-center gap-2">
                         {addButton()}
@@ -312,7 +328,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                                         {f.required ? <span aria-hidden="true" style={{ color: 'var(--error)' }}> *</span> : null}
                                     </th>
                                 ))}
-                                <th className="border-b px-2 py-1.5" style={{ borderColor: 'var(--border-default)' }} aria-label="Row actions" />
+                                <th className="border-b px-2 py-1.5" style={{ borderColor: 'var(--border-default)' }} aria-label={t('studio_apps_tables.rows.row_actions', 'Row actions')} />
                             </tr>
                         </thead>
                         <tbody>
@@ -326,7 +342,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                                     <td className="border-b px-2 py-1 align-middle" style={{ borderColor: 'var(--border-default)' }}>
                                         <button
                                             type="button"
-                                            aria-label={`Delete row ${index + 1}`}
+                                            aria-label={t('studio_apps_tables.rows.delete_row_n', 'Delete row {n}', { n: index + 1 })}
                                             onClick={() => setConfirmDeleteId(row.id)}
                                             className="rounded p-1 hover:bg-[var(--bg-card-hover)]"
                                             style={{ color: 'var(--error)' }}
@@ -341,7 +357,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                                     {columns.map((f) => (
                                         <td key={f.key} className="border-b px-2 py-1 align-top" style={{ borderColor: 'var(--border-default)' }}>
                                             {f.type === 'computed' ? (
-                                                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Worked out later</span>
+                                                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_tables.rows.computed_later', 'Worked out later')}</span>
                                             ) : (
                                                 <RowCellEditor
                                                     field={f}
@@ -365,7 +381,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                                                 style={{ background: 'var(--accent-primary)' }}
                                             >
                                                 {savingDraft ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
-                                                Add
+                                                {t('studio_apps_tables.rows.add', 'Add')}
                                             </button>
                                             <button
                                                 type="button"
@@ -374,7 +390,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                                                 className="rounded-md border px-2 py-1 text-xs disabled:opacity-50"
                                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                                             >
-                                                Cancel
+                                                {t('studio_apps_tables.rows.cancel', 'Cancel')}
                                             </button>
                                         </div>
                                     </td>
@@ -398,15 +414,15 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                 >
                     {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-                    Show more rows
+                    {t('studio_apps_tables.rows.show_more', 'Show more rows')}
                 </button>
             ) : null}
 
             <ConfirmDialog
                 open={!!confirmDeleteId}
-                title="Delete this row?"
-                description="The row is removed straight away. This can’t be undone."
-                confirmLabel="Delete row"
+                title={t('studio_apps_tables.rows.delete_title', 'Delete this row?')}
+                description={t('studio_apps_tables.rows.delete_desc', 'The row is removed straight away. This can’t be undone.')}
+                confirmLabel={t('studio_apps_tables.rows.delete_confirm', 'Delete row')}
                 destructive
                 onConfirm={removeRow}
                 onCancel={() => setConfirmDeleteId(null)}

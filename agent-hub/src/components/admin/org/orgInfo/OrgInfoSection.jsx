@@ -27,19 +27,19 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                                        Provisioned through Nextcloud
+                                        {t('admin_org.org_info_nc_title', 'Provisioned through Nextcloud')}
                                     </p>
                                     <p className="text-[12px] mb-2" style={{ color: 'var(--text-muted)' }}>
-                                        User accounts and authentication are managed by your Nextcloud instance. Sign-in method and allowed-domain settings are not shown here.
+                                        {t('admin_org.org_info_nc_desc', 'User accounts and authentication are managed by your Nextcloud instance. Sign-in method and allowed-domain settings are not shown here.')}
                                     </p>
                                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                                         {ncOrg.baseUrl && (
-                                            <span><span className="opacity-70">Instance:</span> <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)' }}>{ncOrg.baseUrl}</code></span>
+                                            <span><span className="opacity-70">{t('admin_org.org_info_nc_instance', 'Instance:')}</span> <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)' }}>{ncOrg.baseUrl}</code></span>
                                         )}
                                         {ncOrg.adminUid && (
-                                            <span><span className="opacity-70">Bootstrap admin:</span> <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)' }}>{ncOrg.adminUid}</code></span>
+                                            <span><span className="opacity-70">{t('admin_org.org_info_nc_bootstrap', 'Bootstrap admin:')}</span> <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)' }}>{ncOrg.adminUid}</code></span>
                                         )}
-                                        <span><span className="opacity-70">Sync:</span> {(ncOrg.syncMode || 'mirror_all').replace('_', ' ')}</span>
+                                        <span><span className="opacity-70">{t('admin_org.org_info_nc_sync', 'Sync:')}</span> {(ncOrg.syncMode || 'mirror_all').replace('_', ' ')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -55,7 +55,7 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                                     {orgData.logo ? (
                                         <img
                                             src={orgData.logo.startsWith('/') ? `${API_BASE}${orgData.logo}` : orgData.logo}
-                                            alt="Logo"
+                                            alt={t('admin_org.org_info_logo_alt', 'Logo')}
                                             className="w-20 h-20 object-contain rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] p-2"
                                         />
                                     ) : (

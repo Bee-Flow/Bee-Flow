@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * ConnectionPolicyPicker — per-integration "Bring-your-own (default) vs Lend my
@@ -27,6 +28,7 @@ const selStyle = {
 };
 
 const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
+    const { t } = useTranslation();
     const [connsByProvider, setConnsByProvider] = useState({});
     const [grantByProvider, setGrantByProvider] = useState({}); // provider -> { grantId, connectionId }
     const [loading, setLoading] = useState(true);
@@ -80,16 +82,16 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
     const rows = lendable.filter(p => (connsByProvider[p] || []).length > 0);
     if (loading || !resourceId || rows.length === 0) {
         if (!resourceId && lendable.length > 0) {
-            return <p className="text-[11px] text-muted mt-2">Save the agent to configure connection lending.</p>;
+            return <p className="text-[11px] text-muted mt-2">{t('connections.lending_save_first', 'Save the agent to configure connection lending.')}</p>;
         }
         return null;
     }
 
     return (
         <div className="mt-4 rounded-xl p-3" style={{ border: '1px solid var(--border-subtle)', background: 'rgba(16,185,129,0.04)' }}>
-            <p className="text-xs font-medium text-primary">Connection lending</p>
+            <p className="text-xs font-medium text-primary">{t('connections.lending_title', 'Connection lending')}</p>
             <p className="text-[11px] text-muted mt-0.5 mb-2">
-                Recipients use their own credentials by default. Lend one of your connections to let them run as you (full delegation).
+                {t('connections.lending_hint', 'Recipients use their own credentials by default. Lend one of your connections to let them run as you (full delegation).')}
             </p>
             <div className="space-y-2">
                 {rows.map(provider => {
@@ -105,7 +107,7 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
                                 className="px-2.5 py-1.5 rounded-lg border outline-none text-[12px]"
                                 style={selStyle}
                             >
-                                <option value="">Bring-your-own (default)</option>
+                                <option value="">{t('connections.lending_byo', 'Bring-your-own (default)')}</option>
                                 {conns.map(c => (
                                     <option key={c.id} value={c.id}>Lend: {c.label}</option>
                                 ))}

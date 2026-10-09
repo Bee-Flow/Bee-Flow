@@ -1,5 +1,6 @@
 import { ImageOff } from 'lucide-react';
 import { useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /** App Studio runtime — 'image'. Spec: server/appStudio/componentSpecs.js. */
 
@@ -8,6 +9,7 @@ function isHttps(url) {
 }
 
 export default function AppImage({ node }) {
+    const { t } = useTranslation();
     const { src = null, alt = '', fit = 'cover' } = node.props || {};
     const [failed, setFailed] = useState(false);
     const hasHeight = node.style?.height && node.style.height !== 'auto';
@@ -18,7 +20,7 @@ export default function AppImage({ node }) {
         return (
             <div
                 role="img"
-                aria-label={alt || 'Image unavailable'}
+                aria-label={alt || t('studio_apps_runtime.image.unavailable', 'Image unavailable')}
                 className="flex items-center justify-center w-full"
                 style={{
                     height: hasHeight ? '100%' : undefined,

@@ -15,6 +15,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import AppIcon from '../../icons/AppIcon';
 import { BLOCK_CATALOGUE } from './editors';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // Derive the row label shown in the left sidebar. Defaults to the block
 // catalogue's static label, but a few block types expose a more useful
@@ -37,6 +38,7 @@ function deriveBlockLabel(block, meta) {
 // ── Single draggable block row ────────────────────────────────────────
 
 function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete }) {
+    const { t } = useTranslation();
     const {
         attributes, listeners, setNodeRef, transform, transition, isDragging,
     } = useSortable({ id: block.id });
@@ -68,7 +70,7 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete })
                 {...listeners}
                 className="text-[var(--text-muted)] cursor-grab active:cursor-grabbing p-0.5 shrink-0"
                 onClick={e => e.stopPropagation()}
-                title="Drag to reorder"
+                title={t('cms_site.site.blocklist.drag_to_reorder', 'Drag to reorder')}
             >
                 <AppIcon name="GripVertical" className="w-3.5 h-3.5" />
             </span>
@@ -88,7 +90,7 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete })
                         ? 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] opacity-40 group-hover:opacity-100'
                         : 'text-[var(--text-muted)] opacity-100'
                     }`}
-                title={block.enabled ? 'Hide block' : 'Show block'}
+                title={block.enabled ? t('cms_site.site.blocklist.hide_block', 'Hide block') : t('cms_site.site.blocklist.show_block', 'Show block')}
             >
                 <AppIcon name={block.enabled ? 'Eye' : 'EyeOff'} className="w-3.5 h-3.5" />
             </button>
@@ -99,7 +101,7 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete })
                     type="button"
                     onClick={() => onDuplicate(block.id)}
                     className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
-                    title="Duplicate block"
+                    title={t('cms_site.site.blocklist.duplicate_block', 'Duplicate block')}
                 >
                     <AppIcon name="Copy" className="w-3 h-3" />
                 </button>
@@ -107,7 +109,7 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete })
                     type="button"
                     onClick={() => onDelete(block.id)}
                     className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10"
-                    title="Delete block"
+                    title={t('cms_site.site.blocklist.delete_block', 'Delete block')}
                 >
                     <AppIcon name="Trash2" className="w-3 h-3" />
                 </button>
@@ -124,6 +126,7 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete })
 // of state. BlockList just requests it via `onRequestAdd`.
 
 export default function BlockList({ blocks, activeBlockId, onSelect, onRequestAdd, onToggle, onDuplicate, onDelete, onReorder }) {
+    const { t } = useTranslation();
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
     const handleDragEnd = (event) => {
@@ -139,13 +142,13 @@ export default function BlockList({ blocks, activeBlockId, onSelect, onRequestAd
         <div className="flex flex-col h-full">
             <div className="px-4 py-2 flex items-center justify-between border-b border-[var(--border-subtle)] shrink-0">
                 <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-                    Blocks
+                    {t('cms_site.site.blocklist.blocks', 'Blocks')}
                 </span>
                 <button
                     type="button"
                     onClick={() => onRequestAdd?.()}
                     className="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                    title="Add block"
+                    title={t('cms_site.site.blocklist.add_block', 'Add block')}
                 >
                     <AppIcon name="Plus" className="w-4 h-4" />
                 </button>
@@ -169,7 +172,7 @@ export default function BlockList({ blocks, activeBlockId, onSelect, onRequestAd
                 </DndContext>
                 {blocks.length === 0 && (
                     <p className="text-xs text-[var(--text-muted)] text-center py-6">
-                        No blocks yet. Add one above.
+                        {t('cms_site.site.blocklist.empty', 'No blocks yet. Add one above.')}
                     </p>
                 )}
             </div>

@@ -1504,14 +1504,14 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         // that has no server row yet.
                         tab === 'history' && (
                             <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
-                                <div className="text-sm text-[var(--text-primary)] font-medium">This automation hasn't run yet.</div>
-                                <div className="text-xs text-[var(--text-secondary)]">Run a test to see what happens, step by step.</div>
+                                <div className="text-sm text-[var(--text-primary)] font-medium">{t('automations.builder_shell.this_automation_hasn_t_run_yet', 'This automation hasn\'t run yet.')}</div>
+                                <div className="text-xs text-[var(--text-secondary)]">{t('automations.builder_shell.run_a_test_to_see_what', 'Run a test to see what happens, step by step.')}</div>
                                 <button
                                     type="button"
                                     onClick={() => { setTab('build'); onDryRun?.(); }}
                                     className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                                 >
-                                    Run a test
+                                    {t('automations.builder_shell.run_a_test', 'Run a test')}
                                 </button>
                             </div>
                         )

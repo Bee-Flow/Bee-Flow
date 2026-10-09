@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, INPUT_CLASS, inputStyle } from '../uiBits';
 
@@ -25,6 +26,7 @@ const noop = () => {};
 const PUBLISH_DEBOUNCE_MS = 300;
 
 export default function AppFilterBar({ node }) {
+    const { t } = useTranslation();
     const runtime = useRuntime();
     const setVar = typeof runtime.setVar === 'function' ? runtime.setVar : noop;
     const disabled = runtime.mode === 'edit';
@@ -39,7 +41,7 @@ export default function AppFilterBar({ node }) {
     useEffect(() => { setVarRef.current = setVar; });
     useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
-    if (fields.length === 0) return <EmptyText text="No filters configured yet." />;
+    if (fields.length === 0) return <EmptyText text={t('studio_apps_runtime.filter_bar.empty', 'No filters configured yet.')} />;
 
     const publish = (next, immediate) => {
         if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
@@ -81,7 +83,7 @@ export default function AppFilterBar({ node }) {
                                     disabled={disabled}
                                     aria-label={label || name}
                                 >
-                                    <option value="">All</option>
+                                    <option value="">{t('studio_apps_runtime.filter_bar.all', 'All')}</option>
                                     {(Array.isArray(options) ? options : []).map((o, i) => (
                                         <option key={i} value={o?.value ?? ''}>{o?.label || o?.value}</option>
                                     ))}
@@ -130,7 +132,7 @@ export default function AppFilterBar({ node }) {
                                         style={inputStyle()}
                                         value={value ?? ''}
                                         onChange={(e) => commit(name, e.target.value)}
-                                        placeholder={label || 'Search…'}
+                                        placeholder={label || t('studio_apps_runtime.filter_bar.search', 'Search…')}
                                         disabled={disabled}
                                         aria-label={label || name}
                                     />

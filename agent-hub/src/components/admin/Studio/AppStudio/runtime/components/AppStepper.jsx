@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { hoverable } from '../hoverable';
 import { resolveBinding } from '../resolveBinding';
@@ -27,6 +28,7 @@ function toneColor(tone) {
 }
 
 export default function AppStepper({ node }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
         steps = [],
@@ -56,7 +58,7 @@ export default function AppStepper({ node }) {
             data-app-stepper="true"
             data-orientation={orientation}
             role="list"
-            aria-label="Progress"
+            aria-label={t('studio_apps_runtime.progress.label', 'Progress')}
         >
             {steps.map((step, i) => {
                 // Everything before the current step is done; with no match at

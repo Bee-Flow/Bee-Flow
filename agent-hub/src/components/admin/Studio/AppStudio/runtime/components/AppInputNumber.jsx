@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useValueFrom from '../useValueFrom';
@@ -12,11 +13,10 @@ import useValueFrom from '../useValueFrom';
  * what actually rejects an out-of-range value on submit.
  */
 
-const BAD_INPUT_MESSAGE = 'Enter a number — use a dot as the decimal separator.';
-
 export default function AppInputNumber({ node }) {
+    const { t } = useTranslation();
     const {
-        name, label = 'Amount', min = null, max = null, step = 1,
+        name, label = t('studio_apps_runtime.inputs.amount', 'Amount'), min = null, max = null, step = 1,
         required = false, defaultValue = null,
     } = node.props || {};
     // A number input reports value '' for anything the browser calls BAD INPUT
@@ -28,6 +28,7 @@ export default function AppInputNumber({ node }) {
     // form never saw it. It travels into the registration now, so the form
     // refuses the submit for the reason already on screen.
     const [badInput, setBadInput] = useState(false);
+    const BAD_INPUT_MESSAGE = t('studio_apps_runtime.inputs.bad_number', 'Enter a number — use a dot as the decimal separator.');
     const { value, setValue, error } = useFormField({
         name, defaultValue, required, label,
         invalid: badInput, invalidMessage: BAD_INPUT_MESSAGE,

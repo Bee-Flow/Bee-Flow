@@ -136,7 +136,7 @@ export default function VariablePicker({
                     type="button"
                     onClick={onClose}
                     className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                    aria-label="Close"
+                    aria-label={t('automations.variable_picker.close', 'Close')}
                 >
                     <X size={12} />
                 </button>
@@ -171,7 +171,7 @@ export default function VariablePicker({
             <div className="px-3 py-2 border-t border-[var(--border-default)] text-[10px] text-[var(--text-tertiary)] min-h-[28px] flex items-center gap-1.5">
                 {previewLine != null ? (
                     <>
-                        <span className="uppercase tracking-wide">preview</span>
+                        <span className="uppercase tracking-wide">{t('automations.variable_picker.preview', 'preview')}</span>
                         <span
                             className="font-mono text-[var(--text-secondary)] truncate"
                             title={previewLine}
@@ -180,7 +180,7 @@ export default function VariablePicker({
                         </span>
                     </>
                 ) : (
-                    <span>Hover a field to preview its sample value.</span>
+                    <span>{t('automations.variable_picker.hover_a_field_to_preview_its', 'Hover a field to preview its sample value.')}</span>
                 )}
             </div>
         </div>,
@@ -189,6 +189,7 @@ export default function VariablePicker({
 }
 
 function PickerGroup({ group, onPick, onHoverField, previewSample = null, currentPath = '', searching = false }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(true);
     const caption = friendlyBasePath(group.basePath, group.label);
     return (
@@ -223,7 +224,7 @@ function PickerGroup({ group, onPick, onHoverField, previewSample = null, curren
                 )}
             </button>
             {open && (group.fields || []).length === 0 && (
-                <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">No fields</div>
+                <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.variable_picker.no_fields', 'No fields')}</div>
             )}
             {open && (group.fields || []).map(f => (
                 <PickerLeaf

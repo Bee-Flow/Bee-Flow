@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { NC_BLUE, LANGS, Toggle, Row, Select } from '../../pages/settings/shared/settingsPrimitives';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Org-level Nextcloud Talk → Meeting Notes settings. Mirrors the privacy-shield
  * admin pattern. Org values take precedence over each member's own settings.
  */
 export default function MeetingNotesAdminPanel({ user }) {
+    const { t } = useTranslation();
     const orgId = user?.organizationId;
     // recordingFolder: Talk saves to <attachment folder>/Recording/<room token>/,
     // so /Talk/Recording is the default on a stock Nextcloud.
@@ -32,7 +34,7 @@ export default function MeetingNotesAdminPanel({ user }) {
             const res = await authFetch(`${API_BASE}/api/talk-notes-settings/${orgId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
             });
-            if (res.ok) setMessage({ type: 'success', text: 'Saved' });
+            if (res.ok) setMessage({ type: 'success', text: t('common.saved', 'Saved') });
             else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
         } catch (e) { setMessage({ type: 'error', text: e.message }); }
         finally { setSaving(false); }
@@ -45,49 +47,48 @@ export default function MeetingNotesAdminPanel({ user }) {
             <div className="flex items-center gap-2 mb-2">
                 <MessageSquare className="w-4 h-4" style={{ color: NC_BLUE }} />
                 <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                    Talk Meeting Notes
+                    {t('meetings.admin_talk.title', 'Talk Meeting Notes')}
                 </p>
             </div>
             <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-                Turn Nextcloud Talk call recordings into Meeting Notes, transcribed by your organisation's configured
-                transcription engine. These org settings override each member's personal settings.
+                {t('meetings.admin_talk.intro', 'Turn Nextcloud Talk call recordings into Meeting Notes, transcribed by your organisation\'s configured transcription engine. These org settings override each member\'s personal settings.')}
             </p>
 
             {loading ? (
                 <div className="flex items-center gap-2 px-5 py-4 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
                     <Loader2 className="w-4 h-4 animate-spin" style={{ color: NC_BLUE }} />
-                    <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Loading…</span>
+                    <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{t('common.loading_ellipsis', 'Loading…')}</span>
                 </div>
             ) : (
                 <>
                     <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        <Row title="Auto-record Talk meetings" desc="Automatically start recording calls members moderate (requires the Nextcloud recording backend).">
+                        <Row title={t('meetings.admin_talk.auto_record', 'Auto-record Talk meetings')} desc={t('meetings.admin_talk.auto_record_desc', 'Automatically start recording calls members moderate (requires the Nextcloud recording backend).')}>
                             <Toggle on={cfg.autoRecord} onClick={() => setCfg(c => ({ ...c, autoRecord: !c.autoRecord }))} disabled={saving} />
                         </Row>
                         {cfg.autoRecord && (
                             <>
                                 <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                                <Row title="Which calls" desc="Record only scheduled calendar meetings, or every call a member moderates.">
+                                <Row title={t('meetings.admin_talk.which', 'Which calls')} desc={t('meetings.admin_talk.which_desc', 'Record only scheduled calendar meetings, or every call a member moderates.')}>
                                     <Select value={cfg.autoRecordScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, autoRecordScope: e.target.value }))}
-                                        options={[{ value: 'calendar', label: 'Calendar meetings' }, { value: 'all', label: 'Any moderated call' }]} />
+                                        options={[{ value: 'calendar', label: t('meetings.admin_talk.scope_calendar', 'Calendar meetings') }, { value: 'all', label: t('meetings.admin_talk.scope_all', 'Any moderated call') }]} />
                                 </Row>
                                 <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                                <Row title="Recording quality" desc="Audio-only is smaller and faster to transcribe.">
+                                <Row title={t('meetings.admin_talk.quality', 'Recording quality')} desc={t('meetings.admin_talk.quality_desc', 'Audio-only is smaller and faster to transcribe.')}>
                                     <Select value={cfg.recordingMode} disabled={saving} onChange={e => setCfg(c => ({ ...c, recordingMode: e.target.value }))}
-                                        options={[{ value: 'audio', label: 'Audio-only' }, { value: 'video', label: 'Video' }]} />
+                                        options={[{ value: 'audio', label: t('meetings.admin_talk.audio_only', 'Audio-only') }, { value: 'video', label: t('meetings.admin_talk.video', 'Video') }]} />
                                 </Row>
                             </>
                         )}
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Auto-transcribe Talk recordings" desc="When a new Talk recording appears, create a Meeting Note automatically.">
+                        <Row title={t('meetings.admin_talk.auto_transcribe', 'Auto-transcribe Talk recordings')} desc={t('meetings.admin_talk.auto_transcribe_desc', 'When a new Talk recording appears, create a Meeting Note automatically.')}>
                             <Toggle on={cfg.autoTranscribe} onClick={() => setCfg(c => ({ ...c, autoTranscribe: !c.autoTranscribe }))} disabled={saving} />
                         </Row>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Post summary back into Talk" desc="After transcription, post the summary + action items into the conversation.">
+                        <Row title={t('meetings.admin_talk.post_summary', 'Post summary back into Talk')} desc={t('meetings.admin_talk.post_summary_desc', 'After transcription, post the summary + action items into the conversation.')}>
                             <Toggle on={cfg.postSummaryBack} onClick={() => setCfg(c => ({ ...c, postSummaryBack: !c.postSummaryBack }))} disabled={saving} />
                         </Row>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Recordings folder" desc="Nextcloud Files folder where Talk saves recordings — normally /Talk/Recording, with one subfolder per conversation.">
+                        <Row title={t('meetings.admin_talk.folder', 'Recordings folder')} desc={t('meetings.admin_talk.folder_desc', 'Nextcloud Files folder where Talk saves recordings — normally /Talk/Recording, with one subfolder per conversation.')}>
                             <input
                                 type="text" value={cfg.recordingFolder}
                                 onChange={e => setCfg(c => ({ ...c, recordingFolder: e.target.value }))}
@@ -97,11 +98,11 @@ export default function MeetingNotesAdminPanel({ user }) {
                             />
                         </Row>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Per-person meeting insights" desc="Show per-person statistics (talk time, longest monologue) on the meeting Insights panel. Off = members see only meeting-level metrics.">
+                        <Row title={t('meetings.admin_talk.insights', 'Per-person meeting insights')} desc={t('meetings.admin_talk.insights_desc', 'Show per-person statistics (talk time, longest monologue) on the meeting Insights panel. Off = members see only meeting-level metrics.')}>
                             <Toggle on={cfg.insightsPerPersonStats !== false} onClick={() => setCfg(c => ({ ...c, insightsPerPersonStats: c.insightsPerPersonStats === false }))} disabled={saving} />
                         </Row>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row title="Default language" desc="Language used when auto-transcribing Talk recordings.">
+                        <Row title={t('meetings.admin_talk.language', 'Default language')} desc={t('meetings.admin_talk.language_desc', 'Language used when auto-transcribing Talk recordings.')}>
                             <select
                                 value={cfg.language} onChange={e => setCfg(c => ({ ...c, language: e.target.value }))} disabled={saving}
                                 className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px]"
@@ -118,7 +119,7 @@ export default function MeetingNotesAdminPanel({ user }) {
                             className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
                             style={{ background: NC_BLUE }}
                         >
-                            {saving ? 'Saving…' : 'Save'}
+                            {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
                         </button>
                         {message && (
                             <span className={`text-[12px] font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>

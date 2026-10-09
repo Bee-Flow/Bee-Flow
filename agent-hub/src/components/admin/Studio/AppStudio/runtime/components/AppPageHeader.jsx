@@ -1,4 +1,5 @@
 import React from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -149,8 +150,9 @@ function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }) {
 }
 
 export default function AppPageHeader({ node, children }) {
+    const { t } = useTranslation();
     const {
-        title = 'Page title', subtitle = null, titleFrom = null, subtitleFrom = null,
+        title = t('studio_apps_runtime.page_header.title', 'Page title'), subtitle = null, titleFrom = null, subtitleFrom = null,
         icon = null, showDivider = true,
     } = node.props || {};
     const { actionState, dataState, scope } = useRuntime();

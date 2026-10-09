@@ -8,6 +8,7 @@
  * React Query on a single surface.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { analyticsApi, analyticsFetch, analyticsPost, reportBody } from '../analyticsApi';
 
 /**
@@ -33,6 +34,10 @@ function scopeKey(scope) {
 export function useAnalyticsQuery(kind, name, scope, options = {}) {
     const { params, body, enabled = true, pollMs = 0 } = options;
     const [state, setState] = useState({ data: null, loading: enabled, error: null, cached: false });
+    // Latest translator, read inside async callbacks without re-running effects.
+    const { t } = useTranslation();
+    const tRef = useRef(t);
+    useEffect(() => { tRef.current = t; }, [t]);
 
     const key = `${kind}:${name}:${scopeKey(scope)}:${JSON.stringify(params || body || {})}`;
     // Guards a late response from a superseded request overwriting fresh state.
@@ -53,7 +58,7 @@ export function useAnalyticsQuery(kind, name, scope, options = {}) {
             setState({ data: res, loading: false, error: null, cached: !!res?.cached });
         } catch (err) {
             if (id !== requestRef.current) return;
-            setState({ data: null, loading: false, error: err.message || 'Failed to load', cached: false });
+            setState({ data: null, loading: false, error: err.message || tRef.current('cms_site.analytics.errors.load_failed', 'Failed to load'), cached: false });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the serialised identity of kind/name/scope/params/body, which are fresh objects each render
     }, [key, enabled]);

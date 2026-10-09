@@ -29,7 +29,7 @@ export function DisplayFile({ field, actions }: { field: FillField; actions: Fil
     const notebook = field.type === 'notebook';
     const act = notebook ? actions.openInNotebooks : actions.shareFile;
     const meta = [fileKind(field.filename), fileSize(field.size)].filter(Boolean).join(' · ');
-    const title = field.filename || (notebook ? t('mobile.forms.fill.open_in_notebooks', 'Open in Notebooks') : t('mobile.forms.fill.download', 'Download'));
+    const title = field.filename || (notebook ? t('automations.form_builder_fields.type_notebook', 'Open in Notebooks') : t('mobile.forms.fill.download', 'Download'));
     const run = async () => {
         if (!act || busy) return;
         setBusy(true);
