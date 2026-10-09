@@ -44,11 +44,11 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                     type="button"
                     onClick={onToggleCollapse}
                     className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-400 min-w-0 flex-1 text-left"
-                    title={collapsed ? 'Expand dry-run preview' : 'Collapse dry-run preview'}
+                    title={collapsed ? t('automations.dry_run_panel.expand_preview', 'Expand dry-run preview') : t('automations.dry_run_panel.collapse_preview', 'Collapse dry-run preview')}
                 >
                     <Eye size={16} className="shrink-0" />
-                    <span className="truncate">Dry-run preview ({run.status})</span>
-                    <span className="text-[var(--text-tertiary)] font-normal shrink-0">· {stepList.length} step{stepList.length === 1 ? '' : 's'}</span>
+                    <span className="truncate">{t('automations.dry_run_panel.preview_title', 'Dry-run preview ({status})', { status: run.status })}</span>
+                    <span className="text-[var(--text-tertiary)] font-normal shrink-0">· {stepList.length === 1 ? t('automations.dry_run_panel.step_count_one', '{count} step', { count: 1 }) : t('automations.dry_run_panel.step_count_other', '{count} steps', { count: stepList.length })}</span>
                     {collapsed ? <ChevronUp size={15} className="shrink-0" /> : <ChevronDown size={15} className="shrink-0" />}
                 </button>
                 {onClose && (
@@ -99,14 +99,14 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                                     </div>
                                     {wouldNotify && (
                                         <div className="text-amber-700 dark:text-amber-400 mt-1">
-                                            Would notify on <strong>{(wouldNotify.channels || []).join(', ')}</strong>:{' '}
+                                            {t('automations.dry_run_panel.would_notify_on', 'Would notify on')} <strong>{(wouldNotify.channels || []).join(', ')}</strong>:{' '}
                                             <em>{wouldNotify.title}</em>
                                         </div>
                                     )}
                                     {wouldCall && !wouldNotify && (
                                         <>
                                             <div className="text-amber-700 dark:text-amber-400 mt-1">
-                                                Would call <code className="font-mono">{out.wouldHaveCalled}</code>
+                                                {t('automations.dry_run_panel.would_call', 'Would call')} <code className="font-mono">{out.wouldHaveCalled}</code>
                                             </div>
                                             {out.withArgs != null && <OutputView value={out.withArgs} />}
                                         </>

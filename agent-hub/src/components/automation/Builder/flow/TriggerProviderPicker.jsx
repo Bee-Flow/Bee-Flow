@@ -57,7 +57,7 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
             variant="bare"
             size="auto"
             zIndex={1100}
-            label="Choose an app to trigger on"
+            label={t('automations.trigger_provider_picker.choose_an_app_to_trigger_on', 'Choose an app to trigger on')}
             className="max-w-3xl"
         >
             <div className="w-full h-[560px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-2xl overflow-hidden flex">
@@ -130,7 +130,7 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
                                             <span className="text-[var(--text-primary)]">{ev.label}</span>
                                             {ev.deliverability === 'connector' && (
                                                 <span className="text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400">
-                                                    needs connector
+                                                    {t('automations.trigger_provider_picker.needs_connector', 'needs connector')}
                                                 </span>
                                             )}
                                         </li>

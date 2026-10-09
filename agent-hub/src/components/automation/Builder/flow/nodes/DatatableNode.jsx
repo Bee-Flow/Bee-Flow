@@ -27,7 +27,7 @@ export default function DatatableNode({ id, data }) {
     // somebody else can read what this writes. Both worth saying on the card.
     const badges = (writes || shared) ? (
         <>
-            {writes && <NodeChip tone="warn" title={t('automations.datatable_node.this_step_changes_stored_data_the', 'This step changes stored data — the change outlives the run.')}>writes</NodeChip>}
+            {writes && <NodeChip tone="warn" title={t('automations.datatable_node.this_step_changes_stored_data_the', 'This step changes stored data — the change outlives the run.')}>{t('automations.datatable_node.writes', 'writes')}</NodeChip>}
             {shared && <NodeChip title={t('automations.datatable_node.other_people_can_read_this_table', 'Other people can read this table.')}>{table.scope === 'org' ? 'org' : 'shared'}</NodeChip>}
         </>
     ) : null;

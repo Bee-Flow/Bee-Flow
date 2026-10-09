@@ -16,7 +16,7 @@ function NotificationFields({ draft, set, groups = [], onFocusField, previewSamp
     return (
         <>
         <AccordionSection stepType="notification" sectionKey="message" title={t('automations.notification_fields.message', 'Message')} defaultOpen forceOpen={errorSections.has('message')}>
-            <FormRow label="Title">
+            <FormRow label={t('automations.notification_fields.title', 'Title')}>
                 <TemplateField
                     onRequestForEach={forEach.request}
                     canForEach={forEach.allowed}
@@ -28,7 +28,7 @@ function NotificationFields({ draft, set, groups = [], onFocusField, previewSamp
                     placeholder={t('automations.notification_fields.new_invoice_received', 'New invoice received')}
                 />
             </FormRow>
-            <FormRow label="Body" required hint="Click a value in the right panel to insert it.">
+            <FormRow label={t('automations.notification_fields.body', 'Body')} required hint={t('automations.notification_fields.click_a_value_in_the_right', 'Click a value in the right panel to insert it.')}>
                 <TemplateField
                     onRequestForEach={forEach.request}
                     canForEach={forEach.allowed}
@@ -44,7 +44,7 @@ function NotificationFields({ draft, set, groups = [], onFocusField, previewSamp
                 nothing ever showed it, so the step could say what to send and
                 never where — and email was reachable only via the JSON tab
                 (BFSF-350). */}
-            <FormRow label="Send to">
+            <FormRow label={t('automations.notification_fields.send_to', 'Send to')}>
                 <ChannelPills
                     caption={null}
                     channels={stepChannelsToUi(draft.channels)}

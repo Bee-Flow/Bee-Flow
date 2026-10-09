@@ -9,7 +9,7 @@ function StopErrorFields({ draft, set, onFocusField, previewSample, errorSection
     const { t } = useTranslation();
     return (
         <AccordionSection stepType="stop_error" sectionKey="config" title={t('automations.stop_error_fields.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
-            <FormRow label="Error message" hint="Surfaced as the run error. Template-interpolated.">
+            <FormRow label={t('automations.stop_error_fields.error_message', 'Error message')} hint={t('automations.stop_error_fields.surfaced_as_the_run_error_template', 'Surfaced as the run error. Template-interpolated.')}>
                 <TemplateField
                     value={draft.message || ''}
                     onChange={(next) => set('message', next)}

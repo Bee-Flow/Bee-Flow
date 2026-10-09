@@ -41,9 +41,9 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
             forceOpen={errorSections.has('destination')}
         >
             <FormRow
-                label="Knowledge base"
+                label={t('automations.knowledge_write_editors.knowledge_base', 'Knowledge base')}
                 required
-                hint="Your agents answer from what is in here. Only a base you manage can be written to — being able to read one is not permission to add to it."
+                hint={t('automations.knowledge_write_editors.your_agents_answer_from_what_is', 'Your agents answer from what is in here. Only a base you manage can be written to — being able to read one is not permission to add to it.')}
             >
                 {bases.length === 0 ? (
                     // Never a bare empty dropdown: an empty state that does not
@@ -52,7 +52,7 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
                         <BookOpen size={14} className="mt-0.5 shrink-0" />
                         <span>
                             {t('automations.knowledge_write_editors.no_knowledge_bases_yet_create_one', 'No knowledge bases yet. Create one in')}
-                            <strong> Studio &rarr; Knowledge</strong>; once you manage one it appears here.
+                            <strong> {t('automations.knowledge_write_editors.studio_knowledge', 'Studio → Knowledge')}</strong>{t('automations.knowledge_write_editors.once_you_manage_one_it_appears', '; once you manage one it appears here.')}
                         </span>
                     </div>
                 ) : (
@@ -76,7 +76,7 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
 
             {base && base.scope === 'org' && (
                 <p className="text-[11px] text-amber-700 dark:text-amber-400 px-1">
-                    This base is shared — what this step writes becomes an answer your colleagues&rsquo; agents give.
+                    {t('automations.knowledge_write_editors.this_base_is_shared_what_this', 'This base is shared — what this step writes becomes an answer your colleagues’ agents give.')}
                 </p>
             )}
         </AccordionSection>
@@ -95,9 +95,9 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
             forceOpen={errorSections.has('content')}
         >
             <FormRow
-                label="Text"
+                label={t('automations.knowledge_write_editors.text', 'Text')}
                 required
-                hint="Click a value in the right panel to insert it — usually the step that wrote the article. An agent will quote this back as fact, so send it finished text, not working notes."
+                hint={t('automations.knowledge_write_editors.click_a_value_in_the_right', 'Click a value in the right panel to insert it — usually the step that wrote the article. An agent will quote this back as fact, so send it finished text, not working notes.')}
             >
                 <TemplateField
                     onRequestForEach={forEach.request}
@@ -111,7 +111,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                 />
             </FormRow>
 
-            <FormRow label="Title" hint="What the document is called where a person browses the base.">
+            <FormRow label={t('automations.knowledge_write_editors.title', 'Title')} hint={t('automations.knowledge_write_editors.what_the_document_is_called_where', 'What the document is called where a person browses the base.')}>
                 <TemplateField
                     onRequestForEach={forEach.request}
                     canForEach={forEach.allowed}
@@ -125,8 +125,8 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
             </FormRow>
 
             <FormRow
-                label="Source reference"
-                hint="Something stable and unique for this subject — a ticket link, a record id. The next run with the same reference REPLACES this document instead of adding another."
+                label={t('automations.knowledge_write_editors.source_reference', 'Source reference')}
+                hint={t('automations.knowledge_write_editors.something_stable_and_unique_for_this', 'Something stable and unique for this subject — a ticket link, a record id. The next run with the same reference REPLACES this document instead of adding another.')}
             >
                 <TemplateField
                     onRequestForEach={forEach.request}
@@ -163,8 +163,8 @@ function AdvancedSection({ draft, set, groups, onFocusField, errorSections, stra
             hasContent={!!draft.forEach || retryIsSet(draft) || strategy !== 'skip'}
         >
             <FormRow
-                label="If something similar is already there"
-                hint="Only about text on a DIFFERENT subject that reads nearly the same. The same source reference always replaces its own document, whichever of these you pick."
+                label={t('automations.knowledge_write_editors.if_something_similar_is_already_there', 'If something similar is already there')}
+                hint={t('automations.knowledge_write_editors.only_about_text_on_a_different', 'Only about text on a DIFFERENT subject that reads nearly the same. The same source reference always replaces its own document, whichever of these you pick.')}
             >
                 <select
                     className={inputClass()}
@@ -181,7 +181,7 @@ function AdvancedSection({ draft, set, groups, onFocusField, errorSections, stra
                 {strategies.find(s => s.value === strategy)?.blurb || ''}
             </p>
 
-            <FormRow label="Iteration" hint="Off by default: the step runs once. Turn on to write one document per item of an upstream list (then reference {{loop.item…}} in the text, the title and the source reference).">
+            <FormRow label={t('automations.knowledge_write_editors.iteration', 'Iteration')} hint={t('automations.knowledge_write_editors.off_by_default_the_step_runs', 'Off by default: the step runs once. Turn on to write one document per item of an upstream list (then reference {{loop.item…}} in the text, the title and the source reference).')}>
                 <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
             </FormRow>
             <RetrySection draft={draft} set={set} />

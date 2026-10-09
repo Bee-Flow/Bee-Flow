@@ -679,10 +679,11 @@ export function NodeChip({ children, tone = 'neutral', title }) {
  * via per-step `forEach` (no wrapping loop).
  */
 export function ForEachBadge({ step }) {
+    const { t } = useTranslation();
     if (!step?.forEach?.overRef) return null;
     return (
         <NodeChip tone="accent" title={`Runs once per item in ${step.forEach.overRef}`}>
-            <Repeat size={10} /> for each
+            <Repeat size={10} /> {t('automations.step_node_base.for_each', 'for each')}
         </NodeChip>
     );
 }

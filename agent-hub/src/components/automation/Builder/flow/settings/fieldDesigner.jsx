@@ -221,6 +221,7 @@ export function BindingNameField({ field, siblings, bindingBase, onRenameField, 
  * eight times.
  */
 function useRowNameBox({ name, siblings, onRenameField, onCommit, sanitize, takenError, ariaLabel }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(name);
     const [error, setError] = useState('');
     const [note, setNote] = useState('');
@@ -262,7 +263,7 @@ function useRowNameBox({ name, siblings, onRenameField, onCommit, sanitize, take
                     if (e.key === 'Enter') { e.preventDefault(); commit(); }
                     if (e.key === 'Escape') { setDraft(name); setError(''); }
                 }}
-                placeholder="name"
+                placeholder={t('automations.field_designer.name', 'name')}
                 className={rowInputClass('flex-1 min-w-0 font-mono')}
             />
         ),
@@ -279,6 +280,7 @@ function FieldRow({
     row, siblings, types, removeLabel, descriptionPlaceholder,
     sanitizeName, takenError, onRenameField, onPatch, onRemove, position,
 }) {
+    const { t } = useTranslation();
     const { box, error, note } = useRowNameBox({
         name: row.name || '',
         siblings,
@@ -327,7 +329,7 @@ function FieldRow({
                 />
             ) : null}
             <label className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] cursor-pointer">
-                <input type="checkbox" checked={!!row.required} onChange={(e) => onPatch({ required: e.target.checked })} /> required
+                <input type="checkbox" checked={!!row.required} onChange={(e) => onPatch({ required: e.target.checked })} /> {t('automations.field_designer.required', 'required')}
             </label>
         </div>
     );

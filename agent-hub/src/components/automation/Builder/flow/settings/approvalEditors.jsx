@@ -295,9 +295,9 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     {t('automations.approval_editors.the_run_stops_here_until_someone', 'The run stops here until someone decides. Approve and it continues from the next step. Reject and the run ends — nothing after this step runs.')}
                 </p>
                 <FormRow
-                    label="Question for the approver"
+                    label={t('automations.approval_editors.question_for_the_approver', 'Question for the approver')}
                     required
-                    hint="What the person is asked. Use {{ }} to pull in values from earlier steps, so they can see what they are deciding on."
+                    hint={t('automations.approval_editors.what_the_person_is_asked_use', 'What the person is asked. Use {{ }} to pull in values from earlier steps, so they can see what they are deciding on.')}
                 >
                     <TemplateField
                         value={draft.prompt || ''}
@@ -309,8 +309,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     />
                 </FormRow>
                 <FormRow
-                    label="More information"
-                    hint="Shown under the question. Give the approver the context they need — amounts, recipients, the drafted text. Markdown works."
+                    label={t('automations.approval_editors.more_information', 'More information')}
+                    hint={t('automations.approval_editors.shown_under_the_question_give_the', 'Shown under the question. Give the approver the context they need — amounts, recipients, the drafted text. Markdown works.')}
                 >
                     <TemplateField
                         value={draft.details || ''}
@@ -323,8 +323,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     />
                 </FormRow>
                 <FormRow
-                    label="Documents to show"
-                    hint="Files earlier steps produced (a generated PDF or Word document) that the approver can download before deciding. Up to 5."
+                    label={t('automations.approval_editors.documents_to_show', 'Documents to show')}
+                    hint={t('automations.approval_editors.files_earlier_steps_produced_a_generated', 'Files earlier steps produced (a generated PDF or Word document) that the approver can download before deciding. Up to 5.')}
                 >
                     <div className="space-y-1.5">
                         {attachments.map((att, i) => (
@@ -362,14 +362,14 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 onClick={() => set('attachments', [...attachments, { binding: '', label: '' }])}
                                 className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
                             >
-                                <Plus size={12} /> Add a document
+                                <Plus size={12} /> {t('automations.approval_editors.add_a_document', 'Add a document')}
                             </button>
                         )}
                     </div>
                 </FormRow>
                 <FormRow
-                    label="Questions for the approver"
-                    hint="Extra answers collected with the decision — later steps can use them as this step's output.answers. Up to 20."
+                    label={t('automations.approval_editors.questions_for_the_approver', 'Questions for the approver')}
+                    hint={t('automations.approval_editors.extra_answers_collected_with_the_decision', 'Extra answers collected with the decision — later steps can use them as this step\'s output.answers. Up to 20.')}
                 >
                     <div className="space-y-1.5">
                         {questions.map((q, i) => (
@@ -411,7 +411,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                         onChange={(e) => setQuestion(i, { required: e.target.checked })}
                                         className="h-3.5 w-3.5"
                                     />
-                                    required
+                                    {t('automations.approval_editors.required', 'required')}
                                 </label>
                                 <button
                                     type="button"
@@ -452,7 +452,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                     so it falls back to the prospective mint — which is also
                                     exactly what touching the label box will store. */}
                                 <p className="w-full text-[11px] text-[var(--text-tertiary)]">
-                                    Later steps read this answer as{' '}
+                                    {t('automations.approval_editors.later_steps_read_this_answer_as', 'Later steps read this answer as')}{' '}
                                     <code>output.answers.{storedQuestionName(q) || approvalQuestionName(q, i, questions)}</code>
                                 </p>
                             </div>
@@ -473,7 +473,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 }}
                                 className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
                             >
-                                <Plus size={12} /> Add a question
+                                <Plus size={12} /> {t('automations.approval_editors.add_a_question', 'Add a question')}
                             </button>
                         )}
                     </div>
@@ -493,8 +493,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 )}
                 {!stagesActive && !panelActive && (
                     <FormRow
-                        label="Who decides"
-                        hint="A person or group in your organisation. They get the notification; the first decision wins. Leave empty and you decide."
+                        label={t('automations.approval_editors.who_decides', 'Who decides')}
+                        hint={t('automations.approval_editors.a_person_or_group_in_your', 'A person or group in your organisation. They get the notification; the first decision wins. Leave empty and you decide.')}
                     >
                         <div className="flex items-center gap-2">
                             <select
@@ -523,8 +523,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 )}
                 {!stagesActive && panelActive && (
                     <FormRow
-                        label="Approvers"
-                        hint="Up to 10 seats — a person, or a group whose first voting member fills the seat. How the votes resolve is set below. Remove every seat to go back to a single approver."
+                        label={t('automations.approval_editors.approvers', 'Approvers')}
+                        hint={t('automations.approval_editors.up_to_10_seats_a_person', 'Up to 10 seats — a person, or a group whose first voting member fills the seat. How the votes resolve is set below. Remove every seat to go back to a single approver.')}
                     >
                         <div className="space-y-1.5">
                             {panelSeats.map((seat, i) => (
@@ -562,8 +562,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 )}
                 {!stagesActive && panelActive && realSeatCount >= 2 && (
                     <FormRow
-                        label="Decision rule"
-                        hint="How the votes become one answer. With “everyone”, one reject declines immediately — the requester hears fast."
+                        label={t('automations.approval_editors.decision_rule', 'Decision rule')}
+                        hint={t('automations.approval_editors.how_the_votes_become_one_answer', 'How the votes become one answer. With “everyone”, one reject declines immediately — the requester hears fast.')}
                     >
                         <div className="flex items-center gap-2">
                             <select
@@ -593,8 +593,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 )}
                 {!stagesActive && (
                     <FormRow
-                        label="Final sign-off"
-                        hint="Optional second stage: once the approver(s) say yes, this person or group has the last word — only then does the run continue."
+                        label={t('automations.approval_editors.final_sign_off', 'Final sign-off')}
+                        hint={t('automations.approval_editors.optional_second_stage_once_the_approver', 'Optional second stage: once the approver(s) say yes, this person or group has the last word — only then does the run continue.')}
                     >
                         <select
                             value={draft.finalApprover?.userId ? `u:${draft.finalApprover.userId}` : (draft.finalApprover?.groupId ? `g:${draft.finalApprover.groupId}` : '')}
@@ -626,7 +626,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     </div>
                 )}
                 <FormRow
-                    label="Decide within"
+                    label={t('automations.approval_editors.decide_within', 'Decide within')}
                     hint={'If nobody decides in time, the run is closed as expired. Pick "No deadline" to let it wait as long as it needs.'}
                 >
                     <select
@@ -641,8 +641,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     </select>
                 </FormRow>
                 <FormRow
-                    label="Remind after"
-                    hint="Nudge the approver again if nobody has decided by then. Must be earlier than the deadline."
+                    label={t('automations.approval_editors.remind_after', 'Remind after')}
+                    hint={t('automations.approval_editors.nudge_the_approver_again_if_nobody', 'Nudge the approver again if nobody has decided by then. Must be earlier than the deadline.')}
                 >
                     <select
                         value={String(draft.remindAfterHours || '')}
@@ -658,8 +658,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 </FormRow>
                 {!stagesActive && !panelActive && (
                 <FormRow
-                    label="Escalate to"
-                    hint="If nobody decides, this person or group ALSO gains the right to decide — the original approver keeps theirs."
+                    label={t('automations.approval_editors.escalate_to', 'Escalate to')}
+                    hint={t('automations.approval_editors.if_nobody_decides_this_person_or', 'If nobody decides, this person or group ALSO gains the right to decide — the original approver keeps theirs.')}
                 >
                     <div className="flex items-center gap-2">
                         <select

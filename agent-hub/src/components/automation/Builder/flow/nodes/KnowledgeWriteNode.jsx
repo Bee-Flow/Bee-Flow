@@ -27,12 +27,12 @@ export default function KnowledgeWriteNode({ id, data }) {
 
     const badges = (
         <>
-            <NodeChip tone="warn" title={t('automations.knowledge_write_node.this_step_adds_to_a_knowledge', 'This step adds to a knowledge base — an agent will answer from it afterwards.')}>writes</NodeChip>
+            <NodeChip tone="warn" title={t('automations.knowledge_write_node.this_step_adds_to_a_knowledge', 'This step adds to a knowledge base — an agent will answer from it afterwards.')}>{t('automations.knowledge_write_node.writes', 'writes')}</NodeChip>
             {repeats && (
                 <NodeChip
                     tone="warn"
                     title={t('automations.knowledge_write_node.no_source_reference_so_every_run', 'No source reference, so every run adds another document instead of replacing its own.')}
-                >repeats</NodeChip>
+                >{t('automations.knowledge_write_node.repeats', 'repeats')}</NodeChip>
             )}
         </>
     );

@@ -82,7 +82,7 @@ export default function TriggerDiagnosePanel({ result, loading, error, onClose, 
 
             {loading && (
                 <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)] py-4">
-                    <Loader2 size={14} className="animate-spin" /> Probing the trigger pipeline…
+                    <Loader2 size={14} className="animate-spin" /> {t('automations.trigger_diagnose_panel.probing_the_trigger_pipeline', 'Probing the trigger pipeline…')}
                 </div>
             )}
 
@@ -95,7 +95,7 @@ export default function TriggerDiagnosePanel({ result, loading, error, onClose, 
             {!loading && result && (
                 <>
                     <div className="text-xs text-[var(--text-tertiary)] mb-2">
-                        Trigger kind: <span className="font-mono">{result.kind || 'unknown'}</span>
+                        {t('automations.trigger_diagnose_panel.trigger_kind', 'Trigger kind:')} <span className="font-mono">{result.kind || 'unknown'}</span>
                     </div>
                     <ul className="space-y-2">
                         {(result.checks || []).map((c) => (

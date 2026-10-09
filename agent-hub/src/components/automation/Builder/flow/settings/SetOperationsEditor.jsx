@@ -71,7 +71,7 @@ export default function SetOperationsEditor({ ops = [], onChange, baseColumns = 
                     onClick={() => setMenuOpen(o => !o)}
                     className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                 >
-                    <Plus size={12} /> Add a table tool
+                    <Plus size={12} /> {t('automations.set_operations_editor.add_a_table_tool', 'Add a table tool')}
                 </button>
                 {/* Portalled + height-capped: this menu had neither a max-height
                     nor an escape from the modal's clip chain, so the last table
@@ -132,10 +132,10 @@ function OpCard({ op, index, count, options, onChange, onRemove, onMove, onFocus
 
             {op.op === 'rowId' && (
                 <>
-                    <MiniRow label="Put the number in">
+                    <MiniRow label={t('automations.set_operations_editor.put_the_number_in', 'Put the number in')}>
                         <NameInput value={op.target || ''} onCommit={(v) => onChange({ target: v })} placeholder={t('automations.set_operations_editor.id', 'id')} warning={collision(op.target)} />
                     </MiniRow>
-                    <MiniRow label="Start at">
+                    <MiniRow label={t('automations.set_operations_editor.start_at', 'Start at')}>
                         <input
                             type="number"
                             value={op.start ?? 1}
@@ -148,10 +148,10 @@ function OpCard({ op, index, count, options, onChange, onRemove, onMove, onFocus
 
             {op.op === 'groupId' && (
                 <>
-                    <MiniRow label="Rows match when these are equal">
+                    <MiniRow label={t('automations.set_operations_editor.rows_match_when_these_are_equal', 'Rows match when these are equal')}>
                         <KeyList keys={op.keys || []} options={options} onChange={(keys) => onChange({ keys })} onFocusField={onFocusField} addLabel="Add another column" />
                     </MiniRow>
-                    <MiniRow label="Put the shared ID in">
+                    <MiniRow label={t('automations.set_operations_editor.put_the_shared_id_in', 'Put the shared ID in')}>
                         <NameInput value={op.target || ''} onCommit={(v) => onChange({ target: v })} placeholder={t('automations.set_operations_editor.group_id', 'groupId')} warning={collision(op.target)} />
                     </MiniRow>
                     <p className="text-[10px] text-[var(--text-tertiary)]">
@@ -163,7 +163,7 @@ function OpCard({ op, index, count, options, onChange, onRemove, onMove, onFocus
             {op.op === 'rename' && (
                 <div className="flex items-center gap-2">
                     <div className="flex-1 min-w-0">
-                        <FieldKeyCombobox value={op.from || ''} onChange={(v) => onChange({ from: v })} options={options} placeholder={t('automations.set_operations_editor.current_name', 'current name')} label="Rename" onFocusField={onFocusField} />
+                        <FieldKeyCombobox value={op.from || ''} onChange={(v) => onChange({ from: v })} options={options} placeholder={t('automations.set_operations_editor.current_name', 'current name')} label={t('automations.set_operations_editor.rename', 'Rename')} onFocusField={onFocusField} />
                     </div>
                     <span className="text-[var(--text-tertiary)] text-xs shrink-0">→</span>
                     <div className="flex-1 min-w-0">
@@ -181,7 +181,7 @@ function OpCard({ op, index, count, options, onChange, onRemove, onMove, onFocus
             {op.op === 'sort' && (
                 <div className="flex items-center gap-2">
                     <div className="flex-1 min-w-0">
-                        <FieldKeyCombobox value={op.key || ''} onChange={(v) => onChange({ key: v })} options={options} placeholder={t('automations.set_operations_editor.column_to_sort_by', 'column to sort by')} label="Sort by" onFocusField={onFocusField} />
+                        <FieldKeyCombobox value={op.key || ''} onChange={(v) => onChange({ key: v })} options={options} placeholder={t('automations.set_operations_editor.column_to_sort_by', 'column to sort by')} label={t('automations.set_operations_editor.sort_by', 'Sort by')} onFocusField={onFocusField} />
                     </div>
                     <select
                         value={op.direction === 'desc' ? 'desc' : 'asc'}
@@ -247,7 +247,7 @@ function KeyList({ keys, options, onChange, onFocusField, addLabel }) {
             {rows.map((k, i) => (
                 <div key={i} className="flex items-center gap-1">
                     <div className="flex-1 min-w-0">
-                        <FieldKeyCombobox value={k} onChange={(v) => setAt(i, v)} options={options} placeholder={t('automations.set_operations_editor.column', 'column')} label="Column" onFocusField={onFocusField} />
+                        <FieldKeyCombobox value={k} onChange={(v) => setAt(i, v)} options={options} placeholder={t('automations.set_operations_editor.column', 'column')} label={t('automations.set_operations_editor.column_2', 'Column')} onFocusField={onFocusField} />
                     </div>
                     {rows.length > 1 && (
                         <button

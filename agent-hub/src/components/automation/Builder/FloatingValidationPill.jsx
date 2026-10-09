@@ -88,7 +88,7 @@ export default function FloatingValidationPill({ fatalError, validation, aborted
                                 </div>
                                 {onDismissFatal && (
                                     <button onClick={onDismissFatal} className="text-[10px] underline hover:no-underline opacity-80 flex-shrink-0">
-                                        dismiss
+                                        {t('automations.floating_validation_pill.dismiss', 'dismiss')}
                                     </button>
                                 )}
                             </div>

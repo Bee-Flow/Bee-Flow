@@ -48,7 +48,7 @@ function ForEachSection({ draft, set, groups, onFocusField }) {
             <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={enabled} onChange={(e) => toggle(e.target.checked)} />
                 <span className="inline-flex items-center gap-1.5 font-medium text-[var(--text-primary)]">
-                    <Repeat size={13} /> Run once per item
+                    <Repeat size={13} /> {t('automations.collection_editors.run_once_per_item', 'Run once per item')}
                 </span>
             </label>
             {/* Plain words first; the raw loop.<var> syntax is demoted to the
@@ -58,7 +58,7 @@ function ForEachSection({ draft, set, groups, onFocusField }) {
             </p>
             {overCount != null && (
                 <p className="text-[11px] text-[var(--text-secondary)] font-medium">
-                    This step will run {overCount} time{overCount === 1 ? '' : 's'} — once for each row.
+                    {overCount === 1 ? t('automations.collection_editors.will_run_once', 'This step will run 1 time, once for each row.') : t('automations.collection_editors.will_run_times', 'This step will run {count} times, once for each row.', { count: overCount })}
                 </p>
             )}
             {enabled && (
@@ -75,7 +75,7 @@ function ForEachSection({ draft, set, groups, onFocusField }) {
                         bindings={stepBindings(draft)}
                         onRebind={(next) => applyStepBindings(draft, next, set)}
                     />
-                    <FormRow label="Max iterations" hint="Safety cap. 1–1000.">
+                    <FormRow label={t('automations.collection_editors.max_iterations', 'Max iterations')} hint={t('automations.collection_editors.safety_cap_1_1000', 'Safety cap. 1–1000.')}>
                         <input
                             type="number" min={1} max={1000}
                             value={fe.maxIterations ?? 100}
@@ -241,7 +241,7 @@ function RetrySection({ draft, set }) {
                 <input type="checkbox" checked={enabled}
                     onChange={(e) => set('retry', e.target.checked ? { ...RETRY_DEFAULT } : null)} />
                 <span className="inline-flex items-center gap-1.5 font-medium text-[var(--text-primary)]">
-                    <RotateCw size={13} /> Try again if this step fails
+                    <RotateCw size={13} /> {t('automations.collection_editors.try_again_if_this_step_fails', 'Try again if this step fails')}
                 </span>
             </label>
             <p className="text-[11px] text-[var(--text-secondary)]">
@@ -249,8 +249,8 @@ function RetrySection({ draft, set }) {
             </p>
             {enabled && (
                 <div className="space-y-3 pt-1">
-                    <FormRow label="Try again" htmlFor="retry-tries"
-                        hint="How many more times to run this step after the first attempt fails.">
+                    <FormRow label={t('automations.collection_editors.try_again', 'Try again')} htmlFor="retry-tries"
+                        hint={t('automations.collection_editors.how_many_more_times_to_run', 'How many more times to run this step after the first attempt fails.')}>
                         <select
                             id="retry-tries"
                             value={tries}
@@ -262,8 +262,8 @@ function RetrySection({ draft, set }) {
                             ))}
                         </select>
                     </FormRow>
-                    <FormRow label="Wait before trying again" htmlFor="retry-wait"
-                        hint="Trying again immediately usually hits the same problem — a few seconds is enough for most of them to clear.">
+                    <FormRow label={t('automations.collection_editors.wait_before_trying_again', 'Wait before trying again')} htmlFor="retry-wait"
+                        hint={t('automations.collection_editors.trying_again_immediately_usually_hits_the', 'Trying again immediately usually hits the same problem — a few seconds is enough for most of them to clear.')}>
                         <select
                             id="retry-wait"
                             value={waitMs}
@@ -333,7 +333,7 @@ function SourceSummaryRow({ hint, warning = null, source, maxItems, onPatch, gro
     // R10: never a raw path — an unreadable list shows its name and why it has no fields yet.
     const unread = !summary && source ? listPathLabel(source, pickerCtx.stepLabelById, t, { stepTypeById: pickerCtx.stepTypeById }) : null;
     return (
-        <FormRow label="Working through" hint={hint}>
+        <FormRow label={t('automations.collection_editors.working_through', 'Working through')} hint={hint}>
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                 {summary ? (
                     <span className="truncate">
@@ -341,7 +341,7 @@ function SourceSummaryRow({ hint, warning = null, source, maxItems, onPatch, gro
                         {summary.fieldLabel && <span className="text-[var(--text-tertiary)]"> · </span>}
                         {summary.fieldLabel && <span className="text-[var(--text-primary)]">{summary.fieldLabel}</span>}
                         {summary.count != null && (
-                            <span className="text-[var(--text-tertiary)]"> — {summary.count} item{summary.count === 1 ? '' : 's'}</span>
+                            <span className="text-[var(--text-tertiary)]"> — {summary.count} {t('automations.collection_editors.item', 'item')}{summary.count === 1 ? '' : 's'}</span>
                         )}
                     </span>
                 ) : unread ? (
@@ -426,7 +426,7 @@ function CollectionArrayRefField({ draft, set, groups, onFocusField, previewSamp
     const quickPicks = useMemo(() => collectArrayPaths(groups, previewSample), [groups, previewSample]);
     return (
         <>
-            <FormRow label="Source list" required hint="Pick a list from a previous step — or type a path manually.">
+            <FormRow label={t('automations.collection_editors.source_list', 'Source list')} required hint={t('automations.collection_editors.pick_a_list_from_a_previous', 'Pick a list from a previous step — or type a path manually.')}>
                 <PathField
                     value={draft.arrayRef || ''}
                     onChange={(v) => set('arrayRef', v)}
@@ -441,7 +441,7 @@ function CollectionArrayRefField({ draft, set, groups, onFocusField, previewSamp
                 the server, but previously editable only via the raw JSON
                 view — the router even pointed limit's maxItems errors at a
                 control that didn't exist. Blank = platform default. */}
-            <FormRow label="Max input items" hint="Optional cap on input size — the run FAILS if the source list is larger (platform cap 10 000). Leave blank for the default.">
+            <FormRow label={t('automations.collection_editors.max_input_items', 'Max input items')} hint={t('automations.collection_editors.optional_cap_on_input_size_the', 'Optional cap on input size — the run FAILS if the source list is larger (platform cap 10 000). Leave blank for the default.')}>
                 <input
                     type="number" min={1} max={10000}
                     value={draft.maxItems === '' || draft.maxItems == null ? '' : draft.maxItems}
@@ -475,7 +475,7 @@ function DateTimeFields({ draft, set, groups, onFocusField, previewSample, error
     const column = datetimeTargetColumn(draft);
     return (
         <AccordionSection stepType="datetime" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
-            <FormRow label="Operation">
+            <FormRow label={t('automations.collection_editors.operation', 'Operation')}>
                 <select value={op} onChange={(e) => set('op', e.target.value)} className={inputClass()}>
                     <option value="now">{t('automations.collection_editors.today_s_date_and_time', 'Today’s date and time')}</option>
                     <option value="parse">{t('automations.collection_editors.read_a_date_out_of_text', 'Read a date out of text')}</option>
@@ -491,7 +491,7 @@ function DateTimeFields({ draft, set, groups, onFocusField, previewSample, error
                 "Input date" switches this automatically — before, the array
                 reached the date parser whole and the step just failed. */}
             {op !== 'now' && (
-                <FormRow label="Works on" hint="Set automatically when you drop a whole column into the input below.">
+                <FormRow label={t('automations.collection_editors.works_on', 'Works on')} hint={t('automations.collection_editors.set_automatically_when_you_drop_a', 'Set automatically when you drop a whole column into the input below.')}>
                     <select
                         value={listMode ? 'items' : 'single'}
                         onChange={(e) => set('arrayRef', e.target.value === 'items' ? (draft.arrayRef ?? '') : null)}
@@ -513,7 +513,7 @@ function DateTimeFields({ draft, set, groups, onFocusField, previewSample, error
             )}
             {needsInput && (
                 <FormRow
-                    label="Input date"
+                    label={t('automations.collection_editors.input_date', 'Input date')}
                     hint={listMode
                         ? 'Which column of that list holds the date. Write it as item.<column>.'
                         : 'Pick a date from a previous step, or type a fixed date like 2026-07-01.'}
@@ -534,7 +534,7 @@ function DateTimeFields({ draft, set, groups, onFocusField, previewSample, error
             )}
             {listMode && (
                 <FormRow
-                    label="New column"
+                    label={t('automations.collection_editors.new_column', 'New column')}
                     hint={`Every row keeps its own columns and gains this one. Leave empty to call it “${column}”.`}
                 >
                     <input
@@ -547,7 +547,7 @@ function DateTimeFields({ draft, set, groups, onFocusField, previewSample, error
                 </FormRow>
             )}
             {needsInput2 && (
-                <FormRow label="Second date" hint="Difference is calculated as second date − input date.">
+                <FormRow label={t('automations.collection_editors.second_date', 'Second date')} hint={t('automations.collection_editors.difference_is_calculated_as_second_date', 'Difference is calculated as second date − input date.')}>
                     <PathField
                         value={draft.input2 || ''}
                         onChange={(v) => set('input2', v)}
@@ -559,35 +559,35 @@ function DateTimeFields({ draft, set, groups, onFocusField, previewSample, error
                 </FormRow>
             )}
             {needsAmount && (
-                <FormRow label="Amount" hint="Positive to add, negative to subtract.">
+                <FormRow label={t('automations.collection_editors.amount_2', 'Amount')} hint={t('automations.collection_editors.positive_to_add_negative_to_subtract', 'Positive to add, negative to subtract.')}>
                     <input type="number" value={draft.amount ?? 0} onChange={(e) => set('amount', Number(e.target.value))} className={inputClass()} />
                 </FormRow>
             )}
             {op === 'format' && (
-                <FormRow label="Format" hint="How the date should be written. Building blocks: yyyy (year), MM (month), dd (day), HH, mm, ss.">
+                <FormRow label={t('automations.collection_editors.format', 'Format')} hint={t('automations.collection_editors.how_the_date_should_be_written', 'How the date should be written. Building blocks: yyyy (year), MM (month), dd (day), HH, mm, ss.')}>
                     <input type="text" value={draft.format || ''} onChange={(e) => set('format', e.target.value)} placeholder={t('automations.collection_editors.yyyy_mm_dd_hh_mm', 'yyyy-MM-dd HH:mm')} className={inputClass() + ' font-mono'} />
                 </FormRow>
             )}
             {op === 'extract' && (
-                <FormRow label="Part">
+                <FormRow label={t('automations.collection_editors.part', 'Part')}>
                     <select value={draft.part || 'year'} onChange={(e) => set('part', e.target.value)} className={inputClass()}>
-                        <option value="year">year</option>
-                        <option value="month">month</option>
-                        <option value="day">day</option>
-                        <option value="hour">hour</option>
-                        <option value="minute">minute</option>
-                        <option value="second">second</option>
-                        <option value="dayOfWeek">day of the week</option>
+                        <option value="year">{t('automations.collection_editors.year', 'year')}</option>
+                        <option value="month">{t('automations.collection_editors.month', 'month')}</option>
+                        <option value="day">{t('automations.collection_editors.day', 'day')}</option>
+                        <option value="hour">{t('automations.collection_editors.hour', 'hour')}</option>
+                        <option value="minute">{t('automations.collection_editors.minute', 'minute')}</option>
+                        <option value="second">{t('automations.collection_editors.second', 'second')}</option>
+                        <option value="dayOfWeek">{t('automations.collection_editors.day_of_the_week', 'day of the week')}</option>
                     </select>
                 </FormRow>
             )}
             {op === 'diff' && (
-                <FormRow label="Unit">
+                <FormRow label={t('automations.collection_editors.unit', 'Unit')}>
                     <select value={draft.unit || 'days'} onChange={(e) => set('unit', e.target.value)} className={inputClass()}>
-                        <option value="days">days</option>
-                        <option value="hours">hours</option>
-                        <option value="minutes">minutes</option>
-                        <option value="seconds">seconds</option>
+                        <option value="days">{t('automations.collection_editors.days', 'days')}</option>
+                        <option value="hours">{t('automations.collection_editors.hours', 'hours')}</option>
+                        <option value="minutes">{t('automations.collection_editors.minutes', 'minutes')}</option>
+                        <option value="seconds">{t('automations.collection_editors.seconds', 'seconds')}</option>
                     </select>
                 </FormRow>
             )}
@@ -645,7 +645,7 @@ function WaitFields({ draft, set, errorSections = new Set() }) {
     const controlSize = 'px-2 py-1.5 text-sm';
     return (
         <AccordionSection stepType="wait" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
-            <FormRow label="Wait for" required hint="Up to 24 hours. Dry-run skips the wait.">
+            <FormRow label={t('automations.collection_editors.wait_for', 'Wait for')} required hint={t('automations.collection_editors.up_to_24_hours_dry_run', 'Up to 24 hours. Dry-run skips the wait.')}>
                 <div className="flex items-stretch gap-1.5">
                     <input
                         type="number"
@@ -663,9 +663,9 @@ function WaitFields({ draft, set, errorSections = new Set() }) {
                         className={controlSurfaceClass(`w-auto shrink-0 ${controlSize}`)}
                         aria-label={t('automations.collection_editors.duration_unit', 'Duration unit')}
                     >
-                        <option value="seconds">seconds</option>
-                        <option value="minutes">minutes</option>
-                        <option value="hours">hours</option>
+                        <option value="seconds">{t('automations.collection_editors.seconds', 'seconds')}</option>
+                        <option value="minutes">{t('automations.collection_editors.minutes', 'minutes')}</option>
+                        <option value="hours">{t('automations.collection_editors.hours', 'hours')}</option>
                     </select>
                 </div>
             </FormRow>
@@ -678,13 +678,13 @@ function LimitFields({ draft, set, groups, onFocusField, previewSample, errorSec
     return (
         <AccordionSection stepType="limit" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
             <CollectionArrayRefField draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} />
-            <FormRow label="Which end">
+            <FormRow label={t('automations.collection_editors.which_end', 'Which end')}>
                 <select value={draft.mode || 'first'} onChange={(e) => set('mode', e.target.value)} className={inputClass()}>
                     <option value="first">{t('automations.collection_editors.keep_the_first_few', 'Keep the first few')}</option>
                     <option value="last">{t('automations.collection_editors.keep_the_last_few', 'Keep the last few')}</option>
                 </select>
             </FormRow>
-            <FormRow label="How many to keep" hint="0 keeps nothing.">
+            <FormRow label={t('automations.collection_editors.how_many_to_keep', 'How many to keep')} hint={t('automations.collection_editors.0_keeps_nothing', '0 keeps nothing.')}>
                 <input type="number" min={0} value={draft.count ?? 10} onChange={(e) => set('count', Number(e.target.value))} className={inputClass()} />
             </FormRow>
         </AccordionSection>
@@ -698,8 +698,8 @@ function DedupeFields({ draft, set, groups, onFocusField, previewSample, errorSe
     return (
         <AccordionSection stepType="dedupe" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
             <CollectionArrayRefField draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} />
-            <FormRow label="Key field" hint="Optional. Two items with the same value here count as the same item. Leave it blank to drop only items that are identical all the way through.">
-                <FieldKeyCombobox value={draft.keyField || ''} onChange={(v) => set('keyField', v)} options={options} placeholder={t('automations.collection_editors.id', 'id')} label="Key field" onFocusField={onFocusField} />
+            <FormRow label={t('automations.collection_editors.key_field', 'Key field')} hint={t('automations.collection_editors.optional_two_items_with_the_same', 'Optional. Two items with the same value here count as the same item. Leave it blank to drop only items that are identical all the way through.')}>
+                <FieldKeyCombobox value={draft.keyField || ''} onChange={(v) => set('keyField', v)} options={options} placeholder={t('automations.collection_editors.id', 'id')} label={t('automations.collection_editors.key_field', 'Key field')} onFocusField={onFocusField} />
             </FormRow>
         </AccordionSection>
     );
@@ -712,8 +712,8 @@ function AggregateFields({ draft, set, groups, onFocusField, previewSample, erro
     return (
         <AccordionSection stepType="aggregate" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
             <CollectionArrayRefField draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} />
-            <FormRow label="Field" hint="The field to take from every item. The result is a plain list of just those values. If no item has this field the step is skipped rather than handing on a list of blanks.">
-                <FieldKeyCombobox value={draft.field || ''} onChange={(v) => set('field', v)} options={options} placeholder={t('automations.collection_editors.email', 'email')} label="Field" onFocusField={onFocusField} />
+            <FormRow label={t('automations.collection_editors.field', 'Field')} hint={t('automations.collection_editors.the_field_to_take_from_every', 'The field to take from every item. The result is a plain list of just those values. If no item has this field the step is skipped rather than handing on a list of blanks.')}>
+                <FieldKeyCombobox value={draft.field || ''} onChange={(v) => set('field', v)} options={options} placeholder={t('automations.collection_editors.email', 'email')} label={t('automations.collection_editors.field', 'Field')} onFocusField={onFocusField} />
             </FormRow>
         </AccordionSection>
     );
@@ -729,11 +729,11 @@ function SummarizeFields({ draft, set, groups, onFocusField, previewSample, erro
             {/* `count` ignores the field entirely (it counts items), so asking
                 for one there would be misleading. */}
             {draft.op !== 'count' && (
-                <FormRow label="Field" hint="The number to work with, read from every item. If no item has this field the step is skipped rather than reporting 0.">
-                    <FieldKeyCombobox value={draft.field || ''} onChange={(v) => set('field', v)} options={options} placeholder={t('automations.collection_editors.amount', 'amount')} label="Field" onFocusField={onFocusField} />
+                <FormRow label={t('automations.collection_editors.field', 'Field')} hint={t('automations.collection_editors.the_number_to_work_with_read', 'The number to work with, read from every item. If no item has this field the step is skipped rather than reporting 0.')}>
+                    <FieldKeyCombobox value={draft.field || ''} onChange={(v) => set('field', v)} options={options} placeholder={t('automations.collection_editors.amount', 'amount')} label={t('automations.collection_editors.field', 'Field')} onFocusField={onFocusField} />
                 </FormRow>
             )}
-            <FormRow label="What to work out">
+            <FormRow label={t('automations.collection_editors.what_to_work_out', 'What to work out')}>
                 <select value={draft.op || 'sum'} onChange={(e) => set('op', e.target.value)} className={inputClass()}>
                     <option value="sum">{t('automations.collection_editors.total_add_them_all_up', 'Total — add them all up')}</option>
                     <option value="count">{t('automations.collection_editors.count_how_many_items', 'Count — how many items')}</option>

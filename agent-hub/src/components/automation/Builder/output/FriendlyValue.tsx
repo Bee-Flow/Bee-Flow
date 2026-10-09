@@ -88,7 +88,7 @@ function FriendlyArray({ arr: raw, map, allowExpand, nested }: { arr: unknown[];
     return (
         <ul className="list-disc pl-4 space-y-0.5">
             {shown.map((v, i) => <li key={i} {...mapAttrs(map, appendKey('', i))}><InlineValue value={v} /></li>)}
-            {arr.length > MAX_ROWS && <li className="list-none text-[var(--text-tertiary)]">+{arr.length - MAX_ROWS} more</li>}
+            {arr.length > MAX_ROWS && <li className="list-none text-[var(--text-tertiary)]">+{arr.length - MAX_ROWS} {t('automations.friendly_value.more', 'more')}</li>}
         </ul>
     );
 }
@@ -149,6 +149,7 @@ interface PairTableProps { rows: PlainObject[]; keys: { name: string; value: str
  * (the runtime matches the first, ignoring case) is reached by position.
  */
 function PairTable({ rows, keys, map, allowExpand }: PairTableProps) {
+    const { t } = useTranslation();
     const names: string[] = [];
     const shown = rows.slice(0, MAX_ROWS);
     return (
@@ -178,7 +179,7 @@ function PairTable({ rows, keys, map, allowExpand }: PairTableProps) {
                     );
                 })}
                 {rows.length > MAX_ROWS && (
-                    <tr><td colSpan={2} className="px-2 py-1 text-[var(--text-tertiary)]">+{rows.length - MAX_ROWS} more</td></tr>
+                    <tr><td colSpan={2} className="px-2 py-1 text-[var(--text-tertiary)]">+{rows.length - MAX_ROWS} {t('automations.friendly_value.more', 'more')}</td></tr>
                 )}
             </tbody>
         </table>

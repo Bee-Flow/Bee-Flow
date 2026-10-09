@@ -104,8 +104,8 @@ export default function DatatableFields({
                 forceOpen={errorSections.has('table')}
             >
                 <FormRow
-                    label="Datatable"
-                    hint="Rows in a datatable stay put after the run ends, so this automation can read back what an earlier run wrote — and other automations can use the same table."
+                    label={t('automations.datatable_editors.datatable', 'Datatable')}
+                    hint={t('automations.datatable_editors.rows_in_a_datatable_stay_put', 'Rows in a datatable stay put after the run ends, so this automation can read back what an earlier run wrote — and other automations can use the same table.')}
                 >
                     {tables.length === 0 ? (
                         // Never a bare empty dropdown. An empty state that does
@@ -142,20 +142,19 @@ export default function DatatableFields({
                         <div className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2 py-1">
                             <Table2 size={14} className="mt-0.5 shrink-0" />
                             <span>
-                                No datatables yet. You can make one yourself in{' '}
+                                {t('automations.datatable_editors.no_datatables_yet_you_can_make', 'No datatables yet. You can make one yourself in')}{' '}
                                 <a
                                     href="/app/studio/datatables"
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-sky-700 dark:text-sky-400 hover:underline"
                                 >
-                                    Studio &rarr; Datatables
+                                    {t('automations.datatable_editors.studio_datatables', 'Studio → Datatables')}
                                 </a>
-                                {' '}— a table for this account alone needs no permission; one the whole
-                                organisation can use needs{' '}
+                                {' '}{t('automations.datatable_editors.a_table_for_this_account_alone', '— a table for this account alone needs no permission; one the whole organisation can use needs')}{' '}
                                 <span title="manage_datatables" className="underline decoration-dotted">
-                                    a permission an administrator grants
-                                </span>. It appears in this list as soon as it exists.
+                                    {t('automations.datatable_editors.a_permission_an_administrator_grants', 'a permission an administrator grants')}
+                                </span>{t('automations.datatable_editors.it_appears_in_this_list_as', '. It appears in this list as soon as it exists.')}
                             </span>
                         </div>
                     ) : (
@@ -179,7 +178,7 @@ export default function DatatableFields({
                     )}
                 </FormRow>
 
-                <FormRow label="What to do" hint={ops.find(o => o.op === op)?.blurb || ''}>
+                <FormRow label={t('automations.datatable_editors.what_to_do', 'What to do')} hint={ops.find(o => o.op === op)?.blurb || ''}>
                     <select
                         className={inputClass()}
                         value={op}
@@ -208,15 +207,15 @@ export default function DatatableFields({
             >
                 {needsMatch && (
                     <FormRow
-                        label="Match on"
-                        hint="The column that decides whether a row already exists. If a row has the same value here it is updated; otherwise a new row is added."
+                        label={t('automations.datatable_editors.match_on', 'Match on')}
+                        hint={t('automations.datatable_editors.the_column_that_decides_whether_a', 'The column that decides whether a row already exists. If a row has the same value here it is updated; otherwise a new row is added.')}
                     >
                         <FieldKeyCombobox
                             value={draft.matchColumn || ''}
                             onChange={(v) => set('matchColumn', v)}
                             options={columnOptions}
                             placeholder={t('automations.datatable_editors.email', 'email')}
-                            label="Match on"
+                            label={t('automations.datatable_editors.match_on', 'Match on')}
                             onFocusField={onFocusField}
                         />
                     </FormRow>
@@ -230,7 +229,7 @@ export default function DatatableFields({
 
                 {where.length > 1 && (
                     <FormRow
-                        label="Combine with"
+                        label={t('automations.datatable_editors.combine_with', 'Combine with')}
                         hint={needsWhere
                             ? 'With "any", a row is changed when it matches ONE of these — a single broad condition then decides the whole write.'
                             : 'All of them (the default), or any one of them.'}
@@ -259,7 +258,7 @@ export default function DatatableFields({
                                             onChange={(v) => setWhere(where.map((x, j) => (j === i ? { ...x, field: v } : x)))}
                                             options={columnOptions}
                                             placeholder={t('automations.datatable_editors.column', 'column')}
-                                            label="Column"
+                                            label={t('automations.datatable_editors.column_2', 'Column')}
                                             onFocusField={onFocusField}
                                         />
                                     </div>
@@ -286,7 +285,7 @@ export default function DatatableFields({
                                     <ValueBuilder
                                         value={w?.value}
                                         onChange={(v) => setWhere(where.map((x, j) => (j === i ? { ...x, value: v } : x)))}
-                                        label="Value"
+                                        label={t('automations.datatable_editors.value', 'Value')}
                                         showChrome
                                         placeholder={t('automations.datatable_editors.a_value_or_drag_one_in', 'a value, or drag one in from an earlier step')}
                                         onFocusField={onFocusField}
@@ -329,8 +328,8 @@ export default function DatatableFields({
                             appeared in NO ui, so "the 5 most recent" was
                             reachable only by hand-editing JSON. */}
                         <FormRow
-                            label="Order by"
-                            hint="One column decides the order; rows with the same value fall back to the order they were added. Newest first when left empty."
+                            label={t('automations.datatable_editors.order_by', 'Order by')}
+                            hint={t('automations.datatable_editors.one_column_decides_the_order_rows', 'One column decides the order; rows with the same value fall back to the order they were added. Newest first when left empty.')}
                         >
                             <div className="flex gap-1.5">
                                 <div className="flex-1 min-w-0">
@@ -339,7 +338,7 @@ export default function DatatableFields({
                                         onChange={(v) => setSort(v, sortEntry?.dir)}
                                         options={columnOptions}
                                         placeholder={t('automations.datatable_editors.added_on_default', 'added on (default)')}
-                                        label="Order by"
+                                        label={t('automations.datatable_editors.order_by', 'Order by')}
                                         onFocusField={onFocusField}
                                     />
                                 </div>
@@ -350,15 +349,15 @@ export default function DatatableFields({
                                     onChange={(e) => setSort(sortEntry?.field, e.target.value)}
                                     aria-label={t('automations.datatable_editors.sort_direction', 'Sort direction')}
                                 >
-                                    <option value="desc">highest first</option>
-                                    <option value="asc">lowest first</option>
+                                    <option value="desc">{t('automations.datatable_editors.highest_first', 'highest first')}</option>
+                                    <option value="asc">{t('automations.datatable_editors.lowest_first', 'lowest first')}</option>
                                 </select>
                             </div>
                         </FormRow>
 
                         <FormRow
-                            label="At most"
-                            hint="How many rows ONE page brings back. The default is 50; the step also hands back a cursor so a later step can read the next page."
+                            label={t('automations.datatable_editors.at_most', 'At most')}
+                            hint={t('automations.datatable_editors.how_many_rows_one_page_brings', 'How many rows ONE page brings back. The default is 50; the step also hands back a cursor so a later step can read the next page.')}
                         >
                             <input
                                 type="number" min={1} max={1000}
@@ -418,7 +417,7 @@ export default function DatatableFields({
                 stepType="datatable" sectionKey="advanced" title={t('automations.datatable_editors.advanced', 'Advanced')}
                 forceOpen={errorSections.has('advanced')} hasContent={!!draft.forEach || retryIsSet(draft)}
             >
-                <FormRow label="Iteration" hint="Off by default: the step runs once. Turn on to run it once per item of an upstream list (then reference {{loop.item…}} in the conditions and values).">
+                <FormRow label={t('automations.datatable_editors.iteration', 'Iteration')} hint={t('automations.datatable_editors.off_by_default_the_step_runs', 'Off by default: the step runs once. Turn on to run it once per item of an upstream list (then reference {{loop.item…}} in the conditions and values).')}>
                     <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 </FormRow>
                 <RetrySection draft={draft} set={set} />

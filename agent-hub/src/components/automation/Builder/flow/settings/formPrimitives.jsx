@@ -74,7 +74,7 @@ export function FormRow({ label, hint, required = false, optional = false, htmlF
                 <div className="flex items-center gap-1.5 mb-1">
                     <label ref={labelRef} id={labelId} htmlFor={htmlFor || undefined} className={fieldLabelClass()}>{label}</label>
                     {required && <span className={requiredChipClass()}>{t('automations.form_primitives.required', 'Required')}</span>}
-                    {!required && optional && <span className={optionalMarkClass()}>optional</span>}
+                    {!required && optional && <span className={optionalMarkClass()}>{t('automations.form_primitives.optional', 'optional')}</span>}
                     <FieldHint title={label}>{hint}</FieldHint>
                 </div>
                 {children}

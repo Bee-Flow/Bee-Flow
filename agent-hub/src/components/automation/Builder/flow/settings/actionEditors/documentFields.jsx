@@ -26,7 +26,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
     return (
         <>
             <AccordionSection stepType="generate_document" sectionKey="content" title={t('automations.document_fields.content', 'Content')} defaultOpen forceOpen={errorSections.has('content')}>
-                <FormRow label="Text" required hint="Click a value in the right panel to insert it — usually the step that wrote the text.">
+                <FormRow label={t('automations.document_fields.text', 'Text')} required hint={t('automations.document_fields.click_a_value_in_the_right', 'Click a value in the right panel to insert it — usually the step that wrote the text.')}>
                     <TemplateField
                         onRequestForEach={forEach.request}
                         canForEach={forEach.allowed}
@@ -38,7 +38,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
                         placeholder="{{steps.ai_1.output.text}}"
                     />
                 </FormRow>
-                <FormRow label="Written as" hint="Markdown is what AI steps produce; its headings, bold, links and tables are rendered properly.">
+                <FormRow label={t('automations.document_fields.written_as', 'Written as')} hint={t('automations.document_fields.markdown_is_what_ai_steps_produce', 'Markdown is what AI steps produce; its headings, bold, links and tables are rendered properly.')}>
                     <select value={draft.contentFormat === 'html' ? 'html' : 'markdown'} onChange={(e) => set('contentFormat', e.target.value)} className={inputClass()}>
                         <option value="markdown">{t('automations.document_fields.markdown', 'Markdown')}</option>
                         <option value="html">{t('automations.document_fields.html', 'HTML')}</option>
@@ -47,13 +47,13 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
             </AccordionSection>
 
             <AccordionSection stepType="generate_document" sectionKey="output" title={t('automations.document_fields.the_file', 'The file')} defaultOpen forceOpen={errorSections.has('output')}>
-                <FormRow label="Format" required>
+                <FormRow label={t('automations.document_fields.format', 'Format')} required>
                     <select value={format} onChange={(e) => set('format', e.target.value)} className={inputClass()}>
                         <option value="pdf">{t('automations.document_fields.pdf', 'PDF')}</option>
                         <option value="docx">{t('automations.document_fields.word_docx', 'Word (.docx)')}</option>
                     </select>
                 </FormRow>
-                <FormRow label="Title" hint="Shown as the heading on the first page, and used as the filename when you leave that blank.">
+                <FormRow label={t('automations.document_fields.title', 'Title')} hint={t('automations.document_fields.shown_as_the_heading_on_the', 'Shown as the heading on the first page, and used as the filename when you leave that blank.')}>
                     <TemplateField
                         onRequestForEach={forEach.request}
                         canForEach={forEach.allowed}
@@ -65,7 +65,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
                         placeholder={t('automations.document_fields.offerte', 'Offerte {{trigger.output.bedrijf}}')}
                     />
                 </FormRow>
-                <FormRow label="Filename" hint="Without the extension — that follows from the format.">
+                <FormRow label={t('automations.document_fields.filename', 'Filename')} hint={t('automations.document_fields.without_the_extension_that_follows_from', 'Without the extension — that follows from the format.')}>
                     <TemplateField
                         onRequestForEach={forEach.request}
                         canForEach={forEach.allowed}
@@ -80,7 +80,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
             </AccordionSection>
 
             <AccordionSection stepType="generate_document" sectionKey="options" title={t('automations.document_fields.options', 'Options')} forceOpen={errorSections.has('options')}>
-                <FormRow label="Keep for" required hint="How long the download keeps working. The file is deleted afterwards — write it to Drive or Nextcloud as well if it has to be kept.">
+                <FormRow label={t('automations.document_fields.keep_for', 'Keep for')} required hint={t('automations.document_fields.how_long_the_download_keeps_working', 'How long the download keeps working. The file is deleted afterwards — write it to Drive or Nextcloud as well if it has to be kept.')}>
                     <div className="flex items-center gap-2">
                         <input
                             type="number"
@@ -93,7 +93,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
                             }}
                             className={inputClass()}
                         />
-                        <span className="text-xs text-[var(--text-secondary)] whitespace-nowrap">days</span>
+                        <span className="text-xs text-[var(--text-secondary)] whitespace-nowrap">{t('automations.document_fields.days', 'days')}</span>
                     </div>
                 </FormRow>
             </AccordionSection>
@@ -154,7 +154,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
         <>
             <AccordionSection stepType="fill_document" sectionKey="document" title={t('automations.document_fields.document', 'Document')} defaultOpen forceOpen={errorSections.has('document')}>
                 <input className={inputClass()} aria-label={t('automations.document_fields.search_document_templates', 'Search document templates')} placeholder={t('automations.document_fields.search_all_templates', 'Search all templates…')} value={query} onChange={e=>setQuery(e.target.value)}/>
-                <FormRow label="Which document" required hint="One of the documents you designed in Studio → Documents. Design it there first if it is not in the list.">
+                <FormRow label={t('automations.document_fields.which_document', 'Which document')} required hint={t('automations.document_fields.one_of_the_documents_you_designed', 'One of the documents you designed in Studio → Documents. Design it there first if it is not in the list.')}>
                     <select
                         value={draft.documentId || ''}
                         onChange={(e) => {
@@ -181,20 +181,19 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                 {loadError && <p className={`${hintTextClass()} text-[var(--error)]`}>{loadError}</p>}
                 {templates !== null && templates.length === 0 && !loadError && (
                     <p className={AMBER_NOTE}>
-                        You have no documents yet. Design the invoice, quote or letter in Studio → Documents —
-                        write {'{{customer.name}}'} where a value should land — and it appears here.
+                        {t('automations.document_fields.you_have_no_documents_yet_design', 'You have no documents yet. Design the invoice, quote or letter in Studio → Documents — write')} {'{{customer.name}}'} {t('automations.document_fields.where_a_value_should_land_and', 'where a value should land — and it appears here.')}
                     </p>
                 )}
                 {picked && placeholders.length === 0 && (
                     <p className={hintTextClass()}>
                         {t('automations.document_fields.this_document_has_no_placeholders_so', 'This document has no placeholders, so it is sent exactly as designed. Add')}
-                        {' '}{'{{'}name{'}}'} markers to it in Studio → Documents to fill it per run.
+                        {' '}{'{{'}{t('automations.document_fields.name', 'name')}{'}}'} {t('automations.document_fields.markers_to_it_in_studio_documents', 'markers to it in Studio → Documents to fill it per run.')}
                     </p>
                 )}
             </AccordionSection>
 
             {contract?.instructions && <p className={hintTextClass()}>{contract.instructions}</p>}
-            {contract?.versionId && <p className={hintTextClass()}>Pinned revision: {contract.versionId.slice(0,8)}{picked?.versionId && contract.versionId !== picked.versionId && <button type="button" className="underline ml-2" onClick={async()=>{try{const r=await documentRequest(`/${draft.documentId}/contract`);setReview(r.contract);}catch(e){setLoadError(e.message);}}}>{t('automations.document_fields.review_available_update', 'Review available update')}</button>}</p>}
+            {contract?.versionId && <p className={hintTextClass()}>{t('automations.document_fields.pinned_revision', 'Pinned revision:')} {contract.versionId.slice(0,8)}{picked?.versionId && contract.versionId !== picked.versionId && <button type="button" className="underline ml-2" onClick={async()=>{try{const r=await documentRequest(`/${draft.documentId}/contract`);setReview(r.contract);}catch(e){setLoadError(e.message);}}}>{t('automations.document_fields.review_available_update', 'Review available update')}</button>}</p>}
             {review && <div className={cardClass()}><h4>{t('automations.document_fields.review_template_update', 'Review template update')}</h4><p className={hintTextClass()}>{review.instructions}</p>{review.parameters.map(p=><p key={p.key} className={hintTextClass()}>{p.key}{p.required?' *':''} — {p.summary || p.instructions}</p>)}{review.sections.map(s=><p key={s.id} className={hintTextClass()}>{s.title}: {s.summary}</p>)}<button type="button" className="underline text-xs" onClick={()=>{set('documentVersionId',review.versionId);setReview(null);}}>{t('automations.document_fields.apply_reviewed_revision', 'Apply reviewed revision')}</button><button type="button" className="underline text-xs ml-3" onClick={()=>setReview(null)}>{t('automations.document_fields.cancel', 'Cancel')}</button></div>}
             {contract?.sections?.map(s=><FormRow key={s.id} label={s.title} hint={s.summary}><select className={inputClass()} value={draft.sectionOverrides?.[s.id] || 'automatic'} onChange={e=>set('sectionOverrides',{...draft.sectionOverrides,[s.id]:e.target.value})}><option value="automatic">{t('automations.document_fields.automatic_rules', 'Automatic (rules)')}</option><option value="include">{t('automations.document_fields.include', 'Include')}</option><option value="exclude">{t('automations.document_fields.exclude', 'Exclude')}</option></select></FormRow>)}
 
@@ -225,14 +224,14 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
 
             <AccordionSection stepType="fill_document" sectionKey="output" title={t('automations.document_fields.the_file', 'The file')} forceOpen={errorSections.has('output')}>
                 {(picked?.docType === 'presentation' || contract?.docType === 'presentation') && (
-                    <FormRow label="Format" hint="A presentation is filled into a real PowerPoint file, or into a PDF deck.">
+                    <FormRow label={t('automations.document_fields.format', 'Format')} hint={t('automations.document_fields.a_presentation_is_filled_into_a', 'A presentation is filled into a real PowerPoint file, or into a PDF deck.')}>
                         <select value={draft.format === 'pdf' ? 'pdf' : 'pptx'} onChange={(e) => set('format', e.target.value)} className={inputClass()} data-testid="fill-document-format">
                             <option value="pptx">{t('automations.document_fields.power_point_pptx', 'PowerPoint (.pptx)')}</option>
                             <option value="pdf">{t('automations.document_fields.pdf_deck', 'PDF deck')}</option>
                         </select>
                     </FormRow>
                 )}
-                <FormRow label="Filename" hint={(picked?.docType === 'presentation' || contract?.docType === 'presentation') ? "Without the extension — that is added. Leave it blank to use the presentation's own name." : "Without the .pdf — that is added. Leave it blank to use the document's own name."}>
+                <FormRow label={t('automations.document_fields.filename', 'Filename')} hint={(picked?.docType === 'presentation' || contract?.docType === 'presentation') ? "Without the extension — that is added. Leave it blank to use the presentation's own name." : "Without the .pdf — that is added. Leave it blank to use the document's own name."}>
                     <TemplateField
                         onRequestForEach={forEach.request}
                         canForEach={forEach.allowed}
@@ -244,14 +243,14 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                         placeholder={t('automations.document_fields.factuur', 'factuur-{{steps.extract.output.nummer}}')}
                     />
                 </FormRow>
-                <FormRow label="Also keep it in Documents" hint="Keeps the FILLED document in Studio → Documents so you can correct a line by hand before it goes out. Leave it off for an automation that runs often — it makes a document every run.">
+                <FormRow label={t('automations.document_fields.also_keep_it_in_documents', 'Also keep it in Documents')} hint={t('automations.document_fields.keeps_the_filled_document_in_studio', 'Keeps the FILLED document in Studio → Documents so you can correct a line by hand before it goes out. Leave it off for an automation that runs often — it makes a document every run.')}>
                     <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                         <input type="checkbox" checked={draft.saveCopy === true} onChange={(e) => set('saveCopy', e.target.checked)} />
                         {t('automations.document_fields.keep_a_copy', 'Keep a copy')}
                     </label>
                 </FormRow>
                 {draft.saveCopy === true && (
-                    <FormRow label="Name of the copy" hint="Defaults to the document's name plus today's date.">
+                    <FormRow label={t('automations.document_fields.name_of_the_copy', 'Name of the copy')} hint={t('automations.document_fields.defaults_to_the_document_s_name', 'Defaults to the document\'s name plus today\'s date.')}>
                         <TemplateField
                             onRequestForEach={forEach.request}
                             canForEach={forEach.allowed}
@@ -267,7 +266,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
             </AccordionSection>
 
             <AccordionSection stepType="fill_document" sectionKey="options" title={t('automations.document_fields.options', 'Options')} forceOpen={errorSections.has('options')}>
-                <FormRow label="Keep for" required hint="How long the download keeps working. The file is deleted afterwards — write it to Drive or Nextcloud as well if it has to be kept.">
+                <FormRow label={t('automations.document_fields.keep_for', 'Keep for')} required hint={t('automations.document_fields.how_long_the_download_keeps_working', 'How long the download keeps working. The file is deleted afterwards — write it to Drive or Nextcloud as well if it has to be kept.')}>
                     <div className="flex items-center gap-2">
                         <input
                             type="number"
@@ -280,7 +279,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                             }}
                             className={inputClass()}
                         />
-                        <span className="text-xs text-[var(--text-secondary)] whitespace-nowrap">days</span>
+                        <span className="text-xs text-[var(--text-secondary)] whitespace-nowrap">{t('automations.document_fields.days', 'days')}</span>
                     </div>
                 </FormRow>
             </AccordionSection>

@@ -99,7 +99,7 @@ export function Scalar({ value, emptyMessage = '—', map = null }: ScalarProps)
                     onClick={(e) => { e.stopPropagation(); openTree(); }}
                     className="ml-1.5 text-[10px] text-[var(--accent)] hover:underline align-baseline inline-flex items-center gap-0.5"
                 >
-                    <ListTree size={10} /> Show as tree
+                    <ListTree size={10} /> {t('automations.scalar_value.show_as_tree', 'Show as tree')}
                 </button>
             )}
             {parsed === null && (

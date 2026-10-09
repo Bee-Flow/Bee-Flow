@@ -30,10 +30,10 @@ function LoopFields({
                     onRebind={(next) => set('body', next)}
                     container
                 />
-                <FormRow label="Batch size" hint="Items per iteration. 1 = one at a time; higher values bind an ARRAY of that many items to loop.<name> instead of a single item.">
+                <FormRow label={t('automations.loop_fields.batch_size', 'Batch size')} hint={t('automations.loop_fields.items_per_iteration_1_one_at', 'Items per iteration. 1 = one at a time; higher values bind an ARRAY of that many items to loop.<name> instead of a single item.')}>
                     <input type="number" min={1} max={1000} value={draft.batchSize ?? 1} onChange={(e) => set('batchSize', Number(e.target.value))} className={inputClass()} />
                 </FormRow>
-                <FormRow label="Max iterations" hint="Safety cap. 1–1000.">
+                <FormRow label={t('automations.loop_fields.max_iterations', 'Max iterations')} hint={t('automations.loop_fields.safety_cap_1_1000', 'Safety cap. 1–1000.')}>
                     <input type="number" min={1} max={1000} value={draft.maxIterations ?? 100} onChange={(e) => set('maxIterations', Number(e.target.value))} className={inputClass()} />
                 </FormRow>
             </AccordionSection>
@@ -53,7 +53,7 @@ function LoopFields({
                             title={t('automations.loop_fields.open_these_steps_on_the_canvas', 'Open these steps on the canvas, inside the loop')}
                             className="shrink-0 inline-flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline"
                         >
-                            <Workflow size={11} /> Edit on canvas
+                            <Workflow size={11} /> {t('automations.loop_fields.edit_on_canvas', 'Edit on canvas')}
                         </button>
                     )}
                 </div>

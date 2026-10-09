@@ -305,7 +305,7 @@ function RouteFields({
         <>
             {items && (
                 <SourceSummaryRow
-                    hint="Detected from the step above. Each item is checked against the rules below."
+                    hint={t('automations.route_editors.detected_from_the_step_above_each', 'Detected from the step above. Each item is checked against the rules below.')}
                     source={route.source}
                     maxItems={route.maxItems}
                     onPatch={(p) => ('source' in p ? changeSource(p.source) : setRoute({ maxItems: p.maxItems }))}
@@ -412,7 +412,7 @@ function RouteFields({
                 )}
 
                 {valueStyle && (
-                    <FormRow label="Value to check" hint="Picked once; matched against each rule's value below.">
+                    <FormRow label={t('automations.route_editors.value_to_check', 'Value to check')} hint={t('automations.route_editors.picked_once_matched_against_each_rule', 'Picked once; matched against each rule\'s value below.')}>
                         <div className="space-y-1">
                             <PathField
                                 value={route.matchOn || ''}
@@ -490,7 +490,7 @@ function RouteFields({
                             title={t('automations.route_editors.each_output_gets_its_own_condition', 'Each output gets its own condition set and its own port on the node')}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
-                            <Plus size={12} /> Add output
+                            <Plus size={12} /> {t('automations.route_editors.add_output', 'Add output')}
                         </button>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
                             {t('automations.route_editors.text_comparisons_ignore_upper_lower_case', 'Text comparisons ignore upper/lower case.')}
@@ -500,7 +500,7 @@ function RouteFields({
             </AccordionSection>
 
             <AccordionSection stepType={step.type} sectionKey="advanced" title={t('automations.route_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced')}>
-                <FormRow label="Deciding about" hint="Detected from the step above — override it here if the guess is wrong.">
+                <FormRow label={t('automations.route_editors.deciding_about', 'Deciding about')} hint={t('automations.route_editors.detected_from_the_step_above_override', 'Detected from the step above — override it here if the guess is wrong.')}>
                     <select
                         value={items ? 'items' : 'branch'}
                         onChange={(e) => setRoute(e.target.value === 'items' ? { mode: 'items' } : { mode: 'branch' })}
@@ -527,8 +527,8 @@ function RouteFields({
                     persists 'all' and CLEARS the key for 'first'). */}
                 {several && (
                     <FormRow
-                        label="When several outputs match"
-                        hint="Automations built before this existed keep sending each record down the first match only, until you change it here."
+                        label={t('automations.route_editors.when_several_outputs_match', 'When several outputs match')}
+                        hint={t('automations.route_editors.automations_built_before_this_existed_keep', 'Automations built before this existed keep sending each record down the first match only, until you change it here.')}
                     >
                         <select
                             value={fanOut ? 'all' : 'first'}
@@ -541,7 +541,7 @@ function RouteFields({
                     </FormRow>
                 )}
                 {rules.length > 1 && (
-                    <FormRow label="When nothing matches" hint="Send unmatched values to one of your rules, or use the node's otherwise output.">
+                    <FormRow label={t('automations.route_editors.when_nothing_matches', 'When nothing matches')} hint={t('automations.route_editors.send_unmatched_values_to_one_of', 'Send unmatched values to one of your rules, or use the node\'s otherwise output.')}>
                         <select
                             value={route.defaultBranch || ''}
                             onChange={(e) => setRoute({ defaultBranch: e.target.value })}
@@ -555,7 +555,7 @@ function RouteFields({
                     </FormRow>
                 )}
                 {expressions.length > 0 && (
-                    <FormRow label="Expression" hint="What the rules above compile to. Read-only — edit the rules to change it.">
+                    <FormRow label={t('automations.route_editors.expression', 'Expression')} hint={t('automations.route_editors.what_the_rules_above_compile_to', 'What the rules above compile to. Read-only — edit the rules to change it.')}>
                         <div className="space-y-1">
                             {expressions.map((e, i) => (
                                 <div key={i} className="text-[10px] font-mono text-[var(--text-tertiary)] break-all">{e}</div>
@@ -676,8 +676,8 @@ function CaseValueInput({ type, value, onChange }) {
                 className={rowInputClass('w-full')}
             >
                 <option value="">{t('automations.route_editors.choose', '(choose)')}</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
+                <option value="true">{t('automations.route_editors.true', 'true')}</option>
+                <option value="false">{t('automations.route_editors.false', 'false')}</option>
             </select>
         );
     }

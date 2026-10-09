@@ -38,7 +38,7 @@ function TriggerFields({ draft, set, setNested, errorSections = new Set(), catal
         : 'Event';
     return (
         <>
-            <FormRow label="Trigger kind" hint={isSecondaryTrigger ? 'Additional triggers can be webhooks, app events or schedules — manual, form, agent and app triggers can only be the primary trigger.' : undefined}>
+            <FormRow label={t('automations.trigger_editors.trigger_kind', 'Trigger kind')} hint={isSecondaryTrigger ? 'Additional triggers can be webhooks, app events or schedules — manual, form, agent and app triggers can only be the primary trigger.' : undefined}>
                 <select
                     value={kind}
                     onChange={(e) => {
@@ -67,7 +67,7 @@ function TriggerFields({ draft, set, setNested, errorSections = new Set(), catal
                     {!isSecondaryTrigger && <option value="agent_call">{t('automations.trigger_editors.agent_callable_from_chat', 'Agent — callable from chat')}</option>}
                     {!isSecondaryTrigger && <option value="app_trigger">{t('automations.trigger_editors.studio_app_called_by_an_app', 'Studio App — called by an app action')}</option>}
                     {isSecondaryTrigger && !CAN_BE_SECONDARY.has(kind) && (
-                        <option value={kind} disabled>(unsupported here) {kind}</option>
+                        <option value={kind} disabled>{t('automations.trigger_editors.unsupported_here', '(unsupported here)')} {kind}</option>
                     )}
                 </select>
             </FormRow>
@@ -179,7 +179,7 @@ function AppEventFields({ draft, set, setNested, catalog = null }) {
 
     return (
         <>
-            <FormRow label="App">
+            <FormRow label={t('automations.trigger_editors.app', 'App')}>
                 {/* An app picker rather than a dropdown of ids: same overlay the
                     agent editor uses, so it carries the app's logo and shows
                     what that app can trigger on before you commit to it. */}
@@ -214,7 +214,7 @@ function AppEventFields({ draft, set, setNested, catalog = null }) {
                     </div>
                 )}
             </FormRow>
-            <FormRow label="Event">
+            <FormRow label={t('automations.trigger_editors.event', 'Event')}>
                 <select value={event} onChange={(e) => onEventChange(e.target.value)} className={inputClass()}>
                     {event && !knownEvent && (
                         <option value={event}>{event}{providerListed ? ' (unknown event)' : ''}</option>
@@ -272,8 +272,9 @@ const APP_TRIGGER_TYPES = [
  * had no box.
  */
 function LayerInputFields({ draft, set, onRenameField = null }) {
+    const { t } = useTranslation();
     return (
-        <FormRow label="Flowlet inputs" hint="Parameters this flowlet accepts. Inside the flowlet, bind to them as trigger.output.<name>.">
+        <FormRow label={t('automations.trigger_editors.flowlet_inputs', 'Flowlet inputs')} hint={t('automations.trigger_editors.parameters_this_flowlet_accepts_inside_the', 'Parameters this flowlet accepts. Inside the flowlet, bind to them as trigger.output.<name>.')}>
             <FieldDesigner
                 rows={draft.params}
                 onChange={(next) => set('params', next)}
@@ -302,7 +303,7 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
     const { t } = useTranslation();
     return (
         <>
-            <FormRow label="Tool name" hint="What the agent calls. Lowercased & sanitized; blank → automation_<id>.">
+            <FormRow label={t('automations.trigger_editors.tool_name', 'Tool name')} hint={t('automations.trigger_editors.what_the_agent_calls_lowercased_sanitized', 'What the agent calls. Lowercased & sanitized; blank → automation_<id>.')}>
                 <input
                     type="text"
                     value={draft.toolName || ''}
@@ -311,7 +312,7 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
                     className={inputClass() + ' font-mono'}
                 />
             </FormRow>
-            <FormRow label="Description" hint="The agent reads this to decide when to call the automation.">
+            <FormRow label={t('automations.trigger_editors.description', 'Description')} hint={t('automations.trigger_editors.the_agent_reads_this_to_decide', 'The agent reads this to decide when to call the automation.')}>
                 <textarea
                     value={draft.description || ''}
                     onChange={(e) => set('description', e.target.value)}
@@ -320,7 +321,7 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
                     className={inputClass()}
                 />
             </FormRow>
-            <FormRow label="Input parameters" hint="Arguments the agent passes. Bind to them in steps as trigger.output.<name>.">
+            <FormRow label={t('automations.trigger_editors.input_parameters', 'Input parameters')} hint={t('automations.trigger_editors.arguments_the_agent_passes_bind_to', 'Arguments the agent passes. Bind to them in steps as trigger.output.<name>.')}>
                 <FieldDesigner
                     rows={draft.params}
                     onChange={(next) => set('params', next)}
@@ -348,8 +349,9 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
  * identifier names, no leading underscore.
  */
 function AppTriggerFields({ draft, set, onRenameField = null }) {
+    const { t } = useTranslation();
     return (
-        <FormRow label="App inputs" hint="Inputs the app action must provide. Bind them in steps as trigger.output.<name>; a file input arrives as { fileId, name, mime, size, url }.">
+        <FormRow label={t('automations.trigger_editors.app_inputs', 'App inputs')} hint={t('automations.trigger_editors.inputs_the_app_action_must_provide', 'Inputs the app action must provide. Bind them in steps as trigger.output.<name>; a file input arrives as { fileId, name, mime, size, url }.')}>
             <FieldDesigner
                 rows={draft.params}
                 onChange={(next) => set('params', next)}
@@ -432,7 +434,7 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
                 disappear behind the advanced-density filter. */}
             {!isEnding && (
                 <AccordionSection stepType="form_page" sectionKey="waiting" title={t('automations.trigger_editors.waiting', 'Waiting')} defaultOpen forceOpen={errorSections.has('waiting')}>
-                    <FormRow label="Wait for an answer" hint="After this the automation gives up and the run fails.">
+                    <FormRow label={t('automations.trigger_editors.wait_for_an_answer', 'Wait for an answer')} hint={t('automations.trigger_editors.after_this_the_automation_gives_up', 'After this the automation gives up and the run fails.')}>
                         <select
                             aria-label={t('automations.trigger_editors.wait_for_an_answer', 'Wait for an answer')}
                             value={draft.waitSeconds ?? 3600}

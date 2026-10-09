@@ -3,6 +3,7 @@ import { Eye } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { humanizeExpression } from '../displayHelpers';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * "Show real values again".
@@ -16,6 +17,7 @@ import { humanizeExpression } from '../displayHelpers';
  * looking deliberate.
  */
 export default function UntokenizeNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter, stepLabelById } = data;
     const source = humanizeExpression(step.sourceRef || '', stepLabelById);
     const out = runStep?.output;
@@ -28,7 +30,7 @@ export default function UntokenizeNode({ id, data }) {
 
     const badges = out?.unresolved ? (
         <NodeChip tone="warn" title={`${out.unresolved} placeholder${out.unresolved === 1 ? '' : 's'} this run cannot account for${out.unresolvedTokens?.length ? `: ${out.unresolvedTokens.slice(0, 3).join(', ')}` : ''}`}>
-            {out.unresolved} unresolved
+            {out.unresolved} {t('automations.untokenize_node.unresolved', 'unresolved')}
         </NodeChip>
     ) : null;
 

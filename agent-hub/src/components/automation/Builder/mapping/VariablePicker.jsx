@@ -171,7 +171,7 @@ export default function VariablePicker({
             <div className="px-3 py-2 border-t border-[var(--border-default)] text-[10px] text-[var(--text-tertiary)] min-h-[28px] flex items-center gap-1.5">
                 {previewLine != null ? (
                     <>
-                        <span className="uppercase tracking-wide">preview</span>
+                        <span className="uppercase tracking-wide">{t('automations.variable_picker.preview', 'preview')}</span>
                         <span
                             className="font-mono text-[var(--text-secondary)] truncate"
                             title={previewLine}

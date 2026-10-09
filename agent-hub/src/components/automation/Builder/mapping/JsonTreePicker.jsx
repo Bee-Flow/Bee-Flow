@@ -47,6 +47,7 @@ export default function JsonTreePicker({ value, onPick, maxDepth = 20, maxChildr
 
 /** Rows for the members of one object/array value. */
 function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable = true }) {
+    const { t } = useTranslation();
     // One toggle per ARRAY node: pick from the first item ([0]) or from each
     // item ([*], flattens). "Each item" shows the UNION of the elements' keys
     // (upstream/fieldTree mergeElements), so a key only a later element has,
@@ -56,7 +57,7 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
 
     if (Array.isArray(value)) {
         if (value.length === 0) {
-            return <div className="pl-5 text-[11px] italic text-[var(--text-tertiary)]">empty list</div>;
+            return <div className="pl-5 text-[11px] italic text-[var(--text-tertiary)]">{t('automations.json_tree_picker.empty_list', 'empty list')}</div>;
         }
         const idx = each ? '*' : '0';
         const chip = (label, isEach) => (
@@ -109,7 +110,7 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
             ))}
             {entries.length > maxChildren && (
                 <div className="pl-5 text-[11px] italic text-[var(--text-tertiary)]">
-                    … {entries.length - maxChildren} more
+                    … {entries.length - maxChildren} {t('automations.json_tree_picker.more', 'more')}
                 </div>
             )}
         </>

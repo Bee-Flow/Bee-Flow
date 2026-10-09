@@ -42,6 +42,7 @@ export function ExpressionHelpBody() {
  * renders `ExpressionHelpBody` directly).
  */
 export default function ExpressionHelp({ defaultOpen = false }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(defaultOpen);
     return (
         <div className="space-y-1">
@@ -51,7 +52,7 @@ export default function ExpressionHelp({ defaultOpen = false }) {
                 aria-expanded={open}
                 className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
             >
-                {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />} Syntax help
+                {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {t('automations.expression_help.syntax_help', 'Syntax help')}
             </button>
             {open && <ExpressionHelpBody />}
         </div>

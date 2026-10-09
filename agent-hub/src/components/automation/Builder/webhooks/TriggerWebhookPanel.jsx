@@ -91,7 +91,7 @@ export default function TriggerWebhookPanel({ automation, stepId }) {
                         title={t('automations.trigger_webhook_panel.add_a_second_url_for_this', 'Add a second URL for this trigger (e.g. to rotate callers independently)')}
                         className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
                     >
-                        <Plus size={11} /> Add
+                        <Plus size={11} /> {t('automations.trigger_webhook_panel.add', 'Add')}
                     </button>
                 )}
             </div>

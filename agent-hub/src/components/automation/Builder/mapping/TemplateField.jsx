@@ -246,7 +246,7 @@ export default function TemplateField({
 
             {preview != null && (
                 <div className="text-[10px] text-[var(--text-tertiary)] space-y-0.5">
-                    <div className="uppercase tracking-wide">example</div>
+                    <div className="uppercase tracking-wide">{t('automations.template_field.example', 'example')}</div>
                     <div className="font-mono text-[var(--text-secondary)] whitespace-pre-wrap break-words bg-[var(--bg-secondary)] rounded px-2 py-1">
                         {preview.text}
                     </div>

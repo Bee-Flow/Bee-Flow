@@ -82,7 +82,7 @@ export function StructuredOutputFields({ fields, onChange }: { fields: OutputFie
                 onClick={add}
                 className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
             >
-                <Plus size={12} /> Add output field
+                <Plus size={12} /> {t('automations.structured_output_fields.add_output_field', 'Add output field')}
             </button>
         </div>
     );
@@ -183,7 +183,7 @@ function ColumnsEditor({ columns, onChange }: { columns: ColumnRow[]; onChange: 
                 onClick={add}
                 className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
             >
-                <Plus size={12} /> Add column
+                <Plus size={12} /> {t('automations.structured_output_fields.add_column', 'Add column')}
             </button>
         </div>
     );

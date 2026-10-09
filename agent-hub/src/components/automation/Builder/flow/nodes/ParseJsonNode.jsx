@@ -15,7 +15,7 @@ export default function ParseJsonNode({ id, data }) {
         <>
             {step.mode === 'ai' && (
                 <NodeChip tone="accent" title={t('automations.parse_json_node.extracts_with_ai_on_every_run', 'Extracts with AI on every run')}>
-                    <Sparkles size={10} /> AI
+                    <Sparkles size={10} /> {t('automations.parse_json_node.ai', 'AI')}
                 </NodeChip>
             )}
             <ForEachBadge step={step} />

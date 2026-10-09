@@ -386,8 +386,9 @@ function ActionRow({ action, labels, onAdd }) {
 }
 
 function SearchResults({ results, q, onAdd }) {
+    const { t } = useTranslation();
     if (results.length === 0) {
-        return <div className="px-3 py-6 text-xs text-[var(--text-tertiary)] italic text-center">No matches for &ldquo;{q}&rdquo;</div>;
+        return <div className="px-3 py-6 text-xs text-[var(--text-tertiary)] italic text-center">{t('automations.add_step_menu.no_matches_for', 'No matches for “{query}”', { query: q })}</div>;
     }
     return (
         <div className="py-1">

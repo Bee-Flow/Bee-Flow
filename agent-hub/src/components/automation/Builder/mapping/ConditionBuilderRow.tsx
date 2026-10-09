@@ -222,10 +222,11 @@ function RowField({ row, fieldOptions, fieldBase, simple, rawField, context, pla
 
 /** The right side: a file type, a topic, nothing (unary), or a typed value. */
 function RowValue({ row, type, previewSample, onFocusField, onReplace }: Props & { type: string }) {
+    const { t } = useTranslation();
     if (isTopicOp(row.op)) {
         return <TopicValueSlot value={row.value} threshold={row.threshold} onChange={(patch: TopicRowPatch) => onReplace({ ...row, ...patch } as RuleRow)} />;
     }
-    if (isUnaryOp(row.op)) return <div className="text-[10px] text-[var(--text-tertiary)] italic pt-1.5">no value needed</div>;
+    if (isUnaryOp(row.op)) return <div className="text-[10px] text-[var(--text-tertiary)] italic pt-1.5">{t('automations.condition_builder_row.no_value_needed', 'no value needed')}</div>;
     if (type === 'fileType') return <FileTypeSelect value={row.value} onChange={(value) => onReplace({ ...row, value })} />;
     return (
         <ConditionValueSlot

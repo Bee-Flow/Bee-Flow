@@ -220,7 +220,7 @@ function RouteAssist({
     return (
         <div className={cardClass()}>
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-primary)]">
-                <Lightbulb size={12} /> Suggest outputs
+                <Lightbulb size={12} /> {t('automations.route_assist.suggest_outputs', 'Suggest outputs')}
             </div>
             <div className="text-[10px] text-[var(--text-tertiary)]">
                 {t('automations.route_assist.describe_the_outputs_in_your_own', 'Describe the outputs in your own words and check them below. Nothing changes until you accept. This runs here in the browser first — no AI, and nothing leaves this page.')}
@@ -322,7 +322,7 @@ function AskAiRow({ offered, asking, error, onAsk }) {
     if (asking) {
         return (
             <div className="inline-flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
-                <Loader2 size={11} className="animate-spin" /> Asking the AI…
+                <Loader2 size={11} className="animate-spin" /> {t('automations.route_assist.asking_the_ai', 'Asking the AI…')}
             </div>
         );
     }
@@ -335,7 +335,7 @@ function AskAiRow({ offered, asking, error, onAsk }) {
                         onClick={onAsk}
                         className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] rounded border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition"
                     >
-                        <Sparkles size={11} /> Ask the AI instead
+                        <Sparkles size={11} /> {t('automations.route_assist.ask_the_ai_instead', 'Ask the AI instead')}
                     </button>
                     {/* Said BEFORE the click, not after: what travels is the
                         shape of the data, never the data. */}
@@ -385,7 +385,7 @@ function HandoffOffer({
     return (
         <div className="space-y-1.5 rounded border border-[var(--border-default)] p-2">
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-primary)]">
-                <Plus size={12} /> Have an AI step answer it first
+                <Plus size={12} /> {t('automations.route_assist.have_an_ai_step_answer_it', 'Have an AI step answer it first')}
             </div>
             <div className="text-[10px] text-[var(--text-tertiary)]">
                 {t('automations.route_assist.an_output_can_only_compare_fields', 'An output can only compare fields that already exist, and none of the fields here holds the answer to that question. An AI step placed before this one can answer it in a single word, and the outputs then check that word. This ADDS A STEP to your automation — it is the only thing in this box that does.')}
@@ -430,17 +430,23 @@ function HandoffOffer({
  * exists yet to reassure anyone with.
  */
 function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, losingWires, onAccept }) {
+    const { t } = useTranslation();
     const ruleLine = useRuleLine();
     const n = plan.rules.length;
     const one = n === 1;
     const oneWire = losingWires.length === 1;
+    const introParams = {
+        label: plan.step.label,
+        item: perItem ? singularKey(unit) : '',
+        words: named.length === 1 ? t('automations.route_assist.that_word', 'that word') : t('automations.route_assist.those_words', 'those {count} words', { count: named.length }),
+        outputs: one ? t('automations.route_assist.one_output', 'one output') : t('automations.route_assist.n_outputs', '{count} outputs', { count: n }),
+    };
     return (
         <div className="space-y-1.5">
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                One new step, “{plan.step.label}”
-                {perItem ? `, run once per ${singularKey(unit)} of the list above,` : ','} answering with
-                one of {named.length === 1 ? 'that word' : `those ${named.length} words`} — and {one ? 'one output' : `${n} outputs`} here
-                reading it:
+                {perItem
+                    ? t('automations.route_assist.plan_intro_per_item', 'One new step, “{label}”, run once per {item} of the list above, answering with one of {words}, and {outputs} here reading it:', introParams)
+                    : t('automations.route_assist.plan_intro', 'One new step, “{label}”, answering with one of {words}, and {outputs} here reading it:', introParams)}
             </div>
             <ul className="space-y-1">
                 {plan.rules.map(r => (
@@ -457,26 +463,25 @@ function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, los
                 them, so there is nothing to count and "0 of 12 matched" would
                 read as a broken rule rather than an unanswered question. */}
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                Nothing can be counted against the sample {unit} yet — the answer is written by the new step,
-                so it exists only once this has run.
+                {t('automations.route_assist.nothing_to_count', 'Nothing can be counted against the sample {unit} yet. The answer is written by the new step, so it exists only once this has run.', { unit })}
             </div>
             {named.length > n && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Only the first {n} answers are used — more outputs than that is a lookup table rather than a
-                    routing decision, and every one of them is a port someone has to wire.
+                    {t('automations.route_assist.only_first_used', 'Only the first {count} answers are used. More outputs than that is a lookup table rather than a routing decision, and every one of them is a port someone has to wire.', { count: n })}
                 </div>
             )}
             {existingRuleCount > 0 && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Accepting replaces the {existingRuleCount === 1 ? 'output' : `${existingRuleCount} outputs`} already
-                    set up below.
+                    {existingRuleCount === 1
+                        ? t('automations.route_assist.accept_replaces_one', 'Accepting replaces the output already set up below.')
+                        : t('automations.route_assist.accept_replaces_many', 'Accepting replaces the {count} outputs already set up below.', { count: existingRuleCount })}
                 </div>
             )}
             {losingWires.length > 0 && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    {losingWires.join(', ')} {oneWire ? 'is' : 'are'} wired on the canvas and
-                    {oneWire ? ' is' : ' are'} not in this plan, so
-                    {oneWire ? ' its connection goes' : ' their connections go'} too.
+                    {oneWire
+                        ? t('automations.route_assist.plan_wire_lost_one', '{names} is wired on the canvas and is not in this plan, so its connection goes too.', { names: losingWires.join(', ') })
+                        : t('automations.route_assist.plan_wire_lost_many', '{names} are wired on the canvas and are not in this plan, so their connections go too.', { names: losingWires.join(', ') })}
                 </div>
             )}
             <button
@@ -484,7 +489,9 @@ function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, los
                 onClick={onAccept}
                 className={PRIMARY_BUTTON_CLASS}
             >
-                Add the step and use {one ? 'this output' : `these ${n} outputs`}
+                {one
+                    ? t('automations.route_assist.add_step_use_one', 'Add the step and use this output')
+                    : t('automations.route_assist.add_step_use_many', 'Add the step and use these {count} outputs', { count: n })}
             </button>
         </div>
     );
@@ -512,7 +519,7 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, keepRest 
                         {ruleLine(r.expr)}
                         {counts && (
                             <span className="text-[var(--text-tertiary)]">
-                                {' · '}{counts.perRule[i].matched} of {counts.total} sample {unit}
+                                {' · '}{t('automations.route_assist.matched_of_total', '{matched} of {total} sample {unit}', { matched: counts.perRule[i].matched, total: counts.total, unit })}
                             </span>
                         )}
                     </li>
@@ -523,14 +530,14 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, keepRest 
                 ? <UnmatchedLine counts={counts} ruleCount={rules.length} keepRest={keepRest} unit={unit} />
                 : !topic?.needed && (
                     <div className="text-[10px] text-[var(--text-tertiary)]">
-                        There are no sample {unit} here yet, so none of this can be counted — the lines above are
-                        what will be checked, not what has matched.
+                        {t('automations.route_assist.no_sample_yet', 'There are no sample {unit} here yet, so none of this can be counted. The lines above are what will be checked, not what has matched.', { unit })}
                     </div>
                 )}
             {existingRuleCount > 0 && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Accepting replaces the {existingRuleCount === 1 ? 'output' : `${existingRuleCount} outputs`} already
-                    set up below.
+                    {existingRuleCount === 1
+                        ? t('automations.route_assist.accept_replaces_one', 'Accepting replaces the output already set up below.')
+                        : t('automations.route_assist.accept_replaces_many', 'Accepting replaces the {count} outputs already set up below.', { count: existingRuleCount })}
                 </div>
             )}
             {/* Naming the canvas cost BEFORE the click, because an accept
@@ -545,9 +552,9 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, keepRest 
                 about, arriving through a new door. */}
             {losingWires.length > 0 && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    {losingWires.join(', ')} {losingWires.length === 1 ? 'is' : 'are'} wired on the canvas and
-                    {losingWires.length === 1 ? ' is' : ' are'} not in this suggestion, so
-                    {losingWires.length === 1 ? ' its connection goes' : ' their connections go'} too.
+                    {losingWires.length === 1
+                        ? t('automations.route_assist.suggestion_wire_lost_one', '{names} is wired on the canvas and is not in this suggestion, so its connection goes too.', { names: losingWires.join(', ') })
+                        : t('automations.route_assist.suggestion_wire_lost_many', '{names} are wired on the canvas and are not in this suggestion, so their connections go too.', { names: losingWires.join(', ') })}
                 </div>
             )}
             <div className="flex items-center gap-2">
@@ -556,7 +563,9 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, keepRest 
                     onClick={onApply}
                     className={PRIMARY_BUTTON_CLASS}
                 >
-                    {rules.length === 1 ? 'Use this output' : `Use these ${rules.length} outputs`}
+                    {rules.length === 1
+                        ? t('automations.route_assist.use_one', 'Use this output')
+                        : t('automations.route_assist.use_many', 'Use these {count} outputs', { count: rules.length })}
                 </button>
                 <button
                     type="button"
@@ -568,8 +577,7 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, keepRest 
             </div>
             {suggestion.truncated && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Only the first {rules.length} are shown — more outputs than that is a lookup table rather than a
-                    routing decision, and every one of them is a port someone has to wire.
+                    {t('automations.route_assist.only_first_shown', 'Only the first {count} are shown. More outputs than that is a lookup table rather than a routing decision, and every one of them is a port someone has to wire.', { count: rules.length })}
                 </div>
             )}
         </div>

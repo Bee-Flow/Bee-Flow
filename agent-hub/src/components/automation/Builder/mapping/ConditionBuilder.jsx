@@ -218,7 +218,7 @@ function RowsFooter({ simple, onAdd, onRaw, serialized }) {
                     onClick={onAdd}
                     className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                 >
-                    <Plus size={12} /> Add condition
+                    <Plus size={12} /> {t('automations.condition_builder.add_condition', 'Add condition')}
                 </button>
                 {!simple && (
                     <button type="button" onClick={onRaw} className="text-[10px] text-[var(--accent)] hover:underline shrink-0">
@@ -266,7 +266,7 @@ function JoinToggle({ join, onChange }) {
                     </button>
                 ))}
             </div>
-            <span>of these conditions:</span>
+            <span>{t('automations.condition_builder.of_these_conditions', 'of these conditions:')}</span>
         </div>
     );
 }
@@ -327,7 +327,7 @@ function RawExpression({ value, context, onChange, onFocusField, canUseVisual, o
                     onClick={() => setShowHelp(h => !h)}
                     className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                 >
-                    {showHelp ? <ChevronDown size={11} /> : <ChevronRight size={11} />} What can I write here?
+                    {showHelp ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {t('automations.condition_builder.what_can_i_write_here', 'What can I write here?')}
                 </button>
                 {canUseVisual && (
                     <button

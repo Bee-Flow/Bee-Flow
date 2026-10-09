@@ -163,7 +163,7 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                 </AccordionSection>
             )}
             <AccordionSection stepType="set" sectionKey="advanced" title={t('automations.set_editors.advanced', 'Advanced')} defaultOpen={!listMode && !!draft.forEach} forceOpen={errorSections.has('advanced')} hasContent={!listMode && !!draft.forEach}>
-                <FormRow label="Works on" hint="Detected from the step above — override it here if the guess is wrong.">
+                <FormRow label={t('automations.set_editors.works_on', 'Works on')} hint={t('automations.set_editors.detected_from_the_step_above_override', 'Detected from the step above — override it here if the guess is wrong.')}>
                     <select
                         value={listMode ? 'items' : 'single'}
                         onChange={(e) => set('arrayRef', e.target.value === 'items' ? (draft.arrayRef ?? '') : null)}
@@ -301,7 +301,7 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
     if (!open) {
         return (
             <div className="mt-2 text-[11px] text-[var(--text-secondary)]">
-                Some of this data is JSON text ·{' '}
+                {t('automations.set_editors.some_of_this_data_is_json', 'Some of this data is JSON text ·')}{' '}
                 <button type="button" onClick={() => setOpen(true)} className="text-[var(--accent)] hover:underline">
                     {t('automations.set_editors.pick_fields_from_it', 'Pick fields from it')}
                 </button>
@@ -312,12 +312,12 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
     return (
         <div className="mt-2 rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-2 space-y-2">
             <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
-                <span className="truncate">From <span className="text-[var(--text-primary)]">{sourceLabel}</span></span>
+                <span className="truncate">{t('automations.set_editors.from', 'From')} <span className="text-[var(--text-primary)]">{sourceLabel}</span></span>
                 <button type="button" onClick={() => setChanging(c => !c)} className="ml-auto shrink-0 text-[10px] text-[var(--accent)] hover:underline">
                     {changing ? 'done' : 'change'}
                 </button>
                 <button type="button" onClick={() => setOpen(false)} className="shrink-0 text-[10px] text-[var(--text-tertiary)] hover:underline">
-                    hide
+                    {t('automations.set_editors.hide', 'hide')}
                 </button>
             </div>
             {changing && (

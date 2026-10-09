@@ -427,14 +427,14 @@ export default function FormBuilderFields({
                             onClick={addField}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
-                            <Plus size={12} /> Add a question
+                            <Plus size={12} /> {t('automations.form_builder_fields.add_a_question', 'Add a question')}
                         </button>
                     </div>
 
-                    <FormRow label="Button text">
+                    <FormRow label={t('automations.form_builder_fields.button_text', 'Button text')}>
                         {textSlot({ slot: 'submitLabel', placeholder: 'Submit' })}
                     </FormRow>
-                    <FormRow label="Thank-you message" hint={`Replaces the form after a successful submission.${varsHint}`}>
+                    <FormRow label={t('automations.form_builder_fields.thank_you_message', 'Thank-you message')} hint={`Replaces the form after a successful submission.${varsHint}`}>
                         {textSlot({ slot: 'successMessage', rows: 2 })}
                     </FormRow>
                 </>
@@ -475,7 +475,7 @@ export default function FormBuilderFields({
                             onClick={() => addFileField('download')}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
-                            <Plus size={12} /> Add a download
+                            <Plus size={12} /> {t('automations.form_builder_fields.add_a_download', 'Add a download')}
                         </button>
                         {/* Both write the same field shape and the type
                             dropdown swaps between them, so this is a shortcut
@@ -485,7 +485,7 @@ export default function FormBuilderFields({
                             onClick={() => addFileField('notebook')}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
-                            <Plus size={12} /> Add an Open in Notebooks
+                            <Plus size={12} /> {t('automations.form_builder_fields.add_an_open_in_notebooks', 'Add an Open in Notebooks')}
                         </button>
                     </div>
                 </div>
@@ -577,15 +577,15 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
                     here would break every downstream <base>.<name> binding
                     silently. */}
                 <div className="flex-1 min-w-0">
-                    {slot('label', `Question ${index + 1} label`, 'What do you want to ask?')}
+                    {slot('label', t('automations.form_builder_fields.question_label', 'Question {n} label', { n: index + 1 }), t('automations.form_builder_fields.what_to_ask', 'What do you want to ask?'))}
                 </div>
                 <select
-                    aria-label={`Question ${index + 1} type`}
+                    aria-label={t('automations.form_builder_fields.question_type', 'Question {n} type', { n: index + 1 })}
                     value={field.type || 'text'}
                     onChange={(e) => onChange({ type: e.target.value })}
                     className={denseInputClass('!w-auto shrink-0')}
                 >
-                    {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {FIELD_TYPES.map(ft => <option key={ft.value} value={ft.value}>{t(`automations.form_builder_fields.type_${ft.value}`, ft.label)}</option>)}
                 </select>
             </div>
 
@@ -604,9 +604,8 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
                     <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.file_to_offer', 'File to offer')}</div>
                     {slot('fileId', `Download ${index + 1} file`, '{{steps.<id>.output.fileId}}')}
                     <p className="text-[10px] text-[var(--text-tertiary)]">
-                        Point this at the Make a document step, e.g.{' '}
-                        <code>{'{{steps.doc_1.output.fileId}}'}</code>. The link is built when the
-                        page is shown and only works for this visitor.
+                        {t('automations.form_builder_fields.point_this_at_the_make_a', 'Point this at the Make a document step, e.g.')}{' '}
+                        <code>{'{{steps.doc_1.output.fileId}}'}</code>{t('automations.form_builder_fields.the_link_is_built_when_the', '. The link is built when the page is shown and only works for this visitor.')}
                     </p>
                 </div>
             )}
@@ -711,12 +710,12 @@ function AppPickEditor({ field, index, onChange }) {
                 </select>
                 {unknown && (
                     <p className="text-[10px] text-amber-600 dark:text-amber-500">
-                        “{field.source}” is not an app this workspace can pick from. Choose another one, or connect it first.
+                        “{field.source}{t('automations.form_builder_fields.is_not_an_app_this_workspace', '” is not an app this workspace can pick from. Choose another one, or connect it first.')}
                     </p>
                 )}
                 {chosen && (
                     <p className="text-[10px] text-[var(--text-tertiary)]">
-                        Whoever fills this form in searches their OWN {chosen.app}
+                        {t('automations.form_builder_fields.whoever_fills_this_form_in_searches', 'Whoever fills this form in searches their OWN')} {chosen.app}
                         {chosen.available ? '' : ' — you have not connected it yourself, so you will not be able to try the search here'}.
                     </p>
                 )}
@@ -758,7 +757,7 @@ function AppPickEditor({ field, index, onChange }) {
             </label>
             <p className="text-[10px] text-[var(--text-tertiary)]">
                 {field.withText !== false
-                    ? <>The record is read when the form is submitted, so a later step can use <code>{field.name}.text</code> — the transcript, the email body, the note.</>
+                    ? <>{t('automations.form_builder_fields.the_record_is_read_when_the', 'The record is read when the form is submitted, so a later step can use')} <code>{field.name}.text</code> {t('automations.form_builder_fields.the_transcript_the_email_body_the', '— the transcript, the email body, the note.')}</>
                     : <>{t('automations.form_builder_fields.only_a_reference_travels_the_title', 'Only a reference travels: the title and the id. Nothing is read from the app.')}</>}
             </p>
         </div>

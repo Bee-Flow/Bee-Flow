@@ -71,11 +71,11 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
     reasoning for `knowledgeBaseIds` (BFSF-410): a configured grounding list
     must show as configured in Simple mode too, not just Advanced. */}
             <AccordionSection stepType="ai_step" sectionKey="advanced" title={t('automations.ai_step_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced') || !!tierProblem} hasContent={!!draft.systemPrompt || (!!draft.modelTier && draft.modelTier !== 'auto') || !!draft.model || !!draft.forEach || retryIsSet(draft) || !!draft.allowTools || (draft.tools?.length > 0) || (draft.knowledgeBaseIds?.length > 0) || !!draft.useMemory}>
-                <FormRow label="System prompt" hint="Optional. Overrides the default 'You are a step inside a no-code automation' framing — set a tone, role, or domain.">
+                <FormRow label={t('automations.ai_step_editors.system_prompt', 'System prompt')} hint={t('automations.ai_step_editors.optional_overrides_the_default_you_are', 'Optional. Overrides the default \'You are a step inside a no-code automation\' framing — set a tone, role, or domain.')}>
                     <textarea rows={3} value={draft.systemPrompt || ''} onChange={(e) => set('systemPrompt', e.target.value)} placeholder={t('automations.ai_step_editors.default_a_generic_automation_step_system', '(default: a generic automation-step system prompt)')} className={textareaClass()} />
                 </FormRow>
                 <ProblemRing problem={tierProblem}>
-                <FormRow label="Model tier">
+                <FormRow label={t('automations.ai_step_editors.model_tier', 'Model tier')}>
                     {(() => {
                         // Only list the tiers the chat actually offers — same
                         // configured-tier filter the ModelTierSelector uses, so
@@ -99,10 +99,10 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                     })()}
                 </FormRow>
                 </ProblemRing>
-                <FormRow label="Tools" hint="Choose which tools the AI may call during this step. Only tools you have permission for are listed. Leave empty for a pure text answer.">
+                <FormRow label={t('automations.ai_step_editors.tools', 'Tools')} hint={t('automations.ai_step_editors.choose_which_tools_the_ai_may', 'Choose which tools the AI may call during this step. Only tools you have permission for are listed. Leave empty for a pure text answer.')}>
                     <AiStepToolSelect draft={draft} set={set} catalog={catalog} />
                 </FormRow>
-                <FormRow label="Personal memory" hint="Ground this step in what you have told the assistant about yourself, your preferences and your contacts. The memories closest to this step's prompt are added before the model answers. Good for steps that write in your name or decide on your behalf.">
+                <FormRow label={t('automations.ai_step_editors.personal_memory', 'Personal memory')} hint={t('automations.ai_step_editors.ground_this_step_in_what_you', 'Ground this step in what you have told the assistant about yourself, your preferences and your contacts. The memories closest to this step\'s prompt are added before the model answers. Good for steps that write in your name or decide on your behalf.')}>
                     <label className="inline-flex items-center gap-2 text-sm text-[var(--text-primary)]">
                         <input
                             type="checkbox"
@@ -112,10 +112,10 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                         {t('automations.ai_step_editors.use_my_personal_memory', 'Use my personal memory')}
                     </label>
                 </FormRow>
-                <FormRow label="Knowledge bases" hint="Ground this step in these knowledge bases — searched once before the step runs and added to the prompt as reference material. Good for steerable content like a brand style guide or a positioning doc.">
+                <FormRow label={t('automations.ai_step_editors.knowledge_bases', 'Knowledge bases')} hint={t('automations.ai_step_editors.ground_this_step_in_these_knowledge', 'Ground this step in these knowledge bases — searched once before the step runs and added to the prompt as reference material. Good for steerable content like a brand style guide or a positioning doc.')}>
                     <AiStepKbSelect draft={draft} set={set} />
                 </FormRow>
-                <FormRow label="Iteration" hint="Off by default: the AI runs once and sees all mapped data at once. Turn on to run the prompt once per item of an upstream list (then reference {{loop.item…}}).">
+                <FormRow label={t('automations.ai_step_editors.iteration', 'Iteration')} hint={t('automations.ai_step_editors.off_by_default_the_ai_runs', 'Off by default: the AI runs once and sees all mapped data at once. Turn on to run the prompt once per item of an upstream list (then reference {{loop.item…}}).')}>
                     <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 </FormRow>
                 <RetrySection draft={draft} set={set} />
@@ -248,8 +248,8 @@ function AiStepToolSelect({ draft, set, catalog }) {
             {selected.length === 0 ? (
                 <p className="text-xs text-[var(--text-tertiary)]">
                     {t('automations.ai_step_editors.no_tools_the_ai_step_answers', 'No tools — the AI step answers from its prompt only.')}
-                    {' '}You can also drag an app from the ribbon onto this step&apos;s
-                    {' '}<span className="whitespace-nowrap">{t('automations.ai_step_editors.tools', 'Tools')}</span> port on the canvas.
+                    {' '}{t('automations.ai_step_editors.you_can_also_drag_an_app', 'You can also drag an app from the ribbon onto this step\'s')}
+                    {' '}<span className="whitespace-nowrap">{t('automations.ai_step_editors.tools', 'Tools')}</span> {t('automations.ai_step_editors.port_on_the_canvas', 'port on the canvas.')}
                 </p>
             ) : (
                 <div className="flex flex-wrap gap-1.5">

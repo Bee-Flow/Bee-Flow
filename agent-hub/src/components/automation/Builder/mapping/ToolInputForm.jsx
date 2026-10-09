@@ -220,7 +220,7 @@ export default function ToolInputForm({
                 onClick={(e) => upstreamPicker.openPicker(e.currentTarget)}
                 className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
-                <Workflow size={12} /> Add field from a previous step
+                <Workflow size={12} /> {t('automations.tool_input_form.add_field_from_a_previous_step', 'Add field from a previous step')}
             </button>
             <VariablePicker
                 {...upstreamPicker.pickerProps}
@@ -239,7 +239,7 @@ export default function ToolInputForm({
             title={t('automations.tool_input_form.auto_map_empty_inputs_from_upstream', 'Auto-map empty inputs from upstream steps')}
             className={actionButtonClass()}
         >
-            <Sparkles size={12} /> Auto-map
+            <Sparkles size={12} /> {t('automations.tool_input_form.auto_map', 'Auto-map')}
         </button>
     ) : null;
 
@@ -315,7 +315,7 @@ export default function ToolInputForm({
                         onClick={addField}
                         className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                        <Plus size={12} /> Add custom field
+                        <Plus size={12} /> {t('automations.tool_input_form.add_custom_field', 'Add custom field')}
                     </button>
                 )}
             </div>
@@ -375,7 +375,7 @@ export default function ToolInputForm({
                         onClick={addField}
                         className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                        <Plus size={12} /> Add field
+                        <Plus size={12} /> {t('automations.tool_input_form.add_field', 'Add field')}
                     </button>
                     {AddFromStepButton}
                 </div>

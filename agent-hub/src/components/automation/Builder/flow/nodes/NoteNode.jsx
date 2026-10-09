@@ -104,7 +104,7 @@ export default function NoteNode({ id, data, selected }) {
                 }}
             />
             <div className={`flex items-center gap-1.5 px-2 pt-2 text-[10px] uppercase tracking-wide opacity-70 ${palette.text}`}>
-                <StickyNote size={11} /> Note
+                <StickyNote size={11} /> {t('automations.note_node.note', 'Note')}
             </div>
             <div className="flex-1 min-h-0 px-2 pb-2 pt-1">
                 {editing ? (

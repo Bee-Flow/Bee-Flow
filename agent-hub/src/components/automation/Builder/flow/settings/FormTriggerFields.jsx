@@ -40,7 +40,7 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
                     onClick={() => set('form', defaultFormDeclaration())}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[var(--accent)] text-white hover:opacity-90"
                 >
-                    <Plus size={13} /> Create the form
+                    <Plus size={13} /> {t('automations.form_trigger_fields.create_the_form', 'Create the form')}
                 </button>
             </div>
         );
@@ -168,7 +168,7 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
             {error && <div className="text-[11px] text-red-600">{error}</div>}
             {!page ? (
                 <div className="text-[11px] text-[var(--text-tertiary)] flex items-center gap-1.5">
-                    {busy ? <><Loader2 size={11} className="animate-spin" /> Generating link…</> : (
+                    {busy ? <><Loader2 size={11} className="animate-spin" /> {t('automations.form_trigger_fields.generating_link', 'Generating link…')}</> : (
                         <button onClick={load} className="underline hover:text-[var(--text-primary)]">{t('automations.form_trigger_fields.generate_the_link', 'Generate the link')}</button>
                     )}
                 </div>

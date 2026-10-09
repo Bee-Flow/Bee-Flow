@@ -169,7 +169,7 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
                                 />
                                 {duplicate && (
                                     <div className={AMBER_NOTE}>
-                                        Another field is already called {name} — this one is not saved until it has its own name.
+                                        {t('automations.data_extraction_fields.another_field_is_already_called', 'Another field is already called')} {name} {t('automations.data_extraction_fields.this_one_is_not_saved_until', '— this one is not saved until it has its own name.')}
                                     </div>
                                 )}
                             </div>

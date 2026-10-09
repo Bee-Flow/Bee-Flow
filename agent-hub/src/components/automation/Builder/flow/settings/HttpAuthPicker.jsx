@@ -89,7 +89,7 @@ export default function HttpAuthPicker({ value, onChange }) {
                         onClick={() => setAdding(true)}
                         className="flex items-center gap-1 text-xs text-[var(--accent)] hover:opacity-80 transition"
                     >
-                        <Plus size={12} /> Add credential
+                        <Plus size={12} /> {t('automations.http_auth_picker.add_credential', 'Add credential')}
                     </button>
                     <a
                         href="/app/settings/integrations"
@@ -135,7 +135,7 @@ function InlineCredentialForm({ api, onCreated, onCancel }) {
 
     return (
         <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 space-y-3">
-            <FormRow label="Name">
+            <FormRow label={t('automations.http_auth_picker.name', 'Name')}>
                 <input
                     type="text"
                     value={label}
@@ -144,7 +144,7 @@ function InlineCredentialForm({ api, onCreated, onCancel }) {
                     className={inputClass()}
                 />
             </FormRow>
-            <FormRow label="Auth type">
+            <FormRow label={t('automations.http_auth_picker.auth_type', 'Auth type')}>
                 <select
                     value={typeId}
                     onChange={(e) => { setTypeId(e.target.value); setValues({}); }}
@@ -172,7 +172,7 @@ function InlineCredentialForm({ api, onCreated, onCancel }) {
                     disabled={busy}
                     className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded bg-[var(--accent)] text-white disabled:opacity-40"
                 >
-                    {busy ? <Loader2 size={12} className="animate-spin" /> : null} Save credential
+                    {busy ? <Loader2 size={12} className="animate-spin" /> : null} {t('automations.http_auth_picker.save_credential', 'Save credential')}
                 </button>
                 <button
                     type="button"

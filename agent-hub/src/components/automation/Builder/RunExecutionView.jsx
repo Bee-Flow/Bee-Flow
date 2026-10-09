@@ -111,7 +111,7 @@ function StepDataPanel({ attempts, label, onClose }) {
                         className="px-1.5 py-0.5 rounded border border-[var(--border-default)] bg-[var(--bg-primary)] text-[11px] text-[var(--text-primary)]"
                     >
                         {attempts.map((_, i) => (
-                            <option key={i} value={i}>attempt {i + 1} of {attempts.length}</option>
+                            <option key={i} value={i}>{t('automations.run_execution_view.attempt_of', 'attempt {n} of {total}', { n: i + 1, total: attempts.length })}</option>
                         ))}
                     </select>
                 )}

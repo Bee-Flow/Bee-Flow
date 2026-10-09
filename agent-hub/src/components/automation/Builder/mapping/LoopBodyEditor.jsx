@@ -188,7 +188,7 @@ export default function LoopBodyEditor({
                 onClick={() => setAddOpen((o) => !o)}
                 className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
             >
-                <Plus size={12} /> Add step
+                <Plus size={12} /> {t('automations.loop_body_editor.add_step', 'Add step')}
             </button>
             {addOpen && (
                 <div className="rounded border border-[var(--border-default)] bg-[var(--bg-primary)] max-h-[320px] flex flex-col">

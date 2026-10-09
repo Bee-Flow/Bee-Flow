@@ -178,11 +178,10 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 "Pick fields from it"). Existing steps keep working untouched;
                 this banner just points authors at the current home. */}
             <div className="mb-2 rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/60 px-2.5 py-1.5 text-[11px] text-[var(--text-secondary)]">
-                This step type has moved into <span className="font-medium text-[var(--text-primary)]">{t('automations.parse_json_fields.edit_data', 'Edit data')}</span> — this existing step keeps working.
-                For new extractions, add an Edit data step and use “Pick fields from it”.
+                {t('automations.parse_json_fields.this_step_type_has_moved_into', 'This step type has moved into')} <span className="font-medium text-[var(--text-primary)]">{t('automations.parse_json_fields.edit_data', 'Edit data')}</span> {t('automations.parse_json_fields.this_existing_step_keeps_working_for', '— this existing step keeps working. For new extractions, add an Edit data step and use “Pick fields from it”.')}
             </div>
             <AccordionSection stepType="parse_json" sectionKey="source" title={t('automations.parse_json_fields.source', 'Source')} defaultOpen forceOpen={errorSections.has('source')}>
-                <FormRow label="Source" hint="Where the JSON comes from. Empty = the previous step's output. Text is parsed as JSON automatically.">
+                <FormRow label={t('automations.parse_json_fields.source', 'Source')} hint={t('automations.parse_json_fields.where_the_json_comes_from_empty', 'Where the JSON comes from. Empty = the previous step\'s output. Text is parsed as JSON automatically.')}>
                     <PathField
                         value={draft.sourceRef || ''}
                         onChange={(next) => set('sourceRef', next)}
@@ -201,8 +200,8 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                     )}
                 </FormRow>
                 <FormRow
-                    label="Group by list"
-                    hint="Optional. Point this at a list to get one row per entry — field paths are then relative to a single entry, and the output becomes items + count. Leave empty for one flat set of values."
+                    label={t('automations.parse_json_fields.group_by_list', 'Group by list')}
+                    hint={t('automations.parse_json_fields.optional_point_this_at_a_list', 'Optional. Point this at a list to get one row per entry — field paths are then relative to a single entry, and the output becomes items + count. Leave empty for one flat set of values.')}
                 >
                     <input
                         type="text"
@@ -214,7 +213,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                     />
                     {groupCandidates.length > 0 && !itemsRef && (
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">lists found</span>
+                            <span className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.parse_json_fields.lists_found', 'lists found')}</span>
                             {groupCandidates.map(c => (
                                 <button
                                     key={c}
@@ -234,7 +233,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                     )}
                     {grouped && (
                         <div className="mt-1 text-[10px] text-[var(--text-tertiary)]">
-                            {groupItems.length} {groupItems.length === 1 ? 'entry' : 'entries'} — one output row each. Bind downstream as <span className="font-mono">steps.{step.id}.output.items</span>.
+                            {groupItems.length} {groupItems.length === 1 ? 'entry' : 'entries'} {t('automations.parse_json_fields.one_output_row_each_bind_downstream', '— one output row each. Bind downstream as')} <span className="font-mono">steps.{step.id}.output.items</span>.
                         </div>
                     )}
                 </FormRow>
@@ -308,7 +307,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                                 />
                             </div>
                             {unverified.has(f?.name) && (
-                                <div className="text-[10px] text-amber-500">not found in sample</div>
+                                <div className="text-[10px] text-amber-500">{t('automations.parse_json_fields.not_found_in_sample', 'not found in sample')}</div>
                             )}
                             {previewUsable && (
                                 <div className={`text-[10px] flex items-center gap-1.5 ${resolved === undefined ? 'text-amber-500' : 'text-[var(--text-tertiary)]'}`}>
@@ -318,7 +317,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                                     </span>
                                     {matched !== null && (
                                         <span className={matched === 0 ? 'text-amber-500' : ''}>
-                                            · filled in {matched}/{groupItems.length}
+                                            {t('automations.parse_json_fields.filled_in', '· filled in')} {matched}/{groupItems.length}
                                         </span>
                                     )}
                                 </div>
@@ -331,7 +330,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                     onClick={addField}
                     className="flex items-center gap-1 text-xs text-[var(--accent)] hover:opacity-80 transition"
                 >
-                    <Plus size={12} /> Add field
+                    <Plus size={12} /> {t('automations.parse_json_fields.add_field', 'Add field')}
                 </button>
 
                 {previewUsable && (
@@ -375,7 +374,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
             </AccordionSection>
 
             <AccordionSection stepType="parse_json" sectionKey="options" title={t('automations.parse_json_fields.options', 'Options')} defaultOpen={aiMode} forceOpen={errorSections.has('options')}>
-                <FormRow label="Extraction">
+                <FormRow label={t('automations.parse_json_fields.extraction', 'Extraction')}>
                     <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
                         <input
                             type="checkbox"

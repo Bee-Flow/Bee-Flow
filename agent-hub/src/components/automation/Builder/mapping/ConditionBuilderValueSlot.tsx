@@ -114,8 +114,8 @@ function BooleanSlot({ value, onChange, swap }: SlotProps) {
                 className={slotInputClass}
             >
                 <option value="">{t('automations.condition_builder_value_slot.choose', '(choose)')}</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
+                <option value="true">{t('automations.condition_builder_value_slot.true', 'true')}</option>
+                <option value="false">{t('automations.condition_builder_value_slot.false', 'false')}</option>
             </select>
             {swap}
         </div>

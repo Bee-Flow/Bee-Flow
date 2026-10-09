@@ -88,9 +88,9 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                                     {t('automations.cache_into_row.a_table_you_can_no_longer', '(a table you can no longer reach)')}
                                 </option>
                             )}
-                            {tables.map(t => (
-                                <option key={t.id} value={t.id}>
-                                    {t.name} — readable by {TABLE_AUDIENCE[t.scope] || 'everyone with access'}
+                            {tables.map(tb => (
+                                <option key={tb.id} value={tb.id}>
+                                    {tb.name} {t('automations.cache_into_row.readable_by', '— readable by')} {TABLE_AUDIENCE[tb.scope] || t('automations.cache_into_row.everyone_with_access', 'everyone with access')}
                                 </option>
                             ))}
                         </select>
@@ -107,7 +107,7 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                                 onChange={(e) => setDays(e.target.value)}
                                 className={`${inputClass()} w-24`}
                             />
-                            <span className="text-slate-500 dark:text-slate-400">days</span>
+                            <span className="text-slate-500 dark:text-slate-400">{t('automations.cache_into_row.days', 'days')}</span>
                         </span>
                     </label>
 

@@ -75,7 +75,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
     return (
         <>
             <AccordionSection stepType={step.type} sectionKey="config" title={t('automations.privacy_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
-                <FormRow label="What should this step do?">
+                <FormRow label={t('automations.privacy_editors.what_should_this_step_do', 'What should this step do?')}>
                     <div className="flex flex-col gap-1">
                         {PRIVACY_MODES.map((m) => (
                             <button
@@ -97,7 +97,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                 {modeAsk && (
                     <div className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-700 dark:text-amber-300">
                         <p className="mb-1.5">
-                            Switching to <strong>{PRIVACY_MODES.find(m => m.id === modeAsk.next)?.label}</strong> removes{' '}
+                            {t('automations.privacy_editors.switching_to', 'Switching to')} <strong>{PRIVACY_MODES.find(m => m.id === modeAsk.next)?.label}</strong> {t('automations.privacy_editors.removes', 'removes')}{' '}
                             {modeAsk.dropped.map(d => `the "${d.port}" connection`).join(' and ')} — {modeAsk.dropped[0].why}.
                         </p>
                         <div className="flex gap-2">
@@ -126,38 +126,32 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                     it is discoverable from the node alone. */}
                 {mode === 'reveal' && (
                     <p className="text-[11px] text-[var(--text-tertiary)]">
-                        Bind the next step to <code>output.text</code>. Most values come back on their own — an AI reply, a tool
-                        result — so this is only needed where one did not. Anything this run cannot account for is reported
-                        rather than left in the text.
+                        {t('automations.privacy_editors.bind_the_next_step_to', 'Bind the next step to')} <code>output.text</code>{t('automations.privacy_editors.most_values_come_back_on_their', '. Most values come back on their own — an AI reply, a tool result — so this is only needed where one did not. Anything this run cannot account for is reported rather than left in the text.')}
                     </p>
                 )}
                 {mode === 'hide' && (
                     <p className="text-[11px] text-[var(--text-tertiary)]">
-                        Bind the next step to <code>output.text</code>. Every value is replaced by a placeholder like{' '}
-                        <code>[email_1]</code>, and the real values are put back <strong>automatically</strong> wherever the
-                        run uses them again — an AI reply, a tool result. For a value that never comes back
-                        that way, add a step in <strong>{t('automations.privacy_editors.show_real_values_again', 'Show real values again')}</strong> mode where you want them restored.
+                        {t('automations.privacy_editors.bind_the_next_step_to', 'Bind the next step to')} <code>output.text</code>{t('automations.privacy_editors.every_value_is_replaced_by_a', '. Every value is replaced by a placeholder like')}{' '}
+                        <code>[email_1]</code>{t('automations.privacy_editors.and_the_real_values_are_put', ', and the real values are put back')} <strong>{t('automations.privacy_editors.automatically', 'automatically')}</strong> {t('automations.privacy_editors.wherever_the_run_uses_them_again', 'wherever the run uses them again — an AI reply, a tool result. For a value that never comes back that way, add a step in')} <strong>{t('automations.privacy_editors.show_real_values_again', 'Show real values again')}</strong> {t('automations.privacy_editors.mode_where_you_want_them_restored', 'mode where you want them restored.')}
                     </p>
                 )}
                 {branches && (
                     <p className="text-[11px] text-[var(--text-tertiary)]">
-                        Leaves by <span className="font-semibold text-amber-600 dark:text-amber-400">personal data</span> or{' '}
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">clean</span> — wire an alert to the first.
+                        {t('automations.privacy_editors.leaves_by', 'Leaves by')} <span className="font-semibold text-amber-600 dark:text-amber-400">{t('automations.privacy_editors.personal_data', 'personal data')}</span> {t('automations.privacy_editors.or', 'or')}{' '}
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">{t('automations.privacy_editors.clean', 'clean')}</span> {t('automations.privacy_editors.wire_an_alert_to_the_first', '— wire an alert to the first.')}
                         {mode === 'check_hide' && (
-                            <> The hidden copy is on <code>output.text</code>, with reversible placeholders — a later
-                            <strong> {t('automations.privacy_editors.show_real_values_again', 'Show real values again')}</strong> can restore it.</>
+                            <> {t('automations.privacy_editors.the_hidden_copy_is_on', 'The hidden copy is on')} <code>output.text</code>{t('automations.privacy_editors.with_reversible_placeholders_a_later', ', with reversible placeholders — a later')}
+                            <strong> {t('automations.privacy_editors.show_real_values_again', 'Show real values again')}</strong> {t('automations.privacy_editors.can_restore_it', 'can restore it.')}</>
                         )}
                     </p>
                 )}
                 {guardTrouble && scans && (
                     <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                        The Privacy Shield detector {guardTrouble}, so this step cannot scan right now. Which branch it takes
-                        then is your organisation&rsquo;s Privacy Shield setting — but it will never report
-                        &ldquo;clean&rdquo; for a scan that did not happen.
+                        {t('automations.privacy_editors.the_privacy_shield_detector', 'The Privacy Shield detector')} {guardTrouble}{t('automations.privacy_editors.so_this_step_cannot_scan_right', ', so this step cannot scan right now. Which branch it takes then is your organisation’s Privacy Shield setting — but it will never report “clean” for a scan that did not happen.')}
                     </p>
                 )}
                 {branches && (
-                <FormRow label="On personal data">
+                <FormRow label={t('automations.privacy_editors.on_personal_data', 'On personal data')}>
                     <div className="flex flex-col gap-1.5">
                         <label className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
                             <input type="checkbox" checked={!!privacy.stopOnFound} onChange={(e) => setPrivacy({ stopOnFound: e.target.checked })} className="mt-0.5 accent-[var(--accent)]" />
@@ -171,8 +165,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                             <span>
                                 {t('automations.privacy_editors.pass_a_masked_copy_on', 'Pass a masked copy on')}
                                 <span className="block text-[var(--text-tertiary)]">
-                                    Adds <code>output.masked</code>, with every value replaced by <code>[person]</code>. Irreversible — the
-                                    original is not recoverable from it, unlike the placeholders <strong>{t('automations.privacy_editors.check_and_hide', 'Check and hide')}</strong> mints.
+                                    {t('automations.privacy_editors.adds', 'Adds')} <code>output.masked</code>{t('automations.privacy_editors.with_every_value_replaced_by', ', with every value replaced by')} <code>[person]</code>{t('automations.privacy_editors.irreversible_the_original_is_not_recoverable', '. Irreversible — the original is not recoverable from it, unlike the placeholders')} <strong>{t('automations.privacy_editors.check_and_hide', 'Check and hide')}</strong> mints.
                                 </span>
                             </span>
                         </label>
@@ -182,7 +175,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
             </AccordionSection>
             {scans && (
             <AccordionSection stepType={step.type} sectionKey="advanced" title={t('automations.privacy_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced')}>
-                <FormRow label={hides && !branches ? 'Hide' : 'Look for'} hint="Everything the organisation looks for, unless you narrow it here. A step can only look for LESS than the Privacy Shield does, never more.">
+                <FormRow label={hides && !branches ? 'Hide' : 'Look for'} hint={t('automations.privacy_editors.everything_the_organisation_looks_for_unless', 'Everything the organisation looks for, unless you narrow it here. A step can only look for LESS than the Privacy Shield does, never more.')}>
                     <div className="flex flex-wrap gap-1">
                         {categories.map((c) => {
                             const on = !selected || selected.includes(c.id);
@@ -207,7 +200,7 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                         })}
                     </div>
                 </FormRow>
-                <FormRow label="Only report matches above" hint="Leave empty to use the organisation's threshold. A higher number reports only what the detector is more sure about.">
+                <FormRow label={t('automations.privacy_editors.only_report_matches_above', 'Only report matches above')} hint={t('automations.privacy_editors.leave_empty_to_use_the_organisation', 'Leave empty to use the organisation\'s threshold. A higher number reports only what the detector is more sure about.')}>
                     <input
                         type="number" min={0} max={1} step={0.05}
                         value={privacy.confidence ?? ''}

@@ -88,7 +88,7 @@ function LayerOutputFields({ draft, set, onFocusField, previewSample, errorSecti
             set={set}
             stepType="layer_output"
             title={t('automations.flowlet_call_fields.return_fields', 'Return fields')}
-            hint="The object this flowlet returns to its caller. Bind each field to a value produced inside the flowlet."
+            hint={t('automations.flowlet_call_fields.the_object_this_flowlet_returns_to', 'The object this flowlet returns to its caller. Bind each field to a value produced inside the flowlet.')}
             onFocusField={onFocusField}
             previewSample={previewSample}
             errorSections={errorSections}

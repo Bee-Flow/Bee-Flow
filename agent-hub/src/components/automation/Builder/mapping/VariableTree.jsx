@@ -85,7 +85,7 @@ function TreeHeader({ activeFieldLabel }) {
             </div>
             {activeFieldLabel && (
                 <div className="mt-0.5 text-[11px] text-[var(--text-secondary)] truncate">
-                    insert into <span className="font-mono">{activeFieldLabel}</span>
+                    {t('automations.variable_tree.insert_into', 'insert into')} <span className="font-mono">{activeFieldLabel}</span>
                 </div>
             )}
         </div>

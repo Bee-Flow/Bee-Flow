@@ -1,17 +1,19 @@
 import { summariseData as summariseDataJs } from '../flow/dataSummary';
 import { listBadgeClass as listBadgeClassJs } from '../flow/settings/formStyles';
 import { MAX_CELL, safeJson, scalarText, truncate } from './valueHelpers';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 const summariseData = summariseDataJs as (value: unknown) => { label?: string } | null;
 const listBadgeClass = listBadgeClassJs as (extra?: string) => string;
 
 // Compact single-cell rendering used inside tables and lists.
 export default function InlineValue({ value }: { value: unknown }) {
+    const { t } = useTranslation();
     if (value === null || value === undefined) return <span className="text-[var(--text-tertiary)]">—</span>;
     if (Array.isArray(value)) {
         // An EMPTY list is a fact ("this email has no attachments"), not
         // missing data: it must never share the "—" no-data marker.
-        if (value.length === 0) return <span className="text-[var(--text-tertiary)] italic">none</span>;
+        if (value.length === 0) return <span className="text-[var(--text-tertiary)] italic">{t('automations.inline_value.none', 'none')}</span>;
         if (value.every((v) => v === null || typeof v !== 'object')) {
             const joined = value.map(scalarText).join(', ');
             return <span title={joined}>{truncate(joined)}</span>;

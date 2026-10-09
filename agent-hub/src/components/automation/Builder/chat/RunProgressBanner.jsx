@@ -25,7 +25,7 @@ export default function RunProgressBanner({ run, steps, onStop }) {
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${failed ? 'bg-red-500' : 'bg-[var(--accent)]'}`} />
             </span>
             <span className="font-medium text-[var(--text-primary)]">
-                {failed ? 'Run failing' : 'Running'} — {done}/{total || '?'} steps
+                {failed ? t('automations.run_progress_banner.run_failing', 'Run failing') : t('automations.run_progress_banner.running', 'Running')} {t('automations.run_progress_banner.steps_progress', '{done}/{total} steps', { done, total: total || '?' })}
             </span>
             <span className="text-[var(--text-tertiary)] tabular-nums">
                 {Math.floor(elapsed / 1000)}.{Math.floor((elapsed % 1000) / 100)}s

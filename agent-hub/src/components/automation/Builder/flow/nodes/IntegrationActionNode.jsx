@@ -39,7 +39,7 @@ export default function IntegrationActionNode({ id, data }) {
         <>
             {iterates && (
                 <NodeChip tone="accent" title={`Runs once per item in ${step.forEach.overRef}`}>
-                    <Repeat size={10} /> for each
+                    <Repeat size={10} /> {t('automations.integration_action_node.for_each', 'for each')}
                 </NodeChip>
             )}
             {sideEffect && (

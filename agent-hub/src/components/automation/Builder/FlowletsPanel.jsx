@@ -168,7 +168,7 @@ export default function FlowletsPanel({
                         title={t('automations.flowlets_panel.create_a_new_flowlet', 'Create a new flowlet')}
                         className="inline-flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium bg-[var(--accent)] text-white hover:opacity-90"
                     >
-                        <Plus size={12} /> Create
+                        <Plus size={12} /> {t('automations.flowlets_panel.create', 'Create')}
                     </button>
                     <button
                         type="button"
@@ -192,7 +192,7 @@ export default function FlowletsPanel({
                             <>
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-[11px] font-semibold text-[var(--text-primary)] inline-flex items-center gap-1">
-                                        <Sparkles size={12} className="text-[var(--accent)]" /> Build a flowlet with AI
+                                        <Sparkles size={12} className="text-[var(--accent)]" /> {t('automations.flowlets_panel.build_a_flowlet_with_ai', 'Build a flowlet with AI')}
                                     </span>
                                     {!creating && (
                                         <button type="button" onClick={() => setBuildOpen(false)} aria-label={t('automations.flowlets_panel.close', 'Close')} className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
@@ -210,7 +210,7 @@ export default function FlowletsPanel({
                             </>
                         ) : (
                             <button type="button" onClick={() => setBuildOpen(true)} className="w-full inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--accent)] hover:underline">
-                                <Sparkles size={12} /> Build a flowlet with AI
+                                <Sparkles size={12} /> {t('automations.flowlets_panel.build_a_flowlet_with_ai', 'Build a flowlet with AI')}
                             </button>
                         )}
                     </div>
@@ -333,7 +333,7 @@ function MainFlowRow({
                     </span>
                 )}
             </div>
-            <DepLine icon={ArrowDownRight} label="Calls" targets={calls} titleByKey={titleByKey} onNavigate={onNavigate} />
+            <DepLine icon={ArrowDownRight} label={t('automations.flowlets_panel.calls', 'Calls')} targets={calls} titleByKey={titleByKey} onNavigate={onNavigate} />
 
             {/* AI summary of the whole automation — only when the opt-in toggle is on */}
             {aiEnabled && (
@@ -348,7 +348,7 @@ function MainFlowRow({
                         className="inline-flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline disabled:opacity-60 disabled:no-underline"
                     >
                         {summarizing
-                            ? <><Loader2 size={10} className="animate-spin" /> Summarizing…</>
+                            ? <><Loader2 size={10} className="animate-spin" /> {t('automations.flowlets_panel.summarizing', 'Summarizing…')}</>
                             : <><Sparkles size={10} /> {description ? 'Regenerate' : 'Summarize'}</>}
                     </button>
                 </div>
@@ -484,8 +484,8 @@ function LayerRow({
 
             {/* Dependencies — who calls this flowlet, and what it calls. Click a
                 target to jump there. */}
-            <DepLine icon={ArrowUpRight} label="Used by" targets={deps.callers} titleByKey={titleByKey} onNavigate={onNavigate} />
-            <DepLine icon={ArrowDownRight} label="Calls" targets={deps.calls} titleByKey={titleByKey} onNavigate={onNavigate} />
+            <DepLine icon={ArrowUpRight} label={t('automations.flowlets_panel.used_by', 'Used by')} targets={deps.callers} titleByKey={titleByKey} onNavigate={onNavigate} />
+            <DepLine icon={ArrowDownRight} label={t('automations.flowlets_panel.calls', 'Calls')} targets={deps.calls} titleByKey={titleByKey} onNavigate={onNavigate} />
 
             {/* Deterministic step preview (always available, no AI) */}
             {expanded && (
@@ -527,7 +527,7 @@ function LayerRow({
                         className="inline-flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline disabled:opacity-60 disabled:no-underline"
                     >
                         {summarizing
-                            ? <><Loader2 size={10} className="animate-spin" /> Summarizing…</>
+                            ? <><Loader2 size={10} className="animate-spin" /> {t('automations.flowlets_panel.summarizing', 'Summarizing…')}</>
                             : <><Sparkles size={10} /> {layer.description ? 'Regenerate' : 'Summarize'}</>}
                     </button>
                 </div>
@@ -566,6 +566,7 @@ function agentProgressText(st) {
  * onSubmit(text) may return a Promise; the parent decides whether to close.
  */
 function LayerAiComposer({ onSubmit, running = false, progress = '', placeholder = '', submitLabel = 'Build', autoFocus = false, compact = false }) {
+    const { t } = useTranslation();
     const [text, setText] = useState('');
     const submit = () => {
         const t = text.trim();
@@ -596,7 +597,7 @@ function LayerAiComposer({ onSubmit, running = false, progress = '', placeholder
                     className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 flex-shrink-0"
                 >
                     {running
-                        ? <><Loader2 size={11} className="animate-spin" /> Building…</>
+                        ? <><Loader2 size={11} className="animate-spin" /> {t('automations.flowlets_panel.building', 'Building…')}</>
                         : <><Sparkles size={11} /> {submitLabel}</>}
                 </button>
             </div>
