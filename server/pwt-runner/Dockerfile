@@ -18,6 +18,14 @@ FROM mcr.microsoft.com/playwright:v1.59.1-noble@sha256:b0ab6f3cb99aa7803adbc14d9
 
 WORKDIR /runner
 
+# openssl only, not a full upgrade: the base's other OS packages are the ones
+# Playwright tested its browsers against. Ubuntu shipped the fixes for
+# CVE-2026-45447 and CVE-2026-84782 after the pinned base digest, and the
+# release container gate fails on a fixable HIGH/CRITICAL finding.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade openssl libssl3t64 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Browsers are already baked into the base image — never re-download them.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # Generated specs `import { test } from '@playwright/test'` while running with
