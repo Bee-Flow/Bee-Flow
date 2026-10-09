@@ -75,7 +75,9 @@ test('the migration is registered, or it never runs', () => {
     assert.strictEqual(typeof up, 'function');
 });
 
+const sha256Of = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+
 test('the pinned data hash matches the data file, so a data change re-runs the migration', () => {
-    const actual = crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, 'data', 'ui-complete-2026-10-nl.json'))).digest('hex');
+    const actual = sha256Of(path.join(__dirname, 'data', 'ui-complete-2026-10-nl.json'));
     assert.strictEqual(DATA_SHA256, actual, 'data/ui-complete-2026-10-nl.json changed: set DATA_SHA256 in add-nl-ui-complete-2026-10-translations.js to ' + actual);
 });

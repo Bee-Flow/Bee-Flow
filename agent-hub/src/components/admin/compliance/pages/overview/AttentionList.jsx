@@ -174,7 +174,7 @@ function AttentionRow({ item, confirming, busy, onAction, onOpenSubject, onCance
         <li className="grid grid-cols-[18px_1fr_auto] items-start gap-2.5 border-t border-[var(--border-default)] py-2 first:border-t-0" data-testid={testId} data-status={item.status} data-id={item.id}>
             <Glyph size={14} className="mt-0.5" style={{ color: TONES[tone].ink }} aria-hidden />
             <div className="min-w-0">
-                <div className="text-xs font-medium text-[var(--text-primary)]">{item.title}</div>
+                <div className="text-xs font-medium text-[var(--text-primary)]">{item.titleKey ? t(item.titleKey, item.title) : item.title}</div>
                 {parts.length ? (
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--text-secondary)]" data-testid={`${testId}-meta`}>
                         {parts.map((part, i) => (

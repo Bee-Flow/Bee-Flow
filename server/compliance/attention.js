@@ -123,6 +123,8 @@ function baseItem(def, row, d, sectionOf) {
         severity: def.severity || row.severity || 'medium',
         status: row.status,
         title: scrubEmails(checkTitle(def, d.titles)),
+        // the title above is English (the server's own defaults); the client renders the reader's language from this key
+        ...(def?.titleKey ? { titleKey: def.titleKey } : {}),
         meta: {
             frameworks: (def.frameworks || []).map(f => ({ regulation: f.regulation, ref: f.ref })),
             severity: def.severity || row.severity || 'medium',
