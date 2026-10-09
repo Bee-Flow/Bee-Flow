@@ -655,6 +655,8 @@ const NL_TRANSLATIONS = {
     'project_home.quick.hint': 'Document, meeting, bestanden…',
     'project_home.task_due': 'Deadline {date}',
     'project_home.task_overdue': 'Te laat · {date}',
+    'project_chat.remove_task_tag': 'Tasktag verwijderen',
+    'project_chat.tag_tasks': 'Projecttaken taggen',
 };
 
 /**
