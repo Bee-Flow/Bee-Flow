@@ -27,7 +27,7 @@ const DATA = require(path.join(__dirname, 'data', 'hardcoded-pages-shell-2026-10
  * here makes every data change a change to this file; the test fails until it
  * is updated.
  */
-const DATA_SHA256 = '18f56e1c2d8693e1c61c754ca12dc86541a59198a5f6e1159f9a37739a92a9be';
+const DATA_SHA256 = 'c73b4ff7f087d5f72ddc953e0f5c6ec89a430676766a539e2b122d45d87352d0';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

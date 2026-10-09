@@ -363,4 +363,7 @@ module.exports = {
     'org.training.pick_course': 'Course that unlocks {area}',
     'org.training.save_failed': 'Could not save. Try again.',
     'org.training.title': 'Finish the course first',
+    // Hardcoded literals converted (2026-10)
+    'org.settings_access_denied_text': 'You don\'t have permission to access organisation settings.',
+    'org.settings_title': 'Organisation Settings',
 };

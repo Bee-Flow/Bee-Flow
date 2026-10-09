@@ -40,6 +40,7 @@ import { normaliseOptions } from './formOptions';
  *               that is polling knows what comes next.
  */
 export default function PublicFormRenderer({ form, onSubmit = null, onUpload = null, onSearchApp = null, preview = false, showSuccess = true, downloadHref = null, onOpenInNotebooks = null }) {
+    const { t } = useTranslation();
     const fields = form?.fields || [];
     const theme = form?.theme || {};
 
@@ -126,7 +127,7 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
                 {/* Honeypot — hidden from people AND from assistive tech, so
                     only an indiscriminate bot fills it in. */}
                 <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
-                    <label htmlFor="website_url">Leave this field empty</label>
+                    <label htmlFor="website_url">{t('forms.honeypot_label', 'Leave this field empty')}</label>
                     <input id="website_url" name="website_url" type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
                 </div>
 
@@ -780,6 +781,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
  * next to the box rather than thrown, because it is not the person's mistake.
  */
 function AppPickField({ field, value, disabled, onChange, onSearch }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(false);
@@ -896,7 +898,7 @@ function AppPickField({ field, value, disabled, onChange, onSearch }) {
                     />
                     {searching && (
                         <span className="flex items-center gap-1.5 px-1 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                            <Loader2 size={12} className="animate-spin" /> Searching…
+                            <Loader2 size={12} className="animate-spin" /> {t('forms.searching', 'Searching…')}
                         </span>
                     )}
                     {!searching && note && (

@@ -68,4 +68,7 @@ module.exports = {
     "login.verify_title": "Confirm your email address",
     "login.invite_link_expired": "This invitation link has expired or is no longer valid. Ask whoever invited you for a new one.",
     "login.invite_link_error": "Something went wrong opening this invitation. Please try the link again or ask for a new one.",
+    // Hardcoded literals converted (2026-10)
+    'login.org_logo_alt': 'Organization',
+    'login.form_label': 'Login form',
 };

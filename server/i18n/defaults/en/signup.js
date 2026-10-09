@@ -96,4 +96,6 @@ module.exports = {
     'signup.pii_categories': 'Kinds of personal data',
     'signup.shield_on_summary': '{n} kinds of data',
     'signup.shield_off_summary': 'Off',
+    // Hardcoded literals converted (2026-10)
+    'signup.tagline_placeholder': 'Working smarter with AI',
 };
