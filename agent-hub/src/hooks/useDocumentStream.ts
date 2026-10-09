@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { parseFrame, readFrames } from './useProjectStream';
 
+/** A number in [0, 1) for the reconnect jitter, from the platform's CSPRNG. */
+const unitRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
+
 /**
  * Live, transient events of one Studio document
  * (GET /api/studio-documents/:id/stream): who is in it, and whatever later
@@ -45,7 +48,7 @@ export default function useDocumentStream(documentId: string | null | undefined,
         };
         const reconnect = () => {
             if (stopped) return;
-            const wait = Math.min(backoff, MAX_BACKOFF_MS) * (0.7 + Math.random() * 0.6);
+            const wait = Math.min(backoff, MAX_BACKOFF_MS) * (0.7 + unitRandom() * 0.6);
             backoff = Math.min(backoff * 2, MAX_BACKOFF_MS);
             timer = setTimeout(() => { timer = null; connect(); }, wait);
         };

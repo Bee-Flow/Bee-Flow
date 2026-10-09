@@ -86,7 +86,7 @@ function parseLooseValueAt(text, start) {
     let depth = 0;
 
     const fail = (why) => { throw new LooseParseError(why); };
-    const skipWs = () => { while (i < n && /\s/.test(text[i])) i++; };
+    const skipWs = () => { while (i < n && text[i].trim() === '') i++; };
     const fenceAt = (pos) => {
         if (text.startsWith(GEMMA_STRING_TEMPLATE, pos)) return GEMMA_STRING_TEMPLATE;
         if (text.startsWith(GEMMA_STRING, pos)) return GEMMA_STRING;
