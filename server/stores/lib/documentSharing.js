@@ -7,7 +7,11 @@ const { HttpError } = require('../../shared/httpErrors');
 function sharingDdl(table) {
     return `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS sharing_audience TEXT;
         ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS shared_groups JSONB NOT NULL DEFAULT '[]';
-        ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS shared_user_ids JSONB NOT NULL DEFAULT '[]';`;
+        ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS shared_user_ids JSONB NOT NULL DEFAULT '[]';
+        ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS sharing_access TEXT NOT NULL DEFAULT 'view';
+        DO $$ BEGIN
+            ALTER TABLE ${table} ADD CONSTRAINT ${table}_sharing_access_check CHECK (sharing_access IN ('view','edit'));
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;`;
 }
 
 function sharingSql(alias, user = '$2') {
@@ -20,6 +24,11 @@ function sharingSql(alias, user = '$2') {
                     WHERE COALESCE(NULLIF(to_jsonb(reader)->>'groups', ''), '[]')::jsonb ? shared_group.id)))))`;
 }
 
+// The readers sharingSql admits who may also change the content.
+function editSharingSql(alias, user = '$2') {
+    return `(${alias}.sharing_access = 'edit' AND ${sharingSql(alias, user)})`;
+}
+
 function visibilitySql(alias) {
     return `CASE WHEN ${alias}.sharing_audience IN ('organisation','restricted') THEN 'team'
         WHEN ${alias}.sharing_audience = 'private' THEN 'private' ELSE ${alias}.visibility END`;
@@ -29,6 +38,7 @@ function sharingOf(row) {
     return {
         audience: row.sharing_audience || (row.visibility === 'team' ? 'organisation' : 'private'),
         sharedGroups: row.shared_groups || [], sharedUserIds: row.shared_user_ids || [],
+        access: row.sharing_access === 'edit' ? 'edit' : 'view',
     };
 }
 
@@ -66,6 +76,10 @@ async function setSharing(type, id, userId, input) {
     const execute = (reencrypt) => withTransaction(async (client) => {
         const row = await owned(client, type, id, userId);
         const { audience } = input;
+        const access = audience !== 'private' && input.access === 'edit' ? 'edit' : 'view';
+        if (access === 'edit' && type !== 'document') {
+            throw new HttpError(422, 'edit_sharing_unsupported', 'Notebooks can only be shared for viewing.');
+        }
         if (!['private', 'organisation', 'restricted'].includes(audience)) {
             throw new HttpError(400, 'bad_audience', 'Choose private, organisation, or specific people and groups.');
         }
@@ -84,9 +98,9 @@ async function setSharing(type, id, userId, input) {
         }
         if (reencrypt) await require('./documentSharingCrypto').transition(client, type, row, audience, files);
         await client.query(`UPDATE ${tableFor(type)} SET sharing_audience = $2, shared_groups = $3::jsonb,
-            shared_user_ids = $4::jsonb${type === 'document' ? ", visibility = 'private'" : ''} WHERE id = $1`,
-        [id, audience, JSON.stringify(groups), JSON.stringify(users)]);
-        return { audience, sharedGroups: groups, sharedUserIds: users, organizationId: row.organization_id || null };
+            shared_user_ids = $4::jsonb, sharing_access = $5${type === 'document' ? ", visibility = 'private'" : ''} WHERE id = $1`,
+        [id, audience, JSON.stringify(groups), JSON.stringify(users), access]);
+        return { audience, sharedGroups: groups, sharedUserIds: users, access, organizationId: row.organization_id || null };
     });
     let result;
     try {
@@ -125,4 +139,4 @@ async function revokeGroupShares(groupId) {
     }
 }
 
-module.exports = { sharingDdl, sharingSql, visibilitySql, sharingOf, getSharing, setSharing, sharingDirectory, revokeGroupShares };
+module.exports = { sharingDdl, sharingSql, editSharingSql, visibilitySql, sharingOf, getSharing, setSharing, sharingDirectory, revokeGroupShares };

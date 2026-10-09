@@ -343,7 +343,7 @@ function synthesizeToolPiiPolicy(shield) {
  */
 function classifyToolClass(toolName, toolArgs = {}) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored alternation of literals, no repeat: linear
-    if (/^(agent_search|web_search|search|brave_search|browse_web)$/i.test(toolName || '')) return 'external';
+    if (/^(agent_search|web_search|search|brave_search|browse_web|read_url)$/i.test(toolName || '')) return 'external';
     // Custom integrations (cint_<slug>_<tool>, the AI Integration Builder) can
     // only reach a public HTTPS host: the runner and the custom MCP client both
     // go through customIntegrations/ssrfGuard, which refuses private targets.

@@ -140,6 +140,15 @@ async function userOrgId(req) {
 
 // ── PDF Export (remote headless Chromium via browserProvider) ────────────────
 
+/** Playwright gives up on a page that does not load in time (`TimeoutError`). */
+function isRenderTimeout(err) {
+    return !!err && (err.name === 'TimeoutError' || /Timeout \d+ms exceeded/.test(String(err.message || '')));
+}
+
+/** Upper bound for loading the export page; env override for slow hosts. */
+const PDF_LOAD_TIMEOUT_MS = Number(process.env.PDF_EXPORT_LOAD_TIMEOUT_MS) > 0
+    ? Number(process.env.PDF_EXPORT_LOAD_TIMEOUT_MS) : 45000;
+
 /**
  * What an export route does with a failure. The backend's own words (docker
  * socket paths, ENOENT, env var names) are for the operator and go to the log
@@ -151,6 +160,9 @@ async function userOrgId(req) {
 function exportFailure(what, err, next) {
     log.error(`[Export] ${what} failed:`, err);
     if (err instanceof HttpError) return next(err);
+    if (isRenderTimeout(err)) {
+        return next(new HttpError(504, 'pdf_render_timeout', NOTEBOOK_TEXT['notebooks.pdf_render_timeout']));
+    }
     if (browserProvider.isBackendUnavailable(err)) {
         return next(new HttpError(503, 'pdf_renderer_unavailable', NOTEBOOK_TEXT['notebooks.pdf_renderer_unavailable']));
     }
@@ -159,26 +171,18 @@ function exportFailure(what, err, next) {
 
 /**
  * Render fully-inlined export HTML (base64 images already embedded) to a Letter
- * PDF on the shared remote browser. Waits for Google Fonts + Mermaid diagrams to
- * settle before printing. Shared by the pdf / signrequest / nextcloud routes.
+ * PDF on the shared remote browser. Loads the self-contained HTML (no network
+ * needed) before printing. Shared by the pdf / signrequest / nextcloud routes.
  */
 async function renderNotebookPdf(exportHTML, { title = 'Notebook' } = {}) {
     const safeTitle = String(title).replace(/"/g, '&quot;').replace(/</g, '&lt;');
     return browserProvider.withContext({}, async (context) => {
         const page = await context.newPage();
-        // Set content (base64 images are already embedded)
-        await page.setContent(exportHTML, { waitUntil: 'networkidle' });
-        // Wait for Google Fonts + Mermaid diagrams to render
-        await page.waitForTimeout(1500);
-        // Wait for mermaid diagrams to finish rendering (if any exist)
-        try {
-            await page.waitForFunction(
-                () => document.querySelectorAll('div[data-type="mermaid-diagram"]').length === 0,
-                { timeout: 10000 });
-        } catch {
-            // If mermaid rendering takes too long, continue with PDF anyway
-            log.warn('[Export] Mermaid rendering timed out, proceeding with PDF');
-        }
+        // The export HTML has no external resources (system fonts, images inlined),
+        // so 'load' is enough; 'networkidle' never settled on servers without internet.
+        await page.setContent(exportHTML, { waitUntil: 'load', timeout: PDF_LOAD_TIMEOUT_MS });
+        // Let fonts and decoded images settle before printing.
+        await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
         return page.pdf({
             format: 'Letter',
             margin: { top: '0.75in', right: '0.85in', bottom: '0.9in', left: '0.85in' },

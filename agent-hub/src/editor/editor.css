@@ -238,6 +238,11 @@
 ::highlight(bf-comment-active) { background-color: rgba(250, 204, 21, 0.5); }
 .bf-comment-rect { background: rgba(250, 204, 21, 0.22); }
 .bf-comment-active-rect { background: rgba(250, 204, 21, 0.5); }
+/* AI suggestions: a proposed change to this passage. */
+::highlight(bee-suggest) { background-color: rgba(99, 102, 241, 0.2); text-decoration: underline dotted rgba(99, 102, 241, 0.8); }
+::highlight(bee-suggest-active) { background-color: rgba(99, 102, 241, 0.42); }
+.bee-suggest-rect { background: rgba(99, 102, 241, 0.2); }
+.bee-suggest-active-rect { background: rgba(99, 102, 241, 0.42); }
 
 /* ── find bar ── */
 /* A zero-height sticky dock: the bar floats over the document's top-right

@@ -91,6 +91,10 @@ const STORE_MODULES = [
     // otherwise they appear only once the app boots and something requires the
     // store, which is exactly how the first version of this feature shipped.
     { name: 'documentStore', file: './stores/documentStore' },
+    // AI / user suggestions on a document, sealed with the document's key
+    // (document_suggestions). No FK: the target is a document id, so no order
+    // constraint beyond being a store with its own DDL.
+    { name: 'documentSuggestionStore', file: './stores/documentSuggestionStore' },
     { name: 'notebookStore', file: './stores/notebookStore' },
     { name: 'notebookConversationStore', file: './stores/notebookConversationStore' },
     { name: 'aiTaskStore', file: './stores/aiTaskStore' },

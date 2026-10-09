@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import followToBottom from './followToBottom';
+import { buildSidePanelPayload } from './sidePanelPayload';
 import useChatSignals from '../components/chat/chatSignals/useChatSignals';
 import { directChatKbList } from '../components/chat/knowledgeBaseClaim';
 import useChatEngine from '../hooks/useChatEngine';
@@ -37,6 +38,7 @@ const useAgentHubData = ({
     showNotebook, setShowNotebook, setNotebookLinkedId,
     setShowGammaPreview, setGammaPreview,
     sidePanelWebpageId, sidePanelWebpage, sidePanelWebpageFiles, setSidePanelWebpageFiles, setSidePanelReloadKey,
+    sidePanelDocumentId,
     attachedWebpageSelection,
     setSidebarOpen,
     setShowProjectsStore, setActiveProjectId,
@@ -146,31 +148,13 @@ const useAgentHubData = ({
         }, [selectedAgent]),
         getNotebookPayload: useCallback(() => {
             // `notebookspaceAvailable` flags that the Notebook panel exists in
-            // this UI even when it's currently closed — so the model can call
-            // notebook_write to start a memo and the panel auto-opens via the
-            // workspace_update SSE event. Gated on notebooksEnabled (BFSF-207)
-            // so non-entitled clients stop advertising a notebook surface.
-            // `notebookspaceContent` is only sent when the panel is open
-            // (server treats `undefined` as "no notebook currently rendered",
-            // `""` as "open but blank").
-            return {
-                notebookspaceAvailable: notebooksEnabled,
-                ...(showNotebook ? {
-                    notebookspaceContent: notebookContent || '',
-                    notebookspaceSelection: notebookSelection || '',
-                } : {}),
-                // Webpage side panel — tell the AI which page the user is
-                // currently viewing. Server fetches the latest html/css/js
-                // by id; we only send the metadata so chat payloads stay small.
-                ...(sidePanelWebpageId ? {
-                    sidePanelWebpage: {
-                        id: sidePanelWebpageId,
-                        ...(sidePanelWebpage?.name ? { name: sidePanelWebpage.name } : {}),
-                        ...(sidePanelWebpage?.description ? { description: sidePanelWebpage.description } : {}),
-                    },
-                } : {}),
-            };
-        }, [notebookContent, notebookSelection, showNotebook, sidePanelWebpageId, sidePanelWebpage, notebooksEnabled]),
+            // this UI even when it's closed (BFSF-207: gated on notebooksEnabled).
+            // See sidePanelPayload.ts for the rest.
+            return buildSidePanelPayload({
+                notebooksEnabled, showNotebook, notebookContent, notebookSelection,
+                sidePanelWebpageId, sidePanelWebpage, sidePanelDocumentId,
+            });
+        }, [notebookContent, notebookSelection, showNotebook, sidePanelWebpageId, sidePanelWebpage, sidePanelDocumentId, notebooksEnabled]),
         onNotebookUpdate: useCallback((content) => {
             // BFSF-207: never open the notebook panel for users without the
             // notebooks entitlement (server withholds the tools, this guards

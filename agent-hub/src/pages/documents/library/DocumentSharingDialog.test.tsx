@@ -27,7 +27,7 @@ it.each(['page', 'document', 'presentation', 'spreadsheet', 'notebook'])('shares
     await user.click(screen.getByRole('checkbox', { name: 'Bob' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
     const prefix = docType === 'notebook' ? '/notebooks' : '';
-    await waitFor(() => expect(request).toHaveBeenCalledWith(`${prefix}/d1/sharing`, { audience: 'restricted', sharedUserIds: ['bob'], sharedGroups: ['finance'] }, 'PUT'));
+    await waitFor(() => expect(request).toHaveBeenCalledWith(`${prefix}/d1/sharing`, { audience: 'restricted', sharedUserIds: ['bob'], sharedGroups: ['finance'], ...(docType === 'notebook' ? {} : { access: 'view' }) }, 'PUT'));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
 });
 
@@ -69,7 +69,7 @@ it('keeps selections across searches, recipient types and pages in a large direc
     await user.click(screen.getByRole('tab', { name: 'Selected (3)' }));
     await user.click(screen.getByRole('button', { name: 'Remove Group 00' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(request).toHaveBeenCalledWith('/d1/sharing', { audience: 'restricted', sharedUserIds: ['u999'], sharedGroups: ['g44'] }, 'PUT'));
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/d1/sharing', { audience: 'restricted', sharedUserIds: ['u999'], sharedGroups: ['g44'], access: 'view' }, 'PUT'));
 });
 
 it('collapses a long existing selection and keeps pagination valid after removal', async () => {
@@ -104,4 +104,19 @@ it('offers keyboard navigation between recipient tabs', async () => {
     expect(screen.getByRole('tab', { name: 'Selected (0)' })).toHaveFocus();
     await user.keyboard('{Home}');
     expect(groups).toHaveFocus();
+});
+
+it('sends can edit for a document, keeps the select off while private, and hides it for a notebook', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(withQueryClient(<DocumentSharingDialog row={{ id: 'd1', userId: 'alice', name: 'Plan', docType: 'page' }} onClose={vi.fn()} />));
+    const access = await screen.findByRole('combobox', { name: 'What they can do' });
+    expect(access).toBeDisabled();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Who has access' }), 'organisation');
+    await user.selectOptions(access, 'edit');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/d1/sharing', { audience: 'organisation', sharedGroups: [], sharedUserIds: [], access: 'edit' }, 'PUT'));
+    unmount();
+    render(withQueryClient(<DocumentSharingDialog row={{ id: 'n1', userId: 'alice', name: 'Book', docType: 'notebook' }} onClose={vi.fn()} />));
+    await screen.findByRole('combobox', { name: 'Who has access' });
+    expect(screen.queryByRole('combobox', { name: 'What they can do' })).toBeNull();
 });

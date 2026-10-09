@@ -26,6 +26,8 @@ function createToolContextFactory(turn) {
         attachments: turn.attachments, timezone: turn.timezone,
         sessionSkills: turn.sessionSkills, webpageBuilderReadSlots: turn.webpageBuilderReadSlots,
         collectedToolHistory: turn.collectedToolHistory,
+        // The documents the chat model may touch this turn (core/documents/aiDocumentScope.js).
+        documentScope: turn.documentScope,
         notebookWriteGate: turn.notebookWriteGate,
         getModelId: () => turn.modelId,
         getActivatedSessionSkillIds: () => turn.activatedSessionSkillIds,

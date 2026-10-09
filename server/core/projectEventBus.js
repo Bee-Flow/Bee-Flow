@@ -183,6 +183,14 @@ async function publishTransient(projectId, event) {
     return publishProjectEvent(projectId, { ...event, transient: true });
 }
 
+/**
+ * Honest names for non-project channels. The bus keys on any id string (the
+ * Redis channel is `bf:project:<id>`), so a channel such as `doc:<documentId>`
+ * cannot collide with a project uuid. Transient only: no row, no replay.
+ */
+const subscribeChannel = (channel, handler) => subscribeProject(channel, handler);
+const publishChannel = (channel, event) => publishTransient(channel, event);
+
 function _isHealthy() {
     try { return typeof _redisDeps.redisHealthy === 'function' ? !!_redisDeps.redisHealthy() : true; } catch (_) { return false; }
 }
@@ -214,6 +222,8 @@ module.exports = {
     subscribeProject,
     publishProjectEvent,
     publishTransient,
+    subscribeChannel,
+    publishChannel,
     isDistributed,
     _originId,
     _reset,

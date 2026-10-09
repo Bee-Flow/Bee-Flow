@@ -46,6 +46,8 @@ const fx = {
     project: null,
     /** The resolved shield the turn's KB strip reads (BFSF-354). */
     shield: null,
+    /** Every side-panel document lookup the turn made. */
+    documentCalls: [],
 };
 
 const noop = () => {};
@@ -88,6 +90,12 @@ const MOCKS = {
     '../../../core/memory/scrubMemoryContext': { scrubMemoryContext: async (t) => ({ scrubbed: t, replacedCategories: [] }) },
     '../../../stores/houseStyleStore': { getDefaultForOrg: async () => null },
     '../../../core/webpages/sidePanelWebpageContext': { buildSidePanelWebpageContext: async () => '' },
+    '../../../core/documents/sidePanelDocumentContext': {
+        buildDirectNote: async (panel, userId) => {
+            fx.documentCalls.push({ panel, userId });
+            return panel && panel.id === 'doc1' ? '\n\n[DOCUMENT OPEN] The user has "Offerte" (documentId: doc1, type: quote) open next to the chat.' : '';
+        },
+    },
     '../../../core/tools/skillInjection': {
         buildSkillInjection: async () => ({ systemPromptAddendum: '', tools: [], staticCount: 0, dynamicSkillIds: [] }),
     },
@@ -123,6 +131,7 @@ function reset() {
     fx.conversation = null;
     fx.project = null;
     fx.shield = null;
+    fx.documentCalls.length = 0;
 }
 
 function runTurn(overrides = {}) {
@@ -372,4 +381,22 @@ test('BFSF-354 a title that carries a blocked value is stripped from the Source 
     assert.ok(!text.includes(SYNTH_EMAIL), 'the blocked value reached the prompt through the source label');
     assert.ok(text.includes('### Source 1: [blocked:email] — invoice'));
     assert.ok(text.includes('PROJECT KNOWLEDGE BASE') && text.includes('ATTACHED KNOWLEDGE BASES'), 'both sites ran');
+});
+
+// ═══ Side-panel document ═════════════════════════════════════════
+
+test('an open side-panel document is announced in the prompt, resolved for the asker', async () => {
+    reset();
+    const state = await runTurn({ sidePanelDocument: { id: 'doc1', name: 'x' } });
+    assert.match(promptText(state), /\[DOCUMENT OPEN\] The user has \\"Offerte\\" \(documentId: doc1/);
+    assert.deepStrictEqual(fx.documentCalls.map(c => c.userId), ['alice']);
+});
+
+test('no sidePanelDocument, no document block and no lookup; an unreadable one adds nothing', async () => {
+    reset();
+    const none = await runTurn({});
+    assert.ok(!promptText(none).includes('DOCUMENT OPEN'));
+    assert.strictEqual(fx.documentCalls.length, 0);
+    const unreadable = await runTurn({ sidePanelDocument: { id: 'other' } });
+    assert.ok(!promptText(unreadable).includes('DOCUMENT OPEN'));
 });

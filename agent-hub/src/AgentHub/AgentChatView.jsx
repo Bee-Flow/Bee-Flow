@@ -1,4 +1,5 @@
 import { EyeOff, Menu, MoreVertical, Pencil, PenLine } from 'lucide-react';
+import DocumentsHeaderButton from './DocumentsHeaderButton';
 import EmptyChatState from './EmptyChatState';
 import InputArea from '../components/chat/InputArea';
 import MessageItem from '../components/chat/MessageItem';
@@ -11,7 +12,7 @@ import { lazy } from '../utils/lazyWithReload';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
 
-// The agent-chat pane: header (avatar, agent menu, Cowork switch, notebook /
+// The agent-chat pane: header (avatar, agent menu, Cowork switch, documents /
 // webpage buttons) plus the chat pane and side panels. Moved verbatim from
 // the `selectedAgent` branch of AgentHub.jsx's main ternary; all state stays
 // in AgentHub and arrives via props.
@@ -20,7 +21,8 @@ const AgentChatView = ({
     showAgentMenu, setShowAgentMenu,
     handleNewChat, handleToggleFavorite, handleUnpublishAgent,
     coworkMode, setCoworkModeForAgent, conversationStarted,
-    notebooksEnabled, inCoworkMode, toggleNotebookPanel, showNotebook,
+    notebooksEnabled, inCoworkMode,
+    sidePanelDocumentId, openDocumentInSidePanel, closeDocumentPanel,
     canUseWebpagesSide, webpageButtonRef, sidePanelWebpageId, closeWebpagePanel,
     webpagePickerOpen, setWebpagePickerOpen, openWebpageInSidePanel,
     messagesContainerRef, messagesEndRef, shouldForceScrollRef,
@@ -165,14 +167,12 @@ const AgentChatView = ({
                                 />
                             </div>
                             <div className="flex items-center gap-2 relative">
-                                {!isMobile && notebooksEnabled && !inCoworkMode && (
-                                    <button
-                                        onClick={toggleNotebookPanel}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors border text-xs font-medium ${showNotebook ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30' : 'bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'}`}
-                                        title={showNotebook ? 'Close Notebook' : 'Open Notebook'}
-                                    >
-                                        📓 {showNotebook ? 'Close' : 'Notebook'}
-                                    </button>
+                                {!isMobile && !inCoworkMode && (
+                                    <DocumentsHeaderButton
+                                        sidePanelDocumentId={sidePanelDocumentId}
+                                        openDocumentInSidePanel={openDocumentInSidePanel}
+                                        closeDocumentPanel={closeDocumentPanel}
+                                    />
                                 )}
                                 {!isMobile && canUseWebpagesSide && !inCoworkMode && (
                                     <>

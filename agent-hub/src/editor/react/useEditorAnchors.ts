@@ -22,6 +22,10 @@ interface PositionSource {
 
 export interface AnchorSpec { id: string; anchor: CommentAnchor }
 
+function cleanSpecs(list: AnchorSpec[] | null | undefined): AnchorSpec[] {
+    return Array.isArray(list) ? list.filter((x) => x && typeof x.id === 'string' && x.anchor) : [];
+}
+
 function scrollElementFor(range: Range | null): Element | null {
     if (!range) return null;
     const n = range.startContainer;
@@ -37,6 +41,9 @@ export default function useEditorAnchors(viewRef: { current: any }, binding: Pos
     // place, so the object itself says whether the content changed.
     const doc = viewRef.current?.state?.doc ?? null;
     const [spec, setSpec] = useState<{ list: AnchorSpec[]; activeId: string | null }>({ list: [], activeId: null });
+    // Pending AI suggestions: painted under their own highlight name, same recompute path.
+    const [suggestSpec, setSuggestSpec] = useState<{ list: AnchorSpec[]; activeId: string | null }>({ list: [], activeId: null });
+    const painted = useRef<Array<{ id: string; ranges: Range[] }>>([]);
     const bindingRef = useRef(binding);
     bindingRef.current = binding;
 
@@ -52,8 +59,24 @@ export default function useEditorAnchors(viewRef: { current: any }, binding: Pos
     }, [viewRef, resolver]);
 
     const highlightAnchors = useCallback((list: AnchorSpec[] | null | undefined, activeId?: string | null) => {
-        const clean = Array.isArray(list) ? list.filter((x) => x && typeof x.id === 'string' && x.anchor) : [];
-        setSpec({ list: clean, activeId: activeId ?? null });
+        setSpec({ list: cleanSpecs(list), activeId: activeId ?? null });
+    }, []);
+
+    /** Paint the passages the AI proposes to change (the focused one stronger); an empty list clears them. */
+    const highlightSuggestions = useCallback((list: AnchorSpec[] | null | undefined, activeId?: string | null) => {
+        setSuggestSpec({ list: cleanSpecs(list), activeId: activeId ?? null });
+    }, []);
+
+    /** The id of the suggestion painted at a client point (a click on its highlight), or null. */
+    const suggestionAtPoint = useCallback((x: number, y: number): string | null => {
+        for (const item of painted.current) {
+            for (const range of item.ranges) {
+                let rects: DOMRect[] = [];
+                try { rects = Array.from(range.getClientRects ? range.getClientRects() : []); } catch { rects = []; }
+                if (rects.some((r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) return item.id;
+            }
+        }
+        return null;
     }, []);
 
     const scrollToAnchor = useCallback((anchor: CommentAnchor): boolean => {
@@ -75,22 +98,37 @@ export default function useEditorAnchors(viewRef: { current: any }, binding: Pos
 
     const layers: RangeLayer[] = useMemo(() => {
         const view = viewRef.current;
-        if (!view || !doc || !spec.list.length) return [];
-        const rest: Range[] = [];
-        const active: Range[] = [];
+        const out: RangeLayer[] = [];
+        if (!view || !doc) { painted.current = []; return out; }
         const r = resolver();
-        const index = buildTextIndex(doc);
-        for (const item of spec.list) {
-            const found = resolveAnchor(doc, item.anchor, r, index);
-            const range: Range | null = found ? view.rangeFor(found.from, found.to) : null;
-            if (!range) continue;
-            (item.id === spec.activeId ? active : rest).push(range);
+        // One index of the document, built on first use, shared by comments and suggestions.
+        let index: ReturnType<typeof buildTextIndex> | null = null;
+        const rangesOf = (list: AnchorSpec[], activeId: string | null) => {
+            const rest: Range[] = [];
+            const active: Range[] = [];
+            const found: Array<{ id: string; ranges: Range[] }> = [];
+            for (const item of list) {
+                const at = resolveAnchor(doc, item.anchor, r, (index ||= buildTextIndex(doc)));
+                const range: Range | null = at ? view.rangeFor(at.from, at.to) : null;
+                if (!range) continue;
+                found.push({ id: item.id, ranges: [range] });
+                (item.id === activeId ? active : rest).push(range);
+            }
+            return { rest, active, found };
+        };
+        if (spec.list.length) {
+            const { rest, active } = rangesOf(spec.list, spec.activeId);
+            out.push({ name: 'bf-comment', ranges: rest, className: 'bf-comment-rect' },
+                { name: 'bf-comment-active', ranges: active, className: 'bf-comment-active-rect' });
         }
-        return [
-            { name: 'bf-comment', ranges: rest, className: 'bf-comment-rect' },
-            { name: 'bf-comment-active', ranges: active, className: 'bf-comment-active-rect' },
-        ];
-    }, [spec, doc, binding, viewRef, resolver]);
+        if (suggestSpec.list.length) {
+            const { rest, active, found } = rangesOf(suggestSpec.list, suggestSpec.activeId);
+            painted.current = found;
+            out.push({ name: 'bee-suggest', ranges: rest, className: 'bee-suggest-rect' },
+                { name: 'bee-suggest-active', ranges: active, className: 'bee-suggest-active-rect' });
+        } else painted.current = [];
+        return out;
+    }, [spec, suggestSpec, doc, binding, viewRef, resolver]);
 
-    return { getSelectionAnchor, highlightAnchors, scrollToAnchor, scrollToHeading, layers };
+    return { getSelectionAnchor, highlightAnchors, highlightSuggestions, suggestionAtPoint, scrollToAnchor, scrollToHeading, layers };
 }

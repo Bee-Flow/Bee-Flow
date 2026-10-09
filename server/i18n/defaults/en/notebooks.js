@@ -397,6 +397,8 @@ module.exports = {
     'notebooks.card_open_changed': 'Open notebook {name} (changed since you last looked)',
     'notebooks.collab_elsewhere': 'This notebook is being edited together in its project right now, so your change was not saved here. It is kept in the version history.',
     'notebooks.pdf_renderer_unavailable': 'PDF export is not available on this server. Ask your administrator to set up the PDF renderer.',
+    'notebooks.pdf_render_timeout': 'The PDF took too long to render and was stopped. Try again, or export a shorter document.',
+    'notebooks.export_error_ref': '{message} (ref: {ref})',
 
     'notebooks.back_to_documents': 'Documents',
     'notebooks.close_panel': 'Close',

@@ -57,4 +57,4 @@ function dedupeSideEffectToolCalls(toolCalls, opts = {}) {
     return { kept, dropped };
 }
 
-module.exports = { dedupeSideEffectToolCalls };
+module.exports = { dedupeSideEffectToolCalls, _defaultStableStringify };

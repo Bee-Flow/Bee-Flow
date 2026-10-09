@@ -78,7 +78,7 @@ const READ_ONLY = new Set([
     'scaleway_list_invoices', 'scaleway_download_invoice',
     // Maps / Search / KB
     'maps_search_places', 'maps_geocode', 'maps_directions',
-    'agent_search', 'kb_search',
+    'agent_search', 'read_url', 'kb_search',
     // A datatable read an agent's owner granted (core/tools/datatableTools.js).
     // Chat-only — it is not in the automation registry, which the docblock
     // above allows for exactly this. Classified rather than left to the

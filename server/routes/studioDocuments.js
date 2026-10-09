@@ -15,6 +15,8 @@
  *   GET    /:id/pdf          the composed document as application/pdf (a presentation: its PDF deck)
  *   GET    /:id/pptx         a presentation as .pptx
  *   POST   /:id/unarchive    back from the archive (the owner)
+ *   GET    /:id/stream       live transient events of one document (studioDocuments/stream.js)
+ *   *      /:id/suggestions  AI suggestions: list, accept, reject (documentSuggestions.js)
  *   POST   /:id/presence     who else is here, and in which section (studioDocuments/presence.js)
  *   *      /:id/versions     the history: list, read, name, restore, delete (studioDocuments/versions.js)
  *
@@ -81,6 +83,8 @@ const { wordStats } = require('../stores/lib/documentText');
 const notebookLibraryRouter = require('./studioDocuments/notebooks');
 const sheetRouter = require('./studioDocuments/sheet');
 router.use(require('./studioDocuments/sharing').makeDocumentSharingRouter());
+// AI suggestions: GET /:id/suggestions and accept / reject (routes/documentSuggestions.js)
+router.use(require('./documentSuggestions').makeDocumentSuggestionsRouter());
 
 // ── What a request may send ──────────────────────────────────────────
 // Every query, and every body except three, is closed. What that closes:
@@ -551,7 +555,7 @@ router.get('/:id', requireAuth, async (req, res) => {
         // section); editing is also open to a project's editors and owner.
         const deletable = doc.userId === userId || (doc.visibility === 'team' && await hasPermission(userId, 'org_admin', req.session));
         const managed = await require('../stores/document/solutionTemplates').managedOf(doc.id);
-        const editable = !managed && (deletable || doc.projectRole === 'editor' || doc.projectRole === 'owner');
+        const editable = !managed && (deletable || doc.projectRole === 'editor' || doc.projectRole === 'owner' || doc.sharingRole === 'editor');
         const people = await describePeople([doc.userId, doc.updatedBy], orgIdOf(req));
         res.json({ document: { ...doc, editable, deletable: deletable && !managed, managed, contract: getContract(doc) }, people });
     } catch (err) {
@@ -637,6 +641,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
             }
             return res.status(404).json({ error: 'Document not found' });
         }
+        // Its open suggestions are of no use to anybody now (restoring from the archive starts without them).
+        try { await require('../stores/documentSuggestionStore').deleteForTarget('document', req.params.id); }
+        catch (err) { log.warn(`[Documents] suggestions of document ${req.params.id} not dropped: ${err.message}`); }
         // A task that linked this document keeps existing; the link goes (in every project).
         try { await require('../stores/projectTaskStore').dropLinksTo(null, 'document', req.params.id); }
         catch (err) { log.warn(`[Documents] task links to document ${req.params.id} not dropped: ${err.message}`); }
@@ -784,6 +791,7 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
 
 router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
+router.use('/', require('./studioDocuments/stream'));
 router.use('/', notebookLibraryRouter);
 router.use('/', sheetRouter);
 

@@ -36,9 +36,6 @@ function buildExportHTML(content, { title = 'Untitled', author = '', date = '' }
 <head>
 <meta charset="utf-8">
 <title>${escapeHtml(title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <style>
     /* ── Print page setup ────────────────────────────── */
     @page {
@@ -51,7 +48,7 @@ function buildExportHTML(content, { title = 'Untitled', author = '', date = '' }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body {
-        font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         font-size: 10.5pt;
         line-height: 1.7;
         color: #1e293b;
@@ -232,7 +229,7 @@ function buildExportHTML(content, { title = 'Untitled', author = '', date = '' }
 
     /* ── Code (inline) ── */
     .document-body code {
-        font-family: 'Fira Code', 'Consolas', monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 9pt;
         background: #f1f5f9;
         padding: 1.5pt 5pt;
@@ -350,56 +347,26 @@ function buildExportHTML(content, { title = 'Untitled', author = '', date = '' }
         ${content}
     </div>
 
-    <!-- Mermaid fallback: render any remaining diagram divs that weren't pre-rendered to images -->
+    <!-- Mermaid: the client pre-renders diagrams to images. One that arrives un-rendered stays a code block
+         (no external script: the export must work on a server without outbound internet). -->
     <script>
-    (async () => {
+    (() => {
         try {
-            mermaid.initialize({
-                startOnLoad: false,
-                theme: 'base',
-                themeVariables: {
-                    darkMode: false,
-                    background: '#ffffff',
-                    primaryColor: '#eef2ff',
-                    primaryTextColor: '#312e81',
-                    primaryBorderColor: '#6366f1',
-                    lineColor: '#6366f1',
-                    secondaryColor: '#f5f3ff',
-                    tertiaryColor: '#f0fdf4',
-                    fontFamily: 'Inter, system-ui, sans-serif',
-                },
-                fontFamily: 'Inter, system-ui, sans-serif',
-                fontSize: 14,
-            });
-            const diagramDivs = document.querySelectorAll('div[data-type="mermaid-diagram"]');
-            for (let i = 0; i < diagramDivs.length; i++) {
-                const div = diagramDivs[i];
+            document.querySelectorAll('div[data-type="mermaid-diagram"]').forEach((div) => {
                 const rawCode = div.getAttribute('data-code') || div.textContent || '';
-                if (!rawCode.trim()) continue;
+                if (!rawCode.trim()) return;
                 let code;
                 try {
                     code = decodeURIComponent(escape(atob(rawCode)));
                 } catch {
                     code = rawCode.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
                 }
-                try {
-                    const id = 'mermaid-export-' + i + '-' + Date.now();
-                    const { svg } = await mermaid.render(id, code.trim());
-                    const wrapper = document.createElement('div');
-                    wrapper.style.cssText = 'text-align:center;margin:16px 0;page-break-inside:avoid;';
-                    wrapper.innerHTML = svg;
-                    const svgEl = wrapper.querySelector('svg');
-                    if (svgEl) { svgEl.style.maxWidth = '100%'; svgEl.style.height = 'auto'; }
-                    div.replaceWith(wrapper);
-                } catch (err) {
-                    console.error('Mermaid render failed for export:', err);
-                    const fallback = document.createElement('pre');
-                    fallback.style.cssText = 'background:#f1f5f9;padding:12px;border-radius:6px;font-size:10pt;color:#334155;border:1px solid #e2e8f0;white-space:pre-wrap;';
-                    fallback.textContent = code;
-                    div.replaceWith(fallback);
-                }
-            }
-        } catch (e) { console.error('Mermaid init failed:', e); }
+                const fallback = document.createElement('pre');
+                fallback.style.cssText = 'background:#f1f5f9;padding:12px;border-radius:6px;font-size:10pt;color:#334155;border:1px solid #e2e8f0;white-space:pre-wrap;';
+                fallback.textContent = code.trim();
+                div.replaceWith(fallback);
+            });
+        } catch (e) { console.error('Mermaid fallback failed:', e); }
     })();
     </script>
 </body>

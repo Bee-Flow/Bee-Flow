@@ -6,6 +6,7 @@ import React from 'react';
 import type { CommentAnchor } from '../../../api/queries/comments';
 import type { ProjectRole } from '../../../api/queries/projects';
 import CommentsPanel from '../../../components/comments/CommentsPanel';
+import SuggestionsPanel, { type SuggestionsPanelProps } from '../../../components/suggestions/SuggestionsPanel';
 import VersionHistoryPanel from '../../../components/versions/VersionHistoryPanel';
 import type { WorkspaceUser } from '../../../components/projects/workspace/types';
 import useTranslation from '../../../hooks/useTranslation';
@@ -35,6 +36,8 @@ export interface DocumentSidePanelsProps {
         scrollToAnchor: (anchor: CommentAnchor) => boolean;
         getDocumentText?: () => string;
     };
+    /** Pages only: the AI's proposed changes, beside the page. */
+    suggestions?: Pick<SuggestionsPanelProps, 'focusedId' | 'onFocus' | 'highlight' | 'scrollToAnchor' | 'onAccepted'>;
 }
 
 /** The reader's role for the comments: the project's word, or what the document says they may do. */
@@ -63,6 +66,13 @@ export default function DocumentSidePanels(props: DocumentSidePanelsProps) {
                     expectedVersion={props.expectedVersion === undefined ? doc.versionId : props.expectedVersion}
                     title={t('documents.history_title', 'Version history')}
                 />
+            </div>
+        );
+    }
+    if (side === 'suggestions' && props.suggestions) {
+        return (
+            <div className="w-80 max-w-full shrink-0 min-h-0 border-l border-[var(--border-subtle)]" data-testid="document-suggestions">
+                <SuggestionsPanel documentId={doc.id} canEdit={props.canEdit} onClose={onClose} className="h-full" {...props.suggestions} />
             </div>
         );
     }

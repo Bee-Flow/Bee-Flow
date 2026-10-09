@@ -1,23 +1,24 @@
 // Documents tab of the project workspace: the documents filed in the project
 // (a dot on the ones somebody else changed since the reader looked), "New
-// document" straight into it (a page to write together, by default, or a
-// designed document or presentation), "Add existing" from the caller's own,
-// and the document itself opened in place (sub = document id).
+// document" straight into it (the same "Start a document" gallery as the
+// Studio: every document type, a notebook, a spreadsheet, the starters and the
+// reader's own templates), "Add existing" from the caller's own, and the
+// document itself opened in place (sub = document id).
 
 import { useQueryClient } from '@tanstack/react-query';
 import { FilePlus2, FileText, Plus } from 'lucide-react';
 import React, { Suspense, useMemo, useState } from 'react';
 import {
-    useCreateProjectDocument, useProjectSection, type ProjectDocument,
+    useCreateProjectDocument, useCreateProjectNotebook, useMyTemplatesQuery, useProjectSection, type NewDocumentVars, type ProjectDocument,
 } from '../../../../api/queries/projectContent';
 import { projectKeys } from '../../../../api/queries/projects';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation, { readingLocale } from '../../../../hooks/useTranslation';
+import StarterGallery, { type NewChoice } from '../../../../pages/documents/library/StarterGallery';
 import { projectErrorText } from '../projectErrorText';
 import { lazy } from '../../../../utils/lazyWithReload';
 import EmptyState from '../../../shared/EmptyState';
 import { ContentColumn, ContentToolbar, PaneLoading, PrimaryButton, ReadOnlyNote, SecondaryButton, SectionError } from './contentUi';
 import DocumentsTable, { type DocumentsTableProps } from './DocumentsTable';
-import NewItemDialog, { type NewItemValues } from './NewItemDialog';
 import { DocumentPicker } from './pickers';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
@@ -48,13 +49,43 @@ function DocumentPane({ projectId, documentId, onOpenSub, currentUser }: { proje
     );
 }
 
-function useDocumentCreate(projectId: string, onCreated: (doc: ProjectDocument) => void) {
-    const { t, locale } = useTranslation();
+type Translate = ReturnType<typeof useTranslation>['t'];
+
+/** What a choice in the gallery files into the project; a notebook is made elsewhere. */
+function documentVars(choice: Exclude<NewChoice, { type: 'notebook' }>, t: Translate, locale: string): NewDocumentVars {
+    switch (choice.type) {
+        case 'page': return { name: t('documents.untitled_page', 'Untitled page'), docType: 'page' };
+        case 'spreadsheet': return { name: t('documents.sheet.untitled', 'Untitled spreadsheet'), docType: 'spreadsheet' };
+        case 'template': return { name: choice.template.name, templateId: choice.template.id };
+        case 'deck':
+            return choice.starter
+                ? { name: choice.starter.name, starterId: choice.starter.id, locale }
+                : { name: t('documents.untitled_deck', 'Untitled presentation'), docType: 'presentation' };
+        default:
+            return choice.starter
+                ? { name: choice.starter.name, starterId: choice.starter.id, locale }
+                : { name: t('documents.untitled', 'Untitled document'), docType: 'document' };
+    }
+}
+
+function useDocumentCreate(projectId: string, onCreated: (doc: ProjectDocument) => void, onOpenTab: ContentTabProps['onOpenTab']) {
+    const { t, locale: preferred, strings } = useTranslation();
+    const locale = readingLocale(preferred, strings, ['documents.new.title']) || 'en';
     const create = useCreateProjectDocument(projectId);
-    const submit = (values: NewItemValues) => {
-        create.mutate({ name: values.name, docType: values.type || 'page', locale }, { onSuccess: onCreated });
+    const createNotebook = useCreateProjectNotebook(projectId);
+    const failure = create.error || createNotebook.error;
+    const choose = (choice: NewChoice) => {
+        if (choice.type === 'notebook') {
+            createNotebook.mutate({ name: t('documents.notebook.untitled', 'Untitled notebook') }, { onSuccess: (nb) => onOpenTab?.('notebooks', nb.id) });
+            return;
+        }
+        create.mutate(documentVars(choice, t, locale), { onSuccess: onCreated });
     };
-    return { submit, busy: create.isPending, error: create.error ? projectErrorText(t, create.error) : null, reset: create.reset };
+    return {
+        choose, busy: create.isPending || createNotebook.isPending,
+        error: failure ? projectErrorText(t, failure) : null,
+        reset: () => { create.reset(); createNotebook.reset(); },
+    };
 }
 
 type TableHandlers = Pick<DocumentsTableProps, 'ownerName' | 'mayRemove' | 'removingId' | 'onOpen' | 'onRemove' | 'isUnread'>;
@@ -86,7 +117,7 @@ function DocumentsBody({ status, documents, total, onRetry, onCreate, table }: {
     );
 }
 
-function DocumentsList({ projectId, role, currentUser, onOpenSub, intent }: ContentTabProps) {
+function DocumentsList({ projectId, role, currentUser, onOpenSub, onOpenTab, intent, notebooksEnabled }: ContentTabProps) {
     const { t } = useTranslation();
     const canEdit = canEditContent(role);
     const me = currentUser?.id || null;
@@ -97,7 +128,9 @@ function DocumentsList({ projectId, role, currentUser, onOpenSub, intent }: Cont
     const unread = useProjectUnread(projectId);
     const ownerName = useMemberNames(projectId, me);
     const removal = useRemoveFromProject(projectId, 'document');
-    const create = useDocumentCreate(projectId, (doc) => { setCreateOpen(false); onOpenSub(doc.id); });
+    const create = useDocumentCreate(projectId, (doc) => { setCreateOpen(false); onOpenSub(doc.id); }, onOpenTab);
+    // Own templates, and whether the reader may make a spreadsheet, are asked only once the gallery is open.
+    const mine = useMyTemplatesQuery(createOpen);
     const inProject = useMemo(() => new Set(section.items.map(d => d.id)), [section.items]);
     const visible = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -141,22 +174,11 @@ function DocumentsList({ projectId, role, currentUser, onOpenSub, intent }: Cont
                     isUnread: (doc) => unread.isUnread('document', doc.id),
                 }}
             />
-            {createOpen && (
-                <NewItemDialog
-                    open onClose={() => setCreateOpen(false)}
-                    title={t('project_content.documents_new_title', 'New document')}
-                    nameLabel={t('project_content.name', 'Name')}
-                    namePlaceholder={t('project_content.documents_name_placeholder', 'For example: Project plan')}
-                    submitLabel={t('project_content.create_and_open', 'Create and open')}
-                    typeLabel={t('project_content.type', 'Type')}
-                    typeOptions={[
-                        { value: 'page', label: t('documents.project.type_page', 'Page'), description: t('documents.project.type_page_desc', 'Write together in real time. Prints with the house style.') },
-                        { value: 'document', label: t('documents.project.type_designed', 'Designed document'), description: t('documents.project.type_designed_desc', 'A laid-out letter, report or quote, with fields an automation can fill.') },
-                        { value: 'presentation', label: t('project_content.doc_type_presentation', 'Presentation'), description: t('documents.project.type_deck_desc', 'Slides in the house style, typed as an outline.') },
-                    ]}
-                    busy={create.busy} error={create.error} onSubmit={create.submit}
-                />
-            )}
+            <StarterGallery
+                open={createOpen} busy={create.busy} error={create.error}
+                notebooks={notebooksEnabled !== false} spreadsheets={mine.data?.spreadsheets === true} templates={mine.data?.templates}
+                onChoose={create.choose} onClose={() => setCreateOpen(false)}
+            />
             {pickerOpen && <DocumentPicker projectId={projectId} open onClose={() => setPickerOpen(false)} inProject={inProject} currentUserId={me} />}
             {removal.confirmDialog}
         </ContentColumn>

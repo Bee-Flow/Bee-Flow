@@ -35,10 +35,114 @@
  * @returns {Array} Cleaned messages with only API-safe fields
  */
 const log = require('../telemetry/log');
+const { parseGemmaArgs } = require('../shared/looseToolArgs');
+
+/**
+ * Replace lone UTF-16 surrogates with U+FFFD. A lone surrogate serialises to
+ * JSON that strict parsers (OpenAI: "Invalid body: failed to parse JSON
+ * value", Anthropic) reject, bricking the whole request. Non-strings pass
+ * through unchanged.
+ */
+function wellFormed(str) {
+    if (typeof str !== 'string' || !str) return str;
+    // ES2024: Node 22 has it, the typecheck's lib does not know it yet.
+    const s = /** @type {string & { toWellFormed?: () => string }} */ (str);
+    return typeof s.toWellFormed === 'function' ? s.toWellFormed() : str;
+}
+
+function isValidJson(str) {
+    try { JSON.parse(str); return true; } catch (e) { return false; }
+}
+
+/**
+ * Turn a tool call's `arguments` into a string that is valid JSON, whatever it
+ * was stored as. Invalid strings are repaired with the loose parser when
+ * possible, else replaced by '{}' (logged without content).
+ */
+function normalizeToolArguments(args) {
+    if (args === undefined || args === null) return '{}';
+    if (typeof args === 'string') {
+        if (!args.trim()) return '{}';
+        const fixed = wellFormed(args);
+        if (isValidJson(fixed)) return fixed;
+        let loose = null;
+        try { loose = parseGemmaArgs(fixed); } catch (e) { loose = null; }
+        if (loose && typeof loose === 'object') {
+            log.warn('[MessageUtils] Repaired tool-call arguments that were not valid JSON');
+            return wellFormed(JSON.stringify(loose));
+        }
+        log.warn('[MessageUtils] Replaced unparseable tool-call arguments with {}');
+        return '{}';
+    }
+    try {
+        const out = JSON.stringify(args);
+        return out === undefined ? '{}' : wellFormed(out);
+    } catch (e) {
+        log.warn('[MessageUtils] Replaced unserialisable tool-call arguments with {}');
+        return '{}';
+    }
+}
+
+/** wellFormed over a string content or the `text` of content parts; identity when nothing changes. */
+function wellFormedContent(content) {
+    if (typeof content === 'string') return wellFormed(content);
+    if (!Array.isArray(content)) return content;
+    let changed = false;
+    const out = content.map(part => {
+        if (part && typeof part === 'object' && typeof part.text === 'string') {
+            const t = wellFormed(part.text);
+            if (t !== part.text) { changed = true; return { ...part, text: t }; }
+        }
+        return part;
+    });
+    return changed ? out : content;
+}
+
+/** tool_calls with `function.arguments` normalised; identity when nothing changes. */
+function normalizeToolCalls(toolCalls) {
+    if (!Array.isArray(toolCalls)) return toolCalls;
+    let changed = false;
+    const out = toolCalls.map(tc => {
+        if (!tc || typeof tc !== 'object' || !tc.function || typeof tc.function !== 'object') return tc;
+        const args = normalizeToolArguments(tc.function.arguments);
+        if (args === tc.function.arguments) return tc;
+        changed = true;
+        return { ...tc, function: { ...tc.function, arguments: args } };
+    });
+    return changed ? out : toolCalls;
+}
+
+/**
+ * Diagnose what would make a request body unparseable. Returns indexes and
+ * kinds only, never message content.
+ * @returns {Array<{index:number, kind:'invalid_tool_args'|'lone_surrogate'|'object_content'}>}
+ */
+function findWireProblems(messages) {
+    const problems = [];
+    if (!Array.isArray(messages)) return problems;
+    messages.forEach((m, index) => {
+        if (!m || typeof m !== 'object') return;
+        const c = m.content;
+        if (c && typeof c === 'object' && !Array.isArray(c)) problems.push({ index, kind: 'object_content' });
+        const wf = wellFormedContent(c);
+        if (wf !== c) problems.push({ index, kind: 'lone_surrogate' });
+        if (Array.isArray(m.tool_calls)) {
+            for (const tc of m.tool_calls) {
+                const a = tc?.function?.arguments;
+                if (typeof a === 'string' ? (a.trim() && !isValidJson(wellFormed(a))) || wellFormed(a) !== a : false) {
+                    problems.push({ index, kind: 'invalid_tool_args' });
+                    break;
+                }
+            }
+        }
+    });
+    return problems;
+}
+
 function sanitizeMessages(msgs) {
     return msgs.map(m => {
-        const clean = { role: m.role, content: coerceWireContent(m.content, m.role) };
-        if (m.tool_calls) clean.tool_calls = m.tool_calls;
+        const clean = { role: m.role, content: wellFormedContent(coerceWireContent(m.content, m.role)) };
+        if (m.tool_calls) clean.tool_calls = normalizeToolCalls(m.tool_calls);
         if (m.tool_call_id) clean.tool_call_id = m.tool_call_id;
         if (m.name) clean.name = m.name;
         if (m.thinking) clean.thinking = m.thinking;
@@ -88,10 +192,12 @@ const INTERNAL_MESSAGE_FIELDS = ['thinking', 'attachments', 'kbSources', 'toolHi
 function stripInternalFields(msgs) {
     return msgs.map(m => {
         if (!m || typeof m !== 'object') return m;
-        const content = coerceWireContent(m.content, m.role);
+        const content = wellFormedContent(coerceWireContent(m.content, m.role));
+        const toolCalls = normalizeToolCalls(m.tool_calls);
         const needsStrip = INTERNAL_MESSAGE_FIELDS.some(f => f in m);
-        if (!needsStrip && content === m.content) return m;
+        if (!needsStrip && content === m.content && toolCalls === m.tool_calls) return m;
         const clean = { ...m, content };
+        if (toolCalls !== undefined) clean.tool_calls = toolCalls;
         for (const f of INTERNAL_MESSAGE_FIELDS) delete clean[f];
         return clean;
     });
@@ -101,5 +207,9 @@ module.exports = {
     sanitizeMessages,
     stripInternalFields,
     coerceWireContent,
+    wellFormed,
+    wellFormedContent,
+    normalizeToolArguments,
+    findWireProblems,
     INTERNAL_MESSAGE_FIELDS,
 };

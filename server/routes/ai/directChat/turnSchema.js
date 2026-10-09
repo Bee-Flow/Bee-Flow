@@ -51,6 +51,9 @@ const DirectTurnBody = orEmpty(z.object({
     notebookspaceSelection: text('notebookspaceSelection', 1_000_000).nullish(),
     notebookspaceAvailable: onOff('notebookspaceAvailable').nullish(),
     projectId: text('projectId', 200).nullish(),
+    // The Studio document open next to the chat. Shape is checked again in
+    // core/documents/aiDocumentScope.js; a bad value is ignored, not refused.
+    sidePanelDocument: z.unknown().optional(),
     systemPrompt: text('systemPrompt', 200_000).nullish(),
     activeSkillIds: list('activeSkillIds').nullish(),
     activatedSessionSkillIds: list('activatedSessionSkillIds').nullish(),

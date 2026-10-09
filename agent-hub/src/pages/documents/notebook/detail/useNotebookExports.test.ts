@@ -24,4 +24,16 @@ describe('exportErrorText', () => {
         expect(exportErrorText({}, t, 'Export failed (500)')).toBe('Export failed (500)');
         expect(exportErrorText(null, t, 'Export failed (500)')).toBe('Export failed (500)');
     });
+
+    it('translates the render timeout by its code', () => {
+        expect(exportErrorText({ error: 'too slow', code: 'pdf_render_timeout' }, t, 'Export failed (504)'))
+            .toBe('[notebooks.pdf_render_timeout] too slow');
+    });
+
+    it('appends the correlation id to a generic error so it can be traced in the log', () => {
+        expect(exportErrorText({ error: 'Internal server error', correlationId: 'abc123' }, t, 'Export failed (500)'))
+            .toBe('[notebooks.export_error_ref] {message} (ref: {ref})');
+        expect(t).toHaveBeenLastCalledWith('notebooks.export_error_ref', '{message} (ref: {ref})',
+            { message: 'Internal server error', ref: 'abc123' });
+    });
 });

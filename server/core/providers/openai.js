@@ -20,7 +20,7 @@
  */
 
 const BaseProvider = require('./base');
-const { stripInternalFields, coerceWireContent } = require("../../utils/messageUtils");
+const { stripInternalFields, coerceWireContent, wellFormed, wellFormedContent, normalizeToolArguments } = require("../../utils/messageUtils");
 const { inlineInternalImages } = require('../documents/imageInline');
 const { toResponsesPart, toCompletionsContent } = require('./openaiContent');
 const { describeOpenAIModel, OPENAI_BASE_URL, OPENAI_EU_BASE_URL, isEuResidencyUrl } = require('./openaiModels');
@@ -295,7 +295,7 @@ class OpenAIProvider extends BaseProvider {
                 result.push({
                     type: 'function_call_output',
                     call_id: remapId(m.tool_call_id),
-                    output: typeof m.content === 'string' ? m.content : JSON.stringify(m.content || ''),
+                    output: wellFormed(typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '')),
                 });
                 continue;
             }
@@ -313,6 +313,7 @@ class OpenAIProvider extends BaseProvider {
             if (content === null || content === undefined) {
                 content = '';
             }
+            content = wellFormedContent(content);
 
             if (Array.isArray(content)) {
                 // Every part is rebuilt for the Responses API (see openaiContent.js):
@@ -349,7 +350,7 @@ class OpenAIProvider extends BaseProvider {
                         id: mappedId,
                         call_id: mappedId,
                         name: tc.function?.name || tc.name,
-                        arguments: tc.function?.arguments || JSON.stringify(tc.input || {}),
+                        arguments: normalizeToolArguments(tc.function?.arguments || tc.input),
                     });
                 }
             }

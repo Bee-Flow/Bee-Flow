@@ -26,6 +26,9 @@ const { startSseHeartbeat } = require('../../core/http/sseHelpers');
 const { NOTEBOOK_DOC_TOOLS, NOTEBOOK_ADD_SOURCE_TOOL, executeNotebookDocTool } = require('../../integrations/notebookDocTools');
 const { htmlToMarkdown } = require('../../core/markdown');
 const { AGENT_SEARCH_TOOLS, isAgentSearchTool } = require('../../integrations/agentSearchTools');
+const { isReadUrlTool } = require('../../integrations/readUrlTools');
+// read_url ships with AGENT_SEARCH_TOOLS and is handled as a web tool here.
+const isWebTool = (name) => isAgentSearchTool(name) || isReadUrlTool(name);
 const { runAgentSearchWithEgress } = require('../../integrations/agentSearchEgress');
 const { searchNotebookKB, findSourceForChunk, executeNotebookKBSearchTool, NOTEBOOK_KB_SEARCH_TOOL } = require('../../core/kb/notebookKnowledgeSearch');
 const { emitPhase, emitPhaseEnd, startPrivacyScanPhase, messageText } = require('../../core/agentRuntime/phaseEvents');
@@ -64,6 +67,7 @@ const notebookCollab = require('../../agents/notebooks/notebookCollab');
 const { makeAiDocWriter, canonicalHtml } = require('../../agents/notebooks/aiDocWriter');
 const { makeNotebookFeed } = require('../../agents/notebooks/notebookFeed');
 const { hasNotebookRole } = require('../notebooksAccess');
+const { createToolRepeatGuard } = require('../../core/agentRuntime/toolRepeatGuard');
 
 /**
  * Collaborators a test swaps on this object (testUtils/swaps.js). The
@@ -283,6 +287,9 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
             res.end();
         };
 
+        // Per-turn guard: the same read-only call twice, or a passage already in
+        // the prompt, is not served again (see core/agentRuntime/toolRepeatGuard).
+        const repeatGuard = createToolRepeatGuard({ readOnlyTools: ['notebook_kb_search', 'notebook_doc_read'] });
         // Search notebook knowledge base for relevant context
         let kbContext = '';
         let citationSources = [];
@@ -310,6 +317,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
                     sources: readySources,
                 });
 
+                repeatGuard.seedChunks(kbResult.chunks);
                 if (kbResult.chunks.length > 0) {
                     // searchNotebookKB already mapped each chunk to its source by id
                     // (exact). What is left is a title that matched no source id, e.g.
@@ -336,7 +344,9 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
                     // by a source and the document maps to one [person_1]. The
                     // citationSources previews (sent to the client below) stay REAL —
                     // they are the user's own sources.
-                    if (kbContext && docShield?.enabled) {
+                    // privacy_scan_knowledge_bases=false: the org does not want knowledge-base
+                    // content tokenised, at query time either (default: scan).
+                    if (kbContext && docShield?.enabled && docShield.privacy_scan_knowledge_bases !== false) {
                         try {
                             const kbScan = await _scanViaLedger(kbContext, 'kb-context');
                             if (kbScan.blocked) return _abortBlocked('kb-context');
@@ -544,6 +554,8 @@ ${searchAvailable ? `[WEB SEARCH & SOURCES]
 - You can search the web using agent_search for current information and research
 - You can add search results or any text directly as a notebook source using notebook_add_source
 - When adding web search results as a source, pass the complete results text directly — no need to re-fetch
+` : ''}${kbContext ? `[KNOWLEDGE BASE]
+The passages below are already retrieved for this question. Call notebook_kb_search only to look up something different from what is below, and never repeat a search you have already done.
 ` : ''}${kbContext}${documentContext}${selectionContext}
 Now: ${formatLocalNow(timezone)}`;
         }
@@ -1001,7 +1013,7 @@ Now: ${formatLocalNow(timezone)}`;
             if (toolName === 'notebook_kb_search') {
                 return await executeNotebookKBSearchTool(toolArgs, notebook.userId, kbIds, readySources);
             }
-            if (isAgentSearchTool(toolName)) {
+            if (isWebTool(toolName)) {
                 return await runAgentSearchWithEgress(toolName, toolArgs, {
                     source: 'notebook_chat',
                     ids: { organization_id: userOrgForTiers || null, user_id: userId || null, conversation_id: notebookId || null },
@@ -1119,7 +1131,7 @@ Now: ${formatLocalNow(timezone)}`;
                 // call carries: real ones for every tool the notebook restores
                 // (document writes, new sources), the tokens a web search keeps.
                 // The same split direct chat makes.
-                const refusal = await shieldGate.refuse(toolName, isAgentSearchTool(toolName)
+                const refusal = await shieldGate.refuse(toolName, isWebTool(toolName)
                     ? toolArgs : untokeniseToolArgs(toolArgs, dlpRunner.getConversationTokenMap(notebookId) || {}));
                 if (refusal) {
                     send('tool_end', { name: toolName, result: refusal.uiResult });
@@ -1127,15 +1139,35 @@ Now: ${formatLocalNow(timezone)}`;
                     continue;
                 }
                 let toolResult;
-                try { toolResult = await executeNotebookTool(toolName, toolArgs); }
-                catch (err) { toolResult = { error: err.message }; }
+                let skipScan = false;
+                if (repeatGuard.isRepeat(toolName, toolArgs)) {
+                    // Same read, same arguments, earlier in this answer: not run again.
+                    toolResult = { message: 'Already retrieved earlier in this answer — use that result instead of calling again.' };
+                    skipScan = true;
+                } else {
+                    try { toolResult = await executeNotebookTool(toolName, toolArgs); }
+                    catch (err) { toolResult = { error: err.message }; }
+                    if (toolName === 'notebook_doc_write' || toolName === 'notebook_doc_replace') repeatGuard.forget('notebook_doc_read');
+                    if (toolName === 'notebook_kb_search' && Array.isArray(toolResult?.results)) {
+                        const fresh = repeatGuard.filterNewChunks(toolResult.results);
+                        if (toolResult.results.length > 0 && fresh.length === 0) {
+                            toolResult = { message: 'No new passages beyond those already retrieved.' };
+                            skipScan = true;
+                        } else {
+                            toolResult = { ...toolResult, results: fresh, resultCount: fresh.length };
+                        }
+                    }
+                }
                 let resultStr = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
                 // Tokenize source/web content returned by RETRIEVAL tools before the
                 // model sees it — Legal/Notebook SOURCES (notebook_kb_search) and web
                 // results would otherwise reach the LLM raw. Exclude notebook_doc_*
                 // (already token-space, B3) and the Dutch legal tools (public court
                 // data whose exact ECLI/CELEX identifiers citation-matching needs).
-                if (docShield?.enabled && resultStr && (toolName === 'notebook_kb_search' || isAgentSearchTool(toolName))) {
+                // A KB result is left alone when the org switched off knowledge-base
+                // scanning; web results are always scanned.
+                const _scanKbResult = toolName === 'notebook_kb_search' && docShield?.privacy_scan_knowledge_bases !== false;
+                if (!skipScan && docShield?.enabled && resultStr && (_scanKbResult || isWebTool(toolName))) {
                     try {
                         const { scanAttachmentText } = require('../../core/dlp/attachmentScanner');
                         const r = await scanAttachmentText({ text: resultStr, filename: `${toolName}-result`, orgShield: docShield, conversationId: notebookId });

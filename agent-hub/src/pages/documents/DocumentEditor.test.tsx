@@ -51,7 +51,7 @@ const { default: DocumentEditor } = await import('./DocumentEditor');
 const DOC = { id: 'd1', userId: 'me', name: 'Offer', docType: 'report', bodyHtml: '<p>a</p>', css: '', settings: {}, versionId: 'v1', editable: true, projectId: null as string | null };
 const ME = { id: 'me', name: 'Me' };
 
-function open(doc: Partial<typeof DOC> & { projectRole?: string } = {}, props: Record<string, unknown> = {}) {
+function open(doc: Partial<typeof DOC> & { projectRole?: string; sharing?: { audience?: string; access?: string } } = {}, props: Record<string, unknown> = {}) {
     api.getDocumentView.mockResolvedValue({ document: { ...DOC, ...doc }, people: {} });
     return render(withQueryClient(<DocumentEditor documentId="d1" onBack={vi.fn()} currentUser={ME} {...props} />));
 }
@@ -195,6 +195,13 @@ describe('DocumentEditor: somebody else in the same section', () => {
         open();
         await screen.findByTestId('fake-canvas');
         expect(api.postPresence).not.toHaveBeenCalled();
+    });
+
+    it('a document shared with colleagues outside a project says who else is here', async () => {
+        api.postPresence.mockResolvedValue({ peers: [], people: {}, ttlMs: 45000 });
+        open({ sharing: { audience: 'organisation', access: 'edit' } });
+        await screen.findByTestId('fake-canvas');
+        await vi.waitFor(() => expect(api.postPresence).toHaveBeenCalled());
     });
 });
 

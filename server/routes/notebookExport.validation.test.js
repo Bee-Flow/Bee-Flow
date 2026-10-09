@@ -265,6 +265,15 @@ test('any other render failure is the generic 500 with a correlation id, not the
     assert.doesNotMatch(JSON.stringify(res.body), /Target closed|playwright|runner/);
 });
 
+test('a Playwright TimeoutError from the renderer is a 504 pdf_render_timeout', async () => {
+    renderFailure = Object.assign(new Error('page.setContent: Timeout 45000ms exceeded.'), { name: 'TimeoutError' });
+    const res = await dispatch({ url: '/nb-1/export/pdf', body: { content: '<p>x</p>' } });
+    assert.strictEqual(res.statusCode, 504);
+    assert.strictEqual(res.body.code, 'pdf_render_timeout');
+    assert.strictEqual(res.body.error, require('../i18n/defaults/en/notebooks')['notebooks.pdf_render_timeout']);
+    assert.doesNotMatch(JSON.stringify(res.body), /Timeout 45000|setContent/);
+});
+
 test('SignRequest that is not set up is a 400 that says where to set it up', async () => {
     signFailure = Object.assign(new Error('SignRequest not configured. Add your SignRequest subdomain and API token in Settings → Integrations.'),
         { code: 'signrequest_not_configured' });

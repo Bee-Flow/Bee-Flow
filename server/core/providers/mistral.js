@@ -36,7 +36,7 @@
 
 const crypto = require('node:crypto');
 const BaseProvider = require('./base');
-const { stripInternalFields } = require('../../utils/messageUtils');
+const { stripInternalFields, normalizeToolArguments } = require('../../utils/messageUtils');
 const {
     MISTRAL_DEFAULT_SERVER_URL,
     describeMistralModel,
@@ -264,7 +264,7 @@ class MistralProvider extends BaseProvider {
                             type: 'function',
                             function: {
                                 name: fn.name || tc?.name || '',
-                                arguments: argumentsString(fn.arguments ?? tc?.input ?? tc?.arguments),
+                                arguments: normalizeToolArguments(fn.arguments ?? tc?.input ?? tc?.arguments),
                             },
                             index: i,
                         };

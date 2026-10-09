@@ -261,6 +261,9 @@ export interface SseEventData {
     mimeType?: string;
     data?: unknown;
     documentId?: string;
+    /** document_suggestions: the batch the AI proposed and how many changes it holds. */
+    batchId?: string;
+    count?: number;
     version?: string | number;
     theme?: unknown;
     slides?: unknown;

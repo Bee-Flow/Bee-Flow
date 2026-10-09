@@ -27,7 +27,7 @@ const DOMParserImpl = new JSDOM('').window.DOMParser;
 const API = [
     'markdownToAst', 'htmlToAst', 'astToMarkdown', 'astToHtml', 'normalizeLight', 'astToFragment', 'fragmentToAst',
     'createYCache', 'sameInY', 'syncDocToFragment', 'relativeFromPos', 'posFromRelative', 'encodeRelpos',
-    'decodeRelpos', 'diffDocs', 'diffHtml', 'diffMarkdown',
+    'decodeRelpos', 'diffDocs', 'diffHtml', 'diffMarkdown', 'hunksFrom', 'anchorsForFragment', 'applyHunks', 'hunkWords',
 ];
 
 function fragmentOf(doc) {
@@ -117,4 +117,27 @@ test('the version diff reports words and blocks changed', () => {
     const h = C.diffHtml('<p>one two</p>', '<p>one three</p>', DOMParserImpl);
     assert.deepEqual(h.stats, { wordsAdded: 1, wordsRemoved: 1, blocksChanged: 1 });
     assert.equal(C.htmlToAst('<p>x</p>', DOMParserImpl).content[0].type, 'paragraph');
+});
+
+test('suggestion hunks from an htmlToAst document round-trip through applyHunks', () => {
+    const current = C.htmlToAst('<h1>Plan</h1><p>Ship on Monday.</p><p>Docs later.</p>', DOMParserImpl);
+    const proposed = C.htmlToAst('<h1>Plan</h1><p>Ship on Tuesday.</p><p>Docs later.</p><p>Added.</p>', DOMParserImpl);
+    const { hunks, replaceAll } = C.hunksFrom(current, proposed);
+    assert.equal(replaceAll, false);
+    assert.equal(hunks.length, 2);
+    assert.match(hunks[0].summary, /^Rewrote paragraph "Ship on Monday\."/);
+    const words = C.hunkWords(hunks[0]).words;
+    assert.deepEqual(words.filter(w => w.op !== 'equal').map(w => w.text), ['Monday', 'Tuesday']);
+    const all = C.applyHunks(current, hunks);
+    assert.deepEqual(all.stale, []);
+    assert.equal(C.astToHtml(all.doc), C.astToHtml(proposed));
+    // a block edited meanwhile: that hunk is stale, the other still applies
+    const edited = C.htmlToAst('<h1>Plan</h1><p>Ship whenever.</p><p>Docs later.</p>', DOMParserImpl);
+    const part = C.applyHunks(edited, hunks);
+    assert.deepEqual(part.stale, [0]);
+    assert.deepEqual(part.applied, [1]);
+    // live: anchors gain relative positions
+    const doc = new Y.Doc();
+    C.astToFragment(current, fragmentOf(doc));
+    assert.ok(C.anchorsForFragment(fragmentOf(doc), hunks)[0].anchor.relStart);
 });

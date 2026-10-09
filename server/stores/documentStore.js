@@ -40,7 +40,7 @@ const { isCoEdited } = require('./lib/coEditGuard');
 const solutionTemplates = require('./document/solutionTemplates');
 const managedParts = require('./lib/managedParts');
 const notebookLibrary = require('./notebookLibrary');
-const { sharingDdl, sharingSql, visibilitySql } = require('./lib/documentSharing');
+const { sharingDdl, sharingSql, editSharingSql, visibilitySql } = require('./lib/documentSharing');
 const { SHEET_DOC_TYPE, applySheetRules, keepSheetOnUpdate, sheetSettingsForCreate } = require('./lib/sheetDocument');
 
 // A document is a person-sized artefact. 512 KB of markup is already a very
@@ -343,7 +343,7 @@ async function getDocument(documentId, context) {
         const doc = mapRow(own);
         if (own.user_id === a.userId || (own.visibility === 'team' && own.sharing_audience === null)) return doc;
         const role = own.project_id ? await projectRoleOf(a.userId, own.project_id) : null;
-        return { ...doc, ...(role ? { projectRole: role } : {}), sharingRole: canEditAs(role) ? 'editor' : 'viewer' };
+        return { ...doc, ...(role ? { projectRole: role } : {}), sharingRole: canEditAs(role) || (own.sharing_access === 'edit' && own.archived === false && await getOne(`SELECT 1 AS ok FROM studio_documents d WHERE d.id = $1 AND ${editSharingSql('d')}`, [documentId, a.userId])) ? 'editor' : 'viewer' };
     }
     if (!documentId || !a?.userId) return null;
     const filed = await getOne(`SELECT d.id, d.project_id FROM studio_documents d WHERE d.id = $1 AND ${PROJECT_DOCUMENT_SQL}`, [documentId]);
@@ -462,6 +462,9 @@ async function editableProjectOf(documentId, userId) {
 async function lockForWrite(client, documentId, a) {
     let { rows } = await client.query(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND ${accessSql('d', true)} FOR UPDATE`, [documentId,a.userId,a.isAdmin === true]);
     if (rows[0]) return solutionTemplates.guardManagedLock(client, { row: rows[0], asMember: false }, a);
+    // A reader the owner shared the document with for editing: content only, like a project editor.
+    ({ rows } = await client.query(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND d.archived = false AND ${editSharingSql('d')} FOR UPDATE`, [documentId, a.userId]));
+    if (rows[0]) return solutionTemplates.guardManagedLock(client, { row: rows[0], asMember: true }, a);
     const projectId = await editableProjectOf(documentId, a.userId);
     if (!projectId) return null;
     // Locked again ON that project: a removal from the project between the

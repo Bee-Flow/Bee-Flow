@@ -24,8 +24,10 @@ export default function useFrameState({ doc, editing, currentUserId, extraPeople
     const [stats, setStats] = useState<FrameStats | null>(null);
     const [caretSection, setCaretSection] = useState<string | null>(null);
     const selection = useRef<CommentAnchor | null>(null);
+    // Who else is here is asked only where somebody else can be: a project, or a document shared with others.
+    const shared = !!doc.sharing?.audience && doc.sharing.audience !== 'private';
     const presence = useSectionPresence({
-        documentId: doc.id, enabled: !!doc.projectId, editing, caretSection: editing ? caretSection : null, currentUserId,
+        documentId: doc.id, enabled: !!doc.projectId || shared, editing, caretSection: editing ? caretSection : null, currentUserId,
     });
     const people = useMemo(() => ({ ...extraPeople, ...presence.people }), [extraPeople, presence.people]);
     const nameOf = (id: string) => people[id]?.name || t('documents.presence.someone', 'Someone');

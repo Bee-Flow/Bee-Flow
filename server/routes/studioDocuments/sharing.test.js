@@ -19,7 +19,7 @@ const api = h.serve('/api/studio-documents', router);
 after(api.close);
 
 test('strict audience and recipient validation refuses invalid requests before reaching storage', async () => {
-    for (const body of [{ audience: 'groups' }, { audience: 'restricted', sharedGroups: 'finance' }, { audience: 'organisation', unknown: true }, { audience: 'restricted', sharedUserIds: [42] }]) {
+    for (const body of [{ audience: 'groups' }, { audience: 'restricted', sharedGroups: 'finance' }, { audience: 'organisation', unknown: true }, { audience: 'organisation', access: 'admin' }, { audience: 'restricted', sharedUserIds: [42] }]) {
         calls.length = 0;
         const res = await api.call('PUT', '/api/studio-documents/d1/sharing', { body });
         assert.equal(res.status, 400);
@@ -31,8 +31,14 @@ test('documents and notebooks dispatch to their resource type with the signed-in
     for (const [prefix, type] of [['', 'document'], ['/notebooks', 'notebook']]) {
         const res = await api.call('PUT', `/api/studio-documents${prefix}/d1/sharing`, { body: { audience: 'restricted', sharedUserIds: ['bob'], sharedGroups: ['finance'] } });
         assert.equal(res.status, 200);
-        assert.deepEqual(calls.at(-1), ['set', type, 'd1', 'u1', { audience: 'restricted', sharedUserIds: ['bob'], sharedGroups: ['finance'] }]);
+        assert.deepEqual(calls.at(-1), ['set', type, 'd1', 'u1', { audience: 'restricted', sharedUserIds: ['bob'], sharedGroups: ['finance'], access: 'view' }]);
     }
+});
+
+test('access edit is accepted and passed on; it defaults to view', async () => {
+    const res = await api.call('PUT', '/api/studio-documents/d1/sharing', { body: { audience: 'organisation', access: 'edit' } });
+    assert.equal(res.status, 200);
+    assert.equal(calls.at(-1)[4].access, 'edit');
 });
 
 test('the notebook gate covers sharing reads, writes and its people directory', async () => {

@@ -210,6 +210,15 @@ const EXPORT_KINDS = Object.freeze([
         heldCountSql: viaUsers('studio_documents', 'sd'), heldScope: 'org', gapKey: 'compliance.pf_gap_studio_documents',
     },
     {
+        // AI / user suggestions on documents (stores/documentSuggestionStore.js).
+        // Sealed with the document's key; they are proposals on text that the
+        // document export already carries, so no export of their own.
+        kind: 'document_suggestions', labelKey: 'compliance.pf_kind_document_suggestions',
+        route: null, formats: [], scope: 'bulk', mount: null,
+        heldCountSql: `SELECT COUNT(*)::int AS c FROM document_suggestions s WHERE COALESCE(NULLIF(s.organization_id, ''), 'default') = $1`,
+        heldScope: 'org', gapKey: 'compliance.pf_gap_document_suggestions',
+    },
+    {
         // The workspace itself: members, instructions, activity. No export of
         // a whole project exists — an honest gap, not an oversight.
         kind: 'project_workspaces', labelKey: 'compliance.pf_kind_project_workspaces',

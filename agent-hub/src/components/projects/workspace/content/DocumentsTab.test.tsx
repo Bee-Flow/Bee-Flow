@@ -23,6 +23,12 @@ vi.mock('../../../../pages/documents/DocumentEditor', () => ({
     ),
 }));
 
+// The starters come from the document service (authFetch), not apiClient.
+vi.mock('../../../../pages/documents/documentQueries', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('../../../../pages/documents/documentQueries')>()),
+    useStarters: () => ({ data: [], isPending: false, isError: false }),
+}));
+
 import DocumentsTab from './DocumentsTab';
 
 const DOCS = [
@@ -133,38 +139,15 @@ describe('DocumentsTab: list', () => {
     });
 });
 
-describe('DocumentsTab: create and add', () => {
-    it('creates a page by default: written together in real time', async () => {
-        const user = userEvent.setup();
-        const { onOpenSub } = renderTab('editor');
-        await user.click(await screen.findByTestId('documents-new'));
-        expect(screen.getByRole('radio', { name: /Page/ })).toBeChecked();
-        expect(screen.getByText('Write together in real time. Prints with the house style.')).toBeInTheDocument();
-        await user.type(screen.getByLabelText('Name'), 'Minutes');
-        await user.click(screen.getByRole('button', { name: 'Create and open' }));
-        await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Minutes', docType: 'page', locale: 'en' }, { retry: false });
-    });
-
-    it('creates a designed document or a presentation when chosen', async () => {
-        const user = userEvent.setup();
-        const { onOpenSub } = renderTab('editor');
-        await user.click(await screen.findByTestId('documents-new'));
-        await user.type(screen.getByLabelText('Name'), 'Plan');
-        await user.click(screen.getByRole('radio', { name: /Presentation/ }));
-        await user.click(screen.getByRole('button', { name: 'Create and open' }));
-        await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Plan', docType: 'presentation', locale: 'en' }, { retry: false });
-    });
-
-    it('keeps the form open with the server message when creating fails', async () => {
+describe('DocumentsTab: create failure and add', () => {
+    it('keeps the gallery open with the server message when creating fails', async () => {
         const user = userEvent.setup();
         const { ApiError } = await import('../../../../api/client');
         client.post.mockImplementation(async () => { throw new ApiError('nope', { status: 403, body: { error: 'Editors only.' } }); });
         const { onOpenSub } = renderTab('editor');
+        client.get.mockImplementation(routes(DOCS, { '/api/studio-documents': { documents: [], spreadsheets: false } }));
         await user.click(await screen.findByTestId('documents-new'));
-        await user.type(screen.getByLabelText('Name'), 'Plan');
-        await user.click(screen.getByRole('button', { name: 'Create and open' }));
+        await user.click(await screen.findByTestId('documents-new-page'));
         expect(await screen.findByText('Editors only.')).toBeInTheDocument();
         expect(onOpenSub).not.toHaveBeenCalled();
     });
@@ -185,6 +168,93 @@ describe('DocumentsTab: create and add', () => {
         await waitFor(() => expect(client.put).toHaveBeenCalledWith(
             '/api/projects/p1/resources', { kind: 'document', id: 'd-other', attach: true }, { retry: false },
         ));
+    });
+});
+
+describe('DocumentsTab: new document gallery', () => {
+    const TEMPLATES = { documents: [
+        { id: 't-letter', name: 'Welcome letter', docType: 'letter' },
+        { id: 't-sheet', name: 'Budget grid', docType: 'spreadsheet' },
+    ], spreadsheets: true, notebooks: true };
+
+    function withMine(answer: unknown = TEMPLATES) {
+        client.get.mockImplementation(routes(DOCS, { '/api/studio-documents': answer }));
+    }
+
+    it('opens the same gallery as the Studio from New document', async () => {
+        const user = userEvent.setup();
+        withMine();
+        renderTab('editor');
+        await user.click(await screen.findByTestId('documents-new'));
+        const gallery = await screen.findByTestId('document-gallery');
+        expect(within(gallery).getByTestId('documents-new-page')).toBeInTheDocument();
+        expect(within(gallery).getByTestId('documents-new-notebook')).toBeInTheDocument();
+        expect(within(gallery).getByTestId('documents-new-presentation')).toBeInTheDocument();
+        expect(await within(gallery).findByText('Your templates')).toBeInTheDocument();
+        expect(within(gallery).getByText('Welcome letter')).toBeInTheDocument();
+        expect(within(gallery).queryByText('Budget grid')).not.toBeInTheDocument();
+    });
+
+    it('creates a page: written together in real time', async () => {
+        const user = userEvent.setup();
+        withMine();
+        const { onOpenSub } = renderTab('editor');
+        await user.click(await screen.findByTestId('documents-new'));
+        await user.click(await screen.findByTestId('documents-new-page'));
+        await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled page', docType: 'page' }, { retry: false });
+    });
+
+    it('creates a presentation and a spreadsheet when chosen', async () => {
+        const user = userEvent.setup();
+        withMine();
+        const { onOpenSub } = renderTab('editor');
+        await user.click(await screen.findByTestId('documents-new'));
+        await user.click(await screen.findByTestId('documents-new-presentation'));
+        await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled presentation', docType: 'presentation' }, { retry: false });
+        await user.click(await screen.findByTestId('documents-new'));
+        await user.click(await screen.findByTestId('documents-new-spreadsheet'));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled spreadsheet', docType: 'spreadsheet' }, { retry: false }));
+    });
+
+    it('copies one of my own templates', async () => {
+        const user = userEvent.setup();
+        withMine();
+        const { onOpenSub } = renderTab('editor');
+        await user.click(await screen.findByTestId('documents-new'));
+        await user.click(await screen.findByRole('button', { name: 'Welcome letter' }));
+        await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Welcome letter', templateId: 't-letter' }, { retry: false });
+    });
+
+    it('makes a project notebook and opens it in the notebooks tab', async () => {
+        const user = userEvent.setup();
+        withMine();
+        client.post.mockImplementation(async () => ({ notebook: { id: 'nb-new', name: 'Untitled notebook' } }));
+        const onOpenTab = vi.fn();
+        const { onOpenSub } = renderTab('editor', { onOpenTab });
+        await user.click(await screen.findByTestId('documents-new'));
+        await user.click(await screen.findByTestId('documents-new-notebook'));
+        await waitFor(() => expect(onOpenTab).toHaveBeenCalledWith('notebooks', 'nb-new'));
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/notebooks', { name: 'Untitled notebook' }, { retry: false });
+        expect(onOpenSub).not.toHaveBeenCalled();
+    });
+
+    it('hides the spreadsheet when the reader may not make one', async () => {
+        const user = userEvent.setup();
+        withMine({ documents: [], spreadsheets: false, notebooks: true });
+        renderTab('editor');
+        await user.click(await screen.findByTestId('documents-new'));
+        await screen.findByTestId('documents-new-page');
+        expect(screen.queryByTestId('documents-new-spreadsheet')).not.toBeInTheDocument();
+        expect(screen.queryByText('Your templates')).not.toBeInTheDocument();
+    });
+
+    it('opens the gallery straight away for the create intent', async () => {
+        withMine();
+        renderTab('editor', { intent: 'create' });
+        expect(await screen.findByTestId('document-gallery')).toBeInTheDocument();
     });
 });
 

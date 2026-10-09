@@ -72,6 +72,9 @@ const {
     isDbTool,
 } = require('../../integrations/webpageDbTools');
 const { AGENT_SEARCH_TOOLS, isAgentSearchTool } = require('../../integrations/agentSearchTools');
+const { isReadUrlTool } = require('../../integrations/readUrlTools');
+// read_url ships with AGENT_SEARCH_TOOLS and is handled as a web tool here.
+const isWebTool = (name) => isAgentSearchTool(name) || isReadUrlTool(name);
 const { runAgentSearchWithEgress } = require('../../integrations/agentSearchEgress');
 const { WEBPAGE_SCREENSHOT_TOOL, executeScreenshotTool, isScreenshotTool } = require('../../integrations/webpageScreenshotTools');
 const {
@@ -916,7 +919,7 @@ Now: ${formatLocalNow(timezone)}`;
                 } catch (err) {
                     toolResult = { error: `KB search failed: ${err.message}` };
                 }
-            } else if (isAgentSearchTool(toolName)) {
+            } else if (isWebTool(toolName)) {
                 try {
                     toolResult = await runAgentSearchWithEgress(toolName, toolArgs, {
                         source: 'webpage_chat',

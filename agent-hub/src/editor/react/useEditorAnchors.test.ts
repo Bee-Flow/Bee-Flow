@@ -51,4 +51,17 @@ describe('useEditorAnchors highlights', () => {
         expect(edited.reads).toBe(1);
         expect(view.ranges).toBe(40);
     });
+
+    it('paints suggestions under bee-suggest and shares ONE index with the comments', () => {
+        const doc = countingDoc(anchors.map((_, i) => `Paragraph with word${i} in it.`).join('\n\n'));
+        const viewRef = { current: fakeView(doc) };
+        const { result } = renderHook(() => useEditorAnchors(viewRef, null));
+        act(() => {
+            result.current.highlightAnchors(anchors.slice(0, 2), null);
+            result.current.highlightSuggestions(anchors.slice(2, 5), 'c3');
+        });
+        expect(doc.reads).toBe(1);
+        const names = result.current.layers.map(l => [l.name, l.ranges.length]);
+        expect(names).toEqual([['bf-comment', 2], ['bf-comment-active', 0], ['bee-suggest', 2], ['bee-suggest-active', 1]]);
+    });
 });

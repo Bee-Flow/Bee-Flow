@@ -84,7 +84,7 @@ const SEEN_POLLED_CAP = 500;
 interface ActivityItem { id?: string | number; action?: string; details?: unknown; [key: string]: unknown }
 
 /** Parse one SSE frame into its id, event name and JSON payload. */
-function parseFrame(frame: string): { id: string | null; kind: string; payload: unknown } | null {
+export function parseFrame(frame: string): { id: string | null; kind: string; payload: unknown } | null {
     let id: string | null = null;
     let kind = 'message';
     const dataLines: string[] = [];
@@ -122,7 +122,7 @@ function polledEvents(items: ActivityItem[], seen: Set<string>): Array<[string, 
  * tail is held until the next read completes it. Resolves true when the body
  * ended, false when the reader asked to stop.
  */
-async function readFrames(body: ReadableStream<Uint8Array>, onFrame: (frame: string) => boolean, stopped: () => boolean): Promise<boolean> {
+export async function readFrames(body: ReadableStream<Uint8Array>, onFrame: (frame: string) => boolean, stopped: () => boolean): Promise<boolean> {
     const reader = body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
