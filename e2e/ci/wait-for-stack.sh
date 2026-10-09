@@ -3,9 +3,9 @@
 # e2e/ci/wait-for-stack.sh — strict readiness gate for the smoke stack
 # ══════════════════════════════════════════════════════════════════
 #
-# Blocks until the compose stack (profiles core+search) is genuinely usable,
+# Blocks until the compose stack (profile core) is genuinely usable,
 # and hard-fails otherwise:
-#   1. HTTP endpoints answer: server /api/health, frontend /, search /health
+#   1. HTTP endpoints answer: server /api/health, frontend /
 #   2. boot-init.js finished first-boot provisioning (log marker)
 #   3. forced MFA for password accounts is disabled — BEFORE any login, so
 #      the config-store cache never memoises the default (true)
@@ -19,11 +19,11 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# Both -f files + both profiles on every invocation (see docker-compose.ci.yml).
+# Both -f files + the core profile on every invocation (see docker-compose.ci.yml).
 COMPOSE=(docker compose
   -f "$REPO_ROOT/docker-compose.from-registry.yml"
   -f "$REPO_ROOT/e2e/ci/docker-compose.ci.yml"
-  --profile core --profile search)
+  --profile core)
 
 # container_name values from docker-compose.from-registry.yml
 SERVER_CONTAINER="beeflow-server"
@@ -31,7 +31,6 @@ POSTGRES_CONTAINER="beeflow-postgres"
 
 SERVER_URL="http://localhost:3001"
 CLIENT_URL="http://localhost:5176"
-SEARCH_URL="http://127.0.0.1:8000"   # base compose binds 127.0.0.1:8000
 
 die() {
   echo "::error::$1"
@@ -55,7 +54,6 @@ wait_http() {
 # ── 1. HTTP endpoints ────────────────────────────────────────────
 wait_http "server"    "$SERVER_URL/api/health" 100 3
 wait_http "frontend"  "$CLIENT_URL/"            20 3
-wait_http "search-api" "$SEARCH_URL/health"     60 3
 
 # ── 2. First-boot provisioning complete ──────────────────────────
 echo "[wait] boot-init completion marker in $SERVER_CONTAINER logs (up to 120s)"

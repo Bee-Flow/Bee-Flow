@@ -15,7 +15,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE=(docker compose
   -f "$REPO_ROOT/docker-compose.from-registry.yml"
   -f "$REPO_ROOT/e2e/ci/docker-compose.ci.yml"
-  --profile core --profile search)
+  --profile core)
 
 OUT_DIR="$REPO_ROOT/compose-logs"
 mkdir -p "$OUT_DIR" || true
@@ -26,8 +26,8 @@ echo "== docker compose ps --all =="
 echo "== writing full stack log to compose-logs/stack.log =="
 "${COMPOSE[@]}" logs --no-color --timestamps > "$OUT_DIR/stack.log" 2>&1 || true
 
-# Per-service logs for every core+search service (base compose service names).
-for svc in postgres rustfs server agent-hub search-postgres search-redis search-api; do
+# Per-service logs for every core service (base compose service names).
+for svc in postgres rustfs server browser agent-hub; do
   "${COMPOSE[@]}" logs --no-color --timestamps "$svc" > "$OUT_DIR/$svc.log" 2>&1 || true
 done
 
