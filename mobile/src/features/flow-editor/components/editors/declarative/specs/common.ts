@@ -16,7 +16,7 @@ export const TITLES = {
     options: msg('mobile.flow.section.options', 'Options'),
     file: msg('mobile.flow.section.the_file', 'The file'),
     content: msg('mobile.flow.section.content', 'Content'),
-    inputs: msg('mobile.flow.section.inputs', 'Inputs'),
+    inputs: msg('automations.ai_step_editors.inputs', 'Inputs'),
     returns: msg('mobile.flow.section.returns', 'Returns'),
 } as const;
 
@@ -41,9 +41,9 @@ export const SOURCE_LIST: FieldSpec = {
     key: 'arrayRef',
     list: true,
     required: true,
-    label: msg('mobile.flow.list.source', 'Source list'),
-    hint: msg('mobile.flow.list.source_hint', 'Pick a list from a previous step — or type a path manually.'),
-    prompt: msg('mobile.flow.list.none_yet', 'No list picked yet'),
+    label: msg('automations.collection_editors.source_list', 'Source list'),
+    hint: msg('automations.collection_editors.pick_a_list_from_a_previous', 'Pick a list from a previous step — or type a path manually.'),
+    prompt: msg('automations.collection_editors.no_list_picked_yet', 'No list picked yet'),
 };
 
 /** The optional input cap (C19): blank is the platform default. */
@@ -55,9 +55,9 @@ export const MAX_ITEMS: FieldSpec = {
     integer: true,
     allowBlank: true,
     example: '10000',
-    label: msg('mobile.flow.list.max_items', 'Max input items'),
+    label: msg('automations.collection_editors.max_input_items', 'Max input items'),
     hint: msg(
-        'mobile.flow.list.max_items_hint',
+        'automations.collection_editors.optional_cap_on_input_size_the',
         'Optional cap on input size — the run FAILS if the source list is larger (platform cap 10 000). Leave blank for the default.',
     ),
 };

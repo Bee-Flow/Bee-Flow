@@ -29,7 +29,7 @@ export function deleteFlowletOp(key: string, how: FlowletDelete): ((d: FlowDefin
 
 /** "3 steps · 1 in · 2 out", or that it is still empty. */
 export function flowletLine(layer: LayerSummary, t: TranslateFn): string {
-    if (layer.stepCount === 0) return t('mobile.flow.flowlets.empty', 'Empty flowlet — no steps yet.');
+    if (layer.stepCount === 0) return t('automations.flowlets_panel.empty_flowlet_no_steps_yet', 'Empty flowlet — no steps yet.');
     return t('mobile.flow.flowlets.line', '{steps} steps · {inputs} in · {outputs} out', {
         steps: layer.stepCount,
         inputs: layer.params.length,

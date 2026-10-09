@@ -85,7 +85,7 @@ function NameBox({
             }}
             autoCapitalize="none"
             autoCorrect={false}
-            accessibilityLabel={t('mobile.flow.rows.name', 'Field name')}
+            accessibilityLabel={t('automations.parse_json_fields.field_name', 'Field name')}
             error={message}
             containerStyle={styles.name}
             testID={testID}

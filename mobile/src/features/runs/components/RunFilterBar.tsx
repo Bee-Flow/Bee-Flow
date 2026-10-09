@@ -35,7 +35,7 @@ function statusWord(chip: StatusChip, t: TranslateFn): string {
     switch (chip) {
         case 'success': return t('common.success', 'Success');
         case 'error': return t('mobile.runs.filter.error', 'Failures');
-        case 'running': return t('mobile.runs.filter.running', 'Running');
+        case 'running': return t('automations.run_progress_banner.running', 'Running');
         case 'awaiting': return t('mobile.runs.filter.awaiting', 'Awaiting');
         case 'cancelled': return t('mobile.runs.filter.cancelled', 'Stopped');
         default: return t('common.all', 'All');

@@ -31,12 +31,12 @@ export function RouteAdvanced({ route, setRoute, onSource, disabled = false }: R
     return (
         <>
             <SelectField
-                label={t('mobile.flow.route.deciding_about', 'Deciding about')}
-                hint={t('mobile.flow.route.deciding_about_hint', 'Detected from the step above — override it here if the guess is wrong.')}
+                label={t('automations.route_editors.deciding_about', 'Deciding about')}
+                hint={t('automations.route_editors.detected_from_the_step_above_override', 'Detected from the step above — override it here if the guess is wrong.')}
                 value={items ? 'items' : 'branch'}
                 options={[
-                    { value: 'items', label: t('mobile.flow.route.each_item', 'Each item of a list') },
-                    { value: 'branch', label: t('mobile.flow.route.whole_run', 'The whole run') },
+                    { value: 'items', label: t('automations.route_editors.each_item_of_a_list', 'Each item of a list') },
+                    { value: 'branch', label: t('automations.route_editors.the_whole_run', 'The whole run') },
                 ]}
                 onChange={(v) => setRoute({ mode: v === 'items' ? 'items' : 'branch' })}
                 disabled={disabled}
@@ -50,15 +50,15 @@ export function RouteAdvanced({ route, setRoute, onSource, disabled = false }: R
                         required
                         value={route.source || ''}
                         onChange={(v) => (onSource ? onSource(String(v)) : setRoute({ source: String(v) }))}
-                        label={t('mobile.flow.list.source', 'Source list')}
-                        hint={t('mobile.flow.list.source_hint', 'Pick a list from a previous step — or type a path manually.')}
-                        prompt={t('mobile.flow.list.none_yet', 'No list picked yet')}
+                        label={t('automations.collection_editors.source_list', 'Source list')}
+                        hint={t('automations.collection_editors.pick_a_list_from_a_previous', 'Pick a list from a previous step — or type a path manually.')}
+                        prompt={t('automations.collection_editors.no_list_picked_yet', 'No list picked yet')}
                         disabled={disabled}
                         testID="route-source"
                     />
                     <NumberField
-                        label={t('mobile.flow.list.max_items', 'Max input items')}
-                        hint={t('mobile.flow.list.max_items_hint', 'Optional cap on input size — the run FAILS if the source list is larger (platform cap 10 000). Leave blank for the default.')}
+                        label={t('automations.collection_editors.max_input_items', 'Max input items')}
+                        hint={t('automations.collection_editors.optional_cap_on_input_size_the', 'Optional cap on input size — the run FAILS if the source list is larger (platform cap 10 000). Leave blank for the default.')}
                         value={route.maxItems}
                         min={1}
                         max={10000}
@@ -72,12 +72,12 @@ export function RouteAdvanced({ route, setRoute, onSource, disabled = false }: R
             ) : null}
             {several ? (
                 <SelectField
-                    label={t('mobile.flow.route.several_match', 'When several outputs match')}
-                    hint={t('mobile.flow.route.several_match_hint', 'Automations built before this existed keep sending each record down the first match only, until you change it here.')}
+                    label={t('automations.route_editors.when_several_outputs_match', 'When several outputs match')}
+                    hint={t('automations.route_editors.automations_built_before_this_existed_keep', 'Automations built before this existed keep sending each record down the first match only, until you change it here.')}
                     value={route.matchMode === 'all' ? 'all' : 'first'}
                     options={[
-                        { value: 'all', label: t('mobile.flow.route.send_all', 'Send it to every matching output') },
-                        { value: 'first', label: t('mobile.flow.route.send_first', 'Send it to the first matching output only') },
+                        { value: 'all', label: t('automations.route_editors.send_it_to_every_matching_output', 'Send it to every matching output') },
+                        { value: 'first', label: t('automations.route_editors.send_it_to_the_first_matching', 'Send it to the first matching output only') },
                     ]}
                     onChange={(v) => setRoute({ matchMode: v === 'all' ? 'all' : 'first' })}
                     disabled={disabled}
@@ -85,7 +85,7 @@ export function RouteAdvanced({ route, setRoute, onSource, disabled = false }: R
             ) : null}
             {several ? (
                 <SelectField
-                    label={t('mobile.flow.route.nothing_matches', 'When nothing matches')}
+                    label={t('automations.route_editors.when_nothing_matches', 'When nothing matches')}
                     hint={t('mobile.flow.route.nothing_matches_hint', "Send unmatched values to one of your rules, or use the node's otherwise output.")}
                     value={route.defaultBranch || ''}
                     options={[
@@ -97,7 +97,7 @@ export function RouteAdvanced({ route, setRoute, onSource, disabled = false }: R
                 />
             ) : null}
             {expressions.length ? (
-                <FieldRow label={t('mobile.flow.route.expression', 'Expression')} hint={t('mobile.flow.route.expression_hint', 'What the rules above compile to. Read-only — edit the rules to change it.')}>
+                <FieldRow label={t('automations.route_editors.expression', 'Expression')} hint={t('automations.route_editors.what_the_rules_above_compile_to', 'What the rules above compile to. Read-only — edit the rules to change it.')}>
                     {expressions.map((e, i) => (
                         <Text key={i} variant="code" tone="tertiary" selectable>
                             {e}

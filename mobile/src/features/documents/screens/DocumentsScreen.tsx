@@ -97,7 +97,7 @@ export function DocumentsScreen({ openId }: { openId?: string }) {
                     tab === 'indexed' ? (
                         <IconButton
                             icon={<Icon name="Plus" size={20} color={theme.colors.textPrimary} />}
-                            accessibilityLabel={t('mobile.kb_documents.add', 'Add a document')}
+                            accessibilityLabel={t('automations.approval_editors.add_a_document', 'Add a document')}
                             onPress={startAdd}
                         />
                     ) : null
@@ -143,7 +143,7 @@ export function DocumentsScreen({ openId }: { openId?: string }) {
             />
             <IngestSheets
                 flow={flow}
-                title={t('mobile.kb_documents.add', 'Add a document')}
+                title={t('automations.approval_editors.add_a_document', 'Add a document')}
                 subtitle={bases.find((kb) => kb.id === destinationKbId)?.name}
                 accepts="PDF, Word, Excel, CSV or text · up to 20 MB"
             />

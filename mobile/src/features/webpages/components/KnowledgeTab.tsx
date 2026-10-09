@@ -111,7 +111,7 @@ export function KnowledgeTab({ pageId }: { pageId: string }) {
                     style={styles.grow}
                 />
                 <Button
-                    label={t('mobile.webpages.source.add_url', 'URL')}
+                    label={t('automations.http_request_fields.url', 'URL')}
                     variant="secondary"
                     iconName="Globe"
                     onPress={() => setAdding('url')}

@@ -72,12 +72,12 @@ function RuleHeader({ route, setRoute, disabled }: { route: Route; setRoute: (p:
                         mode="path"
                         value={route.matchOn || ''}
                         onChange={(v) => setRoute({ matchOn: String(v) })}
-                        label={t('mobile.flow.route.value_to_check', 'Value to check')}
+                        label={t('automations.route_editors.value_to_check', 'Value to check')}
                         hint={t('mobile.flow.route.value_to_check_hint', "Picked once; matched against each rule's value below.")}
                         prompt={t('mobile.flow.route.value_to_check_prompt', 'Tap Insert data to pick the value')}
                         disabled={disabled}
                     />
-                    <Button size="sm" variant="ghost" label={t('mobile.flow.route.use_full_conditions', 'Use full conditions instead')} onPress={() => setRoute(convertToConditions(route))} disabled={disabled} />
+                    <Button size="sm" variant="ghost" label={t('automations.route_editors.use_full_conditions_instead', 'Use full conditions instead')} onPress={() => setRoute(convertToConditions(route))} disabled={disabled} />
                 </>
             ) : null}
             <Text variant="caption" weight="medium" tone="secondary">
@@ -149,7 +149,7 @@ export function RouteEditor(editor: StepEditorProps) {
         <>
             {items ? (
                 <SourceSummary
-                    hint={t('mobile.flow.route.source_hint', 'Detected from the step above. Each item is checked against the rules below.')}
+                    hint={t('automations.route_editors.detected_from_the_step_above_each', 'Detected from the step above. Each item is checked against the rules below.')}
                     source={route.source}
                     maxItems={route.maxItems}
                     onSource={source.change}

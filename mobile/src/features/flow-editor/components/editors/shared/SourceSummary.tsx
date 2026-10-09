@@ -74,9 +74,9 @@ export function SourceSummary({ hint, source, maxItems, onSource, onMaxItems, gr
               .join(' — ')
         : source
           ? `${listPathLabel(source, stepLabelById, t as Parameters<typeof listPathLabel>[2], { stepTypeById })} · ${t('condition_node.source.no_sample', 'no sample yet: run the step above to see its fields')}`
-          : t('mobile.flow.list.none_yet', 'No list picked yet');
+          : t('automations.collection_editors.no_list_picked_yet', 'No list picked yet');
     return (
-        <FieldRow label={t('mobile.flow.list.working_through', 'Working through')} hint={hint}>
+        <FieldRow label={t('automations.collection_editors.working_through', 'Working through')} hint={hint}>
             <View style={styles.row}>
                 <Text variant="body" tone={summary ? 'primary' : 'warning'} numberOfLines={2} style={styles.line}>
                     {line}
@@ -97,13 +97,13 @@ export function SourceSummary({ hint, source, maxItems, onSource, onMaxItems, gr
                         required
                         value={source}
                         onChange={(v) => onSource(String(v))}
-                        label={t('mobile.flow.list.source', 'Source list')}
-                        hint={t('mobile.flow.list.source_hint', 'Pick a list from a previous step — or type a path manually.')}
-                        prompt={t('mobile.flow.list.none_yet', 'No list picked yet')}
+                        label={t('automations.collection_editors.source_list', 'Source list')}
+                        hint={t('automations.collection_editors.pick_a_list_from_a_previous', 'Pick a list from a previous step — or type a path manually.')}
+                        prompt={t('automations.collection_editors.no_list_picked_yet', 'No list picked yet')}
                         disabled={disabled}
                     />
                     <NumberField
-                        label={t('mobile.flow.list.max_items', 'Max input items')}
+                        label={t('automations.collection_editors.max_input_items', 'Max input items')}
                         value={maxItems}
                         min={1}
                         max={10000}

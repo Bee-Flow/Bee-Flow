@@ -13,33 +13,33 @@ import type { FormDraft } from '@/features/flow-editor/formState';
 import { ANY, filterNote, filterOf, listFilter, numberFilter, putFilter, raw, selectFilter, splitList, textFilter, tickFilter, type FilterForm } from './fields';
 
 export const SUPPORT_TICKET_RESOLVED: FilterForm = {
-    title: msg('mobile.flow.filter.support_title', 'Support Inbox ticket.resolved filter (all optional)'),
+    title: msg('automations.trigger_filters.support_inbox_ticket_resolved_filter_all', 'Support Inbox ticket.resolved filter (all optional)'),
     fields: [
-        textFilter('inboxId', msg('mobile.flow.filter.inbox_id', 'Inbox id'), {
-            hint: msg('mobile.flow.filter.inbox_id_hint', 'Restrict to one support inbox. Leave empty to match every inbox.'),
+        textFilter('inboxId', msg('automations.trigger_filters.inbox_id', 'Inbox id'), {
+            hint: msg('automations.trigger_filters.restrict_to_one_support_inbox_leave', 'Restrict to one support inbox. Leave empty to match every inbox.'),
         }),
-        textFilter('categoryEquals', msg('mobile.flow.filter.category_equals', 'Category equals'), {
-            hint: msg('mobile.flow.filter.category_equals_hint', 'The AI-classified category. Free text — no enum yet.'),
+        textFilter('categoryEquals', msg('automations.trigger_filters.category_equals', 'Category equals'), {
+            hint: msg('automations.trigger_filters.the_ai_classified_category_free_text', 'The AI-classified category. Free text — no enum yet.'),
         }),
-        selectFilter('priorityEquals', msg('mobile.flow.filter.priority_equals', 'Priority equals'), [ANY, raw('low'), raw('medium'), raw('high'), raw('urgent')]),
-        textFilter('tagIncludes', msg('mobile.flow.filter.tag_includes', 'Tag includes'), {
-            hint: msg('mobile.flow.filter.tag_includes_hint', 'Fires only when the ticket carries this tag.'),
+        selectFilter('priorityEquals', msg('automations.trigger_filters.priority_equals', 'Priority equals'), [ANY, raw('low'), raw('medium'), raw('high'), raw('urgent')]),
+        textFilter('tagIncludes', msg('automations.trigger_filters.tag_includes', 'Tag includes'), {
+            hint: msg('automations.trigger_filters.fires_only_when_the_ticket_carries', 'Fires only when the ticket carries this tag.'),
         }),
-        selectFilter('resolvedBy', msg('mobile.flow.filter.resolved_by', 'Resolved by'), [ANY, raw('ai'), raw('staff')]),
-        numberFilter('minMessages', msg('mobile.flow.filter.min_messages', 'Min messages'), {
+        selectFilter('resolvedBy', msg('automations.trigger_filters.resolved_by', 'Resolved by'), [ANY, raw('ai'), raw('staff')]),
+        numberFilter('minMessages', msg('automations.trigger_filters.min_messages', 'Min messages'), {
             min: 1,
-            hint: msg('mobile.flow.filter.min_messages_hint', 'Skip tickets with fewer messages than this.'),
+            hint: msg('automations.trigger_filters.skip_tickets_with_fewer_messages_than', 'Skip tickets with fewer messages than this.'),
         }),
         tickFilter(
             'requireGenuineContact',
-            msg('mobile.flow.filter.genuine_contact', 'Require genuine contact'),
-            msg('mobile.flow.filter.genuine_contact_box', 'Only genuine customer conversations'),
+            msg('automations.trigger_filters.require_genuine_contact', 'Require genuine contact'),
+            msg('automations.trigger_filters.only_genuine_customer_conversations', 'Only genuine customer conversations'),
             true,
         ),
         filterNote(
             'genuineContactHint',
             msg(
-                'mobile.flow.filter.genuine_contact_hint',
+                'automations.trigger_filters.default_on_only_real_customer_conversations',
                 'Default on: only real customer conversations fire. Unchecking also matches tickets without verified customer contact.',
             ),
         ),

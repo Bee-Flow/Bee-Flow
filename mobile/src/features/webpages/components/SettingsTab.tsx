@@ -125,7 +125,7 @@ function AboutSection({ webpage }: { webpage: Webpage }) {
                 <InfoRow label={t('mobile.webpages.settings.tagline', 'Tagline')} value={webpage.tagline || dash} />
                 <InfoRow label={t('mobile.webpages.settings.icon', 'Icon')} value={webpage.icon || dash} />
                 <InfoRow
-                    label={t('mobile.webpages.settings.accent', 'Accent colour')}
+                    label={t('automations.slide_fields.accent_colour', 'Accent colour')}
                     value={webpage.accentColor || dash}
                 />
                 <InfoRow

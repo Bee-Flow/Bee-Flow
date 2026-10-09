@@ -55,13 +55,13 @@ export function ThemeEditor({ theme, inherits, canInherit, onChange, disabled = 
     return (
         <View style={styles.box}>
             <Text variant="label" tone="tertiary">
-                {t('mobile.flow.form.styling', 'Styling')}
+                {t('automations.form_builder_fields.styling', 'Styling')}
             </Text>
             {canInherit ? (
                 <ToggleField
                     value={inherits}
                     onChange={(on) => onChange(on ? null : { ...theme })}
-                    label={t('mobile.flow.form.match_first_page', 'Match the first page')}
+                    label={t('automations.form_builder_fields.match_the_first_page', 'Match the first page')}
                     disabled={disabled}
                 />
             ) : null}
@@ -80,7 +80,7 @@ export function ThemeEditor({ theme, inherits, canInherit, onChange, disabled = 
                         ))}
                     </View>
                     <Text variant="label" tone="tertiary">
-                        {t('mobile.flow.form.accent_colour', 'Accent colour')}
+                        {t('automations.form_builder_fields.accent_colour', 'Accent colour')}
                     </Text>
                     <Swatches theme={theme} onChange={onChange} />
                     {THEME_KNOBS.map((knob) => (

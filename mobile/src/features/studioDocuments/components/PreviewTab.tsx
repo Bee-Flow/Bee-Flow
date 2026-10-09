@@ -39,9 +39,9 @@ function SectionChoice({ section, choice, values, onChange }: { section: Contrac
             </Text>
             <Segmented<Choice>
                 options={[
-                    { value: 'automatic', label: t('mobile.studio_documents.values.automatic', 'Automatic') },
-                    { value: 'include', label: t('mobile.studio_documents.values.include', 'Include') },
-                    { value: 'exclude', label: t('mobile.studio_documents.values.exclude', 'Exclude') },
+                    { value: 'automatic', label: t('automations.line_color_panel.automatic', 'Automatic') },
+                    { value: 'include', label: t('automations.document_fields.include', 'Include') },
+                    { value: 'exclude', label: t('automations.document_fields.exclude', 'Exclude') },
                 ]}
                 value={choice}
                 onChange={onChange}

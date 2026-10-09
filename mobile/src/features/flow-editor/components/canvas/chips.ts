@@ -39,9 +39,9 @@ export function chipWords(kind: string, t: TranslateFn): string {
         case 'default':
             return t('condition_node.otherwise.label', 'Otherwise');
         case 'pii_found':
-            return t('mobile.flow.lane.personal_data', 'personal data');
+            return t('automations.privacy_editors.personal_data', 'personal data');
         case 'pii_clean':
-            return t('mobile.flow.lane.clean', 'clean');
+            return t('automations.privacy_editors.clean', 'clean');
         case 'on_error':
             return t('automations.canvas.loop_port_on_error', 'On error');
         case 'unrouted':

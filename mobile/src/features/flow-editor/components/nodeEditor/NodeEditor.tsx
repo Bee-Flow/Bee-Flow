@@ -82,7 +82,7 @@ export function NodeEditor({ flow, stepId, section = null, flowlet = null, onPag
                     testID="step-tabs"
                     accessibilityLabel={t('automations.ndv.drawer_columns', 'Drawer columns')}
                     items={[
-                        { id: 'input', label: t('mobile.flow.ndv.input', 'Input'), count: model.groups.length || null },
+                        { id: 'input', label: t('automations.run_execution_view.input', 'Input'), count: model.groups.length || null },
                         { id: 'settings', label: t('automations.ndv.settings', 'Settings'), count: issueCount || null },
                         { id: 'output', label: t('automations.ndv.output', 'Output') },
                     ]}

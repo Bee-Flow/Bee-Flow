@@ -44,25 +44,25 @@ function Advanced(editor: StepEditorProps) {
     return (
         <>
             <MultilineField
-                label={t('mobile.flow.ai.system_prompt', 'System prompt')}
+                label={t('automations.ai_step_editors.system_prompt', 'System prompt')}
                 hint={t('mobile.flow.ai.system_prompt_hint', "Optional. Overrides the default 'You are a step inside a no-code automation' framing — set a tone, role, or domain.")}
                 value={draft.systemPrompt}
                 onChange={(v) => set('systemPrompt', v)}
-                prompt={t('mobile.flow.ai.system_prompt_placeholder', '(default: a generic automation-step system prompt)')}
+                prompt={t('automations.ai_step_editors.default_a_generic_automation_step_system', '(default: a generic automation-step system prompt)')}
                 lines={3}
                 disabled={ctx.disabled}
             />
             <SelectField label={t('automations.model_tier', 'Model tier')} value={current} options={tierOptions(tiers, current, t)} onChange={(v) => set('modelTier', v)} disabled={ctx.disabled} />
             <FieldRow
-                label={t('mobile.flow.ai.tools', 'Tools')}
-                hint={t('mobile.flow.ai.tools_hint', 'Choose which tools the AI may call during this step. Only tools you have permission for are listed. Leave empty for a pure text answer.')}
+                label={t('automations.ai_step_editors.tools', 'Tools')}
+                hint={t('automations.ai_step_editors.choose_which_tools_the_ai_may', 'Choose which tools the AI may call during this step. Only tools you have permission for are listed. Leave empty for a pure text answer.')}
             >
                 <ToolSelect {...editor} />
             </FieldRow>
             <ToggleField
                 value={draft.useMemory === true}
                 onChange={(on) => set('useMemory', on)}
-                label={t('mobile.flow.ai.use_memory', 'Use my personal memory')}
+                label={t('automations.ai_step_editors.use_my_personal_memory', 'Use my personal memory')}
                 description={t(
                     'mobile.flow.ai.use_memory_hint',
                     "Ground this step in what you have told the assistant about yourself, your preferences and your contacts. The memories closest to this step's prompt are added before the model answers. Good for steps that write in your name or decide on your behalf.",
@@ -100,22 +100,22 @@ export function AiStepEditor(editor: StepEditorProps) {
                 onChange={(v) => set('prompt', String(v ?? ''))}
                 label={t('automations.prompt', 'Prompt')}
                 hint={t('mobile.flow.ai.prompt_hint', "What the AI should do. Tap Insert data to drop in a value from a previous step — it's filled in with the real value when the step runs.")}
-                prompt={t('mobile.flow.ai.prompt_example', 'Summarise this email and decide if it needs an urgent reply.')}
+                prompt={t('automations.ai_step_editors.summarise_this_email_and_decide_if', 'Summarise this email and decide if it needs an urgent reply.')}
                 disabled={ctx.disabled}
                 testID="ai-prompt"
             />
             <Band editor={editor} sectionKey="advanced" title={t('mobile.flow.section.advanced', 'Advanced')} hasContent={advancedIsSet(editor)}>
                 <Advanced {...editor} />
             </Band>
-            <Band editor={editor} sectionKey="inputs" title={t('mobile.flow.section.inputs', 'Inputs')} defaultOpen={Object.keys(inputs).length > 0}>
+            <Band editor={editor} sectionKey="inputs" title={t('automations.ai_step_editors.inputs', 'Inputs')} defaultOpen={Object.keys(inputs).length > 0}>
                 <RowsEditor
                     value={inputs}
                     onChange={(next) => set('inputs', next)}
-                    hint={t('mobile.flow.ai.inputs_hint', 'Named values the AI can read alongside the prompt. Mention a name in the prompt to use it.')}
+                    hint={t('automations.ai_step_editors.named_values_the_ai_can_read', 'Named values the AI can read alongside the prompt. Mention a name in the prompt to use it.')}
                     disabled={ctx.disabled}
                 />
             </Band>
-            <Band editor={editor} sectionKey="output" title={t('mobile.flow.ai.structured_output', 'Structured output')} defaultOpen={outputFields.length > 0} hasContent={outputFields.length > 0}>
+            <Band editor={editor} sectionKey="output" title={t('automations.ai_step_editors.structured_output', 'Structured output')} defaultOpen={outputFields.length > 0} hasContent={outputFields.length > 0}>
                 <StructuredOutput fields={outputFields} onChange={(next) => set('outputFields', next)} disabled={ctx.disabled} />
             </Band>
         </>

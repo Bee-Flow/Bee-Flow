@@ -123,4 +123,4 @@ export function filterNote(id: string, words: Msg): FieldSpec {
 /** An option that is its own word (a status, a priority): data, not copy. */
 export const raw = (value: string): OptionSpec => ({ value, label: value });
 
-export const ANY: OptionSpec = { value: '', label: msg('mobile.flow.filter.any', 'Any') };
+export const ANY: OptionSpec = { value: '', label: msg('automations.trigger_filters.any', 'Any') };

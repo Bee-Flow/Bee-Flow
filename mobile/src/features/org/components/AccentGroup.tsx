@@ -67,7 +67,7 @@ export function AccentGroup({
         : null;
     return (
         <Group
-            title={t('mobile.org.theme_accent', 'Accent colour')}
+            title={t('automations.slide_fields.accent_colour', 'Accent colour')}
             footer={t('mobile.org.theme_accent_note', 'Used for primary buttons, selected items, focus rings, and active states.')}
         >
             <FieldRow>

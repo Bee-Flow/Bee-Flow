@@ -42,13 +42,13 @@ function EdgeControlsView({ edge, frame, mode, editable }: { edge: SceneEdge; fr
                     </Text>
                 </View>
             ) : null}
-            {insert ? <PlusButton target={edge.insert} label={t('mobile.flow.insert_step', 'Insert a step here')} testID={`canvas-insert-${edge.id}`} /> : null}
+            {insert ? <PlusButton target={edge.insert} label={t('automations.edges.insert_a_step_here', 'Insert a step here')} testID={`canvas-insert-${edge.id}`} /> : null}
             {remove ? (
                 <Pressable
                     onPress={() => actions.removeEdge(edge)}
                     hitSlop={HIT}
                     accessibilityRole="button"
-                    accessibilityLabel={t('mobile.flow.canvas.remove_line', 'Remove this connection')}
+                    accessibilityLabel={t('automations.edges.remove_this_connection', 'Remove this connection')}
                     style={styles.remove}
                 >
                     <Icon name="X" size={15} color={styles.removeGlyph.color} />

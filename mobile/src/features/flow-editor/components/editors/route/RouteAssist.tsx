@@ -142,15 +142,15 @@ export function RouteAssist(props: RouteAssistProps) {
             <View style={styles.title}>
                 <Icon name="Lightbulb" size={14} color={styles.glyph.color} />
                 <Text variant="caption" weight="medium">
-                    {t('mobile.flow.route.assist.title', 'Suggest outputs')}
+                    {t('automations.route_assist.suggest_outputs', 'Suggest outputs')}
                 </Text>
             </View>
             <Note>{t('mobile.flow.route.assist.intro', 'Describe the outputs in your own words and check them below. Nothing changes until you accept.')}</Note>
             <TextField
                 value={text}
                 onChangeText={setText}
-                placeholder={t('mobile.flow.route.assist.placeholder', 'split these files by pdf, word and powerpoint')}
-                accessibilityLabel={t('mobile.flow.route.assist.describe', 'Describe the outputs you want')}
+                placeholder={t('automations.route_assist.split_these_files_by_pdf_word', 'split these files by pdf, word and powerpoint')}
+                accessibilityLabel={t('automations.route_assist.describe_the_outputs_you_want', 'Describe the outputs you want')}
                 editable={!disabled}
                 autoCapitalize="none"
                 testID="route-assist-input"

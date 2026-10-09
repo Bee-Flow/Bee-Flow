@@ -142,8 +142,9 @@ describe('the revision and the sections', () => {
     });
 
     it('offers the web’s three section choices, in its order, defaulting to the rules', () => {
-        const web = [...WEB.matchAll(/<option value="(automatic|include|exclude)">([^<]+)<\/option>/g)].map((m) => [m[1], m[2]]);
-        expect(SECTION_CHOICES.map((c) => [c.value, c.label[1]])).toEqual(web);
+        const web = [...WEB.matchAll(/<option value="(automatic|include|exclude)">\{t\('([a-z0-9_.]+)', '([^']+)'\)\}<\/option>/g)].map((m) => [m[1], m[2], m[3]]);
+        expect(web.length).toBe(3);
+        expect(SECTION_CHOICES.map((c) => [c.value, c.label[0], c.label[1]])).toEqual(web);
         expect(WEB).toContain("value={draft.sectionOverrides?.[s.id] || 'automatic'}");
         expect(sectionChoice({ terms: 'exclude' }, 'terms')).toBe('exclude');
         expect(sectionChoice({ terms: '' }, 'terms')).toBe('automatic');

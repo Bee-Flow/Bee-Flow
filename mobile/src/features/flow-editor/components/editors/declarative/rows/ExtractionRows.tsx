@@ -38,9 +38,9 @@ function RowTools({ i, count, onMove, onRemove, styles }: { i: number; count: nu
     const glyph = styles.glyph.color;
     return (
         <View style={styles.tools}>
-            <IconButton icon={<Icon name="ChevronUp" size={16} color={glyph} />} accessibilityLabel={t('mobile.flow.list.up', 'Move up')} disabled={i === 0} onPress={() => onMove(-1)} />
-            <IconButton icon={<Icon name="ChevronDown" size={16} color={glyph} />} accessibilityLabel={t('mobile.flow.list.down', 'Move down')} disabled={i === count - 1} onPress={() => onMove(1)} />
-            <IconButton icon={<Icon name="Trash2" size={16} color={glyph} />} accessibilityLabel={t('mobile.flow.extraction.remove', 'Remove field')} onPress={onRemove} />
+            <IconButton icon={<Icon name="ChevronUp" size={16} color={glyph} />} accessibilityLabel={t('automations.loop_body_editor.move_up', 'Move up')} disabled={i === 0} onPress={() => onMove(-1)} />
+            <IconButton icon={<Icon name="ChevronDown" size={16} color={glyph} />} accessibilityLabel={t('automations.loop_body_editor.move_down', 'Move down')} disabled={i === count - 1} onPress={() => onMove(1)} />
+            <IconButton icon={<Icon name="Trash2" size={16} color={glyph} />} accessibilityLabel={t('automations.generic_row.remove_field', 'Remove field')} onPress={onRemove} />
         </View>
     );
 }

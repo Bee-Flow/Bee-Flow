@@ -28,7 +28,7 @@ function Row({ row, state, setState, onPick }: { row: PickRow; state: PickState;
     if (row.kind === 'empty' || row.kind === 'more') {
         return (
             <Text variant="caption" tone="tertiary" style={indent}>
-                {row.kind === 'empty' ? t('mobile.flow.set.empty_list', 'empty list') : t('mobile.flow.set.n_more', '… {n} more', { n: row.n })}
+                {row.kind === 'empty' ? t('automations.json_tree_picker.empty_list', 'empty list') : t('mobile.flow.set.n_more', '… {n} more', { n: row.n })}
             </Text>
         );
     }
@@ -100,7 +100,7 @@ function JsonPanel({ candidates, customSource, setCustomSource, sampleRoot, onPi
                     <Note>{t('mobile.flow.set.json_pick_hint', 'Tap a value to add it as a field. Extraction is exact and free — no AI involved.')}</Note>
                 </>
             ) : (
-                <Note>{t('mobile.flow.set.not_json', 'This doesn’t look like JSON text — pick another source.')}</Note>
+                <Note>{t('automations.set_editors.this_doesn_t_look_like_json', 'This doesn’t look like JSON text — pick another source.')}</Note>
             )}
         </View>
     );
@@ -133,7 +133,7 @@ export function JsonExtract({
         return (
             <View style={styles.closed}>
                 <Note>{t('mobile.flow.set.json_text', 'Some of this data is JSON text')}</Note>
-                <Button size="sm" variant="ghost" label={t('mobile.flow.set.json_pick', 'Pick fields from it')} onPress={() => setOpen(true)} />
+                <Button size="sm" variant="ghost" label={t('automations.set_editors.pick_fields_from_it', 'Pick fields from it')} onPress={() => setOpen(true)} />
             </View>
         );
     }

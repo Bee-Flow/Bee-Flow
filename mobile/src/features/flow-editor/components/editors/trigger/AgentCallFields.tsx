@@ -24,8 +24,8 @@ export function AgentCallFields(editor: StepEditorProps) {
     return (
         <>
             <TextField
-                label={t('mobile.flow.trigger.tool_name', 'Tool name')}
-                hint={t('mobile.flow.trigger.tool_name_hint', 'What the agent calls. Lowercased & sanitized; blank → automation_<id>.')}
+                label={t('automations.trigger_editors.tool_name', 'Tool name')}
+                hint={t('automations.trigger_editors.what_the_agent_calls_lowercased_sanitized', 'What the agent calls. Lowercased & sanitized; blank → automation_<id>.')}
                 value={typeof draft.toolName === 'string' ? draft.toolName : ''}
                 onChangeText={(v) => set('toolName', v)}
                 placeholder={TOOL_NAME_EXAMPLE}
@@ -35,7 +35,7 @@ export function AgentCallFields(editor: StepEditorProps) {
             />
             <MultilineField
                 label={t('common.description', 'Description')}
-                hint={t('mobile.flow.trigger.tool_description_hint', 'The agent reads this to decide when to call the automation.')}
+                hint={t('automations.trigger_editors.the_agent_reads_this_to_decide', 'The agent reads this to decide when to call the automation.')}
                 value={draft.description}
                 onChange={(v) => set('description', v)}
                 prompt={t('mobile.flow.trigger.tool_description_example', "Summarise the user's unread email and return the highlights.")}
@@ -43,7 +43,7 @@ export function AgentCallFields(editor: StepEditorProps) {
                 disabled={ctx.disabled}
             />
             <FieldRow
-                label={t('mobile.flow.trigger.input_parameters', 'Input parameters')}
+                label={t('automations.trigger_editors.input_parameters', 'Input parameters')}
                 hint={t('mobile.flow.trigger.input_parameters_hint', 'Arguments the agent passes. Later steps pick them with Insert data, as Trigger ▸ <name>.')}
             >
                 <ParamsDesigner

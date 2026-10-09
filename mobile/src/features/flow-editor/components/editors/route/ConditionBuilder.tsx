@@ -82,12 +82,12 @@ function RawFormula({ value, onType, onVisual, context, disabled }: { value: str
                 multiline
                 value={value}
                 onChange={(next) => onType(String(next))}
-                label={t('mobile.flow.condition.expression', 'Expression')}
+                label={t('automations.route_editors.expression', 'Expression')}
                 // The example as its pills will read: "‹Current row ▸ Amount› > 1000".
                 prompt={readableExample(context === 'filter' ? 'item.amount > 1000' : 'steps.step1.output.amount > 1000', true)}
                 disabled={disabled}
             />
-            {canUseVisual(value) ? <Button size="sm" variant="ghost" label={t('mobile.flow.condition.use_visual', 'Use visual builder')} onPress={onVisual} /> : null}
+            {canUseVisual(value) ? <Button size="sm" variant="ghost" label={t('automations.condition_builder.use_visual_builder', 'Use visual builder')} onPress={onVisual} /> : null}
         </View>
     );
 }
@@ -201,11 +201,11 @@ function RowList({ rows, join, emit, onRaw, sampleRoot, context, fieldOptions, f
                 );
             })}
             <View style={styles.actions}>
-                <Button size="sm" variant="ghost" iconName="Plus" label={t('mobile.flow.condition.add', 'Add condition')} onPress={() => {
+                <Button size="sm" variant="ghost" iconName="Plus" label={t('automations.condition_builder.add_condition', 'Add condition')} onPress={() => {
                         keys.append();
                         emit([...rows, emptyRow()], join);
                     }} disabled={disabled} />
-                {onRaw ? <Button size="sm" variant="ghost" label={t('mobile.flow.condition.write_raw', 'Write raw expression')} onPress={onRaw} disabled={disabled} /> : null}
+                {onRaw ? <Button size="sm" variant="ghost" label={t('automations.condition_builder.write_raw_expression', 'Write raw expression')} onPress={onRaw} disabled={disabled} /> : null}
             </View>
         </View>
     );

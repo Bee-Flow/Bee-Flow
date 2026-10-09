@@ -3,6 +3,7 @@
  * flow/stepReferences.js, with Msg data rendered to English.
  */
 
+import { say, type Msg } from '../msg';
 import * as port from './stepReferences';
 import { english } from '../testing/english';
 import { allFixtures } from '../testing/fixtures';
@@ -60,9 +61,16 @@ describe('stepReferences agrees with the web', () => {
     });
 
     it('constants', () => {
-        for (const name of ['REFERENCE_FIELDS', 'REFERENCE_PLACEHOLDERS', 'REFERENCE_EMPTY_HINTS']) {
-            expect(english((port as unknown as Record<string, unknown>)[name])).toEqual(web[name]);
+        // The web's tables hold { key, en } entries; the port holds the same words as Msg data.
+        const asWeb = (table: unknown): unknown =>
+            Object.fromEntries(Object.entries(table as Record<string, Msg>).map(([kind, m]) => [kind, { key: m.i18nKey, en: m.en }]));
+        expect(english(port.REFERENCE_FIELDS)).toEqual(web.REFERENCE_FIELDS);
+        for (const name of ['REFERENCE_PLACEHOLDERS', 'REFERENCE_EMPTY_HINTS']) {
+            expect(asWeb((port as unknown as Record<string, unknown>)[name])).toEqual(web[name]);
         }
-        expect(Object.keys(web).filter((k) => !(k in port))).toEqual([]);
+        // referenceText(entry, t) renders a { key, en } entry; the port's entries are Msg data, rendered by say().
+        expect(Object.keys(web).filter((k) => k !== 'referenceText' && !(k in port))).toEqual([]);
+        const entry = (web.REFERENCE_PLACEHOLDERS as Record<string, { key: string; en: string }>).screen as { key: string; en: string };
+        expect((web.referenceText as (e: unknown, t?: unknown) => string)(entry)).toBe(say(port.REFERENCE_PLACEHOLDERS.screen));
     });
 });

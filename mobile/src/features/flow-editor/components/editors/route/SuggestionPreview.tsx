@@ -40,7 +40,7 @@ function CountLine({ counts, unit, several, keepRest }: { counts: MatchCounts | 
     if (!counts) {
         return (
             <Note>
-                {t('mobile.flow.route.assist.no_samples', 'There are no sample {unit} here yet, so none of this can be counted — the lines above are what will be checked, not what has matched.', { unit })}
+                {t('automations.route_assist.no_sample_yet', 'There are no sample {unit} here yet, so none of this can be counted. The lines above are what will be checked, not what has matched.', { unit })}
             </Note>
         );
     }
@@ -75,7 +75,7 @@ export function SuggestionPreview({ suggestion, counts, unit, existing, keepRest
                         {r.name}
                     </Text>
                     {` — ${ruleSentence(r.expr, labels, t) ?? t('condition_node.suggest.custom_rule', 'a custom rule')}`}
-                    {counts ? ` · ${t('mobile.flow.route.assist.matched', '{matched} of {total} sample {unit}', { matched: counts.perRule[i]?.matched ?? 0, total: counts.total, unit })}` : ''}
+                    {counts ? ` · ${t('automations.route_assist.matched_of_total', '{matched} of {total} sample {unit}', { matched: counts.perRule[i]?.matched ?? 0, total: counts.total, unit })}` : ''}
                 </Text>
             ))}
             <CountLine counts={counts} unit={unit} several={rules.length > 1} keepRest={keepRest} />
@@ -83,23 +83,23 @@ export function SuggestionPreview({ suggestion, counts, unit, existing, keepRest
             {losing.length ? (
                 <Warn>
                     {losing.length === 1
-                        ? t('mobile.flow.route.assist.losing_one', '{names} is wired on the canvas and is not in this suggestion, so its connection goes too.', { names: losing[0] ?? '' })
-                        : t('mobile.flow.route.assist.losing_many', '{names} are wired on the canvas and are not in this suggestion, so their connections go too.', { names: losing.join(', ') })}
+                        ? t('automations.route_assist.suggestion_wire_lost_one', '{names} is wired on the canvas and is not in this suggestion, so its connection goes too.', { names: losing[0] ?? '' })
+                        : t('automations.route_assist.suggestion_wire_lost_many', '{names} are wired on the canvas and are not in this suggestion, so their connections go too.', { names: losing.join(', ') })}
                 </Warn>
             ) : null}
             <View style={styles.actions}>
                 <Button
                     size="sm"
-                    label={rules.length === 1 ? t('mobile.flow.route.assist.use_one', 'Use this output') : t('mobile.flow.route.assist.use_n', 'Use these {n} outputs', { n: rules.length })}
+                    label={rules.length === 1 ? t('automations.route_assist.use_one', 'Use this output') : t('mobile.flow.route.assist.use_n', 'Use these {n} outputs', { n: rules.length })}
                     onPress={onApply}
                     disabled={disabled}
                     testID="route-assist-apply"
                 />
-                <Button size="sm" variant="ghost" label={t('mobile.flow.route.assist.start_over', 'Start over')} onPress={onReset} />
+                <Button size="sm" variant="ghost" label={t('automations.route_assist.start_over', 'Start over')} onPress={onReset} />
             </View>
             {suggestion.truncated ? (
                 <Warn>
-                    {t('mobile.flow.route.assist.truncated', 'Only the first {n} are shown — more outputs than that is a lookup table rather than a routing decision, and every one of them is a port someone has to wire.', { n: rules.length })}
+                    {t('automations.route_assist.only_first_shown', 'Only the first {count} are shown. More outputs than that is a lookup table rather than a routing decision, and every one of them is a port someone has to wire.', { count: rules.length })}
                 </Warn>
             ) : null}
         </View>

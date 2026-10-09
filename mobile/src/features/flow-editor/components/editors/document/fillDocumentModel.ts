@@ -71,9 +71,9 @@ export function updateAvailable(contract: DocumentContract | null | undefined, p
 
 /** An optional section of the document: printed by its rules, always, or never. */
 export const SECTION_CHOICES = [
-    { value: 'automatic', label: msg('mobile.flow.fill.section_automatic', 'Automatic (rules)') },
-    { value: 'include', label: msg('mobile.flow.fill.section_include', 'Include') },
-    { value: 'exclude', label: msg('mobile.flow.fill.section_exclude', 'Exclude') },
+    { value: 'automatic', label: msg('automations.document_fields.automatic_rules', 'Automatic (rules)') },
+    { value: 'include', label: msg('automations.document_fields.include', 'Include') },
+    { value: 'exclude', label: msg('automations.document_fields.exclude', 'Exclude') },
 ] as const;
 
 export function sectionChoice(overrides: unknown, sectionId: string): string {

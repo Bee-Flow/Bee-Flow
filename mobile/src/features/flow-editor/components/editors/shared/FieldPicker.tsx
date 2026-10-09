@@ -89,7 +89,7 @@ function PickSheet({ open, onClose, title, path, options, fallbackBase, onPick, 
                 {typed && !options.some((o) => o.path === typedPath) ? (
                     <OptionRow label={t('mobile.flow.picker.use_typed', 'Use “{name}”', { name: typed })} description={typedPath} selected={false} onPress={() => pick(typedPath)} />
                 ) : null}
-                {onUseExpression ? <OptionRow label={t('mobile.flow.picker.use_expression', 'Use an expression instead')} selected={false} onPress={onUseExpression} /> : null}
+                {onUseExpression ? <OptionRow label={t('automations.field_picker.use_an_expression_instead', 'Use an expression instead')} selected={false} onPress={onUseExpression} /> : null}
             </View>
         </Sheet>
     );

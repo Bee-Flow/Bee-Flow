@@ -19,7 +19,7 @@ function kindBadge(t: TranslateFn, kb: KnowledgeBase): React.ReactElement | null
     if (kb.source_kind === 'notebook') return <Badge label={t('mobile.knowledge.from_notebook', 'From a notebook')} />;
     if (kb.source_kind === 'webpage') return <Badge label={t('mobile.knowledge.from_webpage', 'From a webpage')} />;
     if (kb.source_kind === 'system_managed') return <Badge label={t('mobile.knowledge.system', 'System')} />;
-    return <Badge label={t('mobile.knowledge.automatic', 'Automatic')} />;
+    return <Badge label={t('automations.line_color_panel.automatic', 'Automatic')} />;
 }
 
 export function KnowledgeBaseRow({

@@ -25,7 +25,7 @@ function ToolSheet({ open, onClose, apps, editor }: { open: boolean; onClose: ()
     const styles = useThemedStyles(makeStyles);
     const selected = Array.isArray(editor.draft.tools) ? (editor.draft.tools as string[]) : [];
     return (
-        <Sheet visible={open} onClose={onClose} title={t('mobile.flow.ai.tools', 'Tools')} tall>
+        <Sheet visible={open} onClose={onClose} title={t('automations.ai_step_editors.tools', 'Tools')} tall>
             {apps.map((app) => {
                 const names = app.actions.map((a) => a.name);
                 const all = names.every((n) => selected.includes(n));
@@ -59,11 +59,11 @@ export function ToolSelect(editor: StepEditorProps) {
     if (isLegacyAllTools(editor.draft)) {
         return (
             <>
-                <Chip label={t('mobile.flow.ai.all_tools', 'All available tools')} icon={<Icon name="Sparkles" size={12} color={styles.glyph.color} />} selected />
+                <Chip label={t('automations.ai_step_editors.all_available_tools', 'All available tools')} icon={<Icon name="Sparkles" size={12} color={styles.glyph.color} />} selected />
                 <Button
                     size="sm"
                     variant="ghost"
-                    label={t('mobile.flow.ai.choose_specific', 'Choose specific tools…')}
+                    label={t('automations.ai_step_editors.choose_specific_tools', 'Choose specific tools…')}
                     onPress={() => {
                         editor.setMany(chooseSpecificTools(apps));
                         setOpen(true);
@@ -76,9 +76,9 @@ export function ToolSelect(editor: StepEditorProps) {
     }
     return (
         <>
-            <Button size="sm" variant="secondary" iconName="Plus" label={t('mobile.flow.ai.browse_tools', 'Browse tools')} onPress={() => setOpen(true)} disabled={disabled} testID="ai-browse-tools" />
+            <Button size="sm" variant="secondary" iconName="Plus" label={t('automations.ai_step_editors.browse_tools', 'Browse tools')} onPress={() => setOpen(true)} disabled={disabled} testID="ai-browse-tools" />
             {selected.length === 0 ? (
-                <Note>{t('mobile.flow.ai.no_tools', 'No tools — the AI step answers from its prompt only.')}</Note>
+                <Note>{t('automations.ai_step_editors.no_tools_the_ai_step_answers', 'No tools — the AI step answers from its prompt only.')}</Note>
             ) : (
                 <View style={styles.chips}>
                     {selected.map((name) => (

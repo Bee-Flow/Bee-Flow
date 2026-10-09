@@ -32,7 +32,7 @@ export function SaveProblem({ editor }: { editor: DocumentEditor }) {
                 <View style={styles.body}>
                     <Text variant="caption">{describeError(autosave.error).message}</Text>
                     <View style={styles.actions}>
-                        <Button label={t('mobile.studio_documents.retry', 'Retry save')} size="sm" variant="secondary" onPress={() => void autosave.flush().catch(() => undefined)} />
+                        <Button label={t('common.retry_save', 'Retry save')} size="sm" variant="secondary" onPress={() => void autosave.flush().catch(() => undefined)} />
                         <Button label={t('mobile.studio_documents.reload', 'Reload the stored version')} size="sm" variant="ghost" onPress={() => void refresh()} />
                     </View>
                 </View>

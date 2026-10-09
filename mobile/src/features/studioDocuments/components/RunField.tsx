@@ -20,7 +20,7 @@ function blockLabel(t: TranslateFn, run: TextRun): string {
         listItem: t('mobile.studio_documents.block.list_item', 'List item'),
         cell: t('mobile.studio_documents.block.cell', 'Table cell'),
         header: t('mobile.studio_documents.block.header', 'Header'),
-        footer: t('mobile.studio_documents.block.footer', 'Footer'),
+        footer: t('automations.presentation_fields.footer', 'Footer'),
         text: t('mobile.studio_documents.block.text', 'Text'),
     };
     return labels[run.block];

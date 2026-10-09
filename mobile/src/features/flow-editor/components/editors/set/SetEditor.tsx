@@ -58,21 +58,21 @@ function Advanced({ editor, listMode, ops }: { editor: StepEditorProps; listMode
     return (
         <Band editor={editor} sectionKey="advanced" title={t('mobile.flow.section.advanced', 'Advanced')} defaultOpen={!listMode && !!draft.forEach} hasContent={!listMode && !!draft.forEach}>
             <SelectField
-                label={t('mobile.flow.set.works_on', 'Works on')}
-                hint={t('mobile.flow.set.works_on_hint', 'Detected from the step above — override it here if the guess is wrong.')}
+                label={t('automations.set_editors.works_on', 'Works on')}
+                hint={t('automations.set_editors.detected_from_the_step_above_override', 'Detected from the step above — override it here if the guess is wrong.')}
                 value={listMode ? 'items' : 'single'}
                 options={[
-                    { value: 'items', label: t('mobile.flow.set.each_row_of_list', 'Each row of a list') },
-                    { value: 'single', label: t('mobile.flow.set.whole_run', 'The whole run') },
+                    { value: 'items', label: t('automations.set_editors.each_row_of_a_list', 'Each row of a list') },
+                    { value: 'single', label: t('automations.set_editors.the_whole_run', 'The whole run') },
                 ]}
                 onChange={(v) => set('arrayRef', v === 'items' ? (draft.arrayRef ?? '') : null)}
                 disabled={ctx.disabled}
                 testID="set-works-on"
             />
-            {listMode && ops.length > 0 ? <Note>{t('mobile.flow.set.whole_run_drops_tools', 'Switching to “The whole run” also removes the table tools.')}</Note> : null}
+            {listMode && ops.length > 0 ? <Note>{t('automations.set_editors.switching_to_the_whole_run_also', 'Switching to “The whole run” also removes the table tools.')}</Note> : null}
             {listMode && draft.arrayRef ? <Source editor={editor} hint={t('mobile.flow.set.source_hint', 'Detected from the step above. The fields are computed for each row of this list.')} /> : null}
             {!listMode ? <SpecFields editor={editor} fields={[FOR_EACH]} /> : null}
-            {listMode && step.forEach ? <Warn>{t('mobile.flow.set.list_replaces_for_each', 'List mode replaces “Run once per item” — saving removes the old per-item setting.')}</Warn> : null}
+            {listMode && step.forEach ? <Warn>{t('automations.set_editors.list_mode_replaces_run_once_per', 'List mode replaces “Run once per item” — saving removes the old per-item setting.')}</Warn> : null}
         </Band>
     );
 }
@@ -113,8 +113,8 @@ export function SetEditor(editor: StepEditorProps) {
                 />
             </Band>
             {listMode ? (
-                <Band editor={editor} sectionKey="table" title={t('mobile.flow.set.table_tools', 'Table tools')} defaultOpen>
-                    <Note>{t('mobile.flow.set.table_tools_hint', 'Applied to the whole table, top to bottom, after the fields above.')}</Note>
+                <Band editor={editor} sectionKey="table" title={t('automations.set_editors.table_tools', 'Table tools')} defaultOpen>
+                    <Note>{t('automations.set_editors.applied_to_the_whole_table_top', 'Applied to the whole table, top to bottom, after the fields above.')}</Note>
                     <SetOperationsEditor ops={ops} onChange={(next) => set('operations', next)} baseColumns={baseColumnsOf(element, draft.fields)} disabled={ctx.disabled} />
                 </Band>
             ) : null}
