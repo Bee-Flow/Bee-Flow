@@ -1407,6 +1407,11 @@ jobs:
 
   candidate-containers:
     needs: candidate-images
+    # Explicit on purpose: the implicit success() looks at the WHOLE upstream
+    # chain, and a prod run always skips the image jobs it was not asked to
+    # build. Without this the job was skipped on every partial release, so no
+    # release-candidate artifact was ever made.
+    if: ${{ !cancelled() && needs.candidate-images.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:

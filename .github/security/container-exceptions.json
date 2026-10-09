@@ -290,6 +290,249 @@
         "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
         ".github/security/audit-baseline.json"
       ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "requiredUser": "app",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-76642",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "versions": [
+        "1:2.41.5-0+deb13u1",
+        "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "2.41.5-0+deb13u1"
+      ],
+      "reason": "Debian reports no fixed trixie build; privileged mount post-hooks are absent.",
+      "reachability": "The image removes mount and umount and all /usr SUID/SGID bits. The default process is UID 1000 (user app). The required runtime check verifies these conditions on the exact release digest.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-76642"
+      ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "requiredUser": "app",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-78408",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "versions": [
+        "1:2.41.5-0+deb13u1",
+        "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "2.41.5-0+deb13u1"
+      ],
+      "reason": "Debian reports no fixed trixie build; nsenter cgroup authority is absent.",
+      "reachability": "nsenter is removed, no privileged namespace launcher is installed, and all /usr SUID/SGID bits are stripped. The default UID and absent binaries are verified on the exact release digest.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-78408"
+      ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "requiredUser": "app",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-78409",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "versions": [
+        "1:2.41.5-0+deb13u1",
+        "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "2.41.5-0+deb13u1"
+      ],
+      "reason": "Debian reports no fixed trixie build; the restricted mount CLI is absent.",
+      "reachability": "X-mount.subdir processing requires mount; mount/umount are removed. UID 1000 and the absence of mount and SUID/SGID bits are verified on the exact release digest.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-78409"
+      ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "requiredUser": "app",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-78410",
+      "packages": [
+        "bsdutils",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libsmartcols1",
+        "libuuid1",
+        "login",
+        "mount",
+        "util-linux"
+      ],
+      "versions": [
+        "1:2.41.5-0+deb13u1",
+        "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "2.41.5-0+deb13u1"
+      ],
+      "reason": "Debian reports no fixed trixie build; the restricted bind mount CLI is absent.",
+      "reachability": "The vulnerable fstab-authorized privileged mount path is removed. The runtime gate checks mount/umount absence, UID 1000 and stripped SUID/SGID bits.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-78410"
+      ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "requiredUser": "app",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-54369",
+      "packages": [
+        "libacl1"
+      ],
+      "versions": [
+        "2.3.2-2+b1"
+      ],
+      "reason": "Debian libacl fix is not available for trixie; privileged ACL callers are absent.",
+      "reachability": "The application does not invoke pathname ACL APIs. getfacl/setfacl are absent; the runtime gate verifies UID 1000 and no SUID/SGID executables. No privileged ACL service is started by the container entrypoint.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-54369"
+      ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "requiredUser": "app",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-16742",
+      "packages": [
+        "libsystemd0",
+        "libudev1"
+      ],
+      "versions": [
+        "257.13-1~deb13u1"
+      ],
+      "reason": "The systemd libraries retain an advisory for an uninstalled systemd-homed service.",
+      "reachability": "systemd-homed is not installed or run; its executable path and command absence are asserted on the immutable digest. The container starts Python (uvicorn) as UID 1000.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-16742"
+      ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "requiredUser": "app",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2025-69720",
+      "packages": [
+        "libncursesw6",
+        "libtinfo6",
+        "ncurses-base",
+        "ncurses-bin"
+      ],
+      "versions": [
+        "6.5+20250216-2"
+      ],
+      "reason": "The advisory targets infocmp CLI analysis; that executable is removed.",
+      "reachability": "infocmp is absent; the application does not expose ncurses analysis-string parsing. The required runtime check verifies command absence on the exact immutable image.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+      ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "requiredUser": "app",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-9538",
+      "packages": [
+        "libperl5.40",
+        "perl",
+        "perl-base",
+        "perl-modules-5.40"
+      ],
+      "versions": [
+        "5.40.1-6+deb13u1"
+      ],
+      "reason": "The Perl source-package advisory targets Archive::Tar, which is removed.",
+      "reachability": "All Archive/Tar module files are removed. The application does not execute Perl archive parsing. The required runtime check asserts module absence on the immutable digest.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538"
+      ]
+    },
+    {
+      "images": [
+        "pwt-runner"
+      ],
+      "reviewedAt": "2026-10-09",
+      "expires": "2026-11-08",
+      "id": "CVE-2025-3887",
+      "packages": [
+        "gstreamer1.0-plugins-bad",
+        "libgstreamer-plugins-bad1.0-0"
+      ],
+      "versions": [
+        "1.24.2-1ubuntu4"
+      ],
+      "reason": "Ubuntu noble has no fixed gstreamer1.0-plugins-bad build; the H.265 parser is only reached through WebKit media playback.",
+      "reachability": "Bee Flow only runs the image in serve mode, which launches Chromium (server/pwt-runner/entrypoint.js: chromium.launchServer). Chromium decodes media with its own bundled stack and never loads system GStreamer; only WebKit does, and nothing in the server starts WebKit or uses suite mode.",
+      "references": [
+        "https://ubuntu.com/security/CVE-2025-3887"
+      ]
     }
   ]
 }
