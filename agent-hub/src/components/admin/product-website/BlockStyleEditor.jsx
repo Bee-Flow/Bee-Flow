@@ -5,6 +5,7 @@ import SpacingStepper from './controls/SpacingStepper';
 import { getCapabilities } from './controls/styleCapabilities';
 import { FieldRow, Toggle } from './fields';
 import { SectionDivider, SegmentedControl } from './primitives';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Per-block style overrides — Style sub-tab in pane B.
@@ -70,6 +71,7 @@ const COLUMN_OPTIONS = [
 ];
 
 export default function BlockStyleEditor({ style, enabled = true, design, blockType, onChange, onToggleEnabled }) {
+    const { t } = useTranslation();
     const s = style || {};
     const overrides = s.colorOverrides || {};
     const spacing   = s.spacing || {};
@@ -99,14 +101,13 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
                     className="accent-[var(--accent-primary)]"
                 />
                 <span className="text-sm text-[var(--text-secondary)]">
-                    Hide this block <span className="text-[10px] text-[var(--text-muted)]">(stays in the page list)</span>
+                    {t('cms_site.site.blockstyle.hide_block', 'Hide this block')} <span className="text-[10px] text-[var(--text-muted)]">{t('cms_site.site.blockstyle.hide_block_note', '(stays in the page list)')}</span>
                 </span>
             </label>
 
-            <SectionDivider label="Color overrides" />
+            <SectionDivider label={t('cms_site.site.blockstyle.color_overrides', 'Color overrides')} />
             <p className="text-xs text-[var(--text-muted)] -mt-2 mb-3 leading-relaxed">
-                Each token defaults to the site's Design palette. Set one to override
-                only this block — children inherit through CSS variables.
+                {t('cms_site.site.blockstyle.color_help', "Each token defaults to the site's Design palette. Set one to override only this block — children inherit through CSS variables.")}
             </p>
             {COLOR_TOKENS.map(t => (
                 <ColorControl
@@ -119,13 +120,13 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
                 />
             ))}
 
-            <SectionDivider label="Spacing" />
+            <SectionDivider label={t('cms_site.site.blockstyle.spacing', 'Spacing')} />
             <SpacingStepper
                 spacing={spacing}
                 onChange={(nextSpacing) => onChange({ ...s, spacing: nextSpacing })}
             />
 
-            <SectionDivider label="Background" />
+            <SectionDivider label={t('cms_site.site.blockstyle.background', 'Background')} />
             <BackgroundControl
                 image={s.backgroundImage || ''}
                 overlay={s.backgroundOverlay || ''}
@@ -133,30 +134,30 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
                 onChangeOverlay={setBgOverlay}
             />
 
-            <SectionDivider label="Layout" />
-            <FieldRow label="Max width">
+            <SectionDivider label={t('cms_site.site.blockstyle.layout', 'Layout')} />
+            <FieldRow label={t('cms_site.site.blockstyle.max_width', 'Max width')}>
                 <SegmentedControl options={MAX_WIDTHS} value={s.maxWidth || 'full'} onChange={setMaxWidth} />
             </FieldRow>
-            <FieldRow label="Text align">
+            <FieldRow label={t('cms_site.site.blockstyle.text_align', 'Text align')}>
                 <SegmentedControl options={ALIGNS} value={s.align || 'left'} onChange={setAlign} iconOnly />
             </FieldRow>
             <CapabilityKnobs caps={caps} style={s} onChange={onChange} />
 
-            <SectionDivider label="Advanced" />
+            <SectionDivider label={t('cms_site.site.blockstyle.advanced_section', 'Advanced')} />
             <FieldRow
                 label={
                     <span className="flex items-center gap-1.5">
-                        Custom CSS class
-                        <span className="text-[10px] text-amber-400" title="Admin-only — applies a raw class name to the block wrapper">⚠ Advanced</span>
+                        {t('cms_site.site.blockstyle.custom_css_class', 'Custom CSS class')}
+                        <span className="text-[10px] text-amber-400" title={t('cms_site.site.blockstyle.advanced_title', 'Admin-only — applies a raw class name to the block wrapper')}>{t('cms_site.site.blockstyle.advanced_badge', '⚠ Advanced')}</span>
                     </span>
                 }
-                hint="Space-separated class names. Use only if you've added matching CSS rules elsewhere."
+                hint={t('cms_site.site.blockstyle.css_class_hint', "Space-separated class names. Use only if you've added matching CSS rules elsewhere.")}
             >
                 <input
                     type="text"
                     value={s.cssClass || ''}
                     onChange={(e) => setCssClass(e.target.value)}
-                    placeholder="my-custom-class"
+                    placeholder={t('cms_site.site.blockstyle.css_class_placeholder', 'my-custom-class')}
                     spellCheck={false}
                     className="w-full px-2 py-1.5 rounded text-xs font-mono border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
                 />
@@ -168,7 +169,7 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
                     onClick={() => onChange({})}
                     className="mt-4 w-full text-xs text-[var(--text-muted)] hover:text-red-400 underline-offset-2 hover:underline"
                 >
-                    Reset all style overrides
+                    {t('cms_site.site.blockstyle.reset_all', 'Reset all style overrides')}
                 </button>
             )}
         </div>
@@ -182,6 +183,7 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
 // WS1-P5 renderer support lands). Columns rides at the end of the Layout
 // section; Motion gets its own divider.
 function CapabilityKnobs({ caps, style: s, onChange }) {
+    const { t } = useTranslation();
     const setColumns = (v) => {
         const next = { ...s };
         if (!v) delete next.columns;
@@ -198,15 +200,15 @@ function CapabilityKnobs({ caps, style: s, onChange }) {
     return (
         <>
             {caps.columns ? (
-                <FieldRow label="Columns" hint="Grid columns for this block's cards.">
+                <FieldRow label={t('cms_site.site.blockstyle.columns', 'Columns')} hint={t('cms_site.site.blockstyle.columns_hint', "Grid columns for this block's cards.")}>
                     <SegmentedControl options={COLUMN_OPTIONS} value={s.columns || ''} onChange={setColumns} />
                 </FieldRow>
             ) : null}
             {caps.motion ? (
                 <>
-                    <SectionDivider label="Motion" />
-                    <Toggle label="Reveal on scroll" value={s.reveal === 'on'} onChange={setReveal} />
-                    <Toggle label="Accent glow" value={!!s.glow} onChange={setGlow} />
+                    <SectionDivider label={t('cms_site.site.blockstyle.motion', 'Motion')} />
+                    <Toggle label={t('cms_site.site.blockstyle.reveal_on_scroll', 'Reveal on scroll')} value={s.reveal === 'on'} onChange={setReveal} />
+                    <Toggle label={t('cms_site.site.blockstyle.accent_glow', 'Accent glow')} value={!!s.glow} onChange={setGlow} />
                 </>
             ) : null}
         </>

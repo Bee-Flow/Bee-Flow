@@ -19,10 +19,12 @@ import { toast } from '../../shared/Toast';
 import { BLOCK_DEFAULTS } from './editors';
 import ModalShell from './dialogs/ModalShell';
 import { slugIssues } from '../../../utils/cmsPublicRouting';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // ── Single draggable page row ────────────────────────────────────────
 
 function PageRow({ page, allSlugs, isActive, onClick, onSetHomepage, onDuplicate, onRename, onEditSlug, onDelete, onSaveAsTemplate, onExport, onImport }) {
+    const { t } = useTranslation();
     const {
         attributes, listeners, setNodeRef, transform, transition, isDragging,
     } = useSortable({ id: page.id });
@@ -78,7 +80,7 @@ function PageRow({ page, allSlugs, isActive, onClick, onSetHomepage, onDuplicate
                 {...listeners}
                 className="text-[var(--text-muted)] cursor-grab active:cursor-grabbing p-0.5 shrink-0"
                 onClick={e => e.stopPropagation()}
-                title="Drag to reorder"
+                title={t('cms_site.site.pagelist.drag_to_reorder', 'Drag to reorder')}
             >
                 <AppIcon name="GripVertical" className="w-3.5 h-3.5" />
             </span>
@@ -136,7 +138,7 @@ function PageRow({ page, allSlugs, isActive, onClick, onSetHomepage, onDuplicate
                             text-[var(--text-muted)] hover:text-[var(--text-secondary)]
                             ${menuOpen ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
                         onClick={() => setMenuOpen(v => !v)}
-                        title="Page actions"
+                        title={t('cms_site.site.pagelist.page_actions', 'Page actions')}
                     >
                         <AppIcon name="MoreVertical" className="w-3.5 h-3.5" />
                     </button>
@@ -202,6 +204,7 @@ function normalizeSlugForInput(raw) {
 }
 
 function SlugInput({ initial, isHomepage, allSlugs = null, onConfirm, onCancel }) {
+    const { t } = useTranslation();
     const [value, setValue] = useState(initial);
     const inputRef = useRef(null);
 
@@ -232,7 +235,7 @@ function SlugInput({ initial, isHomepage, allSlugs = null, onConfirm, onCancel }
                         if (e.key === 'Enter')  { e.preventDefault(); commit(); }
                         if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
                     }}
-                    placeholder="page-slug"
+                    placeholder={t('cms_site.site.pagelist.slug_placeholder', 'page-slug')}
                     spellCheck={false}
                     className={`flex-1 min-w-0 px-1.5 py-0.5 rounded text-[10px] font-mono border bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none ${issue?.blocking ? 'border-red-400' : 'border-[var(--accent-primary)]'}`}
                 />
@@ -242,7 +245,7 @@ function SlugInput({ initial, isHomepage, allSlugs = null, onConfirm, onCancel }
                 // Inline warning keeps the affordance one-step (no
                 // modal); the user can still cancel via Escape.
                 <span className="text-[10px] leading-tight text-amber-500/90">
-                    ⚠ Homepage slug. Changing it may break external links.
+                    {t('cms_site.site.pagelist.homepage_slug_warning', '⚠ Homepage slug. Changing it may break external links.')}
                 </span>
             ) : null}
             {issue ? (
@@ -258,6 +261,7 @@ function SlugInput({ initial, isHomepage, allSlugs = null, onConfirm, onCancel }
 //    the page-list's overflow-y:auto container and doesn't clip. ──────
 
 function PageMenu({ anchorEl, page, onClose, onSetHomepage, onDuplicate, onRename, onEditSlug, onDelete, onSaveAsTemplate, onExport, onImport }) {
+    const { t } = useTranslation();
     const [coords, setCoords] = useState(null);
 
     // Compute menu coordinates from the button's viewport rect. Anchored to
@@ -304,20 +308,20 @@ function PageMenu({ anchorEl, page, onClose, onSetHomepage, onDuplicate, onRenam
             onMouseDown={e => e.stopPropagation()}
         >
             {!page.isHomepage && (
-                <MenuBtn icon="Home" label="Set as homepage" onClick={onSetHomepage} />
+                <MenuBtn icon="Home" label={t('cms_site.site.pagelist.set_homepage', 'Set as homepage')} onClick={onSetHomepage} />
             )}
-            <MenuBtn icon="Pencil"   label="Rename page"        onClick={onRename} />
-            <MenuBtn icon="Link"     label="Edit slug"          onClick={onEditSlug} />
-            <MenuBtn icon="Copy"     label="Duplicate page"     onClick={onDuplicate} />
-            <MenuBtn icon="Bookmark" label="Save as template…"  onClick={onSaveAsTemplate} />
+            <MenuBtn icon="Pencil"   label={t('cms_site.site.pagelist.rename_page', 'Rename page')} onClick={onRename} />
+            <MenuBtn icon="Link"     label={t('cms_site.site.pagelist.edit_slug', 'Edit slug')} onClick={onEditSlug} />
+            <MenuBtn icon="Copy"     label={t('cms_site.site.pagelist.duplicate_page', 'Duplicate page')} onClick={onDuplicate} />
+            <MenuBtn icon="Bookmark" label={t('cms_site.site.pagelist.save_as_template_menu', 'Save as template…')} onClick={onSaveAsTemplate} />
             {onExport ? (
-                <MenuBtn icon="Download" label="Export page" onClick={onExport} />
+                <MenuBtn icon="Download" label={t('cms_site.site.pagelist.export_page', 'Export page')} onClick={onExport} />
             ) : null}
             {onImport ? (
-                <MenuBtn icon="Upload"   label="Import page…" onClick={onImport} />
+                <MenuBtn icon="Upload"   label={t('cms_site.site.pagelist.import_page', 'Import page…')} onClick={onImport} />
             ) : null}
             <div className="my-1 border-t border-[var(--border-subtle)]" />
-            <MenuBtn icon="Trash2"   label="Delete page" onClick={onDelete} danger />
+            <MenuBtn icon="Trash2"   label={t('cms_site.site.pagelist.delete_page', 'Delete page')} onClick={onDelete} danger />
         </div>,
         document.body,
     );
@@ -345,6 +349,7 @@ function MenuBtn({ icon, label, onClick, danger }) {
 // deep copy of the template's blocks (fresh ids generated server-side).
 
 function AddPageDialog({ onConfirm, onCancel, templates = [], existingSlugs = [] }) {
+    const { t } = useTranslation();
     const [title, setTitle]            = useState('');
     const [slug, setSlug]              = useState('');
     const [templateId, setTemplateId]  = useState('');   // '' = blank
@@ -365,18 +370,18 @@ function AddPageDialog({ onConfirm, onCancel, templates = [], existingSlugs = []
     return (
         <ModalShell onClose={onCancel} labelledBy="add-page-title">
             <div className="p-5">
-            <p id="add-page-title" className="text-sm font-semibold text-[var(--text-primary)] mb-3">New page</p>
+            <p id="add-page-title" className="text-sm font-semibold text-[var(--text-primary)] mb-3">{t('cms_site.site.pagelist.new_page', 'New page')}</p>
             <input
                 autoFocus
                 type="text"
-                placeholder="Page title"
+                placeholder={t('cms_site.site.pagelist.page_title_placeholder', 'Page title')}
                 value={title}
                 onChange={e => handleTitleChange(e.target.value)}
                 className="w-full px-3 py-2 mb-2 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
             />
             <input
                 type="text"
-                placeholder="slug (auto)"
+                placeholder={t('cms_site.site.pagelist.slug_auto_placeholder', 'slug (auto)')}
                 value={slug}
                 onChange={e => handleSlugChange(e.target.value)}
                 className="w-full px-3 py-2 mb-1 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] font-mono"
@@ -395,25 +400,25 @@ function AddPageDialog({ onConfirm, onCancel, templates = [], existingSlugs = []
             {templates.length > 0 ? (
                 <>
                     <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mb-2">
-                        Start from
+                        {t('cms_site.site.pagelist.start_from', 'Start from')}
                     </p>
                     <div className="flex flex-col gap-1.5 mb-3">
                         <TemplateCard
                             selected={templateId === ''}
                             onClick={() => setTemplateId('')}
-                            title="Blank page"
-                            subtitle="No blocks — start from scratch"
+                            title={t('cms_site.site.pagelist.blank_page', 'Blank page')}
+                            subtitle={t('cms_site.site.pagelist.blank_page_sub', 'No blocks — start from scratch')}
                         />
-                        {templates.map(t => (
+                        {templates.map(tpl => (
                             <TemplateCard
-                                key={t.id}
-                                selected={templateId === t.id}
-                                onClick={() => setTemplateId(t.id)}
-                                title={t.name}
+                                key={tpl.id}
+                                selected={templateId === tpl.id}
+                                onClick={() => setTemplateId(tpl.id)}
+                                title={tpl.name}
                                 subtitle={
-                                    t.description
-                                        ? `${t.description} · ${t.blockCount} block${t.blockCount === 1 ? '' : 's'}`
-                                        : `${t.blockCount} block${t.blockCount === 1 ? '' : 's'}`
+                                    tpl.description
+                                        ? `${tpl.description} · ${tpl.blockCount === 1 ? t('cms_site.site.pagelist.block_count_one', '{n} block', { n: tpl.blockCount }) : t('cms_site.site.pagelist.block_count_other', '{n} blocks', { n: tpl.blockCount })}`
+                                        : (tpl.blockCount === 1 ? t('cms_site.site.pagelist.block_count_one', '{n} block', { n: tpl.blockCount }) : t('cms_site.site.pagelist.block_count_other', '{n} blocks', { n: tpl.blockCount }))
                                 }
                             />
                         ))}
@@ -428,14 +433,14 @@ function AddPageDialog({ onConfirm, onCancel, templates = [], existingSlugs = []
                     disabled={!title.trim() || !!slugIssues(slug, { existingSlugs })?.blocking}
                     className="flex-1 px-3 py-1.5 text-sm rounded-md bg-[var(--accent-primary)] text-white disabled:opacity-40"
                 >
-                    Add page
+                    {t('cms_site.site.pagelist.add_page', 'Add page')}
                 </button>
                 <button
                     type="button"
                     onClick={onCancel}
                     className="px-3 py-1.5 text-sm rounded-md border border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
-                    Cancel
+                    {t('cms_site.site.pagelist.cancel', 'Cancel')}
                 </button>
             </div>
             </div>
@@ -481,6 +486,7 @@ function TemplateCard({ selected, onClick, title, subtitle }) {
 // ── Save-as-template dialog ──────────────────────────────────────────
 
 export function SaveTemplateDialog({ page, onConfirm, onCancel }) {
+    const { t } = useTranslation();
     const [name, setName]               = useState(page?.title || '');
     const [description, setDescription] = useState('');
     const [saving, setSaving]           = useState(false);
@@ -489,30 +495,30 @@ export function SaveTemplateDialog({ page, onConfirm, onCancel }) {
         <ModalShell onClose={onCancel} labelledBy="save-tpl-title">
             <div className="p-5">
                 <h3 id="save-tpl-title" className="text-sm font-semibold text-[var(--text-primary)] mb-1">
-                    Save as template
+                    {t('cms_site.site.pagelist.save_as_template', 'Save as template')}
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mb-4">
-                    Save this page's blocks as a reusable template. You can apply it from the New page dialog.
+                    {t('cms_site.site.pagelist.save_as_template_help', "Save this page's blocks as a reusable template. You can apply it from the New page dialog.")}
                 </p>
                 <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-                    Template name
+                    {t('cms_site.site.pagelist.template_name', 'Template name')}
                 </label>
                 <input
                     autoFocus
                     type="text"
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    placeholder="Solution page"
+                    placeholder={t('cms_site.site.pagelist.template_name_placeholder', 'Solution page')}
                     className="w-full mt-1 mb-3 px-3 py-2 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
                 />
                 <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-                    Description (optional)
+                    {t('cms_site.site.pagelist.description_optional', 'Description (optional)')}
                 </label>
                 <input
                     type="text"
                     value={description}
                     onChange={e => setDescription(e.target.value)}
-                    placeholder="Short one-liner shown when picking a template"
+                    placeholder={t('cms_site.site.pagelist.description_placeholder', 'Short one-liner shown when picking a template')}
                     className="w-full mt-1 mb-4 px-3 py-2 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
                 />
                 <div className="flex gap-2 justify-end">
@@ -522,7 +528,7 @@ export function SaveTemplateDialog({ page, onConfirm, onCancel }) {
                         disabled={saving}
                         className="px-3 py-1.5 text-sm rounded-md border border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
-                        Cancel
+                        {t('cms_site.site.pagelist.cancel', 'Cancel')}
                     </button>
                     <button
                         type="button"
@@ -545,6 +551,7 @@ export function SaveTemplateDialog({ page, onConfirm, onCancel }) {
 // ── Templates manager dialog ─────────────────────────────────────────
 
 export function TemplatesManagerDialog({ templates, onDelete, onClose }) {
+    const { t } = useTranslation();
     // Inline confirm — clicking Delete reveals an inline "Confirm?" so
     // there's no second modal stacked on top of this one.
     const [confirmId, setConfirmId] = useState(null);
@@ -553,62 +560,62 @@ export function TemplatesManagerDialog({ templates, onDelete, onClose }) {
             <div className="p-5">
                 <div className="flex items-center justify-between mb-1">
                     <h3 id="tpl-mgr-title" className="text-sm font-semibold text-[var(--text-primary)]">
-                        Templates
+                        {t('cms_site.site.pagelist.templates', 'Templates')}
                     </h3>
                     <button
                         type="button"
                         onClick={onClose}
                         className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded"
-                        aria-label="Close"
+                        aria-label={t('cms_site.site.pagelist.close', 'Close')}
                     >
                         <AppIcon name="X" className="w-4 h-4" />
                     </button>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] mb-4">
-                    Saved page templates. Apply one when creating a new page.
+                    {t('cms_site.site.pagelist.templates_help', 'Saved page templates. Apply one when creating a new page.')}
                 </p>
                 {templates.length === 0 ? (
                     <p className="text-sm text-[var(--text-muted)] text-center py-6">
-                        No templates saved yet. Use a page's menu → "Save as template…" to create one.
+                        {t('cms_site.site.pagelist.templates_empty', 'No templates saved yet. Use a page\'s menu → "Save as template…" to create one.')}
                     </p>
                 ) : (
                     <ul className="flex flex-col divide-y divide-[var(--border-subtle)]">
-                        {templates.map(t => (
-                            <li key={t.id} className="py-2.5 flex items-start gap-3">
+                        {templates.map(tpl => (
+                            <li key={tpl.id} className="py-2.5 flex items-start gap-3">
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm text-[var(--text-primary)] font-medium truncate">{t.name}</div>
-                                    {t.description ? (
-                                        <div className="text-[11px] text-[var(--text-muted)] truncate">{t.description}</div>
+                                    <div className="text-sm text-[var(--text-primary)] font-medium truncate">{tpl.name}</div>
+                                    {tpl.description ? (
+                                        <div className="text-[11px] text-[var(--text-muted)] truncate">{tpl.description}</div>
                                     ) : null}
                                     <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                                        {t.blockCount} block{t.blockCount === 1 ? '' : 's'}
-                                        {t.createdAt ? ` · ${formatTemplateDate(t.createdAt)}` : ''}
+                                        {tpl.blockCount === 1 ? t('cms_site.site.pagelist.block_count_one', '{n} block', { n: tpl.blockCount }) : t('cms_site.site.pagelist.block_count_other', '{n} blocks', { n: tpl.blockCount })}
+                                        {tpl.createdAt ? ` · ${formatTemplateDate(tpl.createdAt)}` : ''}
                                     </div>
                                 </div>
-                                {confirmId === t.id ? (
+                                {confirmId === tpl.id ? (
                                     <div className="flex items-center gap-1 shrink-0">
                                         <button
                                             type="button"
-                                            onClick={async () => { await onDelete(t.id); setConfirmId(null); }}
+                                            onClick={async () => { await onDelete(tpl.id); setConfirmId(null); }}
                                             className="px-2 py-1 text-[11px] rounded bg-red-500/90 text-white"
                                         >
-                                            Delete
+                                            {t('cms_site.site.pagelist.delete', 'Delete')}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setConfirmId(null)}
                                             className="px-2 py-1 text-[11px] rounded border border-[var(--border-default)] text-[var(--text-secondary)]"
                                         >
-                                            Cancel
+                                            {t('cms_site.site.pagelist.cancel', 'Cancel')}
                                         </button>
                                     </div>
                                 ) : (
                                     <button
                                         type="button"
-                                        onClick={() => setConfirmId(t.id)}
+                                        onClick={() => setConfirmId(tpl.id)}
                                         className="shrink-0 text-[var(--text-muted)] hover:text-red-400 p-1.5 rounded hover:bg-[var(--bg-tertiary)]"
-                                        title="Delete template"
-                                        aria-label={`Delete template "${t.name}"`}
+                                        title={t('cms_site.site.pagelist.delete_template', 'Delete template')}
+                                        aria-label={t('cms_site.site.pagelist.delete_template_named', 'Delete template "{name}"', { name: tpl.name })}
                                     >
                                         <AppIcon name="Trash2" className="w-4 h-4" />
                                     </button>
@@ -655,6 +662,7 @@ export default function PageList({
     onExportPage,
     onImportPage,
 }) {
+    const { t } = useTranslation();
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
     const [adding, setAdding]             = useState(false);
     const [managerOpen, setManagerOpen]   = useState(false);
@@ -673,7 +681,7 @@ export default function PageList({
         <div className="flex flex-col h-full">
             <div className="px-4 py-2 flex items-center justify-between border-b border-[var(--border-subtle)] shrink-0">
                 <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-                    Pages
+                    {t('cms_site.site.pagelist.pages', 'Pages')}
                 </span>
                 <div className="flex items-center gap-1">
                     {/* Templates manager — opens a modal listing every saved
@@ -683,9 +691,9 @@ export default function PageList({
                         type="button"
                         onClick={() => setManagerOpen(true)}
                         className="text-[10px] uppercase tracking-wider px-1.5 py-1 rounded text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] font-semibold"
-                        title="Manage templates"
+                        title={t('cms_site.site.pagelist.manage_templates', 'Manage templates')}
                     >
-                        Templates{templates.length > 0 ? ` (${templates.length})` : ''}
+                        {t('cms_site.site.pagelist.templates', 'Templates')}{templates.length > 0 ? ` (${templates.length})` : ''}
                     </button>
                     {onImportPage ? (
                         <>
@@ -693,7 +701,7 @@ export default function PageList({
                                 type="button"
                                 onClick={() => importInputRef.current?.click()}
                                 className="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                                title="Import page from JSON file"
+                                title={t('cms_site.site.pagelist.import_title', 'Import page from JSON file')}
                             >
                                 <AppIcon name="Upload" className="w-4 h-4" />
                             </button>
@@ -713,7 +721,7 @@ export default function PageList({
                                     exportPage({ title: 'Example page', slug: 'example', blocks: [mk('hero'), mk('features')] });
                                 }}
                                 className="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                                title="Download an example page JSON (import template)"
+                                title={t('cms_site.site.pagelist.example_title', 'Download an example page JSON (import template)')}
                             >
                                 <AppIcon name="FileDown" className="w-4 h-4" />
                             </button>
@@ -723,7 +731,7 @@ export default function PageList({
                         type="button"
                         onClick={() => setAdding(v => !v)}
                         className="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                        title="Add page"
+                        title={t('cms_site.site.pagelist.add_page', 'Add page')}
                     >
                         <AppIcon name="Plus" className="w-4 h-4" />
                     </button>
@@ -790,7 +798,7 @@ export default function PageList({
                 </DndContext>
                 {pages.length === 0 && (
                     <p className="text-xs text-[var(--text-muted)] text-center py-6">
-                        No pages yet. Add one above.
+                        {t('cms_site.site.pagelist.empty', 'No pages yet. Add one above.')}
                     </p>
                 )}
             </div>
