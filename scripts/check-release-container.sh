@@ -22,6 +22,22 @@ if [[ "$service" == server ]]; then
         npm --version
         docker buildx version
     '
+elif [[ "$service" == classify || "$service" == guard ]]; then
+    # The Python services share the server's Debian base advisories, so they
+    # carry the same hardening (see their Dockerfiles), checked the same way.
+    [[ "$(docker image inspect --format '{{.Config.User}}' "$image")" == app ]]
+    docker run --rm --network none --read-only --tmpfs /tmp -e SERVICE="$service" --entrypoint /bin/sh "$image" -ec '
+        test "$(id -u)" = 1000
+        for binary in mount umount nsenter infocmp getfacl setfacl systemd-homed gcc cc; do
+            if command -v "$binary" >/dev/null 2>&1; then echo "Unexpected advisory entry point: $binary" >&2; exit 1; fi
+        done
+        test -z "$(find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -print)"
+        test -z "$(find /usr -type f -path "*/Archive/Tar*" -print)"
+        test ! -e /usr/lib/systemd/systemd-homed
+        # The libraries the service cannot start without, so a runtime
+        # library lost to a purge fails here and not at a customer.
+        if [ "$SERVICE" = guard ]; then python -c "import torch, onnxruntime, gliner"; else python -c "import torch, sklearn, gliclass"; fi
+    '
 elif [[ "$service" == connector ]]; then
     docker run --rm --network none --read-only --entrypoint /bin/sh "$image" -ec '
         test -z "$(command -v npm || true)"
