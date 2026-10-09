@@ -3,7 +3,7 @@
 # e2e/ci/resolve-images.sh — mixed-tag image resolution for the smoke stack
 # ══════════════════════════════════════════════════════════════════
 #
-# For every image the CI stack (profiles core+search) needs, pull either:
+# For every image the CI stack (profile core) needs, pull either:
 #   • $IMAGE_PREFIX/<img>:sha-$SHA      when this run built that service
 #     ($SHA set AND the workflow key appears in $BUILT), or
 #   • $IMAGE_PREFIX/<img>:$FALLBACK_TAG otherwise (default: prod)
@@ -22,8 +22,9 @@
 #
 # NOTE: the workflow-key → image-name mapping below MUST stay in sync with
 # the build jobs / promote wiring in .github/workflows/build-push-ghcr.yml
-# (changes outputs: server, agent-hub, search, pwt-runner → images server,
-# agent-hub, search-api, pwt-runner; the `browser` service runs pwt-runner).
+# (changes outputs: server, agent-hub, pwt-runner → images server,
+# agent-hub, pwt-runner; the `browser` service runs pwt-runner).
+# search-api is not in the stack: the product no longer uses it.
 # ══════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -37,7 +38,6 @@ CANDIDATE_DIGESTS="${CANDIDATE_DIGESTS:-}"
 MAPPING=(
   "server:server"
   "agent-hub:agent-hub"
-  "search:search-api"
   "pwt-runner:pwt-runner"
 )
 
@@ -64,7 +64,6 @@ for pair in "${MAPPING[@]}"; do
   img="${pair#*:}"
   if [[ -n "$CANDIDATE_DIGESTS" ]] && built_this_run "$key"; then
     job="$key"
-    [[ "$key" == search ]] && job=search-api
     digest="$(jq -er --arg job "$job" '.[$job].outputs.digest // empty' <<< "$CANDIDATE_DIGESTS")"
     [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::Invalid candidate digest for $key"; exit 1; }
     src="$IMAGE_PREFIX/$img@$digest"
@@ -81,11 +80,11 @@ for pair in "${MAPPING[@]}"; do
 done
 
 # Coverage gap: services built this run that the smoke stack does NOT exercise
-# (only server/agent-hub/search/pwt-runner run in profiles core+search). They will still be
+# (only server/agent-hub/pwt-runner run in profile core). They will still be
 # promoted to :latest/:prod, but the smoke suite never touched them — surface
 # that loudly so a backend-only release isn't mistaken for "smoke-verified".
 if [[ -n "$BUILT" ]]; then
-  covered=" server agent-hub search pwt-runner "
+  covered=" server agent-hub pwt-runner "
   uncovered=""
   IFS=',' read -ra keys <<< "$BUILT"
   for k in "${keys[@]}"; do
@@ -96,7 +95,7 @@ if [[ -n "$BUILT" ]]; then
     echo "::warning::Built this run but NOT exercised by the smoke suite (promoted unverified): $uncovered"
     {
       echo ""
-      echo "> ⚠️ **Promoted without smoke coverage:** $uncovered — the smoke stack only runs server/agent-hub/search/pwt-runner. Verify these separately."
+      echo "> ⚠️ **Promoted without smoke coverage:** $uncovered — the smoke stack only runs server/agent-hub/pwt-runner. Verify these separately."
     } >> "$SUMMARY_FILE"
   fi
 fi

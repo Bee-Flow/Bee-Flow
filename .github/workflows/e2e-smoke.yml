@@ -90,7 +90,7 @@ jobs:
           docker compose
           -f docker-compose.from-registry.yml
           -f e2e/ci/docker-compose.ci.yml
-          --profile core --profile search
+          --profile core
           up -d
 
       # ADMIN_PASSWORD is already in the step environment via GITHUB_ENV.
@@ -121,7 +121,7 @@ jobs:
           ADMIN_USER: admin
           ADMIN_PASSWORD: ${{ env.ADMIN_PASSWORD }}
           ANTHROPIC_API_KEY: ${{ secrets.E2E_ANTHROPIC_API_KEY }}
-          E2E_CAPABILITIES: llm,search
+          E2E_CAPABILITIES: llm
         run: npm run smoke
 
       - name: Collect stack logs
@@ -157,5 +157,5 @@ jobs:
           docker compose
           -f docker-compose.from-registry.yml
           -f e2e/ci/docker-compose.ci.yml
-          --profile core --profile search
+          --profile core
           down -v --remove-orphans

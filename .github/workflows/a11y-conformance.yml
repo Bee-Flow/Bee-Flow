@@ -19,8 +19,8 @@
 # DONE file), else from the dispatch inputs; the DSR form needs none.
 #
 # Stack bootstrap reuses the e2e smoke helpers (e2e/ci/*) so this job and
-# the smoke gate cannot drift on how a throwaway stack is started (core +
-# search profiles, because wait-for-stack.sh gates on search-api too).
+# the smoke gate cannot drift on how a throwaway stack is started (the core
+# profile only: search-api is no longer part of the product).
 #
 # Trigger modes — never on push; nothing here deploys anything:
 #   • workflow_call     from build-push-ghcr.yml on a prod release, after the
@@ -116,7 +116,7 @@ jobs:
           docker compose
           -f docker-compose.from-registry.yml
           -f e2e/ci/docker-compose.ci.yml
-          --profile core --profile search
+          --profile core
           up -d
 
       - name: Wait for stack (strict gate)
@@ -344,5 +344,5 @@ jobs:
           docker compose
           -f docker-compose.from-registry.yml
           -f e2e/ci/docker-compose.ci.yml
-          --profile core --profile search
+          --profile core
           down -v --remove-orphans

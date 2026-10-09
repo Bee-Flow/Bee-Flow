@@ -62,7 +62,7 @@ INIT_ADMIN_PASSWORD=$ADMIN_PASSWORD
 INIT_AI_PROVIDER=claude
 INIT_GENERIC_API_KEY=${E2E_ANTHROPIC_API_KEY:-}
 INIT_CHAT_MODEL_TIERS={"fast":{"modelId":"claude-haiku-4-5-20251001"},"standard":{"modelId":"claude-haiku-4-5-20251001"}}
-# Not required by the core+search profiles — set empty to silence docker
+# Not required by the core profile — set empty to silence docker
 # compose "variable is not set" interpolation warnings.
 OPAQUE_SERVER_SETUP=
 HF_TOKEN=
