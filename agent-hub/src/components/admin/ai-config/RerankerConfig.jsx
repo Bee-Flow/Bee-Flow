@@ -136,6 +136,7 @@ const RerankerConfig = ({ onMessage }) => {
                         <DeleteConfirmButtons onConfirm={handleDeleteEndpoint} label={t('admin_ai_config.delete_endpoint', '🗑️ Endpoint')} title={t('admin_ai_config.remove_endpoint', 'Remove endpoint')} size="xs" />
                     )}
                     {hasKey && (
+                        /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                         <DeleteConfirmButtons onConfirm={handleDeleteKey} label={t('admin_ai_config.delete_key', '🗑️ Key')} title={t('admin_ai_config.remove_api_key', 'Remove API key')} size="xs" />
                     )}
                     {isConfigured && (

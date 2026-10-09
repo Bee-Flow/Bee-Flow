@@ -51,8 +51,10 @@ const StepAzureSetup = ({
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */}
                 <Label>{t('init_setup.step_azure_setup_client_secret', 'Client Secret')}</Label>
                 <input type="password" value={msClientSecret} onChange={e => setMsClientSecret(e.target.value)}
+                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
                     placeholder={t('init_setup.step_azure_setup_client_secret_value', 'Client secret value')}
                     className={inputClass} style={inputStyle} />
             </div>
@@ -81,8 +83,10 @@ const StepAzureSetup = ({
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 <Label>{t('init_setup.step_azure_setup_api_key', 'API Key')}</Label>
                 <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
+                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                     placeholder={t('init_setup.step_azure_setup_your_azure_api_key', 'Your Azure API key')}
                     className={inputClass} style={inputStyle} />
             </div>
@@ -100,6 +104,7 @@ const StepAzureSetup = ({
             <div>
                 <Label>{t('init_setup.step_azure_setup_bing_api_subscription_key', 'Bing API Subscription Key')}</Label>
                 <input type="password" value={bingKey} onChange={e => setBingKey(e.target.value)}
+                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                     placeholder={t('init_setup.step_azure_setup_your_bing_search_api_key', 'Your Bing Search API key')}
                     className={inputClass} style={inputStyle} />
             </div>

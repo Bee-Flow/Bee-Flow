@@ -784,6 +784,7 @@ process.stdin.on('end', async () => {
                                                                             <option value="any">any</option>
                                                                         </select>
                                                                         {inp.secure && (
+                                                                            /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
                                                                             <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#f87171' }}>{t('component_studio.builder.secret', 'secret')}</span>
                                                                         )}
                                                                         <div className="ml-auto flex items-center gap-1">
@@ -794,6 +795,7 @@ process.stdin.on('end', async () => {
                                                                                     background: inp.secure ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
                                                                                     color: inp.secure ? '#ef4444' : 'var(--text-muted)',
                                                                                 }}
+                                                                                /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
                                                                                 title={inp.secure ? t('component_studio.builder.secret_marked', 'Marked as secret — click to toggle') : t('component_studio.builder.secret_mark', 'Click to mark as secret')}
                                                                             >
                                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

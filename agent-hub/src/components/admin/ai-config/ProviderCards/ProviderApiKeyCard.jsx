@@ -24,6 +24,7 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
         if (!apiKey.trim()) return;
         const ok = await save({ [bodyField]: apiKey }, {
             success: t('admin_ai_config.apikey_saved', '{name} API key saved!', { name }),
+            // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential
             error: t('admin_ai_config.apikey_save_failed', 'Failed to save API key')
         });
         if (ok) {
@@ -36,6 +37,7 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
     const handleDelete = async () => {
         const ok = await deleteKey(deleteSlug, {
             success: t('admin_ai_config.apikey_removed', '{name} API key removed', { name }),
+            // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential
             error: t('admin_ai_config.apikey_delete_failed', 'Failed to delete API key')
         });
         if (ok) {
@@ -53,6 +55,7 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
                 <div className="flex-1">
                     <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.apikey_title', '{name} API Key', { name })}</h4>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                         {hasKey ? t('admin_ai_config.apikey_configured', '✅ API key configured') : description}
                     </p>
                 </div>
@@ -77,9 +80,11 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
                 >
                     {saving ? '...' : t('admin_ai_config.save', 'Save')}
                 </button>
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 {hasKey && <DeleteConfirmButtons onConfirm={handleDelete} title={t('admin_ai_config.apikey_delete_title', 'Delete API key')} />}
             </div>
             <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 {t('admin_ai_config.apikey_get_from', 'Get your API key from')} <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">{docsLabel}</a>
             </p>
             {children}

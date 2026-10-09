@@ -119,8 +119,10 @@ export function StripeView() {
                 />
                 <div className="flex flex-col gap-1.5 text-[12.5px]">
                     {[
+                        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential
                         { ok: config.hasStripeSecretKey,    label: t('admin_subscriptions.stripe_secret_key', 'Secret key') },
                         { ok: !!config.stripePublishableKey, label: t('admin_subscriptions.stripe_publishable_key', 'Publishable key') },
+                        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential
                         { ok: config.hasStripeWebhookSecret, label: t('admin_subscriptions.stripe_webhook_secret', 'Webhook secret') },
                     ].map(row => (
                         <div key={row.label} className="flex items-center gap-2">
@@ -139,6 +141,7 @@ export function StripeView() {
                 <CardHeader
                     icon={Shield}
                     iconClass="text-blue-400"
+                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                     title={t('admin_subscriptions.stripe_api_keys', 'API keys')}
                     subtitle={
                         <>{t('admin_subscriptions.stripe_get_keys', 'Get your keys from the')}{' '}
@@ -149,10 +152,12 @@ export function StripeView() {
                     }
                 />
                 <StripeKeyField
+                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
                     label={t('admin_subscriptions.stripe_secret_key', 'Secret key')}
                     type="password"
                     configured={config.hasStripeSecretKey}
                     placeholderConfigured="••••••••••••••••••"
+                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
                     placeholderEmpty={t('admin_subscriptions.stripe_secret_ph', 'sk_live_… or sk_test_…')}
                     value={secretKey}
                     onChange={setSecretKey}

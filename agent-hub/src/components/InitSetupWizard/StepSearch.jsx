@@ -60,8 +60,10 @@ const StepSearch = ({
         {searchProvider === 'agent-search' && (
             <div className="space-y-3 pt-2">
                 <div>
+                    {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                     <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_search_serper_api_key', 'Serper API Key')}</label>
                     <input type="password" value={serperKey} onChange={e => setSerperKey(e.target.value)}
+                        /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                         placeholder={t('init_setup.step_search_serper_dev_api_key', 'Serper.dev API Key')}
                         className={inputClass} style={inputStyle} />
                 </div>

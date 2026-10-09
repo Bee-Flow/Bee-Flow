@@ -620,14 +620,17 @@ function ConnectionTab({
                 </p>
             </div>
             <div>
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.api_key', 'API Key')}</label>
                 <input
                     type="password" value={apiKey} onChange={e => setApiKey(e.target.value)}
+                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                     placeholder={hasApiKey ? '••••••••••••••••' : t('settings.n8n.api_key_placeholder', 'Enter your n8n API key')}
                     className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                     {t('settings.n8n.api_key_hint', 'Generate at n8n → Settings → API → Create API Key. Stored encrypted.')}
                 </p>
             </div>

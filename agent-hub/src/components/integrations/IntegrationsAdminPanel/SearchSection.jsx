@@ -75,6 +75,7 @@ export default function SearchSection({
                             <>
                                 <div className="pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                                     <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
+                                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                                         {t('integ.search_bing_search_api_key', 'Bing Search API Key')}
                                         {hasBingSearchKey && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.search_configured', 'Configured')}</span>}
                                     </label>
@@ -168,6 +169,7 @@ export default function SearchSection({
                             <div className="space-y-4">
                                 <div className="pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                                     <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
+                                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                                         {t('integ.search_serper_dev_api_key', 'Serper.dev API Key')}
                                         {hasSerperKey && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.search_configured', 'Configured')}</span>}
                                     </label>
@@ -209,6 +211,7 @@ export default function SearchSection({
                                         </button>
                                     </div>
                                     <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                                         {t('integ.search_get_your_api_key_from', 'Get your API key from')} <a href="https://serper.dev" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>serper.dev</a>{t('integ.search_used_by_the_search_service_for_google', '. Used by the search service for Google web search results.')}
                                     </p>
                                 </div>

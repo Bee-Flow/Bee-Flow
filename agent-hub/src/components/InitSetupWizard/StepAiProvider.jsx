@@ -52,8 +52,10 @@ const StepAiProvider = ({
                         className={inputClass} style={inputStyle} />
                 </div>
                 <div>
+                    {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                     <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_ai_provider_api_key', 'API Key')}</label>
                     <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
+                        /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                         placeholder={t('init_setup.step_ai_provider_azure_api_key', 'Azure API Key')}
                         className={inputClass} style={inputStyle} />
                 </div>
@@ -71,6 +73,7 @@ const StepAiProvider = ({
 
         {aiProvider && aiProvider !== 'azure' && (
             <div className="pt-2">
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_ai_provider_api_key', 'API Key')}</label>
                 <input type="password" value={genericKey} onChange={e => setGenericKey(e.target.value)}
                     placeholder={`${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key`}

@@ -174,9 +174,11 @@ export default function TranscriptionSection({
                     </div>
                     <div className="p-6 space-y-3">
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                            {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                             <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_mistral_api_key', 'Mistral API Key')}</p>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                 {t('integ.transcription_voxtral_uses_your_existing_mistral_api', 'Voxtral uses your existing Mistral API key configured in')}{' '}
+                                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                                 <strong>{t('integ.transcription_admin_ai_config_api_keys_mistral', 'Admin → AI Config → API Keys → Mistral')}</strong>{t('integ.transcription_no_additional_setup_needed_here', '. No additional setup needed here.')}
                             </p>
                         </div>
@@ -229,6 +231,7 @@ export default function TranscriptionSection({
                                     />
                                 </div>
                                 <div className="flex-1">
+                                    {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                                     <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_api_key_key_1', 'API Key (Key 1)')}</p>
                                     <input
                                         type="password"
@@ -417,7 +420,9 @@ export default function TranscriptionSection({
                     </div>
                     <div className="p-6 space-y-4">
                         <div>
+                            {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                             <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_scaleway_api_key', 'Scaleway API Key')}</label>
+                            {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */}
                             <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_secret_key_from_the_scaleway_console', 'Secret key from the Scaleway console → Generative APIs → Generate API key')}</p>
                             <input
                                 type="password"
@@ -457,6 +462,7 @@ export default function TranscriptionSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {savingScaleway ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                                 {t('integ.transcription_save_api_key', 'Save API key')}
                             </button>
                         </div>
@@ -492,6 +498,7 @@ export default function TranscriptionSection({
                     </div>
                     <div className="p-6 space-y-4">
                         <div>
+                            {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                             <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_pyannoteai_api_key', 'pyannoteAI API Key')}</label>
                             <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_create_a_key_at_dashboard_pyannote_ai', 'Create a key at dashboard.pyannote.ai → API keys')}</p>
                             <input
@@ -532,6 +539,7 @@ export default function TranscriptionSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {savingPyannote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                                 {t('integ.transcription_save_api_key', 'Save API key')}
                             </button>
                         </div>

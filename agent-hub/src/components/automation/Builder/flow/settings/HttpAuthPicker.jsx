@@ -70,6 +70,7 @@ export default function HttpAuthPicker({ value, onChange }) {
                 ))}
             </select>
             <div className="text-xs text-[var(--text-tertiary)]">
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */}
                 {t('automations.http_auth_picker.the_secret_is_stored_encrypted_in', 'The secret is stored encrypted in your organization\'s vault and injected at run time. It is never shown here and never stored in the flow.')}
             </div>
             {adding ? (

@@ -30,8 +30,10 @@ const StepSso = ({ isAzure, msClientId, setMsClientId, msClientSecret, setMsClie
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */}
                 <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_sso_client_secret', 'Client Secret')}</label>
                 <input type="password" value={msClientSecret} onChange={e => setMsClientSecret(e.target.value)}
+                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
                     placeholder={t('init_setup.step_sso_client_secret_value', 'Client secret value')}
                     className={inputClass} style={inputStyle} />
             </div>
