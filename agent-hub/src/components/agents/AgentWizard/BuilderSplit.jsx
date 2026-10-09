@@ -1117,7 +1117,7 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
                                 {t('agent_wizard.view_plans', 'View plans & upgrade')}
                             </a>
                         </div>
-                        <button onClick={() => setLimitWarning(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0" aria-label="Dismiss">
+                        <button onClick={() => setLimitWarning(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0" aria-label={t('agent_wizard.builder_split_dismiss', 'Dismiss')}>
                             <X size={16} />
                         </button>
                     </div>

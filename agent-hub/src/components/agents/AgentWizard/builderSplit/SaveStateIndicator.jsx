@@ -13,7 +13,7 @@ export default function SaveStateIndicator({ t, state, savedAt, errorMsg, onRetr
         return (
             <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                 <span className="w-3 h-3 inline-block rounded-full border border-[var(--text-tertiary)] border-t-transparent animate-spin" />
-                Saving…
+                {t('agent_wizard.save_state_indicator_saving', 'Saving…')}
             </span>
         );
     }
@@ -33,7 +33,7 @@ export default function SaveStateIndicator({ t, state, savedAt, errorMsg, onRetr
         return (
             <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                 <Check size={12} className="text-emerald-500" />
-                Saved{timeStr ? ` · ${timeStr}` : ''}
+                {t('agent_wizard.save_state_indicator_saved', 'Saved')}{timeStr ? ` · ${timeStr}` : ''}
             </span>
         );
     }

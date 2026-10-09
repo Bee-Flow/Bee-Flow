@@ -1,5 +1,6 @@
 import React from 'react';
 import { AzureOpenAILogo, OpenAILogo, GoogleAILogo, MistralLogo, ClaudeLogo } from './ProviderLogos';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const PROVIDERS = [
     { id: 'azure', label: 'Azure OpenAI', Logo: AzureOpenAILogo },
@@ -23,7 +24,9 @@ const StepAiProvider = ({
     azureModels, setAzureModels,
     genericKey, setGenericKey,
     clearMessages, inputClass, inputStyle,
-}) => (
+}) => {
+    const { t } = useTranslation();
+    return (
     <>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {PROVIDERS.map(p => (
@@ -43,24 +46,24 @@ const StepAiProvider = ({
         {aiProvider === 'azure' && (
             <div className="space-y-3 pt-2">
                 <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Azure Endpoint</label>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_ai_provider_azure_endpoint', 'Azure Endpoint')}</label>
                     <input type="text" value={azureEndpoint} onChange={e => setAzureEndpoint(e.target.value)}
                         placeholder="https://your-resource.openai.azure.com"
                         className={inputClass} style={inputStyle} />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>API Key</label>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_ai_provider_api_key', 'API Key')}</label>
                     <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
-                        placeholder="Azure API Key"
+                        placeholder={t('init_setup.step_ai_provider_azure_api_key', 'Azure API Key')}
                         className={inputClass} style={inputStyle} />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Deployment Names</label>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_ai_provider_deployment_names', 'Deployment Names')}</label>
                     <input type="text" value={azureModels} onChange={e => setAzureModels(e.target.value)}
-                        placeholder="gpt-5.6-terra, gpt-6-astra, gpt-4.1"
+                        placeholder={t('init_setup.step_ai_provider_gpt_5_6_terra_gpt_6_astra_gpt_4_1', 'gpt-5.6-terra, gpt-6-astra, gpt-4.1')}
                         className={inputClass} style={inputStyle} />
                     <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                        Comma-separated deployment names from your Azure portal. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra).
+                        {t('init_setup.step_ai_provider_comma_separated_deployment_names_from', 'Comma-separated deployment names from your Azure portal. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra).')}
                     </p>
                 </div>
             </div>
@@ -68,7 +71,7 @@ const StepAiProvider = ({
 
         {aiProvider && aiProvider !== 'azure' && (
             <div className="pt-2">
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>API Key</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_ai_provider_api_key', 'API Key')}</label>
                 <input type="password" value={genericKey} onChange={e => setGenericKey(e.target.value)}
                     placeholder={`${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key`}
                     className={inputClass} style={inputStyle} />
@@ -79,5 +82,6 @@ const StepAiProvider = ({
         )}
     </>
 );
+};
 
 export default StepAiProvider;

@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Send, ArrowLeft, Bot, User, AlertTriangle } from 'lucide-react';
 import { authFetch, API_BASE } from '../../utils/helpers';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export const STATUS_LABELS = {
     open: 'Open',
@@ -30,6 +31,7 @@ export function formatRelative(iso) {
 }
 
 export function NewThreadForm({ onCreated, onCancel }) {
+    const { t } = useTranslation();
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -66,7 +68,7 @@ export function NewThreadForm({ onCreated, onCancel }) {
             <input
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
-                placeholder="What's this about?"
+                placeholder={t('support.support_drawer_what_s_this_about', 'What\'s this about?')}
                 maxLength={200}
                 className="w-full px-3 py-2 rounded-md border text-sm"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -79,7 +81,7 @@ export function NewThreadForm({ onCreated, onCancel }) {
                 // fixed box, plus a visible counter — the box reads as "not
                 // resizable / limit unclear" otherwise (BFSF-198).
                 onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 360) + 'px'; }}
-                placeholder="Describe what you need help with. The Bee Flow AI assistant will reply first and hand off to a human if needed."
+                placeholder={t('support.support_drawer_describe_what_you_need_help_with_the', 'Describe what you need help with. The Bee Flow AI assistant will reply first and hand off to a human if needed.')}
                 maxLength={10000}
                 className="w-full px-3 py-2 rounded-md border text-sm resize-y"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', maxHeight: 360 }}
@@ -87,7 +89,7 @@ export function NewThreadForm({ onCreated, onCancel }) {
             <div className="text-[10px] text-right" style={{ color: 'var(--text-muted)' }}>{message.length} / 10000</div>
             {err && <div className="text-xs" style={{ color: '#dc2626' }}>{err}</div>}
             <div className="flex justify-end gap-2">
-                <button onClick={onCancel} className="px-3 py-1.5 rounded-md text-sm border" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>Cancel</button>
+                <button onClick={onCancel} className="px-3 py-1.5 rounded-md text-sm border" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('support.support_drawer_cancel', 'Cancel')}</button>
                 <button onClick={submit} disabled={submitting} className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50" style={{ background: 'var(--accent-primary)', color: 'white' }}>
                     <Send className="w-3.5 h-3.5" /> {submitting ? 'Sending…' : 'Send to Bee Flow'}
                 </button>
@@ -97,6 +99,7 @@ export function NewThreadForm({ onCreated, onCancel }) {
 }
 
 export function ThreadDetail({ threadId, onBack, onChanged }) {
+    const { t } = useTranslation();
     const [thread, setThread] = useState(null);
     const [messages, setMessages] = useState([]);
     const [reply, setReply] = useState('');
@@ -137,7 +140,7 @@ export function ThreadDetail({ threadId, onBack, onChanged }) {
         }
     };
 
-    if (!thread) return <div className="p-4 text-sm" style={{ color: 'var(--text-muted)' }}>Loading…</div>;
+    if (!thread) return <div className="p-4 text-sm" style={{ color: 'var(--text-muted)' }}>{t('support.support_drawer_loading', 'Loading…')}</div>;
 
     return (
         <div className="flex flex-col h-full">
@@ -178,7 +181,7 @@ export function ThreadDetail({ threadId, onBack, onChanged }) {
                         // Auto-grow + explicit cap so over-limit input is prevented
                         // client-side instead of silently failing the server cap (BFSF-198).
                         onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 240) + 'px'; }}
-                        placeholder="Reply…"
+                        placeholder={t('support.support_drawer_reply', 'Reply…')}
                         maxLength={10000}
                         className="w-full px-2 py-1.5 rounded-md border text-sm resize-y"
                         style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', maxHeight: 240 }}

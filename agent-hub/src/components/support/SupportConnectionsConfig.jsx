@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Link2, MessageSquare, Send, ShieldAlert } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { authFetch, API_BASE } from '../../utils/helpers';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Where support connects to the outside world: YouTrack, and the team chat
@@ -54,6 +55,7 @@ function Banner({ tone, children }) {
 }
 
 export default function SupportConnectionsConfig() {
+    const { t } = useTranslation();
     const [yt, setYt] = useState(null);
     const [ytUrl, setYtUrl] = useState('');
     const [ytToken, setYtToken] = useState('');
@@ -176,21 +178,20 @@ export default function SupportConnectionsConfig() {
             <section className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                     <Link2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>YouTrack</h3>
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('support.support_connections_config_youtrack', 'YouTrack')}</h3>
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    One connection the whole support team shares, so a linked issue shows its status to
-                    whoever opens the ticket next.
+                    {t('support.support_connections_config_one_connection_the_whole_support_team', 'One connection the whole support team shares, so a linked issue shows its status to whoever opens the ticket next.')}
                 </p>
 
                 {yt?.configured && yt?.ok && (
-                    <Banner tone="ok">Connected to {yt.host}. {yt.projects?.length || 0} projects visible.</Banner>
+                    <Banner tone="ok">{t('support.support_connections_config_connected_to_host', 'Connected to {host}. {count} projects visible.', { host: yt.host, count: yt.projects?.length || 0 })}</Banner>
                 )}
                 {yt?.configured && !yt?.ok && (
-                    <Banner tone="bad">Can&apos;t reach {yt.host}: {yt.error}</Banner>
+                    <Banner tone="bad">{t('support.support_connections_config_can_t_reach_host', 'Can\'t reach {host}:', { host: yt.host })} {yt.error}</Banner>
                 )}
                 {yt && !yt.configured && (
-                    <Banner tone="warn">Not connected yet. Agents can&apos;t link or create issues until this is set.</Banner>
+                    <Banner tone="warn">{t('support.support_connections_config_not_connected_yet_agents_can_t_link_or', 'Not connected yet. Agents can\'t link or create issues until this is set.')}</Banner>
                 )}
                 {ytError && <Banner tone="bad">{ytError}</Banner>}
 
@@ -225,7 +226,7 @@ export default function SupportConnectionsConfig() {
                         className="px-2 py-1.5 rounded border text-sm"
                         style={inputStyle}
                     >
-                        <option value="">Choose a project…</option>
+                        <option value="">{t('support.support_connections_config_choose_a_project', 'Choose a project…')}</option>
                         {(yt?.projects || []).map(p => (
                             <option key={p.id} value={p.shortName}>{p.name} ({p.shortName})</option>
                         ))}
@@ -248,13 +249,10 @@ export default function SupportConnectionsConfig() {
             <section className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                     <ShieldAlert className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>What leaves Bee Flow</h3>
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('support.support_connections_config_what_leaves_bee_flow', 'What leaves Bee Flow')}</h3>
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    YouTrack and chat receive a ticket reference and a link only staff can open. The
-                    customer&apos;s name, email address and organisation never leave, and an issue
-                    description that contains them is refused. Email is the exception — there the
-                    customer&apos;s address is how the reply reaches them.
+                    {t('support.support_connections_config_youtrack_and_chat_receive_a_ticket', 'YouTrack and chat receive a ticket reference and a link only staff can open. The customer\'s name, email address and organisation never leave, and an issue description that contains them is refused. Email is the exception — there the customer\'s address is how the reply reaches them.')}
                 </p>
                 <label className="flex items-start gap-2 text-xs cursor-pointer">
                     <input
@@ -264,9 +262,7 @@ export default function SupportConnectionsConfig() {
                         onChange={e => { setIncludeSubject(e.target.checked); saveYt({ subject: e.target.checked }); }}
                     />
                     <span style={{ color: 'var(--text-secondary)' }}>
-                        <strong>Also send the ticket subject.</strong> Off by default — a subject line
-                        often carries a name (&ldquo;Re: invoice for J. de Vries&rdquo;). When on, the
-                        subject is still checked for personal data before it is sent.
+                        <strong>{t('support.support_connections_config_also_send_the_ticket_subject', 'Also send the ticket subject.')}</strong> {t('support.support_connections_config_off_by_default_a_subject_line_often', 'Off by default — a subject line often carries a name (“Re: invoice for J. de Vries”). When on, the subject is still checked for personal data before it is sent.')}
                     </span>
                 </label>
             </section>
@@ -275,21 +271,19 @@ export default function SupportConnectionsConfig() {
             <section className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Tell the team in chat</h3>
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('support.support_connections_config_tell_the_team_in_chat', 'Tell the team in chat')}</h3>
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    A short card in your team space when something needs attention, with a link into
-                    this inbox. At most one message per ticket every ten minutes, so a long email
-                    thread doesn&apos;t flood the channel.
+                    {t('support.support_connections_config_a_short_card_in_your_team_space_when', 'A short card in your team space when something needs attention, with a link into this inbox. At most one message per ticket every ten minutes, so a long email thread doesn\'t flood the channel.')}
                 </p>
 
                 {chat?.configured && (
                     <Banner tone={chat.enabled ? 'ok' : 'warn'}>
-                        Webhook saved for {chat.host}. Notifications are {chat.enabled ? 'on' : 'off'}.
+                        {chat.enabled ? t('support.support_connections_config_webhook_saved_on', 'Webhook saved for {host}. Notifications are on.', { host: chat.host }) : t('support.support_connections_config_webhook_saved_off', 'Webhook saved for {host}. Notifications are off.', { host: chat.host })}
                     </Banner>
                 )}
                 {chatError && <Banner tone="bad">{chatError}</Banner>}
-                {testResult?.ok && <Banner tone="ok">Test card delivered. Check the space.</Banner>}
+                {testResult?.ok && <Banner tone="ok">{t('support.support_connections_config_test_card_delivered_check_the_space', 'Test card delivered. Check the space.')}</Banner>}
                 {testResult && !testResult.ok && <Banner tone="bad">{testResult.error}</Banner>}
 
                 <Row label="Where to send it">
@@ -318,7 +312,7 @@ export default function SupportConnectionsConfig() {
                 </Row>
 
                 <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Send a message when</span>
+                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('support.support_connections_config_send_a_message_when', 'Send a message when')}</span>
                     {(chat?.availableEvents || []).map(id => (
                         <label key={id} className="flex items-center gap-2 text-xs cursor-pointer">
                             <input
@@ -346,7 +340,7 @@ export default function SupportConnectionsConfig() {
                         className="px-3 py-1.5 rounded text-sm border flex items-center gap-1.5 disabled:opacity-50"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                     >
-                        <Send className="w-3.5 h-3.5" /> Send a test
+                        <Send className="w-3.5 h-3.5" /> {t('support.support_connections_config_send_a_test', 'Send a test')}
                     </button>
                 </div>
             </section>

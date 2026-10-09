@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ExternalLink, ShieldCheck, Download, Bot, Plus } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const SystemKnowledgeBasesPanel = () => {
+    const { t } = useTranslation();
     const [items, setItems] = useState([]);
     const [orgId, setOrgId] = useState(null);
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -143,7 +145,7 @@ const SystemKnowledgeBasesPanel = () => {
         return (
             <div className="flex items-center gap-2 p-6 rounded-lg border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Loading system knowledge bases…</span>
+                <span className="text-sm">{t('knowledge.system_knowledge_bases_loading_system_knowledge_bases', 'Loading system knowledge bases…')}</span>
             </div>
         );
     }
@@ -153,7 +155,7 @@ const SystemKnowledgeBasesPanel = () => {
             <div className="p-4 rounded-lg border" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)', color: 'rgb(239, 68, 68)' }}>
                 <div className="flex items-center justify-between">
                     <span className="text-sm">{error}</span>
-                    <button onClick={load} className="text-xs underline">Retry</button>
+                    <button onClick={load} className="text-xs underline">{t('knowledge.system_knowledge_bases_retry', 'Retry')}</button>
                 </div>
             </div>
         );
@@ -163,8 +165,8 @@ const SystemKnowledgeBasesPanel = () => {
         return (
             <div className="p-6 rounded-lg border text-center" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                 <BookOpen className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <div className="text-sm">No system knowledge bases have been provisioned yet.</div>
-                <div className="text-xs mt-1 opacity-70">The server auto-seeds on next boot when a beta feature exists. You can also click "Refresh now" once the row appears.</div>
+                <div className="text-sm">{t('knowledge.system_knowledge_bases_no_system_knowledge_bases_have_been', 'No system knowledge bases have been provisioned yet.')}</div>
+                <div className="text-xs mt-1 opacity-70">{t('knowledge.system_knowledge_bases_the_server_auto_seeds_on_next_boot', 'The server auto-seeds on next boot when a beta feature exists. You can also click "Refresh now" once the row appears.')}</div>
             </div>
         );
     }
@@ -174,20 +176,20 @@ const SystemKnowledgeBasesPanel = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        System knowledge bases
+                        {t('knowledge.system_knowledge_bases_system_knowledge_bases', 'System knowledge bases')}
                     </h3>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        Read-only collections maintained by Bee Flow. Toggle a collection on to make it available to your agents and chat — same picker as your own KBs.
+                        {t('knowledge.system_knowledge_bases_read_only_collections_maintained_by', 'Read-only collections maintained by Bee Flow. Toggle a collection on to make it available to your agents and chat — same picker as your own KBs.')}
                     </p>
                 </div>
                 <button
                     onClick={load}
                     className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors"
                     style={{ color: 'var(--text-muted)', background: 'var(--bg-tertiary)' }}
-                    title="Refresh status"
+                    title={t('knowledge.system_knowledge_bases_refresh_status', 'Refresh status')}
                 >
                     <RefreshCw className="w-3.5 h-3.5" />
-                    Refresh
+                    {t('knowledge.system_knowledge_bases_refresh', 'Refresh')}
                 </button>
             </div>
 
@@ -217,13 +219,13 @@ const SystemKnowledgeBasesPanel = () => {
                             </div>
 
                             <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: 'var(--text-muted)' }}>
-                                <span>{item.documentCount} document{item.documentCount === 1 ? '' : 's'}</span>
+                                <span>{item.documentCount === 1 ? t('knowledge.system_knowledge_bases_document_one', '{count} document', { count: 1 }) : t('knowledge.system_knowledge_bases_document_other', '{count} documents', { count: item.documentCount })}</span>
                                 <span>·</span>
-                                <span>{item.totalChunks} chunk{item.totalChunks === 1 ? '' : 's'}</span>
+                                <span>{item.totalChunks === 1 ? t('knowledge.system_knowledge_bases_chunk_one', '{count} chunk', { count: 1 }) : t('knowledge.system_knowledge_bases_chunk_other', '{count} chunks', { count: item.totalChunks })}</span>
                                 {item.updatedAt && (
                                     <>
                                         <span>·</span>
-                                        <span title={item.updatedAt}>Updated {new Date(item.updatedAt).toLocaleDateString()}</span>
+                                        <span title={item.updatedAt}>{t('knowledge.system_knowledge_bases_updated', 'Updated {date}', { date: new Date(item.updatedAt).toLocaleDateString() })}</span>
                                     </>
                                 )}
                             </div>
@@ -238,7 +240,7 @@ const SystemKnowledgeBasesPanel = () => {
                                         <div className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
                                             <div className="flex items-center gap-2">
                                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                <span>Seeding {s.done} / {s.total} statutes ({pct}%)</span>
+                                                <span>{t('knowledge.system_knowledge_bases_seeding_done_total_statutes_pct', 'Seeding {done} / {total} statutes ({pct}%)', { done: s.done, total: s.total, pct })}</span>
                                             </div>
                                             <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
                                                 <div className="h-full transition-all" style={{ width: `${pct}%`, background: 'var(--accent-primary)' }} />
@@ -249,7 +251,7 @@ const SystemKnowledgeBasesPanel = () => {
                                 if (s.finishedAt && (s.okCount || s.failCount)) {
                                     return (
                                         <div className="text-xs" style={{ color: s.failCount > 0 ? 'rgb(217, 119, 6)' : 'var(--text-muted)' }}>
-                                            Last seed: {s.okCount} ok, {s.failCount} failed · {new Date(s.finishedAt).toLocaleTimeString()}
+                                            {t('knowledge.system_knowledge_bases_last_seed_ok_count_ok_fail_count', 'Last seed: {ok_count} ok, {fail_count} failed · {time}', { ok_count: s.okCount, fail_count: s.failCount, time: new Date(s.finishedAt).toLocaleTimeString() })}
                                         </div>
                                     );
                                 }
@@ -279,10 +281,10 @@ const SystemKnowledgeBasesPanel = () => {
                                     <span
                                         className="flex items-center gap-1 text-xs"
                                         style={{ color: 'var(--accent-primary)' }}
-                                        title="As a global admin, you can use this knowledge base in your own chats regardless of organisation toggle."
+                                        title={t('knowledge.system_knowledge_bases_as_a_global_admin_you_can_use_this', 'As a global admin, you can use this knowledge base in your own chats regardless of organisation toggle.')}
                                     >
                                         <ShieldCheck className="w-3.5 h-3.5" />
-                                        Available to you (super-admin)
+                                        {t('knowledge.system_knowledge_bases_available_to_you_super_admin', 'Available to you (super-admin)')}
                                     </span>
                                 )}
                                 {isSuperAdmin && item.system_slug && (() => {
@@ -294,7 +296,7 @@ const SystemKnowledgeBasesPanel = () => {
                                             disabled={running}
                                             className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium"
                                             style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', cursor: running ? 'wait' : 'pointer' }}
-                                            title="Re-ingest statutes from KOOP (wetten.overheid.nl). Super-admin only."
+                                            title={t('knowledge.system_knowledge_bases_re_ingest_statutes_from_koop_wetten', 'Re-ingest statutes from KOOP (wetten.overheid.nl). Super-admin only.')}
                                         >
                                             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                                             {running ? 'Seeding…' : 'Refresh now'}

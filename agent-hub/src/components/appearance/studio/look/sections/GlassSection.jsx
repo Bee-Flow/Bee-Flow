@@ -2,6 +2,7 @@ import React from 'react';
 import FormField from '../../../../shared/FormField';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import { SECTION_IDS } from '../useLookForm';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * GlassSection — the everyday glass knobs (intensity + tint + lensing).
@@ -9,6 +10,7 @@ import { SECTION_IDS } from '../useLookForm';
  * `AdvancedGlassDisclosure` drawer below to keep this page calm.
  */
 export default function GlassSection({ form, setForm, saving }) {
+    const { t } = useTranslation();
     return (
         <section
             id={SECTION_IDS.glass}
@@ -21,10 +23,10 @@ export default function GlassSection({ form, setForm, saving }) {
                     className="text-base font-semibold mb-1"
                     style={{ color: 'var(--text-primary)' }}
                 >
-                    Glass
+                    {t('appearance.glass_glass', 'Glass')}
                 </h3>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    Tune how the translucent surfaces feel — strength, warmth, and the iOS lens refraction.
+                    {t('appearance.glass_tune_how_the_translucent_surfaces_feel', 'Tune how the translucent surfaces feel — strength, warmth, and the iOS lens refraction.')}
                 </p>
             </header>
 

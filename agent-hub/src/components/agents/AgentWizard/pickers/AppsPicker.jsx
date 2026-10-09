@@ -59,7 +59,7 @@ export default function AppsPicker({ items, enabled, onClose, onToggle, t }) {
                                 >
                                     <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">{item.iconSvg}</div>
                                     <span className="truncate flex-1 text-[var(--text-primary)]">{item.label}</span>
-                                    {selected && <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-label="enabled" />}
+                                    {selected && <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-label={t('agent_wizard.apps_picker_enabled', 'enabled')} />}
                                 </button>
                             );
                         })}
@@ -71,7 +71,7 @@ export default function AppsPicker({ items, enabled, onClose, onToggle, t }) {
                     <button
                         onClick={onClose}
                         className="absolute top-3 right-3 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] z-10"
-                        aria-label="Close"
+                        aria-label={t('agent_wizard.apps_picker_close', 'Close')}
                     >
                         <X size={18} />
                     </button>

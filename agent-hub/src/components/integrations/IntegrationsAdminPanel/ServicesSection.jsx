@@ -4,6 +4,7 @@
 import { Check, Loader2 } from 'lucide-react';
 import React from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export default function ServicesSection({
     linkedinClientId, setLinkedinClientId, linkedinClientSecret, setLinkedinClientSecret,
@@ -20,6 +21,7 @@ export default function ServicesSection({
     useAzureDocProcessing, setUseAzureDocProcessing, savingAzureToggle, setSavingAzureToggle,
     setMessage,
 }) {
+    const { t } = useTranslation();
     return (
             <div className="p-6">
             <div className="max-w-4xl mx-auto space-y-8">
@@ -28,11 +30,11 @@ export default function ServicesSection({
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0A66C2" /><path d="M7.5 9.5h2v7h-2v-7zm1-3.2a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4zm3.5 3.2h1.9v1h0c.27-.5 .92-1.1 1.9-1.1 2 0 2.4 1.3 2.4 3.1v3.6h-2v-3.2c0-.8 0-1.8-1.1-1.8s-1.3.9-1.3 1.7v3.3h-2v-6.6z" fill="white" /></svg>
-                            LinkedIn Configuration
-                            {hasLinkedInConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Configured</span>}
+                            {t('integ.services_linkedin_configuration', 'LinkedIn Configuration')}
+                            {hasLinkedInConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
                         </h3>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            Set LinkedIn API credentials. Users can then connect their LinkedIn accounts from Settings → Integrations.
+                            {t('integ.services_set_linkedin_api_credentials_users_can', 'Set LinkedIn API credentials. Users can then connect their LinkedIn accounts from Settings → Integrations.')}
                         </p>
                     </div>
                     <div className="p-6 space-y-3">
@@ -80,11 +82,11 @@ export default function ServicesSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {savingLinkedIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                Save
+                                {t('integ.services_save', 'Save')}
                             </button>
                         </div>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            Get credentials from your <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>LinkedIn Developer App</a> — enable "Share on LinkedIn" + "Sign In with LinkedIn using OpenID Connect".
+                            {t('integ.services_get_credentials_from_your', 'Get credentials from your')} <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('integ.services_linkedin_developer_app', 'LinkedIn Developer App')}</a> {t('integ.services_enable_share_on_linkedin_sign_in_with', '— enable "Share on LinkedIn" + "Sign In with LinkedIn using OpenID Connect".')}
                         </p>
                     </div>
                 </div>
@@ -94,11 +96,11 @@ export default function ServicesSection({
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#00A9A6" /><path d="M5 12.5h3l1.6-3.4 2.3 6 1.7-3.6H19" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                            Withings Configuration
-                            {hasWithingsConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Configured</span>}
+                            {t('integ.services_withings_configuration', 'Withings Configuration')}
+                            {hasWithingsConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
                         </h3>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            Set Withings API credentials. Users can then connect their Health Mate accounts from Settings → Integrations.
+                            {t('integ.services_set_withings_api_credentials_users_can', 'Set Withings API credentials. Users can then connect their Health Mate accounts from Settings → Integrations.')}
                         </p>
                     </div>
                     <div className="p-6 space-y-3">
@@ -146,11 +148,11 @@ export default function ServicesSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {savingWithings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                Save
+                                {t('integ.services_save', 'Save')}
                             </button>
                         </div>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            Register an app in the <a href="https://developer.withings.com/dashboard/" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>Withings Developer Dashboard</a> and set its callback URL to <code>{`${window.location.origin}/api/integrations/withings/callback`}</code>. Withings requires an HTTPS callback, so a local deployment needs a tunnel.
+                            {t('integ.services_register_an_app_in_the', 'Register an app in the')} <a href="https://developer.withings.com/dashboard/" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('integ.services_withings_developer_dashboard', 'Withings Developer Dashboard')}</a> {t('integ.services_and_set_its_callback_url_to', 'and set its callback URL to')} <code>{`${window.location.origin}/api/integrations/withings/callback`}</code>{t('integ.services_withings_requires_an_https_callback_so', '. Withings requires an HTTPS callback, so a local deployment needs a tunnel.')}
                         </p>
                     </div>
                 </div>
@@ -160,11 +162,11 @@ export default function ServicesSection({
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0078D4"/><path d="M2 17l10 5 10-5" stroke="#0078D4" strokeWidth="2" fill="none"/><path d="M2 12l10 5 10-5" stroke="#50A0E0" strokeWidth="2" fill="none"/></svg>
-                            Azure Document Processing
-                            {(hasAzureDocEndpoint && hasAzureDocKey) && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Configured</span>}
+                            {t('integ.services_azure_document_processing', 'Azure Document Processing')}
+                            {(hasAzureDocEndpoint && hasAzureDocKey) && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
                         </h3>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            Use Azure AI Document Intelligence for high-quality document extraction + Azure OpenAI for embeddings.
+                            {t('integ.services_use_azure_ai_document_intelligence_for', 'Use Azure AI Document Intelligence for high-quality document extraction + Azure OpenAI for embeddings.')}
                         </p>
                     </div>
                     <div className="p-6 space-y-5">
@@ -173,8 +175,8 @@ export default function ServicesSection({
                             <div className="flex items-center gap-3">
                                 <span className="text-lg">☁️</span>
                                 <div>
-                                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Use Azure for Knowledge Bases</div>
-                                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>All file uploads will use Azure Document Intelligence + Azure OpenAI embeddings.</div>
+                                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('integ.services_use_azure_for_knowledge_bases', 'Use Azure for Knowledge Bases')}</div>
+                                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('integ.services_all_file_uploads_will_use_azure', 'All file uploads will use Azure Document Intelligence + Azure OpenAI embeddings.')}</div>
                                 </div>
                             </div>
                             <button
@@ -206,8 +208,8 @@ export default function ServicesSection({
                         {/* Document Intelligence */}
                         <div>
                             <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
-                                Document Intelligence
-                                {(hasAzureDocEndpoint && hasAzureDocKey) && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Connected</span>}
+                                {t('integ.services_document_intelligence', 'Document Intelligence')}
+                                {(hasAzureDocEndpoint && hasAzureDocKey) && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_connected', 'Connected')}</span>}
                             </label>
                             <div className="flex gap-2">
                                 <input
@@ -257,19 +259,19 @@ export default function ServicesSection({
                                     style={{ background: 'var(--accent-primary)', color: '#fff' }}
                                 >
                                     {savingAzureDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                    Save
+                                    {t('integ.services_save', 'Save')}
                                 </button>
                             </div>
                             <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                Create a resource at <a href="https://portal.azure.com/#create/Microsoft.CognitiveServicesFormRecognizer" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>Azure Portal → AI Document Intelligence</a>.
+                                {t('integ.services_create_a_resource_at', 'Create a resource at')} <a href="https://portal.azure.com/#create/Microsoft.CognitiveServicesFormRecognizer" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('integ.services_azure_portal_ai_document_intelligence', 'Azure Portal → AI Document Intelligence')}</a>.
                             </p>
                         </div>
 
                         {/* Azure OpenAI Embeddings */}
                         <div className="pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                             <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
-                                Azure OpenAI Embeddings
-                                {(hasAzureEmbedEndpoint && hasAzureEmbedKey) && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Connected</span>}
+                                {t('integ.services_azure_openai_embeddings', 'Azure OpenAI Embeddings')}
+                                {(hasAzureEmbedEndpoint && hasAzureEmbedKey) && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_connected', 'Connected')}</span>}
                             </label>
                             <div className="flex gap-2 mb-2">
                                 <input
@@ -319,7 +321,7 @@ export default function ServicesSection({
                                     style={{ background: 'var(--accent-primary)', color: '#fff' }}
                                 >
                                     {savingAzureEmbed ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                    Save
+                                    {t('integ.services_save', 'Save')}
                                 </button>
                             </div>
                             <div className="flex gap-2 items-center">
@@ -330,13 +332,13 @@ export default function ServicesSection({
                                     className="px-3 py-1.5 rounded-lg text-sm border outline-none"
                                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                 >
-                                    <option value="text-embedding-3-small">text-embedding-3-small (1536 dims)</option>
-                                    <option value="text-embedding-3-large">text-embedding-3-large (3072 dims)</option>
-                                    <option value="text-embedding-ada-002">text-embedding-ada-002 (1536 dims)</option>
+                                    <option value="text-embedding-3-small">{t('integ.services_text_embedding_3_small_1536_dims', 'text-embedding-3-small (1536 dims)')}</option>
+                                    <option value="text-embedding-3-large">{t('integ.services_text_embedding_3_large_3072_dims', 'text-embedding-3-large (3072 dims)')}</option>
+                                    <option value="text-embedding-ada-002">{t('integ.services_text_embedding_ada_002_1536_dims', 'text-embedding-ada-002 (1536 dims)')}</option>
                                 </select>
                             </div>
                             <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                Deploy an embedding model in your <a href="https://oai.azure.com" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>Azure OpenAI Studio</a>. Used for KB document embeddings when Azure processing is enabled.
+                                {t('integ.services_deploy_an_embedding_model_in_your', 'Deploy an embedding model in your')} <a href="https://oai.azure.com" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('integ.services_azure_openai_studio', 'Azure OpenAI Studio')}</a>{t('integ.services_used_for_kb_document_embeddings_when', '. Used for KB document embeddings when Azure processing is enabled.')}
                             </p>
                         </div>
                     </div>

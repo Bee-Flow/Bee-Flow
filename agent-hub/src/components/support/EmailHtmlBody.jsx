@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Renders an untrusted email HTML body the way Gmail/Outlook would — inside a
@@ -59,6 +60,7 @@ function buildSrcDoc(html) {
 }
 
 export default function EmailHtmlBody({ html }) {
+    const { t } = useTranslation();
     const iframeRef = useRef(null);
     const observerRef = useRef(null);
     const [height, setHeight] = useState(120);
@@ -101,7 +103,7 @@ export default function EmailHtmlBody({ html }) {
     return (
         <iframe
             ref={iframeRef}
-            title="Email message"
+            title={t('support.email_html_body_email_message', 'Email message')}
             srcDoc={buildSrcDoc(html)}
             sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             onLoad={handleLoad}

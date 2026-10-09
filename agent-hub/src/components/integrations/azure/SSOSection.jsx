@@ -130,7 +130,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 label={t('azure.sso_client_id')}
                 value={ssoClientId}
                 onChange={setSsoClientId}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                placeholder={t('azure.sso_xxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')}
                 helpText={t('azure.sso_client_id_help')}
             />
             <Input
@@ -151,7 +151,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                     type="text"
                     value={ssoTenantId}
                     onChange={e => setSsoTenantId(e.target.value)}
-                    placeholder="your-tenant-guid or common"
+                    placeholder={t('azure.sso_your_tenant_guid_or_common', 'your-tenant-guid or common')}
                     className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] transition-colors focus:ring-2 focus:ring-blue-500/20"
                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
@@ -226,7 +226,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                         </p>
                         {status.lastSyncAt && (
                             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                                {status.syncedGroups || 0} group(s), {status.syncedUsers || 0} user(s) synced
+                                {status.syncedGroups || 0} {t('azure.sso_group_s', 'group(s),')} {status.syncedUsers || 0} {t('azure.sso_user_s_synced', 'user(s) synced')}
                                 {settings.periodicSync && ` • Auto-sync every ${settings.syncIntervalHours}h`}
                             </p>
                         )}
@@ -286,7 +286,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                         >
                             <CheckCircle2 size={14} style={{ color: '#22c55e' }} />
                             <span className="text-[12px] font-medium flex-1" style={{ color: '#166534' }}>
-                                {t('azure.sync_groups_success', 'Sync completed')}: {syncResult.synced?.groups || 0} group(s), {syncResult.synced?.users || 0} new user(s)
+                                {t('azure.sync_groups_success', 'Sync completed')}: {syncResult.synced?.groups || 0} {t('azure.sso_group_s', 'group(s),')} {syncResult.synced?.users || 0} {t('azure.sso_new_user_s', 'new user(s)')}
                             </span>
                             {showDetails ? <ChevronUp size={13} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={13} style={{ color: 'var(--text-muted)' }} />}
                         </div>
@@ -367,13 +367,13 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                                     className="px-2 py-1 rounded-lg border text-[12px] outline-none"
                                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                 >
-                                    <option value={1}>1 hour</option>
-                                    <option value={3}>3 hours</option>
-                                    <option value={6}>6 hours</option>
-                                    <option value={12}>12 hours</option>
-                                    <option value={24}>24 hours</option>
-                                    <option value={48}>48 hours</option>
-                                    <option value={168}>Weekly</option>
+                                    <option value={1}>{t('azure.sso_1_hour', '1 hour')}</option>
+                                    <option value={3}>{t('azure.sso_3_hours', '3 hours')}</option>
+                                    <option value={6}>{t('azure.sso_6_hours', '6 hours')}</option>
+                                    <option value={12}>{t('azure.sso_12_hours', '12 hours')}</option>
+                                    <option value={24}>{t('azure.sso_24_hours', '24 hours')}</option>
+                                    <option value={48}>{t('azure.sso_48_hours', '48 hours')}</option>
+                                    <option value={168}>{t('azure.sso_weekly', 'Weekly')}</option>
                                 </select>
                             </div>
                         )}
@@ -406,9 +406,9 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
             <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
                 <p className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{t('azure.sso_setup_guide')}</p>
                 <ol className="text-[11px] space-y-1 list-decimal list-inside" style={{ color: 'var(--text-muted)' }}>
-                    <li>{t('azure.sso_step_1')} <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#0078D4' }}>Azure Portal → App registrations</a></li>
+                    <li>{t('azure.sso_step_1')} <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#0078D4' }}>{t('azure.sso_azure_portal_app_registrations', 'Azure Portal → App registrations')}</a></li>
                     <li>{t('azure.sso_step_2')}</li>
-                    <li>Under <strong>Authentication</strong>, add a redirect URI: <code style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>https://your-domain/auth/callback/microsoft</code></li>
+                    <li>{t('azure.sso_under', 'Under')} <strong>{t('azure.sso_authentication', 'Authentication')}</strong>{t('azure.sso_add_a_redirect_uri', ', add a redirect URI:')} <code style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>https://your-domain/auth/callback/microsoft</code></li>
                     <li>{t('azure.sso_step_4')}</li>
                     <li>{t('azure.sso_step_5')}</li>
                     <li>{t('azure.sso_step_6', 'Under API permissions, add Application permissions: GroupMember.Read.All, User.Read.All, Application.Read.All and grant admin consent')}</li>
