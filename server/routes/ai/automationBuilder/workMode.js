@@ -79,6 +79,7 @@ function escapeRegExp(text) {
 // The name must stand alone as a phrase: "x_7" is not inside "x_71" and the
 // label "Send" is not inside "Resend".
 function namesPhrase(text, phrase) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the phrase is escaped literal text (no quantifiers), so the pattern is linear
     return new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(phrase)}(?![\\p{L}\\p{N}_])`, 'iu').test(text);
 }
 
