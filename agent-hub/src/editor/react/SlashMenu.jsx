@@ -7,11 +7,13 @@
  * Anchored at the caret rect (passed in), clamped to the viewport.
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const MENU_W = 256;
 const MAX_H = 320;
 
 export default function SlashMenu({ items, query, rect, onSelect, onClose }) {
+    const { t } = useTranslation();
     const [active, setActive] = useState(0);
     const listRef = useRef(null);
 
@@ -58,7 +60,7 @@ export default function SlashMenu({ items, query, rect, onSelect, onClose }) {
     return (
         <div
             role="listbox"
-            aria-label="Insert block"
+            aria-label={t('editor.slash_menu_label', 'Insert block')}
             className="fixed z-[9999] py-1 rounded-xl shadow-2xl border overflow-y-auto custom-scrollbar"
             style={{ top, left, width: MENU_W, maxHeight: MAX_H, background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}
             ref={listRef}

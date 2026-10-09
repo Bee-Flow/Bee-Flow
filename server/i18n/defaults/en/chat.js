@@ -388,4 +388,8 @@ module.exports = {
     'chat.citation_passage_count': '×{count}',
     'chat.citation_passages': '1 passage from this document',
     'chat.citation_passages_plural': '{count} passages from this document',
+    // Hardcoded literals converted (2026-10)
+    'chat.composer.footer_own_server': 'Bee Flow runs on your own server.',
+    'chat.composer.disclaimer': 'AI can make mistakes. Please verify important information.',
+    'chat.direct_selection_from_page': 'Selection from page',
 };

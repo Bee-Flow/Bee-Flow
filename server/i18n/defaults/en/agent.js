@@ -26,4 +26,6 @@ module.exports = {
     'agent.save_changes': 'Save Changes',
     'agent.saving': 'Saving...',
     'agent.delete_confirm': 'Delete this agent?',
+    // Hardcoded literals converted (2026-10)
+    'agent.chat_menu_unpublish_agent': 'Unpublish Agent',
 };

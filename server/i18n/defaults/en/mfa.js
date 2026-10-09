@@ -93,4 +93,6 @@ module.exports = {
     'mfa.enable_confirm_with_key': 'After Enable, touch one of your security keys to confirm it is you.',
     'mfa.confirm_with_recovery_or_key': 'Enter a recovery code, or confirm with your security key',
     'mfa.confirm_with_key': 'Confirm with security key',
+    // Hardcoded literals converted (2026-10)
+    'mfa.authenticator_qr_alt': 'MFA QR code',
 };
