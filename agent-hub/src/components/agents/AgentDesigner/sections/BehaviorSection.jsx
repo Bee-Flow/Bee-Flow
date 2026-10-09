@@ -2,6 +2,7 @@ import React from 'react';
 import ModelSelector from '../../../chat/ModelSelector';
 import Toggle from '../../../shared/Toggle';
 import useCopyToClipboard from '../../../../hooks/useCopyToClipboard';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export const BehaviorSection = ({
   selectedAgent, name, setName, description, setDescription,
@@ -26,10 +27,11 @@ export const BehaviorSection = ({
   assistantBubbleColor, setAssistantBubbleColor, warningText, setWarningText,
   setPromptDesignerMessages, setPromptDesignerInput, setShowPromptDesigner
 }) => {
+  const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
   return (
                                                 <div className="space-y-6 animate-fadeIn">
-                                                    <h2 className="text-base font-semibold mb-4 text-primary">Behavior Settings</h2>
+                                                    <h2 className="text-base font-semibold mb-4 text-primary">{t('agent_studio.behavior_behavior_settings', 'Behavior Settings')}</h2>
 
                                                     <div className="space-y-4">
                                                         <Toggle
@@ -59,10 +61,10 @@ export const BehaviorSection = ({
                                                             <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.05)' }}>
                                                                 <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--accent-primary)' }}>
                                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                                                                    Embed Settings
+                                                                    {t('agent_studio.behavior_embed_settings', 'Embed Settings')}
                                                                 </div>
                                                                 <div>
-                                                                    <label className="text-xs text-muted mb-1 block">Public URL</label>
+                                                                    <label className="text-xs text-muted mb-1 block">{t('agent_studio.behavior_public_url', 'Public URL')}</label>
                                                                     <div className="flex gap-2">
                                                                         <input
                                                                             readOnly
@@ -75,12 +77,12 @@ export const BehaviorSection = ({
                                                                             className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity"
                                                                             style={{ background: 'var(--accent-primary)' }}
                                                                         >
-                                                                            Copy
+                                                                            {t('agent_studio.behavior_copy', 'Copy')}
                                                                         </button>
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <label className="text-xs text-muted mb-1 block">Iframe Embed</label>
+                                                                    <label className="text-xs text-muted mb-1 block">{t('agent_studio.behavior_iframe_embed', 'Iframe Embed')}</label>
                                                                     <div className="flex gap-2">
                                                                         <input
                                                                             readOnly
@@ -93,19 +95,19 @@ export const BehaviorSection = ({
                                                                             className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity"
                                                                             style={{ background: 'var(--accent-primary)' }}
                                                                         >
-                                                                            Copy
+                                                                            {t('agent_studio.behavior_copy', 'Copy')}
                                                                         </button>
                                                                     </div>
                                                                 </div>
                                                                 <div className="space-y-3">
-                                                                    <label className="text-xs text-muted mb-1 block font-medium">Chat Bubble Widget</label>
-                                                                    <p className="text-[10px] text-muted">A floating chat button that opens the agent in a popup. Customize and copy the snippet below.</p>
+                                                                    <label className="text-xs text-muted mb-1 block font-medium">{t('agent_studio.behavior_chat_bubble_widget', 'Chat Bubble Widget')}</label>
+                                                                    <p className="text-[10px] text-muted">{t('agent_studio.behavior_a_floating_chat_button_that_opens_the', 'A floating chat button that opens the agent in a popup. Customize and copy the snippet below.')}</p>
 
                                                                     {/* Styling Options Grid */}
                                                                     <div className="grid grid-cols-2 gap-3">
                                                                         {/* Bubble Color */}
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Bubble Color</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_bubble_color', 'Bubble Color')}</label>
                                                                             <div className="flex items-center gap-2">
                                                                                 <input
                                                                                     type="color"
@@ -126,7 +128,7 @@ export const BehaviorSection = ({
 
                                                                         {/* Position */}
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Position</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_position', 'Position')}</label>
                                                                             <div className="flex gap-1">
                                                                                 {['left', 'right'].map(pos => (
                                                                                     <button
@@ -145,7 +147,7 @@ export const BehaviorSection = ({
 
                                                                         {/* Bubble Size */}
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Bubble Size: {bubbleSize}px</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_bubble_size_bubble_sizepx', 'Bubble Size: {bubble_size}px', { bubble_size: bubbleSize })}</label>
                                                                             <input
                                                                                 type="range"
                                                                                 min={40}
@@ -158,7 +160,7 @@ export const BehaviorSection = ({
 
                                                                         {/* Icon */}
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Icon</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_icon', 'Icon')}</label>
                                                                             <div className="flex gap-1">
                                                                                 {['🐝', '💬', '🤖', '❓', '👋'].map(icon => (
                                                                                     <button
@@ -177,7 +179,7 @@ export const BehaviorSection = ({
 
                                                                         {/* Window Width */}
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Window Width: {windowWidth}px</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_window_width_window_widthpx', 'Window Width: {window_width}px', { window_width: windowWidth })}</label>
                                                                             <input
                                                                                 type="range"
                                                                                 min={320}
@@ -191,7 +193,7 @@ export const BehaviorSection = ({
 
                                                                         {/* Window Height */}
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Window Height: {windowHeight}px</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_window_height_window_heightpx', 'Window Height: {window_height}px', { window_height: windowHeight })}</label>
                                                                             <input
                                                                                 type="range"
                                                                                 min={400}
@@ -205,28 +207,28 @@ export const BehaviorSection = ({
 
                                                                         {/* Font Family */}
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Font Family</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_font_family', 'Font Family')}</label>
                                                                             <select
                                                                                 value={chatFont}
                                                                                 onChange={(e) => setChatFont(e.target.value)}
                                                                                 className="w-full text-xs px-2 py-1.5 rounded-lg border bg-transparent cursor-pointer"
                                                                                 style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
                                                                             >
-                                                                                <option value="System Default">System Default</option>
-                                                                                <option value="Inter">Inter</option>
-                                                                                <option value="Roboto">Roboto</option>
-                                                                                <option value="Open Sans">Open Sans</option>
-                                                                                <option value="Lato">Lato</option>
-                                                                                <option value="Poppins">Poppins</option>
-                                                                                <option value="Nunito">Nunito</option>
-                                                                                <option value="Georgia">Georgia</option>
-                                                                                <option value="Courier New">Courier New</option>
+                                                                                <option value="System Default">{t('agent_studio.behavior_system_default', 'System Default')}</option>
+                                                                                <option value="Inter">{t('agent_studio.behavior_inter', 'Inter')}</option>
+                                                                                <option value="Roboto">{t('agent_studio.behavior_roboto', 'Roboto')}</option>
+                                                                                <option value="Open Sans">{t('agent_studio.behavior_open_sans', 'Open Sans')}</option>
+                                                                                <option value="Lato">{t('agent_studio.behavior_lato', 'Lato')}</option>
+                                                                                <option value="Poppins">{t('agent_studio.behavior_poppins', 'Poppins')}</option>
+                                                                                <option value="Nunito">{t('agent_studio.behavior_nunito', 'Nunito')}</option>
+                                                                                <option value="Georgia">{t('agent_studio.behavior_georgia', 'Georgia')}</option>
+                                                                                <option value="Courier New">{t('agent_studio.behavior_courier_new', 'Courier New')}</option>
                                                                             </select>
                                                                         </div>
 
                                                                         {/* Font Size */}
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Font Size: {chatFontSize}px</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_font_size_chat_font_sizepx', 'Font Size: {chat_font_size}px', { chat_font_size: chatFontSize })}</label>
                                                                             <input
                                                                                 type="range"
                                                                                 min={12}
@@ -239,7 +241,7 @@ export const BehaviorSection = ({
 
                                                                         {/* Line Height */}
                                                                         <div className="col-span-2">
-                                                                            <label className="text-[10px] text-muted mb-1 block">Line Height: {chatLineHeight}</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_line_height', 'Line Height: {value}', { value: chatLineHeight })}</label>
                                                                             <input
                                                                                 type="range"
                                                                                 min={1.2}
@@ -255,7 +257,7 @@ export const BehaviorSection = ({
                                                                     {/* Chat Colors */}
                                                                     <div className="grid grid-cols-2 gap-3">
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">User Bubble Color</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_user_bubble_color', 'User Bubble Color')}</label>
                                                                             <div className="flex items-center gap-2">
                                                                                 <input
                                                                                     type="color"
@@ -267,14 +269,14 @@ export const BehaviorSection = ({
                                                                                     type="text"
                                                                                     value={userBubbleColor}
                                                                                     onChange={(e) => setUserBubbleColor(e.target.value)}
-                                                                                    placeholder="Default"
+                                                                                    placeholder={t('agent_studio.behavior_default', 'Default')}
                                                                                     className="flex-1 text-xs px-2 py-1.5 rounded-lg border bg-transparent"
                                                                                     style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
                                                                                 />
                                                                             </div>
                                                                         </div>
                                                                         <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">Assistant Bubble Color</label>
+                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_assistant_bubble_color', 'Assistant Bubble Color')}</label>
                                                                             <div className="flex items-center gap-2">
                                                                                 <input
                                                                                     type="color"
@@ -286,7 +288,7 @@ export const BehaviorSection = ({
                                                                                     type="text"
                                                                                     value={assistantBubbleColor}
                                                                                     onChange={(e) => setAssistantBubbleColor(e.target.value)}
-                                                                                    placeholder="Default"
+                                                                                    placeholder={t('agent_studio.behavior_default', 'Default')}
                                                                                     className="flex-1 text-xs px-2 py-1.5 rounded-lg border bg-transparent"
                                                                                     style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
                                                                                 />
@@ -296,12 +298,12 @@ export const BehaviorSection = ({
 
                                                                     {/* Warning Text */}
                                                                     <div>
-                                                                        <label className="text-[10px] text-muted mb-1 block">Disclaimer Text</label>
+                                                                        <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_disclaimer_text', 'Disclaimer Text')}</label>
                                                                         <input
                                                                             type="text"
                                                                             value={warningText}
                                                                             onChange={(e) => setWarningText(e.target.value)}
-                                                                            placeholder="AI can make mistakes. Please verify important information."
+                                                                            placeholder={t('agent_studio.behavior_ai_can_make_mistakes_please_verify', 'AI can make mistakes. Please verify important information.')}
                                                                             className="w-full text-xs px-2 py-1.5 rounded-lg border bg-transparent"
                                                                             style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
                                                                         />
@@ -326,13 +328,13 @@ export const BehaviorSection = ({
                                                                             {bubbleIcon}
                                                                         </div>
                                                                         <div className="text-[10px] text-muted">
-                                                                            Preview · {bubbleSize}px · {bubblePosition} · {windowWidth}×{windowHeight} window
+                                                                            {t('agent_studio.behavior_preview_bubble_sizepx_bubble_position', 'Preview · {bubble_size}px · {bubble_position} · {window_width}×{window_height} window', { bubble_size: bubbleSize, bubble_position: bubblePosition, window_width: windowWidth, window_height: windowHeight })}
                                                                         </div>
                                                                     </div>
 
                                                                     {/* Generated Code */}
                                                                     <div>
-                                                                        <label className="text-[10px] text-muted mb-1 block">Generated Code</label>
+                                                                        <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_generated_code', 'Generated Code')}</label>
                                                                         <div className="flex gap-2">
                                                                             <textarea
                                                                                 readOnly
@@ -371,12 +373,12 @@ export const BehaviorSection = ({
                                                                                 className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity self-start"
                                                                                 style={{ background: 'var(--accent-primary)' }}
                                                                             >
-                                                                                Copy
+                                                                                {t('agent_studio.behavior_copy', 'Copy')}
                                                                             </button>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <p className="text-[10px] text-muted">Agent must be Published for the embed link to work.</p>
+                                                                <p className="text-[10px] text-muted">{t('agent_studio.behavior_agent_must_be_published_for_the_embed', 'Agent must be Published for the embed link to work.')}</p>
                                                             </div>
                                                         )}
 

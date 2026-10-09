@@ -2,6 +2,7 @@ import { Copy, Check, RefreshCw, Trash2, ServerCog } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * "Pair a new Nextcloud" admin panel.
@@ -26,6 +27,7 @@ import useConfirm from '../../shared/useConfirm';
  * Codes are one-shot and disappear from this list as soon as redeemed.
  */
 const OrgNcPairingPanel = () => {
+    const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const [codes, setCodes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -105,10 +107,10 @@ const OrgNcPairingPanel = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="text-[14px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                        Pair a new Nextcloud
+                        {t('integ.org_nc_pairing_pair_a_new_nextcloud', 'Pair a new Nextcloud')}
                     </h3>
                     <p className="text-[12px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                        Generate a one-shot code, then set it as the <code className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: 'var(--bg-tertiary)' }}>BEEFLOW_PAIRING_CODE</code> environment variable on the connector running on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.
+                        {t('integ.org_nc_pairing_generate_a_one_shot_code_then_set_it', 'Generate a one-shot code, then set it as the')} <code className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: 'var(--bg-tertiary)' }}>BEEFLOW_PAIRING_CODE</code> {t('integ.org_nc_pairing_environment_variable_on_the_connector', 'environment variable on the connector running on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.')}
                     </p>
                 </div>
             </div>
@@ -133,7 +135,7 @@ const OrgNcPairingPanel = () => {
                     disabled={loading}
                     className="px-2.5 py-2 rounded-lg text-[12px] flex items-center gap-1.5 disabled:opacity-40"
                     style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                    title="Refresh"
+                    title={t('integ.org_nc_pairing_refresh', 'Refresh')}
                 >
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
@@ -141,7 +143,7 @@ const OrgNcPairingPanel = () => {
 
             {codes.length === 0 ? (
                 <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                    No active pairing codes. Generated codes live for 15 minutes and disappear after use.
+                    {t('integ.org_nc_pairing_no_active_pairing_codes_generated', 'No active pairing codes. Generated codes live for 15 minutes and disappear after use.')}
                 </p>
             ) : (
                 <ul className="space-y-2">
@@ -165,7 +167,7 @@ const OrgNcPairingPanel = () => {
                                 onClick={() => revoke(c.id)}
                                 className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]"
                                 style={{ color: 'var(--text-muted)' }}
-                                title="Revoke"
+                                title={t('integ.org_nc_pairing_revoke', 'Revoke')}
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -176,16 +178,16 @@ const OrgNcPairingPanel = () => {
 
             <details className="mt-4 text-[12px]">
                 <summary className="cursor-pointer font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    How to use this code on the new Nextcloud
+                    {t('integ.org_nc_pairing_how_to_use_this_code_on_the_new', 'How to use this code on the new Nextcloud')}
                 </summary>
                 <div className="mt-2 pl-3 space-y-1.5" style={{ color: 'var(--text-muted)' }}>
-                    <p>On the new Nextcloud server, run:</p>
+                    <p>{t('integ.org_nc_pairing_on_the_new_nextcloud_server_run', 'On the new Nextcloud server, run:')}</p>
                     <pre className="px-3 py-2 rounded-lg overflow-x-auto text-[11px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
 {`occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>
 occ app_api:app:disable bee_flow
 occ app_api:app:enable bee_flow`}
                     </pre>
-                    <p>The connector picks up the code on next boot, redeems it once, and binds this Nextcloud to your existing Bee Flow organisation.</p>
+                    <p>{t('integ.org_nc_pairing_the_connector_picks_up_the_code_on', 'The connector picks up the code on next boot, redeems it once, and binds this Nextcloud to your existing Bee Flow organisation.')}</p>
                 </div>
             </details>
             {confirmDialog}

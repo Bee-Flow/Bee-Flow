@@ -19,6 +19,7 @@ import useCapabilities from "./hooks/useCapabilities";
 import { IdentitySection } from "./sections/IdentitySection";
 import { ToolsSection } from "./sections/ToolsSection";
 import { BehaviorSection } from "./sections/BehaviorSection";
+import { useTranslation } from '../../../hooks/useTranslation';
 
 
 const AgentDesigner = ({
@@ -30,6 +31,7 @@ const AgentDesigner = ({
   user = null,
   onClose = null,
 }) => {
+  const { t } = useTranslation();
   // All state from hooks
   const state = useAgentState();
   const {
@@ -218,7 +220,7 @@ const AgentDesigner = ({
           className="flex-shrink-0 flex items-center px-5"
           style={{ height: '48px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}
         >
-          <span className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Agent Designer</span>
+          <span className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}</span>
         </div>
       )}
       {/* Main Content */}
@@ -249,16 +251,16 @@ const AgentDesigner = ({
                 <button
                   onClick={() => { window.history.pushState({ page: 'agentWizard' }, '', '/app/agent-wizard'); window.dispatchEvent(new PopStateEvent('popstate')); }}
                   className="px-2 py-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors flex items-center gap-1 text-[11px]"
-                  title="Create with AI"
+                  title={t('agent_studio.agent_designer_create_with_ai', 'Create with AI')}
                   style={{ color: "var(--text-tertiary)" }}
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z"/></svg>
-                  AI
+                  {t('agent_studio.agent_designer_ai', 'AI')}
                 </button>
                 <button
                   onClick={createNewAgent}
                   className="p-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors"
-                  title="Create New Agent (empty)"
+                  title={t('agent_studio.agent_designer_create_new_agent_empty', 'Create New Agent (empty)')}
                   style={{ color: "var(--text-tertiary)" }}
                 >
                   <svg
@@ -288,7 +290,7 @@ const AgentDesigner = ({
             ) : agents.length === 0 ? (
               <div className="p-8 text-center text-muted text-sm flex flex-col items-center">
                 <span className="text-2xl mb-2">🤖</span>
-                <p className="mb-3">No agents found</p>
+                <p className="mb-3">{t('agent_studio.agent_designer_no_agents_found', 'No agents found')}</p>
                 {!systemMode && hasPermission("manage_agents") && (
                   <button
                     onClick={createNewAgent}
@@ -298,7 +300,7 @@ const AgentDesigner = ({
                       color: "var(--text-secondary)",
                     }}
                   >
-                    Create First Agent
+                    {t('agent_studio.agent_designer_create_first_agent', 'Create First Agent')}
                   </button>
                 )}
               </div>
@@ -346,7 +348,7 @@ const AgentDesigner = ({
                               duplicateAgent(agent);
                             }}
                             className="opacity-0 group-hover:opacity-100 p-1 text-[var(--text-tertiary)] hover:text-blue-400 transition-all rounded disabled:opacity-0 disabled:cursor-not-allowed"
-                            title="Duplicate agent"
+                            title={t('agent_studio.agent_designer_duplicate_agent', 'Duplicate agent')}
                             disabled={Boolean(user?.orgRole === 'agent_editor' && agent.owner_id !== user?.id && !agent.is_published)}
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,7 +362,7 @@ const AgentDesigner = ({
                             deleteAgent(agent.id);
                           }}
                           className="opacity-0 group-hover:opacity-100 p-1 text-[var(--text-tertiary)] hover:text-red-500 transition-all rounded disabled:opacity-0 disabled:cursor-not-allowed"
-                          title="Delete agent"
+                          title={t('agent_studio.agent_designer_delete_agent', 'Delete agent')}
                           disabled={Boolean(user?.orgRole === 'agent_editor' && agent.owner_id !== user?.id && !agent.is_published)}
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,7 +400,7 @@ const AgentDesigner = ({
                       {isCreating ? "Create New Agent" : "Edit Agent"}
                     </h1>
                     <p className="text-xs text-muted">
-                      Configure identity, logic, and safeguards.
+                      {t('agent_studio.agent_designer_configure_identity_logic_and', 'Configure identity, logic, and safeguards.')}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -417,13 +419,13 @@ const AgentDesigner = ({
                               {isPublished ? (
                                 <>
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                  Published {sharedGroups.length > 0 ? ` (${sharedGroups.length})` : ""}
+                                  {t('agent_studio.agent_designer_published', 'Published')} {sharedGroups.length > 0 ? ` (${sharedGroups.length})` : ""}
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </>
                               ) : (
                                 <>
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c1.657 0 3-1.343 3-3V6a3 3 0 10-6 0v2c0 1.657 1.343 3 3 3zM5 21v-2a4 4 0 014-4h6a4 4 0 014 4v2" /></svg>
-                                  Personal
+                                  {t('agent_studio.agent_designer_personal', 'Personal')}
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </>
                               )}
@@ -448,13 +450,13 @@ const AgentDesigner = ({
                                 className="text-sm font-semibold"
                                 style={{ color: "var(--text-primary)" }}
                               >
-                                Publish to...
+                                {t('agent_studio.agent_designer_publish_to', 'Publish to...')}
                               </p>
                               <p
                                 className="text-xs mt-0.5"
                                 style={{ color: "var(--text-muted)" }}
                               >
-                                Choose who can see this agent
+                                {t('agent_studio.agent_designer_choose_who_can_see_this_agent', 'Choose who can see this agent')}
                               </p>
                             </div>
 
@@ -472,8 +474,8 @@ const AgentDesigner = ({
                                 </svg>
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Personal</p>
-                                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Only you can access</p>
+                                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t('agent_studio.agent_designer_personal', 'Personal')}</p>
+                                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{t('agent_studio.agent_designer_only_you_can_access', 'Only you can access')}</p>
                               </div>
                               {!isPublished && (
                                 <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -511,13 +513,13 @@ const AgentDesigner = ({
                                   className="text-sm font-medium"
                                   style={{ color: "var(--text-primary)" }}
                                 >
-                                  Entire Organization
+                                  {t('agent_studio.agent_designer_entire_organization', 'Entire Organization')}
                                 </p>
                                 <p
                                   className="text-xs"
                                   style={{ color: "var(--text-muted)" }}
                                 >
-                                  All members can access
+                                  {t('agent_studio.agent_designer_all_members_can_access', 'All members can access')}
                                 </p>
                               </div>
                               {isPublished && sharedGroups.length === 0 && (
@@ -535,7 +537,7 @@ const AgentDesigner = ({
                                   className="text-xs font-semibold uppercase tracking-wider"
                                   style={{ color: "var(--text-muted)" }}
                                 >
-                                  Or specific groups
+                                  {t('agent_studio.agent_designer_or_specific_groups', 'Or specific groups')}
                                 </p>
                               </div>
                             )}
@@ -594,7 +596,7 @@ const AgentDesigner = ({
                                   onClick={() => togglePublish(sharedGroups)}
                                   className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
                                 >
-                                  Publish to {sharedGroups.length} group
+                                  {t('agent_studio.agent_designer_publish_to_count_group', 'Publish to {count} group', { count: sharedGroups.length })}
                                   {sharedGroups.length > 1 ? "s" : ""}
                                 </button>
                               </div>
@@ -622,7 +624,7 @@ const AgentDesigner = ({
                                 className="w-full px-3 py-1.5 rounded-lg text-xs text-center"
                                 style={{ color: "var(--text-muted)" }}
                               >
-                                Cancel
+                                {t('agent_studio.agent_designer_cancel', 'Cancel')}
                               </button>
                             </div>
                           </div>
@@ -632,7 +634,7 @@ const AgentDesigner = ({
                     )}
                     <div className="flex items-center gap-2">
                       {isReadonly && (
-                        <span className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-500 font-medium">Read-only (Unpublished)</span>
+                        <span className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-500 font-medium">{t('agent_studio.agent_designer_read_only_unpublished', 'Read-only (Unpublished)')}</span>
                       )}
                       <button
                         onClick={saveAgent}
@@ -702,11 +704,10 @@ const AgentDesigner = ({
                         <div className="space-y-6 animate-fadeIn h-full flex flex-col">
                           <div>
                             <h2 className="text-base font-semibold text-primary">
-                              Knowledge Base
+                              {t('agent_studio.agent_designer_knowledge_base', 'Knowledge Base')}
                             </h2>
                             <p className="text-xs text-muted mt-0.5">
-                              Upload documents or add facts for the agent to
-                              use.
+                              {t('agent_studio.agent_designer_upload_documents_or_add_facts_for_the', 'Upload documents or add facts for the agent to use.')}
                             </p>
                           </div>
 
@@ -732,7 +733,7 @@ const AgentDesigner = ({
                                 style={{ borderColor: "var(--border-subtle)" }}
                               >
                                 <p>
-                                  Please save the agent first to add knowledge.
+                                  {t('agent_studio.agent_designer_please_save_the_agent_first_to_add', 'Please save the agent first to add knowledge.')}
                                 </p>
                               </div>
                             )}
@@ -770,14 +771,13 @@ const AgentDesigner = ({
                   letterSpacing: "-0.02em",
                 }}
               >
-                Agent Designer
+                {t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}
               </h1>
               <p
                 className="text-sm text-center mb-8 leading-relaxed"
                 style={{ color: "var(--text-muted)", maxWidth: "420px" }}
               >
-                Select an agent from the sidebar to edit, or create a new one to
-                start building your custom AI workflow assistant.
+                {t('agent_studio.agent_designer_select_an_agent_from_the_sidebar_to', 'Select an agent from the sidebar to edit, or create a new one to start building your custom AI workflow assistant.')}
               </p>
               {!systemMode && (
                 <button
@@ -789,7 +789,7 @@ const AgentDesigner = ({
                     background: "var(--bg-card)",
                   }}
                 >
-                  Create New Agent
+                  {t('agent_studio.agent_designer_create_new_agent', 'Create New Agent')}
                 </button>
               )}
             </div>

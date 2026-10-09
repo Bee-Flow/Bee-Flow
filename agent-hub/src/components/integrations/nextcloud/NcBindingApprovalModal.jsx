@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, AlertTriangle, Copy, Check, X } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Shown to org-admins when a Nextcloud connector is waiting to bind to
@@ -31,6 +32,7 @@ function formatExpiresIn(expiresAt) {
 }
 
 const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
+    const { t } = useTranslation();
     const [confirmed, setConfirmed] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -85,9 +87,9 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
                             <ShieldCheck className="w-6 h-6" style={{ color: '#f59e0b' }} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Confirm Nextcloud connection</h2>
+                            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.nc_binding_approval_modal_confirm_nextcloud_connection', 'Confirm Nextcloud connection')}</h2>
                             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                                A Nextcloud is requesting to connect to {organizationName || 'your organisation'}.
+                                {t('integ.nc_binding_approval_modal_a_nextcloud_is_requesting_to_connect', 'A Nextcloud is requesting to connect to')} {organizationName || 'your organisation'}.
                             </p>
                         </div>
                     </div>
@@ -98,17 +100,17 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
                     >
                         <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
                         <div className="text-xs" style={{ color: 'var(--text-primary)', lineHeight: 1.55 }}>
-                            Approve only if this is <strong>your</strong> Nextcloud. Once approved, this Nextcloud can read and write data on behalf of users in your organisation.
+                            {t('integ.nc_binding_approval_modal_approve_only_if_this_is', 'Approve only if this is')} <strong>{t('integ.nc_binding_approval_modal_your', 'your')}</strong> {t('integ.nc_binding_approval_modal_nextcloud_once_approved_this_nextcloud', 'Nextcloud. Once approved, this Nextcloud can read and write data on behalf of users in your organisation.')}
                         </div>
                     </div>
 
                     <dl className="space-y-3 mb-4 text-sm">
                         <div>
-                            <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>Nextcloud URL</dt>
+                            <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_nextcloud_url', 'Nextcloud URL')}</dt>
                             <dd className="font-mono text-sm break-all" style={{ color: 'var(--text-primary)' }}>{pending.ncBaseUrl}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>Instance ID</dt>
+                            <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_instance_id', 'Instance ID')}</dt>
                             <dd className="flex items-center gap-2 font-mono text-sm" style={{ color: 'var(--text-primary)' }}>
                                 <span title={pending.ncInstanceId}>{maskInstanceId(pending.ncInstanceId)}</span>
                                 <button
@@ -122,20 +124,20 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
                                 </button>
                             </dd>
                             <p className="text-[11px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                                Verify this matches <code>occ config:system:get instanceid</code> on your Nextcloud.
+                                {t('integ.nc_binding_approval_modal_verify_this_matches', 'Verify this matches')} <code>occ config:system:get instanceid</code> {t('integ.nc_binding_approval_modal_on_your_nextcloud', 'on your Nextcloud.')}
                             </p>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>NC admin</dt>
+                                <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_nc_admin', 'NC admin')}</dt>
                                 <dd className="text-sm" style={{ color: 'var(--text-primary)' }}>{pending.ncAdminUid}</dd>
                                 <dd className="text-xs" style={{ color: 'var(--text-secondary)' }}>{pending.ncAdminEmail}</dd>
                             </div>
                             <div>
-                                <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>NC version</dt>
+                                <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_nc_version', 'NC version')}</dt>
                                 <dd className="text-sm" style={{ color: 'var(--text-primary)' }}>{pending.ncVersion || 'unknown'}</dd>
                                 {expiresIn && (
-                                    <dd className="text-xs" style={{ color: 'var(--text-secondary)' }}>Expires in {expiresIn}</dd>
+                                    <dd className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_expires_in', 'Expires in {when}', { when: expiresIn })}</dd>
                                 )}
                             </div>
                         </div>
@@ -149,7 +151,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
                             className="mt-0.5"
                         />
                         <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                            I recognise this Nextcloud and want to connect it to {organizationName || 'this organisation'}.
+                            {t('integ.nc_binding_approval_modal_i_recognise_this_nextcloud_and_want_to', 'I recognise this Nextcloud and want to connect it to')} {organizationName || 'this organisation'}.
                         </span>
                     </label>
 
@@ -167,7 +169,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
                             className="flex-1 py-2.5 rounded-xl font-medium text-sm border transition-colors disabled:opacity-50"
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         >
-                            <X className="inline w-4 h-4 mr-1" /> Deny
+                            <X className="inline w-4 h-4 mr-1" /> {t('integ.nc_binding_approval_modal_deny', 'Deny')}
                         </button>
                         <button
                             type="button"

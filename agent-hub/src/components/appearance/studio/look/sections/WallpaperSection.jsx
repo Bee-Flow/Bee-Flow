@@ -7,6 +7,7 @@ import { toast } from '../../../../shared/Toast';
 import useConfirm from '../../../../shared/useConfirm';
 import { useTheme } from '../../../ThemeContext';
 import { SECTION_IDS } from '../useLookForm';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -20,6 +21,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
  * presets so admins can pre-pick a mood before switching back to Glass.
  */
 export default function WallpaperSection({ form, setForm, saving }) {
+    const { t } = useTranslation();
     const theme = useTheme();
     const fileRef = useRef(null);
     const [uploading, setUploading] = useState(false);
@@ -80,10 +82,10 @@ export default function WallpaperSection({ form, setForm, saving }) {
                     className="text-base font-semibold mb-1"
                     style={{ color: 'var(--text-primary)' }}
                 >
-                    Wallpaper
+                    {t('appearance.wallpaper_wallpaper', 'Wallpaper')}
                 </h3>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    Optional photo background, plus a curated mood palette. The image renders behind every preset, not just Glass.
+                    {t('appearance.wallpaper_optional_photo_background_plus_a', 'Optional photo background, plus a curated mood palette. The image renders behind every preset, not just Glass.')}
                 </p>
             </header>
 
@@ -95,7 +97,7 @@ export default function WallpaperSection({ form, setForm, saving }) {
                     <div className="relative aspect-[16/9]" style={{ background: 'var(--bg-secondary)' }}>
                         <img
                             src={wallpaperFullUrl}
-                            alt="Current wallpaper"
+                            alt={t('appearance.wallpaper_current_wallpaper', 'Current wallpaper')}
                             className="absolute inset-0 w-full h-full object-cover"
                         />
                     </div>
@@ -104,7 +106,7 @@ export default function WallpaperSection({ form, setForm, saving }) {
                         style={{ background: 'var(--bg-card)' }}
                     >
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            Active across every theme.
+                            {t('appearance.wallpaper_active_across_every_theme', 'Active across every theme.')}
                         </span>
                         <div className="flex items-center gap-2">
                             <button
@@ -114,7 +116,7 @@ export default function WallpaperSection({ form, setForm, saving }) {
                                 className="px-3 py-1.5 rounded-lg text-xs font-medium border inline-flex items-center gap-1.5 disabled:opacity-50 hover:bg-[var(--bg-tertiary)]"
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                             >
-                                <Upload className="w-3.5 h-3.5" /> Replace
+                                <Upload className="w-3.5 h-3.5" /> {t('appearance.wallpaper_replace', 'Replace')}
                             </button>
                             <button
                                 type="button"
@@ -123,7 +125,7 @@ export default function WallpaperSection({ form, setForm, saving }) {
                                 className="px-3 py-1.5 rounded-lg text-xs font-medium border inline-flex items-center gap-1.5 disabled:opacity-50"
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
                             >
-                                <Trash2 className="w-3.5 h-3.5" /> Remove
+                                <Trash2 className="w-3.5 h-3.5" /> {t('appearance.wallpaper_remove', 'Remove')}
                             </button>
                         </div>
                     </div>
@@ -146,9 +148,9 @@ export default function WallpaperSection({ form, setForm, saving }) {
                 >
                     {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <ImageIcon className="w-7 h-7" />}
                     <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                        Drop an image, or click to choose
+                        {t('appearance.wallpaper_drop_an_image_or_click_to_choose', 'Drop an image, or click to choose')}
                     </div>
-                    <div className="text-[11px]">JPG, PNG, or WebP — up to 5 MB</div>
+                    <div className="text-[11px]">{t('appearance.wallpaper_jpg_png_or_webp_up_to_5_mb', 'JPG, PNG, or WebP — up to 5 MB')}</div>
                 </button>
             )}
             <input
@@ -174,10 +176,10 @@ export default function WallpaperSection({ form, setForm, saving }) {
             <div>
                 <div className="flex items-center gap-2 mb-3">
                     <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        Mood
+                        {t('appearance.wallpaper_mood', 'Mood')}
                     </h4>
                     <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        — curated colour backdrop for Glass surfaces
+                        {t('appearance.wallpaper_curated_colour_backdrop_for_glass', '— curated colour backdrop for Glass surfaces')}
                     </span>
                 </div>
                 <WallpaperPresets
@@ -191,7 +193,7 @@ export default function WallpaperSection({ form, setForm, saving }) {
                         style={{ background: 'rgba(245,158,11,0.08)', color: 'var(--warning, #f59e0b)' }}
                     >
                         <AlertCircle className="w-3.5 h-3.5" />
-                        Moods only show under Glass themes. Pick one anyway — it activates when you switch.
+                        {t('appearance.wallpaper_moods_only_show_under_glass_themes', 'Moods only show under Glass themes. Pick one anyway — it activates when you switch.')}
                     </p>
                 )}
             </div>

@@ -16,6 +16,7 @@ import { ExternalLink, Globe, Lock, Mail, Copy, Check, Trash2, Plus, RefreshCw }
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import useConfirm from '../../../shared/useConfirm';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 const EXPIRY_OPTIONS = [
     { value: '1', label: '1 day' },
@@ -44,6 +45,7 @@ function formatExpiry(iso) {
 }
 
 export default function ExternalShareSection({ webpageId, webpageName, readOnly = false }) {
+    const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const [shares, setShares] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -198,7 +200,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
         <div className="border-t border-[var(--border-default)] mt-1">
             <div className="px-4 py-2 flex items-center justify-between">
                 <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
-                    External link
+                    {t('agent_wizard.external_share_external_link', 'External link')}
                 </div>
                 {!readOnly && !showForm && (
                     <button
@@ -206,7 +208,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                         onClick={() => { setShowForm(true); setJustCreated(null); }}
                         className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
                     >
-                        <Plus size={12} /> New link
+                        <Plus size={12} /> {t('agent_wizard.external_share_new_link', 'New link')}
                     </button>
                 )}
             </div>
@@ -215,7 +217,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
             {justCreated && (
                 <div className="mx-3 mb-2 p-3 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/30">
                     <div className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">
-                        Share link created.
+                        {t('agent_wizard.external_share_share_link_created', 'Share link created.')}
                     </div>
                     <div className="flex items-center gap-2">
                         <input
@@ -230,7 +232,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                             onClick={() => copyToClipboard(justCreated.url, justCreated.shareId)}
                             className="text-xs px-2 py-1.5 rounded bg-emerald-500 text-white hover:bg-emerald-600 flex items-center gap-1"
                         >
-                            {copiedId === justCreated.shareId ? <><Check size={12}/> Copied</> : <><Copy size={12}/> Copy</>}
+                            {copiedId === justCreated.shareId ? <><Check size={12}/> {t('agent_wizard.external_share_copied', 'Copied')}</> : <><Copy size={12}/> {t('agent_wizard.external_share_copy', 'Copy')}</>}
                         </button>
                     </div>
                 </div>
@@ -239,29 +241,29 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
             {/* Create form */}
             {showForm && (
                 <div className="mx-3 mb-2 p-3 rounded-lg border border-[var(--border-default)] space-y-2">
-                    <div className="text-xs font-medium text-[var(--text-primary)]">Who can access this link?</div>
+                    <div className="text-xs font-medium text-[var(--text-primary)]">{t('agent_wizard.external_share_who_can_access_this_link', 'Who can access this link?')}</div>
                     <div className="space-y-1">
                         <label className="flex items-center gap-2 text-xs cursor-pointer">
                             <input type="radio" name="amode" value="unlisted" checked={accessMode === 'unlisted'} onChange={() => setAccessMode('unlisted')} />
                             <Globe size={12} className="text-[var(--text-secondary)]" />
-                            <span>Anyone with the link</span>
+                            <span>{t('agent_wizard.external_share_anyone_with_the_link', 'Anyone with the link')}</span>
                         </label>
                         <label className="flex items-center gap-2 text-xs cursor-pointer">
                             <input type="radio" name="amode" value="password" checked={accessMode === 'password'} onChange={() => setAccessMode('password')} />
                             <Lock size={12} className="text-[var(--text-secondary)]" />
-                            <span>Password-protected</span>
+                            <span>{t('agent_wizard.external_share_password_protected', 'Password-protected')}</span>
                         </label>
                         <label className="flex items-center gap-2 text-xs cursor-pointer">
                             <input type="radio" name="amode" value="email" checked={accessMode === 'email'} onChange={() => setAccessMode('email')} />
                             <Mail size={12} className="text-[var(--text-secondary)]" />
-                            <span>Email-gated (one-time link)</span>
+                            <span>{t('agent_wizard.external_share_email_gated_one_time_link', 'Email-gated (one-time link)')}</span>
                         </label>
                     </div>
 
                     {accessMode === 'password' && (
                         <input
                             type="password"
-                            placeholder="Set a password (min 6 chars)"
+                            placeholder={t('agent_wizard.external_share_set_a_password_min_6_chars', 'Set a password (min 6 chars)')}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full text-xs px-2 py-1.5 rounded border border-[var(--border-default)] bg-[var(--bg-card,#fff)]"
@@ -269,7 +271,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                     )}
                     {accessMode === 'email' && (
                         <textarea
-                            placeholder="emails, comma- or newline-separated"
+                            placeholder={t('agent_wizard.external_share_emails_comma_or_newline_separated', 'emails, comma- or newline-separated')}
                             value={emailsRaw}
                             onChange={(e) => setEmailsRaw(e.target.value)}
                             rows={2}
@@ -278,7 +280,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                     )}
 
                     <div>
-                        <label className="text-xs text-[var(--text-tertiary)] block mb-1">Expires</label>
+                        <label className="text-xs text-[var(--text-tertiary)] block mb-1">{t('agent_wizard.external_share_expires', 'Expires')}</label>
                         <select
                             value={expiry}
                             onChange={(e) => setExpiry(e.target.value)}
@@ -303,7 +305,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                             disabled={creating}
                             className="text-xs py-1.5 px-3 rounded border border-[var(--border-default)] hover:bg-[var(--bg-secondary)]"
                         >
-                            Cancel
+                            {t('agent_wizard.external_share_cancel', 'Cancel')}
                         </button>
                     </div>
                 </div>
@@ -332,7 +334,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                                     <button
                                         type="button"
                                         onClick={() => copyToClipboard(s.url, s.id)}
-                                        title="Copy link"
+                                        title={t('agent_wizard.external_share_copy_link', 'Copy link')}
                                         className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
                                     >
                                         {copiedId === s.id ? <Check size={12} /> : <Copy size={12} />}
@@ -343,7 +345,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                                         <button
                                             type="button"
                                             onClick={() => handleRefresh(s.id)}
-                                            title="Re-snapshot — update the public copy to match current edits"
+                                            title={t('agent_wizard.external_share_re_snapshot_update_the_public_copy_to', 'Re-snapshot — update the public copy to match current edits')}
                                             className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
                                         >
                                             <RefreshCw size={12} />
@@ -351,7 +353,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                                         <button
                                             type="button"
                                             onClick={() => handleRevoke(s.id)}
-                                            title="Revoke link"
+                                            title={t('agent_wizard.external_share_revoke_link', 'Revoke link')}
                                             className="p-1 rounded hover:bg-red-500/10 text-red-500"
                                         >
                                             <Trash2 size={12} />
@@ -362,12 +364,12 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                             <div className="text-[11px] text-[var(--text-tertiary)] flex items-center gap-2">
                                 <span>{formatExpiry(s.expiresAt)}</span>
                                 <span>·</span>
-                                <span>{s.viewCount} view{s.viewCount === 1 ? '' : 's'}</span>
+                                <span>{s.viewCount === 1 ? t('agent_wizard.external_share_view_one', '{count} view', { count: 1 }) : t('agent_wizard.external_share_view_other', '{count} views', { count: s.viewCount })}</span>
                                 {/* Legacy shares predate the recoverable token — only the owner ever saw the URL. */}
                                 {readOnly && !s.url && (
                                     <>
                                         <span>·</span>
-                                        <span>Link held by owner — ask them for the URL</span>
+                                        <span>{t('agent_wizard.external_share_link_held_by_owner_ask_them_for_the', 'Link held by owner — ask them for the URL')}</span>
                                     </>
                                 )}
                             </div>
@@ -378,8 +380,8 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
             {!loading && activeShares.length === 0 && !showForm && !justCreated && (
                 <div className="px-4 pb-3 text-xs text-[var(--text-tertiary)]">
                     {readOnly
-                        ? <>The owner hasn&apos;t created any external links for this page.</>
-                        : <>No external links yet. <ExternalLink size={10} className="inline" /> Anyone with a published link can view a read-only snapshot — no Bee Flow account needed.</>}
+                        ? <>{t('agent_wizard.external_share_the_owner_hasn_t_created_any_external', 'The owner hasn\'t created any external links for this page.')}</>
+                        : <>{t('agent_wizard.external_share_no_external_links_yet', 'No external links yet.')} <ExternalLink size={10} className="inline" /> {t('agent_wizard.external_share_anyone_with_a_published_link_can_view', 'Anyone with a published link can view a read-only snapshot — no Bee Flow account needed.')}</>}
                 </div>
             )}
             {confirmDialog}

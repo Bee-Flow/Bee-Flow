@@ -3,11 +3,13 @@
 // all bindings are threaded in as props from the panel.
 import { Settings, ToggleLeft, ToggleRight } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export default function GlobalDefaultsSection({
     enableAllDefaults, disableAllDefaults, categories, allIntegrations,
     isDefaultEnabled, toggleDefault,
 }) {
+    const { t } = useTranslation();
     return (
             <div className="p-6">
             <div className="max-w-4xl mx-auto space-y-8">
@@ -16,17 +18,17 @@ export default function GlobalDefaultsSection({
                 <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
                         <div>
-                            <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Global Defaults</h3>
+                            <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.global_defaults_global_defaults', 'Global Defaults')}</h3>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                                Default integrations for new organizations. Changes here don't affect existing orgs.
+                                {t('integ.global_defaults_default_integrations_for_new', 'Default integrations for new organizations. Changes here don\'t affect existing orgs.')}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={enableAllDefaults} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                                Enable All
+                                {t('integ.global_defaults_enable_all', 'Enable All')}
                             </button>
                             <button onClick={disableAllDefaults} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-                                Disable All
+                                {t('integ.global_defaults_disable_all', 'Disable All')}
                             </button>
                         </div>
                     </div>
@@ -64,8 +66,8 @@ export default function GlobalDefaultsSection({
                 <div className="rounded-2xl border p-4 flex items-start gap-3" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <Settings className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        Who may use each integration — per organisation, per group, or for all members — is now managed in
-                        <strong> Admin → Access &amp; Permissions</strong>. The defaults above only seed integrations for newly created organisations.
+                        {t('integ.global_defaults_who_may_use_each_integration_per', 'Who may use each integration — per organisation, per group, or for all members — is now managed in')}
+                        <strong> {t('integ.global_defaults_admin_access_permissions', 'Admin → Access & Permissions')}</strong>{t('integ.global_defaults_the_defaults_above_only_seed', '. The defaults above only seed integrations for newly created organisations.')}
                     </p>
                 </div>
 

@@ -5,6 +5,7 @@ import { Check, Cloud, ExternalLink, Loader2 } from 'lucide-react';
 import React from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import AppEmoji from '../../icons/AppEmoji';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export default function TranscriptionSection({
     transcriptionProvider, setTranscriptionProvider,
@@ -24,6 +25,7 @@ export default function TranscriptionSection({
     pyannoteIdentifyThreshold, setPyannoteIdentifyThreshold,
     setMessage,
 }) {
+    const { t } = useTranslation();
     return (
             <div className="p-6">
             <div className="max-w-4xl mx-auto space-y-6">
@@ -32,19 +34,18 @@ export default function TranscriptionSection({
                 <div>
                     <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                         <Cloud className="w-5 h-5" style={{ color: '#0ea5e9' }} />
-                        Meeting Transcription
+                        {t('integ.transcription_meeting_transcription', 'Meeting Transcription')}
                     </h2>
                     <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                        Configure which AI provider transcribes your meeting recordings. All providers support <strong>speaker diarization</strong> (who said what) and automatic
-                        speaker name identification. Switch providers at any time without losing settings.
+                        {t('integ.transcription_configure_which_ai_provider', 'Configure which AI provider transcribes your meeting recordings. All providers support')} <strong>{t('integ.transcription_speaker_diarization', 'speaker diarization')}</strong> {t('integ.transcription_who_said_what_and_automatic_speaker', '(who said what) and automatic speaker name identification. Switch providers at any time without losing settings.')}
                     </p>
                 </div>
 
                 {/* Active provider picker */}
                 <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                        <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Active Provider</h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Choose which engine will be used when you transcribe audio in Meeting Notes.</p>
+                        <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_active_provider', 'Active Provider')}</h3>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_choose_which_engine_will_be_used_when', 'Choose which engine will be used when you transcribe audio in Meeting Notes.')}</p>
                     </div>
                     <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-3">
                         {[
@@ -165,28 +166,28 @@ export default function TranscriptionSection({
                     <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
                         <div>
                             <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                                ⚡ Voxtral <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#f59e0b18', color: '#f59e0b' }}>Mistral Cloud</span>
-                                {transcriptionProvider === 'voxtral' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Active</span>}
+                                {t('integ.transcription_voxtral', '⚡ Voxtral')} <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#f59e0b18', color: '#f59e0b' }}>{t('integ.transcription_mistral_cloud', 'Mistral Cloud')}</span>
+                                {transcriptionProvider === 'voxtral' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
                             </h3>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Uses Mistral's <code>voxtral-mini-latest</code> model. Fast and accurate with speaker diarization.</p>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_uses_mistral_s', 'Uses Mistral\'s')} <code>voxtral-mini-latest</code> {t('integ.transcription_model_fast_and_accurate_with_speaker', 'model. Fast and accurate with speaker diarization.')}</p>
                         </div>
                     </div>
                     <div className="p-6 space-y-3">
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Mistral API Key</p>
+                            <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_mistral_api_key', 'Mistral API Key')}</p>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                Voxtral uses your existing Mistral API key configured in{' '}
-                                <strong>Admin → AI Config → API Keys → Mistral</strong>. No additional setup needed here.
+                                {t('integ.transcription_voxtral_uses_your_existing_mistral_api', 'Voxtral uses your existing Mistral API key configured in')}{' '}
+                                <strong>{t('integ.transcription_admin_ai_config_api_keys_mistral', 'Admin → AI Config → API Keys → Mistral')}</strong>{t('integ.transcription_no_additional_setup_needed_here', '. No additional setup needed here.')}
                             </p>
                         </div>
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Capabilities</p>
+                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_capabilities', 'Capabilities')}</p>
                             <ul className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
-                                <li>✅ Speaker diarization (who said what)</li>
-                                <li>✅ Word and segment timestamps</li>
-                                <li>✅ 30+ languages</li>
-                                <li>✅ Context terms to boost accuracy</li>
-                                <li>ℹ️ Audio sent to Mistral cloud servers</li>
+                                <li>{t('integ.transcription_speaker_diarization_who_said_what', '✅ Speaker diarization (who said what)')}</li>
+                                <li>{t('integ.transcription_word_and_segment_timestamps', '✅ Word and segment timestamps')}</li>
+                                <li>{t('integ.transcription_30_languages', '✅ 30+ languages')}</li>
+                                <li>{t('integ.transcription_context_terms_to_boost_accuracy', '✅ Context terms to boost accuracy')}</li>
+                                <li>{t('integ.transcription_audio_sent_to_mistral_cloud_servers', 'ℹ️ Audio sent to Mistral cloud servers')}</li>
                             </ul>
                         </div>
                         <a
@@ -195,7 +196,7 @@ export default function TranscriptionSection({
                             className="inline-flex items-center gap-1.5 text-sm underline"
                             style={{ color: 'var(--accent-primary)' }}
                         >
-                            <ExternalLink className="w-3.5 h-3.5" /> Open Mistral Console
+                            <ExternalLink className="w-3.5 h-3.5" /> {t('integ.transcription_open_mistral_console', 'Open Mistral Console')}
                         </a>
                     </div>
                 </div>
@@ -204,31 +205,31 @@ export default function TranscriptionSection({
                 <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                            ☁️ Azure AI Speech
-                            <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#0078D418', color: '#0078D4' }}>Microsoft Cloud</span>
-                            {transcriptionProvider === 'azure' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Active</span>}
-                            {hasAzureSpeechKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>Key saved 🔒</span>}
+                            {t('integ.transcription_azure_ai_speech', '☁️ Azure AI Speech')}
+                            <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#0078D418', color: '#0078D4' }}>{t('integ.transcription_microsoft_cloud', 'Microsoft Cloud')}</span>
+                            {transcriptionProvider === 'azure' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
+                            {hasAzureSpeechKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
                         </h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Azure Cognitive Services Speech with optional Whisper model. Enterprise SLAs, GDPR-compliant regions available.</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_azure_cognitive_services_speech_with', 'Azure Cognitive Services Speech with optional Whisper model. Enterprise SLAs, GDPR-compliant regions available.')}</p>
                     </div>
                     <div className="p-6 space-y-4">
                         {/* Credentials */}
                         <div>
-                            <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>Credentials</label>
+                            <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_credentials', 'Credentials')}</label>
                             <div className="flex gap-2 mb-2">
                                 <div className="flex-1">
-                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Region (e.g. <code>westeurope</code>, <code>eastus</code>)</p>
+                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_region_e_g', 'Region (e.g.')} <code>westeurope</code>, <code>eastus</code>)</p>
                                     <input
                                         type="text"
                                         value={azureSpeechRegion}
                                         onChange={e => setAzureSpeechRegion(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                                        placeholder="westeurope"
+                                        placeholder={t('integ.transcription_westeurope', 'westeurope')}
                                         className="w-full px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
                                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' }}
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>API Key (Key 1)</p>
+                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_api_key_key_1', 'API Key (Key 1)')}</p>
                                     <input
                                         type="password"
                                         value={azureSpeechKey}
@@ -272,26 +273,25 @@ export default function TranscriptionSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {savingAzureSpeech ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                Save credentials
+                                {t('integ.transcription_save_credentials', 'Save credentials')}
                             </button>
                         </div>
                         {/* Info */}
                         <div className="rounded-xl p-4 space-y-1.5" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Capabilities</p>
+                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_capabilities', 'Capabilities')}</p>
                             <ul className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
-                                <li>✅ Speaker diarization</li>
-                                <li>✅ Whisper model available</li>
-                                <li>✅ GDPR-compliant regions (e.g. <code>westeurope</code>)</li>
-                                <li>✅ Enterprise SLA</li>
-                                <li>🔒 Key encrypted at rest (AES-256-GCM) — never exposed in API responses</li>
+                                <li>{t('integ.transcription_speaker_diarization_2', '✅ Speaker diarization')}</li>
+                                <li>{t('integ.transcription_whisper_model_available', '✅ Whisper model available')}</li>
+                                <li>{t('integ.transcription_gdpr_compliant_regions_e_g', '✅ GDPR-compliant regions (e.g.')} <code>westeurope</code>)</li>
+                                <li>{t('integ.transcription_enterprise_sla', '✅ Enterprise SLA')}</li>
+                                <li>{t('integ.transcription_key_encrypted_at_rest_aes_256_gcm', '🔒 Key encrypted at rest (AES-256-GCM) — never exposed in API responses')}</li>
                             </ul>
                         </div>
                         <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: 'var(--accent-primary)10', border: '1px solid var(--accent-primary)30' }}>
                             <ExternalLink className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                Create a resource in the{' '}
-                                <a href="https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>Azure Portal → AI Speech</a>.
-                                Copy <strong>Key 1</strong> and the <strong>Location / Region</strong>.
+                                {t('integ.transcription_create_a_resource_in_the', 'Create a resource in the')}{' '}
+                                <a href="https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('integ.transcription_azure_portal_ai_speech', 'Azure Portal → AI Speech')}</a>{t('integ.transcription_copy', '. Copy')} <strong>{t('integ.transcription_key_1', 'Key 1')}</strong> {t('integ.transcription_and_the', 'and the')} <strong>{t('integ.transcription_location_region', 'Location / Region')}</strong>.
                             </p>
                         </div>
                     </div>
@@ -301,20 +301,20 @@ export default function TranscriptionSection({
                 <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                            🏠 WhisperX
-                            <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#0ea5e918', color: '#0ea5e9' }}>Self-hosted</span>
-                            {transcriptionProvider === 'whisperx' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Active</span>}
-                            {hasWhisperxUrl && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>URL saved 🔒</span>}
+                            {t('integ.transcription_whisperx', '🏠 WhisperX')}
+                            <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#0ea5e918', color: '#0ea5e9' }}>{t('integ.transcription_self_hosted', 'Self-hosted')}</span>
+                            {transcriptionProvider === 'whisperx' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
+                            {hasWhisperxUrl && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{t('integ.transcription_url_saved', 'URL saved 🔒')}</span>}
                         </h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Point BeeFlow at your own WhisperX or Faster-Whisper server. Audio never leaves your network.</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_point_beeflow_at_your_own_whisperx_or', 'Point BeeFlow at your own WhisperX or Faster-Whisper server. Audio never leaves your network.')}</p>
                     </div>
                     <div className="p-6 space-y-4">
                         {/* Server URL */}
                         <div>
-                            <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>Server Configuration</label>
+                            <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_server_configuration', 'Server Configuration')}</label>
                             <div className="space-y-2">
                                 <div>
-                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Server URL — base URL of your WhisperX HTTP API</p>
+                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_server_url_base_url_of_your_whisperx', 'Server URL — base URL of your WhisperX HTTP API')}</p>
                                     <input
                                         type="url"
                                         value={whisperxUrl}
@@ -325,7 +325,7 @@ export default function TranscriptionSection({
                                     />
                                 </div>
                                 <div>
-                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Bearer Token <em>(optional — only if your server requires authentication)</em></p>
+                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_bearer_token', 'Bearer Token')} <em>{t('integ.transcription_optional_only_if_your_server_requires', '(optional — only if your server requires authentication)')}</em></p>
                                     <input
                                         type="password"
                                         value={whisperxToken}
@@ -371,24 +371,24 @@ export default function TranscriptionSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {savingWhisperx ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                Save server config
+                                {t('integ.transcription_save_server_config', 'Save server config')}
                             </button>
                         </div>
                         {/* Capabilities */}
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Capabilities</p>
+                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_capabilities', 'Capabilities')}</p>
                             <ul className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
-                                <li>✅ Speaker diarization</li>
-                                <li>✅ Fully private — audio stays on your server</li>
-                                <li>✅ GPU-accelerated (faster than real-time)</li>
-                                <li>✅ No per-minute cost</li>
-                                <li>✅ Compatible with <code>whisperx-server</code> and <code>faster-whisper-server</code></li>
-                                <li>🔒 URL stored encrypted (AES-256-GCM)</li>
+                                <li>{t('integ.transcription_speaker_diarization_2', '✅ Speaker diarization')}</li>
+                                <li>{t('integ.transcription_fully_private_audio_stays_on_your', '✅ Fully private — audio stays on your server')}</li>
+                                <li>{t('integ.transcription_gpu_accelerated_faster_than_real_time', '✅ GPU-accelerated (faster than real-time)')}</li>
+                                <li>{t('integ.transcription_no_per_minute_cost', '✅ No per-minute cost')}</li>
+                                <li>{t('integ.transcription_compatible_with', '✅ Compatible with')} <code>whisperx-server</code> {t('integ.transcription_and', 'and')} <code>faster-whisper-server</code></li>
+                                <li>{t('integ.transcription_url_stored_encrypted_aes_256_gcm', '🔒 URL stored encrypted (AES-256-GCM)')}</li>
                             </ul>
                         </div>
                         {/* Setup guide */}
                         <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Quick setup with Docker</p>
+                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_quick_setup_with_docker', 'Quick setup with Docker')}</p>
                             <pre className="text-xs rounded-lg p-3 overflow-x-auto" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{`docker run -d \\
   --name whisperx \\
   --gpus all \\
@@ -397,8 +397,8 @@ export default function TranscriptionSection({
 
 # Then set Server URL to: http://your-host:9000`}</pre>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                CPU-only: replace <code>latest-cuda</code> with <code>latest-cpu</code>. Diarization requires a Hugging Face token — see the{' '}
-                                <a href="https://github.com/fedirz/faster-whisper-server" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>faster-whisper-server docs</a>.
+                                {t('integ.transcription_cpu_only_replace', 'CPU-only: replace')} <code>latest-cuda</code> {t('integ.transcription_with', 'with')} <code>latest-cpu</code>{t('integ.transcription_diarization_requires_a_hugging_face', '. Diarization requires a Hugging Face token — see the')}{' '}
+                                <a href="https://github.com/fedirz/faster-whisper-server" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('integ.transcription_faster_whisper_server_docs', 'faster-whisper-server docs')}</a>.
                             </p>
                         </div>
                     </div>
@@ -408,17 +408,17 @@ export default function TranscriptionSection({
                 <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                            🇪🇺 Scaleway Whisper
-                            <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#7c3aed18', color: '#7c3aed' }}>Hybrid · EU</span>
-                            {transcriptionProvider === 'scaleway' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Active</span>}
-                            {hasScalewayKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>Key saved 🔒</span>}
+                            {t('integ.transcription_scaleway_whisper', '🇪🇺 Scaleway Whisper')}
+                            <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#7c3aed18', color: '#7c3aed' }}>{t('integ.transcription_hybrid_eu', 'Hybrid · EU')}</span>
+                            {transcriptionProvider === 'scaleway' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
+                            {hasScalewayKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
                         </h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Fast GDPR-EU cloud transcription (Whisper large-v3) with speaker labels from your local WhisperX diarizer.</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_fast_gdpr_eu_cloud_transcription', 'Fast GDPR-EU cloud transcription (Whisper large-v3) with speaker labels from your local WhisperX diarizer.')}</p>
                     </div>
                     <div className="p-6 space-y-4">
                         <div>
-                            <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>Scaleway API Key</label>
-                            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Secret key from the Scaleway console → Generative APIs → Generate API key</p>
+                            <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_scaleway_api_key', 'Scaleway API Key')}</label>
+                            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_secret_key_from_the_scaleway_console', 'Secret key from the Scaleway console → Generative APIs → Generate API key')}</p>
                             <input
                                 type="password"
                                 value={scalewayApiKey}
@@ -457,23 +457,23 @@ export default function TranscriptionSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {savingScaleway ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                Save API key
+                                {t('integ.transcription_save_api_key', 'Save API key')}
                             </button>
                         </div>
                         {/* Capabilities */}
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Capabilities</p>
+                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_capabilities', 'Capabilities')}</p>
                             <ul className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
-                                <li>✅ Fast cloud transcription — GPU Whisper large-v3, far quicker than local CPU</li>
-                                <li>✅ Speaker diarization <em>via your local WhisperX diarizer</em> (needs the WhisperX URL above set)</li>
-                                <li>✅ Runs in an EU region (GDPR) — your own Scaleway project</li>
-                                <li>⚠️ Audio is sent to your Scaleway EU project for transcription — not zero-egress like pure WhisperX</li>
-                                <li>🔒 Key stored encrypted (AES-256-GCM)</li>
+                                <li>{t('integ.transcription_fast_cloud_transcription_gpu_whisper', '✅ Fast cloud transcription — GPU Whisper large-v3, far quicker than local CPU')}</li>
+                                <li>{t('integ.transcription_speaker_diarization_2', '✅ Speaker diarization')} <em>{t('integ.transcription_via_your_local_whisperx_diarizer', 'via your local WhisperX diarizer')}</em> {t('integ.transcription_needs_the_whisperx_url_above_set', '(needs the WhisperX URL above set)')}</li>
+                                <li>{t('integ.transcription_runs_in_an_eu_region_gdpr_your_own', '✅ Runs in an EU region (GDPR) — your own Scaleway project')}</li>
+                                <li>{t('integ.transcription_audio_is_sent_to_your_scaleway_eu', '⚠️ Audio is sent to your Scaleway EU project for transcription — not zero-egress like pure WhisperX')}</li>
+                                <li>{t('integ.transcription_key_stored_encrypted_aes_256_gcm', '🔒 Key stored encrypted (AES-256-GCM)')}</li>
                             </ul>
                         </div>
                         {!hasWhisperxUrl && (
                             <div className="rounded-xl p-4 text-xs" style={{ background: 'var(--bg-primary)', border: '1px solid #f59e0b44', color: 'var(--text-muted)' }}>
-                                ⚠️ No WhisperX URL configured. Scaleway will transcribe but every segment will be one speaker until you set the WhisperX/diarizer URL above.
+                                {t('integ.transcription_no_whisperx_url_configured_scaleway', '⚠️ No WhisperX URL configured. Scaleway will transcribe but every segment will be one speaker until you set the WhisperX/diarizer URL above.')}
                             </div>
                         )}
                     </div>
@@ -483,17 +483,17 @@ export default function TranscriptionSection({
                 <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                            🎯 pyannoteAI
-                            <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#6d28d918', color: '#6d28d9' }}>Diarization + STT</span>
-                            {transcriptionProvider === 'pyannote' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Active</span>}
-                            {hasPyannoteKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>Key saved 🔒</span>}
+                            {t('integ.transcription_pyannoteai', '🎯 pyannoteAI')}
+                            <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#6d28d918', color: '#6d28d9' }}>{t('integ.transcription_diarization_stt', 'Diarization + STT')}</span>
+                            {transcriptionProvider === 'pyannote' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
+                            {hasPyannoteKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
                         </h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Best-in-class speaker diarization with speaker-attributed transcription, in a single call.</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_best_in_class_speaker_diarization_with', 'Best-in-class speaker diarization with speaker-attributed transcription, in a single call.')}</p>
                     </div>
                     <div className="p-6 space-y-4">
                         <div>
-                            <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>pyannoteAI API Key</label>
-                            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Create a key at dashboard.pyannote.ai → API keys</p>
+                            <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_pyannoteai_api_key', 'pyannoteAI API Key')}</label>
+                            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('integ.transcription_create_a_key_at_dashboard_pyannote_ai', 'Create a key at dashboard.pyannote.ai → API keys')}</p>
                             <input
                                 type="password"
                                 value={pyannoteApiKey}
@@ -532,19 +532,16 @@ export default function TranscriptionSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {savingPyannote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                Save API key
+                                {t('integ.transcription_save_api_key', 'Save API key')}
                             </button>
                         </div>
                         {/* Speech model */}
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Speech-to-text model</p>
+                            <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_speech_to_text_model', 'Speech-to-text model')}</p>
                             <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-                                Speaker separation always uses <strong>precision-3</strong>, pyannoteAI&rsquo;s most accurate model.
-                                For the words themselves, neither available model wins everywhere:
-                                <strong> Parakeet v3</strong> is the more accurate of the two (6.34% vs 7.83% average word error rate
-                                on English) and covers 25 European languages including Dutch;
-                                <strong> Whisper large-v3-turbo</strong> is a little weaker but covers 99, so it is the only option for
-                                Japanese, Chinese, Korean, Arabic and Turkish. Automatic picks the best one per meeting language.
+                                {t('integ.transcription_speaker_separation_always_uses', 'Speaker separation always uses')} <strong>{t('integ.transcription_precision_3', 'precision-3')}</strong>{t('integ.transcription_pyannoteai_s_most_accurate_model_for', ', pyannoteAI’s most accurate model. For the words themselves, neither available model wins everywhere:')}
+                                <strong> {t('integ.transcription_parakeet_v3', 'Parakeet v3')}</strong> {t('integ.transcription_is_the_more_accurate_of_the_two_6_34', 'is the more accurate of the two (6.34% vs 7.83% average word error rate on English) and covers 25 European languages including Dutch;')}
+                                <strong> {t('integ.transcription_whisper_large_v3_turbo', 'Whisper large-v3-turbo')}</strong> {t('integ.transcription_is_a_little_weaker_but_covers_99_so_it', 'is a little weaker but covers 99, so it is the only option for Japanese, Chinese, Korean, Arabic and Turkish. Automatic picks the best one per meeting language.')}
                             </p>
                             <select
                                 value={pyannoteTranscriptionModel}
@@ -553,22 +550,18 @@ export default function TranscriptionSection({
                                 className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             >
-                                <option value="">Automatic — best model per meeting language (recommended)</option>
-                                <option value="parakeet-tdt-0.6b-v3">Always Parakeet v3 — most accurate, European languages only</option>
-                                <option value="faster-whisper-large-v3-turbo">Always Whisper large-v3-turbo — widest language coverage</option>
+                                <option value="">{t('integ.transcription_automatic_best_model_per_meeting', 'Automatic — best model per meeting language (recommended)')}</option>
+                                <option value="parakeet-tdt-0.6b-v3">{t('integ.transcription_always_parakeet_v3_most_accurate', 'Always Parakeet v3 — most accurate, European languages only')}</option>
+                                <option value="faster-whisper-large-v3-turbo">{t('integ.transcription_always_whisper_large_v3_turbo_widest', 'Always Whisper large-v3-turbo — widest language coverage')}</option>
                             </select>
                         </div>
                         {/* Voiceprint speaker identification */}
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Recognise speakers by voice</p>
+                                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_recognise_speakers_by_voice', 'Recognise speakers by voice')}</p>
                                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                        Colleagues record a personal voice profile in Settings → Preferences (only they can record their own),
-                                        after which their real name is put on their turns automatically.
-                                        pyannoteAI cannot transcribe and identify in one job, so a <strong>second job per meeting</strong> is
-                                        submitted — but only when someone in that organisation actually has a voice profile.
-                                        Turn this off to stop identification everywhere without anyone deleting theirs.
+                                        {t('integ.transcription_colleagues_record_a_personal_voice', 'Colleagues record a personal voice profile in Settings → Preferences (only they can record their own), after which their real name is put on their turns automatically. pyannoteAI cannot transcribe and identify in one job, so a')} <strong>{t('integ.transcription_second_job_per_meeting', 'second job per meeting')}</strong> {t('integ.transcription_is_submitted_but_only_when_someone_in', 'is submitted — but only when someone in that organisation actually has a voice profile. Turn this off to stop identification everywhere without anyone deleting theirs.')}
                                     </p>
                                 </div>
                                 <button
@@ -587,8 +580,7 @@ export default function TranscriptionSection({
                             {voiceprintMatchingEnabled && (
                                 <div className="mt-3 pt-3 flex items-center gap-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                                     <label className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
-                                        Match confidence threshold — how sure pyannoteAI must be before a voice counts as a match.
-                                        Higher means fewer names, but never the wrong one. Default 50.
+                                        {t('integ.transcription_match_confidence_threshold_how_sure', 'Match confidence threshold — how sure pyannoteAI must be before a voice counts as a match. Higher means fewer names, but never the wrong one. Default 50.')}
                                     </label>
                                     <input
                                         type="number" min={0} max={100}
@@ -604,14 +596,14 @@ export default function TranscriptionSection({
                         </div>
                         {/* Capabilities */}
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Capabilities</p>
+                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_capabilities', 'Capabilities')}</p>
                             <ul className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
-                                <li>✅ Premium speaker diarization (precision-3) — strong multi-speaker separation</li>
-                                <li>✅ Speaker-attributed transcription in the same call — no separate diarizer</li>
-                                <li>✅ Per-meeting speaker count honoured (set “Number of speakers” at upload)</li>
-                                <li>✅ Optional per-person voiceprints — real names without an attendee list</li>
-                                <li>✅ Audio uploaded to pyannoteAI temporary storage (24h) — no RustFS/public URL needed</li>
-                                <li>🔒 Key + voice profiles stored encrypted (AES-256-GCM)</li>
+                                <li>{t('integ.transcription_premium_speaker_diarization_precision', '✅ Premium speaker diarization (precision-3) — strong multi-speaker separation')}</li>
+                                <li>{t('integ.transcription_speaker_attributed_transcription_in', '✅ Speaker-attributed transcription in the same call — no separate diarizer')}</li>
+                                <li>{t('integ.transcription_per_meeting_speaker_count_honoured_set', '✅ Per-meeting speaker count honoured (set “Number of speakers” at upload)')}</li>
+                                <li>{t('integ.transcription_optional_per_person_voiceprints_real', '✅ Optional per-person voiceprints — real names without an attendee list')}</li>
+                                <li>{t('integ.transcription_audio_uploaded_to_pyannoteai_temporary', '✅ Audio uploaded to pyannoteAI temporary storage (24h) — no RustFS/public URL needed')}</li>
+                                <li>{t('integ.transcription_key_voice_profiles_stored_encrypted', '🔒 Key + voice profiles stored encrypted (AES-256-GCM)')}</li>
                             </ul>
                         </div>
                     </div>
@@ -620,7 +612,7 @@ export default function TranscriptionSection({
                 {/* How transcription works */}
                 <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                        <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>How Transcription Works</h3>
+                        <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.transcription_how_transcription_works', 'How Transcription Works')}</h3>
                     </div>
                     <div className="p-6">
                         <ol className="space-y-3">

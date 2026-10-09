@@ -21,6 +21,9 @@
 const fs = require('node:fs');
 
 const NAMESPACES = {
+    "appearance":      require('./appearance.js'),
+    "nc_onboarding":   require('./nc_onboarding.js'),
+    "init_setup":      require('./init_setup.js'),
     "activity":        require('./activity.js'),
     "admin":           require('./admin.js'),
     "agent":           require('./agent.js'),

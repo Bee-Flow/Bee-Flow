@@ -169,7 +169,7 @@ export default function VersionHistory({ agentId, onRestore }) {
                 {/* System Prompt */}
                 {sysPrompt && (
                     <div>
-                        <span className="text-[var(--text-tertiary)] font-medium block mb-1">System Prompt:</span>
+                        <span className="text-[var(--text-tertiary)] font-medium block mb-1">{t('agent.version_history_system_prompt', 'System Prompt:')}</span>
                         <pre className="text-[10px] text-[var(--text-secondary)] bg-black/20 rounded p-2 whitespace-pre-wrap max-h-32 overflow-y-auto font-mono leading-relaxed">
                             {sysPrompt.length > 500 ? sysPrompt.substring(0, 500) + '...' : sysPrompt}
                         </pre>
@@ -179,7 +179,7 @@ export default function VersionHistory({ agentId, onRestore }) {
                 {/* Tools */}
                 {tools.length > 0 && (
                     <div>
-                        <span className="text-[var(--text-tertiary)] font-medium">Tools ({tools.length}):</span>
+                        <span className="text-[var(--text-tertiary)] font-medium">{t('agent.version_history_tools_count', 'Tools ({count}):', { count: tools.length })}</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                             {tools.map(t => (
                                 <span key={t} className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 text-[10px]">{t}</span>
@@ -191,7 +191,7 @@ export default function VersionHistory({ agentId, onRestore }) {
                 {/* Starter Prompts */}
                 {starters.length > 0 && (
                     <div>
-                        <span className="text-[var(--text-tertiary)] font-medium">Starter Prompts ({starters.length}):</span>
+                        <span className="text-[var(--text-tertiary)] font-medium">{t('agent.version_history_starter_prompts_count', 'Starter Prompts ({count}):', { count: starters.length })}</span>
                         <div className="mt-1 space-y-0.5">
                             {starters.map((p, i) => (
                                 <div key={i} className="text-[10px] text-[var(--text-secondary)] pl-2 border-l border-[var(--border-subtle)]">{p}</div>
@@ -218,14 +218,14 @@ export default function VersionHistory({ agentId, onRestore }) {
                 {/* Phases (legacy snapshots) */}
                 {phases.length > 0 && (
                     <div>
-                        <span className="text-[var(--text-tertiary)] font-medium">Phases ({phases.length}):</span>
+                        <span className="text-[var(--text-tertiary)] font-medium">{t('agent.version_history_phases_count', 'Phases ({count}):', { count: phases.length })}</span>
                         <div className="mt-1 space-y-2">
                             {phases.map((phase, pi) => (
                                 <div key={phase.id || pi} className="rounded-lg bg-black/15 p-2">
                                     <div className="flex items-center gap-2 mb-1">
                                         {phase.icon && <span>{phase.icon}</span>}
                                         <span className="font-medium text-[var(--text-primary)]">{phase.name || `Phase ${pi + 1}`}</span>
-                                        {phase.parallel && <span className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[9px]">parallel</span>}
+                                        {phase.parallel && <span className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[9px]">{t('agent.version_history_parallel', 'parallel')}</span>}
                                     </div>
                                     {phase.description && (
                                         <div className="text-[10px] text-[var(--text-tertiary)] mb-1">{phase.description}</div>
@@ -287,7 +287,7 @@ export default function VersionHistory({ agentId, onRestore }) {
             >
                 {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 <Clock className="w-4 h-4" />
-                <span>Version History</span>
+                <span>{t('agent.version_history_version_history', 'Version History')}</span>
                 {versions.length > 0 && (
                     <span className="ml-auto text-xs bg-[var(--bg-tertiary)] px-2 py-0.5 rounded-full text-[var(--text-tertiary)]">
                         {versions.length}
@@ -298,11 +298,11 @@ export default function VersionHistory({ agentId, onRestore }) {
             {expanded && (
                 <div className="mt-3 space-y-1 max-h-[400px] overflow-y-auto">
                     {loading && (
-                        <div className="text-xs text-[var(--text-tertiary)] py-4 text-center">Loading versions...</div>
+                        <div className="text-xs text-[var(--text-tertiary)] py-4 text-center">{t('agent.version_history_loading_versions', 'Loading versions...')}</div>
                     )}
                     {!loading && versions.length === 0 && (
                         <div className="text-xs text-[var(--text-tertiary)] py-4 text-center">
-                            No versions yet. Versions are created automatically when you save changes.
+                            {t('agent.version_history_no_versions_yet_versions_are_created', 'No versions yet. Versions are created automatically when you save changes.')}
                         </div>
                     )}
                     {versions.map((v) => (
@@ -330,7 +330,7 @@ export default function VersionHistory({ agentId, onRestore }) {
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handlePreview(v.id); }}
                                         className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-blue-400"
-                                        title="Preview"
+                                        title={t('agent.version_history_preview', 'Preview')}
                                     >
                                         <Eye className="w-3 h-3" />
                                     </button>
@@ -338,14 +338,14 @@ export default function VersionHistory({ agentId, onRestore }) {
                                         onClick={(e) => { e.stopPropagation(); handleRestore(v.id, v.version_number); }}
                                         disabled={restoring === v.id}
                                         className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-green-400 disabled:opacity-50"
-                                        title="Restore this version"
+                                        title={t('agent.version_history_restore_this_version', 'Restore this version')}
                                     >
                                         <RotateCcw className={`w-3 h-3 ${restoring === v.id ? 'animate-spin' : ''}`} />
                                     </button>
                                     <button
                                         onClick={(e) => handleDelete(v.id, e)}
                                         className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-red-400"
-                                        title="Delete version"
+                                        title={t('agent.version_history_delete_version', 'Delete version')}
                                     >
                                         <Trash2 className="w-3 h-3" />
                                     </button>

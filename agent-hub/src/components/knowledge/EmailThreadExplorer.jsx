@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../../utils/helpers';
 import { ChevronDown, ChevronRight, Mail } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Email Thread Explorer — groups email KB documents by their threadId.
@@ -12,6 +13,7 @@ import { ChevronDown, ChevronRight, Mail } from 'lucide-react';
  *   - onOpenDoc? : (doc) => void  (optional: let the parent jump to the doc)
  */
 export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }) {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [threads, setThreads] = useState([]);
     const [expandedThreadId, setExpandedThreadId] = useState(null);
@@ -50,7 +52,7 @@ export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }) {
     };
 
     if (loading && threads.length === 0) {
-        return <div className="text-xs text-center py-3" style={{ color: 'var(--text-muted)' }}>Loading threads…</div>;
+        return <div className="text-xs text-center py-3" style={{ color: 'var(--text-muted)' }}>{t('knowledge.email_thread_explorer_loading_threads', 'Loading threads…')}</div>;
     }
     if (threads.length === 0) {
         return null;
@@ -60,26 +62,26 @@ export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }) {
         <div className="mt-4 rounded-lg border" style={{ borderColor: 'var(--border-subtle)' }}>
             <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
                 <Mail className="w-3.5 h-3.5 text-blue-500" />
-                <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Email threads ({threads.length})</h5>
+                <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{t('knowledge.email_thread_explorer_email_threads_count', 'Email threads ({count})', { count: threads.length })}</h5>
             </div>
             <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
-                {threads.map(t => {
-                    const isOpen = expandedThreadId === t.thread_id;
-                    const docs = threadDocs[t.thread_id] || [];
+                {threads.map(th => {
+                    const isOpen = expandedThreadId === th.thread_id;
+                    const docs = threadDocs[th.thread_id] || [];
                     return (
-                        <li key={t.thread_id}>
-                            <button onClick={() => expandThread(t.thread_id)}
+                        <li key={th.thread_id}>
+                            <button onClick={() => expandThread(th.thread_id)}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[var(--bg-tertiary)]"
                                 style={{ color: 'var(--text-primary)' }}>
                                 {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                                <span className="flex-1 truncate font-mono text-[10px]">{t.thread_id}</span>
-                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t.message_count} msgs</span>
-                                {t.latest && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{new Date(t.latest).toLocaleDateString()}</span>}
+                                <span className="flex-1 truncate font-mono text-[10px]">{th.thread_id}</span>
+                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{th.message_count} {t('knowledge.email_thread_explorer_msgs', 'msgs')}</span>
+                                {th.latest && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{new Date(th.latest).toLocaleDateString()}</span>}
                             </button>
                             {isOpen && (
                                 <div className="px-3 pb-3">
                                     {docs.length === 0 ? (
-                                        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Loading…</div>
+                                        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('knowledge.email_thread_explorer_loading', 'Loading…')}</div>
                                     ) : (
                                         <ol className="space-y-1">
                                             {docs.map((d, idx) => (
@@ -95,7 +97,7 @@ export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }) {
                                                     </div>
                                                     {onOpenDoc && (
                                                         <button onClick={() => onOpenDoc(d)}
-                                                            className="text-[10px] text-blue-500 hover:underline">Open</button>
+                                                            className="text-[10px] text-blue-500 hover:underline">{t('knowledge.email_thread_explorer_open', 'Open')}</button>
                                                     )}
                                                 </li>
                                             ))}

@@ -1,10 +1,13 @@
 import React from 'react';
 import { AzureOpenAILogo } from './ProviderLogos';
+import { useTranslation } from '../../hooks/useTranslation';
 
-const StepDeploymentType = ({ deploymentType, setDeploymentType }) => (
+const StepDeploymentType = ({ deploymentType, setDeploymentType }) => {
+    const { t } = useTranslation();
+    return (
     <div className="space-y-4">
         <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
-            Choose how you want to set up your AI infrastructure
+            {t('init_setup.step_deployment_type_choose_how_you_want_to_set_up_your_ai', 'Choose how you want to set up your AI infrastructure')}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -29,12 +32,12 @@ const StepDeploymentType = ({ deploymentType, setDeploymentType }) => (
                         <AzureOpenAILogo size={24} />
                     </div>
                     <div>
-                        <div className="font-semibold text-sm" style={{ color: '#1f2937' }}>Microsoft Azure</div>
-                        <div className="text-xs" style={{ color: '#6b7280' }}>Enterprise-ready setup</div>
+                        <div className="font-semibold text-sm" style={{ color: '#1f2937' }}>{t('init_setup.step_deployment_type_microsoft_azure', 'Microsoft Azure')}</div>
+                        <div className="text-xs" style={{ color: '#6b7280' }}>{t('init_setup.step_deployment_type_enterprise_ready_setup', 'Enterprise-ready setup')}</div>
                     </div>
                 </div>
                 <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
-                    Azure OpenAI, Bing Search, and Microsoft SSO — fully integrated Azure ecosystem.
+                    {t('init_setup.step_deployment_type_azure_openai_bing_search_and_microsoft', 'Azure OpenAI, Bing Search, and Microsoft SSO — fully integrated Azure ecosystem.')}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-3">
                     {['Azure OpenAI', 'Bing Search', 'Microsoft SSO'].map(tag => (
@@ -65,12 +68,12 @@ const StepDeploymentType = ({ deploymentType, setDeploymentType }) => (
                         <span className="text-xl">🔧</span>
                     </div>
                     <div>
-                        <div className="font-semibold text-sm" style={{ color: '#1f2937' }}>Custom Setup</div>
-                        <div className="text-xs" style={{ color: '#6b7280' }}>Mix & match providers</div>
+                        <div className="font-semibold text-sm" style={{ color: '#1f2937' }}>{t('init_setup.step_deployment_type_custom_setup', 'Custom Setup')}</div>
+                        <div className="text-xs" style={{ color: '#6b7280' }}>{t('init_setup.step_deployment_type_mix_match_providers', 'Mix & match providers')}</div>
                     </div>
                 </div>
                 <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
-                    Choose from OpenAI, Google, Mistral, Claude — configure each service independently.
+                    {t('init_setup.step_deployment_type_choose_from_openai_google_mistral', 'Choose from OpenAI, Google, Mistral, Claude — configure each service independently.')}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-3">
                     {['OpenAI', 'Google', 'Mistral', 'Claude'].map(tag => (
@@ -82,5 +85,6 @@ const StepDeploymentType = ({ deploymentType, setDeploymentType }) => (
         </div>
     </div>
 );
+};
 
 export default StepDeploymentType;

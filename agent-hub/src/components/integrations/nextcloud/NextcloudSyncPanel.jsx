@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Cloud, RefreshCw, Users, AlertTriangle, Check, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Org-admin UI for Nextcloud user/group sync.
@@ -10,6 +11,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
  * and force an on-demand re-sync.
  */
 const NextcloudSyncPanel = ({ user }) => {
+    const { t } = useTranslation();
     // The user prop may be a stale snapshot from initial App mount. If we
     // can't see an org id on it, re-fetch /auth/user once before deciding
     // to show "no org" — the connector flow auto-provisions on first hit.
@@ -99,7 +101,7 @@ const NextcloudSyncPanel = ({ user }) => {
     };
 
     if (loading) return <div className="p-6"><Loader2 className="animate-spin" /></div>;
-    if (!config) return <div className="p-6 text-sm" style={{ color: 'var(--text-muted)' }}>Nextcloud sync is only available for organisations bound to a Nextcloud instance.</div>;
+    if (!config) return <div className="p-6 text-sm" style={{ color: 'var(--text-muted)' }}>{t('integ.nextcloud_sync_nextcloud_sync_is_only_available_for', 'Nextcloud sync is only available for organisations bound to a Nextcloud instance.')}</div>;
 
     // Format relative timestamp for "Last sync" — < 1 min ago, 30 min ago,
     // 4 hr ago, 2 days ago, etc. Falls back to absolute date if older than 7d.
@@ -121,35 +123,35 @@ const NextcloudSyncPanel = ({ user }) => {
             <header className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Cloud className="w-5 h-5" style={{ color: '#0082C9' }} />
-                    <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Nextcloud Sync</h2>
+                    <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.nextcloud_sync_nextcloud_sync', 'Nextcloud Sync')}</h2>
                 </div>
                 <button onClick={handleSyncNow} disabled={syncing || config.mode === 'manual'}
                     title={config.mode === 'manual' ? 'Sync mode is set to Manual — change to mirror or selective to enable.' : 'Run a full diff sync now'}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-white disabled:opacity-50 transition-opacity"
                     style={{ background: 'var(--accent-primary)' }}>
                     {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    Sync now
+                    {t('integ.nextcloud_sync_sync_now', 'Sync now')}
                 </button>
             </header>
 
             {/* Connection-health stat row — at-a-glance status of the NC binding. */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="rounded-xl px-3 py-2.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Instance</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.nextcloud_sync_instance', 'Instance')}</div>
                     <div className="text-[12px] font-medium truncate" title={config.ncBaseUrl} style={{ color: 'var(--text-primary)' }}>
                         {config.ncBaseUrl ? config.ncBaseUrl.replace(/^https?:\/\//, '') : '—'}
                     </div>
                 </div>
                 <div className="rounded-xl px-3 py-2.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Sync mode</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</div>
                     <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{modeLabel}</div>
                 </div>
                 <div className="rounded-xl px-3 py-2.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Active users</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.nextcloud_sync_active_users', 'Active users')}</div>
                     <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{activeUsers} <span className="opacity-60 font-normal">/ {users.length}</span></div>
                 </div>
                 <div className="rounded-xl px-3 py-2.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Last sync</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>{t('integ.nextcloud_sync_last_sync', 'Last sync')}</div>
                     <div className="text-[12px] font-medium flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
                         <span className="w-1.5 h-1.5 rounded-full" style={{ background: isFresh ? '#10b981' : config.lastSyncAt ? '#f59e0b' : 'var(--text-muted)' }} />
                         {formatLastSync(config.lastSyncAt)}
@@ -158,7 +160,7 @@ const NextcloudSyncPanel = ({ user }) => {
             </div>
 
             <section className="border rounded p-4 space-y-3">
-                <h3 className="font-medium">Sync mode</h3>
+                <h3 className="font-medium">{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</h3>
                 {[
                     { v: 'mirror_all', t: 'Mirror everything', d: 'Every Nextcloud user is automatically created in Bee Flow.' },
                     { v: 'selective_groups', t: 'Selective groups', d: 'Only users in the chosen NC groups are mirrored.' },
@@ -176,18 +178,18 @@ const NextcloudSyncPanel = ({ user }) => {
             </section>
 
             <section className="border rounded p-4 space-y-3">
-                <h3 className="font-medium">New user default status</h3>
+                <h3 className="font-medium">{t('integ.nextcloud_sync_new_user_default_status', 'New user default status')}</h3>
                 <select value={config.newUserDefaultStatus} onChange={e => update({ newUserDefaultStatus: e.target.value })}
                     className="border rounded px-2 py-1 text-sm">
-                    <option value="active">Active immediately (recommended)</option>
-                    <option value="pending">Pending — admin must approve</option>
+                    <option value="active">{t('integ.nextcloud_sync_active_immediately_recommended', 'Active immediately (recommended)')}</option>
+                    <option value="pending">{t('integ.nextcloud_sync_pending_admin_must_approve', 'Pending — admin must approve')}</option>
                 </select>
             </section>
 
             {config.mode === 'selective_groups' && (
                 <section className="border rounded p-4 space-y-2">
-                    <h3 className="font-medium">Groups to mirror</h3>
-                    <p className="text-xs text-gray-600">Only members of these NC groups are synced.</p>
+                    <h3 className="font-medium">{t('integ.nextcloud_sync_groups_to_mirror', 'Groups to mirror')}</h3>
+                    <p className="text-xs text-gray-600">{t('integ.nextcloud_sync_only_members_of_these_nc_groups_are', 'Only members of these NC groups are synced.')}</p>
                     <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
                         {groups.map(g => (
                             <label key={g} className="flex items-center gap-2 text-sm">
@@ -201,8 +203,8 @@ const NextcloudSyncPanel = ({ user }) => {
             )}
 
             <section className="border rounded p-4 space-y-2">
-                <h3 className="font-medium">Excluded groups</h3>
-                <p className="text-xs text-gray-600">Members of these NC groups are NEVER mirrored, even under "mirror everything".</p>
+                <h3 className="font-medium">{t('integ.nextcloud_sync_excluded_groups', 'Excluded groups')}</h3>
+                <p className="text-xs text-gray-600">{t('integ.nextcloud_sync_members_of_these_nc_groups_are_never', 'Members of these NC groups are NEVER mirrored, even under "mirror everything".')}</p>
                 <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
                     {groups.map(g => (
                         <label key={g} className="flex items-center gap-2 text-sm">
@@ -215,7 +217,7 @@ const NextcloudSyncPanel = ({ user }) => {
             </section>
 
             <section className="border rounded p-4">
-                <h3 className="font-medium flex items-center gap-2"><Users className="w-4 h-4" /> Synced users ({users.length})</h3>
+                <h3 className="font-medium flex items-center gap-2"><Users className="w-4 h-4" /> {t('integ.nextcloud_sync_synced_users_count', 'Synced users ({count})', { count: users.length })}</h3>
                 <ul className="text-sm mt-2 max-h-48 overflow-y-auto divide-y">
                     {users.map(u => (
                         <li key={u.id} className="py-1.5 flex items-center justify-between">

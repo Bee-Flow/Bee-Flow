@@ -177,7 +177,7 @@ const ImportMemoryModal = ({ onClose, onImported }) => {
                                 ? t('settings.memory_import_success', 'Added {count} memories').replace('{count}', String(result.imported))
                                 : t('settings.memory_import_none', 'No memories could be extracted from the text.')}
                             {result.skipped > 0 && (
-                                <span style={{ color: 'var(--text-muted)' }}> · {result.skipped} skipped</span>
+                                <span style={{ color: 'var(--text-muted)' }}> {t('knowledge.import_memory_modal_skipped_skipped', '· {skipped} skipped', { skipped: result.skipped })}</span>
                             )}
                         </div>
                     )}

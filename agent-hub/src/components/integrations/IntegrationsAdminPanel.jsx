@@ -129,7 +129,7 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>
-                <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading integrations...
+                <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t('integ.integrations_admin_loading_integrations', 'Loading integrations...')}
             </div>
         );
     }

@@ -1,6 +1,7 @@
 import { RotateCw, ExternalLink } from 'lucide-react';
 import React from 'react';
 import { PREVIEW_SURFACES } from './previewSurfaces';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * Toolbar above the preview iframe — surface tabs on the left, refresh and
@@ -8,13 +9,14 @@ import { PREVIEW_SURFACES } from './previewSurfaces';
  * strip: pill segments, accent-coloured active state, no border seam.
  */
 export default function LookPreviewToolbar({ activeId, onChange, onReload, surfaceUrl }) {
+    const { t } = useTranslation();
     return (
         <div
             className="flex items-center gap-2 px-3 py-2 border-b"
             style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
         >
             <nav
-                aria-label="Preview surface"
+                aria-label={t('appearance.look_preview_toolbar_preview_surface', 'Preview surface')}
                 className="flex items-center gap-1 overflow-x-auto"
             >
                 {PREVIEW_SURFACES.map(({ id, label, icon: Icon }) => {
@@ -45,8 +47,8 @@ export default function LookPreviewToolbar({ activeId, onChange, onReload, surfa
                 <button
                     type="button"
                     onClick={onReload}
-                    aria-label="Refresh preview"
-                    title="Refresh preview"
+                    aria-label={t('appearance.look_preview_toolbar_refresh_preview', 'Refresh preview')}
+                    title={t('appearance.look_preview_toolbar_refresh_preview', 'Refresh preview')}
                     className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]"
                     style={{ color: 'var(--text-tertiary)' }}
                 >
@@ -57,8 +59,8 @@ export default function LookPreviewToolbar({ activeId, onChange, onReload, surfa
                         href={surfaceUrl}
                         target="_blank"
                         rel="noreferrer"
-                        aria-label="Open preview in new tab"
-                        title="Open preview in new tab"
+                        aria-label={t('appearance.look_preview_toolbar_open_preview_in_new_tab', 'Open preview in new tab')}
+                        title={t('appearance.look_preview_toolbar_open_preview_in_new_tab', 'Open preview in new tab')}
                         className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]"
                         style={{ color: 'var(--text-tertiary)' }}
                     >
