@@ -6,7 +6,7 @@
 # different and far larger image — and the CPU wheel index that would keep it
 # honest is not readable from the pinning box. This service waits for a box
 # that can read download.pytorch.org.
-fastapi==0.141.1
+fastapi==0.142.2
 uvicorn[standard]==0.54.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
@@ -34,5 +34,5 @@ tokenizers==0.23.2
 huggingface_hub==1.33.0
 # ONNX runtime for fp32 CPU inference (much faster than fp32 PyTorch; we do
 # NOT INT8-quantize — that collapsed person-name recall, BFSF-269)
-onnx==1.23.0
+onnx==1.23.1
 onnxruntime==1.30.0
