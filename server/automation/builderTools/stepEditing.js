@@ -479,6 +479,7 @@ function updateAsTypeChange(graph, step, found, patch, newType, args, draftWrap)
         };
     }
     const { spec, notes } = specForTypeChange(step, patch, newType);
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- aboutTable below is a fixed alternation of literals over our own error text
     const r = applyReplaceStep(graph, { stepId: step.id, newType, spec }, { draft: draftWrap && draftWrap.def, scope: args.scope || null }, draftWrap);
     if (r.error) {
         // A consent question or an access refusal keeps its own instructions.

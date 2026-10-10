@@ -181,6 +181,7 @@ async function execDatatable(step, ctx, runState, mode) {
     // would call it unknown. A preview simulates it (reads return the empty
     // shape, which is true of a new table; a write returns what it would
     // write); a live run must never get here, and fails closed.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- PENDING_DATATABLE_RE is anchored and bounded (pending:1-999)
     if (typeof step.datatableId === 'string' && PENDING_DATATABLE_RE.test(step.datatableId)) {
         if (mode !== 'dry_run') {
             throw fail('This step points at a table that was proposed but never created. Apply the proposal that creates it, or pick a table.', 'datatable_pending');

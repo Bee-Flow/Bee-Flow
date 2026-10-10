@@ -59,6 +59,7 @@ export function CurlImportDialog({ open, onClose, onApply }: Props) {
                         )}
                         {parsed.skipped.length > 0 && (
                             <div role="note" data-testid="curl-secret-notice" className="rounded border border-amber-500/50 bg-amber-500/10 p-2 text-[var(--text-primary)]">
+                                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated notice about secrets, not a secret */}
                                 {t('http_query.curl_secrets', 'These secrets were not copied: {list}. Create or select a saved credential under Authentication instead.')
                                     .replace('{list}', [...new Set(parsed.skipped.map((s) => s.name))].join(', '))}
                             </div>
