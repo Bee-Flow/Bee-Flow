@@ -170,6 +170,8 @@ const STORE_MODULES = [
     { name: 'skillStore', file: './stores/skillStore' },
     { name: 'skillActivations', file: './stores/skillActivations' },
     { name: 'webpageSchema', file: './stores/webpage/schema' },
+    // Named MCP access tokens (mcp_tokens): sha256 of the secret, scopes, per-token IP list.
+    { name: 'mcpTokenStore', file: './stores/mcpTokenStore' },
     { name: 'webpagePublicShareStore', file: './stores/webpagePublicShareStore' },
     { name: 'terminationStore', file: './stores/terminationStore' },
     { name: 'guardrailEventStore', file: './stores/guardrailEventStore' },

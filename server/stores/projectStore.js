@@ -79,6 +79,17 @@ async function applyProjectSchema({ exec, runDdl }) {
         EXCEPTION WHEN OTHERS THEN NULL;
         END $$;
 
+        DO $$ BEGIN
+            ALTER TABLE projects ADD COLUMN IF NOT EXISTS editors_can_invite BOOLEAN NOT NULL DEFAULT true;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END $$;
+
+        DO $$ BEGIN
+            ALTER TABLE projects ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+            ALTER TABLE projects ADD COLUMN IF NOT EXISTS archived_by TEXT;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END $$;
+
         CREATE TABLE IF NOT EXISTS project_shares (
             id TEXT PRIMARY KEY,
             project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -409,6 +420,11 @@ function mapProjectRow(row) {
         ownerId: row.owner_id,
         organizationId: row.organization_id,
         extractMemories: row.extract_memories,
+        // May editors invite people (viewer or editor)? The owner always may.
+        editorsCanInvite: row.editors_can_invite !== false,
+        // Set while the project is archived (read-only for everyone but the owner's restore/delete).
+        archivedAt: row.archived_at || null,
+        archivedBy: row.archived_by || null,
         version: row.version,
         // 'workspace' | 'solution', or null for a legacy row nobody has
         // classified yet.
@@ -512,7 +528,7 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
             [id, name, description || '', customInstructions || '', kbIds, color || '#6366f1', icon || '📁', ownerId, organizationId || '', extractMemories || false, fromBlueprint, fromOrg, atVersion, projectKind]
         );
-        return { id, name, description, customInstructions, knowledgeBaseIds: knowledgeBaseIds || [], color, icon, ownerId, organizationId, extractMemories: extractMemories || false, installedFromBlueprintId: fromBlueprint, installedFromOrgId: fromOrg, installedVersion: atVersion, kind: projectKind, kindGuessed: false, filesKbId: null };
+        return { id, name, description, customInstructions, knowledgeBaseIds: knowledgeBaseIds || [], color, icon, ownerId, organizationId, extractMemories: extractMemories || false, editorsCanInvite: true, archivedAt: null, archivedBy: null, installedFromBlueprintId: fromBlueprint, installedFromOrgId: fromOrg, installedVersion: atVersion, kind: projectKind, kindGuessed: false, filesKbId: null };
     }
 
     async function getProject(id) {
@@ -541,9 +557,10 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
      *
      * @param {string} userId
      * @param {string[]} groupIds - groups the user belongs to
-     * @param {{ kind?: 'workspace'|'solution', onlyStages?: boolean }} [opts]
+     * @param {{ kind?: 'workspace'|'solution', onlyStages?: boolean, includeArchived?: boolean }} [opts]
+     *        archived projects are left out unless `includeArchived`
      */
-    async function listUserProjects(userId, groupIds = [], { kind, onlyStages = false } = {}) {
+    async function listUserProjects(userId, groupIds = [], { kind, onlyStages = false, includeArchived = false } = {}) {
         await initDB();
         if (kind !== undefined && kind !== null && !PROJECT_KINDS.includes(kind)) {
             throw new TypeError(`listUserProjects: kind is 'workspace' or 'solution', not ${JSON.stringify(kind)}.`);
@@ -569,6 +586,8 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
             if (kind === 'solution') kindFilter += ' AND p.stage_of IS NULL';
         }
 
+        if (!includeArchived) kindFilter += ' AND p.archived_at IS NULL';
+
         const rows = await getAll(`
             SELECT DISTINCT p.*,
                 CASE WHEN p.owner_id = $1 THEN 'owner' ELSE COALESCE(
@@ -591,6 +610,31 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
         `, params);
 
         return rows.map(row => ({ ...mapProjectRow(row), permission: row.user_permission || 'viewer' }));
+    }
+
+    /**
+     * Archive a project (`userId`) or restore it (`null`).
+     *
+     * Archiving an archived project keeps the first `archived_at`/`archived_by`
+     * (idempotent). Neither `version` nor `updated_at` changes: an open settings
+     * form must not turn into a spurious conflict, and the list order is by activity.
+     *
+     * @param {string} id
+     * @param {string|null} userId who archives; null restores
+     * @returns {Promise<object|null>} the project, or null when it does not exist
+     */
+    async function setArchived(id, userId) {
+        await initDB();
+        if (userId) {
+            await run(
+                `UPDATE projects SET archived_at = NOW(), archived_by = $2
+                  WHERE id = $1 AND archived_at IS NULL`,
+                [id, userId]
+            );
+        } else {
+            await run(`UPDATE projects SET archived_at = NULL, archived_by = NULL WHERE id = $1`, [id]);
+        }
+        return await getProject(id);
     }
 
     /**
@@ -779,6 +823,7 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
         color: 'color',
         icon: 'icon',
         extractMemories: 'extract_memories',
+        editorsCanInvite: 'editors_can_invite',
     };
 
     /**
@@ -939,6 +984,44 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
             [projectId, fromOwnerId]
         );
         return rows?.[0]?.owner_id || null;
+    }
+
+    /**
+     * Hand a project to a named person (the owner's own choice, or an org admin's rescue of an orphan).
+     * One statement, so the owner is only replaced while still the one the caller saw: a concurrent
+     * transfer leaves this one a no-op ({ ok: false, reason: 'owner_changed' }) and writes nothing.
+     *
+     * The new owner is not also a member, so their user share goes; the old owner stays on as
+     * `keepFromAs` ('editor' | 'viewer'), or not at all ('none'). A stage-bound project refuses (409),
+     * as for handOverProject.
+     *
+     * @param {{ projectId: string, fromUserId: string, toUserId: string, keepFromAs?: 'editor'|'viewer'|'none' }} args
+     * @returns {Promise<{ ok: true } | { ok: false, reason: 'owner_changed' }>}
+     */
+    async function transferOwner({ projectId, fromUserId, toUserId, keepFromAs = 'none' }) {
+        await initDB();
+        await refuseStageBound(projectId);
+        const keep = keepFromAs === 'editor' || keepFromAs === 'viewer' ? keepFromAs : null;
+        const { rows } = await run(
+            `WITH moved AS (
+                 UPDATE projects SET owner_id = $3, updated_at = NOW(), version = COALESCE(version, 0) + 1
+                  WHERE id = $1 AND owner_id = $2
+                  RETURNING id
+             ), dropped AS (
+                 DELETE FROM project_shares
+                  WHERE project_id = $1 AND shared_with_type = 'user' AND shared_with_id = $3
+                    AND EXISTS (SELECT 1 FROM moved)
+             ), kept AS (
+                 INSERT INTO project_shares (id, project_id, shared_with_type, shared_with_id, permission, invited_by)
+                 SELECT $4::text, $1, 'user', $2, $5::text, $3
+                  WHERE $5::text IS NOT NULL AND EXISTS (SELECT 1 FROM moved)
+                 ON CONFLICT (project_id, shared_with_type, shared_with_id)
+                 DO UPDATE SET permission = EXCLUDED.permission
+             )
+             SELECT id FROM moved`,
+            [projectId, fromUserId, toUserId, crypto.randomUUID(), keep]
+        );
+        return rows?.length ? { ok: true } : { ok: false, reason: 'owner_changed' };
     }
 
     async function unshareProject(shareId) {
@@ -1348,6 +1431,7 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
         getProject,
         listUserProjects,
         setProjectKind,
+        setArchived,
         stageOfProject,
         stageOfProjectFresh,
         createStageProject,
@@ -1363,6 +1447,7 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
         shareProject,
         unshareProject,
         handOverProject,
+        transferOwner,
         getProjectShares,
         getShareById,
         updateMemberRole,
@@ -1392,6 +1477,7 @@ module.exports = {
     listUserProjects: store.listUserProjects,
     // The workspace / Solution split (see the header).
     setProjectKind: store.setProjectKind,
+    setArchived: store.setArchived,
     // Solution stages (UAT / PRD): see the stage block of applyProjectSchema.
     stageOfProject: store.stageOfProject,
     stageOfProjectFresh: store.stageOfProjectFresh,
@@ -1408,6 +1494,7 @@ module.exports = {
     shareProject: store.shareProject,
     unshareProject: store.unshareProject,
     handOverProject: store.handOverProject,
+    transferOwner: store.transferOwner,
     getProjectShares: store.getProjectShares,
     getShareById: store.getShareById,
     updateMemberRole: store.updateMemberRole,

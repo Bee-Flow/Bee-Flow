@@ -1,5 +1,5 @@
 import ProjectCaptureProvider from './components/projects/workspace/content/ProjectCaptureProvider';
-import { mayNavigate } from './utils/unsavedNavigation';
+import { whenMayNavigate } from './utils/unsavedNavigation';
 import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { lazy } from './utils/lazyWithReload';
 
@@ -261,8 +261,7 @@ function App() {
 
     // Handle browser back/forward
     useEffect(() => {
-        const handlePopState = () => {
-            if (!mayNavigate()) return;
+        const handlePopState = () => whenMayNavigate(() => {
             const page = pageFromPath(window.location.pathname);
             setCurrentPage(page);
             setAdminPath(parseAdminPath(window.location.pathname));
@@ -284,7 +283,7 @@ function App() {
             const isProjects = page === 'projects';
             setShowProjects(isProjects);
             setInitialProjectRoute(isProjects ? parseProjectUrl(window.location.pathname) : null);
-        };
+        });
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
     }, []);
@@ -648,7 +647,10 @@ function App() {
                 setCurrentPage('agents');
                 window.history.pushState({ page: 'agents' }, '', '/app');
             }
-        }} initialCoworkId={initialCoworkId} initialDocumentId={initialDocumentId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId, tab, sub) => {
+        }} initialCoworkId={initialCoworkId} initialDocumentId={initialDocumentId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId, tab, sub) => whenMayNavigate(() => {
+            // The workspace clears its dirty flag before its own confirmed moves,
+            // so this guard refuses only moves started outside the workspace
+            // (the rail, the switcher).
             // Drives the URL from the app, so a project view — down to one
             // team chat or document inside it — can be linked, bookmarked and
             // reached with the back button. `''` means "open the create form":
@@ -671,7 +673,7 @@ function App() {
             const state = { page: 'projects', projectId: route.projectId };
             if (mode === 'replace') window.history.replaceState(state, '', path);
             else if (mode === 'push') window.history.pushState(state, '', path);
-        }} onCloseProjects={() => {
+        })} onCloseProjects={() => {
             setShowProjects(false);
             setInitialProjectRoute(null);
             if (window.location.pathname.startsWith('/app/projects')) {

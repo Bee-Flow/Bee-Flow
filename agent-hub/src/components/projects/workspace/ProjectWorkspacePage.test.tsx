@@ -4,7 +4,9 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { projectKeys } from '../../../api/queries/projects';
 import { testQueryClient, withQueryClient } from '../../../test/queryWrapper';
+import { ProjectLiveProvider } from './ProjectLiveContext';
 import ProjectWorkspacePage from './ProjectWorkspacePage';
+import { mayNavigate } from '../../../utils/unsavedNavigation';
 import type { ProjectWorkspacePageProps } from './types';
 import { EDITOR_ID, makeFakeApi, makeMembers, makeProject, OWNER_ID, reply } from './workspaceTestApi';
 
@@ -16,6 +18,15 @@ vi.mock('../../../utils/helpers', async (importOriginal) => ({
 }));
 // No live stream in a unit test; the provider's cache wiring is tested with it.
 vi.mock('../../../hooks/useProjectStream', () => ({ default: () => undefined }));
+
+/** The hub provides the live feed around the page; do the same here. */
+function PageInHub(props: ProjectWorkspacePageProps) {
+    return (
+        <ProjectLiveProvider projectId={props.projectId} currentUserId="me">
+            <ProjectWorkspacePage {...props} />
+        </ProjectLiveProvider>
+    );
+}
 
 // The chat and content sections belong to their own modules; here they only
 // have to receive the contract props.
@@ -58,7 +69,7 @@ function renderPage(over: Partial<ProjectWorkspacePageProps> = {}) {
         onOpenThread: vi.fn(), onNavigate: vi.fn(), onStartChat: vi.fn(),
         ...over,
     };
-    const view = render(withQueryClient(<ProjectWorkspacePage {...props} />));
+    const view = render(withQueryClient(<PageInHub {...props} />));
     return { props, view, user: userEvent.setup() };
 }
 
@@ -98,22 +109,22 @@ describe('ProjectWorkspacePage — create mode', () => {
 });
 
 describe('ProjectWorkspacePage — navigation', () => {
-    it('opens on the overview with the rail, counts only once known, and the presence beat', async () => {
+    it('opens on the overview with the phone bar, counts only once known, and the presence beat', async () => {
         const api = serve();
         renderPage();
         expect(await screen.findByTestId('project-overview-tab')).toBeInTheDocument();
-        expect(screen.getByTestId('project-rail-name')).toHaveTextContent('Launch plan');
-        await waitFor(() => expect(screen.getByTestId('project-rail-members-count')).toHaveTextContent('3'));
-        expect(screen.getByTestId('project-rail-documents-count')).toHaveTextContent('1');
-        expect(screen.queryByTestId('project-rail-meetings-count')).toBeNull();
+        const bar = within(await screen.findByRole('radiogroup', { name: 'Project sections' }));
+        await waitFor(() => expect(bar.getByRole('radio', { name: 'Members3' })).toBeInTheDocument());
+        expect(bar.getByRole('radio', { name: 'Documents1' })).toBeInTheDocument();
+        expect(bar.getByRole('radio', { name: 'Meetings' })).toBeInTheDocument();
         expect(api.callsTo('POST', '/api/projects/p1/presence').length).toBeGreaterThan(0);
     });
 
     it('leaves Notebooks out of the rail, and tells every section, for a reader who may not use notebooks', async () => {
         serve();
         renderPage({ notebooksEnabled: false });
-        expect(await screen.findByTestId('project-rail-documents')).toBeInTheDocument();
-        expect(screen.queryByTestId('project-rail-notebooks')).toBeNull();
+        expect(await screen.findByRole('radio', { name: /^Documents/ })).toBeInTheDocument();
+        expect(screen.queryByRole('radio', { name: /^Notebooks/ })).toBeNull();
         expect(screen.getByTestId('project-overview-tab')).toBeInTheDocument();
         expect(screen.queryByTestId('quick-notebook')).toBeNull();
     });
@@ -130,16 +141,16 @@ describe('ProjectWorkspacePage — navigation', () => {
         renderPage({ initialTab: 'notebooks' });
         expect(await screen.findByTestId('section-notebooks')).toBeInTheDocument();
         expect(lastPropsOf('notebooks').notebooksEnabled).toBe(true);
-        expect(screen.getByTestId('project-rail-notebooks')).toBeInTheDocument();
+        expect(screen.getByRole('radio', { name: /^Notebooks/ })).toBeInTheDocument();
     });
 
     it('switches sections from the rail and reports the route', async () => {
         serve();
         const { props, user } = renderPage();
-        await user.click(await screen.findByTestId('project-rail-activity'));
+        await user.click(await screen.findByRole('radio', { name: /^Activity/ }));
         expect(await screen.findByTestId('project-activity-tab')).toBeInTheDocument();
         expect(props.onRouteChange).toHaveBeenLastCalledWith('activity', null);
-        expect(screen.getByTestId('project-rail-activity')).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('radio', { name: /^Activity/ })).toBeChecked();
     });
 
     it('asks before leaving Settings with unsaved edits, and keeps them when the person stays', async () => {
@@ -147,25 +158,25 @@ describe('ProjectWorkspacePage — navigation', () => {
         const { props, user } = renderPage({ initialTab: 'settings' });
         const name = await screen.findByTestId('project-field-name');
         await user.type(name, ' 2');
-        await user.click(screen.getByTestId('project-rail-activity'));
+        await user.click(screen.getByRole('radio', { name: /^Activity/ }));
         expect(await screen.findByText('Leave without saving?')).toBeInTheDocument();
         expect(props.onRouteChange).not.toHaveBeenCalled();
         await user.click(screen.getByRole('button', { name: 'Keep editing' }));
         expect(screen.getByTestId('project-field-name')).toHaveValue('Launch plan 2');
-        await user.click(screen.getByTestId('project-rail-activity'));
+        await user.click(screen.getByRole('radio', { name: /^Activity/ }));
         await user.click(await screen.findByRole('button', { name: 'Leave without saving' }));
         expect(await screen.findByTestId('project-activity-tab')).toBeInTheDocument();
         expect(props.onRouteChange).toHaveBeenLastCalledWith('activity', null);
     });
 
-    it('protects All projects, browser traversal and reload while settings are dirty', async () => {
+    it('protects All projects, browser traversal and reload while settings are dirty, in the page\'s own dialog', async () => {
         serve();
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        const confirm = vi.spyOn(window, 'confirm');
         try {
             const { props, user } = renderPage({ initialTab: 'settings' });
             await user.type(await screen.findByTestId('project-field-name'), ' draft');
-            await user.click(screen.getByTestId('project-rail-back'));
-            expect(confirm).toHaveBeenCalledOnce();
+            await user.click(screen.getByRole('button', { name: 'All projects' }));
+            await user.click(within(await screen.findByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Keep editing' }));
             expect(props.onClose).not.toHaveBeenCalled();
             const unload = new Event('beforeunload', { cancelable: true });
             window.dispatchEvent(unload);
@@ -174,20 +185,45 @@ describe('ProjectWorkspacePage — navigation', () => {
             window.addEventListener('popstate', downstream);
             try {
                 window.dispatchEvent(new PopStateEvent('popstate'));
+                await user.click(within(await screen.findByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Keep editing' }));
                 expect(downstream).not.toHaveBeenCalled();
                 expect(screen.getByTestId('project-field-name')).toHaveValue('Launch plan draft');
             } finally { window.removeEventListener('popstate', downstream); }
-            confirm.mockReturnValue(true);
-            await user.click(screen.getByTestId('project-rail-back'));
-            expect(props.onClose).toHaveBeenCalledOnce();
+            await user.click(screen.getByRole('button', { name: 'All projects' }));
+            await user.click(within(await screen.findByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Leave without saving' }));
+            await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+            expect(confirm).not.toHaveBeenCalled();
         } finally { confirm.mockRestore(); }
+    });
+
+    it('answers the app\'s navigation guard through a dialog: cancel keeps the page, leaving clears the flag', async () => {
+        serve();
+        const { user } = renderPage({ initialTab: 'settings' });
+        await user.type(await screen.findByTestId('project-field-name'), ' draft');
+        let answer: boolean | Promise<boolean> = true;
+        act(() => { answer = mayNavigate(); });
+        expect(answer).toBeInstanceOf(Promise);
+        await user.click(within(await screen.findByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Keep editing' }));
+        await expect(answer).resolves.toBe(false);
+        act(() => { answer = mayNavigate(); });
+        await user.click(within(await screen.findByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Leave without saving' }));
+        await expect(answer).resolves.toBe(true);
+        expect(mayNavigate()).toBe(true);
+    });
+
+    it('never prompts for a click on the section that is already open', async () => {
+        serve();
+        const { user } = renderPage({ initialTab: 'settings' });
+        await user.type(await screen.findByTestId('project-field-name'), ' draft');
+        await user.click(screen.getByRole('radio', { name: /^Settings/ }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('leaves Settings at once when nothing was edited', async () => {
         serve();
         const { user } = renderPage({ initialTab: 'settings' });
         await screen.findByTestId('project-field-name');
-        await user.click(screen.getByTestId('project-rail-activity'));
+        await user.click(screen.getByRole('radio', { name: /^Activity/ }));
         expect(await screen.findByTestId('project-activity-tab')).toBeInTheDocument();
         expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
     });
@@ -196,7 +232,7 @@ describe('ProjectWorkspacePage — navigation', () => {
         serve();
         const { props, view } = renderPage({ initialTab: 'general' });
         expect(await screen.findByTestId('project-settings-tab')).toBeInTheDocument();
-        view.rerender(withQueryClient(<ProjectWorkspacePage {...props} initialTab="threads" />));
+        view.rerender(withQueryClient(<PageInHub {...props} initialTab="threads" />));
         expect(await screen.findByTestId('section-chats')).toBeInTheDocument();
     });
 
@@ -239,13 +275,30 @@ describe('ProjectWorkspacePage — navigation', () => {
             onClose: vi.fn(), onOpenThread: vi.fn(), onNavigate: vi.fn(), onStartChat: vi.fn(() => true),
         };
         const user = userEvent.setup();
-        const view = render(withQueryClient(<ProjectWorkspacePage {...props} />, client));
+        const view = render(withQueryClient(<PageInHub {...props} />, client));
         await user.type(await screen.findByTestId('composer-input'), 'Salary bands for the reorg');
 
-        view.rerender(withQueryClient(<ProjectWorkspacePage {...props} projectId="p2" />, client));
-        await waitFor(() => expect(screen.getByTestId('project-rail-name')).toHaveTextContent('Budget 2027'));
+        view.rerender(withQueryClient(<PageInHub {...props} projectId="p2" />, client));
+        await waitFor(() => expect(screen.getByTestId('project-bar-name')).toHaveTextContent('Budget 2027'));
         expect(screen.getByTestId('composer-input')).toHaveValue('');
         expect(screen.queryByRole('checkbox', { name: 'Share with members' })).not.toBeInTheDocument();
+    });
+});
+
+describe('ProjectWorkspacePage — phone section bar', () => {
+    it('shows which project you are in on a section other than the overview', async () => {
+        serve();
+        renderPage({ initialTab: 'settings' });
+        expect(await screen.findByTestId('project-bar-name')).toHaveTextContent('Launch plan');
+    });
+
+    it('lists the rail rows in rail order with the task count and skips Notebooks when they are off', async () => {
+        serve(makeProject(), { 'GET /api/projects/p1/tasks': { tasks: [{ id: 't1', status: 'todo', assigneeIds: [] }, { id: 't2', status: 'done', assigneeIds: [] }] } });
+        renderPage({ notebooksEnabled: false });
+        const bar = await screen.findByRole('radiogroup', { name: 'Project sections' });
+        await waitFor(() => expect(within(bar).getAllByRole('radio').map((r) => r.textContent)).toEqual(
+            ['Overview', 'Chats1', 'Tasks1', 'Meetings', 'Documents1', 'Knowledge0', 'Members3', 'Activity', 'Settings'],
+        ));
     });
 });
 
@@ -347,9 +400,9 @@ describe('ProjectWorkspacePage — what changed', () => {
             'GET /api/projects/p1/chats': { chats: [{ id: 'c1', title: 'Standup', unread: 2 }] },
         });
         renderPage();
-        expect(await screen.findByTestId('project-rail-documents-unread')).toBeInTheDocument();
-        expect(await screen.findByTestId('project-rail-chats-unread')).toBeInTheDocument();
-        expect(screen.queryByTestId('project-rail-notebooks-unread')).toBeNull();
+        expect(await screen.findByRole('radio', { name: 'Documents•' })).toBeInTheDocument();
+        expect(await screen.findByRole('radio', { name: 'Chats•' })).toBeInTheDocument();
+        expect(screen.queryByRole('radio', { name: /^Notebooks•/ })).toBeNull();
         expect(api.callsTo('POST', '/api/projects/p1/visit')).toHaveLength(1);
     });
 
@@ -364,6 +417,35 @@ describe('ProjectWorkspacePage — what changed', () => {
         expect(api.callsTo('POST', '/api/projects/p1/items/document/d1/seen')).toHaveLength(0);
         await waitFor(() => expect(api.callsTo('POST', '/api/projects/p1/items/document/d1/seen')).toHaveLength(1), { timeout: 5000 });
         // The section in view shows no dot of its own.
-        expect(screen.queryByTestId('project-rail-documents-unread')).toBeNull();
+        expect(screen.queryByRole('radio', { name: /^Documents•/ })).toBeNull();
+    });
+});
+
+describe('ProjectWorkspacePage — archived', () => {
+    const archived = () => makeProject({ archivedAt: '2026-10-01T10:00:00Z', archivedBy: OWNER_ID });
+
+    it('shows the band with who archived it, and Restore (owner) calls the mutation', async () => {
+        const api = serve(archived(), { 'POST /api/projects/p1/restore': { success: true, archivedAt: null } });
+        const { user } = renderPage();
+        const band = await screen.findByTestId('project-archived-band');
+        await waitFor(() => expect(band).toHaveTextContent(/Archived on .* by Olivia Owner/));
+        await user.click(screen.getByTestId('project-restore'));
+        await waitFor(() => expect(api.callsTo('POST', '/api/projects/p1/restore')).toHaveLength(1));
+    });
+
+    it('gives others only the read-only note, no Restore, and a disabled composer', async () => {
+        serve(makeProject({ role: 'editor', archivedAt: '2026-10-01T10:00:00Z', archivedBy: OWNER_ID }));
+        renderPage({ user: { id: EDITOR_ID, displayName: 'Eddie' } });
+        expect(await screen.findByTestId('project-archived-band')).toBeInTheDocument();
+        expect(screen.queryByTestId('project-restore')).toBeNull();
+        expect(await screen.findByTestId('composer-archived')).toBeInTheDocument();
+        expect(screen.queryByTestId('project-composer')).toBeNull();
+    });
+
+    it('shows no band for a live project', async () => {
+        serve();
+        renderPage();
+        await screen.findByTestId('project-overview-tab');
+        expect(screen.queryByTestId('project-archived-band')).toBeNull();
     });
 });

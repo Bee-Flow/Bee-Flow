@@ -32,6 +32,8 @@ interface ToastItem {
     duration: number;
     /** How many times this exact message has arrived; 1 = shown once. */
     count?: number;
+    /** Set on an undoable toast: the label of its Undo button. */
+    undoLabel?: string;
 }
 
 interface ToastEventDetail {
@@ -52,12 +54,53 @@ function push(kind: ToastKind, message: string, duration?: number): number {
     return id;
 }
 
+interface Pending { onUndo: () => void; onExpire: () => void; timer: number }
+/** Undoable toasts waiting for an answer. Module-level, so the real action still
+ *  happens when the toast's owner has unmounted or no Toaster is mounted. */
+const pending = new Map<number, Pending>();
+
+function settle(id: number, how: 'undo' | 'expire'): boolean {
+    const entry = pending.get(id);
+    if (!entry) return false;
+    pending.delete(id);
+    window.clearTimeout(entry.timer);
+    window.dispatchEvent(new CustomEvent('beeflow:toast:dismiss', { detail: { id } }));
+    if (how === 'undo') entry.onUndo(); else entry.onExpire();
+    return true;
+}
+
+function settleAll(): void {
+    for (const id of [...pending.keys()]) settle(id, 'expire');
+}
+
+if (typeof window !== 'undefined') window.addEventListener('pagehide', settleAll);
+
+interface UndoableOptions {
+    message: string;
+    undoLabel: string;
+    onUndo: () => void;
+    /** Runs once when the toast times out or is dismissed without Undo. */
+    onExpire: () => void;
+    ms?: number;
+}
+
 export const toast = {
     success: (message: string, duration?: number) => push('success', message, duration),
     error: (message: string, duration?: number) => push('error', message, duration),
     info: (message: string, duration?: number) => push('info', message, duration),
+    /** One toast with an Undo button. Exactly one of onUndo / onExpire runs, once. */
+    undoable: ({ message, undoLabel, onUndo, onExpire, ms = 8000 }: UndoableOptions): number => {
+        const id = nextId++;
+        const timer = window.setTimeout(() => settle(id, 'expire'), ms);
+        pending.set(id, { onUndo, onExpire, timer });
+        // duration 0: the owner above runs the countdown, so it does not depend on a Toaster.
+        emit({ id, kind: 'info', message, duration: 0, undoLabel });
+        return id;
+    },
+    undo: (id: number) => { settle(id, 'undo'); },
     dismiss: (id?: number) => {
         if (typeof window === 'undefined') return;
+        if (id == null) settleAll(); else if (settle(id, 'expire')) return;
         window.dispatchEvent(new CustomEvent('beeflow:toast:dismiss', { detail: { id } }));
     },
 };
@@ -99,7 +142,7 @@ export function Toaster() {
             const incoming = (e as CustomEvent<ToastEventDetail>).detail?.item;
             if (!incoming) return;
             const cur = itemsRef.current;
-            const at = cur.findIndex((t) => t.kind === incoming.kind && t.message === incoming.message);
+            const at = incoming.undoLabel ? -1 : cur.findIndex((t) => t.kind === incoming.kind && t.message === incoming.message);
             if (at >= 0) {
                 const next = cur.slice();
                 next[at] = { ...cur[at], count: (cur[at].count || 1) + 1 };
@@ -110,7 +153,7 @@ export function Toaster() {
             const next = [...cur, { ...incoming, count: 1 }];
             while (next.length > MAX_TOASTS) {
                 const dropped = next.shift();
-                if (dropped) clearTimer(dropped.id);
+                if (dropped) { clearTimer(dropped.id); settle(dropped.id, 'expire'); }
             }
             commit(next);
             arm(incoming.id, incoming.duration);
@@ -173,6 +216,16 @@ export function Toaster() {
                             >
                                 ×{item.count}
                             </span>
+                        )}
+                        {item.undoLabel && (
+                            <button
+                                type="button"
+                                onClick={() => toast.undo(item.id)}
+                                data-testid="toast-undo"
+                                className="shrink-0 self-center rounded px-2 py-0.5 text-xs font-semibold text-[var(--accent-primary,var(--text-primary))] hover:bg-[var(--bg-tertiary)]"
+                            >
+                                {item.undoLabel}
+                            </button>
                         )}
                         <button
                             type="button"

@@ -17,6 +17,11 @@ vi.mock('./TokenVaultSection', async () => {
     const React = await import('react');
     return { default: () => React.createElement('div', { 'data-testid': 'token-vault-stub' }) };
 });
+// The MCP tokens panel has its own tests (components/mcpAccess).
+vi.mock('../../components/mcpAccess/McpTokensPanel', async () => {
+    const React = await import('react');
+    return { default: () => React.createElement('div', { 'data-testid': 'mcp-tokens-stub' }) };
+});
 // The security-keys card has its own tests, and how this screen drives it is in
 // SecuritySection.securityKeys.test.tsx.
 vi.mock('../../components/mfa/SecurityKeysCard', async () => {

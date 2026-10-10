@@ -624,6 +624,7 @@ app.use('/api/csp-report', require('./routes/cspReport'));
 app.use('/api/public', require('./routes/publicGithubStats'));
 app.use('/api/org-privacy-shield', require('./routes/orgPrivacyShield'));
 app.use('/api/org-ai-context', require('./routes/orgAiContext'));
+app.use('/api/org-memory', require('./routes/orgMemory'));
 // The AI that decides by itself when to join a team chat or comment thread:
 // the org policy (members read, admins write) and each person's own opt-out.
 // requireAuth sits on every route of the router.
@@ -706,6 +707,7 @@ const { requireFeature: requireLicenseFeature } = require('./license/middleware'
 const { requireCapability } = require('./core/entitlements/entitlements');
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/me/notification-prefs', require('./routes/notificationPrefs'));
 // Deployment/maintenance banner: the deploy pipeline announces a window before
 // it rolls the Deployments, so open sessions get warning + an ETA instead of a
 // stream that just dies. Write paths are token-gated (CI calls them, not a user).
@@ -770,6 +772,15 @@ if (automationMcp.isEnabled()) {
     app.use('/mcp/automations', require('./routes/mcpAutomations'));
     log.info('[Server] Automations MCP endpoint mounted at /mcp/automations (AUTOMATION_MCP_ENABLED=1).');
 }
+// The product website (CMS) over MCP — edit pages, header/footer, translations,
+// upload local media, screenshot and (with the cms.publish scope) publish from an
+// external coding agent. Same gating shape: without CMS_MCP_ENABLED=1 the path
+// does not exist and the module is never loaded. Also mounted BEFORE /mcp.
+const cmsMcp = require('./cms/mcp');
+if (cmsMcp.isEnabled()) {
+    app.use('/mcp/cms', require('./routes/mcpCms'));
+    log.info('[Server] CMS MCP endpoint mounted at /mcp/cms (CMS_MCP_ENABLED=1).');
+}
 // Bee Flow AS an MCP server. Deliberately NOT under /api: MCP clients are
 // configured with a bare URL, and the endpoint authenticates with its own
 // Bearer token rather than a session cookie (see routes/mcpServer.js).
@@ -782,6 +793,10 @@ app.use('/api/nextcloud/task-processing', require('./routes/nextcloudTaskProcess
 app.use('/api/nextcloud/studio-apps', requireModule('apps'), require('./routes/nextcloudStudioApps'));
 // Self-service token management for the above — session-authenticated.
 app.use('/api/mcp-server', requireAuthedUser, require('./routes/mcpServerTokens'));
+// Named MCP access tokens (scopes, expiry, IP allow-list), per user, session-authenticated.
+// The org-wide policy those tokens answer to is org-admin only, on the caller's own org.
+app.use('/api/mcp-tokens', requireAuthedUser, require('./routes/mcpTokens'));
+app.use('/api/org/mcp-access', requireAuthedUser, require('./routes/orgMcpAccess'));
 // BFSF-255: hydrate password-account sessions from the encrypted vault so the
 // session-based Google surfaces (pickers, /status) work after connecting via
 // Settings → Connections, not only after Google-SSO login.

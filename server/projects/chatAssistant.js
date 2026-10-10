@@ -201,12 +201,15 @@ async function resolveUsableAgent({ agentId, userId }, deps = {}) {
 /**
  * Passages from the project's knowledge bases, as prompt text, or ''.
  *
- * For an answer somebody ASKED for, the project's linked bases are narrowed
- * to what THIS member may read (not the project owner) before anything is
- * searched, as the agent path does. For an automatic answer (`audienceIds`
- * given) they are narrowed to what EVERY member may read — the intersection —
- * because nobody asked and everyone sees the answer; an unknown audience
- * (null) keeps no linked base at all. The project's own files base is
+ * A project chat or comment answer is read by the whole project, asked for
+ * or not, so the callers pass the audience (`audienceIds`, from
+ * listProjectAudience) and the project's linked bases are narrowed to what
+ * EVERY member may read — the intersection, the asker included — before
+ * anything is searched; an unknown audience (null) keeps no linked base at
+ * all, because a passage one member may read must not reach the others
+ * through the answer. Without `audienceIds` (undefined) the bases are
+ * narrowed to what the asking member may read, as the agent path does: only
+ * right for an answer that member alone will see. The project's own files base is
  * searchable by every member once it is verified to be this project's
  * (core/kb/projectFilesKb.js). The passages are stripped by the shield's
  * own-server list.
@@ -477,9 +480,12 @@ function makeChatAssistant(deps = {}) {
             const shieldConfig = await shield.resolve({ orgId, userId });
             let knowledge = '';
             try {
-                const audienceIds = auto ? await listAudience(project) : undefined;
+                // Asked for or not, the answer is read by the whole chat, so the
+                // bases are cut to what EVERY member may read (null audience:
+                // none of the linked bases), never to what the asker alone may.
+                const audienceIds = await listAudience(project);
                 knowledge = await searchKnowledge({
-                    project, userId, query: triggerText, session, shield: shieldConfig, ...(auto ? { audienceIds } : {}),
+                    project, userId, query: triggerText, session, shield: shieldConfig, audienceIds,
                 }) || '';
             } catch (err) {
                 log.warn(`[ProjectChat] project knowledge search failed for chat ${chat.id}: ${err && err.message}`);

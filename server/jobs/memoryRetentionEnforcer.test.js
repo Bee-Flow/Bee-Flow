@@ -35,9 +35,12 @@ const settings = new Map();
 let settingsThrow = false;
 
 const queries = [];
+const hardDeletes = [];
+let hardDeleteCounts = [];
+let hardDeleteThrow = false;
 stub('../db', {
     run: async (sql, params) => { queries.push({ sql, params }); return { rowCount: 0 }; },
-    getOne: async () => null,
+    getOne: async (sql, params) => { hardDeletes.push({ sql, params }); if (hardDeleteThrow) throw new Error('boom'); return { n: hardDeleteCounts.length ? hardDeleteCounts.shift() : 0 }; },
     getAll: async () => [],
     exec: async () => {},
     pool: {},
@@ -55,6 +58,7 @@ stub('../telemetry/metrics', { recordJobRun: () => {} });
 const {
     runOnce, getRetentionPolicy,
     DEFAULT_RETENTION_DAYS, MIN_RETENTION_DAYS,
+    HARD_DELETE_DAYS, HARD_DELETE_BATCH, HARD_DELETE_RUN_CAP,
 } = require('./memoryRetentionEnforcer');
 
 /** Record one org's compliance settings. */
@@ -62,7 +66,7 @@ const setOrg = (orgId, patch) => settings.set(orgId, {
     memory_retention_enabled: false, default_retention_days: null, ...patch,
 });
 
-beforeEach(() => { settings.clear(); queries.length = 0; settingsThrow = false; });
+beforeEach(() => { settings.clear(); queries.length = 0; hardDeletes.length = 0; hardDeleteCounts = []; hardDeleteThrow = false; settingsThrow = false; });
 
 // ── The default ──────────────────────────────────────────────────────
 
@@ -175,4 +179,60 @@ test('the sweep is bounded so one tenant cannot hold the pool', async () => {
     await runOnce();
     const sweep = queries.find(q => q.sql.includes('last_confirmed_at'));
     assert.ok(/LIMIT \d+/.test(sweep.sql));
+});
+
+// ── The hard-delete pass ─────────────────────────────────────────────
+
+test('history older than 90 days is hard-deleted, on every install, with its sources', async () => {
+    // No org enabled retention: this pass is storage limitation for rows that
+    // are not memory any more, and does not depend on the org switch.
+    await runOnce();
+    assert.strictEqual(hardDeletes.length, 1);
+    const { sql, params } = hardDeletes[0];
+    assert.deepStrictEqual(params, [String(HARD_DELETE_DAYS), HARD_DELETE_BATCH]);
+    assert.strictEqual(HARD_DELETE_DAYS, 90);
+    assert.ok(/status = 'superseded'/.test(sql));
+    assert.ok(!/archived|expired/.test(sql), 'restorable memories are not history');
+    assert.ok(sql.includes('DELETE FROM memory_sources'), 'sources go in the same statement');
+    assert.ok(!sql.includes("'active'") && !sql.includes('pending_review'), 'live and pending rows are never touched');
+});
+
+test('archived and expired rows are hard-deleted only for an org with retention ON, with its own window', async () => {
+    await runOnce();
+    assert.strictEqual(hardDeletes.filter((h) => /archived/.test(h.sql)).length, 0, 'no org enabled: nothing restorable is deleted');
+
+    hardDeletes.length = 0;
+    setOrg('org-a', { memory_retention_enabled: true, default_retention_days: 200 });
+    setOrg('org-b', { memory_retention_enabled: 'true', default_retention_days: 200 }); // not === true
+    await runOnce();
+    const restorable = hardDeletes.filter((h) => /'archived', 'expired'/.test(h.sql));
+    assert.strictEqual(restorable.length, 1);
+    assert.deepStrictEqual(restorable[0].params, ['org-a', '200', HARD_DELETE_BATCH]);
+    assert.ok(restorable[0].sql.includes('archived_at') && restorable[0].sql.includes('"organizationId" = $1'));
+    assert.ok(restorable[0].sql.includes('DELETE FROM memory_sources'));
+    assert.ok(!/'superseded'/.test(restorable[0].sql));
+});
+
+test('a too-short declared window falls back to the default for the restorable delete too', async () => {
+    setOrg('org-a', { memory_retention_enabled: true, default_retention_days: 30 });
+    await runOnce();
+    const restorable = hardDeletes.filter((h) => /'archived', 'expired'/.test(h.sql));
+    assert.deepStrictEqual(restorable[0].params, ['org-a', String(DEFAULT_RETENTION_DAYS), HARD_DELETE_BATCH]);
+});
+
+test('the hard delete runs in batches, stops at a short batch, and is capped per run', async () => {
+    hardDeleteCounts = [HARD_DELETE_BATCH, HARD_DELETE_BATCH, 7];
+    await runOnce();
+    assert.strictEqual(hardDeletes.length, 3, 'two full batches and the short one');
+
+    hardDeletes.length = 0;
+    hardDeleteCounts = Array(HARD_DELETE_RUN_CAP / HARD_DELETE_BATCH + 5).fill(HARD_DELETE_BATCH);
+    await runOnce();
+    assert.strictEqual(hardDeletes.length, HARD_DELETE_RUN_CAP / HARD_DELETE_BATCH, 'the rest waits for the next run');
+});
+
+test('a failing hard delete does not stop the job (the heartbeat still runs)', async () => {
+    hardDeleteThrow = true;
+    await runOnce();
+    assert.strictEqual(hardDeletes.length, 1);
 });

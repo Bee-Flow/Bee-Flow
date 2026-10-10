@@ -14,7 +14,6 @@ import {
 import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
 import EmptyState from '../../../shared/EmptyState';
-import useConfirm from '../../../shared/useConfirm';
 import { toast } from '../../../shared/Toast';
 import { useChatPeople } from '../chat/chatPeople';
 import { projectErrorText } from '../projectErrorText';
@@ -110,27 +109,30 @@ export default function TasksTab(props: WorkspaceTabProps) {
     const [configure, setConfigure] = useState<boolean | BoardFocus>(false);
     const update = useUpdateTask(projectId);
     const people = useChatPeople(projectId, currentUser);
-    const all = useMemo(() => query.data?.tasks || [], [query.data]);
+    // Tasks deleted but still undoable: gone from the views at once, the real DELETE waits for the toast to expire.
+    const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
+    const all = useMemo(() => (query.data?.tasks || []).filter(task => !removed.has(task.id)), [query.data, removed]);
     const labels = useMemo(() => allLabels(all).filter(label => !label.startsWith('bf:')), [all]);
-    const { openNew, openTask, dialog } = useTaskDialog(props, labels);
     const onError = (e: Error) => toast.error(projectErrorText(t, e));
     const remove = useDeleteTask(projectId);
-    const { confirm, confirmDialog } = useConfirm();
     const mayDelete = (task: ProjectTask) => mayDeleteTask(task, me, role === 'owner', canEdit);
-    const deleteTask = async (task: ProjectTask) => {
-        const ok = await confirm({
-            title: t('project_tasks.delete_title', 'Delete this task?'),
-            description: t('project_tasks.delete_named', '"{name}" disappears for everyone in the project.', { name: task.title || t('project_tasks.untitled', 'Untitled task') }),
-            confirmLabel: t('project_tasks.delete', 'Delete'),
-            cancelLabel: t('project_content.cancel', 'Cancel'),
-            destructive: true,
-        });
-        if (!ok) return;
-        remove.mutate(task.id, {
-            onSuccess: () => toast.success(t('project_tasks.deleted', 'Task deleted')),
-            onError,
+    const setRemovedId = (id: string, gone: boolean) => setRemoved((prev) => {
+        const next = new Set(prev);
+        if (gone) next.add(id); else next.delete(id);
+        return next;
+    });
+    const deleteTask = (task: ProjectTask) => {
+        setRemovedId(task.id, true);
+        toast.undoable({
+            message: t('project_home.task_deleted', 'Task "{name}" deleted', { name: task.title || t('project_tasks.untitled', 'Untitled task') }),
+            undoLabel: t('project_home.undo', 'Undo'),
+            onUndo: () => setRemovedId(task.id, false),
+            onExpire: () => remove.mutate(task.id, {
+                onError: (e) => { setRemovedId(task.id, false); onError(e); },
+            }),
         });
     };
+    const { openNew, openTask, dialog } = useTaskDialog(props, labels, deleteTask);
     const [view, setView] = useState<View>(storedView);
     const filterKey = `projectTaskFilters:${projectId}:${me || ''}`;
     const [filters, setFilters] = useState<TaskFilters>(() => storedFilters(filterKey));
@@ -212,7 +214,6 @@ export default function TasksTab(props: WorkspaceTabProps) {
             </div>
             {configure && board.data && <BoardSettings projectId={projectId} board={board.data} focus={configure === true ? undefined : configure} onClose={() => setConfigure(false)} />}
             {dialog}
-            {confirmDialog}
             {fromMeeting && <MeetingTasksDialog projectId={projectId} currentUser={currentUser} onClose={() => setFromMeeting(false)} />}
         </div>
     );

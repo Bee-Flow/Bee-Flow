@@ -1,6 +1,7 @@
 import { Check, MoreHorizontal, Pencil, Pin, PinOff, Tag, Trash2, Users, X } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import CreateLabelInline from './CreateLabelInline';
+import DeleteConversationDialog from './DeleteConversationDialog';
 import EditLabelInline from './EditLabelInline';
 import { ACCENT_BAR_CONV, CONV_ROW, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
 import { projectChipStyle, projectIcon } from '../../projects/workspace/projectVisuals';
@@ -22,6 +23,7 @@ const ConvRow = ({
     const menuRef = useRef(null);
     const inputRef = useRef(null);
     const { confirm, confirmDialog } = useConfirm();
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     // Close menu on outside click
     useEffect(() => {
@@ -261,7 +263,7 @@ const ConvRow = ({
                             {/* Delete */}
                             <div className="mx-1 my-1 border-t border-[var(--border-subtle)]" />
                             <button
-                                onClick={(e) => { e.stopPropagation(); deleteConv(conv); setShowMenu(false); }}
+                                onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); setShowMenu(false); }}
                                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] hover:bg-red-50 rounded-md transition-colors text-left text-red-500"
                                 data-testid={`conv-delete-${conv.id}`}
                             >
@@ -272,7 +274,7 @@ const ConvRow = ({
                 )}
             </div>
             {/* React bubbles the portal's clicks to this row, and a click in the dialog must not select the conversation. */}
-            <span onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>{confirmDialog}</span>
+            <span onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>{confirmDialog}<DeleteConversationDialog open={confirmDelete} conversationId={conv.id} onCancel={() => setConfirmDelete(false)} onDelete={() => deleteConv(conv)} /></span>
         </div>
     );
 };

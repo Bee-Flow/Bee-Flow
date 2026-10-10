@@ -14,6 +14,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useViewport } from '../hooks/useViewport';
 import { useSubscriptionContext } from '../components/licensing/SubscriptionContext';
 import { useCan } from '../components/licensing/Gate';
+import NotificationsSection from './settings/NotificationsSection';
 import PreferencesSection from './settings/PreferencesSection';
 import MemorySection from './settings/MemorySection';
 import IntegrationsSection from './settings/IntegrationsSection';
@@ -36,7 +37,7 @@ import { rewriteComplianceNav, rewriteAdminEscape } from './settings/complianceN
 import { NAV_ITEMS, MOBILE_VISIBLE_TOP_TABS, MOBILE_EXTRA_TABS } from './settings/settingsNavItems';
 import useComplianceCounts from '../components/admin/compliance/data/useComplianceCounts';
 import NavCountBadge from '../components/shared/NavCountBadge';
-import { Users, Link2, BarChart2, Cloud, CreditCard, Shield, FolderGit2, Sparkles, GraduationCap, ArrowLeft, FileText, Scale, Plug } from 'lucide-react';
+import { Users, Link2, BarChart2, Cloud, CreditCard, Shield, FolderGit2, Sparkles, GraduationCap, ArrowLeft, FileText, Scale, Plug, ShieldCheck } from 'lucide-react';
 
 /* ── Org sub-items (use labelKey for i18n) ────────────────────────────────── */
 const BASE_ORG_SUB_ITEMS = [
@@ -54,6 +55,10 @@ const BASE_ORG_SUB_ITEMS = [
     // ones (pages/settings → components/mcpLibrary). Licence-gated on the
     // server (mcp_marketplace); the page explains a plan without it.
     { id: 'org_mcp', labelKey: 'mcp_library.nav', icon: Plug, color: '#f59e0b' },
+    // The org-wide rules every MCP request passes through (IP allow-list, who
+    // may use MCP, legacy tokens). Org admins only; named tokens live in the
+    // member's own Settings → Security.
+    { id: 'org_mcp_access', labelKey: 'mcp_access.nav', icon: ShieldCheck, color: '#ef4444' },
     { id: 'org_github_sync', labelKey: 'settings.github_sync', icon: FolderGit2, color: '#8b5cf6' },
     { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', icon: Cloud, color: '#0082C9' },
     { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', icon: FileText, color: '#a855f7' },
@@ -334,6 +339,8 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     }, [isOrgSubTab]);
 
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+    // 'review' when the pending-review row of Settings → Memory opened the panel.
+    const [memoryPanelView, setMemoryPanelView] = useState('active');
     const [memoryStats, setMemoryStats] = useState(null);
     // loading | ok | error — MemorySection must never paint a zero for a
     // pending or failed fetch (see its header comment).
@@ -371,6 +378,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
             // toggling lives here too (not just integrations).
             if (s.id === 'org_integrations') return canSeeOrg;
             if (s.id === 'org_mcp') return canSeeOrg;
+            if (s.id === 'org_mcp_access') return canSeeOrg;
             // NC-bound orgs: auth is delegated to Nextcloud entirely. The
             // Sign-in Method panel configures username/password + OAuth
             // providers which are no-ops once identity comes from NC, so
@@ -494,7 +502,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
 
     // Map org sub-tab ids to the activeSection prop OrganisationSection expects
     const orgActiveSection = isOrgSubTab
-        ? (activeTab === 'org_users' ? 'users' : activeTab === 'org_academy' ? 'academy' : activeTab === 'org_integrations' ? 'integrations' : activeTab === 'org_mcp' ? 'mcp' : activeTab === 'org_usage' ? 'usage' : activeTab === 'org_azure' ? 'azure' : activeTab === 'org_github_sync' ? 'github_sync' : activeTab === 'org_nextcloud_sync' ? 'nextcloud_sync' : activeTab === 'org_meeting_templates' ? 'meeting_templates' : activeTab)
+        ? (activeTab === 'org_users' ? 'users' : activeTab === 'org_academy' ? 'academy' : activeTab === 'org_integrations' ? 'integrations' : activeTab === 'org_mcp' ? 'mcp' : activeTab === 'org_mcp_access' ? 'mcp_access' : activeTab === 'org_usage' ? 'usage' : activeTab === 'org_azure' ? 'azure' : activeTab === 'org_github_sync' ? 'github_sync' : activeTab === 'org_nextcloud_sync' ? 'nextcloud_sync' : activeTab === 'org_meeting_templates' ? 'meeting_templates' : activeTab)
         : 'license';
 
     // Admin-dashboard destinations that have an organisation-settings
@@ -572,7 +580,8 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
             case 'preferences': return <PreferencesSection defaultAgentMode={defaultAgentMode} setDefaultAgentMode={setDefaultAgentMode} defaultAgentId={defaultAgentId} setDefaultAgentId={setDefaultAgentId} agents={agents} onLogout={onLogout} user={user} onUpdateUser={onUpdateUser} />;
             case 'appearance': return <AppearanceSection />;
             case 'security': return <SecuritySection />;
-            case 'memory': return <MemorySection memoryStats={memoryStats} statsStatus={memoryStatsStatus} onRetryStats={fetchMemoryStats} user={user} onUpdateUser={onUpdateUser} onOpenMemory={() => setShowMemoryPanel(true)} onImported={fetchMemoryStats} />;
+            case 'memory': return <MemorySection memoryStats={memoryStats} statsStatus={memoryStatsStatus} onRetryStats={fetchMemoryStats} user={user} onUpdateUser={onUpdateUser} onOpenMemory={(view) => { setMemoryPanelView(view === 'review' ? 'review' : 'active'); setShowMemoryPanel(true); }} onImported={fetchMemoryStats} />;
+            case 'notifications': return <NotificationsSection />;
             case 'integrations': return <IntegrationsSection statuses={statuses} onSaved={handleIntegrationSaved} isOrgAdmin={canSeeOrg} user={user} showOrgIntegrations={isConsumerAccount} />;
             case 'learning': return canUseLearning ? <LearningCenterSection user={user} /> : null;
             case 'help_support': return isSelfHosted ? null : <HelpSupportSection user={user} />;
@@ -875,7 +884,13 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
 
             {showMemoryPanel && (
                 <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'var(--bg-primary)' }}>
-                    <MemoryPanel onClose={() => { setShowMemoryPanel(false); fetchMemoryStats(); }} />
+                    <MemoryPanel
+                        initialView={memoryPanelView}
+                        sensitiveOptIn={user?.memorySensitiveOptIn === true}
+                        orgMemoryOff={user?.orgMemoryEnabled === false}
+                        onChanged={fetchMemoryStats}
+                        onClose={() => { setShowMemoryPanel(false); fetchMemoryStats(); }}
+                    />
                 </div>
             )}
         </div>

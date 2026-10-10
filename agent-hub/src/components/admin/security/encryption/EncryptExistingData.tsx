@@ -57,6 +57,7 @@ export default function EncryptExistingData({ orgId, dirty }: Props) {
         conversationMeta: t('admin.encryption.surface_conversation_meta', 'Conversation summaries'),
         notebookMessages: t('admin.encryption.surface_notebook_messages', 'Notebook chats'),
         transcripts: t('admin.encryption.surface_transcripts', 'Transcriptions'),
+        memories: t('admin.encryption.surface_memories', 'Memory'),
         piiVault: t('admin.encryption.surface_pii_vault', 'Privacy Shield vault'),
         legacyBlobs: t('admin.encryption.surface_legacy_blobs', 'Old plaintext copies of conversations'),
     };

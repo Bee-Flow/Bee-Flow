@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import PolicyAcknowledgements from './PolicyAcknowledgements';
 import TokenVaultSection from './TokenVaultSection';
 import { isUsableHere, proveWithSecurityKey, securityKeyErrorCode, securityKeysSupported } from '../../api/queries/securityKeys';
+import McpTokensPanel from '../../components/mcpAccess/McpTokensPanel';
 import AuthenticatorAppSetup from '../../components/mfa/AuthenticatorAppSetup';
 import MfaHelpAssistant from '../../components/mfa/MfaHelpAssistant';
 import RecoveryCodes from '../../components/mfa/RecoveryCodes';
@@ -339,6 +340,10 @@ export default function SecuritySection() {
                 rather than under Privacy Shield because that section is
                 consumer-only, and every account type has a vault. */}
             <TokenVaultSection />
+
+            {/* Named tokens for external MCP clients (Claude Code, Cursor), each
+                limited to the servers and tools chosen when it was made. */}
+            <McpTokensPanel />
 
             {/* ISMS policies to read & confirm (renders nothing when none published) */}
             <PolicyAcknowledgements />

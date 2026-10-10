@@ -64,7 +64,7 @@ test('tier none is a no-op', async () => {
 
 test('exports', () => {
     assert.deepStrictEqual([...BACKFILL_SURFACES].sort(),
-        ['conversationMeta', 'conversationTitle', 'legacyBlobs', 'messages', 'notebookMessages', 'piiTokenMap', 'piiVault', 'transcripts']);
+        ['conversationMeta', 'conversationTitle', 'legacyBlobs', 'memories', 'messages', 'notebookMessages', 'piiTokenMap', 'piiVault', 'transcripts']);
     assert.strictEqual(typeof RUNNERS.messages, 'function');
 });
 

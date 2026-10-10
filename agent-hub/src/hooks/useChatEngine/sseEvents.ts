@@ -821,6 +821,16 @@ export function dispatchSSEEvent(
             }
             break;
 
+        // The memories this turn drew on. Sent once, only when non-empty.
+        case 'memory_used':
+            if (Array.isArray(data?.items) && data.items.length > 0) {
+                const items = data.items;
+                setMessages(prev => prev.map(m => (
+                    m.id === assistantMsgId ? { ...m, memoryUsed: items } : m
+                )));
+            }
+            break;
+
         // De attributie-pass van een TESTCHAT (A4): welke `doesNot`-regels van
         // de rol dit antwoord zichtbaar volgde. Een MENING, geen notulen — de
         // chiprij toont hem daarom apart (zie AnswerChips.jsx).

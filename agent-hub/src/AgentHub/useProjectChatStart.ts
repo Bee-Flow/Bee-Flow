@@ -248,10 +248,11 @@ export default function useProjectChatStart<TAgent extends { id: string }>(deps:
             toast.error(t('sidebar.project_agent_unavailable', 'That agent is not available to you, so the chat was not started.'));
             return false;
         }
-        setActiveProject(project);
         leaveProjectsPage();
         if (agent) openAgentChat(agent);
         else openDirectChat();
+        // After the open call: opening a chat clears the chat context.
+        setActiveProject(project);
         tokenRef.current += 1;
         progressRef.current = { token: tokenRef.current, phase: 'opening', messagesAtSend: null, reportAtSend: null, createdId: null };
         setPending({

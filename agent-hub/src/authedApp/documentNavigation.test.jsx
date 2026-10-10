@@ -2,7 +2,6 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNavigateToPage } from './useNavigateToPage';
 
-vi.mock('../utils/unsavedNavigation', () => ({ mayNavigate: () => true }));
 
 function navigation() {
     const setters = Object.fromEntries([

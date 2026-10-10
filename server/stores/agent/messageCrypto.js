@@ -151,6 +151,7 @@ function _warnNoKey(orgId, tier, userId, kind = 'all') {
  * @property {boolean} encryptConversationMeta
  * @property {boolean} encryptTitle
  * @property {boolean} encryptNotebookMessages
+ * @property {boolean} encryptMemories        user_memories (a background surface: uses backgroundKey)
  * @property {string} tier
  * @property {boolean} [sharedProject]
  */
@@ -164,6 +165,7 @@ const PLAINTEXT_CONTEXT = Object.freeze({
     encryptConversationMeta: false,
     encryptTitle: false,
     encryptNotebookMessages: false,
+    encryptMemories: false,
     tier: 'none',
 });
 
@@ -190,6 +192,10 @@ const ZK_ESCROW_SURFACES = Object.freeze([
     SURFACES.PII_TOKEN_MAP,
     SURFACES.CONVERSATION_META,
     SURFACES.CONVERSATION_TITLE,
+    // Memory is extracted after the reply, read by automations and pruned by the
+    // retention job, none of which has a session. Readable by the operator on
+    // zk, like the token map; stated on the tier card.
+    SURFACES.MEMORIES,
 ]);
 
 /**
@@ -269,6 +275,7 @@ async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey =
                 encryptConversationMeta: on(SURFACES.CONVERSATION_META),
                 encryptTitle: on(SURFACES.CONVERSATION_TITLE),
                 encryptNotebookMessages: on(SURFACES.NOTEBOOK_MESSAGES),
+                encryptMemories: on(SURFACES.MEMORIES),
                 tier: policy.tier,
                 sharedProject: true,
             };
@@ -331,6 +338,7 @@ async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey =
             encryptConversationMeta: on(SURFACES.CONVERSATION_META, backgroundKey),
             encryptTitle: on(SURFACES.CONVERSATION_TITLE, backgroundKey),
             encryptNotebookMessages: on(SURFACES.NOTEBOOK_MESSAGES, key),
+            encryptMemories: on(SURFACES.MEMORIES, backgroundKey),
             tier: policy.tier,
         };
     } catch (err) {

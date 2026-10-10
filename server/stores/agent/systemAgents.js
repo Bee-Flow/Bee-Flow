@@ -112,6 +112,8 @@ module.exports = {
     // Core
     seedSystemAgents,
     getSystemAgent,
+    // The prompt a fresh install seeds (tests check migrations against it)
+    loadPromptFile,
 
     // Registry data (for i18n, admin panels, etc.)
     SYSTEM_AGENT_IDS,

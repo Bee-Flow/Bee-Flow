@@ -200,10 +200,10 @@ beforeEach(() => {
 
 /* ══ Sidebar: the top-level rows ═════════════════════════════════════════ */
 describe('AdvancedSettings — top-level nav rows', () => {
-    it('shows the seven profile rows, in URL order, for an ordinary member', async () => {
+    it('shows the eight profile rows, in URL order, for an ordinary member', async () => {
         const { container } = await mount();
         expect(topRows(container)).toEqual([
-            'Preferences', 'Appearance', 'Security', 'Memory',
+            'Preferences', 'Appearance', 'Security', 'Memory', 'Notifications',
             'Connections', 'Learning Center', 'Help & Support',
         ]);
         expect(headers(container)).toEqual(['Profile']);
@@ -219,7 +219,7 @@ describe('AdvancedSettings — top-level nav rows', () => {
     it('drops Help & Support on a self-hosted deployment', async () => {
         const { container } = await mount({ user: { ...MEMBER, featureFlags: { deploymentMode: 'self-hosted' } } });
         expect(topRows(container)).toEqual([
-            'Preferences', 'Appearance', 'Security', 'Memory', 'Connections', 'Learning Center',
+            'Preferences', 'Appearance', 'Security', 'Memory', 'Notifications', 'Connections', 'Learning Center',
         ]);
     });
 
@@ -233,7 +233,7 @@ describe('AdvancedSettings — top-level nav rows', () => {
         viewport = { isMobile: true, isCompact: false, isDesktop: false, width: 390 };
         const { container } = await mount({ user: ORG_ADMIN });
         expect(topRows(container)).toEqual([
-            'Preferences', 'Appearance', 'Security', 'Memory', 'Help & Support',
+            'Preferences', 'Appearance', 'Security', 'Memory', 'Notifications', 'Help & Support',
         ]);
         expect(headers(container)).toEqual(['Profile']);
     });
@@ -287,7 +287,7 @@ describe('AdvancedSettings — organisation sub-items', () => {
             // 'Sign-in Method' is absent: this org is NC-bound.
             'Privacy Shield',
             'Encryption',
-            'Conversation Memory',
+            'Context in long conversations',
             'Answer Reuse',
             'Organisation Info',
             'Usage & Monitoring',
@@ -296,6 +296,7 @@ describe('AdvancedSettings — organisation sub-items', () => {
             'Academy',
             'Integrations',
             'MCP library',
+            'MCP access',
             'GitHub Sync',
             'Nextcloud Sync',
             'Meeting templates',
@@ -307,9 +308,9 @@ describe('AdvancedSettings — organisation sub-items', () => {
         expand(container);
         expect(subRows(container)).toEqual([
             'License & Usage', 'Sign-in Method', 'Privacy Shield', 'Encryption',
-            'Conversation Memory', 'Answer Reuse', 'Organisation Info',
+            'Context in long conversations', 'Answer Reuse', 'Organisation Info',
             'Usage & Monitoring', 'Users & Groups', 'Academy', 'Integrations',
-            'MCP library', 'Meeting templates',
+            'MCP library', 'MCP access', 'Meeting templates',
         ]);
     });
 
@@ -600,7 +601,7 @@ describe('AdvancedSettings — Compliance is the one org section a phone keeps',
         viewport = PHONE;
         const { container } = await mount({ user: { ...ORG_ADMIN, permissions: ['org_admin', 'admin_compliance'] } });
         expect(topRows(container)).toEqual([
-            'Preferences', 'Appearance', 'Security', 'Memory', 'Help & Support', 'Compliance',
+            'Preferences', 'Appearance', 'Security', 'Memory', 'Notifications', 'Help & Support', 'Compliance',
         ]);
         // The group around it is still gone: no Workspace header, no accordion.
         expect(headers(container)).toEqual(['Profile']);
@@ -890,7 +891,7 @@ describe('AdvancedSettings — the Organisation accordion', () => {
         // back to the bare settings path: the panel opens, the address does
         // not survive a reload, and a phone bounce cannot recognise the tab.
         const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/info' });
-        fireEvent.click(rowByLabel(container, 'Conversation Memory'));
+        fireEvent.click(rowByLabel(container, 'Context in long conversations'));
         expect(window.location.pathname).toBe('/app/settings');
         expect(screen.getByTestId('section-organisation').dataset.active).toBe('ai_context');
     });
@@ -1023,7 +1024,7 @@ describe('AdvancedSettings — chrome', () => {
     it('survives a missing user: member surface, "User" in the card', async () => {
         const { container } = await mount({ user: null });
         expect(topRows(container)).toEqual([
-            'Preferences', 'Appearance', 'Security', 'Memory',
+            'Preferences', 'Appearance', 'Security', 'Memory', 'Notifications',
             'Connections', 'Learning Center', 'Help & Support',
         ]);
         expect(headers(container)).toEqual(['Profile']);

@@ -6,6 +6,7 @@ import N8nSection from './N8nSection';
 import UsageSection from './UsageSection';
 import GitHubSyncPanel from '../../components/integrations/github/GitHubSyncPanel';
 import NextcloudSyncPanel from '../../components/integrations/nextcloud/NextcloudSyncPanel';
+import OrgMcpAccessPanel from '../../components/mcpAccess/OrgMcpAccessPanel';
 import MeetingNotesAdminPanel from '../../components/meetings/MeetingNotesAdminPanel';
 import GoogleMeetAdminPanel from '../../components/meetings/GoogleMeetAdminPanel';
 import TeamsAdminPanel from '../../components/meetings/TeamsAdminPanel';
@@ -271,6 +272,11 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
             {/* MCP library — the organisation's remote MCP servers */}
             {activeSection === 'mcp' && isOrgAdmin && (
                 <McpLibraryPage isServerAdmin={!!user?.isAdmin || user?.role === 'admin' || perms.includes('all')} />
+            )}
+
+            {/* MCP access — the organisation-wide rules for external MCP clients */}
+            {activeSection === 'mcp_access' && isOrgAdmin && (
+                <OrgMcpAccessPanel />
             )}
 
             {/* GitHub Sync */}

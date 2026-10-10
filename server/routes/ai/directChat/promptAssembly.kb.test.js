@@ -48,6 +48,11 @@ const fx = {
     shield: null,
     /** Every side-panel document lookup the turn made. */
     documentCalls: [],
+    /** What the memory gate answers, and what it was asked / what the store was asked. */
+    memoryPolicy: { read: true, write: true, reason: 'enabled' },
+    memoryPolicyCalls: [],
+    memoryStoreCalls: 0,
+    memoryStoreArgs: null,
 };
 
 const noop = () => {};
@@ -86,7 +91,13 @@ const MOCKS = {
             return (ids || []).filter(id => fx.allowed.includes(id));
         },
     },
-    '../../../stores/memoryStore': { findRelevantMemories: async () => [], formatMemoriesForPrompt: () => '' },
+    '../../../stores/memoryStore': {
+        findRelevantMemories: async (...a) => { fx.memoryStoreCalls++; fx.memoryStoreArgs = a; return [{ id: 'm1', type: 'fact', content: 'likes tea' }]; },
+        formatMemoriesForPrompt: () => '## Active Memory\n- likes tea',
+    },
+    '../../../core/memory/memoryPolicy': {
+        resolveMemoryPolicy: async (opts) => { fx.memoryPolicyCalls.push(opts); return fx.memoryPolicy; },
+    },
     '../../../core/memory/scrubMemoryContext': { scrubMemoryContext: async (t) => ({ scrubbed: t, replacedCategories: [] }) },
     '../../../stores/houseStyleStore': { getDefaultForOrg: async () => null },
     '../../../core/webpages/sidePanelWebpageContext': { buildSidePanelWebpageContext: async () => '' },
@@ -132,6 +143,9 @@ function reset() {
     fx.project = null;
     fx.shield = null;
     fx.documentCalls.length = 0;
+    fx.memoryPolicy = { read: true, write: true, reason: 'enabled' };
+    fx.memoryPolicyCalls.length = 0;
+    fx.memoryStoreCalls = 0;
 }
 
 function runTurn(overrides = {}) {
@@ -399,4 +413,54 @@ test('no sidePanelDocument, no document block and no lookup; an unreadable one a
     assert.strictEqual(fx.documentCalls.length, 0);
     const unreadable = await runTurn({ sidePanelDocument: { id: 'other' } });
     assert.ok(!promptText(unreadable).includes('DOCUMENT OPEN'));
+});
+
+// ═══ Memory gate ═════════════════════════════════════════════════
+
+test('memory read off: the store is never asked and no memory reaches the prompt', async () => {
+    reset();
+    fx.memoryPolicy = { read: false, write: false, reason: 'org_disabled' };
+    const state = await runTurn({ req: { session: { user: { id: 'alice' } }, body: { memoryReadEnabled: false } } });
+    assert.strictEqual(fx.memoryStoreCalls, 0);
+    assert.ok(!promptText(state).includes('likes tea'));
+    assert.deepStrictEqual(state.memoryPolicy, fx.memoryPolicy, 'handed on for finalizeTurn');
+    assert.deepStrictEqual(fx.memoryPolicyCalls[0], { userId: 'alice', orgId: 'org-1', perChatReadEnabled: false, perChatWriteEnabled: undefined });
+});
+
+test('memory read on: the memories are injected', async () => {
+    reset();
+    const state = await runTurn({});
+    assert.strictEqual(fx.memoryStoreCalls, 1);
+    assert.ok(promptText(state).includes('likes tea'));
+});
+
+test('memory read: art. 9 rows are asked for only when the policy says opted in', async () => {
+    reset();
+    await runTurn({});
+    assert.deepStrictEqual(fx.memoryStoreArgs[5], { includeSensitive: false });
+    reset();
+    fx.memoryPolicy = { read: true, write: true, reason: 'enabled', sensitive: true };
+    await runTurn({});
+    assert.deepStrictEqual(fx.memoryStoreArgs[5], { includeSensitive: true });
+});
+
+// ═══ memory_used ═════════════════════════════════════════════════
+
+test('memory_used is sent once, before the answer, and the list is handed to the turn state', async () => {
+    reset();
+    const events = [];
+    const state = await runTurn({ send: (type, data) => events.push([type, data]) });
+    const used = events.filter(([t]) => t === 'memory_used');
+    assert.strictEqual(used.length, 1);
+    assert.deepStrictEqual(used[0][1], { items: [{ id: 'm1', type: 'fact', preview: 'likes tea', why: 'relevant' }] });
+    assert.deepStrictEqual(state.memoryUsed, used[0][1].items);
+});
+
+test('memory read off: no memory_used event and an empty list', async () => {
+    reset();
+    fx.memoryPolicy = { read: false, write: false, reason: 'chat_off' };
+    const events = [];
+    const state = await runTurn({ send: (type, data) => events.push([type, data]) });
+    assert.ok(!events.some(([t]) => t === 'memory_used'));
+    assert.deepStrictEqual(state.memoryUsed, []);
 });

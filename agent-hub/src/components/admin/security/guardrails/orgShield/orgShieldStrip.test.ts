@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { buildStripItems, dirtyChips, emphasisOf } from './orgShieldStrip';
+import { buildStripItems, dirtyChips } from './orgShieldStrip';
 import type { StripInput, StripItem } from './orgShieldStrip';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 
@@ -83,18 +83,18 @@ describe('buildStripItems', () => {
     describe('step 1', () => {
         it('counts only the built-in kinds and names the strictness preset', () => {
             const item = byId(buildStripItems(input({}, { piiCategories: ['Email', 'Person', 'cdt_0123456789'] })), 'detection');
-            expect(item.summary).toBe('2 of 21 kinds · Balanced');
+            expect(item.summary).toBe('2 of 21 · Balanced');
             expect(item.summaryTone).toBeUndefined();
         });
 
         it('shows a custom level as its percentage', () => {
             expect(byId(buildStripItems(input({}, { piiConfidenceThreshold: 0.6 })), 'detection').summary)
-                .toBe('2 of 21 kinds · Custom (60%)');
+                .toBe('2 of 21 · Custom (60%)');
         });
 
         it('turns amber when nothing is looked for', () => {
             const item = byId(buildStripItems(input({}, { piiCategories: [] })), 'detection');
-            expect(item.summary).toMatch(/^0 of 21 kinds/);
+            expect(item.summary).toMatch(/^0 of 21/);
             expect(item.summaryTone).toBe('warn');
         });
     });
@@ -140,14 +140,6 @@ describe('buildStripItems', () => {
     });
 });
 
-describe('emphasisOf', () => {
-    it('outlines the other check step, and nothing elsewhere', () => {
-        expect(emphasisOf('processing')).toBe('outbound');
-        expect(emphasisOf('outbound')).toBe('processing');
-        expect(emphasisOf('detection')).toBeNull();
-        expect(emphasisOf('overview')).toBeNull();
-    });
-});
 
 describe('dirtyChips', () => {
     it('names each stage as the strip does and drops unknown ids', () => {

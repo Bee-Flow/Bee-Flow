@@ -1,4 +1,4 @@
-import { mayNavigate } from '../utils/unsavedNavigation';
+import { whenMayNavigate } from '../utils/unsavedNavigation';
 import { useCallback } from 'react';
 import {
     PAGE_ROUTES,
@@ -39,8 +39,7 @@ export function useNavigateToPage({
     setShowProjects = () => {},
     setInitialProjectRoute = () => {},
 }) {
-    const navigateToPage = useCallback((page, { replace = false } = {}) => {
-        if (!mayNavigate()) return;
+    const navigateToPage = useCallback((page, { replace = false } = {}) => whenMayNavigate(() => {
         // Mobile access control: on phones, any destination that isn't chat or
         // user-settings bounces to the app home. Belt-and-suspenders with
         // MobileRouteGuard (which catches deep-links/refresh + resize). Close
@@ -370,7 +369,7 @@ export function useNavigateToPage({
         setShowSkillsPanel(false);
         const path = PAGE_ROUTES[page] || '/';
         window.history.pushState({ page }, '', path);
-    }, []);
+    }), []);
 
     return navigateToPage;
 }

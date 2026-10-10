@@ -29,6 +29,7 @@ const {
     stepInputsSynthetic,
 } = require('./shared');
 const log = require('../../telemetry/log');
+const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
 const { createUsageAccumulator, usageLogFields } = require('../providers/usageNormalizer');
 
 // ── Step executors ──────────────────────────────────────
@@ -574,14 +575,30 @@ async function resolveAllowedKnowledgeBaseIds(kbIds, ctx) {
 async function groundAiStepWithMemory(step, ctx, promptText) {
     if (step?.useMemory !== true || !ctx?.userId) return '';
     try {
+        // The same gate chat uses: user switch, org switch. There is no chat, so
+        // no per-chat flags; the automation owner's own switch still applies.
+        const policy = await resolveMemoryPolicy({ userId: ctx.userId, orgId: ctx.orgId || null });
+        if (!policy.read) {
+            log.info(`[AutomationRunner] ai_step memory grounding skipped (${policy.reason})`);
+            return '';
+        }
         const memoryStore = require('../../stores/memoryStore');
-        const mems = await memoryStore.findRelevantMemories(ctx.userId, null, String(promptText || step.prompt || '').slice(0, 2000), 600, null, { includeGeneral: true });
+        const mems = await memoryStore.findRelevantMemories(ctx.userId, null, String(promptText || step.prompt || '').slice(0, 2000), 400, null, { includeGeneral: true, includeSensitive: policy.sensitive === true });
         if (!Array.isArray(mems) || mems.length === 0) return '';
         let block = memoryStore.formatMemoriesForPrompt(mems);
         if (!block) return '';
         try {
-            const { scrubMemoryContext } = require('../memory/scrubMemoryContext');
-            block = await scrubMemoryContext(block, ctx.orgShield || null);
+            // Gated exactly like the chat paths: scrub when the org's Privacy
+            // Shield is on or PII detection is enabled globally.
+            const orgShield = ctx.orgShield
+                || (ctx.orgId ? await require('../../stores/configStore').getConfig(`org_privacy_shield_${ctx.orgId}`) : null);
+            const scrubEnabled = !!orgShield?.enabled || !!(await require('../aiAgent').getAIConfig())?.piiDetectionEnabled;
+            if (scrubEnabled) {
+                const { scrubMemoryContext } = require('../memory/scrubMemoryContext');
+                // Returns { scrubbed, replacedCategories } — not the string.
+                const result = await scrubMemoryContext(block, orgShield);
+                if (result?.replacedCategories?.length > 0) block = result.scrubbed;
+            }
         } catch (_) { /* fail-open: the unscrubbed block is still the owner's own data */ }
         return block ? `\n\n${block}` : '';
     } catch (e) {

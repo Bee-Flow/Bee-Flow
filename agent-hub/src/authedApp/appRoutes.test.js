@@ -42,6 +42,7 @@ import {
     parseDirectChatUrl,
     parseAdminPath,
     usesStudioRail,
+    usesProjectRail,
 } from './appRoutes';
 import { parseStudioUrl } from '../components/admin/Studio/studioRoutes';
 
@@ -130,6 +131,20 @@ describe('member documents routing', () => {
         }
         expect(parseDocumentUrl('/app/documents/%invalid')).toBeNull();
         expect(parseDocumentUrl('/app/studio/documents/d1')).toBeNull();
+    });
+});
+
+describe('usesProjectRail — the project rail flag', () => {
+    it('is true on the projects page with a project open', () => {
+        expect(usesProjectRail('projects', '1a4834b9')).toBe(true);
+    });
+    it('is false on the list, the create form and other pages', () => {
+        expect(usesProjectRail('projects', null)).toBe(false);
+        expect(usesProjectRail('projects', undefined)).toBe(false);
+        expect(usesProjectRail('projects', '')).toBe(false);
+        expect(usesProjectRail('projects', 'new')).toBe(false);
+        expect(usesProjectRail('agents', 'x')).toBe(false);
+        expect(usesProjectRail('projects/1a4834b9', '1a4834b9')).toBe(false);
     });
 });
 

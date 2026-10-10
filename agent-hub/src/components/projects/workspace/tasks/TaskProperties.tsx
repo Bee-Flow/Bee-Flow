@@ -6,7 +6,7 @@ import { Check } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { TASK_PRIORITIES, TASK_STATUSES, type ProjectTask, type TaskLink, type TaskPriority, type TaskStatus } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { Avatar, ErrorText } from '../workspaceUi';
+import { Avatar, ErrorText, SelectField } from '../workspaceUi';
 import { LabelsInput, PriorityIcon, TypeIcon, typeLabel } from './TaskFields';
 import { workItemType, WORK_ITEM_TYPES, type WorkItemType } from './taskPlanning';
 import { priorityLabel, statusLabel } from './taskText';
@@ -101,19 +101,19 @@ function ScheduleRows(p: TaskPropertiesProps) {
     return (
         <>
             <Row label={t('project_tasks.status_label', 'Status')} htmlFor={`${ids}-status`}>
-                <select id={`${ids}-status`} className={PROPERTY_CONTROL} value={p.status} disabled={locked} onChange={e => p.onStatus(e.target.value as TaskStatus)}>
+                <SelectField id={`${ids}-status`} bare wrapperClassName="relative block" className={PROPERTY_CONTROL} value={p.status} disabled={locked} onChange={e => p.onStatus(e.target.value as TaskStatus)}>
                     {TASK_STATUSES.map(s => <option key={s} value={s}>{statusLabel(t, s)}</option>)}
-                </select>
+                </SelectField>
             </Row>
             <Row label={t('project_tasks.priority_label', 'Priority')} htmlFor={`${ids}-priority`}>
                 <span className="relative flex items-center">
                     {marked
                         ? <span className="absolute left-2 flex pointer-events-none"><PriorityIcon priority={p.priority} /></span>
                         : null}
-                    <select id={`${ids}-priority`} className={`${PROPERTY_CONTROL} ${marked ? 'pl-7' : ''}`} value={p.priority} disabled={locked}
+                    <SelectField id={`${ids}-priority`} bare wrapperClassName="relative block" className={`${PROPERTY_CONTROL} ${marked ? 'pl-7' : ''}`} value={p.priority} disabled={locked}
                         onChange={e => p.onPriority(e.target.value as TaskPriority)}>
                         {TASK_PRIORITIES.map(pr => <option key={pr} value={pr}>{priorityLabel(t, pr)}</option>)}
-                    </select>
+                    </SelectField>
                 </span>
             </Row>
             <Row label={t('project_tasks.assignees', 'Assigned to')}>
@@ -143,16 +143,16 @@ function PlanningRows(p: TaskPropertiesProps) {
     return (
         <>
             <Row label={t('project_tasks.work_item_type', 'Work item type')} htmlFor={`${ids}-type`}>
-                <select id={`${ids}-type`} className={PROPERTY_CONTROL} value={p.itemType} disabled={locked} onChange={e => p.onItemType(e.target.value as WorkItemType)}>
+                <SelectField id={`${ids}-type`} bare wrapperClassName="relative block" className={PROPERTY_CONTROL} value={p.itemType} disabled={locked} onChange={e => p.onItemType(e.target.value as WorkItemType)}>
                     {WORK_ITEM_TYPES.map(type => <option key={type} value={type}>{typeLabel(t, type)}</option>)}
-                </select>
+                </SelectField>
             </Row>
             <Row label={t('project_tasks.story_points', 'Story points')} htmlFor={`${ids}-points`}>
-                <select id={`${ids}-points`} className={`${PROPERTY_CONTROL} tabular-nums ${p.points == null ? 'text-[var(--text-tertiary)]' : ''}`} value={p.points ?? ''} disabled={locked}
+                <SelectField id={`${ids}-points`} bare wrapperClassName="relative block" className={`${PROPERTY_CONTROL} tabular-nums ${p.points == null ? 'text-[var(--text-tertiary)]' : ''}`} value={p.points ?? ''} disabled={locked}
                     onChange={e => p.onPoints(e.target.value ? Number(e.target.value) : null)}>
                     <option value="">{t('project_tasks.not_estimated', 'Not estimated')}</option>
                     {STORY_POINTS.map(point => <option key={point} value={point}>{point}</option>)}
-                </select>
+                </SelectField>
             </Row>
             <Row label={t('project_tasks.parent', 'Parent')} htmlFor={locked ? undefined : `${ids}-parent`}>
                 {locked ? (
@@ -163,13 +163,13 @@ function PlanningRows(p: TaskPropertiesProps) {
                         </button>
                     ) : <span className="block px-2 text-[13px] text-[var(--text-tertiary)]">—</span>
                 ) : (
-                    <select id={`${ids}-parent`} aria-label={parentLabel} className={`${PROPERTY_CONTROL} ${p.parentTaskId ? '' : 'text-[var(--text-tertiary)]'}`}
+                    <SelectField id={`${ids}-parent`} aria-label={parentLabel} bare wrapperClassName="relative block" className={`${PROPERTY_CONTROL} ${p.parentTaskId ? '' : 'text-[var(--text-tertiary)]'}`}
                         value={p.parentTaskId || ''} disabled={epic}
                         title={epic ? t('project_tasks.epics_top_level', 'Epics are top-level') : t('project_tasks.parent_hint', 'Epics contain stories; stories can contain tasks.')}
                         onChange={e => p.onParent(e.target.value || null)}>
                         <option value="">{epic ? t('project_tasks.epics_top_level', 'Epics are top-level') : t('project_tasks.no_parent', 'No parent')}</option>
                         {p.parentOptions.map(option => <option key={option.id} value={option.id}>{option.title} · {typeLabel(t, workItemType(option))}</option>)}
-                    </select>
+                    </SelectField>
                 )}
             </Row>
             {p.sprint && (

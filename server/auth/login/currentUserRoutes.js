@@ -90,7 +90,25 @@ router.get('/user', async (req, res) => {
                         const { isMemoryEnabledForUser } = require('../../core/memory/memoryPolicy');
                         return await isMemoryEnabledForUser(req.session.user.id);
                     } catch (_) { return true; }
-                })()
+                })(),
+                // The user's own opt-in for sensitive topics (Settings → Memory).
+                // Fails closed: sensitive memory stays off on any error.
+                memorySensitiveOptIn: await (async () => {
+                    try {
+                        const { memorySensitiveOptInKey } = require('../../core/memory/memoryPolicy');
+                        const configStore = require('../../stores/configStore');
+                        return (await configStore.getConfig(memorySensitiveOptInKey(req.session.user.id))) === true;
+                    } catch (_) { return false; }
+                })(),
+                // The organisation's memory policy, so the SPA can show
+                // "turned off by your organisation". Fail open like the policy.
+                ...(await (async () => {
+                    try {
+                        const { getOrgMemorySettings } = require('../../core/memory/memoryPolicy');
+                        const org = await getOrgMemorySettings(req.session.user.organizationId || null);
+                        return { orgMemoryEnabled: org.enabled, sensitiveOptInAllowed: org.sensitiveOptInAllowed };
+                    } catch (_) { return { orgMemoryEnabled: true, sensitiveOptInAllowed: false }; }
+                })())
             },
             isOAuthConfigured: !!(config.oauth.clientId && config.oauth.clientSecret),
             // Encryption status for SSO users. Suppress the setup/pin prompts

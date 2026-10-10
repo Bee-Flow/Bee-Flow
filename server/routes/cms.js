@@ -80,6 +80,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 // ./cmsShared.js, zero behavior change.
 const {
     requireAdmin, attachSiteIdFromParam, getLiveSiteId, setLiveSiteId, KEY_CMS_LIVE_SITE_ID,
+    ensurePublishedSnapshot,
 } = require('./cmsShared');
 const cmsAnalytics = require('./cmsAnalytics');
 const {
@@ -88,6 +89,7 @@ const {
 } = cmsAnalytics;
 const { sanitizeSvg } = require('../utils/svgSanitizer');
 const cmsMedia = require('./cmsMedia');
+const { UPLOAD_MIME_WHITELIST, IMAGE_MAX_BYTES } = require('../core/cms/uploadPolicy');
 const { parseRangeHeader } = require('../core/http/httpRange');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf } = require('../core/http/schemaParts');
@@ -222,35 +224,25 @@ async function attachSiteId(req, res, next) {
 // SITE_ID_RE + attachSiteIdFromParam live in ./cmsShared.js (shared with
 // the CMS AI builder).
 
-// Accepted MIME types for the CMS uploader. Images cover the regular
-// hero/feature/logo case; image/gif + image/apng + image/webp cover
-// animated graphics; video/mp4 + video/webm cover the "silent loop"
-// video kind used by Media + Text. Anything outside this list is
-// rejected as 400 by the wrapper middleware below (NOT 500 — fileFilter
-// errors used to bubble up uncaught and surface as a generic Internal
-// Server Error).
+// Accepted MIME types for the CMS uploader live in core/cms/uploadPolicy.js
+// (shared with the CMS MCP server's upload URLs). Images cover the regular
+// hero/feature/logo case; image/gif + image/apng + image/webp cover animated
+// graphics; video/mp4 + video/webm cover the "silent loop" video kind used by
+// Media + Text. Anything outside the list is rejected as 400 by the wrapper
+// middleware below (NOT 500 — fileFilter errors used to bubble up uncaught and
+// surface as a generic Internal Server Error).
 //
 // SVG is accepted, but only after server-side sanitization (see
 // handleUpload below). The asset endpoint serves the cleaned bytes
 // inline with a strict CSP; unsanitized legacy SVGs are still
 // force-downloaded by the isScriptableMime branch.
-const UPLOAD_MIME_WHITELIST = new Set([
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/apng',
-    'image/svg+xml',
-    'video/mp4',
-    'video/webm',
-]);
 
 const upload = multer({
     storage: multer.memoryStorage(),
     // 25 MB ceiling — high enough for short demo-loop MP4s / animated GIFs
     // (the typical sim.ai-style screen recording is well under this), low
     // enough that we don't silently accept multi-hundred-MB uploads.
-    limits: { fileSize: 25 * 1024 * 1024 },
+    limits: { fileSize: IMAGE_MAX_BYTES },
     fileFilter: (req, file, cb) => {
         if (UPLOAD_MIME_WHITELIST.has(file.mimetype) || cmsMedia.isVttFile(file)) cb(null, true);
         else cb(new Error(`Unsupported file type: ${file.mimetype}`));
@@ -730,19 +722,7 @@ async function postSitePublish(req, res) {
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 
-// A site that is Live must always serve a PUBLISHED snapshot — never its
-// in-progress draft. Publishing on the Live transition guarantees
-// "public == published": once live, later edits stay private until the user
-// clicks Publish again. Idempotent + best-effort (a publish hiccup must not
-// block the Live toggle; the public route self-heals as a backstop).
-async function ensurePublishedSnapshot(siteId) {
-    try {
-        const snap = await cmsStore.getPublishedSnapshot(siteId, { fresh: true });
-        if (!snap) await cmsStore.publishSite(siteId);
-    } catch (e) {
-        log.warn(`[CMS] ensurePublishedSnapshot failed for ${siteId}: ${e.message}`);
-    }
-}
+// ensurePublishedSnapshot lives in ./cmsShared.js (shared with the CMS MCP server).
 
 async function putSiteLive(req, res) {
     try {

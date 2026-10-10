@@ -47,6 +47,8 @@ const projectStore = require('../stores/projectStore');
 const { resolveUserGroups } = require('./audience');
 const log = require('../telemetry/log');
 
+const ARCHIVED_MESSAGE = 'This project is archived. Restore it to make changes.';
+
 /** Ordering for the role ladder. Higher wins. */
 const ROLE_ORDER = Object.freeze({ viewer: 0, editor: 1, owner: 2 });
 
@@ -147,10 +149,21 @@ async function resolveRequestedProject(userId, requestedProjectId, minRole = 'vi
  * Sets `req.projectRole` for the handler. Returns 404 (not 403) when the user
  * has no role at all, so project existence is not probeable.
  *
+ * An ARCHIVED project is read-only: after the role check, a gate of `editor`
+ * or `owner` answers 409 `project_archived`. Viewer gates keep working, so an
+ * archived project can still be read and followed. The routes that must work
+ * on an archived project (restore, archive, delete) pass `{ allowArchived: true }`.
+ * The project row is read once for that and left on `req.project`.
+ *
  * @param {'viewer'|'editor'|'owner'} minRole
- * @param {string} [paramName='id']
+ * @param {string|{ paramName?: string, allowArchived?: boolean }} [options]
+ *        a string is the param name (default 'id')
  */
-function requireProjectRole(minRole, paramName = 'id') {
+function requireProjectRole(minRole, options = 'id') {
+    const opts = typeof options === 'string' ? { paramName: options } : (options || {});
+    const paramName = opts.paramName || 'id';
+    const allowArchived = opts.allowArchived === true;
+    const checksArchive = !allowArchived && ROLE_ORDER[minRole] >= ROLE_ORDER.editor;
     return async function requireProjectRoleMw(req, res, next) {
         try {
             const userId = req.session?.user?.id;
@@ -160,6 +173,13 @@ function requireProjectRole(minRole, paramName = 'id') {
             if (!role) return res.status(404).json({ error: 'Not found' });
             if (ROLE_ORDER[role] < ROLE_ORDER[minRole]) {
                 return res.status(403).json({ error: 'Insufficient permissions' });
+            }
+            if (checksArchive || allowArchived) {
+                const project = await projectStore.getProject(projectId);
+                if (project) req.project = project;
+                if (checksArchive && project?.archivedAt) {
+                    return res.status(409).json({ error: ARCHIVED_MESSAGE, code: 'project_archived' });
+                }
             }
             req.projectRole = role;
             next();
@@ -171,6 +191,7 @@ function requireProjectRole(minRole, paramName = 'id') {
 }
 
 module.exports = {
+    ARCHIVED_MESSAGE,
     ROLE_ORDER,
     getProjectRole,
     hasProjectRole,

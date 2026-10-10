@@ -60,6 +60,7 @@ describe('the top-level tab segments are frozen', () => {
             'appearance',
             'security',
             'memory',
+            'notifications',
             'integrations',
             'learning',
             'help_support',
@@ -100,7 +101,7 @@ describe('the top-level tab segments are frozen', () => {
         expect(MOBILE_VISIBLE_TOP_TABS).toEqual(
             SETTINGS_TOP_LEVEL_TAB_IDS.filter(id => !SETTINGS_DESKTOP_ONLY_TABS.includes(id)),
         );
-        expect(MOBILE_VISIBLE_TOP_TABS).toEqual(['preferences', 'appearance', 'security', 'memory', 'help_support']);
+        expect(MOBILE_VISIBLE_TOP_TABS).toEqual(['preferences', 'appearance', 'security', 'memory', 'notifications', 'help_support']);
         // A phone-visible tab is a deep link a phone may follow: /app/settings
         // is on MOBILE_ALLOWED_PAGES, so each of these must still resolve.
         for (const id of MOBILE_VISIBLE_TOP_TABS) {
@@ -187,6 +188,7 @@ describe('FROZEN_LEGACY: settings paths the server has minted', () => {
             org_academy: 'academy',
             org_integrations: 'integrations',
             org_mcp: 'mcp',
+            org_mcp_access: 'mcp-access',
             org_github_sync: 'github-sync',
             org_nextcloud_sync: 'nextcloud-sync',
             org_meeting_templates: 'meeting-templates',

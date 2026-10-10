@@ -96,6 +96,14 @@ export function projectErrorText(t: TranslateFn, source: unknown, fallback?: str
     switch (code) {
         case 'invalid_date_range': return t('project_tasks.invalid_date_range', 'The start date must be on or before the due date.');
         case 'SHARED_CHATS_REMAIN': return sharedChatsRemain(t, details);
+        case 'owner_changed':
+            return t('project_home.transfer.owner_changed', 'The owner changed in the meantime. Reload the page and try again.');
+        case 'project_archived':
+            return t('project_home.archived.refused', 'This project is archived and read-only. The owner can restore it.');
+        case 'transfer_first':
+            return t('project_home.transfer.transfer_first', 'Transfer the project to someone else first.');
+        case 'not_a_member':
+            return t('project_home.transfer.not_a_member', 'Only a member of this project can become its owner.');
         case 'KIND_ALREADY_SET': return kindAlreadySet(t, details);
         case 'KIND_HOLDS_OTHER_CONTENT': return kindHoldsOtherContent(t, details);
         case 'KIND_NOT_ALLOWED':

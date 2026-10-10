@@ -468,6 +468,21 @@ function runStartupTasks() {
     // the daily statutory-deadline notifier (72h incidents / 30d DSRs / DPIA
     // expiries).
     require('../jobs/memoryRetentionEnforcer').start();
+    // Memory search indexes: fills the tsvector and pgvector columns of rows
+    // that predate them and re-embeds rows left on another embedding
+    // dimension. Resumable and idempotent; first pass 90 s after boot.
+    try {
+        require('../jobs/memoryEmbeddingBackfill').start();
+    } catch (err) {
+        log.warn('[Server] Memory embedding backfill load failed:', err.message);
+    }
+    // Memory consolidation: merges near-duplicates and archives stale,
+    // low-importance rows. Same fail-soft load as the backfill.
+    try {
+        require('../jobs/memoryConsolidation').start();
+    } catch (err) {
+        log.warn('[Server] Memory consolidation load failed:', err.message);
+    }
     // Monitoring-ledger retention and the PII scan-ledger prune. NOT gated on
     // a module: chat and DLP fill those tables on every install, including
     // one without Automations, whose runner these passes used to ride.

@@ -14,19 +14,22 @@ import useProjectChatStart from './AgentHub/useProjectChatStart';
 import useSidePanelState from './AgentHub/useSidePanelState';
 import { projectKeys, useProjectsQuery } from './api/queries/projects';
 import beeFlowIcon from './assets/BeeFlow-logo-Icon-2026.svg';
+import { usesProjectRail } from './authedApp/appRoutes';
 import { describeSchedule } from './components/cowork/coworkSchedule';
 import useCoworkComposer from './components/cowork/useCoworkComposer';
 import { RequireTier, useLicenseContext } from './components/licensing/LicenseContext';
+import { ProjectLiveProvider } from './components/projects/workspace/ProjectLiveContext';
 import { toast } from './components/shared/Toast';
 import useConfirm from './components/shared/useConfirm';
 import SearchOverlay from './components/shell/SearchOverlay';
 import Sidebar from './components/shell/Sidebar';
 import { useTranslation } from './hooks/useTranslation';
 import { useViewport } from './hooks/useViewport';
+import { documentRefOf } from './pages/documents/notebookRef';
 import { lazy } from './utils/lazyWithReload';
 import scopedStorage from './utils/scopedStorage';
 import { rememberStudioItem } from './utils/studioRecents';
-import { documentRefOf } from './pages/documents/notebookRef';
+import { whenMayNavigate } from './utils/unsavedNavigation';
 
 // ── Chat-critical (eager) ────────────────────────────────────────────
 // These components are on the main chat path; deferring them costs more
@@ -200,11 +203,24 @@ const AgentHub = ({
     // start in icon-rail mode. The user can still toggle it.
     const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
     const [studioFullscreen, setStudioFullscreen] = useState(false);
+    const [showProjectsStore, setShowProjectsStore] = useState(false);
+    // null = closed, '' = create-new, otherwise an existing project id
+    const [activeProjectId, setActiveProjectId] = useState(null);
+    // Whether the project search panel is open: the rail's search pill sets it,
+    // the workspace page renders the panel.
+    const [projectSearchOpen, setProjectSearchOpen] = useState(false);
     // Collapse the main sidebar to its icon-rail whenever Studio is open OR a
     // child explicitly asks for fullscreen (legacy path used by AgentStudio's
     // edit mode). Stash the prior expanded/collapsed state so we can restore
     // it when the user navigates back out of Studio.
-    const collapseForStudio = showStudio || studioFullscreen;
+    // A project page does the same: its own rail replaces the sidebar, so the
+    // sidebar's open state is stashed and restored exactly as for Studio.
+    const projectRailActive = usesProjectRail(currentPage, showProjectsStore ? activeProjectId : null);
+    // On a phone the sidebar is an overlay and the rail never replaces it, so
+    // there is nothing to stash there.
+    const collapseForRail = showStudio || studioFullscreen || (projectRailActive && !isMobile);
+    // A search panel left open (error page, browser Back) must not outlive its project.
+    useEffect(() => { setProjectSearchOpen(false); }, [activeProjectId]);
     const sidebarOpenBeforeStudioRef = useRef(null);
     // An Effect Event: it snapshots `sidebarOpen` at the moment the flag flips,
     // and must not run again when the user toggles the sidebar inside Studio.
@@ -220,7 +236,7 @@ const AgentHub = ({
             if (restore) setSidebarOpen(true);
         }
     });
-    useEffect(() => { syncSidebarToStudio(collapseForStudio); }, [collapseForStudio]);
+    useEffect(() => { syncSidebarToStudio(collapseForRail); }, [collapseForRail]);
     const {
         notebookContent, setNotebookContent,
         notebookSelection, setNotebookSelection,
@@ -318,9 +334,6 @@ const AgentHub = ({
     const activeProjectLive = !activeProject ? null
         : projectsQuery.isSuccess ? (projects.find(p => p.id === activeProject.id) || null)
             : activeProject;
-    const [showProjectsStore, setShowProjectsStore] = useState(false);
-    // null = closed, '' = create-new, otherwise an existing project id
-    const [activeProjectId, setActiveProjectId] = useState(null);
 
     // The URL is the source of truth for which projects view is open. Keeping
     // these in sync one-way (route → state) means a reload, a deep link and a
@@ -345,11 +358,15 @@ const AgentHub = ({
     // The local view is set as well: the route may not change at all (the same
     // project clicked again after a chat hid the page), and then nothing else
     // would bring the page back.
-    const goToProject = useCallback((projectId, tab, sub) => {
+    const goToProject = useCallback((projectId, tab, sub) => whenMayNavigate(() => {
+        // Ask first: a cancelled "unsaved settings" prompt must leave view and
+        // URL where they are. The workspace clears its dirty flag when the
+        // reader confirms, so the host's own check afterwards passes silently.
+        setProjectSearchOpen(false);
         setShowProjectsStore(true);
         setActiveProjectId(projectId ?? null);
         if (onProjectRouteChange) onProjectRouteChange(projectId, tab, sub);
-    }, [onProjectRouteChange]);
+    }), [onProjectRouteChange]);
 
     const closeProjects = useCallback(() => {
         if (onCloseProjects) onCloseProjects();
@@ -539,6 +556,7 @@ const AgentHub = ({
         onNavigate,
         confirm,
         openAtLatest,
+        clearActiveProject: () => setActiveProject(null),
     });
 
     // ── Project workspace → chat ─────────────────────────────────────────
@@ -568,6 +586,15 @@ const AgentHub = ({
         ? projects.find(p => p.id === projectId) || queryClient.getQueryData(projectKeys.detail(projectId)) || null
         : null);
 
+    // Opening an existing conversation: the chat context is that conversation's
+    // OWN filing, never what the previous chat left behind. The sidebar row
+    // (`conv.project_id`, the same field the project filter and chip read) is the
+    // source: it is on the row at click time, before the conversation GET returns.
+    // No project_id means the chat is private, so the context is cleared.
+    const adoptConversationProject = (conv) => {
+        setActiveProject(projectForContext(conv?.project_id ?? conv?.projectId ?? null));
+    };
+
     // Opening a shared thread leaves the project page and lands in the chat
     // itself, with the project as the chat context so its instructions and
     // knowledge apply to whatever the member replies.
@@ -578,13 +605,15 @@ const AgentHub = ({
             return;
         }
         const project = projectForContext(activeProjectId);
-        if (project) setActiveProject(project);
         closeProjects();
         if (agent) {
             handleSelectAgent(agent);
+            // After handleSelectAgent, which clears the chat context.
+            if (project) setActiveProject(project);
             selectConversation(agent.id, thread.id);
             return;
         }
+        if (project) setActiveProject(project);
         if (!directChatMode || selectedAgent) {
             setDirectChatMode(true);
             setSelectedAgent(null);
@@ -666,6 +695,7 @@ const AgentHub = ({
 
     return (
         <Suspense fallback={<LazyFallback />}>
+        <ProjectLiveProvider projectId={showProjectsStore && activeProjectId ? activeProjectId : null} currentUserId={user?.id ?? null}>
         <div className="flex h-full bg-[var(--bg-primary)] overflow-hidden">
             {/* Sidebar */}
             <Sidebar
@@ -682,6 +712,7 @@ const AgentHub = ({
                 currentConversation={currentConversation}
                 onSelectConversation={(conv) => {
                     closeAllOverlays();
+                    adoptConversationProject(conv);
                     // Switch agent if the conversation belongs to a different one
                     if (conv.agent_id && (!selectedAgent || selectedAgent.id !== conv.agent_id)) {
                         const agent = agents.find(a => a.id === conv.agent_id);
@@ -705,6 +736,15 @@ const AgentHub = ({
                 onNavigate={(page) => { if (isMobile) setSidebarOpen(false); onNavigate(page); }}
                 currentPage={currentPage}
                 studioRoute={studioRoute}
+                projectRail={projectRailActive && activeProjectId ? {
+                    projectId: activeProjectId,
+                    tab: initialProjectRoute?.tab ?? null,
+                    onSelectTab: (tab) => goToProject(activeProjectId, tab),
+                    onBack: () => goToProject(null),
+                    onOpenProject: (id) => goToProject(id),
+                    onOpenSearch: () => setProjectSearchOpen(true),
+                    notebooksEnabled,
+                } : null}
                 showSettings={showSettings}
                 showAgentDesigner={showAgentDesigner}
                 showSkillsPanel={showSkillsPanel}
@@ -718,6 +758,7 @@ const AgentHub = ({
                     // here, so picking a direct chat from history while Studio
                     // was open updated the URL but kept the editor on screen.
                     closeAllOverlays();
+                    adoptConversationProject(conv);
                     // Ensure we're in direct chat mode
                     if (!directChatMode) {
                         setDirectChatMode(true);
@@ -741,9 +782,10 @@ const AgentHub = ({
                     goToProject(p.id);
                 }}
                 onNewChatInProject={(p) => {
-                    setActiveProject(p);
                     closeProjects();
                     handleDirectChat();
+                    // After handleDirectChat, which clears the context.
+                    setActiveProject(p);
                 }}
                 onCreateProject={() => {
                     // BFSF-267: these hand-rolled subset closes missed overlays
@@ -777,6 +819,7 @@ const AgentHub = ({
                     // Studio overlay. closeAllOverlays() is the single source of
                     // truth for this and matches the per-agent path above.
                     closeAllOverlays();
+                    adoptConversationProject(conv);
                     if (conv._source === 'direct') {
                         // Switch to direct chat mode and open the conversation
                         if (!directChatMode) {
@@ -1010,6 +1053,8 @@ const AgentHub = ({
                         onNavigate={onNavigate}
                         onStartChat={startProjectChat}
                         notebooksEnabled={notebooksEnabled}
+                        searchOpen={projectSearchOpen}
+                        onSearchOpenChange={setProjectSearchOpen}
                     />
                 ) : selectedAgent ? (
                     <AgentChatView
@@ -1164,6 +1209,7 @@ const AgentHub = ({
             }
             {confirmDialog}
         </div >
+        </ProjectLiveProvider>
         </Suspense>
     );
 };

@@ -16,6 +16,7 @@ import { statusLabel } from './taskText';
 /** Done starts folded once it holds more than this many tasks. */
 const DONE_FOLD_FROM = 6;
 const ROW_CARD_CLASS = 'rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] divide-y divide-[var(--border-subtle)] overflow-hidden';
+import { Skeleton } from '../workspaceUi';
 
 type Folded = Partial<Record<TaskStatus, boolean>>;
 
@@ -36,14 +37,8 @@ function useFolded(projectId: string): [Folded, (status: TaskStatus, folded: boo
 export function TasksSkeleton() {
     const { t } = useTranslation();
     return (
-        <div className={ROW_CARD_CLASS} role="status" aria-label={t('project_tasks.loading', 'Loading tasks…')} data-testid="tasks-skeleton">
-            {['w-2/3', 'w-1/2', 'w-3/4', 'w-2/5', 'w-3/5'].map((width, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 h-10">
-                    <span className="h-4 w-4 flex-none animate-pulse rounded-full bg-[var(--bg-secondary)]" aria-hidden="true" />
-                    <span className={`h-3 animate-pulse rounded-full bg-[var(--bg-secondary)] ${width}`} aria-hidden="true" />
-                    <span className="ml-auto h-3 w-16 flex-none animate-pulse rounded-full bg-[var(--bg-secondary)]" aria-hidden="true" />
-                </div>
-            ))}
+        <div className={ROW_CARD_CLASS}>
+            <Skeleton rows={5} variant="rows" label={t('project_tasks.loading', 'Loading tasks…')} testId="tasks-skeleton" className="space-y-0 divide-y divide-[var(--border-subtle)]" barClassName="!h-10 !rounded-none" />
         </div>
     );
 }

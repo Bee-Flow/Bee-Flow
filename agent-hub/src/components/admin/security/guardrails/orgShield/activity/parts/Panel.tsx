@@ -43,23 +43,3 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
         <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">{children}</span>
     );
 }
-
-/**
- * One translatable sentence with live pieces in it.
- *
- * The template keeps its `{name}` placeholders (t() is called without
- * params), and each placeholder is swapped for a React node. Word order stays
- * the translator's, which gluing fragments together would take away.
- */
-export function Slots({ template, slots }: { template: string; slots: Record<string, React.ReactNode> }) {
-    const parts = template.split(/(\{\w+\})/);
-    return (
-        <>
-            {parts.map((part, i) => {
-                const name = /^\{(\w+)\}$/.exec(part)?.[1];
-                const node = name && Object.hasOwn(slots, name) ? slots[name] : part;
-                return node === '' ? null : <React.Fragment key={i}>{node}</React.Fragment>;
-            })}
-        </>
-    );
-}

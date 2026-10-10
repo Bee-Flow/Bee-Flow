@@ -1,10 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { withQueryClient } from '../../../../test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, pending, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
+import { useUndoCapture } from '../undoTestKit';
 
 // Fresh spies per test (assigned in beforeEach) rather than reset ones: the
 // module mock hands out this object, and the code reads its methods per call.
@@ -72,11 +73,13 @@ describe('NotebooksTab: states', () => {
         renderTab('viewer');
         expect(await screen.findByText('No notebooks yet')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'New notebook' })).not.toBeInTheDocument();
+        expect(within(screen.getByTestId('studio-section-header')).getByRole('heading', { name: 'Notebooks' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Add existing' })).not.toBeInTheDocument();
     });
 });
 
 describe('NotebooksTab: cards', () => {
+    const undo = useUndoCapture();
     it('shows each notebook with its preview and owner, and opens it in the notebook editor', async () => {
         const user = userEvent.setup();
         const { onOpenSub } = renderTab('editor');
@@ -87,23 +90,27 @@ describe('NotebooksTab: cards', () => {
         expect(onOpenSub).toHaveBeenCalledWith('nb-2');
     });
 
-    it('offers removal of own notebooks to an editor and takes one out after confirmation', async () => {
+    it('offers removal of own notebooks to an editor and takes one out at once, calling the API when the Undo toast runs out', async () => {
         const user = userEvent.setup();
         renderTab('editor');
         await screen.findByTestId('project-notebook-nb-1');
         expect(screen.queryByRole('button', { name: 'Remove Interview notes from the project' })).not.toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Remove Market research from the project' }));
-        await user.click(screen.getByTestId('confirm-dialog-confirm'));
-        await waitFor(() => expect(client.put).toHaveBeenCalledWith(
+        expect(screen.queryByTestId('project-notebook-nb-1')).not.toBeInTheDocument();
+        expect(client.put).not.toHaveBeenCalled();
+        act(() => undo.last().onExpire());
+        await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
+        expect(client.put).toHaveBeenCalledWith(
             '/api/projects/p1/resources', { kind: 'notebook', id: 'nb-1', attach: false }, { retry: false },
-        ));
+        );
     });
 
-    it('does nothing when the removal is cancelled', async () => {
+    it('brings the notebook back on Undo and never calls the API', async () => {
         const user = userEvent.setup();
         renderTab('owner');
         await user.click(await screen.findByRole('button', { name: 'Remove Interview notes from the project' }));
-        await user.click(screen.getByTestId('confirm-dialog-cancel'));
+        act(() => undo.last().onUndo());
+        expect(await screen.findByRole('button', { name: 'Remove Interview notes from the project' })).toBeInTheDocument();
         expect(client.put).not.toHaveBeenCalled();
     });
 });

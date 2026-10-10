@@ -3,7 +3,7 @@ import { ProjectPins, MyProjectTasks } from './ProjectDiscovery';
 // start something (the composer), see what moved lately — with every deeper
 // view one click away in the tabs.
 
-import { FileText, House, Mic, NotebookPen, Sparkles, Users } from 'lucide-react';
+import { BookOpen, FileText, House, Mic, NotebookPen, Sparkles, Users } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { useProjectChatsQuery } from '../../../api/queries/projectChats';
 import { useProjectResourcesQuery, useProjectThreadsQuery } from '../../../api/queries/projects';
@@ -18,7 +18,7 @@ import SinceLastVisit from './SinceLastVisit';
 import { projectIcon, projectTileStyle } from './projectVisuals';
 import { StudioSectionHeader } from './studioParts';
 import { normalizeWorkspaceTab, type OpenThreadTarget, type StartChat, type WorkspaceTabProps } from './types';
-import { Card, LoadingRow } from './workspaceUi';
+import { Card, LoadingRow, SecondaryButton } from './workspaceUi';
 
 export interface OverviewTabProps extends WorkspaceTabProps {
     onOpenTab: OpenTab;
@@ -135,7 +135,7 @@ function ProjectHeading({ name, description, icon, color }: { name: string; desc
 }
 
 export default function OverviewTab({
-    projectId, project, role, currentUser, onOpenTab, onStartChat, onOpenThread, onNavigate, notebooksEnabled = true,
+    projectId, project, role, readOnly, currentUser, onOpenTab, onStartChat, onOpenThread, onNavigate, notebooksEnabled = true,
 }: OverviewTabProps) {
     const { t } = useTranslation();
     const openRecent = (e: RecentEntry) => {
@@ -151,14 +151,15 @@ export default function OverviewTab({
 
     return (
         <div className="h-full flex flex-col min-h-0" data-testid="project-overview-tab">
-            <StudioSectionHeader icon={House} title={t('project_home.tab.overview', 'Overview')} />
+            <StudioSectionHeader icon={House} title={t('project_home.tab.overview', 'Overview')}
+                extras={<SecondaryButton onClick={() => onOpenTab('knowledge')}><BookOpen className="w-4 h-4" />{t('project_home.ai_context', 'AI context')}</SecondaryButton>} />
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                 <div className="max-w-6xl mx-auto px-4 sm:px-8 py-5 space-y-5">
                     <ProjectHeading name={project.name} description={project.description} icon={project.icon} color={project.color} />
                     <ProjectComplianceHint projectId={projectId} role={role} here="overview" onOpenTab={(tab) => onOpenTab(normalizeWorkspaceTab(tab))} />
                     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
                         <div className="space-y-5 min-w-0">
-                            <ProjectComposer project={project} role={role} onStartChat={onStartChat} onOpenTeamChat={(id) => onOpenTab('chats', id)} />
+                            <ProjectComposer project={project} role={role} readOnly={readOnly} onStartChat={onStartChat} onOpenTeamChat={(id) => onOpenTab('chats', id)} />
                             <SinceLastVisit
                                 projectId={projectId}
                                 role={role}

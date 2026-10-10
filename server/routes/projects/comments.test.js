@@ -70,7 +70,7 @@ const commentCrypto = makeCommentCrypto({
     },
 });
 
-let events, activity, replies, notices, cancels, nextReply, signals;
+let events, activity, replies, notices, cancels, nextReply, signals, bells, taskBells;
 /** What the fake engine does before it takes a notice (hold it up, fail). */
 let engineDelay;
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -126,6 +126,8 @@ const DEPS = {
     participationStore,
     policy: { resolveOrgPolicy: async () => ({ ...orgPolicy }) },
     signalProjectChanged: (project, reason) => { signals.push({ projectId: project.id, reason }); },
+    collabNotifier: { commentMentioned: async (args) => { bells.push(args); } },
+    taskNotifier: { mentioned: async (args) => { taskBells.push(args); } },
     now: () => clock,
 };
 const api = serve('/api/projects', makeProjectCommentsRouter(DEPS), { user: EDITOR });
@@ -149,6 +151,8 @@ before(async () => {
 after(async () => { await api.close(); await pg.close(); });
 beforeEach(() => {
     events = [];
+    bells = [];
+    taskBells = [];
     activity = [];
     replies = [];
     notices = [];
@@ -241,6 +245,9 @@ test('an editor starts a thread: sealed at rest, served opened, announced with i
     assert.ok(!text.includes('budget') && !text.includes('still right'), 'no text in the feed or the activity log');
     assert.deepStrictEqual(events[0].payload, { threadId: t.id, targetType: 'notebook', targetId: 'nb1', commentId: t.comments[0].id, seq: 1, authorKind: 'user' });
     assert.deepStrictEqual(events[1].payload.mentionedUserIds, ['eve']);
+    assert.deepStrictEqual(bells.map((b) => [b.project.id, b.actorId, b.mentionedUserIds, b.targetType, b.targetId]), [['p1', 'ed', ['eve'], 'notebook', 'nb1']]);
+    assert.deepStrictEqual(taskBells, [], 'a notebook mention does not go through the task notifier');
+    assert.ok(!JSON.stringify(bells).includes('still right'), 'the bell is not given the comment');
     assert.deepStrictEqual(activity.map((a) => a.action), ['comment.thread.created']);
 });
 

@@ -9,22 +9,16 @@ import React, { useState } from 'react';
 import { usePokerSessionQuery, useStartPokerSession, type ProjectTask } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
-import { PrimaryButton } from '../workspaceUi';
+import { PrimaryButton, Skeleton } from '../workspaceUi';
 import PokerSession from './PokerSession';
 import { TypeChip } from './TaskFields';
 import { storyPoints, workItemType } from './taskPlanning';
 import { CARD, InfoTip, SECTION_LABEL } from './sprintUi';
 
-const PULSE = 'block animate-pulse rounded-full bg-[var(--bg-secondary)]';
-
 function PokerSkeleton({ label }: { label: string }) {
     return (
-        <div className={`${CARD} space-y-3 px-3.5 py-3`} role="status" aria-label={label} data-testid="poker-skeleton">
-            <span className={`${PULSE} h-3.5 w-1/3`} aria-hidden="true" />
-            <span className={`${PULSE} h-2.5 w-1/4`} aria-hidden="true" />
-            <span className="flex gap-2" aria-hidden="true">
-                {[0, 1, 2, 3, 4].map(i => <span key={i} className="block h-14 w-11 animate-pulse rounded-lg bg-[var(--bg-secondary)]" />)}
-            </span>
+        <div className={`${CARD} px-3.5 py-3`}>
+            <Skeleton rows={3} variant="lines" label={label} testId="poker-skeleton" />
         </div>
     );
 }

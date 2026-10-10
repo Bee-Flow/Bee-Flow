@@ -111,6 +111,8 @@ services:
       - STUDIO_MCP_ENABLED=${STUDIO_MCP_ENABLED:-}
       # Routines over MCP (POST /mcp/automations). Empty = not mounted.
       - AUTOMATION_MCP_ENABLED=${AUTOMATION_MCP_ENABLED:-}
+      # Website CMS over MCP (POST /mcp/cms). Empty = not mounted.
+      - CMS_MCP_ENABLED=${CMS_MCP_ENABLED:-}
       - CORE_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/${DB_NAME:-beeflow_core}
       - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/beeflow_tasks
       - MONITORING_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/monitoring_db

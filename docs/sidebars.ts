@@ -118,6 +118,7 @@ const sidebars: SidebarsConfig = {
             'studio/approvals',
             'studio/apps-mcp',
             'studio/automations-mcp',
+            'studio/cms-mcp',
             'studio/components',
             'studio/datatables',
             'studio/forms',

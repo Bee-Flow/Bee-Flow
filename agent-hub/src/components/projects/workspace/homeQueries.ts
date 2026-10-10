@@ -1,27 +1,14 @@
 // The reads the workspace shell needs beyond the project, chat and content
 // query modules: the agents the caller can chat with (the composers' agent
-// pickers) and the organisation directory (the invite picker).
+// pickers).
 
 import { useQuery } from '@tanstack/react-query';
-import { ApiError, apiClient } from '../../../api/client';
+import { apiClient } from '../../../api/client';
 
 export interface AgentSummary {
     id: string;
     name?: string;
     icon?: string;
-}
-
-export interface DirectoryUser {
-    id: string;
-    name: string;
-    email?: string;
-    organizationId?: string;
-}
-
-export interface DirectoryGroup {
-    id: string;
-    name: string;
-    organizationId?: string;
 }
 
 const agentRows = (rows: unknown): AgentSummary[] => (Array.isArray(rows)
@@ -60,45 +47,5 @@ export function useUsableAgents(enabled = true) {
                 published.status === 'fulfilled' ? published.value : [],
             );
         },
-    });
-}
-
-/**
- * A directory list, or `null` when the caller may not read it. Listing users
- * and groups is an admin permission: for everyone else the server answers
- * 403, and the invite form falls back to typing an id. Any other failure is
- * a real error and surfaces as one.
- */
-async function directoryList<T>(path: string, signal: AbortSignal | undefined, map: (row: any) => T | null): Promise<T[] | null> {
-    try {
-        const rows = await apiClient.get<unknown[]>(path, { signal, retry: false });
-        return Array.isArray(rows) ? rows.map(map).filter((x): x is T => x !== null) : [];
-    } catch (e) {
-        if (e instanceof ApiError && (e.status === 401 || e.status === 403 || e.status === 404)) return null;
-        throw e;
-    }
-}
-
-export function useDirectoryUsers(enabled = true) {
-    return useQuery<DirectoryUser[] | null, Error>({
-        queryKey: ['project-home', 'directory', 'users'],
-        enabled,
-        staleTime: 60_000,
-        queryFn: ({ signal }) => directoryList<DirectoryUser>('/auth/users', signal, (u) => (
-            u && typeof u.id === 'string' && !u.isSystem
-                ? { id: u.id, name: String(u.displayName || u.username || u.email || u.id), email: u.email || undefined, organizationId: u.organizationId || '' }
-                : null
-        )),
-    });
-}
-
-export function useDirectoryGroups(enabled = true) {
-    return useQuery<DirectoryGroup[] | null, Error>({
-        queryKey: ['project-home', 'directory', 'groups'],
-        enabled,
-        staleTime: 60_000,
-        queryFn: ({ signal }) => directoryList<DirectoryGroup>('/auth/groups', signal, (g) => (
-            g && typeof g.id === 'string' ? { id: g.id, name: String(g.name || g.id), organizationId: g.organizationId || '' } : null
-        )),
     });
 }

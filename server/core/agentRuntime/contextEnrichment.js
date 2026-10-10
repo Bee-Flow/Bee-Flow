@@ -8,8 +8,10 @@
  * value, everything else is the caller's live state.
  */
 const { emitPhase, emitPhaseEnd } = require('./phaseEvents');
+const { memoryUsedItems, emitMemoryUsed } = require('../memory/memoryUsed');
 const { performKnowledgeSearch } = require('./knowledgeSearch');
 const log = require('../../telemetry/log');
+const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
 
 async function resolveProjectContext({ userId, messageMetadata, conversation, isEphemeral }) {
     // Assign new conversation to project if projectId provided
@@ -45,12 +47,24 @@ async function resolveProjectContext({ userId, messageMetadata, conversation, is
     return { extractMemoriesEnabled, validProjectId, validProject };
 }
 
-async function resolveMemoryContext({ agent, agentId, userId, userMessage, validProjectId, onEvent }) {
+/**
+ * @param {object} p
+ * @param {{ items?: Array<{id: string, type: string, preview: string}> }} [p.usedOut]
+ *   optional: receives the memories injected this turn (also sent to the client
+ *   as the `memory_used` event), so the turn can persist them on the message.
+ */
+async function resolveMemoryContext({ agent, agentId, userId, userMessage, validProjectId, onEvent, memoryPolicy, usedOut, conversationId = null }) {
     // ============ MEMORY INTEGRATION ============
-    // Skip memory for embed-enabled agents — private user memories must not leak into public embed chats
+    // One gate (core/memory/memoryPolicy.js): embed agents (private user
+    // memories must not leak into public embed chats), the user and org
+    // switches and the per-chat toggle. The turn resolves it once and passes it
+    // in; a caller without one gets it resolved here.
+    const policy = memoryPolicy || await resolveMemoryPolicy({
+        userId, orgId: agent.organization_id || null, agent,
+    });
     let memoryContext = '';
-    if (agent.embed_enabled) {
-        log.info(`[AgentRuntime] Skipping memory for embed-enabled agent ${agentId}`);
+    if (!policy.read) {
+        log.info(`[AgentRuntime] Skipping memory read for agent ${agentId} (${policy.reason})`);
     } else {
         emitPhase(onEvent, 'memory_lookup');
         const _memT = Date.now();
@@ -63,9 +77,17 @@ async function resolveMemoryContext({ agent, agentId, userId, userMessage, valid
             // false, restrict retrieval to this agent's own bucket.
             const cfg = agent.config || {};
             const includeGeneral = !(cfg.memoryEnabled === true && cfg.useGeneralMemory === false);
-            const relevantMemories = await memoryStore.findRelevantMemories(userId, agentId, userMessage, 300, validProjectId || null, { includeGeneral });
+            // TODO(memory): pass `queryEmbedding` here when the turn has already
+            // embedded the user message. Knowledge search embeds it deep inside
+            // core/kb (searchLocally / dispatchEmbedTexts) and does not hand the
+            // vector back, so reusing it needs that plumbing first.
+            const relevantMemories = await memoryStore.findRelevantMemories(userId, agentId, userMessage, 300, validProjectId || null, { includeGeneral, includeSensitive: policy.sensitive === true });
             if (relevantMemories.length > 0) {
                 memoryContext = memoryStore.formatMemoriesForPrompt(relevantMemories);
+                // Once per turn, before the answer streams.
+                const used = memoryUsedItems(relevantMemories);
+                if (usedOut) usedOut.items = used;
+                emitMemoryUsed(onEvent, used);
                 log.info(`[AgentRuntime] Injected ${relevantMemories.length} memories into prompt`);
 
                 // Defence in depth against the "memory leak" class of bug: stored
@@ -83,11 +105,11 @@ async function resolveMemoryContext({ agent, agentId, userId, userMessage, valid
                     // the PII Guard service when installed.
                     const scrubEnabled = !!orgShieldForScrub?.enabled || !!aiCfg?.piiDetectionEnabled;
                     if (scrubEnabled) {
-                        const { scrubMemoryContext } = require('../memory/scrubMemoryContext');
-                        const { scrubbed, replacedCategories } = await scrubMemoryContext(memoryContext, orgShieldForScrub);
+                        const { tokenizeMemoryContext } = require('../memory/scrubMemoryContext');
+                        const { text: safeText, replacedCategories, mode } = await tokenizeMemoryContext(memoryContext, orgShieldForScrub, { conversationId, userId });
                         if (replacedCategories.length > 0) {
-                            log.info(`[AgentRuntime] 🧹 Scrubbed memory context: ${replacedCategories.join(', ')}`);
-                            memoryContext = scrubbed;
+                            log.info(`[AgentRuntime] Memory context ${mode === 'tokens' ? 'tokenised' : 'scrubbed'}: ${replacedCategories.join(', ')}`);
+                            memoryContext = safeText;
                         }
                     }
                 } catch (scrubErr) {

@@ -4,6 +4,8 @@
  */
 
 const memoryStore = require('../../stores/memoryStore');
+const { writeMemory } = require('./memoryWriter');
+const { isTaskLike, isQuestion } = require('./contentRules');
 const agentStore = require('../../stores/agentStore');
 const { resolveMemoryExtractionModel, EXTRACTION_CHAT_OPTIONS, EXTRACTION_MAX_CHARS } = require('../../core/memory/extractionModel');
 const { isAnonymousUserId } = require('../../utils/anonymousUser');
@@ -47,6 +49,7 @@ const MEMORY_SCHEMA = {
                             attribute: { type: "string", description: "The property being defined (snake_case, e.g. role, tech_stack)" },
                             value: { type: "string", description: "Canonical value" },
                             evidence_quote: { type: "string", description: "Exact quote from user message" },
+                            sensitivity: { type: "string", enum: ["none", "art9"], description: "\"art9\" for health, religion or belief, political opinion, sexual orientation or sex life, ethnic origin, trade union membership, genetic or biometric data; else \"none\"" },
                             confidence: { type: "number", minimum: 0.8, maximum: 1.0 },
                             importance: { type: "number", minimum: 0, maximum: 1, description: "How important this is to remember" }
                         },
@@ -136,7 +139,7 @@ async function extractFromConversation(userId, agentId, messages, conversationId
 
         const messages = [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Extract memories from this user message:\n\n"${userText.slice(0, EXTRACTION_MAX_CHARS.user)}"` }
+            { role: 'user', content: `Today's date: ${new Date().toISOString().slice(0, 10)}\n\nExtract memories from this user message:\n\n"${userText.slice(0, EXTRACTION_MAX_CHARS.user)}"` }
         ];
 
         let responseFormat;
@@ -176,26 +179,6 @@ async function extractFromConversation(userId, agentId, messages, conversationId
                 continue;
             }
 
-            // Check for existing memory with same (subject, attribute) key
-            const existing = memory.subject && memory.attribute
-                ? await memoryStore.findByKey(userId, memory.type, memory.subject, memory.attribute, projectId)
-                : await memoryStore.findSimilarMemory(userId, memory.content, projectId);
-
-            if (existing) {
-                // Upsert: update if value changed, or bump confidence if same
-                if (existing.value !== memory.value) {
-                    // Ids and types only: a memory's value is what the user said about
-                    // themselves (a condition, a relative, a belief).
-                    log.info(`[MemoryExtractor] Updating memory ${existing.id} (${memory.type})`);
-                    await memoryStore.updateMemoryValue(existing.id, memory.value, memory.content, memory.evidence_quote);
-                } else {
-                    log.info(`[MemoryExtractor] Confirming existing memory ${existing.id}`);
-                    await memoryStore.confirmMemory(existing.id);
-                }
-                continue;
-            }
-
-            // Create new memory with evidence
             // ── Isolation guard ──────────────────────────────────────────────────
             // Project memories belong only inside a project context. If there is
             // no projectId, skip them to avoid polluting global memory.
@@ -203,21 +186,26 @@ async function extractFromConversation(userId, agentId, messages, conversationId
                 log.info('[MemoryExtractor] Skipping project memory in user-global scope');
                 continue;
             }
-            // The 6th positional argument is IMPORTANCE. This used to pass
-            // `confidence`, so "High Importance" in the UI meant nothing.
-            const id = await memoryStore.createMemory(
-                userId,
-                writeAgentId,  // null = user-global; non-null = per-agent bucket
-                memory.type,
-                memory.content,
-                null,
-                memory.importance,
-                memory.subject,
-                memory.attribute,
-                memory.value,
-                memory.evidence_quote,
-                projectId
-            );
+
+            // One pipeline for every automatic write: hard drops, Art. 9,
+            // confirm / supersede / duplicate checks, cap (agents/memory/memoryWriter.js).
+            const outcome = await writeMemory({
+                type: memory.type,
+                content: memory.content,
+                subject: memory.subject,
+                attribute: memory.attribute,
+                value: memory.value,
+                importance: memory.importance,
+                confidence: memory.confidence,
+                evidenceQuote: memory.evidence_quote,
+                sensitivity: memory.sensitivity,
+            }, {
+                userId, orgId: userOrgId, agentId: writeAgentId, projectId,
+                conversationId, origin: 'inferred', userText,
+            });
+            log.info(`[MemoryExtractor] ${outcome.action}${outcome.reason ? ` (${outcome.reason})` : ''}${outcome.id ? ` ${outcome.id}` : ''}`);
+            const id = outcome.id;
+            if (!id || outcome.action === 'confirmed' || outcome.action === 'rejected') continue;
 
             // Link to source conversation
             if (conversationId && id) {
@@ -238,10 +226,10 @@ async function extractFromConversation(userId, agentId, messages, conversationId
                 }
             }
 
-            created.push({ id, ...memory });
+            created.push({ id, action: outcome.action, ...memory });
         }
 
-        log.info(`[MemoryExtractor] Created ${created.length} memories`);
+        log.info(`[MemoryExtractor] Stored ${created.length} memories`);
         return created;
 
     } catch (error) {
@@ -295,15 +283,14 @@ function parseMemoryResponse(content) {
             if ((m.confidence || 0) < 0.8) return false;
 
             // Filter out task-like content (secondary filter in case LLM misses)
-            const taskVerbs = /^(the user wants to|user wants|create|write|fix|build|make|generate|show|explain|help|add|remove|update|delete|edit|modify|change|set|get|fetch|load|save|open|close|run|execute|deploy|test|debug|refactor)/i;
-            if (taskVerbs.test(m.content.trim())) {
+            if (isTaskLike(m.content)) {
                 log.info('[MemoryExtractor] Filtered task-like content');
 
                 return false;
             }
 
             // Filter out questions
-            if (m.content.trim().endsWith('?')) return false;
+            if (isQuestion(m.content)) return false;
 
             return true;
         }).map(m => ({
@@ -316,6 +303,7 @@ function parseMemoryResponse(content) {
             attribute: typeof m.attribute === 'string' && m.attribute.trim() ? m.attribute.toLowerCase().trim() : null,
             value: typeof m.value === 'string' && m.value.trim() ? m.value.trim() : null,
             evidence_quote: typeof m.evidence_quote === 'string' ? m.evidence_quote.trim() : null,
+            sensitivity: m.sensitivity === 'art9' ? 'art9' : 'none',
             confidence: Math.min(1, Math.max(0.8, Number(m.confidence) || 0.8)),
             importance: Math.min(1, Math.max(0.5, Number(m.importance) || 0.7))
         }));

@@ -88,6 +88,7 @@ const isAutomatic = (c) => c.authorKind === 'assistant' && typeof c.aiTrigger ==
  * @param {Function} [deps.postLimiter]         Express middleware on posting
  * @param {object}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
  * @param {object}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
+ * @param {object}   [deps.collabNotifier]      projects/collabNotify surface: commentMentioned(...), the bell for someone mentioned on a document or notebook
  * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
  * @param {() => number} [deps.now]
  * @param {Function} [deps.newId]
@@ -142,12 +143,21 @@ function makeProjectCommentsRouter(deps = {}) {
         return project;
     }
 
-    // A comment on a task that mentions someone rings their bell (the text is never in it).
+    // A comment that mentions someone rings their bell (the text is never in it): a task through
+    // the task notifier as before, a document or notebook through the collaboration notifier.
     const taskNotifier = () => deps.taskNotifier || require('../../projects/taskNotify').makeTaskNotifier();
-    async function notifyTaskMentions(project, thread, actorId, mentionedUserIds) {
-        if (thread.targetType !== 'task') return;
-        try { await taskNotifier().mentioned({ project, actorId, mentionedUserIds, taskId: thread.targetId }); } catch (err) {
-            log.warn(`[ProjectComments] task mention not notified: ${err && err.message}`);
+    let defaultCollabNotifier = null;
+    const collabNotifier = () => deps.collabNotifier
+        || (defaultCollabNotifier || (defaultCollabNotifier = require('../../projects/collabNotify').makeCollabNotifier()));
+    async function notifyMentions(project, thread, actorId, mentionedUserIds) {
+        try {
+            if (thread.targetType === 'task') {
+                await taskNotifier().mentioned({ project, actorId, mentionedUserIds, taskId: thread.targetId });
+            } else {
+                await collabNotifier().commentMentioned({ project, actorId, mentionedUserIds, targetType: thread.targetType, targetId: thread.targetId });
+            }
+        } catch (err) {
+            log.warn(`[ProjectComments] mention not notified: ${err && err.message}`);
         }
     }
 
@@ -409,7 +419,7 @@ function makeProjectCommentsRouter(deps = {}) {
         await emit(project.id, threadEvent('comment.thread.created', userId, thread, { commentId: comment.id, seq: comment.seq, authorKind: 'user' }));
         if (kept.length > 0) {
             await emit(project.id, threadEvent('comment.mention', userId, thread, { commentId: comment.id, mentionedUserIds: kept }));
-            await notifyTaskMentions(project, thread, userId, kept);
+            await notifyMentions(project, thread, userId, kept);
         }
         if (thread.aiMode === 'auto') aiModeChanged(project);
         const ai = await afterHumanComment(req, { project, thread, comment, content, askAi: askAi === true });
@@ -513,7 +523,7 @@ function makeProjectCommentsRouter(deps = {}) {
         await emit(project.id, threadEvent('comment.created', userId, thread, { commentId: comment.id, seq: comment.seq, authorKind: 'user' }));
         if (kept.length > 0) {
             await emit(project.id, threadEvent('comment.mention', userId, thread, { commentId: comment.id, mentionedUserIds: kept }));
-            await notifyTaskMentions(project, thread, userId, kept);
+            await notifyMentions(project, thread, userId, kept);
         }
         const ai = await afterHumanComment(req, { project, thread: current, comment, content, askAi: askAi === true });
         res.status(201).json({ comment: presentComment(box, comment, content), ai, thread: { id: thread.id, status: current.status } });
@@ -542,7 +552,7 @@ function makeProjectCommentsRouter(deps = {}) {
         const added = kept.filter((id) => !comment.mentions.includes(id));
         if (added.length > 0) {
             await emit(project.id, threadEvent('comment.mention', userId, thread, { commentId: updated.id, mentionedUserIds: added }));
-            await notifyTaskMentions(project, thread, userId, added);
+            await notifyMentions(project, thread, userId, added);
         }
         res.json({ comment: presentComment(box, updated, content) });
     });

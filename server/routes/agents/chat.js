@@ -95,6 +95,7 @@ const TurnBody = bodyOf({
     reasoningEffort: worded('reasoningEffort is the name of a thinking effort.').trim().min(1, 'reasoningEffort is the name of a thinking effort.').optional(),
     timezone: text('timezone'),
     memoryWriteEnabled: flag('memoryWriteEnabled'),
+    memoryReadEnabled: flag('memoryReadEnabled'),
     webSearchEnabled: flag('webSearchEnabled'),
     // The notebook and the side panel: what the person has open beside the
     // chat. `notebookspaceContent: ''` means "open but blank" and is NOT the
@@ -500,7 +501,7 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
             // Custom history override for thread context isolation
             history,
             // Message metadata for persistence (id, parentId, attachments, and conversationId)
-            { messageId, parentId, attachments, conversationId, ephemeral: isEphemeral, ephemeralKey: testChatMod.normaliseSessionKey(req.body.testSessionId), testAs, testChat: isTestChat, toolDecisions: isTestChat ? testChatMod.normaliseToolDecisions(req.body.toolDecisions) : undefined, notebookspaceContent: req.body.notebookspaceContent, notebookspaceSelection: req.body.notebookspaceSelection, notebookspaceAvailable: req.body.notebookspaceAvailable, sidePanelWebpage: req.body.sidePanelWebpage, sidePanelDocument: req.body.sidePanelDocument, signal: abortController.signal, userOrgId: userAuth.userOrgId, timezone: req.body.timezone, projectId: req.body.projectId, modelTier, activeSkillIds, orgId, reasoningEffort, memoryWriteEnabled: req.body.memoryWriteEnabled, webSearchEnabled: req.body.webSearchEnabled,
+            { messageId, parentId, attachments, conversationId, ephemeral: isEphemeral, ephemeralKey: testChatMod.normaliseSessionKey(req.body.testSessionId), testAs, testChat: isTestChat, toolDecisions: isTestChat ? testChatMod.normaliseToolDecisions(req.body.toolDecisions) : undefined, notebookspaceContent: req.body.notebookspaceContent, notebookspaceSelection: req.body.notebookspaceSelection, notebookspaceAvailable: req.body.notebookspaceAvailable, sidePanelWebpage: req.body.sidePanelWebpage, sidePanelDocument: req.body.sidePanelDocument, signal: abortController.signal, userOrgId: userAuth.userOrgId, timezone: req.body.timezone, projectId: req.body.projectId, modelTier, activeSkillIds, orgId, reasoningEffort, memoryWriteEnabled: req.body.memoryWriteEnabled, memoryReadEnabled: req.body.memoryReadEnabled, webSearchEnabled: req.body.webSearchEnabled,
                 // Chat signals: the marker and the switch, read by the turn
                 // preflight's recorder call (chatStream/turnPreflight.js).
                 chatSignals: { notice: typeof req.body.chatSignalsNotice === 'string' ? req.body.chatSignalsNotice : null, optOut: req.body.chatSignalsOptOut === true } }

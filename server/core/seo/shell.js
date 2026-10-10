@@ -59,4 +59,4 @@ async function getShell({ origin = DEFAULT_ORIGIN, now = Date.now() } = {}) {
     }
 }
 
-module.exports = { getShell, _reset, TTL_MS };
+module.exports = { getShell, _reset, TTL_MS, DEFAULT_ORIGIN };

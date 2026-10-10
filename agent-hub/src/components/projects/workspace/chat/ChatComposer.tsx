@@ -7,6 +7,8 @@ import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } f
 import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import TierSlider from '../../../licensing/TierSlider';
+import { ComposerShell } from '../../../shared/ComposerBox';
+import { CHAT_COLUMN_CLASS } from './chatColumn';
 import { readDraft, writeDraft } from './drafts';
 import { isImeEnter, isImeKey } from './ime';
 import type { ChatTier } from './useChatTier';
@@ -211,7 +213,7 @@ export default function ChatComposer(props: ChatComposerProps) {
     const empty = !s.text.trim();
     return (
         <div className="flex-shrink-0 px-4 pb-4">
-            <div className="relative w-full max-w-4xl mx-auto rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-[0_2px_10px_rgba(0,0,0,0.06)] focus-within:border-[var(--accent-primary)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent-primary)_22%,transparent)] transition-[border-color,box-shadow]">
+            <ComposerShell compact label={t('project_chat.composer_label', 'Message the team')} className={CHAT_COLUMN_CLASS}>
                 {props.reply && <ReplyChip reply={props.reply} onCancel={props.onCancelReply} />}
                 {s.menu.open && <MentionMenu id={menuId} menu={s.menu} onPick={s.pick} />}
                 <textarea
@@ -245,7 +247,7 @@ export default function ChatComposer(props: ChatComposerProps) {
                         <SendHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
                     </PrimaryButton>
                 </div>
-            </div>
+            </ComposerShell>
         </div>
     );
 }

@@ -2,11 +2,11 @@
 // every member. Linking needs read access to the base (the server checks);
 // unlinking only takes it off the project's list and never touches the base.
 
-import { BookOpen, Link2 } from 'lucide-react';
+import { AlertTriangle, BookOpen, Link2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useProjectSection, type ProjectKnowledgeBase } from '../../../../api/queries/projectContent';
 import useTranslation from '../../../../hooks/useTranslation';
-import { RemoveButton, SecondaryButton, SectionCard, SectionError } from './contentUi';
+import { Card, GhostButton, Notice, RemoveButton, SecondaryButton } from '../workspaceUi';
 import { KnowledgeBasePicker } from './pickers';
 import { useRemoveFromProject } from './useContentActions';
 
@@ -16,7 +16,7 @@ function KbList({ status, bases, emptyText, onRetry, canEdit, removingId, onUnli
 }) {
     const { t } = useTranslation();
     if (status === 'loading') return <p role="status" className="px-2 py-3 text-sm text-[var(--text-tertiary)]">{t('project_content.kbs_loading', 'Loading knowledge bases…')}</p>;
-    if (status === 'error') return <SectionError message={t('project_content.kbs_error', 'The knowledge bases of this project could not be loaded.')} onRetry={onRetry} />;
+    if (status === 'error') return <Notice tone="error" role="alert" icon={AlertTriangle} action={onRetry && <GhostButton onClick={onRetry}>{t('project_content.retry', 'Try again')}</GhostButton>}>{t('project_content.kbs_error', 'The knowledge bases of this project could not be loaded.')}</Notice>;
     if (!bases.length) return <p className="px-2 py-4 text-center text-sm text-[var(--text-tertiary)]">{emptyText}</p>;
     return (
         <ul data-testid="project-kbs-list">
@@ -51,20 +51,18 @@ export default function KnowledgeBasesSection({ projectId, canEdit, organization
     const section = useProjectSection<ProjectKnowledgeBase>(projectId, 'knowledgeBases');
     const removal = useRemoveFromProject(projectId, 'knowledge_base');
     const hidden = useMemo(() => new Set(filesKbIds.filter(Boolean) as string[]), [filesKbIds]);
-    const bases = useMemo(() => section.items.filter(kb => !hidden.has(kb.id)), [section.items, hidden]);
+    const bases = removal.without(section.items).filter(kb => !hidden.has(kb.id));
     const linked = useMemo(() => new Set(section.items.map(kb => kb.id)), [section.items]);
 
     const onUnlink = (kb: ProjectKnowledgeBase) => removal.remove(kb.id, {
-        title: t('project_content.kb_unlink_title', 'Unlink this knowledge base?'),
-        description: t('project_content.kb_unlink_desc', 'Chats in this project stop searching "{name}". The knowledge base itself is not changed.', { name: kb.name }),
-        confirmLabel: t('project_content.kb_unlink', 'Unlink'),
+        message: t('project_home.kb_unlinked', '"{name}" unlinked from the project', { name: kb.name }),
     });
 
     return (
-        <SectionCard
+        <Card as="h3"
             title={t('project_content.kbs_title', 'Knowledge bases')}
             description={t('project_content.kbs_desc', 'Linked knowledge bases are searched by every chat in this project.')}
-            actions={canEdit ? <SecondaryButton icon={Link2} onClick={() => setPickerOpen(true)} testId="project-kb-link">{t('project_content.kb_link', 'Link knowledge base')}</SecondaryButton> : null}
+            action={canEdit ? <SecondaryButton icon={Link2} onClick={() => setPickerOpen(true)} testId="project-kb-link">{t('project_content.kb_link', 'Link knowledge base')}</SecondaryButton> : null}
             testId="project-kbs-section"
         >
             <KbList
@@ -75,7 +73,6 @@ export default function KnowledgeBasesSection({ projectId, canEdit, organization
             {pickerOpen && (
                 <KnowledgeBasePicker projectId={projectId} open onClose={() => setPickerOpen(false)} inProject={linked} organizationId={organizationId} />
             )}
-            {removal.confirmDialog}
-        </SectionCard>
+        </Card>
     );
 }

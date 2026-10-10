@@ -109,15 +109,27 @@ const EXPECTED = [
     // may be corrected once): the handler refuses (409) when the owner's kind
     // is set, or while the project holds what the other side cannot hold.
     'PUT /:id/kind [requireProjectRoleMw,validateRequest]',
+    // Archive / restore: owner, and allowed on an archived project (every editor+ gate refuses one: 409 project_archived).
+    'POST /:id/archive [requireProjectRoleMw,validateRequest]',
+    'POST /:id/restore [requireProjectRoleMw,validateRequest]',
     'DELETE /:id [requireProjectRoleMw]',
+    // Gate is editor+; the handler narrows it: the owner, or an editor while the
+    // project allows it (editorsCanInvite), as viewer or editor, over no existing member.
     'POST /:id/share [rateLimiter,requireProjectRoleMw,validateRequest]',
     'DELETE /:id/share/:shareId [rateLimiter,requireProjectRoleMw]',
     'GET /:id/members [requireProjectRoleMw]',
+    // The invite picker's directory: viewer+, own organisation only, no e-mail addresses.
+    'GET /:id/principals [requireProjectRoleMw,validateRequest]',
     'PUT /:id/members/:memberId [rateLimiter,requireProjectRoleMw,validateRequest]',
+    // Viewer+ gate; the handler narrows it to the owner or an org admin (rescue), see the route comment.
+    'POST /:id/transfer-owner [rateLimiter,requireProjectRoleMw,validateRequest]',
     // Owner-removes / self-leave: the handler decides, so no role gate here.
     'DELETE /:id/members/:memberId [rateLimiter]',
     // A member's uploaded picture, as an image (viewer+; only people of the project).
     'GET /:id/avatars/:userId [requireProjectRoleMw]',
+    // Muting is per user and open to every member: viewer+.
+    'PUT /:id/mute [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/mute [requireProjectRoleMw]',
     'GET /:id/activity [requireProjectRoleMw,validateRequest]',
     // Live feed. The stream is viewer+ and re-checks the role periodically
     // while open. (The shared-thread routes are listed with self-detach.)

@@ -385,6 +385,28 @@ async function assertNotStageRunAs(userId, opts = {}) {
     if (stages.length > 0) throw stageRunAsError(stages);
 }
 
+/**
+ * CMS MCP upload tickets are config rows `cms_mcp_upload_<id>` holding plain
+ * JSON that names the user. They are few and short-lived, so no timer sweeps
+ * them; a user deletion just removes the ones that name that user. The prefix
+ * mirrors cms/mcp/uploadTickets.js KEY_PREFIX (stores/ may not require a feature).
+ *
+ * @param {string} userId
+ * @param {{ listKeysWithPrefix: Function, getConfigFresh: Function, deleteConfig: Function }} [configStore]
+ * @returns {Promise<number>} rows removed
+ */
+async function eraseCmsUploadTickets(userId, configStore = require('../configStore')) {
+    let removed = 0;
+    for (const key of await configStore.listKeysWithPrefix('cms_mcp_upload_')) {
+        const ticket = await configStore.getConfigFresh(key);
+        if (ticket && typeof ticket === 'object' && ticket.userId === userId) {
+            await configStore.deleteConfig(key);
+            removed++;
+        }
+    }
+    return removed;
+}
+
 async function deleteUser(userId) {
     await initDB();
     // Before anything is dropped: an account that runs a Solution stage stays.
@@ -426,9 +448,20 @@ async function deleteUser(userId) {
             `learning_progress_user_${userId}`, `learning_exercises_user_${userId}`,
             `learning_certificate_user_${userId}`, `learning_intro_migrated_user_${userId}`,
             `has_seen_intro_tour_user_${userId}`,
+            // Legacy MCP server token and its revocation marker.
+            `mcp_server_token_user_${userId}`, `mcp_server_token_user_${userId}_revoked`,
         ];
         for (const key of configKeys) await configStore.deleteConfig(key);
     } catch (e) { log.error('[UserStore] Failed to clean user config keys:', e.message); }
+
+    // Named MCP tokens. No FK to users, so they go explicitly.
+    try {
+        await run('DELETE FROM mcp_tokens WHERE user_id = $1', [userId]);
+    } catch (e) { log.error('[UserStore] Failed to delete MCP tokens:', e.message); }
+
+    try {
+        await eraseCmsUploadTickets(userId);
+    } catch (e) { log.error('[UserStore] Failed to delete CMS upload tickets:', e.message); }
 
     // Notebooks. These were missed entirely: deleting a user left their
     // notebooks, sources, version snapshots, uploaded file blobs, derived
@@ -877,7 +910,7 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
 module.exports = {
     getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory,
     getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken,
-    createUser, updateUser, deleteUser, eraseSuggestionTraces, getUserByNcUid, findOrgMemberIdByEmail,
+    createUser, updateUser, deleteUser, eraseSuggestionTraces, eraseCmsUploadTickets, getUserByNcUid, findOrgMemberIdByEmail,
     stagesRunBy, assertNotStageRunAs,
     createUserWithSeatCheck, SeatCapExceededError,
     touchLastSeen, isNewCredential,

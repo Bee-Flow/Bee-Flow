@@ -6,6 +6,7 @@ import type { Project } from '../../../../api/queries/projects';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
 import type { StartChat } from '../types';
+import { ComposerShell } from '../../../shared/ComposerBox';
 import { ErrorText, INPUT_CLASS, PrimaryButton } from '../workspaceUi';
 import { MAX_MESSAGE_LENGTH } from './ChatComposer';
 import { rememberFirstAnswer } from './firstAnswer';
@@ -42,9 +43,12 @@ export default function NewChatComposer({ project, onClose, onOpenTeamChat }: Ne
     return <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] p-5 space-y-4 shadow-sm" data-testid="new-chat-composer" aria-label={t('project_chat.new_chat', 'New chat')}>
         <div className="flex items-center gap-2"><MessageSquare className="w-5 h-5" /><h3 className="flex-1 m-0 text-base font-semibold">{t('project_chat.start_together', 'Start a conversation')}</h3><button type="button" onClick={onClose} aria-label={t('project_chat.close', 'Close')} className="p-2 rounded-lg hover:bg-[var(--item-hover-bg)]"><X className="w-4 h-4" /></button></div>
         <input ref={inputRef} value={title} onChange={e => setTitle(e.target.value)} maxLength={200} className={INPUT_CLASS} aria-label={t('project_chat.new_team_title', 'Name (optional)')} placeholder={t('project_chat.new_team_title', 'Name (optional)')} />
-        <textarea value={message} onChange={e => setMessage(e.target.value)} maxLength={MAX_MESSAGE_LENGTH} rows={3}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) { e.preventDefault(); void submit(); } }}
-            aria-label={t('project_chat.new_message_label', 'First message')} placeholder={t('project_chat.project_prompt', 'Share an update, discuss an idea, or mention @AI for help…')} className={`${INPUT_CLASS} resize-y`} />
+        <ComposerShell compact label={t('project_chat.new_composer_label', 'New conversation')}>
+            <textarea value={message} onChange={e => setMessage(e.target.value)} maxLength={MAX_MESSAGE_LENGTH} rows={3}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) { e.preventDefault(); void submit(); } }}
+                aria-label={t('project_chat.new_message_label', 'First message')} placeholder={t('project_chat.project_prompt', 'Share an update, discuss an idea, or mention @AI for help…')}
+                className="block w-full resize-y bg-transparent px-3 py-2.5 text-[13.5px] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none" />
+        </ComposerShell>
         <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3 space-y-2">
             <label htmlFor="new-chat-task-tag" className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)]"><CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />{t('project_chat.tag_tasks', 'Tag project tasks')}</label>
             {taggedTasks.length > 0 && <div className="flex flex-wrap gap-1.5">{taggedTasks.map(id => <span key={id} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs bg-[color-mix(in_srgb,var(--kind-web)_13%,var(--bg-card))] text-[var(--kind-web)]"><span className="max-w-48 truncate">{tasks.find(task => task.id === id)?.title || 'Task'}</span><button type="button" onClick={() => setTaggedTasks(current => current.filter(taskId => taskId !== id))} aria-label={t('project_chat.remove_task_tag', 'Remove task tag')}><X className="w-3 h-3" aria-hidden="true" /></button></span>)}</div>}

@@ -86,6 +86,7 @@ const chatCrypto = makeChatCrypto({
 });
 
 let events;
+let bells;
 let activity;
 let replies;
 let nextReply;
@@ -144,6 +145,7 @@ const api = serve('/api/projects', makeProjectChatsRouter({
     participationStore,
     signalProjectChanged: (project, reason) => { signals.push({ projectId: project.id, reason }); },
     taskStore: { dropLinksTo: async (...args) => { taskDrops.push(args); return 0; } },
+    collabNotifier: { chatMentioned: async (args) => { bells.push(args); } },
 }), { user: EDITOR });
 
 before(async () => {
@@ -155,6 +157,7 @@ before(async () => {
 after(async () => { await api.close(); await pg.close(); });
 beforeEach(() => {
     events = [];
+    bells = [];
     activity = [];
     replies = [];
     nextReply = { status: 'queued' };
@@ -365,6 +368,8 @@ test('mentions keep project members only and raise chat.mention', async () => {
     assert.deepStrictEqual(res.body.message.mentions, ['vic', 'olga']);
     const mention = events.find((e) => e.kind === 'chat.mention');
     assert.deepStrictEqual(mention.payload, { chatId: chat.id, messageId: res.body.message.id, mentionedUserIds: ['vic', 'olga'] });
+    assert.deepStrictEqual(bells.map((b) => [b.project.id, b.actorId, b.mentionedUserIds, b.chatId]), [['p1', 'ed', ['vic', 'olga'], chat.id]]);
+    assert.ok(!JSON.stringify(bells).includes('please look'), 'the bell is not given the message');
 });
 
 test('replies stay within the chat; archived chats refuse posts', async () => {

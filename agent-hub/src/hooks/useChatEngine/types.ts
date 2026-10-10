@@ -103,6 +103,10 @@ export interface ChatMessage {
     browserPreview?: BrowserPreview | null;
     // knowledge and skills
     kbSources?: KbSource[];
+    /** The memories this turn drew on (SSE `memory_used`, persisted on the message). */
+    memoryUsed?: MemoryUsedItem[];
+    /** Set when the finished turn may have saved memories; the "Remembered" chip polls on it. */
+    memoryWatch?: { conversationId: string; since: string; until?: string } | null;
     sessionSkillsSnapshot?: SessionSkillsSnapshot;
     // media and files the turn produced or carried
     attachments?: unknown[];
@@ -175,6 +179,16 @@ export interface TokenisationInfo {
     rawResponse?: unknown;
     rawTruncated?: unknown;
     [key: string]: unknown;
+}
+
+/** One memory the answer drew on: id, type and a preview of at most 120 characters. */
+export interface MemoryUsedItem {
+    id: string;
+    type: string;
+    /** Live (SSE) items carry a preview; the persisted list on a reload does not. */
+    preview?: string;
+    /** 'profile' = standing instructions and preferences; 'relevant' = picked for this message. Older messages have none. */
+    why?: 'profile' | 'relevant';
 }
 
 /** A knowledge-base chunk cited by the answer; deduplicated on `content`. */
@@ -275,6 +289,8 @@ export interface SseEventData {
 
     // ── knowledge and attribution ──────────────────────────────────────
     sources?: KbSource[];
+    /** `memory_used`: the memories retrieved for this turn. */
+    items?: MemoryUsedItem[];
     rules?: unknown[];
 
     // ── privacy shield / DLP ───────────────────────────────────────────

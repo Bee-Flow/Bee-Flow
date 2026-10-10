@@ -6,7 +6,6 @@
 // take, declared once here instead of cast at every use.
 
 import type React from 'react';
-import MemoryPanelJs from '../../../knowledge/memory/MemoryPanel';
 import DataTableJs, { TableCell as TableCellJs, TableRow as TableRowJs } from '../../../shared/DataTable';
 
 export interface TableColumn {
@@ -56,12 +55,3 @@ export interface TableCellProps {
 export const DataTable = DataTableJs as unknown as <T>(props: DataTableProps<T>) => React.ReactElement;
 export const TableRow = TableRowJs as unknown as React.ComponentType<TableRowProps>;
 export const TableCell = TableCellJs as unknown as React.ComponentType<TableCellProps>;
-
-/** Project memory: a shared pool; `canEdit` false hides every write. */
-export const MemoryPanel = MemoryPanelJs as unknown as React.ComponentType<{
-    projectId: string;
-    canEdit: boolean;
-    embedded?: boolean;
-    extractMemories?: boolean;
-    onClose?: () => void;
-}>;
