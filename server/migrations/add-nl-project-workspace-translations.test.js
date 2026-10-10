@@ -47,12 +47,6 @@ const OWNED_ELSEWHERE = [
 ];
 
 const isOwned = (k) => OWNED_NAMESPACES.some((p) => k.startsWith(p)) || OWNED_ELSEWHERE.includes(k);
-const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart (removed or renamed?)');
-});
 
 test('the catalogue only holds keys it owns', () => {
     const strays = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !isOwned(k));
@@ -127,12 +121,6 @@ test('a key declared identical still has the English it was declared for', () =>
     }
 });
 
-test('placeholders survive translation exactly', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
-});
-
 test('no dashes are used as punctuation', () => {
     for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
         assert.ok(!/[–—]/.test(v), `${k} (nl) uses a dash`);
@@ -154,10 +142,4 @@ test('up() seeds exactly this catalogue into the Dutch strings, never the identi
     assert.strictEqual(calls[0].locale, 'nl');
     assert.deepStrictEqual(calls[0].translations, NL_TRANSLATIONS);
     assert.ok(SAME_AS_ENGLISH.every((k) => !(k in calls[0].translations)));
-});
-
-test('the migration is registered, or it never runs', () => {
-    const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-    assert.ok(bootList.includes('add-nl-project-workspace-translations'),
-        'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
 });

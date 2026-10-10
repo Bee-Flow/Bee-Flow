@@ -68,6 +68,7 @@ function sandbox(files, exclusions = []) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'run-tests-'));
     fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
     fs.copyFileSync(SCRIPT, path.join(dir, 'scripts/run-tests.mjs'));
+    fs.copyFileSync(path.join(HERE, 'testShards.mjs'), path.join(dir, 'scripts/testShards.mjs'));
     fs.writeFileSync(path.join(dir, 'scripts/test-exclusions.json'), JSON.stringify({ exclusions }));
     for (const [name, body] of Object.entries(files)) {
         fs.writeFileSync(path.join(dir, name), body);
@@ -219,4 +220,26 @@ test('a reporter flag is refused before anything runs, not read as "reported not
     const plain = run(dir);
     assert.strictEqual(plain.status, 0, plain.all);
     assert.match(plain.all, /^# tests 4$/m);
+});
+
+test('shards together run every file exactly once, a file unknown to the durations file included', () => {
+    const files = {};
+    for (const n of ['a', 'b', 'c', 'd', 'e']) files[`${n}.test.mjs`] = PASSES;
+    const dir = sandbox(files);
+    // only two files have a recorded duration; the other three must still run
+    fs.writeFileSync(path.join(dir, 'scripts/test-durations.json'), JSON.stringify({ durations: { 'a.test.mjs': 900, 'b.test.mjs': 100 } }));
+    const seen = [];
+    for (const i of [1, 2, 3]) {
+        const r = run(dir, {}, ['--shard', `${i}/3`, '--list']);
+        assert.strictEqual(r.status, 0, r.all);
+        seen.push(...JSON.parse(r.all.trim().split('\n').pop()));
+    }
+    assert.deepStrictEqual(seen.sort(), Object.keys(files).sort());
+
+    // and running a shard really runs only its files, with the tally of those
+    const ran = [1, 2, 3].map((i) => run(dir, {}, ['--shard', `${i}/3`]));
+    for (const r of ran) assert.strictEqual(r.status, 0, r.all);
+    const total = ran.reduce((t, r) => t + Number(/^# files (\d+)$/m.exec(r.all)[1]), 0);
+    assert.strictEqual(total, 5);
+    assert.notStrictEqual(run(dir, {}, ['--shard', '4/3']).status, 0);
 });

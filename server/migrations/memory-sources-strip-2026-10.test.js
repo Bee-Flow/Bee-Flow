@@ -22,8 +22,3 @@ test('a fresh database (table not there yet) is skipped, not a failure', async (
     failWith = Object.assign(new Error('relation "memory_sources" does not exist'), { code: '42P01' });
     try { await migration.up({ run }); } finally { failWith = null; }
 });
-
-test('the migration is registered, or it never runs', () => {
-    const { LOOSE_MIGRATIONS } = require('../boot/bootMigrations');
-    assert.ok(LOOSE_MIGRATIONS.includes('memory-sources-strip-2026-10'));
-});

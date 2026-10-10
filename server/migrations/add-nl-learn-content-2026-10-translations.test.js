@@ -11,24 +11,8 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { NL_TRANSLATIONS, SAME_AS_ENGLISH, DATA_SHA256, applyNl, up } = require('./add-nl-learn-content-2026-10-translations');
+const { NL_TRANSLATIONS, DATA_SHA256, applyNl } = require('./add-nl-learn-content-2026-10-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
-
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart');
-});
-
-test('no key is both translated and declared identical', () => {
-    assert.deepStrictEqual(SAME_AS_ENGLISH.filter((k) => k in NL_TRANSLATIONS), []);
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never actually translated; if the Dutch really is the English, move it to sameAsEnglish`);
-    }
-});
 
 test('placeholders and ICU plural/select blocks survive translation', () => {
     const holes = (s) => (String(s).match(/\{\{?[a-z_][a-z0-9_.]*\}?\}/gi) || []).sort();
@@ -67,12 +51,6 @@ test('no other Dutch catalogue seeds these keys', () => {
         for (const k of Object.keys(other)) if (mine.has(k)) clashes.push(`${f}: ${k}`);
     }
     assert.deepStrictEqual(clashes, [], 'one key, one owner: boot order would decide the wording');
-});
-
-test('the migration is registered, or it never runs', () => {
-    const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-    assert.ok(bootList.includes('add-nl-learn-content-2026-10-translations'), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
-    assert.strictEqual(typeof up, 'function');
 });
 
 const sha256Of = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');

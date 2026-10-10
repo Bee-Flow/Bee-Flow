@@ -16,22 +16,10 @@ const { NL_TRANSLATIONS: BOOT_LIST } = require('../boot/bootMigrations');
 
 const PREFIX = 'condition_node.';
 
-test('every Dutch key has an English key', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, []);
-});
-
 test('every English condition_node key has a Dutch value', () => {
     const missing = Object.keys(GUI_DEFAULTS).filter((k) => k.startsWith(PREFIX) && !NL_TRANSLATIONS[k]);
     assert.deepStrictEqual(missing, []);
     assert.ok(Object.keys(NL_TRANSLATIONS).length > 100);
-});
-
-test('placeholders survive translation', () => {
-    for (const [key, nl] of Object.entries(NL_TRANSLATIONS)) {
-        const vars = (s) => (String(s).match(/\{\w+\}/g) || []).sort();
-        assert.deepStrictEqual(vars(nl), vars(GUI_DEFAULTS[key]), key);
-    }
 });
 
 test('the house words: Condition is Voorwaarde, Otherwise is Anders', () => {

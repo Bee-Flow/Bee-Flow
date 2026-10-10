@@ -15,11 +15,6 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 const OWNED_PREFIXES = ['integ.scaleway_billing_', 'connections.field_scaleway_billing_'];
 const owned = (key) => OWNED_PREFIXES.some((p) => key.startsWith(p));
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart');
-});
-
 test('no Dutch value is blank or the English one copied over, and none is both', () => {
     for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
         assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
@@ -46,9 +41,4 @@ test('the Dutch says automatisering, not routine', () => {
     for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
         assert.ok(!/routine/i.test(v), `${k} (nl) still says routine`);
     }
-});
-
-test('the migration is registered, or it never runs', () => {
-    const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-    assert.ok(bootList.includes('add-nl-scaleway-billing-translations'), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
 });

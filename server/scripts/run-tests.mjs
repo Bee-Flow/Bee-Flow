@@ -23,17 +23,30 @@
  *   node scripts/run-tests.mjs --coverage        # also write coverage/ (lcov +
  *                                                # json-summary) from every file
  *
+ * Sharding (CI runs the suite as N parallel jobs):
+ *   node scripts/run-tests.mjs --shard 2/3      # run only shard 2 of 3
+ *   node scripts/run-tests.mjs --shard 2/3 --list   # print its files, run nothing
+ *   --files-out <file>        write the shard's file list (JSON) before running
+ *   --coverage-json <dir>     with --coverage: write only istanbul's
+ *                             coverage-final.json for this shard to <dir>; the
+ *                             merge job adds the shards up (merge-coverage.mjs)
+ *   --write-durations <file>  write per-file wall ms (regenerates
+ *                             scripts/test-durations.json from a real run)
+ * Files are split by scripts/test-durations.json (greedy longest-first); a file
+ * missing from it goes to a hash shard, never nowhere. See testShards.mjs.
+ *
  * Extra CLI arguments are passed through to `node --test` (e.g.
  * `node scripts/run-tests.mjs --test-name-pattern=canEdit`), except the
  * reporter flags: the runner reads each file's TAP summary itself, so it
  * refuses `--test-reporter` and `--test-reporter-destination` (see Run).
  */
 
-import { readdirSync, readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync, writeSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assignShards, orderLongestFirst, parseShard } from './testShards.mjs';
 
 const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXCLUSIONS_FILE = path.join(SERVER_DIR, 'scripts', 'test-exclusions.json');
@@ -95,11 +108,46 @@ function collectTestFiles(dir, prefix = '') {
     return out;
 }
 
+// Runner options that take a value; they must not reach `node --test`.
+const VALUE_FLAGS = ['--shard', '--files-out', '--coverage-json', '--write-durations', '--durations'];
+const flagValue = (name) => {
+    const i = process.argv.indexOf(name);
+    if (i < 0) return null;
+    const v = process.argv[i + 1];
+    if (v === undefined || v.startsWith('--')) {
+        console.error(`run-tests: ${name} needs a value`);
+        process.exit(2);
+    }
+    return v;
+};
+
 const excludedSet = new Set(exclusions.map((e) => e.file));
 const allFiles = collectTestFiles(SERVER_DIR).sort();
-const runFiles = allFiles.filter((f) => !excludedSet.has(f));
+const eligibleFiles = allFiles.filter((f) => !excludedSet.has(f));
 
-console.log(`Running ${runFiles.length} of ${allFiles.length} test files (${excludedSet.size} excluded — see scripts/test-exclusions.json).`);
+const durationsFile = flagValue('--durations') ?? path.join(SERVER_DIR, 'scripts', 'test-durations.json');
+const durations = existsSync(durationsFile) ? JSON.parse(readFileSync(durationsFile, 'utf8')).durations ?? {} : {};
+const shardArg = flagValue('--shard');
+let runFiles = eligibleFiles;
+if (shardArg) {
+    let shard;
+    try { shard = parseShard(shardArg); } catch (e) { console.error(`run-tests: ${e.message}`); process.exit(2); }
+    runFiles = assignShards(eligibleFiles, durations, shard.count)[shard.index - 1];
+}
+runFiles = orderLongestFirst(runFiles, durations);
+
+const filesOut = flagValue('--files-out');
+if (filesOut) writeFileSync(filesOut, `${JSON.stringify([...runFiles].sort(), null, 1)}\n`);
+if (process.argv.includes('--list')) {
+    // writeSync: process.exit() right after a large console.log on a pipe truncates it.
+    writeSync(1, `${JSON.stringify([...runFiles].sort())}\n`);
+    process.exit(0);
+}
+
+console.log(
+    `Running ${runFiles.length} of ${allFiles.length} test files` +
+        `${shardArg ? ` (shard ${shardArg})` : ''} (${excludedSet.size} excluded — see scripts/test-exclusions.json).`,
+);
 
 // ── Run ─────────────────────────────────────────────────────────────────────
 // WHY EACH FILE GETS ITS OWN PROCESS, AND WHY --test-force-exit IS GONE.
@@ -128,7 +176,11 @@ console.log(`Running ${runFiles.length} of ${allFiles.length} test files (${excl
 // flag, so nothing is cut short; a file that hangs hits its own timeout and is
 // named, instead of taking the run's results down with it. That also makes the
 // totals deterministic, which is what lets them be quoted.
-const passthrough = process.argv.slice(2).filter((a) => a !== '--list-excluded' && a !== '--coverage');
+const passthrough = process.argv.slice(2).filter((a, i, all) => {
+    if (a === '--list-excluded' || a === '--coverage' || a === '--list') return false;
+    if (VALUE_FLAGS.includes(a)) return false;
+    return !VALUE_FLAGS.includes(all[i - 1]); // the value of a runner flag
+});
 
 // COVERAGE, AND WHY IT IS NOT A PASSTHROUGH EITHER. With one process per file,
 // any single report destination is rewritten by each file in turn (see the
@@ -138,6 +190,7 @@ const passthrough = process.argv.slice(2).filter((a) => a !== '--list-excluded' 
 // run, c8 merges all of them into one report. A file that hangs is SIGKILLed
 // and leaves no dump; its lines read as uncovered, which is the honest answer.
 const coverage = process.argv.includes('--coverage');
+const coverageJson = flagValue('--coverage-json');
 const coverageTmp = coverage ? mkdtempSync(path.join(tmpdir(), 'server-v8-coverage-')) : null;
 const childEnv = coverage ? { ...process.env, NODE_V8_COVERAGE: coverageTmp } : process.env;
 
@@ -162,6 +215,7 @@ const FILE_TIMEOUT_MS = Number(process.env.TEST_FILE_TIMEOUT_MS ?? 180_000);
 
 const COUNTERS = ['tests', 'pass', 'fail', 'cancelled', 'skipped', 'todo'];
 const totals = Object.fromEntries(COUNTERS.map((k) => [k, 0]));
+const fileMs = {};
 const failedFiles = [];
 const hungFiles = [];
 const noSummaryFiles = [];
@@ -191,6 +245,7 @@ function runFile(file) {
             ['--test', ...passthrough, file],
             { cwd: SERVER_DIR, env: childEnv, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
         );
+        const t0 = Date.now();
         let out = '';
         let timedOut = false;
         /** SIGKILL the child AND anything it spawned. */
@@ -205,6 +260,7 @@ function runFile(file) {
         child.on('close', (code) => {
             clearTimeout(timer);
             done += 1;
+            fileMs[file] = Date.now() - t0;
             const summary = timedOut ? null : summaryOf(out);
 
             if (timedOut) {
@@ -259,13 +315,26 @@ if (failedFiles.length > 0) {
     for (const f of failedFiles) console.error(`  ${f}`);
 }
 
+const durationsOut = flagValue('--write-durations');
+if (durationsOut) {
+    const sorted = Object.fromEntries(Object.entries(fileMs).sort(([a], [b]) => (a < b ? -1 : 1)));
+    writeFileSync(
+        durationsOut,
+        `${JSON.stringify({ _comment: 'Wall ms per test file from one real run; only used to balance shards (scripts/testShards.mjs). Regenerate: node scripts/run-tests.mjs --write-durations scripts/test-durations.json. A file missing here still runs (hash shard).', durations: sorted }, null, 1)}\n`,
+    );
+}
+
 let coverageOk = true;
 if (coverage) {
     // Include/exclude and the reporters live in .c8rc.json, so a local
     // `npx c8 report --temp-directory …` reads the same scope as CI.
     const c8 = spawnSync(
         process.execPath,
-        [path.join(SERVER_DIR, 'node_modules', 'c8', 'bin', 'c8.js'), 'report', '--temp-directory', coverageTmp],
+        [
+            path.join(SERVER_DIR, 'node_modules', 'c8', 'bin', 'c8.js'), 'report', '--temp-directory', coverageTmp,
+            // a shard writes only the mergeable istanbul json (see merge-coverage.mjs)
+            ...(coverageJson ? ['--reporter', 'json', '--reports-dir', path.resolve(coverageJson)] : []),
+        ],
         { cwd: SERVER_DIR, stdio: 'inherit' },
     );
     rmSync(coverageTmp, { recursive: true, force: true });

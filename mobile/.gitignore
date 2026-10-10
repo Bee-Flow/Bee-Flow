@@ -31,3 +31,4 @@ coverage/
 # macOS/editor noise
 .DS_Store
 *.log
+.eslintcache

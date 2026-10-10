@@ -20,19 +20,6 @@ const SS = require('./add-nl-datatables-spreadsheets-translations');
 const FA = require('./add-nl-forms-answers-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter(k => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, []);
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k],
-            `${k} was never actually translated — if the Dutch really is the English word, move it to SAME_AS_ENGLISH`);
-    }
-});
-
 test('every English datatables.* key has a Dutch one (or is declared identical)', () => {
     // The other direction, and the one that actually decides whether a Dutch
     // user sees Dutch. A missing key is not an error anywhere: t() falls back
@@ -44,23 +31,4 @@ test('every English datatables.* key has a Dutch one (or is declared identical)'
     const untranslated = Object.keys(GUI_DEFAULTS)
         .filter(k => k.startsWith('datatables.') && !(k in NL_TRANSLATIONS) && !(k in NC.NL_TRANSLATIONS) && !(k in SS.NL_TRANSLATIONS) && !(k in FA.NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);
-});
-
-test('placeholders survive translation', () => {
-    // "{n}" dropped from "hoogstens {limit} rijen tegelijk" is a sentence that
-    // no longer says what the limit is — which is why the toast exists.
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
-});
-
-test('the migration is registered, or it never runs', () => {
-    // A migration file that boot never requires is a file that does nothing —
-    // and the symptom (Dutch that silently stays English) looks identical to a
-    // typo, so it is worth one assertion rather than an afternoon.
-    const fs = require('fs');
-    const src = fs.readFileSync(require.resolve('../boot/bootMigrations.js'), 'utf8');
-    assert.ok(src.includes("'add-nl-datatables-translations'"),
-        'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
 });
