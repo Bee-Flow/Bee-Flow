@@ -839,11 +839,13 @@ jobs:
   # job, each writing a blob report with its coverage; frontend-coverage merges
   # them, because the floor must see the whole suite, never one slice.
   #
-  # The split is NOT `vitest --shard` (a count split that left shard 1 ~40%
+  # The split is not vitest's own (a count split that left shard 1 ~40%
   # slower than shard 3): scripts/frontend-shards.mjs assigns files by recorded
   # duration (agent-hub/.test-durations.json; a file missing there goes to a
   # hash shard, so a new test needs nothing) and hands vitest the list through
-  # VITEST_FILE_LIST. Each job uploads the list it ran, and frontend-coverage
+  # VITEST_FILE_LIST. The runs still pass `--shard i/4` (server deps is 4/4):
+  # agent-hub/vitest.shardSequencer.mjs picks the files from the list, and the
+  # merge then counts untested source files once, not once per blob. Each job uploads the list it ran, and frontend-coverage
   # proves that the lists together are exactly vitest's own file list, each
   # file once. Regenerate the durations: see the header of the script.
   frontend-tests:
@@ -881,7 +883,7 @@ jobs:
       - name: Unit tests (vitest shard ${{ matrix.shard }}/3, with coverage)
         env:
           VITEST_FILE_LIST: ../frontend-files.json
-        run: npx vitest run --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --coverage
+        run: npx vitest run --shard=${{ matrix.shard }}/4 --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --coverage
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -930,7 +932,7 @@ jobs:
       - name: Unit tests (vitest, server deps, with coverage)
         env:
           VITEST_FILE_LIST: ../frontend-files.json
-        run: npx vitest run --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-server-deps.json --coverage
+        run: npx vitest run --shard=4/4 --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-server-deps.json --coverage
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:

@@ -133,12 +133,14 @@ function main() {
         process.exit(1);
     }
     writeFileSync(out, JSON.stringify(list) + '\n');
-    // vitest must resolve the list to exactly these files (a path it cannot
-    // match would otherwise just run nothing).
-    const seen = listAllTests({ VITEST_FILE_LIST: path.resolve(out) });
-    const problems = compareShardLists(list, [seen]);
-    if (problems.length > 0) {
-        for (const p of problems) console.error(`frontend-shards: vitest resolves the list differently: ${p}`);
+    // Every entry must be a test file exactly as vitest names it: the shard
+    // sequencer (agent-hub/vitest.shardSequencer.mjs) selects by that path, so
+    // a name it cannot match would just not run. `vitest list` ignores the
+    // sequencer, so check against vitest's full list instead.
+    const known = new Set(all);
+    const unknown = list.filter((f) => !known.has(f));
+    if (unknown.length > 0) {
+        for (const f of unknown) console.error(`frontend-shards: ${f} is not a test file vitest knows`);
         process.exit(1);
     }
     console.log(`frontend-shards: ${list.length} files -> ${out}`);

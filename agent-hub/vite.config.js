@@ -5,6 +5,11 @@ import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { defineConfig, loadEnv } from 'vite'
 
+// Loaded only for a CI shard, so `vite build` and local test runs never import vitest/node.
+const ShardListSequencer = process.env.VITEST_FILE_LIST
+    ? (await import('./vitest.shardSequencer.mjs')).default
+    : undefined
+
 // Resolve a version string for the running build. Precedence:
 //   1. VITE_BUILD_SHA env var (set by CI — `${{ github.sha }}` from the workflow).
 //   2. `git rev-parse --short HEAD` (local dev).
@@ -253,13 +258,13 @@ export default defineConfig(({ mode }) => {
             // / 234 DOM-requiring across 15+ directories) — and
             // environmentMatchGlobs no longer exists in vitest 4.
             environment: 'jsdom',
-            // CI runs explicit file lists (scripts/frontend-shards.mjs writes
-            // them) instead of `--shard`; VITEST_FILE_LIST is a JSON array of
-            // paths relative to this directory. Unset (local runs), the
-            // default include applies and everything runs.
-            ...(process.env.VITEST_FILE_LIST
-                ? { include: JSON.parse(readFileSync(path.resolve(process.env.VITEST_FILE_LIST), 'utf8')) }
-                : {}),
+            // CI shards run `--shard i/n` with an explicit file list
+            // (scripts/frontend-shards.mjs writes it; VITEST_FILE_LIST is a
+            // JSON array of paths relative to this directory). The sequencer
+            // picks the shard's files from that list; see its header for why
+            // this is not a narrowed `include`. Unset (local runs), vitest's
+            // own sequencer applies and everything runs.
+            ...(ShardListSequencer ? { sequence: { sequencer: ShardListSequencer } } : {}),
             setupFiles: ['./src/test/setup.js'],
             css: false,
             // 'forks' (vitest's default) launches worker processes whose IPC

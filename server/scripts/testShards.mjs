@@ -24,7 +24,7 @@ export function parseShard(text) {
 }
 
 export function hashShard(file, count) {
-    return createHash('sha1').update(file).digest().readUInt32BE(0) % count;
+    return createHash('sha256').update(file).digest().readUInt32BE(0) % count;
 }
 
 function median(values) {
