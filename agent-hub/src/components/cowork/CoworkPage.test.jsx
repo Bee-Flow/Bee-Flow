@@ -731,8 +731,11 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
             fireEvent.click(screen.getByTestId('cowork-send'));
             await screen.findByText('Off it goes — the result lands in your notifications.');
 
-            const idx = setTimeoutSpy.mock.calls.findIndex(([, ms]) => ms === 4000);
-            expect(idx).toBeGreaterThanOrEqual(0);
+            // The timer is armed in an effect after the render that shows the
+            // flash; on a loaded runner that effect can land just after the text.
+            const findTimer = () => setTimeoutSpy.mock.calls.findIndex(([, ms]) => ms === 4000);
+            await waitFor(() => expect(findTimer()).toBeGreaterThanOrEqual(0));
+            const idx = findTimer();
             clearTimeout(setTimeoutSpy.mock.results[idx].value);
             await act(async () => { setTimeoutSpy.mock.calls[idx][0](); });
 

@@ -71,13 +71,16 @@ function writeDurations(reportFile) {
     const report = JSON.parse(readFileSync(reportFile, 'utf8'));
     const durations = {};
     for (const r of report.testResults) {
-        const file = path.relative(HUB, r.name);
+        // A report merged from CI blobs names files by the runner's checkout
+        // (/home/runner/work/.../agent-hub/src/...): keep the part after agent-hub/.
+        const ci = r.name.lastIndexOf('/agent-hub/');
+        const file = ci >= 0 ? r.name.slice(ci + '/agent-hub/'.length) : path.relative(HUB, r.name);
         const ms = Math.max(1, Math.round(r.endTime - r.startTime));
         durations[file] = ms;
     }
     const sorted = Object.fromEntries(Object.entries(durations).sort(([a], [b]) => (a < b ? -1 : 1)));
     writeFileSync(DURATIONS, JSON.stringify({
-        _comment: 'Wall ms per test file from one real vitest run; only used to balance the CI shards (scripts/frontend-shards.mjs). Regenerate: cd agent-hub && npx vitest run --maxWorkers=8 --reporter=json --outputFile=/tmp/r.json && node ../scripts/frontend-shards.mjs --write-durations /tmp/r.json. A file missing here still runs (hash shard).',
+        _comment: 'Wall ms per test file from a real CI run; only used to balance the CI shards (scripts/frontend-shards.mjs). Regenerate from GitHub (local times on a many-core machine balance badly): gh run download <ci.yml run id> -p "vitest-blob-*" -D /tmp/b && mkdir /tmp/all && cp /tmp/b/*/*.json /tmp/all/ && cd agent-hub && npx vitest --merge-reports=/tmp/all --reporter=json --outputFile=/tmp/r.json && node ../scripts/frontend-shards.mjs --write-durations /tmp/r.json. A file missing here still runs (hash shard).',
         durations: sorted,
     }, null, 1) + '\n');
     console.log(`frontend-shards: wrote ${Object.keys(sorted).length} durations to ${path.relative(process.cwd(), DURATIONS)}`);
