@@ -1,0 +1,10 @@
+{
+ "_comment": "Tests that import server source needing server/node_modules (pg, ...). The CI shards do not install server/; these run in the 'Frontend tests (server deps)' job instead (scripts/frontend-shards.mjs). Found by running the ~114 tests that mention server/ with server/node_modules removed. A new test that needs server deps fails in its shard with 'Cannot find module', so add it here.",
+ "files": [
+  "src/components/admin/Studio/AppStudio/chat/PlanCard.test.jsx",
+  "src/components/admin/Studio/AppStudio/rbac/RowRuleEditor.test.jsx",
+  "src/components/admin/Studio/AppStudio/rbac/rowRuleModel.test.js",
+  "src/components/automation/Builder/mapping/autoMapInputs.deep.test.ts",
+  "src/components/automation/Builder/mapping/deepenForEach.test.ts"
+ ]
+}

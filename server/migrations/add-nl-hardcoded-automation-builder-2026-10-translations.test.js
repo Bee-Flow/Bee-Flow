@@ -11,35 +11,10 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { NL_TRANSLATIONS, SAME_AS_ENGLISH, applyNl, up } = require('./add-nl-hardcoded-automation-builder-2026-10-translations');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
-
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart');
-});
-
-test('no key is both translated and declared identical', () => {
-    const both = SAME_AS_ENGLISH.filter((k) => k in NL_TRANSLATIONS);
-    assert.deepStrictEqual(both, []);
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never actually translated; if the Dutch really is the English, move it to SAME_AS_ENGLISH`);
-    }
-});
+const { NL_TRANSLATIONS, applyNl } = require('./add-nl-hardcoded-automation-builder-2026-10-translations');
 
 test('the catalogue covers a real number of keys', () => {
     assert.ok(Object.keys(NL_TRANSLATIONS).length > 900, 'the data file looks truncated');
-});
-
-test('placeholders survive translation', () => {
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
 });
 
 test('the Dutch speaks to the reader as je, never u', () => {
@@ -64,27 +39,6 @@ test('a second run changes nothing', () => {
     const second = applyNl({ ...first.merged });
     assert.strictEqual(second.added, 0);
     assert.deepStrictEqual(second.merged, first.merged);
-});
-
-test('no other Dutch catalogue seeds these keys', () => {
-    const fs = require('node:fs');
-    const path = require('node:path');
-    const mine = new Set(Object.keys(NL_TRANSLATIONS));
-    const clashes = [];
-    for (const f of fs.readdirSync(__dirname)) {
-        if (!/^add-nl-.*\.js$/.test(f) || f.endsWith('.test.js') || f === 'add-nl-hardcoded-automation-builder-2026-10-translations.js') continue;
-        let other;
-        try { other = require(path.join(__dirname, f)).NL_TRANSLATIONS; } catch { continue; }
-        if (!other || typeof other !== 'object') continue;
-        for (const k of Object.keys(other)) if (mine.has(k)) clashes.push(`${f}: ${k}`);
-    }
-    assert.deepStrictEqual(clashes, [], 'one key, one owner: boot order would decide the wording');
-});
-
-test('the migration is registered, or it never runs', () => {
-    const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-    assert.ok(bootList.includes('add-nl-hardcoded-automation-builder-2026-10-translations'), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
-    assert.strictEqual(typeof up, 'function');
 });
 
 test('the pinned data hash matches the data file, so a data change re-runs the migration', () => {

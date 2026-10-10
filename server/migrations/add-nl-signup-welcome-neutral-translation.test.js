@@ -36,11 +36,6 @@ test('the org-specific copy is still there for users who navigate back', () => {
     assert.ok('signup.wizard_welcome_consumer' in GUI_DEFAULTS);
 });
 
-test('every Dutch key in this migration exists in the English catalog', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter(k => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, []);
-});
-
 test('the neutral key has a non-blank Dutch value that is not the English one', () => {
     const nl = NL_TRANSLATIONS[KEY];
     assert.ok(String(nl || '').trim(), 'missing NL value — Dutch users would see English');

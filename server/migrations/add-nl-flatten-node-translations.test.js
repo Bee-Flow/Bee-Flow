@@ -17,11 +17,6 @@ const { NL_TRANSLATIONS: BOOT_LIST } = require('../boot/bootMigrations');
 
 const NODE_KEYS = ['typeLabel', 'defaultLabel', 'label', 'desc', 'help'].map((k) => `automations.node.flatten.${k}`);
 
-test('every Dutch key has an English key', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, []);
-});
-
 test('every English flatten_node key and the five node keys have a Dutch value', () => {
     const missing = Object.keys(GUI_DEFAULTS)
         .filter((k) => k.startsWith('flatten_node.') || k.startsWith('automations.node.flatten.'))

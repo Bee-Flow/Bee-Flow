@@ -88,6 +88,11 @@ jobs:
       mobile: >-
         ${{ (steps.filter.outputs.mobile == 'true'
         || steps.mobile_server.outputs.mobile == 'true'
+        || steps.mobile_src.outputs.mobile_src == 'true'
+        || steps.all.outputs.all == 'true') && 'true' || 'false' }}
+      # Only what can change Metro's bundle (see the mobile_bundle step).
+      mobile-bundle: >-
+        ${{ (steps.mobile_bundle.outputs.mobile_bundle == 'true'
         || steps.all.outputs.all == 'true') && 'true' || 'false' }}
       python: ${{ steps.filter.outputs.python || steps.all.outputs.all }}
       guard: ${{ steps.filter.outputs.guard || steps.all.outputs.all }}
@@ -243,15 +248,16 @@ jobs:
             # The server side of the agent-hub tests is their transitive
             # require graph, not only the files they name: a whole directory
             # where the tests list it or load most of it, single files where
-            # they load one. The vitest shards install server/'s own
-            # dependencies for these tests, hence its two manifests.
+            # they load one. The frontend-tests-server-deps job installs
+            # server/'s own dependencies for these tests, hence its two manifests.
             # build-push-ghcr.yml is not listed: the one line of it a frontend
             # test read (the beacon build arg) is checked by the last step of
             # this job, on every run.
             frontend:
               - 'agent-hub/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,coverage-ratchet,bundle-ratchet,gen-i18n-defaults,gen-shared-mirror,entry-point}.mjs'
+              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,coverage-ratchet,bundle-ratchet,gen-i18n-defaults,gen-shared-mirror,entry-point,frontend-shards}.mjs'
+              - 'server/scripts/testShards.mjs'
               - '.claude/handoff/compliance/keys/**'
               - '.claude/handoff/curriculum/lessons/**'
               - 'server/package.json'
@@ -281,7 +287,7 @@ jobs:
               - '.github/workflows/ci.yml'
             # Plus mobile_server above.
             mobile:
-              - 'mobile/**'
+              # mobile/** (minus Markdown) is the mobile_src step above.
               - '.nvmrc'
               - 'agent-hub/src/components/shared/statusTokens.ts'
               # required by agent-hub/src/hooks/useAutomationApi.ts (managed parts of a Solution stage)
@@ -380,6 +386,46 @@ jobs:
               - 'e2e/**'
               - '.nvmrc'
               - '.github/workflows/ci.yml'
+      # mobile/** minus docs. A negation cannot sit in the main filter (dorny
+      # would read `!x` there as "every path except x"), so it gets its own
+      # step with `predicate-quantifier: every`: a file counts when it matches
+      # mobile/** AND is not Markdown. No mobile test reads a mobile/*.md file
+      # (androidCiTrigger.test.ts only lists README.md as a path that must NOT
+      # start a build). A docs-only mobile PR then skips the whole job.
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        if: github.event_name != 'workflow_dispatch'
+        id: mobile_src
+        with:
+          predicate-quantifier: every
+          filters: |
+            mobile_src:
+              - 'mobile/**'
+              - '!mobile/**/*.md'
+      # What can change Metro's bundle without changing a jest outcome: the
+      # manifests, the Metro/Babel/Expo/TS config, config plugins, local native
+      # modules, assets AND the app source (src/, app/): Metro resolves imports
+      # differently from jest and tsc (package exports, the lucide resolver), so
+      # a source edit can break only the bundle. (A negation cannot sit in this
+      # filter, so a test-only edit under src/ also runs it.) The bundle verify (`expo export`, ~100 s) runs for these paths
+      # on a PR and ALWAYS off a PR (push to main, release builds).
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        if: github.event_name != 'workflow_dispatch'
+        id: mobile_bundle
+        with:
+          filters: |
+            mobile_bundle:
+              - 'mobile/package.json'
+              - 'mobile/package-lock.json'
+              - 'mobile/{metro,babel}.config.js'
+              - 'mobile/app.config.ts'
+              - 'mobile/tsconfig.json'
+              - 'mobile/plugins/**'
+              - 'mobile/modules/**'
+              - 'mobile/assets/**'
+              - 'mobile/src/**'
+              - 'mobile/app/**'
+              - '.nvmrc'
+              - '.github/workflows/ci.yml'
       - id: all
         if: github.event_name == 'workflow_dispatch'
         run: echo "all=true" >> "$GITHUB_OUTPUT"
@@ -421,16 +467,19 @@ jobs:
   # numbers). A file that keeps the event loop alive is reported by name as
   # HUNG; the job cap is the backstop behind that. The *.integration.test.js suites run real Postgres
   # in-process (pglite), so nothing here needs a service container.
-  server:
-    name: Server tests
+  #
+  # The suite runs as SHARDS (server-shard), 3 parallel jobs that split the
+  # files by recorded duration (server/scripts/test-durations.json, see
+  # server/scripts/testShards.mjs). The checks that are not tests (lint,
+  # typecheck, ratchets) run once, here, next to the shards instead of in front
+  # of them. `server` ("Server tests") is the aggregate: it fails unless every
+  # part succeeded and the shards together hold exactly the test files.
+  server-checks:
+    name: Server checks
     needs: changes
     if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
-    # 12 of the last 20 runs took 13.0-14.6 min against the old cap of 15; the
-    # suite grew from 1,087 to 1,402 to 1,698 test files in two weeks. A hung
-    # file is still named by run-tests.mjs (HUNG, per-file timeout); this cap
-    # is only the backstop, so it gets room instead of cutting a green run.
-    timeout-minutes: 25
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: server
@@ -515,8 +564,33 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: .
         run: node scripts/i18n-key-guard.mjs --base ${{ github.event.pull_request.base.sha }}
-      - name: Unit tests
-        if: github.event.pull_request.draft != true
+
+  server-shard:
+    name: Server tests (shard ${{ matrix.shard }}/3)
+    needs: changes
+    if: needs.changes.outputs.server == 'true' && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    # A third of the files; a shard took ~5 min of the old ~14 min single job.
+    # A hung file is named by run-tests.mjs (HUNG, per-file timeout); this cap
+    # is only the backstop.
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit tests (shard ${{ matrix.shard }}/3, with coverage)
         env:
           NODE_ENV: test
           # Throwaway CI values, never real secrets; encryption.test.js and
@@ -524,23 +598,107 @@ jobs:
           SESSION_SECRET: ci-session-secret-value-at-least-32-chars-long
           MASTER_ENCRYPTION_KEY: ci-master-encryption-key-for-tests-only!!
         # No reporter flags: the runner reads each file's TAP summary, and one
-        # lcov destination would be rewritten by every child in turn (it once
-        # held the last file's coverage only). `--coverage` is the runner's
-        # own: every process dumps V8 coverage into one directory and c8
-        # merges them after the run (.c8rc.json holds the scope).
-        run: npm test -- --coverage
+        # lcov destination would be rewritten by every child in turn. `--coverage`
+        # is the runner's own: every process dumps V8 coverage and c8 turns them
+        # into this shard's istanbul json, which `server-coverage` merges.
+        # `--files-out` records which files this shard ran, for the aggregate.
+        run: npm test -- --shard ${{ matrix.shard }}/3 --files-out shard-files.json --coverage --coverage-json coverage-shard
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: server-shard-files-${{ matrix.shard }}
+          path: server/shard-files.json
+          retention-days: 3
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: server-shard-coverage-${{ matrix.shard }}
+          path: server/coverage-shard/coverage-final.json
+          retention-days: 3
+
+  # Adds the three shards' coverage up and enforces the existing floor
+  # (server/.coverage-ratchet.json, one point under the last measurement; same
+  # ratchet as before the split). merge-coverage.mjs refuses to merge fewer than
+  # three reports, so a lost shard cannot read as a coverage drop or pass on a
+  # part of the suite.
+  server-coverage:
+    name: Server coverage (merged)
+    needs: [changes, server-shard]
+    if: needs.changes.outputs.server == 'true' && github.event.pull_request.draft != true && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: server-shard-coverage-*
+          path: server/coverage-shards
+      - name: Merge the shards' coverage
+        run: node scripts/merge-coverage.mjs --expect 3 coverage-shards/server-shard-coverage-1 coverage-shards/server-shard-coverage-2 coverage-shards/server-shard-coverage-3
       # Line coverage may not drop under server/.coverage-ratchet.json (one
       # point under the last measurement; `--update` only raises it).
       - name: Coverage floor
-        if: github.event.pull_request.draft != true
         working-directory: .
         run: node scripts/coverage-ratchet.mjs server
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ !cancelled() && github.event.pull_request.draft != true }}
+        if: ${{ !cancelled() }}
         with:
           name: coverage-server
           path: server/coverage/lcov.info
           retention-days: 14
+
+  # The one job that emits "Server tests". It is not a matrix: it waits for the
+  # checks, the three shards and the merged coverage, and fails on anything but
+  # success (a skipped shard only counts on a draft PR, which skips the long
+  # suites). It also proves the shards together ran EVERY test file exactly
+  # once: a lost or cancelled shard, or a durations file that no longer matches
+  # the tree, would otherwise let part of the suite go unrun with a green check.
+  server:
+    name: Server tests
+    needs: [changes, server-checks, server-shard, server-coverage]
+    if: always() && needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Every part succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          DRAFT: ${{ github.event.pull_request.draft == true }}
+        run: |
+          node -e '
+            const needs = JSON.parse(process.env.NEEDS);
+            const draft = process.env.DRAFT === "true";
+            const want = { "server-checks": "success", "server-shard": draft ? "skipped" : "success", "server-coverage": draft ? "skipped" : "success" };
+            const bad = Object.entries(want).filter(([id, r]) => needs[id]?.result !== r);
+            for (const id of Object.keys(want)) console.log(`${id}: ${needs[id]?.result} (wanted ${want[id]})`);
+            if (bad.length > 0) {
+              console.error("blocking: " + bad.map(([id]) => `${id}=${needs[id]?.result}`).join(", "));
+              process.exit(1);
+            }
+          '
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: github.event.pull_request.draft != true
+        with:
+          pattern: server-shard-files-*
+          path: server-shard-files
+      - name: The shards ran exactly the test files, each once
+        if: github.event.pull_request.draft != true
+        working-directory: server
+        run: node scripts/check-test-shards.mjs --expect 3 ../server-shard-files/server-shard-files-1/shard-files.json ../server-shard-files/server-shard-files-2/shard-files.json ../server-shard-files/server-shard-files-3/shard-files.json
 
   # ── Frontend ───────────────────────────────────────────────────────────
   frontend:
@@ -548,8 +706,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
-    # Lint, ratchets, typecheck and the production build. The unit tests run
-    # beside this job in three shards (frontend-tests below).
+    # Lint, ratchets and knip. The typecheck and the production build are their
+    # own jobs below (they peak at 4-5 GB each on a dev machine, so they cannot
+    # share a 7 GB runner, and run beside this one instead of after it); the
+    # unit tests run in the frontend-tests shards. checks-passed needs all of
+    # them, so a failure in any one still blocks the merge.
     timeout-minutes: 30
     defaults:
       run:
@@ -612,6 +773,26 @@ jobs:
       # runner's npm rewrote 26k lockfile lines for one tool.
       - name: No unused source files (knip)
         run: npm run lint:dead
+
+  frontend-typecheck:
+    name: Frontend typecheck
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: agent-hub
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: agent-hub/package-lock.json
+      # No server/ install here (see frontend-tests): the program stays small.
+      - name: Install dependencies
+        run: npm ci
       # With server/node_modules present, allowJs plus the cross-package test
       # imports pulled the server's dependency typings into the program
       # (12,523 files, 3.6 GB; 2048 OOM'd). This job no longer installs it:
@@ -622,6 +803,26 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=3072
         run: npm run typecheck
+
+  frontend-build:
+    name: Frontend build
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: agent-hub
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: agent-hub/package-lock.json
+      # No server/ install here (see frontend-tests): the program stays small.
+      - name: Install dependencies
+        run: npm ci
       # What a browser downloads, gzipped: the whole build and its largest
       # chunk, against agent-hub/.bundle-budget.json (measurement + 5%).
       # A PR that needs more says why in the commit that raises the budget.
@@ -634,10 +835,17 @@ jobs:
       - name: Bundle-size budget
         run: node ../scripts/bundle-ratchet.mjs agent-hub
 
-  # The vitest suite (~16,000 tests) in three shards. One runner took 40+ min
-  # for it, against a 60-min cap; three take a third each. Each shard writes a
-  # blob report with its coverage, and frontend-coverage merges them — the
-  # floor must see the whole suite, never one shard's slice.
+  # The vitest suite (~21,000 tests, 1,749 files) in three shards plus one small
+  # job, each writing a blob report with its coverage; frontend-coverage merges
+  # them, because the floor must see the whole suite, never one slice.
+  #
+  # The split is NOT `vitest --shard` (a count split that left shard 1 ~40%
+  # slower than shard 3): scripts/frontend-shards.mjs assigns files by recorded
+  # duration (agent-hub/.test-durations.json; a file missing there goes to a
+  # hash shard, so a new test needs nothing) and hands vitest the list through
+  # VITEST_FILE_LIST. Each job uploads the list it ran, and frontend-coverage
+  # proves that the lists together are exactly vitest's own file list, each
+  # file once. Regenerate the durations: see the header of the script.
   frontend-tests:
     name: Frontend tests (${{ matrix.shard }}/3)
     needs: changes
@@ -657,27 +865,23 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: |
-            agent-hub/package-lock.json
-            server/package-lock.json
+          cache-dependency-path: agent-hub/package-lock.json
       - name: Install dependencies
         run: npm ci
-      # A few agent-hub tests are cross-package: they require server source
-      # to pin an isomorphic contract in one place (AppStudio/rbac/* reaches
-      # server/appStudio/rlsGateway.js, which needs `pg`). Not --omit=dev: CI
-      # must test the graph contributors develop against. Only the shards
-      # need this; the Frontend checks job runs without it.
-      - name: Install server dependencies (for cross-package tests)
-        working-directory: server
-        run: npm ci
+      # No server/ install: the few tests that import server source needing
+      # server/node_modules (agent-hub/.server-deps-tests.json) run in
+      # frontend-tests-server-deps and are left out of the shards here.
+      - name: This shard's test files
+        run: node ../scripts/frontend-shards.mjs --shard ${{ matrix.shard }}/3 --out ../frontend-files.json
       # --maxWorkers=100% is availableParallelism(): two workers on a 2-vCPU
       # runner, where vitest's default (cores - 1) is one. Shard 1 measured
-      # 913 s -> 621 s, peak RSS ~2.3 GB either way (of 7 GB), the same 5,643
-      # tests green, slowest test 6.9 s against the 20 s testTimeout.
+      # 913 s -> 621 s, peak RSS ~2.3 GB either way (of 7 GB).
       # The blob path is pinned: vitest 5 moved the default from .vitest-reports/
       # to .vitest/blob/, and the upload and merge steps below read the old one.
       - name: Unit tests (vitest shard ${{ matrix.shard }}/3, with coverage)
-        run: npx vitest run --shard=${{ matrix.shard }}/3 --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --coverage
+        env:
+          VITEST_FILE_LIST: ../frontend-files.json
+        run: npx vitest run --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --coverage
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -685,10 +889,64 @@ jobs:
           path: agent-hub/.vitest-reports/*
           include-hidden-files: true
           retention-days: 3
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frontend-files-${{ matrix.shard }}
+          path: frontend-files.json
+          retention-days: 3
+
+  # The tests that import server source needing server/node_modules (pg, ...):
+  # AppStudio/rbac/* reaches server/appStudio/rlsGateway.js, and four more. Not
+  # --omit=dev: CI must test the graph contributors develop against. This is the
+  # only frontend job that installs server/. Its list is
+  # agent-hub/.server-deps-tests.json; the script refuses an empty list or an
+  # entry that is not a test file, and frontend-coverage checks that the shards
+  # plus this list are every test file. Its blob and coverage are merged too.
+  frontend-tests-server-deps:
+    name: Frontend tests (server deps)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: agent-hub
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            agent-hub/package-lock.json
+            server/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+      - name: The server-deps test files
+        run: node ../scripts/frontend-shards.mjs --server-deps --out ../frontend-files.json
+      - name: Unit tests (vitest, server deps, with coverage)
+        env:
+          VITEST_FILE_LIST: ../frontend-files.json
+        run: npx vitest run --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-server-deps.json --coverage
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: vitest-blob-server-deps
+          path: agent-hub/.vitest-reports/*
+          include-hidden-files: true
+          retention-days: 3
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frontend-files-server-deps
+          path: frontend-files.json
+          retention-days: 3
 
   frontend-coverage:
     name: Frontend coverage (merged)
-    needs: [changes, frontend-tests]
+    needs: [changes, frontend-tests, frontend-tests-server-deps]
     if: needs.changes.outputs.frontend == 'true' && github.event.pull_request.draft != true && !cancelled()
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -709,11 +967,20 @@ jobs:
           pattern: vitest-blob-*
           path: agent-hub/.vitest-reports
           merge-multiple: true
-      # All three shards must have reported: a missing blob would merge into a
-      # lower number that reads as a coverage drop, or pass on two-thirds of
-      # the suite.
+      # All three shards and the server-deps job must have reported: a missing
+      # blob would merge into a lower number that reads as a coverage drop, or
+      # pass on part of the suite.
       - name: Every shard reported
-        run: test "$(ls .vitest-reports | wc -l)" -eq 3
+        run: test "$(ls .vitest-reports | wc -l)" -eq 4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: frontend-files-*
+          path: frontend-files
+      # The lists the jobs ran (the server-deps list last) must be exactly
+      # vitest's own file list as sets, each file once: a lost job, a glob typo
+      # or a stale entry fails here by file name instead of running nothing.
+      - name: The jobs ran exactly the test files, each once
+        run: node ../scripts/frontend-shards.mjs --check --expect 4 ../frontend-files/frontend-files-1/frontend-files.json ../frontend-files/frontend-files-2/frontend-files.json ../frontend-files/frontend-files-3/frontend-files.json ../frontend-files/frontend-files-server-deps/frontend-files.json
       - name: Merge the shards' results and coverage
         run: npx vitest --merge-reports=.vitest-reports --reporter=dot --coverage --coverage.reporter=text-summary --coverage.reporter=lcov --coverage.reporter=json-summary
       # Line coverage may not drop under the floor in .coverage-ratchet.json
@@ -748,8 +1015,23 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
       - name: Install dependencies
         run: npm ci
+      # eslint's result cache, content-hashed (checkout mtimes differ on every
+      # run). Measured locally: 61 s cold, 2 s warm. PRs only: eslint's
+      # cross-file import rules would trust a stale verdict for an unchanged
+      # file, so anything that is not a PR (main, release) lints cold, and
+      # tsc below covers the same cross-file ground on PRs. The key carries the
+      # lockfile and the eslint config; eslint itself also drops entries when
+      # its version or the config changes.
+      - name: Restore the eslint cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: mobile/.eslintcache
+          key: eslint-mobile-${{ hashFiles('mobile/package-lock.json', 'mobile/eslint.config.js', 'mobile/eslint.quality.js', 'mobile/quality-budget.json') }}-${{ github.sha }}
+          restore-keys: |
+            eslint-mobile-${{ hashFiles('mobile/package-lock.json', 'mobile/eslint.config.js', 'mobile/eslint.quality.js', 'mobile/quality-budget.json') }}-
       - name: Lint
-        run: npm run lint
+        run: ${{ github.event_name == 'pull_request' && 'npm run lint:cached' || 'npm run lint' }}
       - name: Typecheck
         run: npm run typecheck
       # Includes the OPAQUE interop suite: this client's pure-TypeScript OPAQUE
@@ -781,7 +1063,10 @@ jobs:
       # Metro bundling, which jest never exercises: an import that resolves in
       # tests but not in Metro (a path alias, a package export) otherwise first
       # fails in the APK build on main, after the merge.
+      # Skipped on a PR that touches nothing Metro reads (see mobile_bundle in
+      # the changes job); always runs off a PR, so main and release still bundle.
       - name: Verify the Android bundle builds
+        if: github.event_name != 'pull_request' || needs.changes.outputs.mobile-bundle == 'true'
         run: npx expo export --platform android --output-dir .verify-bundle
 
   # ── Python services ────────────────────────────────────────────────────
@@ -1194,7 +1479,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, frontend, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, install-wizard, nc-login-mini, duplication, frontend-tests, frontend-coverage, e2e-specs]
+    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, install-wizard, nc-login-mini, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

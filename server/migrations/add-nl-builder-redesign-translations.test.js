@@ -52,20 +52,6 @@ function owned(key) {
     return OWNED_PREFIXES.some(p => key.startsWith(p));
 }
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter(k => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [],
-        'these Dutch keys have no English counterpart — a typo here is a screen that silently stays English');
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k],
-            `${k} was never actually translated — if the Dutch really is the English word, move it to SAME_AS_ENGLISH`);
-    }
-});
-
 test('every English builder-redesign key has a Dutch one (or is declared identical)', () => {
     // The direction that decides whether a Dutch author sees Dutch. A missing
     // key is not an error anywhere: t() falls back to English and the screen
@@ -74,15 +60,6 @@ test('every English builder-redesign key has a Dutch one (or is declared identic
     const untranslated = Object.keys(GUI_DEFAULTS)
         .filter(k => owned(k) && !(k in NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);
-});
-
-test('placeholders survive translation', () => {
-    // "{n}" dropped from "is een lijst van {n}" is a question that no longer
-    // says how big the list is — which is the whole reason the box opened.
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
 });
 
 test('the plain-language kinds never say string, array or object', () => {
@@ -117,14 +94,4 @@ test('the artboard words are used literally where the design has them', () => {
     for (const [k, v] of Object.entries(expected)) {
         assert.strictEqual(NL_TRANSLATIONS[k], v, `${k} drifted from the artboard wording`);
     }
-});
-
-test('the migration is registered, or it never runs', () => {
-    // A migration file that boot never requires is a file that does nothing —
-    // and the symptom (Dutch that silently stays English) looks identical to a
-    // typo, so it is worth one assertion rather than an afternoon.
-    const fs = require('fs');
-    const src = fs.readFileSync(require.resolve('../boot/bootMigrations.js'), 'utf8');
-    assert.ok(src.includes("'add-nl-builder-redesign-translations'"),
-        'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
 });

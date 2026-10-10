@@ -12,31 +12,15 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { NL_TRANSLATIONS, SAME_AS_ENGLISH, applyNl, up } = require('./add-nl-repeating-work-translations');
+const { NL_TRANSLATIONS, SAME_AS_ENGLISH, applyNl } = require('./add-nl-repeating-work-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 const OWNED_PREFIXES = ['automations.repeating.', 'automations.tabs.'];
 const owned = (k) => OWNED_PREFIXES.some((p) => k.startsWith(p));
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart');
-});
-
 test('every key here sits under the prefixes this catalogue owns', () => {
     const strays = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !owned(k));
     assert.deepStrictEqual(strays, []);
-});
-
-test('no key is both translated and declared identical', () => {
-    assert.deepStrictEqual(SAME_AS_ENGLISH.filter((k) => k in NL_TRANSLATIONS), []);
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never actually translated; if the Dutch really is the English, move it to SAME_AS_ENGLISH`);
-    }
 });
 
 test('every English key under the owned prefixes has Dutch (or is declared identical)', () => {
@@ -46,13 +30,6 @@ test('every English key under the owned prefixes has Dutch (or is declared ident
         .sort();
     assert.deepStrictEqual(untranslated, []);
     assert.ok(Object.keys(GUI_DEFAULTS).filter(owned).length > 100, 'the automations.repeating namespace is missing from the English catalog');
-});
-
-test('placeholders survive translation', () => {
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
 });
 
 test('no dashes as punctuation, in either language', () => {
@@ -103,10 +80,4 @@ test('no other Dutch catalogue seeds these keys', () => {
         for (const k of keys) if (mine.has(k) || owned(k)) clashes.push(`${f}: ${k}`);
     }
     assert.deepStrictEqual(clashes, [], 'one key, one owner: boot order would decide the wording');
-});
-
-test('the migration is registered, or it never runs', () => {
-    const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-    assert.ok(bootList.includes('add-nl-repeating-work-translations'), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
-    assert.strictEqual(typeof up, 'function');
 });

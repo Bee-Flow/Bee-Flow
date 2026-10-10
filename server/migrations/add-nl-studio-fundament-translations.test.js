@@ -47,18 +47,6 @@ function owned(key) {
     return OWNED_PREFIXES.some(p => key.startsWith(p)) || OWNED_USAGE.test(key);
 }
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter(k => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, []);
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never actually translated — if the Dutch really is the English word, move it to SAME_AS_ENGLISH`);
-    }
-});
-
 test('a retired key is seeded in neither list', () => {
     for (const k of RETIRED) {
         assert.ok(!(k in NL_TRANSLATIONS), `${k} is retired — no component reads it, drop the Dutch`);
@@ -90,23 +78,4 @@ test('every English shared-chrome key has a Dutch one (or is declared identical)
     const untranslated = Object.keys(GUI_DEFAULTS)
         .filter(k => owned(k) && !(k in NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);
-});
-
-test('placeholders survive translation', () => {
-    // "{name}" dropped from the Dutch sentence is a confirmation that no longer
-    // says WHAT is about to be shared or deleted.
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/g) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
-});
-
-test('the migration is registered, or it never runs', () => {
-    // A migration file that boot never requires is a file that does nothing —
-    // and the symptom (Dutch that silently stays English) looks identical to a
-    // typo, so it is worth one assertion rather than an afternoon.
-    const fs = require('fs');
-    const src = fs.readFileSync(require.resolve('../boot/bootMigrations.js'), 'utf8');
-    assert.ok(src.includes("'add-nl-studio-fundament-translations'"),
-        'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
 });

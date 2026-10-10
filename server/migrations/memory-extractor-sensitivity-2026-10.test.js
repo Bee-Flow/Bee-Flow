@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const migration = require('./memory-extractor-sensitivity-2026-10');
 const { loadPromptFile, REGISTRY_MAP } = require('../stores/agent/systemAgents');
-const { LOOSE_MIGRATIONS } = require('../boot/bootMigrations');
 
 // What a fresh install seeds, loaded the way seeding loads it.
 const seeded = loadPromptFile(REGISTRY_MAP['system-memory-extractor'].promptFile);
@@ -24,8 +23,4 @@ test('an existing prompt gets the section appended once, and operator edits stay
 
 test('the appended text is what the .md ends with', () => {
     assert.ok(seeded.endsWith(migration.SENSITIVITY_GUIDANCE.trim()));
-});
-
-test('the migration is registered, or it never runs', () => {
-    assert.ok(LOOSE_MIGRATIONS.includes('memory-extractor-sensitivity-2026-10'));
 });

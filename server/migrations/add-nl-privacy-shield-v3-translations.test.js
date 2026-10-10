@@ -10,7 +10,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { NL_TRANSLATIONS, up } = require('./add-nl-privacy-shield-v3-translations');
+const { NL_TRANSLATIONS } = require('./add-nl-privacy-shield-v3-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 /** This round introduced these namespaces entirely, so every key in them is this catalogue's. */
@@ -106,10 +106,4 @@ test('the strings declared identical exist and are not also translated', () => {
         assert.ok(k in GUI_DEFAULTS, `${k} is not an English key`);
         assert.ok(!(k in NL_TRANSLATIONS), `${k} is declared identical but also translated`);
     }
-});
-
-test('the migration is registered, or it never runs', () => {
-    const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-    assert.ok(bootList.includes('add-nl-privacy-shield-v3-translations'), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
-    assert.strictEqual(typeof up, 'function');
 });

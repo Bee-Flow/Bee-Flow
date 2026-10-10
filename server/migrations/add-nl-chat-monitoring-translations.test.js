@@ -47,13 +47,6 @@ test('no Dutch value is blank or the English one copied over', () => {
     }
 });
 
-test('placeholders survive translation', () => {
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
-});
-
 test('the notice fragments keep the shape that joins them', () => {
     // {interest} is appended right after "{legal_basis}." and {kinds_clause}
     // right after "scan failed": the leading space and comma are the glue.

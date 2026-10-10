@@ -253,6 +253,13 @@ export default defineConfig(({ mode }) => {
             // / 234 DOM-requiring across 15+ directories) — and
             // environmentMatchGlobs no longer exists in vitest 4.
             environment: 'jsdom',
+            // CI runs explicit file lists (scripts/frontend-shards.mjs writes
+            // them) instead of `--shard`; VITEST_FILE_LIST is a JSON array of
+            // paths relative to this directory. Unset (local runs), the
+            // default include applies and everything runs.
+            ...(process.env.VITEST_FILE_LIST
+                ? { include: JSON.parse(readFileSync(path.resolve(process.env.VITEST_FILE_LIST), 'utf8')) }
+                : {}),
             setupFiles: ['./src/test/setup.js'],
             css: false,
             // 'forks' (vitest's default) launches worker processes whose IPC

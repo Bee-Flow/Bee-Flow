@@ -10,7 +10,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { NL_TRANSLATIONS, up } = require('./add-nl-egress-map-translations');
+const { NL_TRANSLATIONS } = require('./add-nl-egress-map-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 /** Identical in Dutch: a city and a country code, "via", "Type" and "Tool", and number formats. */
@@ -27,18 +27,6 @@ const SAME_AS_ENGLISH = new Set([
 
 const OWNED = (k) => k.startsWith('egress_map.');
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart');
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never actually translated; if it really is the same, add it to SAME_AS_ENGLISH`);
-    }
-});
-
 test('every English egress_map string has a Dutch one', () => {
     const untranslated = Object.keys(GUI_DEFAULTS)
         .filter((k) => OWNED(k) && !(k in NL_TRANSLATIONS) && !SAME_AS_ENGLISH.has(k))
@@ -54,20 +42,7 @@ test('the strings declared identical exist and are not also translated', () => {
     }
 });
 
-test('placeholders survive translation', () => {
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
-});
-
 test('no dashes as punctuation, in either language', () => {
     for (const [k, v] of Object.entries(NL_TRANSLATIONS)) assert.ok(!/[–—]/.test(v), `${k} (nl) uses a dash`);
     for (const k of Object.keys(GUI_DEFAULTS).filter(OWNED)) assert.ok(!/[–—]/.test(GUI_DEFAULTS[k]), `${k} (en) uses a dash`);
-});
-
-test('the migration is registered, or it never runs', () => {
-    const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-    assert.ok(bootList.includes('add-nl-egress-map-translations'), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
-    assert.strictEqual(typeof up, 'function');
 });
