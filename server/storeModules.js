@@ -217,6 +217,10 @@ const STORE_MODULES = [
     // the project compliance checks. No text, no offsets — categories + counts.
     { name: 'contentPiiSignalStore', file: './stores/contentPiiSignalStore' },
     { name: 'platformReleaseStore', file: './stores/platformReleaseStore' },
+    // Per-user notification channels and per-project mutes
+    // (user_notification_prefs, project_notification_mutes). No FKs, so the
+    // place in the ladder does not matter.
+    { name: 'notificationPrefsStore', file: './stores/notificationPrefsStore' },
 ];
 
 // Platform-module stores (server/modules/catalog.js) — in v1 the tables of

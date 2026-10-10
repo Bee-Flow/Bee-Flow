@@ -246,7 +246,9 @@ function selectTiers(items, charLimit, { profile = true, relevantMax = RELEVANT_
         ((b.memory.importance ?? 0.5) - (a.memory.importance ?? 0.5))
         || (new Date(b.memory.updated_at || 0).getTime() - new Date(a.memory.updated_at || 0).getTime())
         || (a._i - b._i);
-    for (const [type, cap] of profile ? [['instruction', PROFILE_MAX_INSTRUCTIONS], ['preference', PROFILE_MAX_PREFERENCES]] : []) {
+    /** @type {Array<[string, number]>} */
+    const profileCaps = profile ? [['instruction', PROFILE_MAX_INSTRUCTIONS], ['preference', PROFILE_MAX_PREFERENCES]] : [];
+    for (const [type, cap] of profileCaps) {
         let n = 0;
         for (const item of sorted.filter(i => i.memory.type === type).sort(byImportance)) {
             if (n >= cap) break;

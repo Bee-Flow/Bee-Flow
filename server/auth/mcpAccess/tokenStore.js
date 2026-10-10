@@ -128,7 +128,7 @@ async function findByPresented(tokenString) {
     const found = await repo().getWithHash(parsed.id);
     // Compare against a dummy when the row is missing so a hit and a miss cost
     // about the same.
-    const stored = found ? Buffer.from(found.secretHash, 'hex') : Buffer.alloc(32);
+    const stored = found ? Buffer.from(found.secretHash, 'hex') : Buffer.alloc(32); // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a hash comparison buffer, not a secret
     const presented = sha256(parsed.secret);
     const equal = stored.length === presented.length && crypto.timingSafeEqual(stored, presented);
     return found && equal ? found.record : null;

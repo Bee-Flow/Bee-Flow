@@ -135,8 +135,8 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
         if (!parsed) return { ok: false, reason: 'malformed' };
         const record = await kv.get(keyOf(parsed.id));
         if (!isRecord(record)) return { ok: false, reason: 'unknown' };
-        const given = Buffer.from(sha256(parsed.secret), 'hex');
-        const stored = Buffer.from(record.secretHash, 'hex');
+        const given = Buffer.from(sha256(parsed.secret), 'hex'); // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- hash of the presented ticket, not a secret
+        const stored = Buffer.from(record.secretHash, 'hex'); // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- stored hash, not a secret
         if (given.length !== stored.length || !crypto.timingSafeEqual(given, stored)) {
             return { ok: false, reason: 'unknown' };
         }
@@ -176,7 +176,7 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
      * sees it; any other id reads as unknown.
      */
     async function status(id, userId) {
-        if (!/^[a-f0-9]{24}$/.test(String(id || ''))) return null;
+        if (!/^[a-f0-9]{24}$/.test(String(id || ''))) return null; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored fixed-length class, linear
         const record = await kv.get(keyOf(id));
         if (!isRecord(record) || record.userId !== userId) return null;
         const expired = !record.used && Date.parse(record.expiresAt) <= now();

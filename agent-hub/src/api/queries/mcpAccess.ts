@@ -129,7 +129,7 @@ const NO_RETRY = { retry: false as const };
 function toError(e: unknown, fallback: string): McpAccessError {
     if (e instanceof McpAccessError) return e;
     if (e instanceof ApiError) {
-        const body = (e.body || {}) as { error?: unknown; message?: unknown; code?: unknown };
+        const body = (e.body || {}) as { error?: unknown; message?: unknown; code?: unknown }; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- single-character class, linear
         const sentence = [body.message, body.error].find((v): v is string => typeof v === 'string' && /\s/.test(v.trim()));
         const code = typeof body.code === 'string' ? body.code : (typeof body.error === 'string' && !/\s/.test(body.error) ? body.error : null);
         return new McpAccessError(sentence || fallback, code, e.status ?? null);

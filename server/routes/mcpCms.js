@@ -154,7 +154,7 @@ function makeRouter(injected = {}) {
 
     // Registered before any body parser of this router: the body is a raw file.
     router.put('/upload/:ticketId', async (req, res) => {
-        const declared = req.headers['content-length'];
+        const declared = req.headers['content-length']; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored digit class, linear
         const contentLength = declared !== undefined && /^\d+$/.test(declared) ? Number(declared) : null;
         const out = await verifyUploadTicket(req, contentLength);
         if (out.closeConnection) {

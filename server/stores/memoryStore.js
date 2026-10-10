@@ -1103,6 +1103,7 @@ function _trackUsage(ids) {
  * @param {boolean} [options.includeSensitive]  true = art. 9 rows may be returned (the caller resolved the user's opt-in); default false
  * @param {number[]|null} [options.queryEmbedding]  the user message, if the turn already embedded it
  * @param {number} [options.maxPerUser]  rows scored in JS in sealed mode (the org's maxPerUser)
+ * @param {boolean} [options.search]  the memory_search tool: relevance only, wider cap, no profile
  */
 async function findRelevantMemories(userId, agentId, userMessage, tokenLimit = 500, projectId = null, { includeGeneral = true, includeSensitive = false, queryEmbedding = null, maxPerUser = DEFAULT_SCAN_LIMIT, search = false } = {}) {
     await initDB();
