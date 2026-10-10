@@ -1,5 +1,5 @@
 import { AppWindow, ClipboardList, FileText, Handshake, LayoutGrid, PenLine, Pin, Plus, Search, ShieldCheck, Store } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import NotificationCenter from './NotificationCenter';
 import ConvRow from './sidebar/ConvRow';
 import FlyoutRow from './sidebar/FlyoutRow';
@@ -13,26 +13,33 @@ import { useSidebarFlyouts } from './sidebar/useSidebarFlyouts';
 import { useStudioSectionData } from './sidebar/useStudioSectionData';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import beeFlowIcon from '../../assets/BeeFlow-logo-Icon-2026.svg';
+import { usesProjectRail, usesStudioRail } from '../../authedApp/appRoutes';
+import { useStudioMenuHidden } from '../../hooks/useStudioChrome';
 import { countFor } from '../../hooks/useStudioCounts';
 import { useTranslation } from '../../hooks/useTranslation';
-import { usesStudioRail } from '../../authedApp/appRoutes';
+import useViewport from '../../hooks/useViewport';
 import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../utils/agentAvatar';
 import { recentForms, rememberFormOpened } from '../../utils/formRecents';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { lazy } from '../../utils/lazyWithReload';
+import { isOrgAdminLike as isOrgAdminUser } from '../../utils/orgAdmin';
 import { STUDIO_RECENT_SOURCES } from '../../utils/studioRecentSources';
 // The Studio app registry doubles as the sidebar's Studio-group source: the
 // Studio screen no longer has its own tab bar, so the sections (and their
 // gates) render here instead. Main-chunk-safe by design — see the import
 // discipline note in studioApps.jsx.
 import StudioRail from '../admin/Studio/StudioRail';
-import { useStudioMenuHidden } from '../../hooks/useStudioChrome';
-import { canSeeStudio as canSeeStudioFor, isStudioBuilder, studioGateContext, studioLanding, studioNavSections, studioSectionLabel } from '../admin/Studio/studioNav';
 import { STUDIO_APPS, groupStudioApps, studioLockHint } from '../admin/Studio/studioApps';
+import { canSeeStudio as canSeeStudioFor, isStudioBuilder, studioGateContext, studioLanding, studioNavSections, studioSectionLabel } from '../admin/Studio/studioNav';
 import { useTheme } from '../appearance/ThemeContext';
 import AppIcon from '../icons/AppIcon';
 import { useEntitlements } from '../licensing/EntitlementsContext';
 import { useLicenseContext } from '../licensing/LicenseContext';
 import { kindColorVar } from '../shared/kindColors';
+
+// Lazy, so the project rail's chunk stays out of the sidebar's bundle: it is
+// only fetched when a project page opens.
+const ProjectRail = lazy(() => import('../projects/workspace/ProjectRail'));
 
 const Sidebar = ({
     isOpen, isMobile = false, onClose,
@@ -42,6 +49,9 @@ const Sidebar = ({
     onSelectConversation, onDeleteConversation,
     onSelectAgent, onOpenMarketplace, onOpenSearch,
     user, onLogout, onNavigate, currentPage, studioRoute = null,
+    // { projectId, tab, onSelectTab, onBack, onOpenProject, onOpenSearch,
+    // notebooksEnabled } on one project's pages, otherwise null.
+    projectRail = null,
     hasPermission: hasPermissionProp = null,
     onDirectChat, directChatMode,
     directConversations = [],
@@ -74,6 +84,8 @@ const Sidebar = ({
     showMarketplace = false,
 }) => {
     const { t, locale } = useTranslation();
+    // The project rail folds to 64 px below 1280 px; its footer must fold with it.
+    const { isDesktop } = useViewport();
     // We'll use the 'isOpen' prop as 'sidebarOpen' (expanded state)
     // and if !isOpen, we'll show the narrow 'Power Bar'
     const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -257,8 +269,7 @@ const Sidebar = ({
     // a single approval keep working either way (the server's drain exemption),
     // so a lapsed org can still finish pending decisions from its bell.
     const canBrowseApprovals = hasLicenseFeature('approvals') && hasPermission('use_approvals');
-    const isOrgAdminLike = !!(user?.isAdmin || user?.orgRole === 'admin' || user?.orgRole === 'org_admin'
-        || (user?.permissions || []).includes('all'));
+    const isOrgAdminLike = isOrgAdminUser(user);
     const { pendingCount: pendingApprovalCount, hasApprovals } = useApprovalsNav({
         canBrowseApprovals,
         isOrgAdmin: isOrgAdminLike,
@@ -349,15 +360,14 @@ const Sidebar = ({
         }
         return directChatMode ? onSelectDirectConversation(c) : onSelectConversation(c);
     };
+    // Resolves with what the handler answered: true when the conversation is gone.
     const deleteConv = (conv) => {
         if (isAllChats) {
             // In all-chats mode, route to the correct handler based on source
             if (conv._source === 'direct') {
-                onDeleteDirectConversation?.(conv.id);
-            } else {
-                onDeleteConversation(conv.id, conv.agent_id);
+                return onDeleteDirectConversation?.(conv.id);
             }
-            return;
+            return onDeleteConversation(conv.id, conv.agent_id);
         }
         return directChatMode ? onDeleteDirectConversation?.(conv.id) : onDeleteConversation(conv.id, conv.agent_id);
     };
@@ -433,6 +443,45 @@ const Sidebar = ({
                 // sends a direct /app/studio to their first section).
                 showStart={isStudioBuilder(user)}
             />
+        );
+    }
+
+    /* ─── The project rail ───
+       On /app/projects/:id* the workspace swaps THIS sidebar for the project's
+       own rail, as Studio does above. Same three conditions: the page is one
+       project (usesProjectRail), not a phone, and the hub handed over the rail's
+       route callbacks. The account footer is this sidebar's, as for Studio. */
+    if (usesProjectRail(currentPage, projectRail?.projectId) && !isMobile && projectRail) {
+        return (
+            <Suspense fallback={<div className="w-60 flex-shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border-subtle)]" />}>
+                <ProjectRail
+                    projectId={projectRail.projectId}
+                    activeTab={projectRail.tab}
+                    onSelectTab={projectRail.onSelectTab}
+                    onBack={projectRail.onBack}
+                    onOpenProject={projectRail.onOpenProject}
+                    onOpenSearch={projectRail.onOpenSearch}
+                    projects={projects}
+                    currentUserId={user?.id}
+                    notebooksEnabled={projectRail.notebooksEnabled}
+                    footer={(
+                        <SidebarFooter
+                            isOpen={isDesktop}
+                            isMobile={isMobile}
+                            user={user}
+                            t={t}
+                            profileRef={profileRef}
+                            showProfileMenu={showProfileMenu}
+                            setShowProfileMenu={setShowProfileMenu}
+                            _simpleMode={_simpleMode}
+                            currentPage={currentPage}
+                            showSettings={showSettings}
+                            onNavigate={onNavigate}
+                            onLogout={onLogout}
+                        />
+                    )}
+                />
+            </Suspense>
         );
     }
 

@@ -75,3 +75,13 @@ describe('a starter prefill', () => {
         expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ content: '@ai Can you summarise?', askAi: true }));
     });
 });
+
+describe('the box', () => {
+    it('is the shared composer shell, on the 760 px column', () => {
+        render(<ChatComposer {...props()} />);
+        const shell = screen.getByRole('form', { name: 'Message the team' });
+        expect(shell).toHaveAttribute('data-composer-shell');
+        expect(shell.className).toContain('chat-composer');
+        expect(shell.className).toContain('max-w-[760px]');
+    });
+});

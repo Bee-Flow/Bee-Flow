@@ -1,6 +1,8 @@
 import { act, render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { changeKeys } from '../../../api/queries/projectChanges';
+import { discoveryKeys } from '../../../api/queries/projectDiscovery';
 import { projectKeys } from '../../../api/queries/projects';
 import type { UseProjectStreamOptions } from '../../../hooks/useProjectStream';
 import { testQueryClient, withQueryClient } from '../../../test/queryWrapper';
@@ -16,7 +18,15 @@ vi.mock('../../../hooks/useProjectStream', () => ({
 }));
 
 function Online() {
-    return <span data-testid="online">{useProjectLive().online.join(',')}</span>;
+    const live = useProjectLive();
+    return (
+        <>
+            <span data-testid="online">{live.online.join(',')}</span>
+            <span data-testid="viewing">{JSON.stringify(live.viewing)}</span>
+            <button type="button" onClick={() => live.setViewing({ type: 'document', id: 'd1' })}>open doc</button>
+            <button type="button" onClick={() => live.setViewing(null)}>close doc</button>
+        </>
+    );
 }
 
 function setup() {
@@ -28,7 +38,18 @@ function setup() {
 
 beforeEach(() => { post.mockReset(); post.mockResolvedValue({}); stream.options = null; });
 
+function Status() {
+    return <span data-testid="status">{useProjectLive().status}</span>;
+}
+
 describe('ProjectLiveProvider', () => {
+    it('exposes the transport status', () => {
+        render(withQueryClient(<ProjectLiveProvider projectId="p1" currentUserId="me"><Status /></ProjectLiveProvider>));
+        expect(screen.getByTestId('status')).toHaveTextContent('connecting');
+        act(() => stream.options!.onStatus!('stopped'));
+        expect(screen.getByTestId('status')).toHaveTextContent('stopped');
+    });
+
     it('marks somebody online from a live event, not from a row replayed out of the activity feed', () => {
         setup();
         act(() => stream.options!.onEvent!('thread_shared', { actorId: 'u1', polled: true, createdAt: new Date().toISOString() }));
@@ -38,11 +59,16 @@ describe('ProjectLiveProvider', () => {
         expect(screen.getByTestId('online')).toHaveTextContent('u3');
     });
 
-    it('re-reads tasks, chats and threads on every poll tick of the degraded mode', () => {
+    it('re-reads every live list on a poll tick of the degraded mode: tasks, board, chats, threads, files, members, unread', () => {
         const { spy } = setup();
         act(() => stream.options!.onPoll!());
         const keys = spy.mock.calls.map(c => (c[0] as { queryKey: unknown[] }).queryKey);
-        expect(keys).toEqual(expect.arrayContaining([projectKeys.tasks('p1'), projectKeys.chats('p1'), projectKeys.threads('p1'), projectKeys.myChats('p1')]));
+        expect(keys).toEqual(expect.arrayContaining([
+            projectKeys.tasks('p1'), [...projectKeys.detail('p1'), 'board'], projectKeys.sprints('p1'),
+            projectKeys.chats('p1'), projectKeys.threads('p1'), projectKeys.myChats('p1'),
+            projectKeys.files('p1'), projectKeys.members('p1'), projectKeys.resources('p1'),
+            changeKeys.all('p1'), discoveryKeys.pins('p1'),
+        ]));
     });
 
     it('re-reads lists cached before the page opened when the stream starts at now, but not a reconnect', () => {
@@ -72,5 +98,43 @@ describe('ProjectLiveProvider', () => {
         act(() => hide(false));
         expect(beats()).toBe(2);
         vi.useRealTimers();
+    });
+});
+
+describe('ProjectLiveProvider: who is viewing which item', () => {
+    it('fills `viewing` from a presence.online event with a target, moves the person when they open another item, and clears them without one', () => {
+        setup();
+        act(() => stream.options!.onEvent!('presence.online', { actorId: 'u3', target: { type: 'document', id: 'd1' } }));
+        expect(screen.getByTestId('viewing')).toHaveTextContent('{"document:d1":["u3"]}');
+        act(() => stream.options!.onEvent!('presence.online', { actorId: 'u4', target: { type: 'document', id: 'd1' } }));
+        expect(JSON.parse(screen.getByTestId('viewing').textContent!)).toEqual({ 'document:d1': ['u3', 'u4'] });
+        act(() => stream.options!.onEvent!('presence.online', { actorId: 'u3', target: { type: 'task', id: 't1' } }));
+        expect(JSON.parse(screen.getByTestId('viewing').textContent!)).toEqual({ 'document:d1': ['u4'], 'task:t1': ['u3'] });
+        act(() => stream.options!.onEvent!('presence.online', { actorId: 'u3', target: null }));
+        expect(JSON.parse(screen.getByTestId('viewing').textContent!)).toEqual({ 'document:d1': ['u4'] });
+    });
+
+    it('never lists the caller as viewing, and lets a viewer lapse after the presence TTL', () => {
+        vi.useFakeTimers();
+        setup();
+        act(() => stream.options!.onEvent!('presence.online', { actorId: 'me', target: { type: 'chat', id: 'c1' } }));
+        expect(screen.getByTestId('viewing')).toHaveTextContent('{}');
+        act(() => stream.options!.onEvent!('presence.online', { actorId: 'u3', target: { type: 'chat', id: 'c1' } }));
+        expect(screen.getByTestId('viewing')).toHaveTextContent('{"chat:c1":["u3"]}');
+        act(() => { vi.advanceTimersByTime(80_000); });
+        expect(screen.getByTestId('viewing')).toHaveTextContent('{}');
+        vi.useRealTimers();
+    });
+
+    it('posts the open item with the heartbeat, and beats again the moment another item opens', async () => {
+        setup();
+        const bodies = () => post.mock.calls.filter(c => String(c[0]).endsWith('/presence')).map(c => c[1]);
+        expect(bodies()).toEqual([{}]);
+        act(() => screen.getByText('open doc').click());
+        expect(bodies()).toEqual([{}, { target: { type: 'document', id: 'd1' } }]);
+        act(() => screen.getByText('open doc').click());
+        expect(bodies()).toHaveLength(2);
+        act(() => screen.getByText('close doc').click());
+        expect(bodies()).toEqual([{}, { target: { type: 'document', id: 'd1' } }, {}]);
     });
 });

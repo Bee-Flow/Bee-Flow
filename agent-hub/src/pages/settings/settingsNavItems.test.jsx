@@ -46,6 +46,7 @@ describe('settingsNavItems — the label a row shows', () => {
             appearance: 'Appearance',
             security: 'Security',
             memory: 'Memory',
+            notifications: 'Notifications',
             // The tab id and the word on screen differ here, in both
             // directions: the 'integrations' row reads "Connections", while
             // "Integrations" is the label of the ORG sub-item with id
@@ -62,6 +63,7 @@ describe('settingsNavItems — the label a row shows', () => {
             'settings.appearance',
             'settings.security',
             'settings.memory',
+            'settings.notifications',
             'settings.connections',
             'settings.learning_center',
             'settings.help_support',

@@ -69,6 +69,10 @@ function createTurnState({
         // The attached knowledge bases this turn was actually ALLOWED to
         // search — never the raw client list.
         usableKbIds: undefined,
+        // Memory gate resolved once in buildPromptAndHistory (core/memory/memoryPolicy.js).
+        memoryPolicy: undefined,
+        // Memories injected this turn (persisted on the assistant message meta).
+        memoryUsed: [],
 
         // ── The shared project thread's turn lock ─────────────────────
         // On the state and not in the handler because the `finally` that

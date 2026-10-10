@@ -11,6 +11,18 @@
  *
  * This job makes that state recoverable and temporary rather than permanent.
  *
+ * ── Sealed rows ──────────────────────────────────────────────────────────────
+ * A sealed row (encrypted memory) never gets a plaintext index: the lexical and
+ * adopt phases skip it, a scrub pass removes any index a sealed row still has,
+ * and re-embedding goes through `memoryStore.indexMemory`, which opens the row
+ * with its key and seals the new vector again (`embedding_enc`). Such a row is
+ * "done" when `embedding_enc` exists at the active dimension.
+ *
+ * ── Resumable and idempotent ─────────────────────────────────────────────────
+ * Every phase selects only what is still missing and is bounded by batch size
+ * and the run deadline, so an interrupted pass loses nothing and the next one
+ * continues; a pass over a finished table writes nothing.
+ *
  * ── Three phases, cheapest first ─────────────────────────────────────────────
  *   1. LEXICAL   — fill `search_vector` for rows that have none. Pure SQL, no
  *                  provider, no metered spend. Runs even when embedding is
@@ -40,6 +52,7 @@
 const { pool, run, getAll, getOne } = require('../db');
 const memoryStore = require('../stores/memoryStore');
 const { validateDim, vectorColumn, tsvectorExpr } = require('../stores/memoryVectors');
+const { ENVELOPE_LIKE } = require('../stores/memoryCrypto');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 
@@ -86,6 +99,7 @@ async function fillLexical(deadline) {
               WHERE id IN (
                     SELECT id FROM user_memories
                      WHERE search_vector IS NULL AND content IS NOT NULL
+                       AND content NOT LIKE '${ENVELOPE_LIKE}'
                      LIMIT ${LEXICAL_BATCH}
               )`,
         );
@@ -114,6 +128,7 @@ async function adoptExisting(dim, deadline) {
               WHERE id IN (
                     SELECT id FROM user_memories
                      WHERE embedding IS NOT NULL
+                       AND content NOT LIKE '${ENVELOPE_LIKE}'
                        AND "${col}" IS NULL
                        AND jsonb_typeof(embedding) = 'array'
                        AND jsonb_array_length(embedding) = ${dim}
@@ -139,30 +154,45 @@ async function reembedStale(dim, deadline) {
     let embedded = 0;
     let failed = 0;
 
+    // What "has no vector in the active dimension" means depends on the row:
+    //   plaintext, pgvector on   the typed column is empty
+    //   plaintext, no pgvector   the JSONB vector is missing or another size
+    //   sealed                   `embedding_enc` is missing or another size
+    // (a plaintext row that carries only a sealed vector is left to the
+    // encryption backfill, which seals the rest of it.)
+    const plainMissing = memoryStore.isPgvectorAvailable()
+        ? `"${col}" IS NULL AND embedding_enc IS NULL`
+        : `embedding_enc IS NULL AND (embedding IS NULL OR embedding_dim IS DISTINCT FROM ${dim})`;
+
     while (Date.now() < deadline) {
         const rows = await getAll(
-            `SELECT id, content FROM user_memories
-              WHERE "${col}" IS NULL
-                AND content IS NOT NULL
-                AND status <> 'deleted'
+            `SELECT id FROM user_memories
+              WHERE content IS NOT NULL
+                AND status = 'active'
                 AND COALESCE(embed_attempts, 0) < ${MAX_EMBED_ATTEMPTS}
+                AND (
+                    (content NOT LIKE '${ENVELOPE_LIKE}' AND ${plainMissing})
+                    OR (content LIKE '${ENVELOPE_LIKE}' AND (embedding_enc IS NULL OR embedding_dim IS DISTINCT FROM ${dim}))
+                )
               ORDER BY importance DESC NULLS LAST, updated_at DESC
               LIMIT ${EMBED_BATCH}`,
         );
         if (!rows || rows.length === 0) break;
 
+        let advanced = 0;
         for (const row of rows) {
             if (Date.now() >= deadline) break;
-            // indexMemory bumps embed_attempts itself, so a row that keeps
-            // failing walks up to the ceiling and drops out of this query
-            // instead of being retried every 15 minutes forever.
-            const result = await memoryStore.indexMemory(row.id, row.content);
-            if (result?.ok) embedded++; else failed++;
+            // indexMemory bumps embed_attempts itself on a failure, so a row
+            // that keeps failing walks up to the ceiling and drops out of this
+            // query instead of being retried every 15 minutes forever; a
+            // success resets it and removes the row from the query.
+            const result = await memoryStore.indexMemory(row.id);
+            if (result?.ok) { embedded++; advanced++; } else failed++;
         }
 
-        // Every row in the batch failed and none advanced — the provider is
-        // down rather than the rows being bad. Stop, and let the next tick try.
-        if (embedded === 0 && failed >= rows.length) break;
+        // Nothing in the batch advanced — the provider is down rather than the
+        // rows being bad. Stop, and let the next tick try.
+        if (advanced === 0) break;
     }
 
     return { embedded, failed };
@@ -215,7 +245,8 @@ async function getBackfillStatus() {
     if (col) {
         try {
             const r = await getOne(
-                `SELECT count(*) FILTER (WHERE "${col}" IS NOT NULL)::int AS n
+                `SELECT count(*) FILTER (WHERE "${col}" IS NOT NULL
+                                           OR (embedding_enc IS NOT NULL AND embedding_dim = ${dim}))::int AS n
                    FROM user_memories WHERE status = 'active'`,
             );
             embedded = r?.n || 0;
@@ -239,7 +270,7 @@ async function runOnce({ dryRun = false } = {}) {
     const t0 = Date.now();
     const deadline = t0 + MAX_RUN_MS;
     let ok = true;
-    const summary = { lexical: 0, adopted: 0, embedded: 0, failed: 0, dim: null };
+    const summary = { scrubbed: 0, lexical: 0, adopted: 0, embedded: 0, failed: 0, dim: null };
 
     try {
         client = await pool.connect();
@@ -249,22 +280,24 @@ async function runOnce({ dryRun = false } = {}) {
 
         if (dryRun) return { ...await getBackfillStatus(), dryRun: true };
 
+        // Sealed rows must hold no plaintext index; a stray one is removed first.
+        if (typeof memoryStore.scrubSealedIndexes === 'function') summary.scrubbed = await memoryStore.scrubSealedIndexes();
         summary.lexical = await fillLexical(deadline);
 
         const dim = await probeActiveDim();
         summary.dim = dim;
         if (!dim) {
             log.warn('[MemoryBackfill] no embedding provider reachable — lexical phase only');
-        } else if (memoryStore.isPgvectorAvailable()) {
-            await memoryStore.ensureVectorColumn(dim);
-            summary.adopted = await adoptExisting(dim, deadline);
+        } else {
+            const vectors = memoryStore.isPgvectorAvailable() && await memoryStore.ensureVectorColumn(dim);
+            if (vectors) summary.adopted = await adoptExisting(dim, deadline);
             const r = await reembedStale(dim, deadline);
             summary.embedded = r.embedded;
             summary.failed = r.failed;
-            await maybeCreateAnnIndex(dim);
+            if (vectors) await maybeCreateAnnIndex(dim);
         }
 
-        if (summary.lexical || summary.adopted || summary.embedded || summary.failed) {
+        if (summary.scrubbed || summary.lexical || summary.adopted || summary.embedded || summary.failed) {
             log.info(
                 `[MemoryBackfill] dim=${dim} lexical=${summary.lexical} adopted=${summary.adopted} `
                 + `embedded=${summary.embedded} failed=${summary.failed} in ${Date.now() - t0} ms`,

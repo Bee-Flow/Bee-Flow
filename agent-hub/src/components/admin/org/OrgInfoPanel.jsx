@@ -3,11 +3,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import OrgAiContextEditor from './OrgAiContextEditor';
 import OrgAiParticipationEditor from './OrgAiParticipationEditor';
 import OrgCollabEditor from './OrgCollabEditor';
-import OrgIntegrationCacheEditor from './OrgIntegrationCacheEditor';
 import OrgAuthSection from './orgInfo/OrgAuthSection';
 import OrgInfoSection from './orgInfo/OrgInfoSection';
 import { Skeleton, SECTIONS } from './orgInfo/orgInfoShared';
 import OrgLicenseSection from './orgInfo/OrgLicenseSection';
+import OrgIntegrationCacheEditor from './OrgIntegrationCacheEditor';
+import OrgMemoryEditor from './OrgMemoryEditor';
 import { useDeploymentMode } from '../../../hooks/useDeploymentMode';
 import { projectsAvailable } from '../../../hooks/useProjectsAvailable';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -636,13 +637,17 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                         <OrgEncryptionEditor orgId={orgData?.id} />
                     </div>
                 )}
-                {/* ── Conversation memory (compaction) ── */}
+                {/* ── Context in long conversations (compaction) and Memory ── */}
                 {activeSection === 'ai_context' && (
                     /* Same orgId discipline as the two editors above: no org
                        picker and no orgs[0] fallback — this switch changes how
                        every conversation in the org is built. */
                     <div className="animate-fadeIn max-w-3xl space-y-8">
                         <OrgAiContextEditor orgId={orgData?.id} />
+                        {/* Memory (what the assistant remembers about people): its own
+                            switch, cap and danger zone, not to be confused with the
+                            context settings above. */}
+                        <OrgMemoryEditor orgId={orgData?.id} />
                         {/* Whether the AI may join team chats and comment
                             threads by itself: same orgId discipline, it
                             decides what the AI reads in every project. */}

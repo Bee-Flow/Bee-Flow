@@ -40,8 +40,9 @@ require.cache[dbPath] = {
 
 const {
     renderedLength, renderedBullet, rrfFuse, finalScore,
-    TYPE_BASE_SCORES, LEG_WEIGHTS,
+    TYPE_BASE_SCORES, LEG_WEIGHTS, recencyBonus,
 } = require('./memoryScoring');
+const RECENCY_MAX_BONUS = 20;
 const { formatMemoriesForPrompt } = require('./memoryStore');
 
 // ── The budget must measure the prompt ───────────────────────────────
@@ -157,18 +158,28 @@ test('a relevance signal clears the budget pass\'s score > 30 floor', () => {
     assert.ok(score > 30, `expected > 30, got ${score}`);
 });
 
-test('recency decays and is capped, so freshness cannot outweigh relevance', () => {
+test('recency decays smoothly and is capped, so freshness cannot outweigh relevance', () => {
     const now = Date.now();
     const day = 86_400_000;
-    const fresh = finalScore({ type: 'fact', updated_at: new Date(now), importance: 0.5 }, 0, { now });
-    const week = finalScore({ type: 'fact', updated_at: new Date(now - 7 * day), importance: 0.5 }, 0, { now });
-    const year = finalScore({ type: 'fact', updated_at: new Date(now - 365 * day), importance: 0.5 }, 0, { now });
+    const at = (days) => finalScore({ type: 'fact', updated_at: new Date(now - days * day), importance: 0.5 }, 0, { now });
+    const base = TYPE_BASE_SCORES.fact + 0.5 * 20;
 
-    assert.ok(fresh > week && week > year);
-    // The bonus bottoms out rather than going negative.
-    assert.strictEqual(year, TYPE_BASE_SCORES.fact + 0.5 * 20);
-    // And it is worth at most 20 points, less than a strong relevance hit.
-    assert.ok(fresh - year <= 20);
+    assert.ok(at(0) > at(7) && at(7) > at(120) && at(120) > at(365));
+    assert.ok(Math.abs(at(0) - (base + RECENCY_MAX_BONUS)) < 1e-9, 'a memory from now gets the full bonus');
+    // The bonus never goes negative and is worth at most 20 points.
+    assert.ok(at(3650) >= base);
+    assert.ok(at(0) - at(3650) <= 20);
+});
+
+test('the half-life is per type: a context note fades faster than an instruction', () => {
+    assert.ok(Math.abs(recencyBonus('fact', 120) - RECENCY_MAX_BONUS / 2) < 1e-9, 'a fact halves at 120 days');
+    assert.ok(Math.abs(recencyBonus('context', 30) - RECENCY_MAX_BONUS / 2) < 1e-9);
+    assert.ok(Math.abs(recencyBonus('instruction', 365) - RECENCY_MAX_BONUS / 2) < 1e-9);
+    assert.ok(Math.abs(recencyBonus('person', 180) - RECENCY_MAX_BONUS / 2) < 1e-9);
+    assert.ok(recencyBonus('instruction', 90) > recencyBonus('context', 90));
+    // A negative age (clock skew) and an unknown type still give a number.
+    assert.strictEqual(recencyBonus('fact', -5), RECENCY_MAX_BONUS);
+    assert.ok(Number.isFinite(recencyBonus('something_new', 10)));
 });
 
 test('an unknown type scores rather than producing NaN', () => {

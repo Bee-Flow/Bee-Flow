@@ -270,7 +270,9 @@ test('a queued answer: context, persona, knowledge, sealed answer, usage, events
         conversationId: 'c1', conversationType: 'project_chat', projectId: 'p1', userId: 'ann', runId: 'pc::id-1', ttlMs: 45000,
     });
     assert.deepStrictEqual(w.log.persona, [{ agentId: 'agent-1', userId: 'ann' }]);
-    assert.deepStrictEqual(w.log.knowledge.map((k) => [k.project.id, k.userId, k.query, k.shield.marker]), [['p1', 'ann', '@ai what is the plan?', 'shield']]);
+    assert.deepStrictEqual(w.log.knowledge.map((k) => [k.project.id, k.userId, k.query, k.shield.marker, k.audienceIds]),
+        [['p1', 'ann', '@ai what is the plan?', 'shield', ['ann', 'bob', 'cy']]],
+        'an asked-for answer is read by the whole chat: knowledge is cut to what every member may read');
     assert.deepStrictEqual(w.log.shieldFor, { orgId: 'org1', userId: 'ann' });
 
     const [{ modelId, msgs, options }] = w.log.llm;
@@ -321,7 +323,7 @@ test('a queued answer: context, persona, knowledge, sealed answer, usage, events
         projectId: 'p1', orgId: 'org1', surface: 'chat', containerId: 'c1', triggerMessageId: 'm3',
         triggerKind: 'explicit', decision: 'replied', replyMessageId: saved.id,
     }], 'an explicit answer restarts the automatic cooldown');
-    assert.deepStrictEqual(w.log.audience, [], 'an asked-for answer uses the asker\'s own knowledge');
+    assert.deepStrictEqual(w.log.audience, ['p1'], 'an asked-for answer lists the audience too: everyone reads it');
 });
 
 test('without a persona the prompt is the plain assistant', async () => {

@@ -1,6 +1,7 @@
 /**
  * "Worth a look": the findings beside "In short", each with the filter that
- * shows its rows and, where one exists, the pane that fixes it.
+ * shows its rows and, where one exists, the pane that fixes it. Drawn inside
+ * its own card (ActivityBody), so the list is as tall as it needs to be.
  */
 
 import { ArrowRight, Check, ListFilter, MapPinOff, ScanSearch, TriangleAlert } from 'lucide-react';
@@ -41,7 +42,7 @@ function FindingCard({ finding, showing, onShow, onGoTo, fmt, t }: Omit<Props, '
     const Icon = ICON[finding.id];
     const { action } = finding;
     return (
-        <li className="grid grid-cols-[22px_minmax(0,1fr)] gap-2.5 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3 py-2.5">
+        <li className="grid grid-cols-[22px_minmax(0,1fr)] gap-2.5 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-3 py-2.5">
             <span aria-hidden="true" className={`grid h-[22px] w-[22px] place-items-center rounded-md ${TILE[finding.tone]}`}>
                 <Icon className="h-[13px] w-[13px]" aria-hidden="true" />
             </span>
@@ -80,7 +81,7 @@ function FindingCard({ finding, showing, onShow, onGoTo, fmt, t }: Omit<Props, '
 
 export function WorthALook({ findings, filters, onShow, onGoTo, fmt, t }: Props) {
     return (
-        <div className="flex flex-col gap-2 border-t border-[var(--border-default)] bg-[var(--bg-secondary)] px-[18px] py-4 @min-[900px]/pane:border-l @min-[900px]/pane:border-t-0">
+        <div className="flex flex-col gap-2 px-[18px] py-4">
             <div className="flex items-center gap-2">
                 <Eyebrow>{t('shield_activity.worth_a_look', 'Worth a look')}</Eyebrow>
                 <span className="text-[11px] text-[var(--text-tertiary)]">

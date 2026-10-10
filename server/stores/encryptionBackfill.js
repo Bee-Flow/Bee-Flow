@@ -45,6 +45,8 @@
  *       (piiVaultStore.vaultKeysFromDek). Not a policy surface: sealed on every
  *       tier whenever the org has encryption on. norm_key is re-derived as the
  *       keyed blind index, otherwise the runtime would never find the old entry.
+ *   user_memories.*                              memoryCrypto.memoryKeys(ctx.backgroundKey).enc;
+ *       a project-pool row follows the PROJECT key, a personal row the owner's.
  *   agent|direct_conversations.messages_json     LEGACY plaintext copy (see below).
  *
  * ── legacyBlobs: the only destructive step ───────────────────────────────────
@@ -526,6 +528,73 @@ async function backfillLegacyBlobs(env) {
     }
 }
 
+/**
+ * user_memories: seal the text columns and the embedding of rows written while
+ * the surface was off, with the keys the runtime store uses (stores/memoryCrypto.js).
+ * Every status is covered (superseded history is still the person's data);
+ * schedule_coverage bookkeeping is not a memory and stays clear. A row's key_hash
+ * is re-derived as the keyed HMAC, otherwise the plain digest of a now-sealed
+ * subject would stay in the table. Lookups accept both forms meanwhile.
+ */
+async function backfillMemories(env) {
+    const mc = require('./memoryCrypto');
+    await paged(env, (cursor, batch) => env.deps.getAll(`
+        SELECT m.* FROM user_memories m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.id > $1 AND u."organizationId" = $2 AND m.type <> 'schedule_coverage'
+        ORDER BY m.id ASC LIMIT $3
+    `, [cursor, env.orgId, batch]), async (row) => {
+        const todo = mc.SEALED_FIELDS.filter(f => row[f] != null && !isEnvelope(row[f]));
+        const sealEmb = row.embedding != null && !row.embedding_enc;
+        if (todo.length === 0 && !sealEmb) { env.stats.skipped++; return; }
+
+        // Project pool rows follow the project key, personal rows the owner's.
+        const ctx = await usableCtx(env, { ...row, crypto_scope: row.project_id ? 'project' : 'user' }, true);
+        if (!ctx) return;
+        if (!ctx.encryptMemories) { env.stats.skipped++; return; }
+        if (!ctx.backgroundKey) { env.stats.noKey++; return; }
+        const wctx = { encrypt: true, keys: mc.memoryKeys(ctx.backgroundKey) };
+
+        const sets = [];
+        const where = [];
+        const params = [];
+        const add = (col, oldVal, newVal, cast = '') => {
+            params.push(newVal); sets.push(`${col} = $${params.length}${cast}`);
+            params.push(oldVal); where.push(`${col} IS NOT DISTINCT FROM $${params.length}${cast}`);
+        };
+        const fields = {};
+        for (const f of todo) fields[f] = row[f];
+        const sealed = mc.sealFields(row.id, fields, wctx);
+        for (const f of todo) {
+            if (!isEnvelope(sealed[f])) throw new Error('sealing produced a non-envelope value');
+            add(f, row[f], sealed[f]);
+        }
+        if (sealEmb) {
+            const vec = typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
+            const c = mc.sealEmbedding(row.id, vec, wctx);
+            add('embedding', JSON.stringify(row.embedding), null, '::jsonb');
+            params.push(c.embedding_enc); sets.push(`embedding_enc = $${params.length}`);
+        }
+        // The typed pgvector columns hold the same vector in the clear
+        // (stores/memoryIndex.js); a sealed row keeps none. The tsvector is
+        // emptied by its trigger when `content` is rewritten above.
+        for (const col of require('./memoryIndex').vectorColumnNames()) sets.push(`"${col}" = NULL`);
+        if (row.subject && row.attribute) {
+            // The plaintext subject/attribute are in hand only while they are not yet sealed.
+            const plainSubject = isEnvelope(row.subject) ? null : row.subject;
+            const plainAttribute = isEnvelope(row.attribute) ? null : row.attribute;
+            if (plainSubject && plainAttribute) {
+                params.push(mc.keyHashForWrite({ type: row.type, subject: plainSubject, attribute: plainAttribute }, wctx));
+                sets.push(`key_hash = $${params.length}`);
+            }
+        }
+        params.push(row.id);
+        await commit(env,
+            `UPDATE user_memories SET ${sets.join(', ')} WHERE id = $${params.length}${where.length ? ' AND ' + where.join(' AND ') : ''}`,
+            params);
+    });
+}
+
 /** surface name -> runner(env). */
 const RUNNERS = {
     [SURFACES.MESSAGES]: backfillMessages,
@@ -534,6 +603,7 @@ const RUNNERS = {
     [SURFACES.CONVERSATION_META]: backfillConversationMeta,
     [SURFACES.NOTEBOOK_MESSAGES]: backfillNotebookMessages,
     [SURFACES.TRANSCRIPTS]: backfillTranscripts,
+    [SURFACES.MEMORIES]: backfillMemories,
     [PII_VAULT]: backfillPiiVault,
     // Must stay last: it needs the `messages` surface to have run first.
     [LEGACY_BLOBS]: backfillLegacyBlobs,

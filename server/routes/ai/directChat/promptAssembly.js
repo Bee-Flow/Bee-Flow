@@ -17,6 +17,8 @@ const { DEFAULT_SYSTEM_PROMPT } = require('./systemPrompt');
 const { encryptionOpts } = require('./shared');
 const { formatLocalNow } = require('../../../core/llm/clock');
 const log = require('../../../telemetry/log');
+const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
+const { memoryUsedItems, emitMemoryUsed } = require('../../../core/memory/memoryUsed');
 
 async function buildPromptAndHistory({ req, send, userId, message, conversationId, history, timezone, requestSystemPrompt, activeSkillIds, requestedKbIds, projectId, notebookspaceAvailable, notebookspaceContent, notebookspaceSelection, sidePanelWebpage, sidePanelDocument, webpagePlanExecution, userOrgForTiers, orgIdsForTiers, notebooksEnabled, canUseNotebooks, toolCatalogText, directChatTools }) {
         // Build messages array
@@ -185,16 +187,32 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
         }
 
         // ─── Memory injection ────────────────────────────────────────
+        // The gate is resolved once here and handed to finalizeTurn on the
+        // turn state, so the write side never re-reads config.
+        const memoryPolicy = await resolveMemoryPolicy({
+            userId, orgId: userOrgForTiers || null,
+            perChatReadEnabled: req.body?.memoryReadEnabled,
+            perChatWriteEnabled: req.body?.memoryWriteEnabled,
+        });
         let memoryContext = '';
-        try {
+        let memoryUsed = [];
+        // First message of a new chat: no conversation id yet, so the memory block carries
+        // labels now and is swapped for reversible tokens once the id exists (applyMemorySwap).
+        let memorySwap = null;
+        if (memoryPolicy.read) try {
             const memoryStore = require('../../../stores/memoryStore');
             // Always pass the project for retrieval (project memories should be available
             // regardless of the extractMemories flag) — but only the VALIDATED id.
             // findRelevantMemories drops its user_id filter when a projectId is present,
             // so an unvalidated id here is a cross-project read.
-            const relevantMemories = await memoryStore.findRelevantMemories(userId, null, message, 800, validProjectId);
+            // TODO(memory): pass `queryEmbedding` when the attached-KB search above
+            // embedded this message; quickKBSearch does not return its vector yet.
+            const relevantMemories = await memoryStore.findRelevantMemories(userId, null, message, 500, validProjectId, { includeSensitive: memoryPolicy.sensitive === true });
             if (relevantMemories.length > 0) {
                 memoryContext = '\n\n' + memoryStore.formatMemoriesForPrompt(relevantMemories);
+                // Once per turn, before the answer streams.
+                memoryUsed = memoryUsedItems(relevantMemories);
+                emitMemoryUsed(send, memoryUsed);
 
                 // Defence in depth: scrub PII out of the memory context before
                 // it reaches the LLM. Stored memories can contain real values
@@ -219,11 +237,14 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
                     const scrubEnabled = !!orgShieldForScrub?.enabled
                         || !!(await getAIConfig())?.piiDetectionEnabled;
                     if (scrubEnabled) {
-                        const { scrubMemoryContext } = require('../../../core/memory/scrubMemoryContext');
-                        const { scrubbed, replacedCategories } = await scrubMemoryContext(memoryContext, orgShieldForScrub);
+                        // Reversible conversation tokens when the chat has an id (the
+                        // streaming un-tokeniser restores them), labels otherwise.
+                        const { tokenizeMemoryContext } = require('../../../core/memory/scrubMemoryContext');
+                        const { text: safeText, replacedCategories, mode } = await tokenizeMemoryContext(memoryContext, orgShieldForScrub, { conversationId: conversationId || null, userId });
                         if (replacedCategories.length > 0) {
-                            log.info(`[DirectChat] Scrubbed memory context: ${replacedCategories.join(', ')}`);
-                            memoryContext = scrubbed;
+                            log.info(`[DirectChat] Memory context ${mode === 'tokens' ? 'tokenised' : 'scrubbed'}: ${replacedCategories.join(', ')}`);
+                            if (!conversationId && mode === 'labels') memorySwap = { raw: memoryContext, labelled: safeText, orgShield: orgShieldForScrub };
+                            memoryContext = safeText;
                         }
                     }
                 } catch (scrubErr) {
@@ -232,6 +253,8 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
             }
         } catch (e) {
             log.warn('[DirectChat] Memory retrieval failed:', e.message);
+        } else {
+            log.info(`[DirectChat] Memory read skipped (${memoryPolicy.reason})`);
         }
 
         // ─── House style awareness ──────────────────────────────────
@@ -459,7 +482,24 @@ The Notebook panel is currently open. Current rules for edits: 1) Before noteboo
                 log.warn('[DirectChat] History hydration failed:', hydrateErr.message);
             }
         }
-        return { messages, volatileMessage, resolvedHistory, clientHistoryProvided, validProjectId, extractMemoriesEnabled, usableKbIds };
+        return { messages, volatileMessage, resolvedHistory, clientHistoryProvided, validProjectId, extractMemoriesEnabled, usableKbIds, memoryPolicy, memoryUsed, memorySwap };
 }
 
-module.exports = { buildPromptAndHistory };
+/**
+ * Swap the label-scrubbed memory block of a brand-new chat for reversible
+ * conversation tokens, now that the conversation exists. Runs before the
+ * input gates, so the token-preservation addendum is built from a map that
+ * already holds the memory tokens. Labels stay on any failure.
+ */
+async function applyMemorySwap(turn, userId) {
+    const swap = turn.memorySwap;
+    turn.memorySwap = null;
+    if (!swap || !turn.convId || !turn.volatileMessage || typeof turn.volatileMessage.content !== 'string') return false;
+    const { tokenizeMemoryContext } = require('../../../core/memory/scrubMemoryContext');
+    const r = await tokenizeMemoryContext(swap.raw, swap.orgShield, { conversationId: turn.convId, userId });
+    if (r.mode !== 'tokens' || !turn.volatileMessage.content.includes(swap.labelled)) return false;
+    turn.volatileMessage.content = turn.volatileMessage.content.replace(swap.labelled, () => r.text);
+    return true;
+}
+
+module.exports = { buildPromptAndHistory, applyMemorySwap };

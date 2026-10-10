@@ -113,3 +113,20 @@ describe('listRole', () => {
         expect(listRole({ id: 'x', name: 'x', ownerId: 'someone' }, ME)).toBeNull();
     });
 });
+
+describe('ProjectsHome — archived', () => {
+    const ARCHIVED: Project[] = [{ id: 'z', name: 'Old campaign', permission: 'owner', archivedAt: ago(5) }];
+
+    it('has no Archived pill while nothing is archived', () => {
+        renderHome();
+        expect(screen.queryByRole('button', { name: /Archived/ })).toBeNull();
+    });
+
+    it('shows an Archived pill with the count that lists only archived projects, each with a chip', async () => {
+        const { user } = renderHome({ archivedProjects: ARCHIVED });
+        expect(cardOrder()).toEqual(['d', 'b', 'a', 'c']);
+        await user.click(screen.getByRole('button', { name: /Archived/ }));
+        expect(cardOrder()).toEqual(['z']);
+        expect(screen.getByTestId('project-archived-chip-z')).toBeInTheDocument();
+    });
+});

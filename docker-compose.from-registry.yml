@@ -188,6 +188,10 @@ services:
       # automations here too. Empty (the default) means never mounted; still
       # needs a bfmcp.… token and the 'automations' beta feature.
       - AUTOMATION_MCP_ENABLED=${AUTOMATION_MCP_ENABLED:-}
+      # Website CMS over MCP: mounts POST /mcp/cms so a coding agent can edit the
+      # product website. Empty (the default) means never mounted; still needs a
+      # named MCP token with the 'cms' server and a CMS-administrator user.
+      - CMS_MCP_ENABLED=${CMS_MCP_ENABLED:-}
       - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?err}@postgres:5432/beeflow_tasks
       - MONITORING_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?err}@postgres:5432/monitoring_db
       - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}

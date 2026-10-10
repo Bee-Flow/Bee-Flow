@@ -1,8 +1,8 @@
-import { Brain } from 'lucide-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, DEPTH_TIER_KEYS } from './tierMeta';
 import scopedStorage from '../../utils/scopedStorage';
+import MemoryModeControl from '../chat/memory/MemoryModeControl';
 import AppEmoji from '../icons/AppEmoji';
 import useTranslation from '../../hooks/useTranslation';
 
@@ -352,35 +352,29 @@ function OtherTierPills({ keys, value, metaFor, onSelect }) {
 }
 
 /**
- * Memory switch, parked in the panel's top-right corner.
+ * Memory control, parked in the panel's top-right corner.
  *
  * It lives here rather than in the composer's icon row because both settings
  * answer the same question — how much the assistant brings to the next turn —
  * and the row was getting long. Icon-only and unlabelled to stay quiet next to
- * the tier name; the state is carried by colour, `title` and `aria-pressed`.
+ * the tier name; the state is carried by the icon, `title` and `aria-pressed`.
+ *
+ * `memory` is `{ mode, onChange, lock }` (On / Read only / Off for this chat).
+ * The older `{ enabled, onToggle }` shape still works: enabled is On, not
+ * enabled is Read only, which is what the old switch did.
  */
-function MemoryToggle({ enabled, onToggle }) {
+function MemoryToggle({ memory }) {
+    const mode = memory.mode || (memory.enabled ? 'on' : 'read');
+    const onChange = memory.onChange || (() => memory.onToggle?.());
     return (
-        <button
-            type="button"
-            onClick={onToggle}
-            aria-pressed={enabled}
-            aria-label={enabled ? 'Memory saving enabled' : 'Memory saving paused'}
-            title={enabled ? 'Memory saving enabled — click to pause' : 'Memory saving paused — click to resume'}
-            data-testid="tier-slider-memory-toggle"
-            style={{
-                position: 'absolute', top: '10px', right: '10px',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: '28px', height: '28px', borderRadius: '9999px',
-                border: 'none', padding: 0, cursor: 'pointer',
-                background: enabled ? 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' : 'transparent',
-                color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                opacity: enabled ? 1 : 0.55,
-                transition: 'background 0.15s, color 0.15s, opacity 0.15s',
-            }}
-        >
-            <Brain className="w-4 h-4" />
-        </button>
+        <span className="absolute top-[10px] right-[10px]">
+            <MemoryModeControl
+                mode={mode}
+                onChange={onChange}
+                lock={memory.lock || null}
+                testId="tier-slider-memory-toggle"
+            />
+        </span>
     );
 }
 
@@ -551,7 +545,7 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
                         boxShadow: 'var(--shadow-popover, 0 12px 36px rgba(15,23,42,0.18))',
                     }}
                 >
-                    {memory && <MemoryToggle enabled={!!memory.enabled} onToggle={memory.onToggle} />}
+                    {memory && <MemoryToggle memory={memory} />}
 
                     {/* The current choice, stated above the track: the label is
                         the control's output, the track is just how you move.

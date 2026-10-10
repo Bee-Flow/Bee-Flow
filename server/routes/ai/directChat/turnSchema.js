@@ -39,6 +39,7 @@ const TURN_SHAPE = {
     reasoningEffort: text('reasoningEffort', 40).nullish(),
     webSearchEnabled: onOff('webSearchEnabled').nullish(),
     memoryWriteEnabled: onOff('memoryWriteEnabled').nullish(),
+    memoryReadEnabled: onOff('memoryReadEnabled').nullish(),
     disabledMedia: bag('disabledMedia').nullish(),
 };
 

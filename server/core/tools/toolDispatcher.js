@@ -520,7 +520,14 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
 
     // ─── KB Search Tool ─────────────────────────────────────────
     if (require('../../integrations/memoryTools').isMemoryTool(toolName)) {
-        return await require('../../integrations/memoryTools').executeMemoryTool(toolName, toolArgs, { userId, orgId, agentId, session });
+        return await require('../../integrations/memoryTools').executeMemoryTool(toolName, toolArgs, {
+            userId, orgId, agentId, session,
+            // Provenance: the memory_remember tool stores source_conversation_id from this.
+            conversationId: context.conversationId || null,
+            // Agent chat puts the per-chat flags on the context; direct chat only has the request.
+            memoryReadEnabled: context.memoryReadEnabled ?? context.req?.body?.memoryReadEnabled,
+            memoryWriteEnabled: context.memoryWriteEnabled ?? context.req?.body?.memoryWriteEnabled,
+        });
     }
     if (require('../../integrations/automationEvolutionTools').isAutomationEvolutionTool(toolName)) {
         // Self-scoped: context.automationId is set by the automation runner only.

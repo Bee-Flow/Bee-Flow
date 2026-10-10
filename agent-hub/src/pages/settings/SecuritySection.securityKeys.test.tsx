@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('./TokenVaultSection', () => ({ default: () => null }));
+vi.mock('../../components/mcpAccess/McpTokensPanel', () => ({ default: () => null }));
 vi.mock('../../components/mfa/SecurityKeysCard', () => ({
     default: (props: Record<string, unknown>) => (
         <div data-testid="security-keys-stub" data-mfa={String(props.mfaEnabled)} data-totp={String(props.totpEnabled)} />

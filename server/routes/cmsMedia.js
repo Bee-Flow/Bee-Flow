@@ -20,11 +20,10 @@ const log = require('../telemetry/log');
 const storageStore = require('../stores/storageStore');
 const { HttpError, badRequest } = require('../core/http/errors');
 
-const CLIP_MAX_BYTES = 500 * 1024 * 1024;
+const { CLIP_MAX_BYTES, VTT_MAX_BYTES, CLIP_MIME_WHITELIST } = require('../core/cms/uploadPolicy');
+
 const CLIP_PART_BYTES = 16 * 1024 * 1024;
-const CLIP_MIME_WHITELIST = new Set(['video/mp4', 'video/webm']);
 const CLIP_EXT_WHITELIST = new Set(['.mp4', '.webm']);
-const VTT_MAX_BYTES = 1024 * 1024;
 // Browsers send '' / text/plain / octet-stream for .vtt; the extension and the
 // content decide, the declared type only has to be one of the harmless ones.
 const VTT_DECLARED_MIME = new Set(['text/vtt', 'text/plain', 'application/octet-stream', '']);
@@ -158,5 +157,6 @@ async function handleClipUpload(req, res) {
 
 module.exports = {
     CLIP_MAX_BYTES, VTT_MAX_BYTES, isVttFile, isValidVtt,
+    looksLikeClip, streamIntoStorage, extOf,
     clipUploadMiddleware, handleClipUpload,
 };

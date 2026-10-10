@@ -47,6 +47,7 @@ const IGNORED: Record<string, string> = {
     sheet_update: 'Sheet builder: no editor on the phone.',
     sheet_source_added: 'Sheet builder: no editor on the phone.',
     proposal_blocks_update: 'Proposal builder: no editor on the phone.',
+    memory_used: 'Which memories shaped a reply: a disclosure under the message in the web chat; the phone shows none yet.',
 };
 
 function webEvents(): string[] {

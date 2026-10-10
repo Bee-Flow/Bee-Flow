@@ -8,7 +8,7 @@ import { useBoardActions, type ProjectBoard, type BoardColumn } from '../../../.
 import { TASK_STATUSES } from '../../../../api/queries/projectTasks';
 import useTranslation from '../../../../hooks/useTranslation';
 import Modal from '../../../shared/Modal';
-import { ErrorText, GhostButton, PrimaryButton, SecondaryButton, SELECT_CLASS } from '../workspaceUi';
+import { ErrorText, GhostButton, PrimaryButton, SecondaryButton, SelectField } from '../workspaceUi';
 import { statusLabel } from './taskText';
 import { projectErrorText } from '../projectErrorText';
 import { AnchoredMenu, ICON_BUTTON_CLASS } from './tasksMenu';
@@ -70,10 +70,10 @@ function ColumnRow({ column, first, last, only, fresh, focusField, onChange, onS
             <input className={NAME_CLASS} value={column.title} maxLength={80} autoFocus={focusField === 'title'}
                 onFocus={e => { if (fresh) e.currentTarget.select(); }}
                 onChange={e => onChange({ title: e.target.value })} aria-label={t('project_tasks.column_name', 'Column name')} />
-            <select className={`${SELECT_CLASS} !h-7 w-32`} value={column.status} onChange={e => onChange({ status: e.target.value as BoardColumn['status'] })}
+            <SelectField size="sm" className="w-32" value={column.status} onChange={e => onChange({ status: e.target.value as BoardColumn['status'] })}
                 aria-label={t('project_tasks.status_label', 'Status')}>
                 {TASK_STATUSES.map(s => <option key={s} value={s}>{statusLabel(t, s)}</option>)}
-            </select>
+            </SelectField>
             <input type="number" min={1} max={100} className={WIP_CLASS} placeholder="—" value={column.wipLimit || ''} autoFocus={focusField === 'wip'}
                 onChange={e => onChange({ wipLimit: e.target.value ? Number(e.target.value) : null })} aria-label={t('project_tasks.wip_limit', 'Work in progress limit')} />
             <button type="button" disabled={only} onClick={onRemove}

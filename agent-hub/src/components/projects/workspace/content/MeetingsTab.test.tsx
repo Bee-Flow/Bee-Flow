@@ -1,10 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { withQueryClient } from '../../../../test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
+import { useUndoCapture } from '../undoTestKit';
 
 // Fresh spies per test (assigned in beforeEach) rather than reset ones.
 const { client, capture, recorder } = vi.hoisted(() => ({
@@ -104,12 +105,14 @@ describe('MeetingsTab: list and states', () => {
         renderTab('viewer');
         await screen.findByText('Weekly sync');
         expect(screen.queryByRole('button', { name: 'Record or upload' })).not.toBeInTheDocument();
+        expect(within(screen.getByTestId('studio-section-header')).getByRole('heading', { name: 'Meetings' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Add existing meeting' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /from the project/ })).not.toBeInTheDocument();
     });
 });
 
 describe('MeetingsTab: add and remove', () => {
+    const undo = useUndoCapture();
     it('offers only my own recordings in the picker and files the one I pick', async () => {
         const user = userEvent.setup();
         client.get.mockImplementation(routes(MEETINGS, {
@@ -129,14 +132,26 @@ describe('MeetingsTab: add and remove', () => {
         expect(await within(dialog).findByText('Added')).toBeInTheDocument();
     });
 
-    it('takes my meeting out of the project after confirmation', async () => {
+    it('takes my meeting out at once and only calls the API when the Undo toast runs out', async () => {
         const user = userEvent.setup();
         renderTab('editor');
         await user.click(await screen.findByRole('button', { name: 'Remove Weekly sync from the project' }));
-        await user.click(screen.getByTestId('confirm-dialog-confirm'));
-        await waitFor(() => expect(client.put).toHaveBeenCalledWith(
+        expect(screen.queryByText('Weekly sync')).not.toBeInTheDocument();
+        expect(client.put).not.toHaveBeenCalled();
+        act(() => undo.last().onExpire());
+        await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
+        expect(client.put).toHaveBeenCalledWith(
             '/api/projects/p1/resources', { kind: 'meeting', id: 'm-1', attach: false }, { retry: false },
-        ));
+        );
+    });
+
+    it('brings the meeting back on Undo and never calls the API', async () => {
+        const user = userEvent.setup();
+        renderTab('editor');
+        await user.click(await screen.findByRole('button', { name: 'Remove Weekly sync from the project' }));
+        act(() => undo.last().onUndo());
+        expect(await screen.findByText('Weekly sync')).toBeInTheDocument();
+        expect(client.put).not.toHaveBeenCalled();
     });
 });
 

@@ -4,12 +4,12 @@
 // Items stay listed after they are added (marked as added) so several can be
 // picked in one go, and a refusal is shown on the row it belongs to.
 
-import { Check, Loader2, Plus, Search } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Plus, Search } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
 import Modal from '../../../shared/Modal';
-import { SectionError } from './contentUi';
+import { GhostButton, Notice } from '../workspaceUi';
 
 export interface PickerItem {
     id: string;
@@ -109,7 +109,7 @@ function PickerBody({ loading, error, onRetry, rows, emptyText, children }: {
             </div>
         );
     }
-    if (error) return <SectionError message={error} onRetry={onRetry} />;
+    if (error) return <Notice tone="error" role="alert" icon={AlertTriangle} action={onRetry && <GhostButton onClick={onRetry}>{t('project_content.retry', 'Try again')}</GhostButton>}>{error}</Notice>;
     if (rows === 0) return <p className="px-3 py-6 text-center text-sm text-[var(--text-tertiary)]">{emptyText}</p>;
     return <>{children}</>;
 }

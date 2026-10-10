@@ -543,6 +543,38 @@ server {
         proxy_buffering off;
     }
 
+    # ── MCP endpoints (/mcp, /mcp/automations, /mcp/studio, /mcp/cms) ────────
+    # External MCP clients POST JSON-RPC here. Without this block the path fell
+    # into `location /` and never reached the server, so a client had to be
+    # pointed at the server port directly — which also skips this proxy's
+    # X-Forwarded-For and makes the org IP allow-list spoofable. 8 MB matches
+    # the server's own JSON limit on these routes.
+    location ^~ /mcp {
+        client_max_body_size 8m;
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_read_timeout 300s;
+    }
+
+    # One-time CMS upload URLs (PUT /mcp/cms/upload/<ticket>,
+    # server/cms/mcp/uploadReceiver.js): clips up to 500 MB, streamed through
+    # like the clip upload above. Longest prefix wins over `^~ /mcp`.
+    location ^~ /mcp/cms/upload/ {
+        client_max_body_size 512m;
+        proxy_request_buffering off;
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_buffering off;
+    }
+
     # ── Proxy ALL /api/* requests to the backend server ──────────────────────────
     # This single block covers all routes under /api/ (notebooks, tasks, projects,
     # integrations, storage, monitoring, subscriptions, etc.)

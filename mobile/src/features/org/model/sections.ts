@@ -59,7 +59,7 @@ export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
     { id: 'auth', labelKey: 'settings.signin_method', label: 'Sign-in Method', icon: 'KeyRound', color: '#10b981', href: '/org/sign-in' },
     { id: 'privacy', labelKey: 'settings.privacy_shield', label: 'Privacy Shield', icon: 'Shield', color: '#ef4444', href: '/org/shield' },
     { id: 'encryption', labelKey: 'settings.encryption', label: 'Encryption', icon: 'Lock', color: '#8b5cf6', href: '/org/encryption' },
-    { id: 'ai_context', labelKey: 'settings.ai_context', label: 'Conversation Memory', icon: 'Brain', color: '#f59e0b', href: '/org/ai-context' },
+    { id: 'ai_context', labelKey: 'settings.ai_context', label: 'Context in long conversations', icon: 'Brain', color: '#f59e0b', href: '/org/ai-context' },
     { id: 'integration_cache', labelKey: 'settings.integration_cache', label: 'Answer Reuse', icon: 'DatabaseZap', color: '#06b6d4', href: '/org/integration-cache' },
     { id: 'info', labelKey: 'settings.org_info', label: 'Organisation Info', icon: 'Info', color: '#14b8a6', href: '/org/info' },
     { id: 'org_usage', labelKey: 'settings.usage_monitoring', label: 'Usage & Monitoring', icon: 'BarChart3', color: '#f59e0b', href: '/org/usage' },
@@ -80,8 +80,10 @@ export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
  *
  *   org_mcp — the MCP library (Settings → Organisation → MCP), a web-only
  *             screen for now; no mobile port planned in this round.
+ *   org_mcp_access — MCP tokens and scopes for outside clients: an admin
+ *             task done at a desk, where the token is pasted into a client.
  */
-export const WEB_ONLY_ORG_SECTIONS: readonly string[] = ['org_mcp'];
+export const WEB_ONLY_ORG_SECTIONS: readonly string[] = ['org_mcp', 'org_mcp_access'];
 
 /** The phone's extra rows, listed after the web's. */
 export const MOBILE_ORG_SECTIONS: readonly OrgSection[] = [

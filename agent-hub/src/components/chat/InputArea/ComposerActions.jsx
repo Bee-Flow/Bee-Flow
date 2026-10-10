@@ -29,8 +29,9 @@ const ComposerActions = ({
     modelTiers,
     selectedTier,
     onTierChange,
-    memoryWriteEnabled,
-    toggleMemoryWrite,
+    memoryMode,
+    onMemoryModeChange,
+    memoryLock,
     dictation,
     simpleMode,
     compact,
@@ -90,7 +91,7 @@ const ComposerActions = ({
                         value={selectedTier}
                         onChange={onTierChange}
                         variant="input"
-                        memory={{ enabled: memoryWriteEnabled, onToggle: toggleMemoryWrite }}
+                        memory={{ mode: memoryMode, onChange: onMemoryModeChange, lock: memoryLock }}
                     />
                 </div>
             )}

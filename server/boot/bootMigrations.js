@@ -101,10 +101,17 @@ const LOOSE_MIGRATIONS = [
     // wissing mogelijk). Eerst memory_sources, dan user_memories; 0 rijen na
     // de eerste run. Slaat over zolang de tabel nog niet bestaat.
     'memory-guest-purge-2026-08',
+    // Memory control: wist de plaintext kopie van het chatbericht in
+    // memory_sources.message_content (werd nergens gelezen). Idempotent.
+    'memory-sources-strip-2026-10',
+    // Memory: an earlier backfill labelled extractor rows without evidence as
+    // user-written; rows with a memory_sources link go back to inferred.
+    'memory-origin-repair-2026-10',
     // BFSF-387: appends "reply language is not a preference" to the seeded
     // extractor prompt (alwaysUpdate: false, so the .md never reaches an
     // existing install). Append-only, operator edits stay; no-op once present.
     'memory-extractor-language-2026-10',
+    'memory-extractor-sensitivity-2026-10',
     // BFSF-272 follow-up: merges case-insensitive duplicate agent categories
     // into the oldest row per (org, LOWER(name)), re-points their agents with
     // a rev bump, and builds idx_agent_categories_org_lname in the same
@@ -204,7 +211,12 @@ const NL_TRANSLATIONS = [
     'add-nl-collaboration-wave2-editor-versions-translations',     // Collaboration round 2: editing together, versions and compare, comments, since your last visit, AI that joins by itself, notebooks
     'add-nl-collaboration-wave2-documents-compliance-translations', // Collaboration round 2: documents library, pages, designed documents and presentations, compliance checks for projects
     'add-nl-agent-schedules-translations',     // Agent builder: the schedules panel (Cowork items that run as this agent, formerly scheduled agent runs)
+    'add-nl-project-rail-translations',         // Project rail: switch project (with the current name), recent projects, search in this project
+    'add-nl-project-collab-client-translations', // Project collaboration client: invite by name, transfer ownership, archive and restore
     'add-nl-project-tasks-translations',       // Project tasks: list and board, priority, labels, checklist, tasks from a meeting, comments; team chat threads and tagged items
+    'add-nl-project-collab-translations',      // Project collaboration: bell texts for mentions, members, owner and task notifications
+    'add-nl-project-golf3-translations',        // Project workspace: Undo toasts, unsaved-changes bar of the task dialog, connection status band
+    'add-nl-project-golf4-translations',        // Project chat composers: accessible names of the shared composer box
     'add-nl-learning-foundations-translations', // Leerstof van de Bee Flow Basis-cursus (BFSF-474): lessen, quizzen, sims, de introtour en de actiechecklijsten
     'add-nl-notebooks-as-documents-translations', // A notebook as a document type: in the Documents library, and the notebook workspace's header and sources rail
     'add-nl-document-sharing-translations', // Sharing every document type with organisation, users and groups
@@ -221,9 +233,11 @@ const NL_TRANSLATIONS = [
     'add-nl-hardcoded-automation-builder-2026-10-translations', // Automation builder: Dutch for the strings that used to be hard-coded English (panels, step editors, trigger filters, pickers, output views)
     'add-nl-hardcoded-website-admin-2026-10-translations', // Website admin (Product Website builder) and Component Studio: strings that had no key
     'add-nl-hardcoded-studio-admin-2026-10-translations', // Studio screens (App Studio, Automations, Executions, Solutions, Support): Dutch for literals that now go through t()
+    'add-nl-mcp-access-2026-10-translations',     // MCP access: named MCP tokens (Settings → Security) and the organisation's MCP access policy
     'add-nl-ui-complete-2026-10-translations',    // Every UI string without Dutch (2026-10): agent studio, knowledge, skills, meetings, webpages, cowork, admin, chat, ...
     'add-nl-learn-content-2026-10-translations',  // Learning Center lesson content for every course but Foundations (2026-10)
     'add-nl-builder-fixes-2026-10',            // Builder fixes Oct 2026: HTTP query parameters and cURL import, who can call an automation as an agent tool, assistant questions/plans/tables, Studio no-access
+    'update-nl-memory-2026-10',                // Memory: Dutch for the memory manager, chat controls, org Memory admin page and Settings lines; "Conversation memory" becomes "Context in lange gesprekken" (old shipped text only)
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',
     // Last, after every catalogue: stored translations follow the routine →

@@ -159,6 +159,8 @@ beforeEach(() => {
     });
 });
 
+const showPart = (user, name) => user.click(screen.getByRole('tab', { name }));
+
 const renderEditor = async (props = {}) => {
     render(<OrgShieldEditor orgId={ORG_ID} {...props} />);
     await waitFor(() => expect(screen.getByRole('tab', { name: /Overview/ })).toBeInTheDocument());
@@ -188,7 +190,7 @@ describe('ActivityTab mount safety', () => {
         window.history.replaceState({}, '', `${PATH}?tab=activity`);
         await renderEditor({ showActivityTab: true });
         expect(screen.getByRole('tab', { name: /What happened/ })).toHaveAttribute('aria-selected', 'true');
-        await waitFor(() => expect(screen.getByText('Shield stepped in')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByRole('tab', { name: 'Where it went' })).toBeInTheDocument());
     });
 });
 
@@ -238,6 +240,8 @@ describe('ActivityTab behaviour', () => {
         const user = userEvent.setup();
         await renderEditor({ showActivityTab: true });
         await user.click(screen.getByRole('tab', { name: /What happened/ }));
+        await screen.findByRole('tab', { name: 'Where it went' });
+        await showPart(user, 'Figures');
         expect(await screen.findByText('Shield stepped in')).toBeInTheDocument();
 
         // The share is the SERVER's location counts over the whole window,
@@ -261,14 +265,18 @@ describe('ActivityTab behaviour', () => {
         const user = userEvent.setup();
         await renderEditor({ showActivityTab: true });
         await user.click(screen.getByRole('tab', { name: /What happened/ }));
-        await screen.findByText('Log');
+        await screen.findByRole('tab', { name: 'Where it went' });
+        await showPart(user, /^Log/);
+        await screen.findByRole('region', { name: 'Log' });
         expect(screen.getAllByRole('button', { name: 'Show the evidence for this row' })).toHaveLength(2);
         // The aggregates count 12 shield events and 40 calls, so the two rows
         // held are labelled as the latest ones, not as everything.
         expect(screen.getByText('2 of the latest 2 messages & calls')).toBeInTheDocument();
 
-        // The outcome pill narrows the log to one kind of entry.
+        // The outcome pill (on Figures) narrows the log: one filter set across the parts.
+        await showPart(user, 'Figures');
         await user.click(screen.getByRole('button', { name: /^No personal data/ }));
+        await showPart(user, /^Log/);
         expect(screen.getAllByRole('button', { name: 'Show the evidence for this row' })).toHaveLength(1);
         expect(within(screen.getByRole('region', { name: 'Log' })).getByText('api.openai.com')).toBeInTheDocument();
     });
@@ -293,6 +301,7 @@ describe('ActivityTab behaviour', () => {
         const user = userEvent.setup();
         await renderEditor({ showActivityTab: true });
         await user.click(screen.getByRole('tab', { name: /What happened/ }));
+        await screen.findByRole('tab', { name: 'Where it went' }); await showPart(user, 'Kinds & people');
         await screen.findByText('People');
 
         const before = usageCalls().length;
@@ -307,6 +316,7 @@ describe('ActivityTab behaviour', () => {
         const user = userEvent.setup();
         await renderEditor({ showActivityTab: true });
         await user.click(screen.getByRole('tab', { name: /What happened/ }));
+        await screen.findByRole('tab', { name: 'Where it went' }); await showPart(user, 'Kinds & people');
         await screen.findByText('People');
 
         await user.click(screen.getByRole('button', { name: /Filter on Kim/ }));
@@ -329,6 +339,7 @@ describe('ActivityTab behaviour', () => {
         const user = userEvent.setup();
         await renderEditor({ showActivityTab: true });
         await user.click(screen.getByRole('tab', { name: /What happened/ }));
+        await screen.findByRole('tab', { name: 'Where it went' }); await showPart(user, 'Kinds & people');
         await screen.findByText('People');
 
         expect(screen.queryByText(/treat them as "at least"/)).toBeNull();
@@ -381,6 +392,7 @@ describe('ActivityTab: health is an organisation total only (GDPR Art. 9)', () =
         const user = userEvent.setup();
         await renderEditor({ showActivityTab: true });
         await user.click(screen.getByRole('tab', { name: /What happened/ }));
+        await screen.findByRole('tab', { name: 'Where it went' }); await showPart(user, 'Kinds & people');
         await screen.findByText('People');
         return user;
     };
@@ -452,19 +464,20 @@ describe('ActivityTab: where the data went', () => {
         const user = userEvent.setup();
         await renderEditor({ showActivityTab: true });
         await user.click(screen.getByRole('tab', { name: /What happened/ }));
-        await screen.findByText('Where it went');
+        await screen.findByRole('tab', { name: 'Where it went' });
         return user;
     };
 
     it('leaves calls it cannot place out of the share, and says how many', async () => {
-        await openTab();
+        const user = await openTab();
         // Through a global network (12) or with no known place (3): neither
         // inside nor outside Europe, so named rather than folded into a side.
+        expect(screen.getByText('12 calls went through Cloudflare')).toBeInTheDocument();
+        expect(screen.getByText('3 calls went to a server we couldn\'t place')).toBeInTheDocument();
+        await showPart(user, 'Figures');
         const tile = screen.getByRole('button', { name: /Stayed in Europe/ });
         expect(tile.textContent).toContain('85%');
         expect(tile.textContent).toContain('15 not placed');
-        expect(screen.getByText('12 calls went through Cloudflare')).toBeInTheDocument();
-        expect(screen.getByText('3 calls went to a server we couldn\'t place')).toBeInTheDocument();
     });
 
     it('lists the destinations with their place, and filters the table on a click', async () => {
@@ -476,12 +489,14 @@ describe('ActivityTab: where the data went', () => {
 
         await user.click(canada);
         expect(await screen.findByRole('button', { name: /Remove this filter/ })).toBeInTheDocument();
+        await showPart(user, /^Log/);
         expect(screen.getByText('Toronto, CA')).toBeInTheDocument();
         expect(screen.queryByText('via Cloudflare, AMS')).toBeNull();
     });
 
     it('names the location of every call in the log', async () => {
-        await openTab();
+        const user = await openTab();
+        await showPart(user, /^Log/);
         for (const place of ['via Cloudflare, AMS', 'Toronto, CA', 'Your server', 'Unknown']) {
             expect(screen.getByText(place)).toBeInTheDocument();
         }

@@ -1,9 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { withQueryClient } from '../../../test/queryWrapper';
 import ProjectMembersPanel from './ProjectMembersPanel';
+import { useUndoCapture } from './undoTestKit';
 import {
     EDITOR_ID, GROUP_ID, makeFakeApi, makeMembers, OWNER_ID, reply, VIEWER_ID,
 } from './workspaceTestApi';
@@ -20,12 +21,17 @@ const NEWCOMER_ID = '55555555-5555-4555-8555-555555555555';
 function serve(extra: Record<string, unknown> = {}) {
     const api = makeFakeApi({
         'GET /api/projects/p1/members': makeMembers(),
-        'GET /auth/users': [
-            { id: OWNER_ID, displayName: 'Olivia Owner' },
-            { id: NEWCOMER_ID, displayName: 'Nina Newcomer', email: 'nina@example.org' },
-            { id: 'admin', displayName: 'Administrator (System)', isSystem: true },
-        ],
-        'GET /auth/groups': [{ id: GROUP_ID, name: 'Marketing' }, { id: 'g-sales', name: 'Sales' }],
+        'GET /api/projects/p1/principals': ({ query }: { query: URLSearchParams }) => {
+            const q = (query.get('q') || '').toLowerCase();
+            return {
+                users: [
+                    { id: OWNER_ID, name: 'Olivia Owner' },
+                    { id: NEWCOMER_ID, name: 'Nina Newcomer' },
+                ].filter((u) => u.name.toLowerCase().includes(q)),
+                groups: [{ id: GROUP_ID, name: 'Marketing', memberCount: 4 }, { id: 'g-sales', name: 'Sales', memberCount: 7 }]
+                    .filter((g) => g.name.toLowerCase().includes(q)),
+            };
+        },
         'POST /api/projects/p1/share': { shareId: 's-new', shares: [] },
         'PUT /api/projects/p1/members/s-viewer': { success: true },
         'DELETE /api/projects/p1/members/s-viewer': { success: true },
@@ -80,19 +86,35 @@ describe('ProjectMembersPanel — the list', () => {
 });
 
 describe('ProjectMembersPanel — owner actions', () => {
-    it('changes a role with PUT and removes a member only after confirming', async () => {
+    const undo = useUndoCapture();
+    it('changes a role with PUT', async () => {
         const api = serve();
         const user = userEvent.setup();
         renderPanel('owner', OWNER_ID);
         await user.selectOptions(await screen.findByRole('combobox', { name: 'Role for Vera Viewer' }), 'editor');
         await waitFor(() => expect(api.callsTo('PUT', '/api/projects/p1/members/s-viewer')).toHaveLength(1));
         expect(api.callsTo('PUT', '/api/projects/p1/members/s-viewer')[0].body).toEqual({ role: 'editor' });
+    });
 
-        await user.click(screen.getByRole('button', { name: 'Remove Vera Viewer' }));
-        const dialog = await screen.findByRole('dialog', { name: 'Remove Vera Viewer?' });
+    it('takes a member out of the list at once and removes them for real only when the Undo toast runs out', async () => {
+        const api = serve();
+        const user = userEvent.setup();
+        renderPanel('owner', OWNER_ID);
+        await user.click(await screen.findByRole('button', { name: 'Remove Vera Viewer' }));
+        expect(screen.queryByRole('button', { name: 'Remove Vera Viewer' })).not.toBeInTheDocument();
         expect(api.callsTo('DELETE', '/api/projects/p1/members/s-viewer')).toHaveLength(0);
-        await user.click(within(dialog).getByRole('button', { name: 'Remove' }));
+        act(() => undo.last().onExpire());
         await waitFor(() => expect(api.callsTo('DELETE', '/api/projects/p1/members/s-viewer')).toHaveLength(1));
+    });
+
+    it('keeps the member on Undo and never calls the API', async () => {
+        const api = serve();
+        const user = userEvent.setup();
+        renderPanel('owner', OWNER_ID);
+        await user.click(await screen.findByRole('button', { name: 'Remove Vera Viewer' }));
+        act(() => undo.last().onUndo());
+        expect(await screen.findByRole('button', { name: 'Remove Vera Viewer' })).toBeInTheDocument();
+        expect(api.callsTo('DELETE', '/api/projects/p1/members/s-viewer')).toHaveLength(0);
     });
 
     it('shows a refused role change inline', async () => {
@@ -105,16 +127,24 @@ describe('ProjectMembersPanel — owner actions', () => {
 });
 
 describe('ProjectMembersPanel — invite', () => {
-    it('invites a person picked from the directory, leaving out who is already in', async () => {
+    it('lists people by name from the principals search, leaves out who is already in, and invites', async () => {
         const api = serve();
         const user = userEvent.setup();
         renderPanel('owner', OWNER_ID);
-        const picker = await screen.findByTestId('member-invite-picker');
-        await waitFor(() => expect(within(picker).getByRole('option', { name: /Nina Newcomer/ })).toBeInTheDocument());
-        expect(within(picker).queryByRole('option', { name: /Olivia Owner/ })).toBeNull();
-        expect(within(picker).queryByRole('option', { name: /Administrator/ })).toBeNull();
-
-        await user.selectOptions(picker, NEWCOMER_ID);
+        const box = await screen.findByRole('combobox', { name: 'Search people and groups' });
+        await user.type(box, 'n');
+        expect(await screen.findByTestId('principal-min-chars')).toBeInTheDocument();
+        await user.type(box, 'i');
+        expect(await screen.findByRole('button', { name: /Nina Newcomer/ })).toBeInTheDocument();
+        expect(api.callsTo('GET', '/api/projects/p1/principals')[0].query.get('q')).toBe('ni');
+        await user.clear(box);
+        await user.type(box, 'ol');
+        // Olivia is the owner: the server may list her, the picker does not offer her.
+        await waitFor(() => expect(api.callsTo('GET', '/api/projects/p1/principals').length).toBeGreaterThan(1));
+        expect(within(screen.getByRole('listbox')).queryByText('Olivia Owner')).toBeNull();
+        await user.clear(box);
+        await user.type(box, 'nina');
+        await user.click(await screen.findByRole('button', { name: /Nina Newcomer/ }));
         await user.selectOptions(screen.getByTestId('member-invite-role'), 'editor');
         await user.click(screen.getByTestId('member-invite-submit'));
         await waitFor(() => expect(api.callsTo('POST', '/api/projects/p1/share')).toHaveLength(1));
@@ -123,35 +153,34 @@ describe('ProjectMembersPanel — invite', () => {
         });
     });
 
-    it('falls back to an id field when the directory is closed (403), and checks the id', async () => {
-        const api = serve({ 'GET /auth/users': reply(403, { error: 'Permission required' }) });
+    it('says to ask the owner when the principals search is refused (403), with no id field', async () => {
+        serve({ 'GET /api/projects/p1/principals': reply(403, { error: 'Forbidden' }) });
         const user = userEvent.setup();
         renderPanel('owner', OWNER_ID);
-        const field = await screen.findByTestId('member-invite-id');
-        await user.type(field, 'not-an-id');
-        await user.click(screen.getByTestId('member-invite-submit'));
-        expect(await screen.findByText('That is not a valid id.')).toBeInTheDocument();
-        expect(api.callsTo('POST', '/api/projects/p1/share')).toHaveLength(0);
-
-        await user.clear(field);
-        await user.type(field, NEWCOMER_ID);
-        await user.click(screen.getByTestId('member-invite-submit'));
-        await waitFor(() => expect(api.callsTo('POST', '/api/projects/p1/share')).toHaveLength(1));
-        expect(api.callsTo('POST', '/api/projects/p1/share')[0].body).toMatchObject({ sharedWithType: 'user', permission: 'viewer' });
+        await user.type(await screen.findByRole('combobox', { name: 'Search people and groups' }), 'ni');
+        expect(await screen.findByTestId('member-invite-owner-only')).toHaveTextContent('Ask the owner to invite people.');
+        expect(screen.queryByTestId('member-invite-id')).toBeNull();
     });
 
-    it('shows the server’s refusal of an invite inline', async () => {
+    it('invites a group (chip with its size) and shows the server’s refusal inline', async () => {
         serve({ 'POST /api/projects/p1/share': reply(400, { error: 'That person is not in your organisation' }) });
         const user = userEvent.setup();
         renderPanel('owner', OWNER_ID);
-        const groupRadio = await screen.findByRole('radio', { name: 'Group' });
-        await user.click(groupRadio);
-        const picker = await screen.findByTestId('member-invite-picker');
-        await waitFor(() => expect(within(picker).getByRole('option', { name: 'Sales' })).toBeInTheDocument());
-        expect(within(picker).queryByRole('option', { name: 'Marketing' })).toBeNull();
-        await user.selectOptions(picker, 'g-sales');
+        await user.type(await screen.findByRole('combobox', { name: 'Search people and groups' }), 'sa');
+        const hit = await screen.findByRole('button', { name: /Sales/ });
+        expect(hit).toHaveTextContent('group · 7 people');
+        await user.click(hit);
         await user.click(screen.getByTestId('member-invite-submit'));
         expect(await screen.findByText('That person is not in your organisation')).toBeInTheDocument();
+    });
+
+    it('shows an editor the form only when canInvite is given', async () => {
+        serve();
+        const { rerender } = render(withQueryClient(<ProjectMembersPanel projectId="p1" role="editor" currentUserId={EDITOR_ID} />));
+        await screen.findByText('Olivia Owner');
+        expect(screen.queryByTestId('member-invite')).toBeNull();
+        rerender(withQueryClient(<ProjectMembersPanel projectId="p1" role="editor" currentUserId={EDITOR_ID} canInvite />));
+        expect(await screen.findByTestId('member-invite')).toBeInTheDocument();
     });
 });
 

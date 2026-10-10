@@ -41,6 +41,8 @@ const fx = {
     kindSet: [],          // every setProjectKind call
     assigned: [],         // every assignConversation call
     vanishOnUpdate: false,
+    muted: [],            // user ids who muted p1
+    bells: [],            // [method, args] of every collaboration notification asked for
 };
 
 const MOCKS = {
@@ -110,7 +112,14 @@ const MOCKS = {
             next();
         },
     },
+    '../stores/notificationPrefsStore': {
+        isMuted: async (userId) => fx.muted.includes(userId),
+        setMuted: async () => {},
+    },
     '../utils/perUserRateLimit': { perUserRateLimit: () => (req, res, next) => next() },
+    '../projects/collabNotify': {
+        makeCollabNotifier: () => new Proxy({}, { get: (_t, name) => async (args) => { fx.bells.push([name, args]); } }),
+    },
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -154,6 +163,8 @@ function resetFx() {
     fx.kindSet.length = 0;
     fx.groupReads.length = 0;
     fx.assigned.length = 0;
+    fx.bells.length = 0;
+    fx.muted.length = 0;
     fx.vanishOnUpdate = false;
 }
 
@@ -189,6 +200,14 @@ test('viewer may read but not update', async () => {
     assert.strictEqual((await dispatch({ method: 'GET', url: '/p1', session: BOB })).statusCode, 200);
     assert.strictEqual((await dispatch({ method: 'PUT', url: '/p1', body: { name: 'x' }, session: BOB })).statusCode, 403);
     assert.deepStrictEqual(fx.updated, []);
+});
+
+test('the project detail carries the caller own mute state', async () => {
+    resetFx();
+    fx.role = 'viewer';
+    fx.muted.push('bob');
+    assert.strictEqual((await dispatch({ method: 'GET', url: '/p1', session: BOB })).body.muted, true);
+    assert.strictEqual((await dispatch({ method: 'GET', url: '/p1', session: ALICE })).body.muted, false);
 });
 
 test('editor may update but not delete or invite', async () => {
@@ -488,11 +507,11 @@ test('the list narrows by kind when asked, and lists everything when not', async
     };
     const ws = await dispatch({ method: 'GET', url: '/?kind=workspace', session: ALICE });
     assert.strictEqual(ws.statusCode, 200);
-    assert.deepStrictEqual(fx.listed.at(-1), { userId: 'alice', opts: { kind: 'workspace' } });
+    assert.deepStrictEqual(fx.listed.at(-1), { userId: 'alice', opts: { kind: 'workspace', includeArchived: false } });
     assert.deepStrictEqual(ws.body.map(p => p.id).sort(), ['l', 'w']);
 
     const all = await dispatch({ method: 'GET', url: '/', session: ALICE });
-    assert.deepStrictEqual(fx.listed.at(-1).opts, { kind: undefined }, 'no kind: the store lists every kind');
+    assert.deepStrictEqual(fx.listed.at(-1).opts, { kind: undefined, includeArchived: false }, 'no kind: the store lists every kind');
     assert.strictEqual(all.body.length, 3);
 });
 
@@ -775,4 +794,104 @@ test('GET /:id says which kind the project is', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.kind, 'workspace');
     assert.ok('filesKbId' in res.body);
+});
+
+// ═══ The bell for membership changes ═════════════════════════════════
+
+test('sharing, a role change, a removal and a leave each ring the right bell', async () => {
+    resetFx();
+    fx.users = { bob: { id: 'bob', organizationId: 'org1' } };
+    await dispatch({ method: 'POST', url: '/p1/share', body: { sharedWithType: 'user', sharedWithId: 'bob', permission: 'viewer' }, session: ALICE });
+    assert.deepStrictEqual(fx.bells.map(([n, a]) => [n, a.actorId, a.sharedWithType, a.sharedWithId, a.role]), [['added', 'alice', 'user', 'bob', 'viewer']]);
+
+    fx.bells.length = 0;
+    fx.shares = [{ id: 's1', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'bob', permission: 'viewer' }];
+    await dispatch({ method: 'PUT', url: '/p1/members/s1', body: { role: 'editor' }, session: ALICE });
+    assert.deepStrictEqual(fx.bells.map(([n, a]) => [n, a.userId, a.from, a.to]), [['roleChanged', 'bob', 'viewer', 'editor']]);
+
+    fx.bells.length = 0;
+    await dispatch({ method: 'DELETE', url: '/p1/share/s1', session: ALICE });
+    assert.deepStrictEqual(fx.bells.map(([n, a]) => [n, a.actorId, a.userId]), [['removed', 'alice', 'bob']]);
+
+    fx.bells.length = 0;
+    fx.role = 'viewer';
+    await dispatch({ method: 'DELETE', url: '/p1/members/s1', session: BOB });
+    assert.deepStrictEqual(fx.bells.map(([n, a]) => [n, a.userId]), [['left', 'bob']]);
+
+    fx.bells.length = 0;
+    fx.role = 'owner';
+    await dispatch({ method: 'DELETE', url: '/p1/members/s1', session: ALICE });
+    assert.deepStrictEqual(fx.bells.map(([n, a]) => [n, a.actorId, a.userId]), [['removed', 'alice', 'bob']]);
+});
+
+// ═══ editors_can_invite: who may invite ══════════════════════════════
+
+const inviteAs = (role, body, session = BOB) => {
+    fx.role = role;
+    return dispatch({ method: 'POST', url: '/p1/share', body: { sharedWithType: 'user', sharedWithId: 'carol', ...body }, session });
+};
+
+test('an editor may invite a viewer or an editor while the project allows it', async () => {
+    resetFx();
+    fx.projects.p1.editorsCanInvite = true;
+    fx.users.carol = { id: 'carol', organizationId: 'org1' };
+    assert.strictEqual((await inviteAs('editor', { permission: 'viewer' })).statusCode, 200);
+    assert.strictEqual((await inviteAs('editor', { permission: 'editor' })).statusCode, 200);
+    assert.deepStrictEqual(fx.shared.map((s) => s.perm), ['viewer', 'editor']);
+});
+
+test('an editor may not invite while the project forbids it', async () => {
+    resetFx();
+    fx.projects.p1.editorsCanInvite = false;
+    fx.users.carol = { id: 'carol', organizationId: 'org1' };
+    for (const permission of ['viewer', 'editor']) {
+        assert.strictEqual((await inviteAs('editor', { permission })).statusCode, 403);
+    }
+    assert.deepStrictEqual(fx.shared, []);
+});
+
+test('a viewer never invites, whatever the setting', async () => {
+    resetFx();
+    fx.projects.p1.editorsCanInvite = true;
+    fx.users.carol = { id: 'carol', organizationId: 'org1' };
+    assert.strictEqual((await inviteAs('viewer', { permission: 'viewer' })).statusCode, 403);
+    assert.deepStrictEqual(fx.shared, []);
+});
+
+test('an editor may not change the role of someone already on the project', async () => {
+    resetFx();
+    fx.projects.p1.editorsCanInvite = true;
+    fx.users.carol = { id: 'carol', organizationId: 'org1' };
+    fx.shares = [{ id: 's1', sharedWithType: 'user', sharedWithId: 'carol', permission: 'editor' }];
+    assert.strictEqual((await inviteAs('editor', { permission: 'viewer' })).statusCode, 403);
+    assert.deepStrictEqual(fx.shared, []);
+});
+
+test('the owner invites regardless of the setting', async () => {
+    resetFx();
+    fx.projects.p1.editorsCanInvite = false;
+    fx.users.carol = { id: 'carol', organizationId: 'org1' };
+    assert.strictEqual((await inviteAs('owner', { permission: 'editor' }, ALICE)).statusCode, 200);
+});
+
+test('editorsCanInvite is an owner-only setting on PUT /:id', async () => {
+    resetFx();
+    fx.role = 'editor';
+    const refused = await dispatch({ method: 'PUT', url: '/p1', body: { editorsCanInvite: false }, session: BOB });
+    assert.strictEqual(refused.statusCode, 403);
+    assert.strictEqual(refused.body.code, 'owner_only_setting');
+    assert.deepStrictEqual(fx.updated, []);
+
+    fx.role = 'owner';
+    const ok = await dispatch({ method: 'PUT', url: '/p1', body: { editorsCanInvite: false }, session: ALICE });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.strictEqual(fx.updated[0].editorsCanInvite, false);
+});
+
+test('an editor saving other settings is unaffected by the owner-only setting', async () => {
+    resetFx();
+    fx.role = 'editor';
+    const res = await dispatch({ method: 'PUT', url: '/p1', body: { name: 'New' }, session: BOB });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(fx.updated[0].editorsCanInvite, undefined);
 });

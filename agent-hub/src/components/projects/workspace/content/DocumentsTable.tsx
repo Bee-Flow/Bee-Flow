@@ -9,7 +9,8 @@ import type { ProjectDocument } from '../../../../api/queries/projectContent';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
 import useTranslation from '../../../../hooks/useTranslation';
 import { useDocTypeLabel } from '../../../../pages/documents/library/labels';
-import { RemoveButton } from './contentUi';
+import ItemViewers from '../ItemViewers';
+import { RemoveButton } from '../workspaceUi';
 import { DataTable, TableCell, TableRow, type TableColumn } from './typedShared';
 
 /** The project's document card, with the last editor the server now adds. */
@@ -80,6 +81,7 @@ export default function DocumentsTable({ documents, loading, empty, ownerName, m
                                     <span className="sr-only">{t('documents.project.unread', 'Changed since you last looked')}</span>
                                 </span>
                             )}
+                            <ItemViewers type="document" id={doc.id} />
                         </TableCell>
                         <TableCell column={typeCol} className="text-[var(--text-secondary)]">{typeLabel(doc.docType)}</TableCell>
                         <TableCell column={ownerCol} className="truncate text-[var(--text-secondary)]">{ownerName(doc.userId)}</TableCell>

@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useUndoCapture } from '../undoTestKit';
 import ProjectTeamChat from './ProjectTeamChat';
 import {
     emit, installServer, MEMBERS, message, PROJECT, renderLive, reply, teamChat, type StreamHolder, type TestServer,
@@ -280,4 +281,32 @@ it('a chat whose mode the organisation withdrew says it is limited, and why the 
     expect(screen.getByTestId('team-chat-mode-withdrawn')).toHaveTextContent('the AI only answers when someone mentions it');
     await user.type(screen.getByRole('textbox', { name: 'Message' }), 'hello{Enter}');
     expect(await screen.findByText('Your organisation no longer lets the AI answer every message here. Mention @ai to ask it.')).toBeInTheDocument();
+});
+
+describe('deleting a message offers Undo', () => {
+    const undo = useUndoCapture();
+    const DELETE = `${CHAT}/messages/m1`;
+
+    it('hides the message at once and deletes it for real only when the toast runs out', async () => {
+        server.on('DELETE', DELETE, { ok: true });
+        const user = userEvent.setup();
+        renderChat('owner');
+        await screen.findByText('Message 1');
+        await user.click(within(screen.getByTestId('team-chat-message-m1')).getByRole('button', { name: 'Delete message' }));
+        expect(screen.queryByText('Message 1')).not.toBeInTheDocument();
+        expect(server.called('DELETE', DELETE)).toHaveLength(0);
+        act(() => undo.last().onExpire());
+        await waitFor(() => expect(server.called('DELETE', DELETE)).toHaveLength(1));
+    });
+
+    it('brings the message back on Undo and never calls the API', async () => {
+        server.on('DELETE', DELETE, { ok: true });
+        const user = userEvent.setup();
+        renderChat('owner');
+        await screen.findByText('Message 1');
+        await user.click(within(screen.getByTestId('team-chat-message-m1')).getByRole('button', { name: 'Delete message' }));
+        act(() => undo.last().onUndo());
+        expect(await screen.findByText('Message 1')).toBeInTheDocument();
+        expect(server.called('DELETE', DELETE)).toHaveLength(0);
+    });
 });

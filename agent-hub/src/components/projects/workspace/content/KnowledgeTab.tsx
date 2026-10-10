@@ -7,17 +7,18 @@ import { InstructionsCard } from '../OverviewCards';
 import React, { useMemo } from 'react';
 import { useProjectFilesQuery } from '../../../../api/queries/projectContent';
 import useTranslation from '../../../../hooks/useTranslation';
-import { ContentColumn, ContentToolbar, ReadOnlyNote, SectionCard } from './contentUi';
+import { Card, ViewerNote, WorkspaceColumn } from '../workspaceUi';
+import SectionToolbar from '../SectionToolbar';
 import FilesSection from './FilesSection';
 import KnowledgeBasesSection from './KnowledgeBasesSection';
-import { MemoryPanel } from './typedShared';
+import MemoryPanel from '../../../knowledge/memory/MemoryPanel';
 import { canEditContent, type ContentTabProps } from './types';
 import { useMemberNames } from './useContentActions';
 
 function MemorySection({ projectId, canEdit, extractMemories }: { projectId: string; canEdit: boolean; extractMemories: boolean }) {
     const { t } = useTranslation();
     return (
-        <SectionCard
+        <Card as="h3"
             title={t('project_content.memory_title', 'Project memory')}
             description={t('project_content.memory_desc', 'What the assistant remembers for this project, shared by every member. Editors can add, change and remove entries.')}
             testId="project-memory-section"
@@ -25,7 +26,7 @@ function MemorySection({ projectId, canEdit, extractMemories }: { projectId: str
             <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
                 <MemoryPanel projectId={projectId} canEdit={canEdit} embedded extractMemories={extractMemories} />
             </div>
-        </SectionCard>
+        </Card>
     );
 }
 
@@ -38,12 +39,12 @@ export default function KnowledgeTab({ projectId, project, role, currentUser, in
     const files = useProjectFilesQuery(projectId);
     const filesKbIds = useMemo(() => [project?.filesKbId, files.data?.kbId], [project?.filesKbId, files.data?.kbId]);
     return (
-        <ContentColumn testId="project-knowledge-tab">
-            <ContentToolbar title={t('project_content.knowledge_title', 'Knowledge')} />
+        <WorkspaceColumn testId="project-knowledge-tab">
+            <SectionToolbar kind="kb" title={t('project_content.knowledge_title', 'Knowledge')} />
             <p className="-mt-2 text-[12px] text-[var(--text-tertiary)]">
                 {t('project_content.knowledge_desc', 'Everything the AI in this project\'s chats can draw on, for every member.')}
             </p>
-            {!canEdit && <ReadOnlyNote>{t('project_content.knowledge_viewer_note', 'You can see what this project knows. Ask the owner for editor access to add files or knowledge bases.')}</ReadOnlyNote>}
+            {!canEdit && <ViewerNote archived={!!project?.archivedAt}>{t('project_content.knowledge_viewer_note', 'You can see what this project knows. Ask the owner for editor access to add files or knowledge bases.')}</ViewerNote>}
             {sub && <FileContent projectId={projectId} fileId={sub} onClose={() => onOpenSub(null)} />}
             <InstructionsCard project={project} role={role} onOpenTab={onOpenTab || (() => {})} />
             <FilesSection onOpen={onOpenSub} projectId={projectId} canEdit={canEdit} uploaderName={nameOf} openPicker={intent === 'upload'} />
@@ -52,6 +53,6 @@ export default function KnowledgeTab({ projectId, project, role, currentUser, in
                 filesKbIds={filesKbIds} openPicker={intent === 'add'}
             />
             <MemorySection projectId={projectId} canEdit={canEdit} extractMemories={project.extractMemories !== false} />
-        </ContentColumn>
+        </WorkspaceColumn>
     );
 }

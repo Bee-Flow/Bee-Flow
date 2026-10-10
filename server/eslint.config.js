@@ -101,6 +101,7 @@ module.exports = [
             'services/browserAgentDriver.js',
             'services/webpageRender.js',
             'routes/notebookExport.js',
+            'cms/mcp/screenshot.js',
         ],
         languageOptions: {
             globals: { window: 'readonly', document: 'readonly' },

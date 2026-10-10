@@ -466,6 +466,8 @@ async function deleteOrganization(orgId) {
         await run('DELETE FROM integration_connections WHERE org_id = $1', [orgId]);
         step = 'automation_credentials';
         await run('DELETE FROM automation_credentials WHERE org_id = $1', [orgId]);
+        step = 'mcp_tokens';
+        await run('DELETE FROM mcp_tokens WHERE org_id = $1', [orgId]);
 
         // Through the store, so the memoised per-org usage counters go with the rows.
         step = 'integration cache';

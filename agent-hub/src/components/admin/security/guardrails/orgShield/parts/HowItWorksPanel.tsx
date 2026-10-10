@@ -136,7 +136,7 @@ function PathStages({ go, t }: { go: (tab: string) => () => void; t: TranslateFn
                 body={t('admin.shield_hiw_process_body',
                     'Whatever was found is either replaced with placeholders — the AI sees [email_1], never the address, and Bee Flow puts the real value back in the answer — or the message is stopped and the person is asked to rewrite it. This gate closes on EVERY message.')}
                 onGoTo={go('processing')}
-                goToLabel={t('admin.shield_hiw_open_processing', 'Open the two checks')}
+                goToLabel={t('shield_shell.hiw_open_processing', 'Open When we find something')}
             />
             <Stage
                 n={4}
@@ -145,7 +145,7 @@ function PathStages({ go, t }: { go: (tab: string) => () => void; t: TranslateFn
                 body={t('admin.shield_hiw_outbound_body',
                     'Only if the model runs OUTSIDE your organisation: one more look, which can pause and let the person decide. This is also where you say which kinds a connected app may never carry out — Gmail, Drive, a web search.')}
                 onGoTo={go('outbound')}
-                goToLabel={t('admin.shield_hiw_open_outbound', 'Open the two checks')}
+                goToLabel={t('shield_shell.hiw_open_outbound', 'Open Leaving your org')}
             />
             <Stage
                 Icon={Bot}

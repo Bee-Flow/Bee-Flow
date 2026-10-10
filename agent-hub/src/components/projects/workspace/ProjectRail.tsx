@@ -1,52 +1,43 @@
-// The project's own rail: who and what this project is at the top (tile,
-// name, the people in it with a dot for who is here now), then one row per
-// section. Studio's RailRow recipe: the active row is a raised card, counts
-// are absent until known (never a guessed 0). Below 1180px the rail folds to
-// its icons; the labels stay available to screen readers.
+// The project's own rail, in the Studio recipe: head row (back, tile, name as a
+// project switcher), a search pill, three groups of sections, the people in the
+// project, then the account footer. The active row is a raised card, counts are
+// absent until known (never a guessed 0). Below 1280px the rail folds to its
+// icons; the labels stay available to screen readers.
 
-import {
-    Activity, ArrowLeft, BookOpen, CheckSquare, FileText, House, MessagesSquare, Mic, NotebookPen, Settings, Users,
-} from 'lucide-react';
+import { ArrowLeft, Search } from 'lucide-react';
 import React from 'react';
 import { useProjectMembersQuery, type Project, type ProjectRole } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
-import { kindColorVar } from '../../shared/kindColors';
+import useViewport from '../../../hooks/useViewport';
 import { useProjectLive } from './ProjectLiveContext';
-import { projectIcon, projectTileStyle } from './projectVisuals';
-import type { WorkspaceTabId } from './types';
+import ProjectSwitcherMenu from './ProjectSwitcherMenu';
+import { normalizeWorkspaceTab, type WorkspaceTabId } from './types';
+import { useProjectRailData, type RailItem } from './useProjectRailData';
 import { Avatar } from './workspaceUi';
 
-type Glyph = React.ComponentType<{ className?: string; style?: React.CSSProperties; strokeWidth?: number; 'aria-hidden'?: boolean | 'true' }>;
-
-export type RailCounts = Partial<Record<WorkspaceTabId, number | null>>;
-
-interface RailItem { id: WorkspaceTabId; label: string; Icon: Glyph; iconStyle: React.CSSProperties }
-
-function useRailItems(): { top: RailItem[]; work: RailItem[]; project: RailItem[] } {
-    const { t } = useTranslation();
-    return {
-        top: [{ id: 'overview', label: t('project_home.tab.overview', 'Overview'), Icon: House, iconStyle: { color: 'var(--text-secondary)' } }],
-        work: [
-            { id: 'chats', label: t('project_home.tab.chats', 'Chats'), Icon: MessagesSquare, iconStyle: { color: 'var(--accent-primary)' } },
-            { id: 'tasks', label: t('project_home.tab.tasks', 'Tasks'), Icon: CheckSquare, iconStyle: { color: 'var(--success, var(--accent-primary))' } },
-            { id: 'documents', label: t('project_home.tab.documents', 'Documents'), Icon: FileText, iconStyle: { color: kindColorVar('document') } },
-            { id: 'notebooks', label: t('project_home.tab.notebooks', 'Notebooks'), Icon: NotebookPen, iconStyle: { color: 'var(--text-secondary)' } },
-            { id: 'meetings', label: t('project_home.tab.meetings', 'Meetings'), Icon: Mic, iconStyle: { color: kindColorVar('meeting') } },
-            { id: 'knowledge', label: t('project_home.tab.knowledge', 'Knowledge'), Icon: BookOpen, iconStyle: { color: kindColorVar('kb') } },
-        ],
-        project: [
-            { id: 'members', label: t('project_home.tab.members', 'Members'), Icon: Users, iconStyle: { color: 'var(--text-secondary)' } },
-            { id: 'activity', label: t('project_home.tab.activity', 'Activity'), Icon: Activity, iconStyle: { color: 'var(--text-secondary)' } },
-            { id: 'settings', label: t('project_home.tab.settings', 'Settings'), Icon: Settings, iconStyle: { color: 'var(--text-secondary)' } },
-        ],
-    };
+export interface ProjectRailProps {
+    projectId: string;
+    /** null while the URL has no tab (= overview). */
+    activeTab: WorkspaceTabId | null;
+    onSelectTab: (tab: WorkspaceTabId) => void;
+    /** "All projects". */
+    onBack: () => void;
+    /** The switcher. */
+    onOpenProject: (projectId: string) => void;
+    onOpenSearch: () => void;
+    /** For the switcher. */
+    projects: Project[];
+    currentUserId: string | null | undefined;
+    notebooksEnabled: boolean;
+    /** Studio's footer contract: the account row with Sidebar's menu state. */
+    footer: React.ReactNode;
 }
 
 /** Something in this section changed that the reader has not seen: a dot, never a number. */
-function UnreadDot({ label, testId }: { label: string; testId: string }) {
+function UnreadDot({ label, testId, folded }: { label: string; testId: string; folded: boolean }) {
     return (
         <span
-            className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[var(--accent-primary)] max-[767px]:absolute max-[767px]:top-1.5 max-[767px]:right-2"
+            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[var(--accent-primary)] ${folded ? 'absolute top-1.5 right-2' : ''}`}
             role="img"
             aria-label={label}
             data-testid={testId}
@@ -54,11 +45,12 @@ function UnreadDot({ label, testId }: { label: string; testId: string }) {
     );
 }
 
-function RailRow({ item, active, count, unread, onSelect }: {
+function RailRow({ item, active, count, unread, folded, onSelect }: {
     item: RailItem;
     active: boolean;
     count?: number | null;
     unread?: boolean;
+    folded: boolean;
     onSelect: (id: WorkspaceTabId) => void;
 }) {
     const { t } = useTranslation();
@@ -70,17 +62,17 @@ function RailRow({ item, active, count, unread, onSelect }: {
             aria-current={active ? 'page' : undefined}
             title={item.label}
             data-testid={`project-rail-${item.id}`}
-            className={`relative w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150 max-[767px]:justify-center max-[767px]:px-0 ${
+            className={`relative w-full flex items-center gap-2.5 py-2 rounded-lg text-left transition-all duration-150 ${folded ? 'justify-center px-0' : 'px-2.5'} ${
                 active ? 'bg-[var(--bg-card)] shadow-sm' : 'hover:bg-[var(--item-hover-bg)]'
             }`}
         >
             <Icon className="w-4 h-4 flex-shrink-0" style={item.iconStyle} strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
-            <span className={`flex-1 min-w-0 truncate text-[13px] leading-tight text-[var(--text-primary)] max-[767px]:sr-only ${active ? 'font-semibold' : 'font-medium'}`}>
+            <span className={`flex-1 min-w-0 truncate text-sm leading-tight text-[var(--text-primary)] ${folded ? 'sr-only' : ''} ${active ? 'font-semibold' : 'font-medium'}`}>
                 {item.label}
             </span>
-            {unread && !active && <UnreadDot label={t('project_home.rail.unread', 'New changes')} testId={`project-rail-${item.id}-unread`} />}
-            {typeof count === 'number' && Number.isFinite(count) && (
-                <span className="flex-shrink-0 text-[12px] tabular-nums text-[var(--text-tertiary)] max-[767px]:hidden" data-testid={`project-rail-${item.id}-count`}>
+            {unread && !active && <UnreadDot label={t('project_home.rail.unread', 'New changes')} testId={`project-rail-${item.id}-unread`} folded={folded} />}
+            {!folded && typeof count === 'number' && Number.isFinite(count) && (
+                <span className="flex-shrink-0 text-xs tabular-nums text-[var(--text-tertiary)]" data-testid={`project-rail-${item.id}-count`}>
                     {count}
                 </span>
             )}
@@ -88,17 +80,8 @@ function RailRow({ item, active, count, unread, onSelect }: {
     );
 }
 
-function RailGroup({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <div className="mt-3" role="group" aria-label={label}>
-            <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] m-0 max-[767px]:sr-only">{label}</p>
-            <div className="flex flex-col gap-0.5">{children}</div>
-        </div>
-    );
-}
-
 /** The people in the project, owner first, with a presence dot. */
-function MemberStack({ projectId, currentUserId }: { projectId: string; currentUserId: string | null | undefined }) {
+function MemberStack({ projectId, currentUserId, folded }: { projectId: string; currentUserId: string | null | undefined; folded: boolean }) {
     const { t } = useTranslation();
     const members = useProjectMembersQuery(projectId);
     const { online } = useProjectLive();
@@ -107,10 +90,16 @@ function MemberStack({ projectId, currentUserId }: { projectId: string; currentU
     const people = [data.ownerId, ...data.members.filter((m) => m.sharedWithType === 'user').map((m) => m.sharedWithId)];
     const extra = people.length > 5 ? people.length - 5 : 0;
     const here = online.filter((id) => id !== currentUserId).length;
+    const hereText = here > 0
+        ? t('project_home.rail.here_now', '{n} here now', { n: here })
+        : t('project_home.rail.just_you', 'Only you here now');
     return (
-        <div className="flex items-center gap-2 mt-2 max-[767px]:hidden" data-testid="project-rail-people">
-            <div className="flex -space-x-1.5">
-                {people.slice(0, 5).map((id) => (
+        <div
+            className={`flex items-center gap-2 px-3 py-2 flex-shrink-0 border-t border-[var(--border-subtle)] ${folded ? 'justify-center' : ''}`}
+            data-testid="project-rail-people"
+        >
+            <div className="flex -space-x-1.5" {...(folded ? { role: 'img', 'aria-label': hereText, title: hereText } : {})}>
+                {people.slice(0, folded ? 1 : 5).map((id) => (
                     <Avatar
                         key={id}
                         size="sm"
@@ -120,74 +109,101 @@ function MemberStack({ projectId, currentUserId }: { projectId: string; currentU
                     />
                 ))}
             </div>
-            <span className="text-[11px] text-[var(--text-tertiary)]">
-                {extra > 0 && `+${extra} · `}
-                {here > 0
-                    ? t('project_home.rail.here_now', '{n} here now', { n: here })
-                    : t('project_home.rail.just_you', 'Only you here now')}
-            </span>
+            {!folded && (
+                <span className="text-xs text-[var(--text-tertiary)]">
+                    {extra > 0 && `+${extra} · `}
+                    {hereText}
+                </span>
+            )}
         </div>
     );
 }
 
-export default function ProjectRail({ project, role, activeTab, counts, unread = {}, onSelect, onBack, currentUserId, hidden }: {
-    project: Project;
-    role: ProjectRole;
-    activeTab: WorkspaceTabId;
-    counts: RailCounts;
-    /** Sections with changes the reader has not seen (useProjectUnread). */
-    unread?: Partial<Record<WorkspaceTabId, boolean>>;
-    onSelect: (tab: WorkspaceTabId) => void;
-    onBack: () => void;
-    currentUserId: string | null | undefined;
-    /** Sections this reader cannot use (Notebooks without notebooks), left out of the rail. */
-    hidden?: readonly WorkspaceTabId[];
-}) {
-    const { t } = useTranslation();
-    const items = useRailItems();
-    const shown = (list: RailItem[]) => (hidden?.length ? list.filter((item) => !hidden.includes(item.id)) : list);
-    const row = (item: RailItem) => (
-        <RailRow key={item.id} item={item} active={activeTab === item.id} count={counts[item.id]} unread={!!unread[item.id]} onSelect={onSelect} />
-    );
-    const roleText = role === 'owner'
+function roleLabel(t: ReturnType<typeof useTranslation>['t'], role: ProjectRole): string {
+    return role === 'owner'
         ? t('project_home.role.owner', 'Owner')
         : role === 'editor' ? t('project_home.role.editor', 'Editor') : t('project_home.role.viewer', 'Viewer');
+}
+
+export default function ProjectRail({
+    projectId, activeTab, onSelectTab, onBack, onOpenProject, onOpenSearch, projects, currentUserId, notebooksEnabled, footer,
+}: ProjectRailProps) {
+    const { t } = useTranslation();
+    const { isDesktop } = useViewport();
+    const folded = !isDesktop; // < 1280px: icons only
+    const data = useProjectRailData(projectId, notebooksEnabled);
+    const tab = normalizeWorkspaceTab(activeTab);
+    // Project unavailable (404): only the way out. Still loading: a quiet placeholder.
+    const bare = !data.project;
 
     return (
         <nav
             aria-label={t('project_home.rail.label', 'Project sections')}
-            className="hidden md:flex h-full w-56 flex flex-col flex-shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border-subtle)]"
+            className={`h-full ${folded ? 'w-16' : 'w-60'} flex flex-col flex-shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border-subtle)]`}
             data-surface="subtle"
             data-static=""
+            data-folded={folded ? 'true' : undefined}
             data-testid="project-rail"
         >
-            <div className="px-2 pt-2">
+            <div className={`flex items-center gap-2 px-2 flex-shrink-0 ${folded ? 'flex-col justify-center py-2' : 'h-14'}`}>
                 <button
                     type="button"
                     onClick={onBack}
                     title={t('project_home.all_projects', 'All projects')}
-                    className="inline-flex items-center gap-1.5 px-1.5 py-1 rounded-lg text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]"
+                    aria-label={t('project_home.all_projects', 'All projects')}
+                    className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]"
                     data-testid="project-rail-back"
                 >
-                    <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-                    <span className="max-[767px]:sr-only">{t('project_home.all_projects', 'All projects')}</span>
+                    <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                 </button>
+                {data.project && (
+                    <ProjectSwitcherMenu current={data.project} projects={projects} onOpenProject={onOpenProject} onBack={onBack} folded={folded} />
+                )}
             </div>
-            <div className="px-3 pt-2 pb-1 max-[767px]:px-2">
-                <div className="flex items-center gap-2.5 max-[767px]:justify-center">
-                    <span style={projectTileStyle(project.color, 32)} aria-hidden="true">{projectIcon(project.icon)}</span>
-                    <div className="min-w-0 max-[767px]:sr-only">
-                        <p className="text-[14px] font-semibold text-[var(--text-primary)] truncate m-0" data-testid="project-rail-name">{project.name}</p>
-                        <p className="text-[11px] text-[var(--text-tertiary)] m-0">{roleText}</p>
+            {!bare && !folded && data.role && (
+                <p className="px-3 -mt-2 mb-1 text-xs text-[var(--text-tertiary)] m-0">{roleLabel(t, data.role)}</p>
+            )}
+            {!bare && <div className="px-2 pb-2 flex-shrink-0">
+                <button
+                    type="button"
+                    onClick={onOpenSearch}
+                    data-testid="project-rail-search"
+                    aria-label={t('project_home.search_project', 'Search this project')}
+                    title={t('project_home.search_project', 'Search this project')}
+                    className={`w-full flex items-center gap-2 ${folded ? 'justify-center' : 'px-2.5'} h-9 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-left hover:border-[var(--border-default)]`}
+                >
+                    <Search className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
+                    {!folded && (
+                        <span className="flex-1 min-w-0 truncate text-xs text-[var(--text-tertiary)]">{t('project_home.rail.search', 'Search this project…')}</span>
+                    )}
+                </button>
+            </div>}
+            {bare ? (
+                <div className="flex-1 min-h-0 px-3 py-4" aria-busy={data.loading || undefined} data-testid="project-rail-placeholder" />
+            ) : (
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-2 flex flex-col">
+                {data.groups.map((g) => (
+                    <div key={g.id} className="mt-3" role="group" aria-label={g.label}>
+                        <p className={`px-2.5 pb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-tertiary)] m-0 ${folded ? 'sr-only' : ''}`}>{g.label}</p>
+                        <div className="flex flex-col gap-0.5">
+                            {g.items.map((item) => (
+                                <RailRow
+                                    key={item.id}
+                                    item={item}
+                                    active={tab === item.id}
+                                    count={data.counts[item.id]}
+                                    unread={!!data.unread[item.id]}
+                                    folded={folded}
+                                    onSelect={onSelectTab}
+                                />
+                            ))}
+                        </div>
                     </div>
-                </div>
-                <MemberStack projectId={project.id} currentUserId={currentUserId} />
+                ))}
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-2 pt-2 flex flex-col">
-                <RailGroup label={t('project_home.rail.collaborate', 'Collaborate')}>{shown([...items.top, ...items.work.filter(i => ['chats', 'tasks', 'meetings'].includes(i.id))]).map(row)}</RailGroup>
-                <RailGroup label={t('project_home.rail.content', 'Content')}>{shown(items.work.filter(i => ['documents', 'notebooks', 'knowledge'].includes(i.id))).map(row)}</RailGroup>
-                <RailGroup label={t('project_home.rail.manage', 'Manage')}>{shown(items.project).map(row)}</RailGroup>
-            </div>
+            )}
+            {!bare && data.project && <MemberStack projectId={projectId} currentUserId={currentUserId} folded={folded} />}
+            {footer}
         </nav>
     );
 }

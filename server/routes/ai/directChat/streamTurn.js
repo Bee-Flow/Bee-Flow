@@ -51,7 +51,7 @@ const { createTurnState } = require('./turnState');
 const { runSwarmTierTurn } = require('./swarmTurn');
 const { resolveTurnSetup } = require('./turnSetup');
 const { assembleToolStack } = require('./toolStackAssembly');
-const { buildPromptAndHistory } = require('./promptAssembly');
+const { buildPromptAndHistory, applyMemorySwap } = require('./promptAssembly');
 const { setupSessionSkills } = require('./sessionSkillSetup');
 const { claimSharedThreadTurn } = require('./sharedThreadLock');
 const { swapModelForActiveStage } = require('./stageModelSwap');
@@ -205,6 +205,7 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         });
         if (!attachmentIntake) return;
         Object.assign(turn, attachmentIntake);
+        try { await applyMemorySwap(turn, userId); } catch (e) { log.warn('[DirectChat] Memory token swap failed (labels stay):', e.message); }
 
         // NOTE: a previous block here tried to inject TERMINAL_TOOLS
         // (convert_document_to_text, etc.) via require('../../terminal/tools')

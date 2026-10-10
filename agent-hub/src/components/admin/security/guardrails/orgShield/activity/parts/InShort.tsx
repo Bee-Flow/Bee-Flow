@@ -1,14 +1,12 @@
 /**
- * "In short": the period in one sentence, then the same numbers as a stacked
- * bar and a legend whose pills filter on the outcome.
+ * "In short": the period's outcomes as one stacked bar and a legend whose
+ * pills filter on the outcome.
  *
- * The sentence counts what is logged: times the shield ACTED on a message,
- * and calls to outside services. It never claims a number of messages
- * checked — messages the shield found nothing in leave no record — and it
- * only says no call carried personal data when some calls were checked.
- *
- * The counts here ignore the outcome filter itself (the pills are that
- * filter), so choosing "Stopped" dims the others instead of zeroing them.
+ * It used to open with a paragraph that put the same numbers in prose; the
+ * KPI cards and these pills already carry them, so the bar and the pills are
+ * the whole card now. The counts ignore the outcome filter itself (the pills
+ * are that filter), so choosing "Stopped" dims the others instead of zeroing
+ * them.
  */
 
 import React from 'react';
@@ -20,7 +18,7 @@ import { OUTCOME_FILL, OUTCOME_TEXT } from '../../shieldPalette';
 import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
 import { SegmentBar } from './miniCharts';
 import { needsOutline, outcomeDot } from './outcomeDot';
-import { Eyebrow, Slots } from './Panel';
+import { Eyebrow } from './Panel';
 
 /** 'passed', 'unchecked' and 'other' get a pill only when they happened. */
 const ALWAYS: Outcome[] = ['replaced', 'stopped', 'tool', 'clean'];
@@ -33,57 +31,11 @@ interface Props {
     t: TranslateFn;
 }
 
-function Sentence({ totals, fmt, t }: Pick<Props, 'totals' | 'fmt' | 't'>) {
-    const o = totals.outcomes;
-    const n = (value: number, outcome?: Outcome) => (
-        <b className={outcome ? OUTCOME_TEXT[outcome] : undefined}>{fmt(value)}</b>
-    );
-    let template: string;
-    if (o.tool > 0) template = t('shield_activity.in_short_sentence', '{events} times the shield acted on a message and {calls} calls went to outside services. The shield replaced personal data {replaced} times and stopped {stopped} — but {tool} times it left with a tool, unchanged.');
-    // "No call carried personal data" only when some calls were looked in.
-    else if (o.clean > 0) template = t('shield_activity.in_short_sentence_no_tool', '{events} times the shield acted on a message and {calls} calls went to outside services. The shield replaced personal data {replaced} times and stopped {stopped}, and no call to a tool was found carrying personal data.');
-    else template = t('shield_activity.in_short_sentence_plain', '{events} times the shield acted on a message and {calls} calls went to outside services. The shield replaced personal data {replaced} times and stopped {stopped}.');
-    return (
-        <p className="m-0 max-w-[720px] text-lg leading-7 text-[var(--text-primary)] [text-wrap:pretty]">
-            <Slots
-                template={template}
-                slots={{
-                    events: n(totals.events), calls: n(totals.calls),
-                    replaced: n(o.replaced, 'replaced'), stopped: n(o.stopped, 'stopped'), tool: n(o.tool, 'tool'),
-                }}
-            />
-            {o.unchecked > 0 && (
-                <>
-                    {' '}
-                    <Slots
-                        template={o.unchecked === 1
-                            ? t('shield_activity.in_short_unchecked_one', 'One call was not checked for personal data.')
-                            : t('shield_activity.in_short_unchecked', '{unchecked} calls were not checked for personal data.')}
-                        slots={{ unchecked: n(o.unchecked, 'unchecked') }}
-                    />
-                </>
-            )}
-            {o.passed > 0 && (
-                <>
-                    {' '}
-                    <Slots
-                        template={o.passed === 1
-                            ? t('shield_activity.in_short_passed_one', 'Once, the shield let something through anyway: a person chose to send it, it was only noted, or the check could not run.')
-                            : t('shield_activity.in_short_passed', '{passed} times the shield let something through anyway: a person chose to send it, it was only noted, or the check could not run.')}
-                        slots={{ passed: n(o.passed, 'passed') }}
-                    />
-                </>
-            )}
-        </p>
-    );
-}
-
 export function InShort({ totals, selected, onToggle, fmt, t }: Props) {
     const shown = OUTCOME_ORDER.filter(o => ALWAYS.includes(o) || totals.outcomes[o] > 0);
     return (
-        <div className="flex flex-col gap-4 self-start px-5 py-[18px]">
+        <div className="flex flex-col gap-2.5 px-[18px] py-3.5">
             <Eyebrow>{t('shield_activity.in_short', 'In short')}</Eyebrow>
-            <Sentence totals={totals} fmt={fmt} t={t} />
             <div className="flex flex-col gap-2">
                 <div className="overflow-hidden rounded">
                     <SegmentBar

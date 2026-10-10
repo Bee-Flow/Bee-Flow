@@ -63,6 +63,15 @@ const SURFACES = Object.freeze({
      *  PROJECT_SHARED_MESSAGES in stores/agent/messageCrypto.js, and the same
      *  honest label: on `zk` this surface is readable by the server operator. */
     TRANSCRIPTS: 'transcripts',
+    /** user_memories.content / summary / value / evidence_quote / subject /
+     *  attribute and the embedding — what Bee Flow remembers about a person,
+     *  which is often more intimate than any single message. Extraction,
+     *  automations and retention read and write it with no session in scope, so
+     *  on `zk` it uses the NARROW ESCROW (ZK_ESCROW_SURFACES in
+     *  stores/agent/messageCrypto.js), and a project's shared pool is keyed to
+     *  the project. Same honest label as the token map: on `zk` this surface is
+     *  readable by the server operator. Implemented in stores/memoryCrypto.js. */
+    MEMORIES: 'memories',
 });
 
 // NOTE — the per-user tokenization vault (pii_vault_entries) is deliberately
@@ -100,6 +109,10 @@ const IMPLEMENTED_SURFACES = Object.freeze([
     // The reason is written out in full at the top of transcriptCrypto.js;
     // this is a real remaining gap, deliberately visible rather than implied.
     SURFACES.TRANSCRIPTS,
+    // Wired in stores/memoryCrypto.js + stores/memoryStore.js. Rows written
+    // before the surface was on stay plaintext until a backfill touches them
+    // (reads detect the format per value, so nothing is unreadable meanwhile).
+    SURFACES.MEMORIES,
 ]);
 
 /** @param {string} surface @returns {boolean} */

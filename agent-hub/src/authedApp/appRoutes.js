@@ -131,6 +131,17 @@ export function usesStudioRail(page, section = null) {
     return true;
 }
 
+// Inside one project (/app/projects/:id*) the workspace swaps its global
+// sidebar for the project's own 240px rail
+// (components/projects/workspace/ProjectRail.tsx), exactly as Studio does above.
+// The page key is only ever the bare 'projects' for every /app/projects* URL;
+// WHICH project (if any) is open lives in the project route, so the caller
+// passes its id. The list (no id) and the create form ('new') keep the
+// ordinary sidebar: there is no project to show.
+export function usesProjectRail(page, projectId) {
+    return page === 'projects' && typeof projectId === 'string' && projectId !== '' && projectId !== 'new';
+}
+
 // Reduce a navigateToPage() argument (which may be a bare key, a 'studio/agents'
 // path form, or an 'agentDesigner:<id>' form) to the canonical page key used by
 // MOBILE_ALLOWED_PAGES. Mirrors the alias handling inside navigateToPage().

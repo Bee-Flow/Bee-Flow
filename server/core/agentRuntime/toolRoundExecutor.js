@@ -650,6 +650,9 @@ async function executeToolRound({
                                         // connection overrode it below, which silently broke
                                         // dynamic-skill activation on the agent streaming path.
                                         orgId: messageMetadata.orgId || agent.organization_id || null,
+                                        // Per-chat memory controls, for memory_search / memory_remember.
+                                        memoryReadEnabled: messageMetadata.memoryReadEnabled,
+                                        memoryWriteEnabled: messageMetadata.memoryWriteEnabled,
                                         // Skill-scoped app enablement: lets activate_skill
                                         // widen the integration toolbelt mid-conversation.
                                         onSkillsActivated,

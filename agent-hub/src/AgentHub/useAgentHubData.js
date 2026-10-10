@@ -7,6 +7,7 @@ import useChatEngine from '../hooks/useChatEngine';
 import { chatSignalsSurfaceFor, resolveTurnEndpoint } from '../hooks/useChatEngine/turnEndpoint';
 import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
 import { API_BASE, authFetch, generateMessageId } from '../utils/helpers';
+import { memoryLockOf, OPEN_MEMORY_PANEL_EVENT } from '../utils/memoryMode';
 import { hasRenderableContent, normalizeLoadedMessages } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
 import { loadWorkspaceNotebook } from '../utils/workspaceNotebook';
@@ -132,6 +133,8 @@ const useAgentHubData = ({
     const chatSignalsPayloadRef = useRef(chatSignals.payloadFor);
     useEffect(() => { chatSignalsPayloadRef.current = chatSignals.payloadFor; }, [chatSignals.payloadFor]);
     const getChatSignalsPayload = useCallback((surface) => chatSignalsPayloadRef.current?.(surface) ?? null, []);
+    // Lets the engine skip the "Remembered" lookup when memory is paused or off for the org.
+    const getMemoryLock = useCallback(() => memoryLockOf(user), [user]);
 
     // Chat engine hook — owns messages, isLoading, sendMessage, stopGenerating
     const { messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate } = useChatEngine({
@@ -255,6 +258,7 @@ const useAgentHubData = ({
                 .map(({ toolCall, isStreaming, ...clean }) => clean);
         }, [directChatMode, currentDirectConversation?.id, currentConversation?.id, selectedAgent?.id]),
         getChatSignalsPayload,
+        getMemoryLock,
     });
 
     // Once a thread has a message in it the mode is settled — see
@@ -354,6 +358,13 @@ const useAgentHubData = ({
     }, [setSidebarOpen]);
 
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+    // Message rows (the "Memory used" and "Remembered" lines) ask for the panel
+    // by event: they sit too deep in the tree to be handed a callback.
+    useEffect(() => {
+        const open = () => setShowMemoryPanel(true);
+        window.addEventListener(OPEN_MEMORY_PANEL_EVENT, open);
+        return () => window.removeEventListener(OPEN_MEMORY_PANEL_EVENT, open);
+    }, []);
     const [showAgentMenu, setShowAgentMenu] = useState(false);
 
     // Favourites hydrate per-user via the same `user?.id` effect below.

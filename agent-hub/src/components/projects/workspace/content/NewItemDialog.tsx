@@ -6,6 +6,7 @@
 import React, { useId, useState } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import Modal from '../../../shared/Modal';
+import { SelectField } from '../workspaceUi';
 
 export const MAX_ITEM_NAME = 200;
 export const MAX_ITEM_DESCRIPTION = 1000;
@@ -105,9 +106,9 @@ export default function NewItemDialog(props: NewItemDialogProps) {
                     : (
                         <div>
                             <label htmlFor={`${ids}-type`} className={LABEL}>{typeLabel || t('project_content.type', 'Type')}</label>
-                            <select id={`${ids}-type`} className={FIELD} value={type} onChange={(e) => setType(e.target.value)}>
+                            <SelectField id={`${ids}-type`} wrapperClassName="relative block" className="w-full" value={type} onChange={(e) => setType(e.target.value)}>
                                 {typeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            </select>
+                            </SelectField>
                         </div>
                     ))}
                 {withDescription && (

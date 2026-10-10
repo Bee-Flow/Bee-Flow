@@ -16,7 +16,7 @@ vi.mock('../../../utils/helpers', async (importOriginal) => ({
     authFetch: fetchMock,
 }));
 
-function renderTab(role: WorkspaceTabProps['role'], userId: string, routes: Record<string, unknown> = {}) {
+function renderTab(role: WorkspaceTabProps['role'], userId: string, routes: Record<string, unknown> = {}, projectOver: Partial<ReturnType<typeof makeProject>> = {}) {
     const api = makeFakeApi({
         'GET /api/projects/p1/members': makeMembers(),
         'PUT /api/projects/p1': (call: { body: unknown }) => ({ ...makeProject(), ...(call.body as object), version: 4 }),
@@ -28,7 +28,7 @@ function renderTab(role: WorkspaceTabProps['role'], userId: string, routes: Reco
     const onDeleted = vi.fn();
     const onLeft = vi.fn();
     const props: WorkspaceTabProps = {
-        projectId: 'p1', project: makeProject({ role }), role, currentUser: { id: userId },
+        projectId: 'p1', project: makeProject({ role, ...projectOver }), role, currentUser: { id: userId },
         sub: null, onOpenSub: vi.fn(), onNavigate: vi.fn(),
     };
     render(withQueryClient(<SettingsTab {...props} onDeleted={onDeleted} onLeft={onLeft} />));
@@ -136,5 +136,70 @@ describe('SettingsTab — delete and leave', () => {
     it('explains that a member through a group cannot leave on their own', async () => {
         renderTab('viewer', 'someone-in-marketing');
         expect(await screen.findByText(/You are in this project through a group/)).toBeInTheDocument();
+    });
+});
+
+describe('SettingsTab — collaboration, ownership, archive', () => {
+    it('lets the owner switch off "Editors may invite people" and saves it', async () => {
+        const { api, user } = renderTab('owner', OWNER_ID, {}, { editorsCanInvite: true });
+        await user.click(screen.getByRole('checkbox', { name: 'Editors may invite people' }));
+        await user.click(screen.getByTestId('settings-save'));
+        await waitFor(() => expect(api.callsTo('PUT', '/api/projects/p1')).toHaveLength(1));
+        expect(api.callsTo('PUT', '/api/projects/p1')[0].body).toMatchObject({ editorsCanInvite: false });
+    });
+
+    it('never sends editorsCanInvite for an editor, and shows none of the owner cards', async () => {
+        const { api, user } = renderTab('editor', EDITOR_ID, {}, { editorsCanInvite: true });
+        expect(screen.queryByTestId('settings-ownership')).toBeNull();
+        expect(screen.queryByTestId('settings-archive')).toBeNull();
+        await user.type(screen.getByTestId('project-field-name'), '!');
+        await user.click(screen.getByTestId('settings-save'));
+        await waitFor(() => expect(api.callsTo('PUT', '/api/projects/p1')).toHaveLength(1));
+        expect(api.callsTo('PUT', '/api/projects/p1')[0].body).not.toHaveProperty('editorsCanInvite');
+    });
+
+    it('opens the transfer dialog from the Ownership card', async () => {
+        const { user } = renderTab('owner', OWNER_ID);
+        await user.click(screen.getByTestId('settings-transfer-open'));
+        expect(await screen.findByTestId('transfer-dialog')).toBeInTheDocument();
+    });
+
+    it('archives after a confirmation', async () => {
+        const { api, user } = renderTab('owner', OWNER_ID, { 'POST /api/projects/p1/archive': { success: true, archivedAt: '2026-10-10T10:00:00Z' } });
+        await user.click(screen.getByTestId('settings-archive-open'));
+        await user.click(within(await screen.findByRole('dialog', { name: 'Archive this project?' })).getByRole('button', { name: 'Archive' }));
+        await waitFor(() => expect(api.callsTo('POST', '/api/projects/p1/archive')).toHaveLength(1));
+    });
+
+    it('offers Restore instead for an archived project, and locks the form', async () => {
+        const { api, user } = renderTab('owner', OWNER_ID, { 'POST /api/projects/p1/restore': { success: true, archivedAt: null } },
+            { archivedAt: '2026-10-01T10:00:00Z' });
+        expect(screen.queryByTestId('settings-archive-open')).toBeNull();
+        await user.click(screen.getByTestId('settings-restore'));
+        await waitFor(() => expect(api.callsTo('POST', '/api/projects/p1/restore')).toHaveLength(1));
+    });
+});
+
+describe('SettingsTab: mute this project', () => {
+    it('lets any member mute and unmute it for themselves, even a viewer', async () => {
+        const { api, user } = renderTab('viewer', VIEWER_ID, {
+            'PUT /api/projects/p1/mute': { muted: true },
+            'DELETE /api/projects/p1/mute': { muted: false },
+        });
+        const toggle = screen.getByRole('checkbox', { name: 'Mute this project for me' });
+        expect(toggle).not.toBeChecked();
+        await user.click(toggle);
+        await waitFor(() => expect(api.callsTo('PUT', '/api/projects/p1/mute')).toHaveLength(1));
+    });
+
+    it('unmutes from the state the project row carries (after a reload)', async () => {
+        const { api, user } = renderTab('viewer', VIEWER_ID, { 'DELETE /api/projects/p1/mute': { muted: false } }, { muted: true });
+        await user.click(screen.getByRole('checkbox', { name: 'Mute this project for me' }));
+        await waitFor(() => expect(api.callsTo('DELETE', '/api/projects/p1/mute')).toHaveLength(1));
+    });
+
+    it('starts muted when the project row says so', () => {
+        renderTab('editor', EDITOR_ID, {}, { muted: true });
+        expect(screen.getByRole('checkbox', { name: 'Mute this project for me' })).toBeChecked();
     });
 });

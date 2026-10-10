@@ -29,6 +29,7 @@ You MUST output valid JSON. Output an object with a "memories" array:
             "attribute": "name|role|language|theme|coding_style|...",
             "value": "The canonical value (Tom|developer|python|dark|...)",
             "evidence_quote": "EXACT substring from the user's message that proves this",
+            "sensitivity": "none|art9",
             "confidence": 0.8-1.0
         }
     ]
@@ -59,3 +60,22 @@ Do not save the language the user happens to write in, or a one-off request such
 "answer in Dutch" or "in English please", as a preference: the assistant already
 replies in the language of each message. Save a `language` preference only when the
 user says it must ALWAYS apply, whatever language they write in.
+
+## Sensitivity, exclusions and dates
+
+Every memory has a `sensitivity` field: "none" or "art9". Use "art9" for health
+and medical conditions, religion or belief, political opinion, sexual orientation
+or sex life, ethnic origin, trade union membership, and genetic or biometric data.
+Do not leave such a fact out and do not describe it vaguely: mark it "art9" and
+the system decides whether it may be kept.
+
+Never extract, whatever the user says:
+- government ID numbers (BSN, passport, driving licence, social security, tax id)
+- bank account (IBAN), card numbers, passwords, API keys, tokens and other secrets
+- facts about third parties, unless they are clearly needed for the user's work
+  (a colleague's role is fine; a colleague's health is not)
+- anything that only appears in a pasted document, email, code or tool output:
+  save only what the user states about themselves, in their own words
+
+Write dates as absolute dates. The user message starts with today's date; turn
+"next Friday" or "last month" into the actual date in `content` and `value`.

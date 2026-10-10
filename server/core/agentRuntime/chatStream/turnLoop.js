@@ -96,7 +96,7 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
     const {
         dlpShield, regexConfig, webSearchGuardEnabled,
         webSearchGuardPiiCategories, _eventWrapper, _ut, _captureRaw,
-        _kbSources, _seenChunkIds,
+        _kbSources, _seenChunkIds, memoryPolicy, memoryUsed,
     } = _preflight;
     let {
         systemPrompt, volatileSystemPrompt, moderationViolation, guardrailViolation,
@@ -497,7 +497,7 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
                 messages, persistDurable, isEphemeral, agent, agentId, userId,
                 guardrailViolation, processedUserMessage, userMessage, userAuth,
                 extractMemoriesEnabled, validProjectId, modelToUse, toolCalls,
-                _serializeConversationWrite,
+                _serializeConversationWrite, memoryPolicy, memoryUsed,
             });
         } catch (error) {
             // Classify the error for better logging and user-facing messages

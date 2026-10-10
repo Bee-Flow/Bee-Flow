@@ -28,15 +28,24 @@ function stub(request, exportsObj) {
     preloadStubs(require, { [request]: exportsObj });
 }
 
-const fx = { existingValue: 'none', reply: null };
+const fx = { existingValue: 'none', reply: null, creates: [], updates: [], prompts: [] };
 
 stub('../../stores/memoryStore', {
-    createMemory: async () => 'new-id',
+    createMemory: async (...args) => { fx.creates.push(args); return 'new-id'; },
     findByKey: async (_u, _type, _subject, attribute) => (attribute === 'condition' ? { id: 'm1', value: fx.existingValue } : null),
     findSimilarMemory: async () => null,
-    updateMemoryValue: async () => {},
+    findSimilarMemories: async () => [],
+    updateMemoryValue: async () => { fx.updates.push(1); },
     confirmMemory: async () => {},
     addMemorySource: async () => {},
+});
+// The writer's other collaborators: no consent for sensitive data, no cap work.
+stub('../../core/memory/memoryPolicy', {
+    isSensitiveOptInForUser: async () => false,
+    getOrgMemorySettings: async () => ({ maxPerUser: 1000 }),
+});
+stub('../../stores/memoryLifecycle', {
+    confirm: async () => {}, supersede: async () => {}, enforceCap: async () => 0,
 });
 stub('../../stores/agentStore', {
     getAgent: async () => null,
@@ -46,7 +55,7 @@ stub('../../core/llm/modelResolver', {
     resolveModelWithGlobalFallback: async () => 'model-x',
 });
 stub('../../core/llm/llmClient', {
-    chat: async () => ({ content: JSON.stringify({ memories: fx.reply }) }),
+    chat: async (_m, msgs) => { fx.prompts.push(msgs); return { content: JSON.stringify({ memories: fx.reply }) }; },
 });
 
 const { extractFromConversation } = require('./extractor');
@@ -78,25 +87,55 @@ async function captured(fn) {
     return lines;
 }
 
-function assertNoContent(lines) {
+function assertNoContent(lines, forbidden = /diabetes|insulin/i) {
     assert.ok(lines.length > 0, 'the extractor logged nothing at all');
     for (const line of lines) {
-        assert.ok(!/diabetes|insulin/i.test(line), `a log line carries what the user said: ${line}`);
+        assert.ok(!forbidden.test(line), `a log line carries what the user said: ${line}`);
     }
 }
 
-test('updating, rejecting, skipping and filtering memories logs no memory content', async () => {
+test('rejecting (sensitive), skipping and filtering memories logs no memory content', async () => {
     fx.existingValue = 'none';
     fx.reply = MEMORIES;
     const lines = await captured(() => extractFromConversation('usr_42', null, [{ role: 'user', content: MESSAGE }]));
-    assert.ok(lines.some(l => l.includes('Updating memory m1')), lines.join('\n'));
+    assert.ok(lines.some(l => l.includes('rejected (art9_no_consent)')), lines.join('\n'));
     assertNoContent(lines);
 });
 
-test('confirming an existing memory logs no memory content', async () => {
-    fx.existingValue = 'type 2 diabetes';
-    fx.reply = [MEMORIES[0]];
-    const lines = await captured(() => extractFromConversation('usr_42', null, [{ role: 'user', content: MESSAGE }]));
-    assert.ok(lines.some(l => l.includes('Confirming existing memory m1')), lines.join('\n'));
-    assertNoContent(lines);
+const PROJECT_MESSAGE = 'I am the lead of the Zephyr migration';
+const ROLE = { type: 'person', subject: 'user', attribute: 'condition', value: 'Zephyr lead', content: 'User leads the Zephyr migration', evidence_quote: 'lead of the Zephyr migration', confidence: 0.9 };
+
+test('superseding and confirming an existing memory log no memory content', async () => {
+    fx.reply = [ROLE];
+    fx.existingValue = 'old role';
+    let lines = await captured(() => extractFromConversation('usr_42', null, [{ role: 'user', content: PROJECT_MESSAGE }]));
+    assert.ok(lines.some(l => l.includes('superseded') && l.includes('new-id')), lines.join('\n'));
+    assertNoContent(lines, /zephyr/i);
+
+    fx.existingValue = 'Zephyr lead';
+    lines = await captured(() => extractFromConversation('usr_42', null, [{ role: 'user', content: PROJECT_MESSAGE }]));
+    assert.ok(lines.some(l => l.includes('confirmed m1')), lines.join('\n'));
+    assertNoContent(lines, /zephyr/i);
+});
+
+test('a changed value goes through the writer as a new row: never an in-place update', async () => {
+    fx.creates = []; fx.updates = []; fx.prompts = [];
+    fx.reply = [ROLE]; fx.existingValue = 'old role';
+    const out = await extractFromConversation('usr_42', null, [{ role: 'user', content: PROJECT_MESSAGE }], 'conv-1', null, 'org-1');
+    assert.equal(fx.updates.length, 0, 'updateMemoryValue is gone from the extractor');
+    assert.equal(fx.creates.length, 1);
+    const [, , , , , , subject, attribute, value, , , opts] = fx.creates[0];
+    assert.deepEqual([subject, attribute, value], ['user', 'condition', 'Zephyr lead']);
+    assert.deepEqual(opts, { origin: 'inferred', sourceConversationId: 'conv-1', sensitivity: 'none', status: 'active', confidence: 0.9 });
+    assert.equal(out[0].action, 'superseded');
+});
+
+test('the prompt carries today\'s date and the sensitivity flag reaches the writer', async () => {
+    fx.creates = []; fx.prompts = [];
+    fx.existingValue = 'none';
+    fx.reply = [{ ...ROLE, attribute: 'goal', sensitivity: 'art9', content: 'User leads the Zephyr migration' }];
+    await extractFromConversation('usr_42', null, [{ role: 'user', content: PROJECT_MESSAGE }]);
+    const user = fx.prompts[0].find((m) => m.role === 'user').content;
+    assert.match(user, /Today's date: \d{4}-\d{2}-\d{2}/);
+    assert.equal(fx.creates.length, 0, 'art9 without consent is not stored');
 });

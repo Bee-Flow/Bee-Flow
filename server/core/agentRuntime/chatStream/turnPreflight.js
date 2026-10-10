@@ -19,6 +19,7 @@ const { buildSystemPrompt } = require('../contextBuilder');
 const { runInputGuardrails } = require('../guardrailsRunner');
 const { resolveShieldFor } = require('../../privacy/orgShield');
 const { resolveMemoryContext, injectProjectAndKnowledgeContext } = require('../contextEnrichment');
+const { resolveMemoryPolicy } = require('../../memory/memoryPolicy');
 const { createUntokenisingEventWrapper } = require('../streamUntokeniser');
 const chatSignals = require('../../privacy/chatSignals');
 const log = require('../../../telemetry/log');
@@ -52,7 +53,20 @@ async function runTurnPreflight({
     // ============ MEMORY INTEGRATION ============
     // Retrieval + scrub live in ./contextEnrichment (skipped for embed agents —
     // private user memories must not leak into public embed chats).
-    const memoryContext = await resolveMemoryContext({ agent, agentId, userId, userMessage, validProjectId, onEvent });
+    // The memory gate is resolved ONCE here and returned, so finalizeTurn's
+    // extraction uses the same answer. Moderation/guardrail (`blocked`) is only
+    // known further down and is applied by finalizeTurn on top.
+    const memoryPolicy = await resolveMemoryPolicy({
+        userId,
+        orgId: messageMetadata?.userOrgId || userAuth?.userOrgId || agent.organization_id || null,
+        agent,
+        perChatReadEnabled: messageMetadata?.memoryReadEnabled,
+        perChatWriteEnabled: messageMetadata?.memoryWriteEnabled,
+    });
+    // `memoryUsed`: the memories injected this turn, persisted on the assistant message.
+    const memoryUsedOut = { items: [] };
+    const memoryContext = await resolveMemoryContext({ agent, agentId, userId, userMessage, validProjectId, onEvent, memoryPolicy, usedOut: memoryUsedOut, conversationId: conversation?.id || null });
+    const memoryUsed = memoryUsedOut.items;
 
     const isStrictKnowledge = agent.config?.strictKnowledge === true;
     // effectiveTier/isStandardTier are computed above tool assembly (skill-app
@@ -263,6 +277,7 @@ async function runTurnPreflight({
         moderationViolation, guardrailViolation, processedUserMessage,
         _userPrivacyMeta, _assistantTokenisationInfo, regexConfig,
         webSearchGuardEnabled, webSearchGuardPiiCategories,
+        memoryPolicy, memoryUsed,
         tools, onEvent, _eventWrapper, _ut, _captureRaw, _kbSources, _seenChunkIds,
     };
 }

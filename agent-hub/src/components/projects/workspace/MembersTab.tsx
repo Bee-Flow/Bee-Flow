@@ -4,12 +4,13 @@
 
 import { UserPlus, Users } from 'lucide-react';
 import React, { useState } from 'react';
-import { useProjectMembersQuery } from '../../../api/queries/projects';
+import { useProjectMembersQuery, type ProjectMembers } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
 import ProjectMembersPanel from './ProjectMembersPanel';
+import TransferOwnerDialog from './TransferOwnerDialog';
 import { StudioSectionHeader } from './studioParts';
 import type { WorkspaceTabProps } from './types';
-import { PrimaryButton } from './workspaceUi';
+import { PrimaryButton, SecondaryButton } from './workspaceUi';
 
 function RolesExplainer() {
     const { t } = useTranslation();
@@ -30,7 +31,34 @@ function RolesExplainer() {
     );
 }
 
-export default function MembersTab({ projectId, role, currentUser, intent, onLeft }: WorkspaceTabProps & {
+type TFn = ReturnType<typeof useTranslation>['t'];
+
+/** "3 people · 1 groups", or null while the members load. */
+function accessCountLabel(data: ProjectMembers | undefined, t: TFn): string | null {
+    if (!data) return null;
+    const peopleCount = new Set([data.ownerId, ...data.members.filter(m => m.sharedWithType === 'user').map(m => m.sharedWithId)]).size;
+    const groupsCount = data.members.filter(m => m.sharedWithType === 'group').length;
+    return String(t('project_home.members.access_count', '{people} people · {groups} groups', { people: peopleCount, groups: groupsCount }));
+}
+
+/** An organisation admin who is not the owner can name a new owner. */
+function AdminTransfer({ projectId, ownerId, currentUserId }: { projectId: string; ownerId: string | undefined; currentUserId: string | null | undefined }) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="flex items-center justify-between gap-3 flex-wrap" data-testid="members-admin-transfer">
+            <p className="m-0 text-[12.5px] text-[var(--text-tertiary)]">
+                {t('project_home.members.admin_transfer', 'As an organisation admin you can name a new owner for this project.')}
+            </p>
+            <SecondaryButton onClick={() => setOpen(true)} data-testid="members-admin-transfer-open">
+                {t('project_home.transfer.open', 'Transfer ownership…')}
+            </SecondaryButton>
+            <TransferOwnerDialog open={open} onClose={() => setOpen(false)} projectId={projectId} ownerId={ownerId} currentUserId={currentUserId} />
+        </div>
+    );
+}
+
+export default function MembersTab({ projectId, project, role, currentUser, intent, readOnly, onLeft }: WorkspaceTabProps & {
     /** The caller left the project from this tab. */
     onLeft?: () => void;
 }) {
@@ -39,17 +67,18 @@ export default function MembersTab({ projectId, role, currentUser, intent, onLef
     // A quick action ("Invite people") arrives as an intent: focus the form once.
     const [focusRequest, setFocusRequest] = useState(intent === 'invite' ? 1 : 0);
     const isOwner = role === 'owner';
-    const peopleCount = members.data ? new Set([members.data.ownerId, ...members.data.members.filter(m => m.sharedWithType === 'user').map(m => m.sharedWithId)]).size : 0;
-    const groupsCount = members.data?.members.filter(m => m.sharedWithType === 'group').length || 0;
-    const count = members.data ? t('project_home.members.access_count', '{people} people · {groups} groups', { people: peopleCount, groups: groupsCount }) : null;
+    // Editors invite while the project allows it; nobody invites into an archived project.
+    const canInvite = !readOnly && (isOwner || (role === 'editor' && project.editorsCanInvite === true));
+    const adminRescue = !isOwner && !!currentUser?.isOrgAdmin;
+    const count = accessCountLabel(members.data, t);
 
     return (
         <div className="h-full flex flex-col min-h-0" data-testid="project-members-tab">
             <StudioSectionHeader
                 icon={Users}
                 title={t('project_home.tab.members', 'Members')}
-                statusChip={count === null ? null : String(count)}
-                primary={isOwner ? (
+                statusChip={count}
+                primary={canInvite ? (
                     <PrimaryButton onClick={() => setFocusRequest((n) => n + 1)} data-testid="members-invite-open">
                         <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
                         {t('project_home.members.invite_people', 'Invite people')}
@@ -63,8 +92,11 @@ export default function MembersTab({ projectId, role, currentUser, intent, onLef
                         role={role}
                         currentUserId={currentUser?.id}
                         inviteFocusRequest={focusRequest}
+                        canInvite={canInvite}
+                        readOnly={readOnly}
                         onLeft={onLeft}
                     />
+                    {adminRescue && <AdminTransfer projectId={projectId} ownerId={project.ownerId ?? members.data?.ownerId} currentUserId={currentUser?.id} />}
                     <section className="space-y-2">
                         <h2 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] m-0">
                             {t('project_home.members.roles_title', 'What each role can do')}

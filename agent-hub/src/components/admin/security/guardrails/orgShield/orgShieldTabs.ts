@@ -25,14 +25,14 @@ import type { LucideIcon } from 'lucide-react';
  * always-on gate) and "Leaving your org" (the interactive pre-flight, external
  * providers only) as alternatives. They are consecutive stages of one path: a
  * message is scanned, then handled, then — only if the model is outside the
- * organisation — checked once more. Numbering the stages 1–4 and ending the
- * path at the AI model makes the order visible without being explained.
+ * organisation — checked once more. Numbering the stages 1–4 makes the order
+ * visible without being explained; each stage is its own pane.
  *
  * Overview and What happened are NOT stages — they are a summary and a log of
  * the whole thing — so they sit outside the path as standalone pills.
  *
- * Semantically this is still one tablist; the numbers, the chevrons and the
- * path's two ends are decoration and are hidden from assistive tech.
+ * Semantically this is still one tablist; the numbers and the chevrons are
+ * decoration and are hidden from assistive tech.
  */
 export interface ShieldTab {
     id: string;
@@ -75,22 +75,6 @@ export const ALL_TAB_IDS = [...TAB_IDS, ACTIVITY_TAB.id];
  * number on the strip is its position here, plus one.
  */
 export const PIPELINE_TAB_IDS = ['detection', 'owndata', 'processing', 'outbound'];
-
-/**
- * `processing` and `outbound` render the SAME pane — the two checks side by
- * side, in the order they run, because the whole point is that they are
- * consecutive rather than alternative. Both ids stay live so existing
- * `?tab=` bookmarks keep working and the strip can still say which stage you
- * clicked; the pane emphasises that one.
- *
- * @see tabs/ChecksTab.tsx
- */
-export const CHECKS_TAB_IDS = ['processing', 'outbound'];
-
-/** Does this tab id render the combined two-checks pane? */
-export function isChecksTab(id: string | null | undefined): boolean {
-    return CHECKS_TAB_IDS.includes(id ?? '');
-}
 
 /**
  * Never trust the URL. A stale bookmark, a typo, or a link from a future

@@ -1,5 +1,5 @@
 import React, { type LazyExoticComponent, Suspense } from 'react';
-import type { Project } from '../api/queries/projects';
+import { useProjectsQuery, type Project } from '../api/queries/projects';
 import type ProjectsHomePage from '../components/projects/ProjectsHome';
 import type { AppUserLike, OpenThreadTarget, StartChat } from '../components/projects/workspace/types';
 import type WorkspacePage from '../components/projects/workspace/ProjectWorkspacePage';
@@ -38,6 +38,9 @@ export interface ProjectsViewProps {
     onStartChat: StartChat;
     /** Whether this person may use notebooks (plan, switch, permission). Absent: true. */
     notebooksEnabled?: boolean;
+    /** The project search dialog; the hub owns the flag because the sidebar rail opens it. */
+    searchOpen?: boolean;
+    onSearchOpenChange?: (open: boolean) => void;
 }
 
 function PageFallback() {
@@ -55,9 +58,11 @@ function PageFallback() {
  */
 export default function ProjectsView({
     route, projects, loading, error, user,
-    onGoToProject, onClose, onSaved, onDeleted, onOpenThread, onNavigate, onStartChat, notebooksEnabled,
+    onGoToProject, onClose, onSaved, onDeleted, onOpenThread, onNavigate, onStartChat, notebooksEnabled, searchOpen, onSearchOpenChange,
 }: ProjectsViewProps) {
     const projectId = route.projectId;
+    // Archived projects are not in the hub's list; the list page reads them for its "Archived" pill.
+    const archived = useProjectsQuery('workspace', { enabled: projectId === null, includeArchived: true });
     return (
         <Suspense fallback={<PageFallback />}>
             {projectId !== null ? (
@@ -81,10 +86,13 @@ export default function ProjectsView({
                     onNavigate={onNavigate}
                     onStartChat={onStartChat}
                     notebooksEnabled={notebooksEnabled}
+                    searchOpen={searchOpen}
+                    onSearchOpenChange={onSearchOpenChange}
                 />
             ) : (
                 <ProjectsHome
                     projects={projects}
+                    archivedProjects={archived.data}
                     loading={loading}
                     error={error}
                     user={user}

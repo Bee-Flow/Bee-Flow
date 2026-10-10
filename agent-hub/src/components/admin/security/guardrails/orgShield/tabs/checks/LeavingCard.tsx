@@ -10,7 +10,7 @@ import { LastCheckRow } from './LastCheckRow';
 import { ToolGapNote } from './ToolGapNote';
 
 /**
- * Check ②: everything that applies only on the way OUT of the organisation.
+ * Step 4: everything that applies only on the way OUT of the organisation.
  *
  * Rows whose feature is not set up on this server (no EU models, no search
  * provider) are left out rather than shown as switches that would do nothing.
@@ -91,7 +91,7 @@ export function LeavingCard({
 }) {
     return (
         <CheckCard
-            n={2}
+            n={4}
             title={t('shield_checks.leaving_title', 'Before it leaves your organisation')}
             subtitle={t('shield_checks.leaving_sub', 'only for an AI outside your organisation · the only step where people decide')}
             footer={(

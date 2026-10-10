@@ -58,6 +58,7 @@ const projectStoreMock = {
         return p ? {
             id, name: `Project ${id}`, ownerId: p.ownerId, extractMemories: !!p.extractMemories,
             kind: p.kind === undefined ? 'workspace' : p.kind,
+            archivedAt: p.archivedAt || null,
         } : null;
     },
 };
@@ -331,4 +332,62 @@ test('middleware can gate on a differently-named route param', async () => {
         { session: { user: { id: 'alice' } }, params: { projectId: 'p1' } }
     );
     assert.strictEqual(nexted, true);
+});
+
+
+// ═══ Archived projects are read-only ═════════════════════════════════
+
+function runGate(minRole, userId, projectId, opts) {
+    const req = { session: { user: { id: userId } }, params: { id: projectId } };
+    return new Promise((resolve) => {
+        const res = {
+            statusCode: 200,
+            status(c) { this.statusCode = c; return this; },
+            json(b) { this.body = b; resolve({ res: this, req, nexted: false }); return this; },
+        };
+        const mw = opts === undefined ? projectAccess.requireProjectRole(minRole) : projectAccess.requireProjectRole(minRole, opts);
+        Promise.resolve(mw(req, res, () => resolve({ res, req, nexted: true })));
+    });
+}
+
+test('an archived project refuses editor and owner gates with 409 project_archived', async () => {
+    resetFx();
+    fx.projects.p1 = { ownerId: 'alice', archivedAt: '2026-10-01T00:00:00Z', shares: [{ type: 'user', id: 'bob', permission: 'editor' }] };
+    for (const [minRole, user] of [['editor', 'bob'], ['owner', 'alice']]) {
+        const out = await runGate(minRole, user, 'p1');
+        assert.strictEqual(out.nexted, false);
+        assert.strictEqual(out.res.statusCode, 409);
+        assert.strictEqual(out.res.body.code, 'project_archived');
+        assert.match(out.res.body.error, /archived/i);
+    }
+});
+
+test('an archived project still serves viewer gates, and attaches req.project', async () => {
+    resetFx();
+    fx.projects.p1 = { ownerId: 'alice', archivedAt: '2026-10-01T00:00:00Z', shares: [{ type: 'user', id: 'bob', permission: 'viewer' }] };
+    const out = await runGate('viewer', 'bob', 'p1');
+    assert.strictEqual(out.nexted, true);
+    assert.strictEqual(out.req.projectRole, 'viewer');
+});
+
+test('allowArchived lets the owner through an archived project', async () => {
+    resetFx();
+    fx.projects.p1 = { ownerId: 'alice', archivedAt: '2026-10-01T00:00:00Z' };
+    const out = await runGate('owner', 'alice', 'p1', { allowArchived: true });
+    assert.strictEqual(out.nexted, true);
+    assert.strictEqual(out.req.project.archivedAt, '2026-10-01T00:00:00Z');
+});
+
+test('the role check wins over the archived check (403 for a viewer, 404 for a stranger)', async () => {
+    resetFx();
+    fx.projects.p1 = { ownerId: 'alice', archivedAt: '2026-10-01T00:00:00Z', shares: [{ type: 'user', id: 'bob', permission: 'viewer' }] };
+    assert.strictEqual((await runGate('editor', 'bob', 'p1')).res.statusCode, 403);
+    assert.strictEqual((await runGate('editor', 'zed', 'p1')).res.statusCode, 404);
+});
+
+test('a live project passes the editor gate and the gate passes a custom param name through', async () => {
+    resetFx();
+    fx.projects.p1 = { ownerId: 'alice' };
+    const out = await runGate('editor', 'alice', 'p1');
+    assert.strictEqual(out.nexted, true);
 });

@@ -10,6 +10,8 @@
  */
 const agentStore = require('../../stores/agentStore');
 const log = require('../../telemetry/log');
+const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
+const { persistedMemoryUsed } = require('../memory/memoryUsed');
 
 async function finalizeStreamTurn({
     fullResponse, useNativeAdapter, onEvent, messageMetadata,
@@ -21,7 +23,7 @@ async function finalizeStreamTurn({
     messages, persistDurable, isEphemeral, agent, agentId, userId,
     guardrailViolation, processedUserMessage, userMessage, userAuth,
     extractMemoriesEnabled, validProjectId, modelToUse, toolCalls,
-    _serializeConversationWrite,
+    _serializeConversationWrite, memoryPolicy, memoryUsed,
 }) {
             // Strip raw tool-call XML tags from the response — some models (e.g. Mistral thinking)
             // output <tool_call>/<tool_response> as plain text instead of structured function calls.
@@ -100,6 +102,9 @@ async function finalizeStreamTurn({
                 assistantMsg.toolHistory = _toolHistory;
             }
             if (_kbSources.length > 0) assistantMsg.kbSources = _kbSources;
+            // Memories injected into this turn (ids and types only, never their
+            // text), so the "used memory" chip survives a reload.
+            if (Array.isArray(memoryUsed) && memoryUsed.length > 0) assistantMsg.memoryUsed = persistedMemoryUsed(memoryUsed);
             // Persistence format: `thinkingParts` is the structured array (with signatures
             // for Claude replay); `thinking` stays as the flat string for backwards compat
             // with memory extraction and anything reading the old shape.
@@ -235,11 +240,19 @@ async function finalizeStreamTurn({
 
             // ============ MEMORY EXTRACTION ============
             // Skip memory extraction if ephemeral, guardrail violation, or redaction occurred
-            if (!isEphemeral && !agent.embed_enabled) {
-                // Session-level memory write toggle from the chat composer.
-                // Default-true so existing clients keep writing memories.
-                const memoryWriteEnabled = messageMetadata?.memoryWriteEnabled !== false;
-                const shouldSkipMemoryExtraction = !memoryWriteEnabled || guardrailViolation || processedUserMessage !== userMessage;
+            if (!isEphemeral) {
+                // The gate (user/org switch, embed agent, per-chat toggle) was
+                // resolved once in the preflight; fall back to resolving here
+                // for a caller that has no preflight. Guardrail and redaction
+                // only exist by now, so they are applied as `blocked`.
+                const blocked = !!guardrailViolation || processedUserMessage !== userMessage;
+                const policy = memoryPolicy || await resolveMemoryPolicy({
+                    userId, orgId: messageMetadata?.userOrgId || agent.organization_id || null, agent,
+                    perChatReadEnabled: messageMetadata?.memoryReadEnabled,
+                    perChatWriteEnabled: messageMetadata?.memoryWriteEnabled,
+                });
+                const memoryWriteEnabled = policy.write;
+                const shouldSkipMemoryExtraction = !policy.write || blocked;
 
                 const debugData = {
                     agentId,
@@ -275,7 +288,7 @@ async function finalizeStreamTurn({
 
                     }
                 } else {
-                    log.info('[AgentRuntime] Skipping memory extraction due to guardrail violation or redaction');
+                    log.info(`[AgentRuntime] Skipping memory extraction (${policy.write ? 'guardrail violation or redaction' : policy.reason})`);
 
                 }
             }

@@ -123,6 +123,8 @@ module.exports = {
     'project_chat.new_chat': 'New chat',
     'project_chat.new_chat_kind': 'Kind of chat',
     'project_chat.new_message_label': 'First message',
+    'project_chat.new_composer_label': 'New conversation',
+    'project_chat.composer_label': 'Message the team',
     'project_chat.new_team': 'Team chat',
     'project_chat.new_team_body': 'Talk with the members. The AI joins when you ask it.',
     'project_chat.new_team_placeholder': 'First message to the team (optional)',

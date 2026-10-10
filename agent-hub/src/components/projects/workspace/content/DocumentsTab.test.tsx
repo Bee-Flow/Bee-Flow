@@ -1,10 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { withQueryClient } from '../../../../test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, pending, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
+import { useUndoCapture } from '../undoTestKit';
 
 // Fresh spies per test (assigned in beforeEach) rather than reset ones: the
 // module mock hands out this object, and the code reads its methods per call.
@@ -88,10 +89,18 @@ describe('DocumentsTab: states', () => {
         expect(screen.getAllByRole('button', { name: 'New document' }).length).toBeGreaterThan(0);
     });
 
+    it('explains an archived project instead of asking for editor access', async () => {
+        renderTab('viewer', { readOnly: true, project: { ...tabProps('viewer', { onOpenSub: vi.fn(), onNavigate: vi.fn() }).project, archivedAt: '2026-10-01T10:00:00Z' } });
+        expect(await screen.findByText('This project is archived and read-only. Restore it to change anything.')).toBeInTheDocument();
+        expect(screen.queryByText(/Ask the owner for editor access/)).toBeNull();
+    });
+
     it('offers a viewer no create, add or remove controls', async () => {
         renderTab('viewer');
         expect(await screen.findByText('Budget 2027')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'New document' })).not.toBeInTheDocument();
+        expect(within(screen.getByTestId('studio-section-header')).getByRole('heading', { name: 'Documents' })).toBeInTheDocument();
+        expect(screen.getByTestId('studio-section-kind')).toHaveAttribute('data-kind', 'document');
         expect(screen.queryByRole('button', { name: 'Add existing' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Remove .* from the project/ })).not.toBeInTheDocument();
         expect(screen.getByText(/Ask the owner for editor access/)).toBeInTheDocument();
@@ -99,6 +108,7 @@ describe('DocumentsTab: states', () => {
 });
 
 describe('DocumentsTab: list', () => {
+    const undo = useUndoCapture();
     it('lists name, type and owner, and opens a document in place', async () => {
         const user = userEvent.setup();
         const { onOpenSub } = renderTab('editor');
@@ -117,16 +127,27 @@ describe('DocumentsTab: list', () => {
         expect(screen.queryByRole('button', { name: 'Remove Kick-off deck from the project' })).not.toBeInTheDocument();
     });
 
-    it('takes a document out after confirmation, without deleting it', async () => {
+    it('takes a document out at once and only calls the API when the Undo toast runs out', async () => {
         const user = userEvent.setup();
         renderTab('owner');
         await user.click(await screen.findByRole('button', { name: 'Remove Kick-off deck from the project' }));
-        expect(screen.getByText('Remove this document from the project?')).toBeInTheDocument();
-        await user.click(screen.getByTestId('confirm-dialog-confirm'));
-        await waitFor(() => expect(client.put).toHaveBeenCalledWith(
+        expect(screen.queryByText('Kick-off deck')).not.toBeInTheDocument();
+        expect(client.put).not.toHaveBeenCalled();
+        act(() => undo.last().onExpire());
+        await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
+        expect(client.put).toHaveBeenCalledWith(
             '/api/projects/p1/resources', { kind: 'document', id: 'd-theirs', attach: false }, { retry: false },
-        ));
+        );
         expect(client.delete).not.toHaveBeenCalled();
+    });
+
+    it('brings the document back on Undo and never calls the API', async () => {
+        const user = userEvent.setup();
+        renderTab('owner');
+        await user.click(await screen.findByRole('button', { name: 'Remove Kick-off deck from the project' }));
+        act(() => undo.last().onUndo());
+        expect(await screen.findByText('Kick-off deck')).toBeInTheDocument();
+        expect(client.put).not.toHaveBeenCalled();
     });
 
     it('filters the list by name', async () => {

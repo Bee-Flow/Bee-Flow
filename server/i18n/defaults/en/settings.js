@@ -53,7 +53,7 @@ module.exports = {
     'settings.org_info': 'Organisation Info',
 
     // ── Organisation conversation memory / compaction (admin) ──
-    'settings.ai_context': 'Conversation Memory',
+    'settings.ai_context': 'Context in long conversations',
     'settings.integration_cache': 'Answer Reuse',
     'settings.startup_section': 'Startup',
     'settings.language_section': 'Language',
@@ -108,7 +108,8 @@ module.exports = {
     'settings.memory_import_error': 'Import failed',
     'settings.memory_switch': 'Use memory',
     'settings.memory_switch_on_desc': 'Facts and preferences from your chats are saved and used in later chats.',
-    'settings.memory_switch_off_desc': 'Memory is off: nothing new is saved and your stored memories are not used in chats. They stay here — you can still manage, export or import them.',
+    'settings.memory_switch_off_desc': 'Memory is paused: nothing new is saved and your stored memories are not used in chats. They are kept here, and you can still manage or export them.',
+    'settings.memory_import_paused': 'Importing is not available while memory is paused. Turn memory on to import.',
     'settings.memory_switch_error': 'Could not change the memory setting. Please try again.',
     'settings.memory_stats_error': 'Could not load your memory statistics.',
     'settings.memory_stats_retry': 'Retry',
@@ -423,4 +424,19 @@ module.exports = {
     'settings.appearance.hint_obsidian': 'Monochrome carbon dark.',
     'settings.appearance.hint_high_contrast': 'WCAG AAA contrast — accessibility.',
     'settings.avatar_alt': 'Avatar',
+    // ── Memory management (panel, review queue, Settings → Memory) ──
+    'settings.memory_sensitive_off_title': 'Stop remembering sensitive topics?',
+    'settings.memory_sensitive_off_desc': 'Sensitive memories that are already saved, or waiting for your review, will be deleted. This cannot be undone.',
+    'settings.memory_sensitive_off_confirm': 'Turn off and delete',
+    'settings.memory_sensitive_error': 'Could not change this setting. Please try again.',
+    'settings.memory_cleared': 'Your personal memories were deleted',
+    'settings.memory_org_off': 'Your organisation has turned memory off. Nothing is saved or used in chats, and you cannot change this here. Memories you already have are kept, and you can still manage or export them.',
+    'settings.memory_state_on': 'On',
+    'settings.memory_state_paused': 'Paused (kept, not used or saved)',
+    'settings.memory_sensitive': 'Remember sensitive topics',
+    'settings.memory_sensitive_desc': 'By default, health, beliefs, orientation and similar topics are never remembered. If you allow it, such memories wait for your approval before they are used.',
+    'settings.memory_last_updated': 'Last updated {when}',
+    'settings.memory_pending_review': '{count} waiting for your review',
+    'settings.memory_export': 'Export all memories',
+    'settings.memory_clear_all': 'Delete all personal memories',
 };

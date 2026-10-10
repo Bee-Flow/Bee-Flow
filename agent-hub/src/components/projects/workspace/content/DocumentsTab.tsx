@@ -6,7 +6,7 @@
 // document itself opened in place (sub = document id).
 
 import { useQueryClient } from '@tanstack/react-query';
-import { FilePlus2, FileText, Plus } from 'lucide-react';
+import { AlertTriangle, FilePlus2, FileText, Plus } from 'lucide-react';
 import React, { Suspense, useMemo, useState } from 'react';
 import {
     useCreateProjectDocument, useCreateProjectNotebook, useMyTemplatesQuery, useProjectSection, type NewDocumentVars, type ProjectDocument,
@@ -17,7 +17,8 @@ import StarterGallery, { type NewChoice } from '../../../../pages/documents/libr
 import { projectErrorText } from '../projectErrorText';
 import { lazy } from '../../../../utils/lazyWithReload';
 import EmptyState from '../../../shared/EmptyState';
-import { ContentColumn, ContentToolbar, PaneLoading, PrimaryButton, ReadOnlyNote, SecondaryButton, SectionError } from './contentUi';
+import { GhostButton, LoadingRow, Notice, PrimaryButton, ViewerNote, SecondaryButton, WorkspaceColumn } from '../workspaceUi';
+import SectionToolbar from '../SectionToolbar';
 import DocumentsTable, { type DocumentsTableProps } from './DocumentsTable';
 import { DocumentPicker } from './pickers';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
@@ -35,7 +36,7 @@ function DocumentPane({ projectId, documentId, onOpenSub, currentUser }: { proje
     const refresh = () => { qc.invalidateQueries({ queryKey: projectKeys.resources(projectId) }); };
     return (
         <div className="h-full min-h-0" data-testid="project-document-pane">
-            <Suspense fallback={<PaneLoading label={t('project_content.document_loading', 'Opening the document…')} />}>
+            <Suspense fallback={<LoadingRow centered label={t('project_content.document_loading', 'Opening the document…')} />}>
                 <DocumentEditor
                     key={documentId}
                     documentId={documentId}
@@ -96,7 +97,7 @@ function DocumentsBody({ status, documents, total, onRetry, onCreate, table }: {
     onCreate: (() => void) | null; table: TableHandlers;
 }) {
     const { t } = useTranslation();
-    if (status === 'error') return <SectionError message={t('project_content.documents_error', 'The documents of this project could not be loaded.')} onRetry={onRetry} />;
+    if (status === 'error') return <Notice tone="error" role="alert" icon={AlertTriangle} action={onRetry && <GhostButton onClick={onRetry}>{t('project_content.retry', 'Try again')}</GhostButton>}>{t('project_content.documents_error', 'The documents of this project could not be loaded.')}</Notice>;
     if (status === 'ok' && total === 0) {
         return (
             <EmptyState
@@ -117,7 +118,7 @@ function DocumentsBody({ status, documents, total, onRetry, onCreate, table }: {
     );
 }
 
-function DocumentsList({ projectId, role, currentUser, onOpenSub, onOpenTab, intent, notebooksEnabled }: ContentTabProps) {
+function DocumentsList({ projectId, project, role, currentUser, onOpenSub, onOpenTab, intent, notebooksEnabled }: ContentTabProps) {
     const { t } = useTranslation();
     const canEdit = canEditContent(role);
     const me = currentUser?.id || null;
@@ -128,42 +129,42 @@ function DocumentsList({ projectId, role, currentUser, onOpenSub, onOpenTab, int
     const unread = useProjectUnread(projectId);
     const ownerName = useMemberNames(projectId, me);
     const removal = useRemoveFromProject(projectId, 'document');
+    const items = removal.without(section.items);
     const create = useDocumentCreate(projectId, (doc) => { setCreateOpen(false); onOpenSub(doc.id); }, onOpenTab);
     // Own templates, and whether the reader may make a spreadsheet, are asked only once the gallery is open.
     const mine = useMyTemplatesQuery(createOpen);
-    const inProject = useMemo(() => new Set(section.items.map(d => d.id)), [section.items]);
+    const inProject = useMemo(() => new Set(items.map(d => d.id)), [items]);
     const visible = useMemo(() => {
         const q = search.trim().toLowerCase();
-        return q ? section.items.filter(d => (d.name || '').toLowerCase().includes(q)) : section.items;
-    }, [section.items, search]);
+        return q ? items.filter(d => (d.name || '').toLowerCase().includes(q)) : items;
+    }, [items, search]);
     const openCreate = () => { create.reset(); setCreateOpen(true); };
 
     const onRemove = (doc: ProjectDocument) => removal.remove(doc.id, {
-        title: t('project_content.document_remove_title', 'Remove this document from the project?'),
-        description: t('project_content.document_remove_desc', '"{name}" stays with its owner. Members of this project will no longer see it.', { name: doc.name }),
-        confirmLabel: t('project_content.remove_from_project', 'Remove from project'),
+        message: t('project_home.removed_from_project', '"{name}" removed from the project', { name: doc.name }),
     });
 
-    const actions = canEdit ? (
-        <>
-            <SecondaryButton icon={Plus} onClick={() => setPickerOpen(true)} testId="documents-add-existing">{t('project_content.add_existing', 'Add existing')}</SecondaryButton>
-            <PrimaryButton icon={FilePlus2} onClick={openCreate} testId="documents-new">{t('project_content.documents_new', 'New document')}</PrimaryButton>
-        </>
+    const extras = canEdit ? (
+        <SecondaryButton icon={Plus} onClick={() => setPickerOpen(true)} testId="documents-add-existing">{t('project_content.add_existing', 'Add existing')}</SecondaryButton>
+    ) : null;
+    const primary = canEdit ? (
+        <PrimaryButton icon={FilePlus2} onClick={openCreate} testId="documents-new">{t('project_content.documents_new', 'New document')}</PrimaryButton>
     ) : null;
 
-    const emptyProject = section.status === 'ok' && section.items.length === 0;
+    const emptyProject = section.status === 'ok' && items.length === 0;
     return (
-        <ContentColumn testId="project-documents-tab">
-            <ContentToolbar
+        <WorkspaceColumn testId="project-documents-tab">
+            <SectionToolbar
+                kind="document"
                 title={t('project_content.documents_title', 'Documents')}
-                count={section.status === 'ok' ? section.items.length : null}
+                count={section.status === 'ok' ? items.length : null}
                 search={search} onSearch={emptyProject ? undefined : setSearch}
                 searchLabel={t('project_content.documents_search', 'Search documents')}
-                actions={actions}
+                primary={primary} extras={extras}
             />
-            {!canEdit && <ReadOnlyNote>{t('project_content.documents_viewer_note', 'You can read the documents in this project. Ask the owner for editor access to add or change them.')}</ReadOnlyNote>}
+            {!canEdit && <ViewerNote archived={!!project?.archivedAt}>{t('project_content.documents_viewer_note', 'You can read the documents in this project. Ask the owner for editor access to add or change them.')}</ViewerNote>}
             <DocumentsBody
-                status={section.status} documents={visible} total={section.items.length} onRetry={section.refetch}
+                status={section.status} documents={visible} total={items.length} onRetry={section.refetch}
                 onCreate={canEdit ? openCreate : null}
                 table={{
                     ownerName,
@@ -180,8 +181,7 @@ function DocumentsList({ projectId, role, currentUser, onOpenSub, onOpenTab, int
                 onChoose={create.choose} onClose={() => setCreateOpen(false)}
             />
             {pickerOpen && <DocumentPicker projectId={projectId} open onClose={() => setPickerOpen(false)} inProject={inProject} currentUserId={me} />}
-            {removal.confirmDialog}
-        </ContentColumn>
+        </WorkspaceColumn>
     );
 }
 

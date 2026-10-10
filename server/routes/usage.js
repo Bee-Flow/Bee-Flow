@@ -225,18 +225,37 @@ router.use((req, res, next) => {
 
 // Helper to load user display info (name + avatar) for usage rendering.
 // Returns Map<userId, { display_name, avatarType, avatar }>.
+/**
+ * The avatar a monitoring row may carry inline: a short URL (an uploaded
+ * picture is stored as `/uploads/<file>`) or an emoji. Never an inline image.
+ *
+ * `withUser` copies the avatar onto EVERY row it enriches, and the ledgers
+ * answer up to 200 rows each. One account with a 2.2 MB base64 picture in its
+ * avatar column turned the two detail responses of "What happened" into more
+ * than 100 MB of JSON: stringifying that stalled the event loop for seconds
+ * (every other query in flight "took" the same seconds, and the pool reported
+ * a connect timeout), and the browser then downloaded and parsed it all.
+ * The same 2048-character rule as projects.js memberAvatar.
+ */
+const INLINE_AVATAR_MAX_CHARS = 2048;
+function inlineAvatar(avatar) {
+    return typeof avatar === 'string' && avatar.length > 0 && avatar.length <= INLINE_AVATAR_MAX_CHARS ? avatar : null;
+}
+
+function userEntry(u) {
+    return {
+        display_name: u.displayName || u.username || u.id,
+        avatarType: u.avatarType || null,
+        avatar: inlineAvatar(u.avatar),
+    };
+}
+
 async function getUserMap() {
     try {
         const userStore = require('../stores/userStore');
         const allUsers = await userStore.getAllUserAvatars();
         const map = new Map();
-        for (const u of allUsers) {
-            map.set(u.id, {
-                display_name: u.displayName || u.username || u.id,
-                avatarType: u.avatarType || null,
-                avatar: u.avatar || null,
-            });
-        }
+        for (const u of allUsers) map.set(u.id, userEntry(u));
         return map;
     } catch { return new Map(); }
 }
@@ -256,13 +275,7 @@ async function getUserMapFor(rowsOrIds, idField = 'user_id') {
         const userStore = require('../stores/userStore');
         const users = await userStore.getUserAvatarsByIds([...ids]);
         const map = new Map();
-        for (const u of users) {
-            map.set(u.id, {
-                display_name: u.displayName || u.username || u.id,
-                avatarType: u.avatarType || null,
-                avatar: u.avatar || null,
-            });
-        }
+        for (const u of users) map.set(u.id, userEntry(u));
         return map;
     } catch { return new Map(); }
 }
