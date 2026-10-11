@@ -30,6 +30,7 @@ const { authenticateToken } = require('../mcpToken');
 const { isActiveAccount } = require('../accountStatusGate');
 const { LEGACY_SCOPES } = require('./scopes');
 const { ipAllowed } = require('./ipMatch');
+const { instanceAllowlists } = require('./envAllowlist');
 const { userAllowedByPolicy } = require('./orgPolicy');
 const tokenStore = require('./tokenStore');
 const { MAX_BATCH_SIZE } = require('./batch');
@@ -61,10 +62,11 @@ const USER_RATE_LIMIT_PER_MINUTE = 300;
  *   ip: string|null|undefined,
  *   server?: string,
  *   now?: number,
+ *   env?: Record<string, string|undefined>,
  * }} input
  * @returns {Decision}
  */
-function evaluateAccess({ token, user, orgIds, accountActive, policy, ip, server, now = Date.now() }) {
+function evaluateAccess({ token, user, orgIds, accountActive, policy, ip, server, now = Date.now(), env = process.env }) {
     if (!token) return { ok: false, status: 401, reason: 'token_unknown' };
     if (token.revokedAt) return { ok: false, status: 401, reason: 'token_revoked' };
     if (token.expiresAt && new Date(token.expiresAt).getTime() <= now) return { ok: false, status: 401, reason: 'token_expired' };
@@ -87,6 +89,10 @@ function evaluateAccess({ token, user, orgIds, accountActive, policy, ip, server
     if (!userAllowedByPolicy(policy, user)) return { ok: false, status: 403, reason: 'user_not_allowed' };
     if (token.legacy && policy.rejectLegacyTokens) return { ok: false, status: 403, reason: 'legacy_rejected' };
 
+    // The operator's instance-wide lists (envAllowlist.js) come first.
+    const instance = instanceAllowlists(server, env);
+    if (!instance.ok) return { ok: false, status: 403, reason: 'instance_allowlist_invalid' };
+    if (instance.lists.some((list) => !ipAllowed(ip, list))) return { ok: false, status: 403, reason: 'ip_outside_instance_list' };
     if (!ipAllowed(ip, policy.ipAllowlist)) return { ok: false, status: 403, reason: 'ip_outside_org_list' };
     if (!ipAllowed(ip, token.ipAllowlist)) return { ok: false, status: 403, reason: 'ip_outside_token_list' };
 
