@@ -1183,12 +1183,13 @@ function requireOrgAdmin(paramName = 'id') {
  * @returns {boolean}
  */
 function isSuperAdmin(req) {
-    return !!(req.session?.isAdmin || isSuperAdminUser(req.session?.user));
+    return !!(req.session?.isAdmin || req.session?.user?.role === 'admin');
 }
 
 /**
  * The same operator test for a user record without a session (an MCP token's
- * user). requireSuperAdmin and the CMS MCP analytics tools both read this.
+ * user), used by the CMS MCP analytics tools. Keep it in step with the role
+ * half of isSuperAdmin above, whose line mobile/src/core/access mirrors.
  */
 function isSuperAdminUser(user) {
     return user?.role === 'admin';
