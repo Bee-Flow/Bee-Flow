@@ -144,6 +144,40 @@ site visitors see it from then on (cached copies can lag a few minutes).
 tokens without it, are refused if called anyway, and are written to the access
 audit log (`cms.publish.mcp`, `cms.live.mcp`) with the token's name.
 
+## Website analytics
+
+Six read-only tools let the agent read how the website performs, so it can answer
+"which pages are read" or "where do visitors come from" and then change the site
+with that in mind:
+
+| Tool | What you get |
+|---|---|
+| `cms_analytics_status` | Whether analytics is on, set up and tracking the site. |
+| `cms_analytics_overview` | Visitors, pageviews, visits, bounce rate and average visit duration, each next to the previous period. |
+| `cms_analytics_pageviews` | Pageviews and sessions over time (hourly or daily). |
+| `cms_analytics_metrics` | A top list (up to 50) by page, landing page, referrer domain, channel, country, region, device, browser, OS, language, event name or UTM source, medium and campaign. |
+| `cms_analytics_realtime` | Active visitors right now and the pages they are on, as counts. |
+| `cms_analytics_vitals` | Core Web Vitals (LCP, INP, CLS, FCP, TTFB) and the slowest pages. |
+
+Every tool takes an optional `siteId` (default: the live site) and a period:
+`range` of `today`, `24h`, `7d` (default), `30d` or `90d`, or an explicit
+`startAt` and `endAt` of at most 366 days. If analytics is switched off or not
+configured, the tools say so in a sentence instead of failing.
+
+**What is never exposed.** The numbers go to an external AI model, so only
+aggregates leave: counts, rates, durations, page paths without the part after `?`
+or `#`, referrer domains and event names. Individual sessions, session and visitor
+ids, session replays, heatmap clicks, IP addresses, user-agent strings, full URLs,
+event properties and cities are not in any result. Results are built from a fixed
+list of fields, so a field the analytics service adds later is not passed along.
+Anything that looks like an e-mail address inside a path or name is replaced.
+
+**Who can use them.** Super administrators only, the same test as the analytics
+dashboard. A CMS administrator who is not a super administrator does not see the
+tools and is refused if one is called. They are read-only, so a token at the read
+level has them; the token's tool list can narrow them like any other tool. Each
+user may make 60 analytics calls per 10 minutes.
+
 ## Access control
 
 All of these must pass:
@@ -154,3 +188,4 @@ All of these must pass:
    allow.
 3. The token's user is a CMS administrator.
 4. Per tool: the token's level and tool list, and for publishing the publishing scope.
+5. For the analytics tools: the token's user is a super administrator.

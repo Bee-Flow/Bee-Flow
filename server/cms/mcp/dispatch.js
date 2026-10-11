@@ -25,12 +25,15 @@
 'use strict';
 
 const log = require('../../telemetry/log');
-const { MCP_ONLY_TOOLS, PUBLISH_TOOLS, buildToolList: buildList } = require('./tools');
+const { ANALYTICS_TOOLS, MCP_ONLY_TOOLS, PUBLISH_TOOLS, buildToolList: buildList } = require('./tools');
+const { createAnalyticsHandlers } = require('./analytics');
 const { maxBytesFor } = require('../../core/cms/uploadPolicy');
 const { EXT_BY_TYPE, assetUrlFor } = require('./uploadReceiver');
 
 const SHOT_WINDOW_MS = 10 * 60 * 1000;
 const SHOT_MAX_PER_WINDOW = 24;
+const ANALYTICS_WINDOW_MS = 10 * 60 * 1000;
+const ANALYTICS_MAX_PER_WINDOW = 60;
 const UPLOAD_PATH = '/mcp/cms/upload';
 const SETTING_SECTIONS = ['header', 'footer', 'cookieBanner', 'announcement'];
 const SETTINGS_PATCH_MAX_CHARS = 100_000;
@@ -51,6 +54,8 @@ const INSTRUCTIONS = [
     'Images and video: never put file contents into a tool. cms_request_upload returns a one-time URL and a curl command; run it in a shell and use the asset url from its answer in a block (cms_list_assets shows what exists).',
     '',
     'Check your work: cms_screenshot (draft or published, desktop/tablet/mobile) and actually look at the image. Tool results carry `validation` warnings after edits and `_fixHint` when a call was rejected; both are worth reading.',
+    '',
+    'Website analytics (cms_analytics_*, super admin only, read-only): aggregated visitor, pageview, source, page and web-vitals numbers, never individual visitors. Start with cms_analytics_status; a plain sentence means analytics is not set up.',
     '',
     'Publishing (cms_publish, cms_set_live_site) needs the cms.publish scope on the token and is audited. Only publish when asked to.',
 ].join('\n');
@@ -75,6 +80,8 @@ const err = (error, extra = {}) => ({ result: { error, ...extra } });
  * @property {{ isAvailable: Function, listKeys: Function }} storage
  * @property {Function} audit                  userStore.logAccessAudit
  * @property {(user: object) => Promise<boolean>} isAdmin
+ * @property {(user: object) => boolean} [isSuperAdmin]  the operator test of requireSuperAdmin; absent = nobody (analytics tools stay hidden)
+ * @property {{ analytics: object, umami: object }} [analytics]  core/cms/analyticsQueries instance + core/umamiClient
  * @property {{ classifyRpc: Function, parseToolCall: Function, PROTOCOL_VERSION: string, INVALID_REQUEST: string }} rpc
  * @property {() => number} [now]
  */
@@ -85,6 +92,8 @@ function createCmsMcp(deps) {
     const now = deps.now || Date.now;
     const mcpOnly = new Map(MCP_ONLY_TOOLS.map((t) => [t.name, t]));
     const shotBudget = new Map(); // userId → { count, resetAt }
+    const analyticsBudget = new Map();
+    const isSuperAdmin = deps.isSuperAdmin || (() => false);
 
     // ── tool table ──────────────────────────────────────────────────────
     const toolList = buildList(builder);
@@ -103,10 +112,12 @@ function createCmsMcp(deps) {
     /** The list a token may see: scoped, and empty for a user who is not a CMS admin. */
     async function listTools(ctx) {
         if (!(await deps.isAdmin(ctx.user))) return [];
-        return access.filterToolsByScope(ctx.token.scopes, 'cms', toolList, {
+        const scoped = access.filterToolsByScope(ctx.token.scopes, 'cms', toolList, {
             isReadOnly: (t) => t.annotations?.readOnlyHint === true,
             isPublish: (t) => PUBLISH_TOOLS.has(t.name),
         });
+        // Analytics is an operator surface: a CMS admin who is not a super admin never sees it.
+        return isSuperAdmin(ctx.user) ? scoped : scoped.filter((t) => !ANALYTICS_TOOLS.has(t.name));
     }
 
     // ── helpers ─────────────────────────────────────────────────────────
@@ -382,17 +393,19 @@ function createCmsMcp(deps) {
         return { result: status };
     }
 
-    function takeScreenshotBudget(userId) {
+    function takeBudget(budget, userId, max, windowMs) {
         const t = now();
-        const entry = shotBudget.get(userId);
+        const entry = budget.get(userId);
         if (!entry || entry.resetAt <= t) {
-            shotBudget.set(userId, { count: 1, resetAt: t + SHOT_WINDOW_MS });
+            budget.set(userId, { count: 1, resetAt: t + windowMs });
             return true;
         }
-        if (entry.count >= SHOT_MAX_PER_WINDOW) return false;
+        if (entry.count >= max) return false;
         entry.count += 1;
         return true;
     }
+
+    const takeScreenshotBudget = (userId) => takeBudget(shotBudget, userId, SHOT_MAX_PER_WINDOW, SHOT_WINDOW_MS);
 
     async function screenshot(args, ctx) {
         if (!takeScreenshotBudget(ctx.userId)) {
@@ -460,7 +473,13 @@ function createCmsMcp(deps) {
         return { result: { siteId: site.siteId, live: liveSiteId === site.siteId, liveSiteId } };
     }
 
+    // Website analytics: wired only when the host provides the Umami side.
+    const analyticsHandlers = deps.analytics
+        ? createAnalyticsHandlers({ analytics: deps.analytics.analytics, umami: deps.analytics.umami, siteIdRe: live.SITE_ID_RE, now }).handlers
+        : {};
+
     const HANDLERS = {
+        ...analyticsHandlers,
         cms_list_sites: listSites,
         cms_get_site_settings: getSiteSettings,
         cms_update_site_settings: updateSiteSettings,
@@ -496,6 +515,16 @@ function createCmsMcp(deps) {
         }
         if (!(await deps.isAdmin(ctx.user))) {
             return { result: { error: 'The CMS can only be edited by an administrator, and this token\'s user is not one.' }, isError: true };
+        }
+        if (ANALYTICS_TOOLS.has(name)) {
+            if (!isSuperAdmin(ctx.user)) {
+                return { result: { error: 'Website analytics is an operator surface: only a super administrator can read it, and this token\'s user is not one.' }, isError: true };
+            }
+            if (!HANDLERS[name]) return { result: { error: 'Website analytics is not available on this server.' }, isError: true };
+            if (!takeBudget(analyticsBudget, ctx.userId, ANALYTICS_MAX_PER_WINDOW, ANALYTICS_WINDOW_MS)) {
+                const text = `Analytics budget spent (${ANALYTICS_MAX_PER_WINDOW} per ${ANALYTICS_WINDOW_MS / 60000} minutes). Ask again when it refills.`;
+                return { result: { note: 'Analytics budget spent' }, text };
+            }
         }
         const args = isPlainObject(rawArgs) ? rawArgs : {};
         try {
@@ -546,7 +575,7 @@ function createCmsMcp(deps) {
         }
     }
 
-    return { handleRpc, callTool, listTools, buildToolList, classify, INSTRUCTIONS, _shotBudget: shotBudget };
+    return { handleRpc, callTool, listTools, buildToolList, classify, INSTRUCTIONS, _shotBudget: shotBudget, _analyticsBudget: analyticsBudget };
 }
 
-module.exports = { createCmsMcp, INSTRUCTIONS, SHOT_MAX_PER_WINDOW, SHOT_WINDOW_MS };
+module.exports = { createCmsMcp, INSTRUCTIONS, SHOT_MAX_PER_WINDOW, SHOT_WINDOW_MS, ANALYTICS_MAX_PER_WINDOW, ANALYTICS_WINDOW_MS };

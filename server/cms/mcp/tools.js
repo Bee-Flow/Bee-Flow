@@ -30,6 +30,24 @@ const LOCALE_PROP = Object.freeze({
     description: 'A language code such as "en", "nl" or "pt-br".',
 });
 
+const RANGE_PROPS = Object.freeze({
+    range: {
+        type: 'string',
+        enum: ['today', '24h', '7d', '30d', '90d'],
+        description: 'The period, ending now. Default 7d. Ignored when startAt/endAt are given.',
+    },
+    startAt: { type: 'string', description: 'Start of a custom window, ISO date or datetime (UTC). Needs endAt; at most 366 days.' },
+    endAt: { type: 'string', description: 'End of a custom window, ISO date or datetime (UTC).' },
+});
+
+const ANALYTICS_NOTE = ' Aggregated counts only (never individual visitors, sessions, IPs or full URLs). Super admin only.';
+
+/** Website-analytics tools: read-only, and only for a super admin on top of the CMS admin check. */
+const ANALYTICS_TOOLS = new Set([
+    'cms_analytics_status', 'cms_analytics_overview', 'cms_analytics_pageviews',
+    'cms_analytics_metrics', 'cms_analytics_realtime', 'cms_analytics_vitals',
+]);
+
 /** Tools that act on no particular site, so they take no siteId. */
 const SITELESS_TOOLS = new Set(['cms_list_sites', 'cms_list_templates', 'cms_list_assets', 'cms_upload_status']);
 
@@ -194,6 +212,55 @@ const MCP_ONLY_TOOLS = [
         readOnly: true,
     },
     {
+        name: 'cms_analytics_status',
+        description: 'Is website analytics switched on, configured and tracking this site? Says so in a sentence, with no credentials or addresses.' + ANALYTICS_NOTE,
+        parameters: { type: 'object', properties: { siteId: SITE_ID_PROP } },
+        readOnly: true,
+    },
+    {
+        name: 'cms_analytics_overview',
+        description: 'Headline numbers for a period: visitors, pageviews, visits, bounce rate and average visit duration, each with the previous period of equal length for comparison. Same numbers as the analytics dashboard.' + ANALYTICS_NOTE,
+        parameters: { type: 'object', properties: { siteId: SITE_ID_PROP, ...RANGE_PROPS } },
+        readOnly: true,
+    },
+    {
+        name: 'cms_analytics_pageviews',
+        description: 'Pageviews and sessions over time as a series of hourly (up to 2 days) or daily buckets.' + ANALYTICS_NOTE,
+        parameters: { type: 'object', properties: { siteId: SITE_ID_PROP, ...RANGE_PROPS } },
+        readOnly: true,
+    },
+    {
+        name: 'cms_analytics_metrics',
+        description: 'A top list for one dimension: url (page path, no query), entry (landing pages, by visits), referrer (domain), channel (direct/search/social/email/AI assistants/referral), country, region, device, browser, os, language, event (event names and how often they fired) and utm_source / utm_medium / utm_campaign.' + ANALYTICS_NOTE,
+        parameters: {
+            type: 'object',
+            properties: {
+                siteId: SITE_ID_PROP,
+                type: {
+                    type: 'string',
+                    enum: ['url', 'entry', 'referrer', 'channel', 'country', 'region', 'device', 'browser', 'os', 'language', 'event', 'utm_source', 'utm_medium', 'utm_campaign'],
+                    description: 'Which dimension to rank.',
+                },
+                limit: { type: 'integer', description: 'How many rows (1-50, default 10).' },
+                ...RANGE_PROPS,
+            },
+            required: ['type'],
+        },
+        readOnly: true,
+    },
+    {
+        name: 'cms_analytics_realtime',
+        description: 'Right now: how many visitors are active (last ~5 minutes), which pages they are on (counts only) and pageview/visitor totals of the last 30 minutes.' + ANALYTICS_NOTE,
+        parameters: { type: 'object', properties: { siteId: SITE_ID_PROP } },
+        readOnly: true,
+    },
+    {
+        name: 'cms_analytics_vitals',
+        description: 'Core Web Vitals (LCP, INP, CLS, FCP, TTFB) as p50/p75/p95 across real visits, plus the slowest pages by LCP p75. Says so when nothing was measured in the period.' + ANALYTICS_NOTE,
+        parameters: { type: 'object', properties: { siteId: SITE_ID_PROP, ...RANGE_PROPS } },
+        readOnly: true,
+    },
+    {
         name: 'cms_publish',
         description: 'PUBLISH a site: freeze its current draft (pages, settings, translations) as the published snapshot. If the site is the live site, visitors see it from now on (cached copies can lag a few minutes). Needs the cms.publish scope on the token. Check the draft with cms_screenshot first.',
         parameters: { type: 'object', properties: { siteId: SITE_ID_PROP } },
@@ -252,4 +319,4 @@ function buildToolList(builder) {
     return [...fromBuilder, ...own];
 }
 
-module.exports = { MCP_ONLY_TOOLS, PUBLISH_TOOLS, SITELESS_TOOLS, SITE_ID_PROP, buildToolList, toMcpTool };
+module.exports = { ANALYTICS_TOOLS, MCP_ONLY_TOOLS, PUBLISH_TOOLS, SITELESS_TOOLS, SITE_ID_PROP, buildToolList, toMcpTool };

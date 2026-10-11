@@ -19,6 +19,8 @@
  *      account state, org policy, IP allow-lists, rate limit)
  *   3. the same admin test the CMS REST routes use    (cmsShared.canAdminCms)
  *   4. per tool: the token's scopes — publish and set-live need `cms.publish`
+ *   5. the cms_analytics_* tools also need a super admin (auth/permissions
+ *      isSuperAdminUser, the test behind requireSuperAdmin)
  *
  * ── Wiring it up ────────────────────────────────────────────────────────────
  *   claude mcp add --transport http beeflow-cms \
@@ -65,6 +67,10 @@ function buildRuntime() {
     const { validateSiteDraft } = require('../cmsBuilder/validate');
     const { SITE_DEFAULTS } = require('../i18n/defaults/cmsDefaults');
     const mcpAccess = require('../auth/mcpAccess');
+    const { isSuperAdminUser } = require('../auth/permissions');
+    const configStore = require('../stores/configStore');
+    const umamiClient = require('../core/umamiClient');
+    const { createAnalyticsQueries } = require('../core/cms/analyticsQueries');
 
     const isAdmin = isCmsAdmin;
     const tickets = cmsMcp.createUploadTickets();
@@ -96,6 +102,15 @@ function buildRuntime() {
         storage: { isAvailable: () => storageStore.isAvailable(), listKeys: (prefix) => storageStore.listKeys(prefix) },
         audit: (...a) => userStore.logAccessAudit(...a),
         isAdmin,
+        // Analytics tools: the same operator test as requireSuperAdmin, and the same
+        // settings / site-map / Umami client the dashboard reads.
+        isSuperAdmin: isSuperAdminUser,
+        analytics: {
+            analytics: createAnalyticsQueries({
+                configStore, umamiClient, getLiveSiteId: cmsShared.getLiveSiteId, siteIdRe: cmsShared.SITE_ID_RE,
+            }),
+            umami: umamiClient,
+        },
         rpc: { classifyRpc, parseToolCall, PROTOCOL_VERSION, INVALID_REQUEST },
     });
 
