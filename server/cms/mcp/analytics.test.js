@@ -21,19 +21,9 @@ const { classifyRpc, parseToolCall, PROTOCOL_VERSION, INVALID_REQUEST } = requir
 const SITE = 'pj_aaaa1111';
 const SITE_ID_RE = /^pj_[a-f0-9]{4,}$/;
 
-const stubAccess = {
-    scopeAllowsTool(scopes, server, name, { readOnly = false, publish = false } = {}) {
-        const spec = scopes && scopes[server];
-        if (!spec) return false;
-        if (spec.level === 'read' && !readOnly) return false;
-        if (publish && spec.publish !== true) return false;
-        if (Array.isArray(spec.tools) && !spec.tools.includes(name)) return false;
-        return true;
-    },
-    filterToolsByScope(scopes, server, tools, { isReadOnly, isPublish }) {
-        return tools.filter((t) => stubAccess.scopeAllowsTool(scopes, server, t.name, { readOnly: isReadOnly(t), publish: isPublish(t) }));
-    },
-};
+// The real access contract (auth/mcpAccess): these tests need its scope
+// semantics, not a copy of them.
+const realAccess = require('../../auth/mcpAccess/scopes');
 
 // What Umami might send, with everything that must never reach the model.
 const LEAKY = {
@@ -129,7 +119,7 @@ function makeHarness({ umamiOver, config = {}, superAdmin = isSuperAdminUser, wi
     let nowMs = Date.parse('2026-10-11T12:00:00Z');
     const mcp = createCmsMcp({
         cmsStore: {}, cmsParts: {}, builder: { TOOL_SCHEMAS, MUTATING_TOOLS: new Set(), applyToolCall: async () => ({}) },
-        validateDraft: () => ({ errors: [], warnings: [] }), defaults: {}, access: stubAccess,
+        validateDraft: () => ({ errors: [], warnings: [] }), defaults: {}, access: realAccess,
         live: { getLiveSiteId: async () => SITE, SITE_ID_RE },
         tickets: {}, screenshots: {}, storage: {}, audit: async () => {},
         isAdmin: async (u) => u.role === 'admin' || u.role === 'cms_admin',
