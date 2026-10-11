@@ -1187,6 +1187,15 @@ function isSuperAdmin(req) {
 }
 
 /**
+ * The same operator test for a user record without a session (an MCP token's
+ * user), used by the CMS MCP analytics tools. Keep it in step with the role
+ * half of isSuperAdmin above, whose line mobile/src/core/access mirrors.
+ */
+function isSuperAdminUser(user) {
+    return user?.role === 'admin';
+}
+
+/**
  * Platform-operator gate — the middleware form of isSuperAdmin().
  *
  * WHY THIS EXISTS SEPARATELY FROM requireAdmin: requireAdmin (:657) passes on
@@ -1373,6 +1382,7 @@ module.exports = {
     resolveUserOrgIds,
     resolvePrimaryOrgId,
     isSuperAdmin,
+    isSuperAdminUser,
     isOrgAdminForOrg,
     _evalOrgAdmin,
     requireOrgAdmin,
