@@ -35,9 +35,36 @@ function resolvePublicBaseUrl(req) {
     if (configured) return String(configured).replace(/\/+$/, '');
     if (req) {
         const host = req.get?.('host');
-        if (host) return `${req.protocol || 'https'}://${host}`;
+        if (host) return `${publicProtocol(req.protocol, host)}://${host}`;
     }
     return '';
+}
+
+/**
+ * The protocol to hand out for a URL on `host`. Behind a TLS-terminating load
+ * balancer the request can reach us as plain http (the proxy chain then says
+ * X-Forwarded-Proto: http), and a link built from that is wrong twice over:
+ * the public host only redirects http (a PUT or POST with a secret header does
+ * not survive the redirect), and the secret has crossed the wire unencrypted
+ * by then. So a public host always gets https; only a loopback, private-range
+ * or .local host keeps what the request said, which is what local dev needs.
+ *
+ * @param {string|undefined} protocol
+ * @param {string} host  host[:port]
+ */
+function publicProtocol(protocol, host) {
+    if (protocol === 'https') return 'https';
+    const name = String(host).replace(/:\d+$/, '').replace(/^\[|\]$/g, '').toLowerCase();
+    const local = name === 'localhost'
+        || name.endsWith('.localhost')
+        || name.endsWith('.local')
+        || name === '::1'
+        || /^127\./.test(name)
+        || /^10\./.test(name)
+        || /^192\.168\./.test(name)
+        || /^172\.(1[6-9]|2\d|3[01])\./.test(name)
+        || !name.includes('.'); // a bare container name such as "server"
+    return local ? (protocol || 'http') : 'https';
 }
 
 /**
@@ -110,4 +137,4 @@ function approvalUrlForId(approvalId, req) {
     return `${resolvePublicBaseUrl(req)}${approvalPath(approvalId)}`;
 }
 
-module.exports = { getPublicBaseUrl, resolvePublicBaseUrl, webhookUrlForSlug, formUrlForToken, publicAppUrlForToken, approvalUrlForId };
+module.exports = { getPublicBaseUrl, resolvePublicBaseUrl, publicProtocol, webhookUrlForSlug, formUrlForToken, publicAppUrlForToken, approvalUrlForId };

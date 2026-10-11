@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assignShards, hashShard, orderLongestFirst, parseShard } from './testShards.mjs';
+import { assignShards, fileTimeoutMs, hashShard, orderLongestFirst, parseShard, TIMEOUT_CAP_MS } from './testShards.mjs';
 
 const names = Array.from({ length: 200 }, (_, i) => `dir${i % 7}/file${i}.test.js`);
 const durations = Object.fromEntries(names.slice(0, 150).map((f, i) => [f, (i * 37) % 900 + 50]));
@@ -51,4 +51,19 @@ test('compareShardLists passes a partition and names every missing, doubled and 
     assert.ok(p.some((m) => /^c runs in NO shard/.test(m)));
     assert.ok(p.some((m) => /^b runs in shard 1 and shard 2/.test(m)));
     assert.ok(p.some((m) => /^x ran in shard 2/.test(m)));
+});
+
+test('fileTimeoutMs: a heavy file gets five times its recorded duration', () => {
+    assert.equal(fileTimeoutMs('migrateDb.integration.test.js', { 'migrateDb.integration.test.js': 64_677 }, 180_000), 323_385);
+});
+
+test('fileTimeoutMs: a quick or unrecorded file keeps the base', () => {
+    assert.equal(fileTimeoutMs('quick.test.js', { 'quick.test.js': 900 }, 180_000), 180_000);
+    assert.equal(fileTimeoutMs('new.test.js', {}, 180_000), 180_000);
+    assert.equal(fileTimeoutMs('new.test.js', null, 180_000), 180_000);
+});
+
+test('fileTimeoutMs: never above the cap, unless the base itself is higher', () => {
+    assert.equal(fileTimeoutMs('huge.test.js', { 'huge.test.js': 10 * 60_000 }, 180_000), TIMEOUT_CAP_MS);
+    assert.equal(fileTimeoutMs('huge.test.js', { 'huge.test.js': 10 * 60_000 }, 20 * 60_000), 20 * 60_000);
 });

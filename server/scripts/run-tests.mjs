@@ -46,7 +46,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assignShards, orderLongestFirst, parseShard } from './testShards.mjs';
+import { assignShards, fileTimeoutMs, orderLongestFirst, parseShard } from './testShards.mjs';
 
 const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXCLUSIONS_FILE = path.join(SERVER_DIR, 'scripts', 'test-exclusions.json');
@@ -211,6 +211,8 @@ if (reporterFlags.length > 0) {
 }
 
 const CONCURRENCY = Number(process.env.TEST_CONCURRENCY) || availableParallelism();
+// Base budget per file; a file with a recorded duration gets up to 5x that
+// (testShards.fileTimeoutMs), so a heavy file is not killed under full load.
 const FILE_TIMEOUT_MS = Number(process.env.TEST_FILE_TIMEOUT_MS ?? 180_000);
 
 const COUNTERS = ['tests', 'pass', 'fail', 'cancelled', 'skipped', 'todo'];
@@ -253,7 +255,8 @@ function runFile(file) {
             try { process.kill(-child.pid, 'SIGKILL'); } catch { /* group already gone */ }
             try { child.kill('SIGKILL'); } catch { /* already reaped */ }
         };
-        const timer = setTimeout(() => { timedOut = true; killTree(); }, FILE_TIMEOUT_MS);
+        const timeoutMs = fileTimeoutMs(file, durations, FILE_TIMEOUT_MS);
+        const timer = setTimeout(() => { timedOut = true; killTree(); }, timeoutMs);
         child.stdout.on('data', (b) => { out += b; });
         child.stderr.on('data', (b) => { out += b; });
         child.on('error', (e) => { out += `\nfailed to start: ${e.message}\n`; });
@@ -267,7 +270,7 @@ function runFile(file) {
                 // Its tests may well all pass; the problem is that it never
                 // lets go. Left unnamed, this is what the old flag was hiding.
                 hungFiles.push(file);
-                process.stdout.write(`\nHUNG  ${file} — still running after ${Math.round(FILE_TIMEOUT_MS / 1000)}s. A test in it keeps the event loop alive.\n`);
+                process.stdout.write(`\nHUNG  ${file} — still running after ${Math.round(timeoutMs / 1000)}s. A test in it keeps the event loop alive.\n`);
             } else if (!summary) {
                 noSummaryFiles.push(file);
                 process.stdout.write(`\nNO SUMMARY  ${file} (exit ${code}) — it did not get as far as reporting.\n${out}\n`);

@@ -59,6 +59,20 @@ export function assignShards(files, durations, count) {
 }
 
 /** Longest first; files without a recorded duration count as the median. */
+/**
+ * The wall-clock budget for one file: the base timeout, or FACTOR times its
+ * recorded duration when that is longer, never above CAP. A heavy file (the
+ * migration ladder in pglite takes ~65 s on a runner) gets room under a full
+ * parallel load with coverage; a file with no record, or a quick one, keeps the
+ * base, so a test that really never lets go is still caught.
+ */
+export const TIMEOUT_FACTOR = 5;
+export const TIMEOUT_CAP_MS = 15 * 60_000;
+export function fileTimeoutMs(file, durations, baseMs) {
+    const recorded = known(durations, file) ? durations[file] * TIMEOUT_FACTOR : 0;
+    return Math.min(Math.max(baseMs, recorded), Math.max(baseMs, TIMEOUT_CAP_MS));
+}
+
 export function orderLongestFirst(files, durations) {
     const fallback = median(files.filter((f) => known(durations, f)).map((f) => durations[f]));
     const d = (f) => (known(durations, f) ? durations[f] : fallback);
