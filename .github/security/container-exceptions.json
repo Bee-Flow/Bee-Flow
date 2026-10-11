@@ -533,6 +533,66 @@
       "references": [
         "https://ubuntu.com/security/CVE-2025-3887"
       ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-11",
+      "expires": "2026-11-10",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-78667",
+      "package": "stdlib",
+      "versions": [
+        "v1.26.8"
+      ],
+      "scanTarget": "usr/bin/docker",
+      "reason": "Go standard library flaw (Denial of Service via crafted HTTP Range headers (net/http file serving)) compiled into the Debian docker-ce-cli binary; no docker-ce-cli built with Go 1.26.9 or 1.27.2 is published yet. The Buildx plugin in the same image is rebuilt with Go 1.27.2 instead of excepted.",
+      "reachability": "The server runs the Docker CLI only as a client of the local Docker socket (pwtRunner, guardInstaller, mcpRegistryClient) over a Unix socket: it serves no HTTP, terminates no TLS and handles no ECH, and its only peer is the host's own daemon. The image runs as node and contains no dockerd (runtime check). Re-review when docker-ce-cli ships a Go release with the fix.",
+      "references": [
+        "https://pkg.go.dev/vuln/list?q=CVE-2026-78667"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-11",
+      "expires": "2026-11-10",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-78669",
+      "package": "stdlib",
+      "versions": [
+        "v1.26.8"
+      ],
+      "scanTarget": "usr/bin/docker",
+      "reason": "Go standard library flaw (Denial of Service in net/http's HTTP/2 implementation) compiled into the Debian docker-ce-cli binary; no docker-ce-cli built with Go 1.26.9 or 1.27.2 is published yet. The Buildx plugin in the same image is rebuilt with Go 1.27.2 instead of excepted.",
+      "reachability": "The server runs the Docker CLI only as a client of the local Docker socket (pwtRunner, guardInstaller, mcpRegistryClient) over a Unix socket: it serves no HTTP, terminates no TLS and handles no ECH, and its only peer is the host's own daemon. The image runs as node and contains no dockerd (runtime check). Re-review when docker-ce-cli ships a Go release with the fix.",
+      "references": [
+        "https://pkg.go.dev/vuln/list?q=CVE-2026-78669"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-10-11",
+      "expires": "2026-11-10",
+      "requiredUser": "node",
+      "runtimeCheck": "scripts/check-release-container.sh",
+      "id": "CVE-2026-97031",
+      "package": "stdlib",
+      "versions": [
+        "v1.26.8"
+      ],
+      "scanTarget": "usr/bin/docker",
+      "reason": "Go standard library flaw (Denial of Service via multiple ECH outer extension references (crypto/tls server-side ECH)) compiled into the Debian docker-ce-cli binary; no docker-ce-cli built with Go 1.26.9 or 1.27.2 is published yet. The Buildx plugin in the same image is rebuilt with Go 1.27.2 instead of excepted.",
+      "reachability": "The server runs the Docker CLI only as a client of the local Docker socket (pwtRunner, guardInstaller, mcpRegistryClient) over a Unix socket: it serves no HTTP, terminates no TLS and handles no ECH, and its only peer is the host's own daemon. The image runs as node and contains no dockerd (runtime check). Re-review when docker-ce-cli ships a Go release with the fix.",
+      "references": [
+        "https://pkg.go.dev/vuln/list?q=CVE-2026-97031"
+      ]
     }
   ]
 }
